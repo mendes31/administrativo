@@ -61,7 +61,7 @@ class ScreenResolutionManager {
         formData.append('width', width);
         formData.append('height', height);
 
-        fetch('/administrativo/screen-resolution/set', {
+        fetch('/administrativo2/screen-resolution/set', {
             method: 'POST',
             body: formData,
             headers: {

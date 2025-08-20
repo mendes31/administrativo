@@ -8,7 +8,6 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\AccessLevelsRepository;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\LogsRepository;
-use App\adms\Models\Repository\AccessLevelsPagesRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -103,13 +102,6 @@ class CreateAccessLevel
 
         // Se a criação do nível de acesso for bem-sucedida
         if ($result) {
-
-            // Sempre dar acesso à página Dashboard (ID 1) para novos níveis de acesso
-            $accessLevelsPagesRepo = new AccessLevelsPagesRepository();
-            $dashboardPermission = [
-                $result => [1] // ID do nível de acesso => [ID da página Dashboard]
-            ];
-            $accessLevelsPagesRepo->createPagesAccessLevel($dashboardPermission);
 
             // gravar logs na tabela adms-logs
             if ($_ENV['APP_LOGS'] == 'Sim') {

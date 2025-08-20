@@ -76,21 +76,9 @@ class ImportDepartments
     {
         $fp = fopen($tmpPath, 'r');
         if (!$fp) return false;
-        
-        // Autodetectar separador: conta ocorrências na primeira linha
-        $probe = fgets($fp);
-        if ($probe === false) { fclose($fp); return false; }
-        $countSemicolon = substr_count($probe, ';');
-        $countComma = substr_count($probe, ',');
-        $delimiter = $countSemicolon >= $countComma ? ';' : ',';
-        // Voltar ao início para leitura completa via fgetcsv
-        rewind($fp);
 
-        $header = fgetcsv($fp, 0, $delimiter);
+        $header = fgetcsv($fp, 0, ';');
         if (!$header) { fclose($fp); return false; }
-        // Garantir codificação UTF-8 (Excel frequentemente exporta em Windows-1252/ISO-8859-1)
-        $encodingFrom = 'UTF-8, ISO-8859-1, Windows-1252';
-        $header = array_map(fn($v) => mb_convert_encoding((string)$v, 'UTF-8', $encodingFrom), $header);
 
         $expected = ['name'];
         $map = [];
@@ -103,12 +91,7 @@ class ImportDepartments
         $created = 0; $updated = 0; $skipped = 0; $errors = 0; $rows = 1;
         $this->data['report'] = [];
 
-        while (($row = fgetcsv($fp, 0, $delimiter)) !== false) {
-            // Normalizar codificação da linha inteira para UTF-8
-            foreach ($row as &$val) {
-                $val = mb_convert_encoding((string)$val, 'UTF-8', $encodingFrom);
-            }
-            unset($val);
+        while (($row = fgetcsv($fp, 0, ';')) !== false) {
             $rows++;
             if (count(array_filter($row, fn($v)=> trim((string)$v) !== '')) === 0) continue;
 

@@ -74,39 +74,6 @@ class UsersAccessLevelsRepository extends DbConnection
         return $result;
     }
 
-    /**
-     * Recupera todos os usuários vinculados a um nível de acesso específico.
-     *
-     * @param int $accessLevelId ID do nível de acesso
-     * @return array Array com dados dos usuários ou array vazio se não houver
-     */
-    public function getUsersByAccessLevel(int $accessLevelId): array
-    {
-        $sql = 'SELECT 
-                    u.id,
-                    u.name,
-                    u.email,
-                    u.username,
-                    u.status,
-                    u.bloqueado,
-                    d.name as department_name,
-                    p.name as position_name
-                FROM adms_users u
-                INNER JOIN adms_users_access_levels ual ON u.id = ual.adms_user_id
-                LEFT JOIN adms_departments d ON u.user_department_id = d.id
-                LEFT JOIN adms_positions p ON u.user_position_id = p.id
-                WHERE ual.adms_access_level_id = :access_level_id
-                AND u.status = 1
-                ORDER BY u.name ASC';
-
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':access_level_id', $accessLevelId, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $result ?: [];
-    }
-
     public function updateUserAccessLevel(array $data): bool
     {
         // Criar o elemento userAccesLevels no array quando não vem nível de acesso do formulário

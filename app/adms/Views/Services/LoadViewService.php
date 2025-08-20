@@ -45,7 +45,7 @@ class LoadViewService
         // Verificar se o arquivo existe
         if (file_exists($this->view)) {
             // Incluir o layout principal
-            file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/administrativo/app/logs/filtro_global_debug.log', date('Y-m-d H:i:s') . ' - main.php executado em ' . ($_SERVER['REQUEST_URI'] ?? '') . ' user_id=' . ($_SESSION['user_id'] ?? 'null') . ' session_id=' . ($_SESSION['session_id'] ?? 'null') . PHP_EOL, FILE_APPEND);
+            file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/administrativo2/app/logs/filtro_global_debug.log', date('Y-m-d H:i:s') . ' - main.php executado em ' . ($_SERVER['REQUEST_URI'] ?? '') . ' user_id=' . ($_SESSION['user_id'] ?? 'null') . ' session_id=' . ($_SESSION['session_id'] ?? 'null') . PHP_EOL, FILE_APPEND);
             include './app/adms/Views/layouts/main.php';
         } else {
             die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");

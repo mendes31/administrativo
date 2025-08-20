@@ -25,31 +25,13 @@ use App\adms\Helpers\CSRFHelper;
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <div class="alert alert-info">
-                <h6><i class="fa-solid fa-info-circle"></i> Novo Formato CSV com Permissões</h6>
-                <p class="mb-2">O arquivo CSV agora deve conter 2 colunas:</p>
-                <ul class="mb-2">
-                    <li><strong>name:</strong> Nome do nível de acesso</li>
-                    <li><strong>permissions:</strong> IDs das páginas permitidas (separados por vírgula) ou "ALL" para permissão total</li>
-                </ul>
-                <p class="mb-0"><strong>Importante:</strong> 
-                <ul class="mb-0">
-                    <li>Níveis existentes terão suas permissões <strong>substituídas completamente</strong></li>
-                    <li>Novos níveis serão criados com permissões específicas</li>
-                    <li>Use "ALL" para dar permissão total a um nível</li>
-                    <li>Páginas não especificadas receberão permission = 0 (negado)</li>
-                    <li>Dashboard (ID 1) é sempre incluído automaticamente</li>
-                </ul>
-                </p>
-            </div>
-
             <form action="" method="POST" enctype="multipart/form-data" class="row g-3">
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_import_access_levels'); ?>">
 
                 <div class="col-12">
                     <label class="form-label">Arquivo CSV</label>
                     <input type="file" name="file" class="form-control" accept=".csv">
-                    <small class="text-muted">Use o template. Separador: ponto e vírgula (;) ou vírgula (,). Codificação: UTF-8/Windows-1252 aceito.</small>
+                    <small class="text-muted">Use o template. Separador: ponto e vírgula (;). Codificação: UTF-8.</small>
                 </div>
 
                 <div class="col-12">

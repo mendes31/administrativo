@@ -6,7 +6,6 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
-use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class ImportUsers
@@ -81,21 +80,14 @@ class ImportUsers
         $fp = fopen($tmpPath, 'r');
         if (!$fp) return false;
 
-        // Autodetectar separador e normalizar para UTF-8
-        $probe = fgets($fp);
-        if ($probe === false) { fclose($fp); return false; }
-        $countSemicolon = substr_count($probe, ';');
-        $countComma = substr_count($probe, ',');
-        $delimiter = $countSemicolon >= $countComma ? ';' : ',';
-        rewind($fp);
-
-        $header = fgetcsv($fp, 0, $delimiter);
-        if (!$header) { fclose($fp); return false; }
-        $encodingFrom = 'UTF-8, ISO-8859-1, Windows-1252';
-        $header = array_map(fn($v) => mb_convert_encoding((string)$v, 'UTF-8', $encodingFrom), $header);
+        $header = fgetcsv($fp, 0, ';');
+        if (!$header) {
+            fclose($fp);
+            return false;
+        }
 
         // Cabeçalhos esperados
-        $expected = ['name','email','username','department_id','position_id','access_level_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'];
+        $expected = ['name','email','username','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'];
         $map = [];
         foreach ($expected as $col) {
             $idx = array_search($col, $header, true);
@@ -106,9 +98,7 @@ class ImportUsers
         $created = 0; $updated = 0; $skipped = 0; $errors = 0; $rows = 1;
         $this->data['report'] = [];
 
-        while (($row = fgetcsv($fp, 0, $delimiter)) !== false) {
-            foreach ($row as &$val) { $val = mb_convert_encoding((string)$val, 'UTF-8', $encodingFrom); }
-            unset($val);
+        while (($row = fgetcsv($fp, 0, ';')) !== false) {
             $rows++;
             if (count(array_filter($row, fn($v)=> trim((string)$v) !== '')) === 0) continue;
 
@@ -141,7 +131,6 @@ class ImportUsers
                 'username' => trim((string)($row[$map['username']] ?? '')),
                 'user_department_id' => (int)($row[$map['department_id']] ?? 0),
                 'user_position_id' => (int)($row[$map['position_id']] ?? 0),
-                'access_level_id' => (int)($row[$map['access_level_id']] ?? 0), // Adicionado para associar ao nível de acesso
                 'password' => (string)($row[$map['password']] ?? ''),
                 'status' => (string)($row[$map['status']] ?? 'Ativo'),
                 'bloqueado' => $toBoolLabel($row[$map['bloqueado']] ?? 'Não'),
@@ -165,7 +154,6 @@ class ImportUsers
                     $payload['username'] = $payload['username'] !== '' ? $payload['username'] : ($existing['username'] ?? '');
                     $payload['user_department_id'] = $payload['user_department_id'] > 0 ? $payload['user_department_id'] : (int)($existing['user_department_id'] ?? 0);
                     $payload['user_position_id'] = $payload['user_position_id'] > 0 ? $payload['user_position_id'] : (int)($existing['user_position_id'] ?? 0);
-                    $payload['access_level_id'] = $payload['access_level_id'] > 0 ? $payload['access_level_id'] : (int)($existing['access_level_id'] ?? 0); // Atualizar nível de acesso
                     if (empty($payload['status']) && !empty($existing['status'])) $payload['status'] = $existing['status'];
                     if (empty($payload['bloqueado']) && !empty($existing['bloqueado'])) $payload['bloqueado'] = $existing['bloqueado'];
                     if (empty($payload['senha_nunca_expira']) && !empty($existing['senha_nunca_expira'])) $payload['senha_nunca_expira'] = $existing['senha_nunca_expira'];
@@ -173,14 +161,14 @@ class ImportUsers
                     if (empty($payload['data_nascimento']) && !empty($existing['data_nascimento'])) $payload['data_nascimento'] = $existing['data_nascimento'];
                     // Verificar diferenças e só atualizar se houver
                     $keysToCompare = [
-                        'name','email','username','user_department_id','user_position_id','access_level_id',
+                        'name','email','username','user_department_id','user_position_id',
                         'status','bloqueado','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'
                     ];
                     $hasDiff = false;
                     foreach ($keysToCompare as $k) {
                         $newVal = $payload[$k] ?? null;
                         $oldVal = $existing[$k] ?? null;
-                        if (in_array($k, ['user_department_id','user_position_id','access_level_id'])) {
+                        if (in_array($k, ['user_department_id','user_position_id'])) {
                             $newVal = (int)$newVal; $oldVal = (int)$oldVal;
                         } else {
                             $newVal = is_string($newVal) ? trim((string)$newVal) : $newVal;
@@ -199,11 +187,6 @@ class ImportUsers
                     if ($ok) {
                         $updated++;
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'atualizado', 'email'=>$payload['email']];
-                        
-                        // Atualizar nível de acesso se especificado
-                        if ($payload['access_level_id'] > 0) {
-                            $this->associateUserToAccessLevel($existing['id'], $payload['access_level_id']);
-                        }
                     } else {
                         $errors++;
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'erro', 'email'=>$payload['email'], 'msg'=>'Falha ao atualizar (verifique logs DEBUG updateUser)'];
@@ -217,11 +200,6 @@ class ImportUsers
                     if ($ok) {
                         $created++;
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'criado', 'email'=>$payload['email']];
-                        
-                        // Associar usuário ao nível de acesso se especificado
-                        if ($payload['access_level_id'] > 0) {
-                            $this->associateUserToAccessLevel($ok, $payload['access_level_id']);
-                        }
                     } else {
                         $errors++;
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'erro', 'email'=>$payload['email'], 'msg'=>'Falha ao criar'];
@@ -240,37 +218,6 @@ class ImportUsers
         return true;
     }
 
-    /**
-     * Associa um usuário a um nível de acesso
-     */
-    private function associateUserToAccessLevel(int $userId, int $accessLevelId): bool
-    {
-        try {
-            $usersAccessLevelsRepo = new UsersAccessLevelsRepository();
-            
-            // Verificar se já existe a associação
-            $existingAccessLevels = $usersAccessLevelsRepo->getUserAccessLevelArray($userId);
-            if ($existingAccessLevels && in_array($accessLevelId, $existingAccessLevels)) {
-                return true; // Já está associado
-            }
-            
-            // Criar a associação
-            $data = [
-                'adms_user_id' => $userId,
-                'userAccessLevelsArray' => [$accessLevelId]
-            ];
-            
-            return $usersAccessLevelsRepo->updateUserAccessLevel($data);
-        } catch (\Throwable $e) {
-            GenerateLog::generateLog('error', 'Falha ao associar usuário ao nível de acesso.', [
-                'user_id' => $userId, 
-                'access_level_id' => $accessLevelId, 
-                'error' => $e->getMessage()
-            ]);
-            return false;
-        }
-    }
-
     // Download do template CSV
     public function template(): void
     {
@@ -279,9 +226,9 @@ class ImportUsers
         header('Content-Disposition: attachment; filename=' . $filename);
         $out = fopen('php://output', 'w');
         // Cabeçalho com ; como separador
-        fputcsv($out, ['name','email','username','department_id','position_id','access_level_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'], ';');
+        fputcsv($out, ['name','email','username','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'], ';');
         // Linha exemplo
-        fputcsv($out, ['Maria Silva','maria@empresa.com','maria.silva',1,2,1,'SenhaForte123!','Ativo','Não',0,'Não','Não','20/08/1990'], ';');
+        fputcsv($out, ['Maria Silva','maria@empresa.com','maria.silva',1,2,'SenhaForte123!','Ativo','Não',0,'Não','Não','20/08/1990'], ';');
         fclose($out);
         exit;
     }

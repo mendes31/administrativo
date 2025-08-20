@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    font-size: 11px; 
+                    line-height: 1.3; 
+                    color: #333;
+                }
+                .header { 
+                    text-align: center; 
+                    border-bottom: 3px solid #2c3e50; 
+                    padding-bottom: 15px; 
+                    margin-bottom: 25px; 
+                }
+                .logo { 
+                    font-size: 24px; 
+                    font-weight: bold; 
+                    color: #2c3e50; 
+                    margin-bottom: 5px;
+                }
+                .subtitle { 
+                    font-size: 14px; 
+                    color: #7f8c8d; 
+                    margin-bottom: 10px;
+                }
+                .access-level { 
+                    font-size: 18px; 
+                    font-weight: bold; 
+                    color: #3498db; 
+                    background: #ecf0f1; 
+                    padding: 10px; 
+                    border-radius: 5px; 
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                .stats { 
+                    display: flex; 
+                    justify-content: space-between; 
+                    margin-bottom: 25px; 
+                    flex-wrap: wrap;
+                }
+                .stat-box { 
+                    background: #f8f9fa; 
+                    border: 1px solid #dee2e6; 
+                    border-radius: 5px; 
+                    padding: 15px; 
+                    text-align: center; 
+                    flex: 1; 
+                    margin: 0 5px;
+                    min-width: 120px;
+                }
+                .stat-number { 
+                    font-size: 24px; 
+                    font-weight: bold; 
+                    color: #2c3e50; 
+                    display: block;
+                }
+                .stat-label { 
+                    font-size: 11px; 
+                    color: #7f8c8d; 
+                    margin-top: 5px;
+                }
+                .section { 
+                    margin-bottom: 25px; 
+                    page-break-inside: avoid;
+                }
+                .section-title { 
+                    font-size: 16px; 
+                    font-weight: bold; 
+                    border-bottom: 2px solid #3498db; 
+                    padding-bottom: 8px; 
+                    margin-bottom: 15px; 
+                    color: #2c3e50; 
+                    background: #ecf0f1; 
+                    padding: 10px; 
+                    border-radius: 5px 5px 0 0;
+                }
+                .group { 
+                    margin-bottom: 20px; 
+                    border: 1px solid #dee2e6; 
+                    border-radius: 5px;
+                    page-break-inside: avoid;
+                }
+                .group-header { 
+                    background: #f8f9fa; 
+                    padding: 10px; 
+                    border-bottom: 1px solid #dee2e6; 
+                    font-weight: bold; 
+                    color: #495057;
+                }
+                .group-stats { 
+                    display: flex; 
+                    justify-content: space-between; 
+                    padding: 8px 10px; 
+                    background: #e9ecef; 
+                    border-bottom: 1px solid #dee2e6;
+                    font-size: 10px;
+                }
+                .group-stat { 
+                    text-align: center; 
+                    flex: 1;
+                }
+                .group-stat-number { 
+                    font-weight: bold; 
+                    color: #2c3e50;
+                }
+                .pages-list { 
+                    padding: 10px; 
+                    max-height: 200px; 
+                    overflow-y: auto;
+                }
+                .page-item { 
+                    padding: 5px 0; 
+                    border-bottom: 1px solid #f1f3f4; 
+                    display: flex; 
+                    justify-content: space-between;
+                }
+                .page-item:last-child { 
+                    border-bottom: none; 
+                }
+                .page-name { 
+                    flex: 1;
+                }
+                .page-status { 
+                    font-weight: bold; 
+                    padding: 2px 8px; 
+                    border-radius: 3px; 
+                    font-size: 10px;
+                }
+                .status-allowed { 
+                    background: #d4edda; 
+                    color: #155724; 
+                }
+                .status-denied { 
+                    background: #f8d7da; 
+                    color: #721c24; 
+                }
+                .users-section { 
+                    margin-top: 30px; 
+                    page-break-inside: avoid;
+                }
+                .user-item { 
+                    padding: 8px 10px; 
+                    border-bottom: 1px solid #f1f3f4; 
+                    display: flex; 
+                    justify-content: space-between;
+                }
+                .user-info { 
+                    flex: 1;
+                }
+                .user-name { 
+                    font-weight: bold; 
+                    color: #2c3e50;
+                }
+                .user-details { 
+                    font-size: 10px; 
+                    color: #7f8c8d; 
+                    margin-top: 2px;
+                }
+                .footer { 
+                    margin-top: 40px; 
+                    text-align: center; 
+                    font-size: 10px; 
+                    color: #7f8c8d; 
+                    border-top: 1px solid #dee2e6; 
+                    padding-top: 15px; 
+                }
+                .no-data { 
+                    text-align: center; 
+                    color: #7f8c8d; 
+                    font-style: italic; 
+                    padding: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class='header'>
+                <div class='logo'>TIARAJU</div>
+                <div class='subtitle'>Sistema Administrativo</div>
+                <div class='subtitle'>Relatório de Permissões de Nível de Acesso</div>
+            </div>
+
+            <div class='access-level'>
+                Agente de Higienização
+            </div>
+
+            <div class='stats'>
+                <div class='stat-box'>
+                    <span class='stat-number'>301</span>
+                    <div class='stat-label'>Total de Páginas</div>
+                </div>
+                <div class='stat-box'>
+                    <span class='stat-number'>301</span>
+                    <div class='stat-label'>Permissões Ativas</div>
+                </div>
+                <div class='stat-box'>
+                    <span class='stat-number'>6</span>
+                    <div class='stat-label'>Usuários Vinculados</div>
+                </div>
+                <div class='stat-box'>
+                    <span class='stat-number'>100%</span>
+                    <div class='stat-label'>Cobertura</div>
+                </div>
+            </div>
+
+            <div class='section'>
+                <div class='section-title'>📋 Permissões por Grupo</div>
+                
+                
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Avaliações
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Minhas Avaliações</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Histórico de Avaliações</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Bancos
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Bancos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Cargo
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>8</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>8</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Cargo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Cargos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Cargo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Cargo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Cargo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Importar Cargos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Pagina listar Documentos VS Cargos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Vincular Cargos a Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Centros de Custo
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>6</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>6</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Centros de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Centros de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Centros de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Centros de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Centros de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Importar Centros de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Clientes
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Clientes</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Dashboard
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>5</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>5</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Dashboard</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Dashboard de KPIs - Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Dashboard LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Dashboard TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Dashboard RIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Departamento
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>6</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>6</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Departamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Departamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Departamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Departamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Departamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Importar Departamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Documentos
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Página para listar Documentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Página para cadastrar Documentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Formas de Pagamento
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Formas de Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Fornecedores
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Fornecedores</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Frequência
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>5</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>5</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Frequência para Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Frequências para Pagamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Frequência para Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Frequência para Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Frequência para Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Grupos de Páginas
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Grupos de Páginas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Informativos
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Informativos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 LGPD
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>18</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>18</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Inventário LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Inventário LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Inventário LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Inventário LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Inventário LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Data Mapping LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Data Mapping LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Data Mapping LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Data Mapping LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Data Mapping LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Relatório Integrado do Fluxo LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Consentimentos LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Consentimento LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Consentimento LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Consentimento LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Consentimento LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Coleta de Consentimento LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Processar Coleta de Consentimento LGPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Logs
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>5</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>5</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Logs CSV</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Logs Excel</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Logs PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Logs de Acesso Excel</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Logs de Acesso PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Notificações
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>3</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>3</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Teste de Notificações de Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Enviar Notificações de Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Notificações</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Outros
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>219</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>219</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Imagem do Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Senha do Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Troca Obrigatória de Senha</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Remover Imagem do Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Nível de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Níveis de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Nível de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Nível de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Nível de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Nível de Acesso do usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Sincronizar Nível de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Importar Níveis de Acesso</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Pacote</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Pacote</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Pacote</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Pacote</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Grupo de Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Grupo de Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Grupo de Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Grupo de Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Página</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Página de Login</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Novo Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Recuperar Senha</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Nova Senha</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Sair do Administrativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Erro 403</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Banco</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Banco</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Banco</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Banco</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>ListMovBetweenAccounts</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>MovBetweenAccounts</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Transferências entre Contas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>UpdateMovBetweenAccounts</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Parcelar Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Pagar Conta</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Obter o status das Contas à Pagar</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Verificar se a Conta à Pagar está ocupada</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Desocupar a Conta à Pagar ocupada</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Parcelar Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Receber Conta</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Processar o arquivo de importação de Contas à Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Obter o status das Contas a Receber</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Verificar se a Conta à Receber está ocupada</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Desocupar a Conta à Receber ocupada</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Plano de Contas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Plano de Contas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Plano de Contas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Plano de Contas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Plano de Contas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Cliente</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Cliente</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Cliente</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Cliente</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Fornecedor</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Fornecedor</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Fornecedor</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Fornecedor</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Importar Fornecedor</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Forma de Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Forma de Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Forma de Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Forma de Pagamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Movimentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Fluxo de Caixa</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar o Fluxo de Caixa em PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Pagina Resumo Por Centro de Custo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Pagina Resumo Financeiro Regime de Caixa e Competência</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Movimentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Deletar Movimentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Movimento Recebido</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Deletar Movimento Recebido</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Pagina para visualizar o cadastro do documento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Agendar Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Aplicar Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Matriz por Colaborador</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Histórico de Reciclagem</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Vincular Colaboradores ao Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Salvar Vínculo de Colaborador</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Remover Vínculo de Colaborador</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Responder Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Treinamento</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Modelos de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Modelo de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Modelo de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Modelo de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Modelo de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Perguntas de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Pergunta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Pergunta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Pergunta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Aplicar Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Resultado de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Respostas de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Resposta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Resposta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Resposta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Resposta de Avaliação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Buscar Perguntas por Modelo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Configuração de E-mail</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Configuração de E-mail</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Configuração de E-mail</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Testar Configuração de E-mail</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Política de Senha</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Ajax Política de Senha</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Ajax Validação Simples de Senha</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Filial</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Filiais</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Filial</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Filial</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Filial</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>ListLogAlteracoes</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>ViewLogAlteracao</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Log de Alterações</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>ListLogAcessos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Planos Estratégicos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Plano Estratégico</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Plano Estratégico</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Indicadores Estratégicos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Indicador Estratégico</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Indicador Estratégico</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Informativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Informativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Informativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Apagar Informativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Servir Arquivo de Upload</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Remover Imagem do Informativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Remover Anexo do Informativo</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar ROPA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar ROPA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar ROPA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar ROPA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir ROPA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Categorias de Titulares</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Categoria de Titular</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Categoria de Titular</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Categoria de Titular</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Categoria de Titular</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Finalidades</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Finalidade</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Finalidade</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Finalidade</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Finalidade</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Bases Legais</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Base Legal</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Base Legal</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Base Legal</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Base Legal</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Tipos de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Tipo de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Tipo de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Tipo de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Tipo de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Classificações de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Classificação de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Classificação de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Classificação de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Classificação de Dados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Criar ROPA a partir do Inventário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Criar Data Mapping a partir da ROPA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar AIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar AIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar AIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar AIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir AIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Sugestões de AIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Setor de Saúde</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Setor Financeiro</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - E-commerce</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Educação</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - RH</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Marketing</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Telecomunicações</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Logística</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template AIPD - Jurídico</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Enviar Consentimento por E-mail</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Processar Envio de Consentimento por E-mail</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Testes TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Cadastrar Teste TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Teste TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar Teste TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir Teste TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Templates de TIA</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template TIA - RH</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template TIA - Marketing</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template TIA - Financeiro</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Template TIA - TI</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar TIA PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar TIA PDF View</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Lista TIA PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar RIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Criar RIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar RIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar RIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Excluir RIPD</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar RIPD PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Lista RIPD PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Visualizar RIPD PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Pacotes
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Pacotes</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Pagamentos
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Pagamentos de uma Conta</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Processar o arquivo de importação de pagamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Perfil
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Perfil do Usuário</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Editar Senha do Usuário via perfil</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Permissões
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Liberar Permissões</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Exportar Permissões PDF</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Páginas
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>1</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Páginas</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Treinamentos
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>6</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>6</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Histórico de Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Status dos Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Matriz de Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Atualizar Matriz de Treinamentos</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Matriz de Treinamentos Realizados</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            <div class='group'>
+                <div class='group-header'>
+                    📁 Usuários
+                </div>
+                <div class='group-stats'>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Total
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>2</span><br>
+                        Autorizadas
+                    </div>
+                    <div class='group-stat'>
+                        <span class='group-stat-number'>0</span><br>
+                        Revogadas
+                    </div>
+                </div>
+                <div class='pages-list'>
+                    <div class='page-item'>
+                        <div class='page-name'>Listar Usuários</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                    <div class='page-item'>
+                        <div class='page-name'>Importar Usuários</div>
+                        <div class='page-status status-allowed'>✓ Permitido</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div class='section users-section'>
+                <div class='section-title'>👥 Usuários Vinculados</div>
+                
+                
+            <div class='user-item'>
+                <div class='user-info'>
+                    <div class='user-name'>Débora Cristina Rodrigues Medeiros</div>
+                    <div class='user-details'>
+                        debora.medeiros@teste.com.br | debora.medeiros | Higienização | Agente de Higienização
+                    </div>
+                </div>
+            </div>
+            <div class='user-item'>
+                <div class='user-info'>
+                    <div class='user-name'>Elisane dos Santos Weppo</div>
+                    <div class='user-details'>
+                        elisane.weppo@teste.com.br | elisane.weppo | Higienização | Agente de Higienização
+                    </div>
+                </div>
+            </div>
+            <div class='user-item'>
+                <div class='user-info'>
+                    <div class='user-name'>Janini de Oliveira Bueno</div>
+                    <div class='user-details'>
+                        janini.bueno@teste.com.br | janini.bueno | Higienização | Agente de Higienização
+                    </div>
+                </div>
+            </div>
+            <div class='user-item'>
+                <div class='user-info'>
+                    <div class='user-name'>Maristela Klein Ibing</div>
+                    <div class='user-details'>
+                        maristela.ibing@teste.com.br | maristela.ibing | Higienização | Agente de Higienização
+                    </div>
+                </div>
+            </div>
+            <div class='user-item'>
+                <div class='user-info'>
+                    <div class='user-name'>Rosemeri de Fátima Moreira Pavão</div>
+                    <div class='user-details'>
+                        rosemeri.pavao@teste.com.br | rosemeri.pavao | Higienização | Agente de Higienização
+                    </div>
+                </div>
+            </div>
+            <div class='user-item'>
+                <div class='user-info'>
+                    <div class='user-name'>Sandra Regina Rakovski Zambon</div>
+                    <div class='user-details'>
+                        sandra.zambon@teste.com.br | sandra.zambon | Higienização | Agente de Higienização
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div class='footer'>
+                <p>Relatório gerado em 19/08/2025 19:13:03</p>
+                <p>Sistema Tiaraju - Administrativo</p>
+            </div>
+        </body>
+        </html>

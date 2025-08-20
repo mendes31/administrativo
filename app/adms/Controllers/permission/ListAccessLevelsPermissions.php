@@ -90,7 +90,7 @@ class ListAccessLevelsPermissions
         $pageElements = [
             'title_head' => 'Editar Permissão do Nível de Acesso',
             'menu' => 'list-access-levels',
-            'buttonPermission' => ['ListAccessLevels', 'ExportAccessLevelPermissionsPdf'],
+            'buttonPermission' => ['ListAccessLevels'],
         ];
         $pageLayoutService = new PageLayoutService(); 
         // Combinar os valores do atributos 'data' com o array dos elementos da página

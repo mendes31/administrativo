@@ -95,9 +95,9 @@ class AccessLevelsPagesRepository extends DbConnection
                 $values = [];
                 $placeholders = [];
 
-                // Percorrer o array de páginas que o nível de acesso tem permissão de acessar
+                // Percorrer o array de páginas que o nível de acesso não tem permissão de acessar
                 foreach ($accessLevelPages as $pageId) {
-                    $values[] = 1; // permission = 1 (permitido)
+                    $values[] = $accessLevelId == 1 ? 1 : 0;
                     $values[] = $accessLevelId;
                     $values[] = $pageId;
                     $values[] = date("Y-m-d H:i:s");
@@ -139,28 +139,6 @@ class AccessLevelsPagesRepository extends DbConnection
             // Gerar log de erro
             GenerateLog::generateLog("error", "Páginas não cadastradas para o nível de acesso.", ['error' => $e->getMessage()]);
 
-            return false;
-        }
-    }
-
-    /**
-     * Remove todas as permissões de um nível de acesso específico
-     *
-     * @param int $accessLevelId ID do nível de acesso
-     * @return bool Retorna `true` se a operação foi bem-sucedida, ou `false` em caso de erro
-     */
-    public function removeAllPermissionsByAccessLevel(int $accessLevelId): bool
-    {
-        try {
-            $sql = 'DELETE FROM adms_access_levels_pages WHERE adms_access_level_id = :access_level_id';
-            $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':access_level_id', $accessLevelId, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            GenerateLog::generateLog("info", "Permissões removidas do nível de acesso.", ['adms_access_level_id' => $accessLevelId]);
-            return true;
-        } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Falha ao remover permissões do nível de acesso.", ['error' => $e->getMessage()]);
             return false;
         }
     }

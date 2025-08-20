@@ -77,18 +77,8 @@ class ImportPositions
         $fp = fopen($tmpPath, 'r');
         if (!$fp) return false;
 
-        // Autodetectar separador e normalizar para UTF-8
-        $probe = fgets($fp);
-        if ($probe === false) { fclose($fp); return false; }
-        $countSemicolon = substr_count($probe, ';');
-        $countComma = substr_count($probe, ',');
-        $delimiter = $countSemicolon >= $countComma ? ';' : ',';
-        rewind($fp);
-
-        $header = fgetcsv($fp, 0, $delimiter);
+        $header = fgetcsv($fp, 0, ';');
         if (!$header) { fclose($fp); return false; }
-        $encodingFrom = 'UTF-8, ISO-8859-1, Windows-1252';
-        $header = array_map(fn($v) => mb_convert_encoding((string)$v, 'UTF-8', $encodingFrom), $header);
 
         $expected = ['name'];
         $map = [];
@@ -101,9 +91,7 @@ class ImportPositions
         $created = 0; $updated = 0; $skipped = 0; $errors = 0; $rows = 1;
         $this->data['report'] = [];
 
-        while (($row = fgetcsv($fp, 0, $delimiter)) !== false) {
-            foreach ($row as &$val) { $val = mb_convert_encoding((string)$val, 'UTF-8', $encodingFrom); }
-            unset($val);
+        while (($row = fgetcsv($fp, 0, ';')) !== false) {
             $rows++;
             if (count(array_filter($row, fn($v)=> trim((string)$v) !== '')) === 0) continue;
 

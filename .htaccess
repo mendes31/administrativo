@@ -1,7 +1,7 @@
 # Documentação: https://httpd.apache.org/docs/2.4/rewrite/flags.html
 # Ativa o módulo Rewrite, que faz a reescrita de URL.
 RewriteEngine On
-RewriteBase /administrativo/
+RewriteBase /administrativo2/
 
 # Não reescrever se for arquivo ou diretório físico
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -11,7 +11,7 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
 # Quando houver o erro 403 redirecionar o usuário 
-ErrorDocument 403 http://localhost/administrativo/error403   
+ErrorDocument 403 http://localhost/administrativo2/error403   
 
 # Bloquear a opção listar os arquivos do diretório
 Options -Indexes

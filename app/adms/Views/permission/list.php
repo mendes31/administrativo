@@ -202,17 +202,11 @@
             </table>
         </div>
         
-        <!-- Botões de ação -->
+        <!-- Botão de salvar -->
         <div class="text-center py-4">
-            <div class="d-flex justify-content-center gap-3">
-                <a href="<?php echo $_ENV['URL_ADM']; ?>export-access-level-permissions-pdf/<?php echo ($this->data['accessLevel']['id'] ?? ''); ?>" 
-                   class="btn btn-info btn-lg px-4" target="_blank">
-                    <i class="fas fa-file-pdf me-2"></i> Exportar PDF
-                </a>
-                <button type="button" class="btn btn-primary btn-lg px-5" id="savePermissionsBtn">
-                    <i class="fas fa-save me-2"></i> Salvar Permissões
-                </button>
-            </div>
+            <button type="button" class="btn btn-primary btn-lg px-5" id="savePermissionsBtn">
+                <i class="fas fa-save me-2"></i> Salvar Permissões
+            </button>
         </div>
     </form>
 </div>

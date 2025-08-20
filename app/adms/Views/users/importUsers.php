@@ -31,7 +31,7 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="col-12">
                     <label class="form-label">Arquivo CSV</label>
                     <input type="file" name="file" class="form-control" accept=".csv">
-                    <small class="text-muted">Use o template. Separador: ponto e vírgula (;) ou vírgula (,). Codificação: UTF-8/Windows-1252 aceito. <strong>Nova coluna:</strong> access_level_id para definir o nível de acesso do usuário.</small>
+                    <small class="text-muted">Use o template. Separador: ponto e vírgula (;). Codificação: UTF-8.</small>
                 </div>
 
                 <div class="col-12">
