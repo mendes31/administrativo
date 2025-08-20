@@ -1,0 +1,14 @@
+2025-05-26 08:59:17 | Registro ignorado: Array
+(
+    [num_doc] => 7353
+    [installment_number] => 1
+    [doc_date] => 12/03/2025
+    [card_code_fornecedor] => F00567
+    [description] => FRIGELAR COMERCIO E INDUSTRIA LTDA
+    [due_date] => 2025-04-09
+    [value] => 0.00
+    [expected_date] => 2025-04-09
+    [pay_method_id] => 0
+    [issue_date] => 
+)
+

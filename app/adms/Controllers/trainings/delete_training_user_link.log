@@ -1,0 +1,9 @@
+POST: Array
+(
+    [training_id] => 6
+    [user_id] => 1
+)
+
+trainingId: 6, userId: 1
+Chamando deleteIndividualVinculo...
+Remoção executada

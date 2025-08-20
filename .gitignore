@@ -1,0 +1,27 @@
+# Arquivos e diretórios que não devem ser enviados para o GitHub
+/vendor/
+
+# Ignorar todos os arquivos dentro do diretório logs
+logs/*
+
+# # Exceto o arquivo .empty
+!logs/.empty
+
+.env
+
+# Ignorar todos os arquivos abaixo
+caminho_do_log
+app/adms/Controllers/serveFile/debug_path_param.txt
+app/adms/Controllers/serveFile/debug_path_service.txt
+app/adms/Controllers/serveFile/log_servefile.txt
+app/adms/Views/partials/menu.php
+app/logs/filtro_global_debug.log
+app/logs/force_password_change_debug.log
+app/logs/login_debug.log
+app/logs/session_debug.log
+app/logs/session_debug2.log
+app/adms/Controllers/serveFile/debug_path_param.txt
+app/adms/Controllers/serveFile/debug_path_service.txt
+app/adms/Controllers/serveFile/log_servefile.txt
+app/logs/filtro_global_debug.log
+app/logs/session_debug2.log

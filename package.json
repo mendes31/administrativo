@@ -1,0 +1,32 @@
+{
+  "name": "administrativo",
+  "version": "1.0.0",
+  "description": "Sistema Administrativo PHP com suporte a ferramentas JavaScript",
+  "main": "index.php",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo \"Linting JavaScript files...\"",
+    "lint:md": "markdownlint '**/*.md' --fix",
+    "lint:all": "npm run lint && npm run lint:md",
+    "build": "echo \"Building assets...\"",
+    "dev": "echo \"Development mode...\"",
+    "format": "prettier --write '**/*.{js,css,html,md}'"
+  },
+  "keywords": [
+    "php",
+    "administrative",
+    "system",
+    "web"
+  ],
+  "author": "Rafael Mendes",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

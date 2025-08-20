@@ -1,0 +1,76 @@
+body, table, th, td, input, select, button {
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+    font-size: 16px !important;
+    box-sizing: border-box;
+}
+
+.table, table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+/* Padrão: todas as células não quebram linha, mostram ellipsis */
+th, td {
+    padding: 8px 10px !important;
+    text-align: left !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 16px !important;
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+}
+
+/* Permite quebra de linha apenas em colunas específicas (ex: Nome, Descrição) */
+.col-nome, .col-descricao {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: initial !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    min-width: 180px !important;
+    max-width: 300px !important;
+}
+
+td.col-nome > div, th.col-nome > div,
+td.col-descricao > div, th.col-descricao > div {
+    display: block !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: initial !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
+}
+
+/* Força largura fixa para outras colunas específicas se necessário */
+th[style*="width"], td[style*="width"] {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+input, select, button {
+    font-size: 1em;
+    padding: 6px 10px;
+}
+
+@media (max-width: 767px) {
+    th, td {
+        font-size: 0.95em;
+        padding: 6px 5px;
+    }
+    .btn {
+        font-size: 0.95em;
+        padding: 0.4em 0.7em;
+    }
+    
+    .col-nome {
+        min-width: 120px !important;
+        max-width: 200px !important;
+    }
+}
+
+.dataTables_wrapper .dataTables_scrollBody {
+    overflow-x: auto !important;
+} 

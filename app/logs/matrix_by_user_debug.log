@@ -1,0 +1,76 @@
+2025-07-07 10:30:25 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:30:25 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:30:51 - user_id: 1 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:30:51 - user_id: 1 - matrixByUser count: 10
+2025-07-07 10:31:40 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:31:41 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:31:45 - user_id: 1 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:31:45 - user_id: 1 - matrixByUser count: 10
+2025-07-07 10:32:53 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:32:53 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:33:10 - user_id: 1 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:33:10 - user_id: 1 - matrixByUser count: 10
+2025-07-07 10:34:36 - user_id: 1 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:34:36 - user_id: 1 - matrixByUser count: 10
+2025-07-07 10:34:56 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:34:56 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:38:08 - user_id: 1 - Filtros: {"colaborador":"","departamento":"8","cargo":"","treinamento":""}
+2025-07-07 10:38:08 - user_id: 1 - matrixByUser count: 9
+2025-07-07 10:38:09 - user_id: 1 - listUsers count: 14
+2025-07-07 10:38:09 - user_id: 1 - listDepartments count: 19
+2025-07-07 10:38:09 - user_id: 1 - listPositions count: 11
+2025-07-07 10:38:09 - user_id: 1 - listTrainings count: 11
+2025-07-07 10:38:39 - user_id: 1 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:38:39 - user_id: 1 - matrixByUser count: 10
+2025-07-07 10:38:39 - user_id: 1 - listUsers count: 14
+2025-07-07 10:38:39 - user_id: 1 - listDepartments count: 19
+2025-07-07 10:38:39 - user_id: 1 - listPositions count: 11
+2025-07-07 10:38:39 - user_id: 1 - listTrainings count: 11
+2025-07-07 10:38:57 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:38:57 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:38:57 - user_id: 14 - listUsers count: 14
+2025-07-07 10:38:57 - user_id: 14 - listDepartments count: 19
+2025-07-07 10:38:57 - user_id: 14 - listPositions count: 11
+2025-07-07 10:38:57 - user_id: 14 - listTrainings count: 11
+2025-07-07 10:39:30 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:39:30 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:39:30 - user_id: 14 - listUsers count: 14
+2025-07-07 10:39:30 - user_id: 14 - listDepartments count: 19
+2025-07-07 10:39:30 - user_id: 14 - listPositions count: 11
+2025-07-07 10:39:30 - user_id: 14 - listTrainings count: 11
+2025-07-07 10:40:41 - user_id: 7 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:40:41 - user_id: 7 - matrixByUser count: 10
+2025-07-07 10:40:41 - user_id: 7 - listUsers count: 14
+2025-07-07 10:40:41 - user_id: 7 - listDepartments count: 19
+2025-07-07 10:40:41 - user_id: 7 - listPositions count: 11
+2025-07-07 10:40:41 - user_id: 7 - listTrainings count: 11
+2025-07-07 10:40:52 - user_id: 7 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:40:52 - user_id: 7 - matrixByUser count: 10
+2025-07-07 10:40:52 - user_id: 7 - listUsers count: 14
+2025-07-07 10:40:52 - user_id: 7 - listDepartments count: 19
+2025-07-07 10:40:52 - user_id: 7 - listPositions count: 11
+2025-07-07 10:40:52 - user_id: 7 - listTrainings count: 11
+2025-07-07 10:40:58 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:40:58 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:40:58 - user_id: 14 - listUsers count: 14
+2025-07-07 10:40:58 - user_id: 14 - listDepartments count: 19
+2025-07-07 10:40:58 - user_id: 14 - listPositions count: 11
+2025-07-07 10:40:58 - user_id: 14 - listTrainings count: 11
+2025-07-07 10:42:05 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:42:05 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:42:05 - user_id: 14 - listUsers count: 14
+2025-07-07 10:42:05 - user_id: 14 - listDepartments count: 19
+2025-07-07 10:42:05 - user_id: 14 - listPositions count: 11
+2025-07-07 10:42:05 - user_id: 14 - listTrainings count: 11
+2025-07-07 10:42:09 - user_id: 14 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:42:09 - user_id: 14 - matrixByUser count: 10
+2025-07-07 10:42:09 - user_id: 14 - listUsers count: 14
+2025-07-07 10:42:09 - user_id: 14 - listDepartments count: 19
+2025-07-07 10:42:09 - user_id: 14 - listPositions count: 11
+2025-07-07 10:42:09 - user_id: 14 - listTrainings count: 11
+2025-07-07 10:42:28 - user_id: 1 - Filtros: {"colaborador":null,"departamento":null,"cargo":null,"treinamento":null}
+2025-07-07 10:42:28 - user_id: 1 - matrixByUser count: 10
+2025-07-07 10:42:29 - user_id: 1 - listUsers count: 14
+2025-07-07 10:42:29 - user_id: 1 - listDepartments count: 19
+2025-07-07 10:42:29 - user_id: 1 - listPositions count: 11
+2025-07-07 10:42:29 - user_id: 1 - listTrainings count: 11

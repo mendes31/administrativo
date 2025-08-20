@@ -1,0 +1,59 @@
+# Documentação: https://httpd.apache.org/docs/2.4/rewrite/flags.html
+# Ativa o módulo Rewrite, que faz a reescrita de URL.
+RewriteEngine On
+RewriteBase /administrativo/
+
+# Não reescrever se for arquivo ou diretório físico
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Redireciona tudo para index.php, preservando subdiretórios e pontos
+RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
+
+# Quando houver o erro 403 redirecionar o usuário 
+ErrorDocument 403 http://localhost/administrativo/error403   
+
+# Bloquear a opção listar os arquivos do diretório
+Options -Indexes
+
+# Bloquear acesso direto aos diretórios pela URL
+RewriteRule ^app/ - [F]
+RewriteRule ^database/ - [F]
+RewriteRule ^logs/ - [F]
+RewriteRule ^routes/ - [F]
+RewriteRule ^vendor/ - [F]
+
+# Bloquear acesso direto aos arquivos pela URL
+<FilesMatch "^\.env$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^\.env.exemple$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^\.gitignore$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^\.htaccess$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^composer.json$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^composer.lock$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^LICENSE.txt$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^README.md$">
+    Require all denied
+</FilesMatch>
+
+

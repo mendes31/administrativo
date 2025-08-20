@@ -1,0 +1,250 @@
+
+/* Remove o sublinhado */
+.custom-tooltip {
+  text-decoration: none !important;
+}
+
+/* Personaliza a cor de fundo e a cor do texto do tooltip */
+.tooltip-pagamentos .tooltip-inner {
+  background-color: #dc3545  !important; /* Fundo escuro */
+  color: #ffffff !important; /* Texto branco */
+  font-weight: bold;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 5px;
+}
+
+/* Personaliza a cor de fundo e a cor do texto do tooltip */
+.tooltip-pago .tooltip-inner {
+  background-color: #198754  !important; /* Fundo escuro */
+  color: #ffffff !important; /* Texto branco */
+  font-weight: bold;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 5px;
+}
+
+/* Ajusta a seta do tooltip */
+.bs-tooltip-top .tooltip-arrow::before {
+  border-top-color: #343a40 !important; /* Cor da seta combinando com o fundo */
+}
+
+
+.tooltip-pagar .tooltip-inner {
+  background-color: #198754!important; /* Cor de fundo do tooltip */
+  color: white !important; /* Cor do texto do tooltip */
+  font-weight: bold;
+}
+
+.tooltip-receber .tooltip-inner {
+  background-color: #198754!important; /* Cor de fundo do tooltip */
+  color: white !important; /* Cor do texto do tooltip */
+  font-weight: bold;
+}
+
+.btn-parcelar {
+  background-color: #ff9800 !important; /* Laranja */
+  color: #000000 !important;
+  border-color: #ff9800 !important;
+}
+
+.tooltip-parcelar .tooltip-inner {
+  background-color: #ff9800 !important; /* Cor de fundo do tooltip */
+  color: #000000 !important; /* Cor do texto do tooltip */
+  font-weight: bold;
+}
+
+
+.tooltip-visualizar .tooltip-inner {
+  background-color: #0d6efd !important; /* Cor de fundo do tooltip */
+  color: white !important; /* Cor do texto do tooltip */
+  font-weight: bold;
+}
+
+.tooltip-editar .tooltip-inner {
+  background-color: #ffc107 !important; /* Cor de fundo do tooltip */
+  color: #000000 !important; /* Cor do texto do tooltip */
+  font-weight: bold;
+}
+
+.tooltip-deletar .tooltip-inner {
+  background-color: #dc3545 !important; /* Cor de fundo do tooltip */
+  color: white !important; /* Cor do texto do tooltip */
+  font-weight: bold;
+}
+
+
+.bg-nav {
+    background-color: #2C844B;
+    /* background-color: #183181; */
+}
+.bg-login {
+  background-color: #2C844B;
+  /* background-color: #183181; */
+}
+
+.bg-btn {
+  background-color: #F26222;
+  /* background-color: #183181; */
+}
+
+.sb-sidenav-five {
+    /* background-color: #F9fafc; */
+    background-color: #2C844B;
+    box-shadow: 0 8px 14px rgba(0, 0, 0, .10), 0 8px 8px rgba(0, 0, 0, .10) !important;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .sb-sidenav-menu-heading {
+  color: rgba(41, 41, 41, 0.5);
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link {
+  color: rgba(41, 41, 41, 0.9);
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link .sb-nav-link-icon {
+  color: rgba(41, 41, 41, 0.9);
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link .sb-sidenav-collapse-arrow {
+  color: rgba(41, 41, 41, 0.25);
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link:hover {
+  color: #181818;
+  background-color: #f0efef;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link.active {
+  color: #181818;
+  background-color: #f0efef;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link.active .sb-nav-link-icon {
+  color: #181818;
+  background-color: #f0efef;
+}
+
+.sb-sidenav-five .sb-sidenav-footer {
+  background-color: #eeeded;
+}
+
+.tabela-acoes .ocultar{
+  display: none;
+}
+
+/* Estiliza a célula de ações para manter os botões alinhados */
+td.text-center {
+  white-space: nowrap; /* Impede a quebra de linha */
+}
+
+/* Alinha os botões horizontalmente por padrão */
+.tabela-acoes {
+  display: flex;
+  gap: 3px;
+  justify-content: flex-start; /* Alinha os botões à esquerda */
+  align-items: center;
+  flex-wrap: nowrap; /* Impede a quebra de linha por padrão */
+}
+
+/* Para telas menores que 576px (celulares pequenos), permite a quebra */
+@media (max-width: 576px) {
+  .tabela-acoes {
+      flex-wrap: wrap; /* Agora os botões quebram linha se necessário */
+  }
+  
+  
+}
+
+/* Reduz o padding das células da tabela em telas menores */
+@media (max-width: 768px) {
+  .table th, .table td {
+      padding: 4px 6px; /* Diminui o espaçamento interno */
+      font-size: 12px;  /* Reduz o tamanho da fonte */
+  }
+}
+
+/* Para telas ainda menores */
+@media (max-width: 576px) {
+  .table th, .table td {
+      padding: 2px 4px;
+      font-size: 10px;
+  }
+}
+
+.tabela-acoes a {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+
+/* Define um tamanho uniforme para todos os botões */
+.tabela-acoes button {
+  width: 30px;  /* Ajuste conforme necessário */
+  height: 30px; /* Ajuste conforme necessário */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px; /* Mantém espaçamento uniforme */
+}
+
+.btn-acao {
+  min-width: 38px;  /* ou 45px, ou 100% se quiser largura cheia */
+  text-align: center;
+}
+
+@media (max-width: 576px) {
+  .btn-filtros-mobile {
+    width: 48%;
+    min-width: 0;
+    font-size: 0.95rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .filtros-btns-row {
+    display: flex;
+    flex-direction: row;
+    gap: 4%;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Utilitários para Treinamentos e tabelas */
+.btn-min-width-90 { min-width: 90px; }
+.btn-min-width-70 { min-width: 70px; }
+.w-100pct { width: 100%; }
+.text-left { text-align: left; }
+.th-id { width: 60px; }
+.th-codigo { width: 100px; }
+.th-versao { width: 80px; }
+.th-reciclar { width: 100px; }
+.th-tipo { width: 100px; }
+.th-instrutor { width: 120px; }
+.th-carga-horaria { width: 100px; }
+.th-cargos-vinculados { width: 120px; }
+.th-status { width: 80px; }
+.th-acoes { width: 200px; }
+.table-fixed { table-layout: fixed; width: 100%; }
+.display-none { display: none !important; }
+.min-width-900 { min-width: 900px; }
+.sticky-thead { position:sticky;top:0;z-index:1;background:#f8f9fa; }
+.font-grey { color:#888; }
+.font-095 { font-size:0.95em; }
+.height-20 { height: 20px; }
+.max-width-200 { max-width: 200px; }
+.max-height-70vh { max-height: 70vh; }
+.min-height-48 { min-height:48px; }
+
+body, html, .container-fluid, .card {
+  overflow-x: hidden !important;
+  max-width: 100vw;
+}
+
+
+
+
+
+
