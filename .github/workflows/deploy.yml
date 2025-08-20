@@ -1,0 +1,23 @@
+name: Deploy PHP para Kinghost
+ 
+on:
+  push:
+    branches:
+      - main   # só faz deploy quando houver push na branch main
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+ 
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./    # pasta do seu projeto no repositório
+          server-dir: /public_html  # pasta no servidor da Kinghost
