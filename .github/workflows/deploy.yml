@@ -12,6 +12,22 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+
+      - name: Setup PHP com Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3.14'
+          coverage: none
+          tools: composer:2.8.5
+
+      - name: Validar PHP e Composer
+        run: |
+          php -v
+          composer --version
+          composer validate --no-check-publish
+
+      - name: Instalar dependências (composer install)
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
  
       - name: Deploy Core Files (PHP, Config)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -20,7 +36,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: /www/administrativo/
+          server-dir: /administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 120000  # 20 minutos definidos mas apenas 60 segundos (limite do servidor)
@@ -39,8 +55,6 @@ jobs:
             .vscode/**
             logs/
             logs/**
-            vendor/
-            vendor/**
             bootstrap-5.3.3-dist/
             bootstrap-5.3.3-dist/**
             DataTables/
@@ -61,8 +75,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          local-dir: ./app/adms/Views/
-          server-dir: ./www/administrativo/app/adms/Views/
+          local-dir: ./
+          server-dir: /administrativo/app/adms/Views/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -76,8 +90,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          local-dir: ./public/
-          server-dir: ./www/administrativo/public/
+          local-dir: ./
+          server-dir: /administrativo/public/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
