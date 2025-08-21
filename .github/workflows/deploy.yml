@@ -71,7 +71,7 @@ jobs:
             --exclude-glob startbootstrap-sb-admin-gh-pages/** \
             --exclude-glob scripts/fix_urls.py \
             --exclude-glob scripts/fix_urls.sh \
-            ./administrativo/
+            ./ administrativo/
           quit
           EOF
 
