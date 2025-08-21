@@ -77,12 +77,35 @@ class ImportUsers
 
     private function processCsv(string $tmpPath): bool
     {
-        $fp = fopen($tmpPath, 'r');
-        if (!$fp) return false;
+        // Detectar e tratar encoding do arquivo
+        $content = file_get_contents($tmpPath);
+        
+        // Remover BOM se existir
+        $bom = pack('H*','EFBBBF');
+        $content = preg_replace("/^$bom/", '', $content);
+        
+        // Detectar encoding
+        $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        
+        // Converter para UTF-8 se necessário
+        if ($encoding && $encoding !== 'UTF-8') {
+            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+        }
+        
+        // Salvar conteúdo convertido em arquivo temporário
+        $tempFile = tempnam(sys_get_temp_dir(), 'csv_utf8_');
+        file_put_contents($tempFile, $content);
+        
+        $fp = fopen($tempFile, 'r');
+        if (!$fp) { 
+            unlink($tempFile);
+            return false; 
+        }
 
         $header = fgetcsv($fp, 0, ';');
         if (!$header) {
             fclose($fp);
+            unlink($tempFile);
             return false;
         }
 
@@ -125,14 +148,36 @@ class ImportUsers
                 return $t ? date('Y-m-d', $t) : null;
             };
 
+            // Garantir que os campos de texto estão em UTF-8 válido
+            $name = trim((string)($row[$map['name']] ?? ''));
+            if (!mb_check_encoding($name, 'UTF-8')) {
+                $name = mb_convert_encoding($name, 'UTF-8', 'UTF-8');
+            }
+            $name = mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+            
+            $email = trim((string)($row[$map['email']] ?? ''));
+            if (!mb_check_encoding($email, 'UTF-8')) {
+                $email = mb_convert_encoding($email, 'UTF-8', 'UTF-8');
+            }
+            
+            $username = trim((string)($row[$map['username']] ?? ''));
+            if (!mb_check_encoding($username, 'UTF-8')) {
+                $username = mb_convert_encoding($username, 'UTF-8', 'UTF-8');
+            }
+            
+            $status = trim((string)($row[$map['status']] ?? 'Ativo'));
+            if (!mb_check_encoding($status, 'UTF-8')) {
+                $status = mb_convert_encoding($status, 'UTF-8', 'UTF-8');
+            }
+            
             $payload = [
-                'name' => trim((string)($row[$map['name']] ?? '')),
-                'email' => trim((string)($row[$map['email']] ?? '')),
-                'username' => trim((string)($row[$map['username']] ?? '')),
+                'name' => $name,
+                'email' => $email,
+                'username' => $username,
                 'user_department_id' => (int)($row[$map['department_id']] ?? 0),
                 'user_position_id' => (int)($row[$map['position_id']] ?? 0),
                 'password' => (string)($row[$map['password']] ?? ''),
-                'status' => (string)($row[$map['status']] ?? 'Ativo'),
+                'status' => $status,
                 'bloqueado' => $toBoolLabel($row[$map['bloqueado']] ?? 'Não'),
                 'tentativas_login' => (int)($row[$map['tentativas_login']] ?? 0),
                 'senha_nunca_expira' => $toBoolLabel($row[$map['senha_nunca_expira']] ?? 'Não'),
@@ -212,6 +257,9 @@ class ImportUsers
             }
         }
         fclose($fp);
+        
+        // Limpar arquivo temporário
+        unlink($tempFile);
 
         $this->data['summary'] = compact('created','updated','skipped','errors');
         $_SESSION['success'] = "Importação concluída: criados {$created}, atualizados {$updated}, erros {$errors}.";
@@ -222,13 +270,25 @@ class ImportUsers
     public function template(): void
     {
         $filename = 'template_importacao_usuarios.csv';
+        
+        // Headers para garantir UTF-8
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+        
+        // Adicionar BOM UTF-8 para compatibilidade com Excel
+        echo "\xEF\xBB\xBF";
+        
         $out = fopen('php://output', 'w');
+        
         // Cabeçalho com ; como separador
         fputcsv($out, ['name','email','username','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'], ';');
-        // Linha exemplo
+        
+        // Linha exemplo com acentos para testar
         fputcsv($out, ['Maria Silva','maria@empresa.com','maria.silva',1,2,'SenhaForte123!','Ativo','Não',0,'Não','Não','20/08/1990'], ';');
+        fputcsv($out, ['João Santos','joao@empresa.com','joao.santos',2,1,'SenhaForte123!','Ativo','Não',0,'Não','Não','15/03/1985'], ';');
+        
         fclose($out);
         exit;
     }

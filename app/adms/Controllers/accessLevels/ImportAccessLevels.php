@@ -74,11 +74,37 @@ class ImportAccessLevels
 
     private function processCsv(string $tmpPath): bool
     {
-        $fp = fopen($tmpPath, 'r');
-        if (!$fp) return false;
+        // Detectar e tratar encoding do arquivo
+        $content = file_get_contents($tmpPath);
+        
+        // Remover BOM se existir
+        $bom = pack('H*','EFBBBF');
+        $content = preg_replace("/^$bom/", '', $content);
+        
+        // Detectar encoding
+        $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        
+        // Converter para UTF-8 se necessário
+        if ($encoding && $encoding !== 'UTF-8') {
+            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+        }
+        
+        // Salvar conteúdo convertido em arquivo temporário
+        $tempFile = tempnam(sys_get_temp_dir(), 'csv_utf8_');
+        file_put_contents($tempFile, $content);
+        
+        $fp = fopen($tempFile, 'r');
+        if (!$fp) { 
+            unlink($tempFile);
+            return false; 
+        }
 
         $header = fgetcsv($fp, 0, ';');
-        if (!$header) { fclose($fp); return false; }
+        if (!$header) { 
+            fclose($fp); 
+            unlink($tempFile);
+            return false; 
+        }
 
         $expected = ['name'];
         $map = [];
@@ -97,6 +123,14 @@ class ImportAccessLevels
 
             $name = trim((string)($row[$map['name']] ?? ''));
             if ($name === '') { $skipped++; $this->data['report'][] = ['linha'=>$rows,'acao'=>'ignorado','msg'=>'Nome vazio']; continue; }
+            
+            // Garantir que o nome está em UTF-8 válido
+            if (!mb_check_encoding($name, 'UTF-8')) {
+                $name = mb_convert_encoding($name, 'UTF-8', 'UTF-8');
+            }
+            
+            // Normalizar caracteres especiais
+            $name = mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
 
             try {
                 $existing = $repo->getByName($name);
@@ -121,6 +155,9 @@ class ImportAccessLevels
             }
         }
         fclose($fp);
+        
+        // Limpar arquivo temporário
+        unlink($tempFile);
 
         $this->data['summary'] = compact('created','updated','skipped','errors');
         $_SESSION['success'] = "Importação concluída: criados {$created}, atualizados {$updated}, erros {$errors}.";
@@ -130,11 +167,27 @@ class ImportAccessLevels
     public function template(): void
     {
         $filename = 'template_importacao_niveis_acesso.csv';
+        
+        // Headers para garantir UTF-8
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+        
+        // Adicionar BOM UTF-8 para compatibilidade com Excel
+        echo "\xEF\xBB\xBF";
+        
         $out = fopen('php://output', 'w');
+        
+        // Cabeçalho
         fputcsv($out, ['name'], ';');
+        
+        // Exemplos com acentos para testar
         fputcsv($out, ['Líder'], ';');
+        fputcsv($out, ['Administrador'], ';');
+        fputcsv($out, ['Usuário'], ';');
+        fputcsv($out, ['Coordenador'], ';');
+        
         fclose($out);
         exit;
     }
