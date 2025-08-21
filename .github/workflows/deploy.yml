@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: ./www/administrativo/
+          server-dir: /www/administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 120000  # 20 minutos definidos mas apenas 60 segundos (limite do servidor)
