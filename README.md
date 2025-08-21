@@ -50,6 +50,7 @@ vendor/bin/phinx seed:run -c database/phinx.php
 ```
 
 Acessar o projeto: [Acessar](http://localhost/administrativo)
+<!-- # Acessar o projeto: [Acessar](http://www.administrativotiaraju.kinghost.net/administrativo/) -->
 
 ---
 
