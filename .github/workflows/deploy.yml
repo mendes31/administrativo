@@ -32,46 +32,30 @@ jobs:
 
       # Dependências não serão enviadas; composer deve ser executado no servidor (SSH/cron)
  
-      - name: Deploy Aplicação Completa (sem vendor)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Deploy via SCP (sem vendor)
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./
-          server-dir: ./administrativo/
-          protocol: ftps
-          port: 990
-          state-name: administrativo-sync.json
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 300000  # aumenta tolerância a timeouts do KingHost
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .env
-            .DS_Store
-            README.md
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            logs/
-            logs/**
-            vendor/
-            vendor/**
-            bootstrap-5.3.3-dist/
-            bootstrap-5.3.3-dist/**
-            DataTables/
-            DataTables/**
-            startbootstrap-sb-admin-gh-pages/
-            startbootstrap-sb-admin-gh-pages/**
-            scripts/fix_urls.py
-            scripts/fix_urls.sh
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USER }}
+          password: ${{ secrets.SFTP_PASS }}  # ou use key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: |
+            ./
+            !.git/**
+            !.github/**
+            !.gitignore
+            !.env
+            !logs/**
+            !vendor/**
+            !node_modules/**
+            !.vscode/**
+            !bootstrap-5.3.3-dist/**
+            !DataTables/**
+            !startbootstrap-sb-admin-gh-pages/**
+            !scripts/fix_urls.py
+            !scripts/fix_urls.sh
+          target: administrativo/
+          strip_components: 0
 
       # Sem deploy de vendor: instale no servidor após o upload
  
