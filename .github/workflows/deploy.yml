@@ -39,23 +39,10 @@ jobs:
           username: ${{ secrets.SFTP_USER }}
           password: ${{ secrets.SFTP_PASS }}  # ou use key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          source: |
-            ./
-            !.git/**
-            !.github/**
-            !.gitignore
-            !.env
-            !logs/**
-            !vendor/**
-            !node_modules/**
-            !.vscode/**
-            !bootstrap-5.3.3-dist/**
-            !DataTables/**
-            !startbootstrap-sb-admin-gh-pages/**
-            !scripts/fix_urls.py
-            !scripts/fix_urls.sh
+          source: "./**/*,!.git/**,!.github/**,!.gitignore,!.env,!logs/**,!vendor/**,!node_modules/**,!.vscode/**,!bootstrap-5.3.3-dist/**,!DataTables/**,!startbootstrap-sb-admin-gh-pages/**,!scripts/fix_urls.py,!scripts/fix_urls.sh"
           target: administrativo/
           strip_components: 0
+          overwrite: true
 
       # Sem deploy de vendor: instale no servidor após o upload
  
