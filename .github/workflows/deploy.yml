@@ -251,6 +251,45 @@ jobs:
           echo ""
           echo "💡 Dica: Use Ctrl+F nos logs para buscar por 'README.md'"
 
+      # Criação automática de pastas essenciais no servidor
+      - name: Criar Pastas Essenciais no Servidor
+        if: always()
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: |
+          echo "🔧 === CRIAÇÃO DE PASTAS ESSENCIAIS ==="
+          echo "📁 Criando pastas necessárias no servidor..."
+          
+          # Instalar lftp se não estiver disponível
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y lftp
+          fi
+          
+          # Criar pastas essenciais via FTP
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set ftp:passive-mode true
+          set ftp:ssl-allow no
+          set net:timeout 30
+          
+          echo "🔄 Conectando ao servidor..."
+          cd administrativo
+          
+          echo "📁 Criando pasta logs..."
+          mkdir -p logs
+          
+          echo "📁 Criando pasta public/uploads..."
+          mkdir -p public/uploads
+          
+          echo "📁 Verificando permissões..."
+          chmod 755 logs
+          chmod 755 public/uploads
+          
+          echo "✅ Pastas essenciais criadas com sucesso!"
+          quit
+          EOF
+
       # Verificação final e relatório de integridade detalhado
       - name: Verificar Deploy e Gerar Relatório Detalhado
         if: always()
