@@ -39,7 +39,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: ./www/administrativo/
+          server-dir: ./administrativo/
           protocol: ftps
           port: 21
           dangerous-clean-slate: false
