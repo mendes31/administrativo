@@ -35,29 +35,26 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy via lftp (SFTP incremental com logs)
+      - name: Deploy via lftp (FTPS com fallback FTP)
         env:
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-          SFTP_USER: ${{ secrets.SFTP_USER }}
-          SFTP_PASS: ${{ secrets.SFTP_PASS }}
+          FTP_HOST: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
         run: |
-          lftp -u "$SFTP_USER","$SFTP_PASS" sftp://$SFTP_HOST:22 <<'EOF'
-          set sftp:auto-confirm yes
-          set cmd:trace yes
-          debug 6
+          set +e
+          echo "Tentando FTPS (porta 21, TLS explícito)..."
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set ftp:passive-mode true
+          set ftp:ssl-allow yes
+          set ftp:ssl-force yes
+          set ftp:ssl-protect-data yes
           set net:timeout 60
           set net:max-retries 12
           set net:reconnect-interval-base 5
           set net:reconnect-interval-max 60
           set net:idle 30
           set xfer:clobber on
-
-          mirror -R \
-            --parallel=1 \
-            --only-newer \
-            --continue \
-            --no-perms \
-            --verbose \
+          mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
@@ -71,9 +68,39 @@ jobs:
             --exclude-glob startbootstrap-sb-admin-gh-pages/** \
             --exclude-glob scripts/fix_urls.py \
             --exclude-glob scripts/fix_urls.sh \
-            ./ administrativo/
+            ./ administrativo
           quit
           EOF
+          STATUS=$?
+          if [ $STATUS -ne 0 ]; then
+            echo "FTPS falhou, tentando FTP simples (sem TLS)..."
+            lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+            set ftp:passive-mode true
+            set ftp:ssl-allow no
+            set net:timeout 60
+            set net:max-retries 12
+            set net:reconnect-interval-base 5
+            set net:reconnect-interval-max 60
+            set net:idle 30
+            set xfer:clobber on
+            mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
+              --exclude-glob .git/** \
+              --exclude-glob .github/** \
+              --exclude-glob .gitignore \
+              --exclude-glob .env \
+              --exclude-glob logs/** \
+              --exclude-glob vendor/** \
+              --exclude-glob node_modules/** \
+              --exclude-glob .vscode/** \
+              --exclude-glob bootstrap-5.3.3-dist/** \
+              --exclude-glob DataTables/** \
+              --exclude-glob startbootstrap-sb-admin-gh-pages/** \
+              --exclude-glob scripts/fix_urls.py \
+              --exclude-glob scripts/fix_urls.sh \
+              ./ administrativo
+            quit
+            EOF
+          fi
 
       # Sem deploy de vendor: instale no servidor após o upload
  
