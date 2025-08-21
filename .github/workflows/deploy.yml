@@ -35,7 +35,6 @@ jobs:
             .github/**
             .gitignore
             .DS_Store
-            README.md
             LICENSE.txt
             node_modules/
             node_modules/**
@@ -67,7 +66,6 @@ jobs:
             .github/**
             .gitignore
             .DS_Store
-            README.md
             LICENSE.txt
             node_modules/
             node_modules/**
@@ -99,7 +97,6 @@ jobs:
             .github/**
             .gitignore
             .DS_Store
-            README.md
             LICENSE.txt
             node_modules/
             node_modules/**
@@ -131,7 +128,6 @@ jobs:
             .github/**
             .gitignore
             .DS_Store
-            README.md
             LICENSE.txt
             node_modules/
             node_modules/**
@@ -163,7 +159,6 @@ jobs:
             .github/**
             .gitignore
             .DS_Store
-            README.md
             LICENSE.txt
             node_modules/
             node_modules/**
