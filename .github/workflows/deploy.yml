@@ -40,7 +40,7 @@ jobs:
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
           server-dir: ./administrativo/
-          protocol: ftps
+          protocol: ftp
           port: 21
           state-name: administrativo-sync.json
           dangerous-clean-slate: false
