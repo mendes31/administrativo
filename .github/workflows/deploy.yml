@@ -15,18 +15,18 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # Estratégia 1: Deploy em lotes pequenos para evitar timeout
-      - name: Deploy Core Files (PHP, Config)
+      # Estratégia 1: Deploy Core Files com retry automático
+      - name: Deploy Core Files (PHP, Config) - Tentativa 1
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: ./www/administrativo/
+          server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 60000  # 60 segundos (limite do servidor)
+          timeout: 30000  # 30 segundos (mais conservador)
           exclude: |
             .git/
             .git/**
@@ -58,18 +58,122 @@ jobs:
             public/adms/jquery/**
             public/adms/DataTables/**
 
-      # Estratégia 2: Deploy de Views separadamente (arquivos pequenos)
-      - name: Deploy Views (Templates)
+      # Retry automático para Core Files
+      - name: Deploy Core Files (PHP, Config) - Tentativa 2
+        if: failure()
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./
+          server-dir: ./administrativo/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 30000
+          exclude: |
+            .git/
+            .git/**
+            .github/
+            .github/**
+            .gitignore
+            .DS_Store
+            README.md
+            LICENSE.txt
+            node_modules/
+            node_modules/**
+            .vscode/
+            .vscode/**
+            logs/
+            logs/**
+            vendor/
+            vendor/**
+            bootstrap-5.3.3-dist/
+            bootstrap-5.3.3-dist/**
+            DataTables/
+            DataTables/**
+            startbootstrap-sb-admin-gh-pages/
+            startbootstrap-sb-admin-gh-pages/**
+            app/adms/Views/**
+            public/adms/image/**
+            public/adms/uploads/**
+            public/adms/css/**
+            public/adms/js/**
+            public/adms/jquery/**
+            public/adms/DataTables/**
+
+      # Retry final para Core Files
+      - name: Deploy Core Files (PHP, Config) - Tentativa 3
+        if: failure()
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./
+          server-dir: ./administrativo/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 30000
+          exclude: |
+            .git/
+            .git/**
+            .github/
+            .github/**
+            .gitignore
+            .DS_Store
+            README.md
+            LICENSE.txt
+            node_modules/
+            node_modules/**
+            .vscode/
+            .vscode/**
+            logs/
+            logs/**
+            vendor/
+            vendor/**
+            bootstrap-5.3.3-dist/
+            bootstrap-5.3.3-dist/**
+            DataTables/
+            DataTables/**
+            startbootstrap-sb-admin-gh-pages/
+            startbootstrap-sb-admin-gh-pages/**
+            app/adms/Views/**
+            public/adms/image/**
+            public/adms/uploads/**
+            public/adms/css/**
+            public/adms/js/**
+            public/adms/jquery/**
+            public/adms/DataTables/**
+
+      # Estratégia 2: Deploy de Views com retry automático
+      - name: Deploy Views (Templates) - Tentativa 1
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./app/adms/Views/
-          server-dir: ./www/administrativo/app/adms/Views/
+          server-dir: ./administrativo/app/adms/Views/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 60000
+          timeout: 30000
+          exclude: |
+            **/.DS_Store
+            **/*.log
+
+      - name: Deploy Views (Templates) - Tentativa 2
+        if: failure()
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./app/adms/Views/
+          server-dir: ./administrativo/app/adms/Views/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 30000
           exclude: |
             **/.DS_Store
             **/*.log
@@ -82,7 +186,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./public/
-          server-dir: ./www/administrativo/public/
+          server-dir: ./administrativo/public/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -104,7 +208,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./app/adms/Controllers/
-          server-dir: ./www/administrativo/app/adms/Controllers/
+          server-dir: ./administrativo/app/adms/Controllers/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -119,7 +223,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./app/adms/Models/
-          server-dir: ./www/administrativo/app/adms/Models/
+          server-dir: ./administrativo/app/adms/Models/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -135,7 +239,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./app/Helpers/
-          server-dir: ./www/administrativo/app/Helpers/
+          server-dir: ./administrativo/app/Helpers/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -150,7 +254,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./routes/
-          server-dir: ./www/administrativo/routes/
+          server-dir: ./administrativo/routes/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -166,7 +270,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: ./www/administrativo/
+          server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 60000
@@ -199,13 +303,58 @@ jobs:
             scripts/
             database/
 
+      # Estratégia de fallback: Deploy de arquivos críticos individuais
+      - name: Deploy Arquivos Críticos (Fallback)
+        if: failure()
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./
+          server-dir: ./administrativo/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 15000  # 15 segundos (muito conservador)
+          exclude: |
+            .git/
+            .git/**
+            .github/
+            .github/**
+            .gitignore
+            .DS_Store
+            README.md
+            LICENSE.txt
+            node_modules/
+            node_modules/**
+            .vscode/
+            .vscode/**
+            logs/
+            logs/**
+            vendor/
+            vendor/**
+            bootstrap-5.3.3-dist/
+            bootstrap-5.3.3-dist/**
+            DataTables/
+            DataTables/**
+            startbootstrap-sb-admin-gh-pages/
+            startbootstrap-sb-admin-gh-pages/**
+            app/adms/Views/**
+            app/adms/Controllers/**
+            app/adms/Models/**
+            app/Helpers/**
+            public/**
+            routes/**
+            scripts/**
+            database/**
+
       # Instruções pós-deploy
       - name: Instruções pós-deploy
         run: |
           echo "✅ Deploy concluído!"
           echo "📋 Próximos passos no servidor:"
           echo "1. Acesse via SSH ou painel KingHost"
-          echo "2. Execute: cd www/administrativo"
+          echo "2. Execute: cd administrativo"
           echo "3. Execute: composer install --no-dev --optimize-autoloader"
           echo "4. Configure .env com URL_ADM correta"
           echo "5. Execute: php scripts/generate-htaccess.php"
