@@ -10,7 +10,10 @@ RewriteBase /administrativo/
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Redireciona tudo para index.php, preservando subdiretórios e pontos
+# Permitir acesso direto à pasta public (assets estáticos)
+RewriteCond %{REQUEST_URI} !^/administrativo/public/
+
+# Redirecionar o resto para index.php, preservando subdiretórios e pontos
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
 # Quando houver o erro 403 redirecionar o usuário 
