@@ -39,10 +39,12 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: ./administrativo/
+          server-dir: ./www/administrativo/
+          protocol: ftps
+          port: 21
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 120000  # 20 minutos definidos mas apenas 60 segundos (limite do servidor)
+          timeout: 300000  # aumenta tolerância a timeouts do KingHost
           exclude: |
             .git/
             .git/**
