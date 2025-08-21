@@ -42,6 +42,7 @@ jobs:
           server-dir: ./administrativo/
           protocol: ftps
           port: 21
+          state-name: administrativo-sync.json
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000  # aumenta tolerância a timeouts do KingHost
