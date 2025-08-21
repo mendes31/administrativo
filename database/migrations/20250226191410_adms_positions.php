@@ -27,11 +27,14 @@ final class AdmsPositions extends AbstractMigration
             $table = $this->table('adms_positions');
 
             // Define as colunas da tabela
-            $table->addColumn('name', 'string', ['null' => false])
+            $table->addColumn('name', 'string', ['null' => false, 'limit' => 255])
                     ->addColumn('created_at', 'timestamp')
                     ->addColumn('updated_at', 'timestamp')
-                    ->addIndex(['name'], ['unique' => true, 'name' => 'idx_unique_name']) // Adiciona i índice único com o nome específico
+                    ->addIndex(['name'], ['unique' => true, 'name' => 'idx_unique_name']) // Adiciona índice único com o nome específico
                     ->create();
+            
+            // Garantir charset UTF-8 na tabela
+            $this->execute('ALTER TABLE adms_positions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 
         }
     }

@@ -293,13 +293,16 @@ class PositionsRepository extends DbConnection
     }
 
     /**
-     * Obter cargo pelo nome (case-insensitive, trim)
+     * Obter cargo pelo nome (case-insensitive, trim, UTF-8 safe)
      */
     public function getByName(string $name): array|bool
     {
-        $sql = 'SELECT id, name FROM adms_positions WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1';
+        // Normalizar o nome para comparação
+        $normalizedName = mb_strtolower(trim($name), 'UTF-8');
+        
+        $sql = 'SELECT id, name FROM adms_positions WHERE LOWER(TRIM(name)) = :normalized_name LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':name', $name, PDO::PARAM_STR);
+        $stmt->bindValue(':normalized_name', $normalizedName, PDO::PARAM_STR);
         $stmt->execute();
         $res = $stmt->fetch(PDO::FETCH_ASSOC);
         return $res ?: false;

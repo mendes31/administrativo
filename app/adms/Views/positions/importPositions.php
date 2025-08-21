@@ -31,7 +31,14 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="col-12">
                     <label class="form-label">Arquivo CSV</label>
                     <input type="file" name="file" class="form-control" accept=".csv">
-                    <small class="text-muted">Use o template. Separador: ponto e vírgula (;). Codificação: UTF-8.</small>
+                    <small class="text-muted">
+                        <strong>Instruções importantes:</strong><br>
+                        • Use o template fornecido para garantir formato correto<br>
+                        • Separador: ponto e vírgula (;)<br>
+                        • <strong>Codificação: UTF-8 (obrigatório para acentos)</strong><br>
+                        • Se usar Excel: Salve como "CSV UTF-8 (Delimitado por vírgulas)"<br>
+                        • Se usar LibreOffice: Salve como "CSV" com codificação "UTF-8"
+                    </small>
                 </div>
 
                 <div class="col-12">
