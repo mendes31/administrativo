@@ -14,6 +14,16 @@
 4. Altere no arquivo `.env` o endereço da aplicação na variável de ambiente `URL_ADM`.
 5. Altere no arquivo `.env` as credenciais do servidor para enviar e-mail.
 6. Script para gerar .htaccess dinamicamente baseado nas variáveis de ambiente ou altere o .htacces manual.
+
+# Da raiz do projeto
+```bash
+python3 scripts/fix_urls.py
+```
+
+```bash
+bash scripts/fix_urls.sh
+```
+
 7. Execute Script (update_urls ou update_urls) para atualizar URLs hardcoded para usar a variável de ambiente URL_ADM .
 8. Envie e-mail gratuito via SMTP: [Solicitar conta SMTP](https://www.iagente.com.br/solicitacao-conta-smtp/origin/celke)
 
