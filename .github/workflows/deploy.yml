@@ -1,16 +1,16 @@
 name: Deploy PHP para Kinghost (Estratégia Dividida)
- 
+
 on:
   push:
     branches:
       - main
       - dev-master
   workflow_dispatch: {}
- 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
           composer validate --no-check-publish
 
       # Dependências não serão enviadas; composer deve ser executado no servidor (SSH/cron)
- 
+
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
@@ -48,6 +48,7 @@ jobs:
           set ftp:ssl-allow yes
           set ftp:ssl-force yes
           set ftp:ssl-protect-data yes
+          set ftp:ssl-verify no
           set net:timeout 60
           set net:max-retries 12
           set net:reconnect-interval-base 5
@@ -103,5 +104,5 @@ jobs:
           fi
 
       # Sem deploy de vendor: instale no servidor após o upload
- 
+
       # Etapas separadas removidas; deploy único cria toda a estrutura
