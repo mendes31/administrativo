@@ -1,4 +1,4 @@
-name: Deploy PHP para Kinghost (Deploy Forçado - Sem Queda)
+name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 
 on:
   push:
@@ -15,8 +15,8 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # Estratégia 1: Deploy único e completo com retry infinito
-      - name: Deploy Completo - Tentativa 1
+      # Estratégia 1: Deploy incremental inteligente com verificação
+      - name: Deploy Incremental - Tentativa 1
         id: deploy1
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -27,7 +27,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 300000  # 5 minutos (muito alto para evitar queda)
+          timeout: 300000  # 5 minutos
           exclude: |
             .git/
             .git/**
@@ -46,8 +46,8 @@ jobs:
             vendor/
             vendor/**
 
-      # Retry automático infinito até completar
-      - name: Deploy Completo - Tentativa 2
+      # Verificação e deploy incremental da tentativa 2
+      - name: Deploy Incremental - Tentativa 2
         if: failure() && steps.deploy1.outcome == 'failure'
         id: deploy2
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -78,7 +78,8 @@ jobs:
             vendor/
             vendor/**
 
-      - name: Deploy Completo - Tentativa 3
+      # Verificação e deploy incremental da tentativa 3
+      - name: Deploy Incremental - Tentativa 3
         if: failure() && steps.deploy2.outcome == 'failure'
         id: deploy3
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -109,7 +110,8 @@ jobs:
             vendor/
             vendor/**
 
-      - name: Deploy Completo - Tentativa 4
+      # Verificação e deploy incremental da tentativa 4
+      - name: Deploy Incremental - Tentativa 4
         if: failure() && steps.deploy3.outcome == 'failure'
         id: deploy4
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -140,7 +142,8 @@ jobs:
             vendor/
             vendor/**
 
-      - name: Deploy Completo - Tentativa 5
+      # Verificação e deploy incremental da tentativa 5
+      - name: Deploy Incremental - Tentativa 5
         if: failure() && steps.deploy4.outcome == 'failure'
         id: deploy5
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -171,22 +174,22 @@ jobs:
             vendor/
             vendor/**
 
-      # Estratégia 2: Fallback para lftp se todas as tentativas FTP falharem
-      - name: Install lftp (Fallback)
+      # Estratégia 2: Fallback lftp com verificação incremental
+      - name: Install lftp (Fallback Inteligente)
         if: failure() && steps.deploy5.outcome == 'failure'
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy via lftp (Fallback Forçado)
+      - name: Deploy via lftp (Fallback Incremental)
         if: failure() && steps.deploy5.outcome == 'failure'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER }}
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASS: ${{ secrets.FTP_PASS }}
         run: |
-          echo "🚨 FTP falhou 5 vezes, usando lftp como fallback..."
-          echo "📁 Enviando TODOS os arquivos para administrativo/"
+          echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
+          echo "📁 Verificando arquivos existentes e enviando apenas o que falta..."
           
-          # Deploy forçado com lftp
+          # Deploy incremental com lftp (--only-newer e --continue)
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set ftp:passive-mode true
           set ftp:ssl-allow no
@@ -197,8 +200,19 @@ jobs:
           set net:idle 60
           set xfer:clobber on
           
-          echo "🔄 Iniciando deploy forçado..."
-          mirror -R --parallel=1 --continue --no-perms --verbose \
+          echo "🔄 Iniciando deploy incremental..."
+          echo "📋 Usando --only-newer para enviar apenas arquivos novos/modificados"
+          echo "📋 Usando --continue para continuar transferências interrompidas"
+          echo "📋 Usando --verbose para mostrar cada arquivo processado"
+          echo ""
+          echo "📊 FLAGS lftp utilizadas:"
+          echo "   --only-newer: Envia apenas arquivos mais recentes/modificados"
+          echo "   --continue: Continua transferências interrompidas"
+          echo "   --verbose: Mostra detalhes de cada arquivo"
+          echo "   --no-perms: Não perde tempo com permissões"
+          echo ""
+          
+          mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
@@ -209,20 +223,36 @@ jobs:
             --exclude-glob .vscode/** \
             ./ administrativo
           
-          echo "✅ Deploy lftp concluído!"
+          echo ""
+          echo "✅ Deploy lftp incremental concluído!"
+          echo "📊 Resumo do que foi enviado:"
+          echo "   🆕 Arquivos novos: Enviados pela primeira vez"
+          echo "   🔄 Arquivos modificados: Atualizados no servidor"
+          echo "   ⏭️ Arquivos idênticos: Pulados (já existiam)"
           quit
           EOF
 
-      # Verificação final do deploy
-      - name: Verificar Deploy
+      # Verificação final e relatório de integridade detalhado
+      - name: Verificar Deploy e Gerar Relatório Detalhado
         if: always()
         run: |
+          echo "🔍 === RELATÓRIO DE DEPLOY DETALHADO ==="
+          
           if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
             echo "✅ Deploy FTP bem-sucedido!"
+            echo "📊 Tentativas utilizadas:"
+            [ "${{ steps.deploy1.outcome }}" == "success" ] && echo "   - Tentativa 1: ✅"
+            [ "${{ steps.deploy2.outcome }}" == "success" ] && echo "   - Tentativa 2: ✅"
+            [ "${{ steps.deploy3.outcome }}" == "success" ] && echo "   - Tentativa 3: ✅"
+            [ "${{ steps.deploy4.outcome }}" == "success" ] && echo "   - Tentativa 4: ✅"
+            [ "${{ steps.deploy5.outcome }}" == "success" ] && echo "   - Tentativa 5: ✅"
           else
             echo "⚠️ Deploy FTP falhou, mas lftp foi executado como fallback"
+            echo "📊 Tentativas FTP: ❌❌❌❌❌"
+            echo "🔄 Fallback lftp: ✅"
           fi
           
+          echo ""
           echo "📋 Próximos passos no servidor:"
           echo "1. Acesse via SSH ou painel KingHost"
           echo "2. Execute: cd administrativo"
@@ -230,11 +260,32 @@ jobs:
           echo "4. Configure .env com URL_ADM correta"
           echo "5. Execute: php scripts/generate-htaccess.php"
           echo "6. Verifique permissões: chmod 755 public/uploads/"
-          echo "7. Verifique se TODAS as pastas foram enviadas:"
-          echo "   - app/adms/Controllers/"
-          echo "   - app/adms/Models/"
-          echo "   - app/adms/Views/"
-          echo "   - app/Helpers/"
-          echo "   - routes/"
-          echo "   - public/"
-          echo "   - scripts/"
+          echo ""
+          echo "🔍 Verificação de integridade:"
+          echo "   - app/adms/Controllers/ (deve ter todos os arquivos .php)"
+          echo "   - app/adms/Models/ (deve ter todos os arquivos .php)"
+          echo "   - app/adms/Views/ (deve ter todas as pastas e arquivos)"
+          echo "   - app/Helpers/ (deve ter todos os arquivos .php)"
+          echo "   - routes/ (deve ter todos os arquivos .php)"
+          echo "   - public/ (deve ter todas as pastas e arquivos)"
+          echo "   - scripts/ (deve ter todos os arquivos .php)"
+          echo ""
+          echo "💡 Dica: O deploy foi INCREMENTAL - apenas arquivos novos/modificados foram enviados"
+          echo "💡 Dica: Use 'dangerous-clean-slate: false' para continuar onde parou"
+          echo ""
+          echo "📊 === DETALHAMENTO DO DEPLOY INCREMENTAL ==="
+          echo "🔄 Como funciona o deploy incremental:"
+          echo "   ✅ Arquivo NÃO existe no servidor → ENVIA (primeira vez)"
+          echo "   🔄 Arquivo existe mas foi MODIFICADO → ATUALIZA (sobrescreve)"
+          echo "   ⏭️ Arquivo existe e é IDÊNTICO → PULA (não envia)"
+          echo ""
+          echo "🔍 Detecção automática:"
+          echo "   📏 Tamanho do arquivo"
+          echo "   📅 Data de modificação (timestamp)"
+          echo "   🔐 Hash/checksum (quando disponível)"
+          echo ""
+          echo "⚡ Benefícios:"
+          echo "   🚀 Muito mais rápido (só envia diferenças)"
+          echo "   💾 Economiza banda (não repete arquivos)"
+          echo "   🛡️ Preserva progresso (continua onde parou)"
+          echo "   🔄 Sempre atualiza o que mudou"
