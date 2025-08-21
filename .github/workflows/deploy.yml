@@ -32,17 +32,45 @@ jobs:
 
       # Dependências não serão enviadas; composer deve ser executado no servidor (SSH/cron)
  
-      - name: Deploy via SCP (sem vendor)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USER }}
-          password: ${{ secrets.SFTP_PASS }}  # ou use key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          source: "./**/*,!.git/**,!.github/**,!.gitignore,!.env,!logs/**,!vendor/**,!node_modules/**,!.vscode/**,!bootstrap-5.3.3-dist/**,!DataTables/**,!startbootstrap-sb-admin-gh-pages/**,!scripts/fix_urls.py,!scripts/fix_urls.sh"
-          target: administrativo/
-          strip_components: 0
-          overwrite: true
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy via lftp (SFTP incremental)
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASS: ${{ secrets.SFTP_PASS }}
+        run: |
+          lftp -u "$SFTP_USER","$SFTP_PASS" sftp://$SFTP_HOST:22 <<'EOF'
+          set sftp:auto-confirm yes
+          set net:timeout 20
+          set net:max-retries 5
+          set net:persist-retry 1
+          set net:reconnect-interval-base 5
+          set net:idle 15
+          set xfer:clobber on
+
+          mirror -R \
+            --parallel=2 \
+            --only-newer \
+            --continue \
+            --no-perms \
+            --exclude-glob .git/** \
+            --exclude-glob .github/** \
+            --exclude-glob .gitignore \
+            --exclude-glob .env \
+            --exclude-glob logs/** \
+            --exclude-glob vendor/** \
+            --exclude-glob node_modules/** \
+            --exclude-glob .vscode/** \
+            --exclude-glob bootstrap-5.3.3-dist/** \
+            --exclude-glob DataTables/** \
+            --exclude-glob startbootstrap-sb-admin-gh-pages/** \
+            --exclude-glob scripts/fix_urls.py \
+            --exclude-glob scripts/fix_urls.sh \
+            ./ administrativo/
+          quit
+          EOF
 
       # Sem deploy de vendor: instale no servidor após o upload
  
