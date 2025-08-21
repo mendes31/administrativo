@@ -43,18 +43,22 @@ jobs:
         run: |
           lftp -u "$SFTP_USER","$SFTP_PASS" sftp://$SFTP_HOST:22 <<'EOF'
           set sftp:auto-confirm yes
-          set net:timeout 20
-          set net:max-retries 5
-          set net:persist-retry 1
+          set net:timeout 30
+          set net:max-retries 10
           set net:reconnect-interval-base 5
+          set net:reconnect-interval-max 60
           set net:idle 15
           set xfer:clobber on
+
+          # garantir que o diretório remoto exista
+          mkdir -p administrativo || true
 
           mirror -R \
             --parallel=2 \
             --only-newer \
             --continue \
             --no-perms \
+            --create-dirs \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
