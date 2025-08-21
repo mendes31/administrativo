@@ -28,15 +28,19 @@ jobs:
 
       - name: Instalar dependências (composer install)
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Gerar .htaccess a partir do .env
+        if: ${{ hashFiles('scripts/generate-htaccess.php') != '' }}
+        run: php scripts/generate-htaccess.php
  
-      - name: Deploy Core Files (PHP, Config)
+      - name: Deploy Aplicação Completa (única etapa)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: /administrativo/
+          server-dir: ./www/administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 120000  # 20 minutos definidos mas apenas 60 segundos (limite do servidor)
@@ -46,6 +50,7 @@ jobs:
             .github/
             .github/**
             .gitignore
+            .env
             .DS_Store
             README.md
             LICENSE.txt
@@ -61,40 +66,7 @@ jobs:
             DataTables/**
             startbootstrap-sb-admin-gh-pages/
             startbootstrap-sb-admin-gh-pages/**
-            app/adms/Views/**
-            public/adms/image/**
-            public/adms/uploads/**
-            public/adms/css/**
-            public/adms/js/**
-            public/adms/jquery/**
-            public/adms/DataTables/**
+            scripts/fix_urls.py
+            scripts/fix_urls.sh
  
-      - name: Deploy Views (Templates)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./
-          server-dir: /administrativo/app/adms/Views/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
- 
-      - name: Deploy Public Assets
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./
-          server-dir: /administrativo/public/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
+      # Etapas separadas removidas; deploy único cria toda a estrutura
