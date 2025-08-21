@@ -122,56 +122,52 @@ def update_php_files(backup_dir):
             # Substitui '/administrativo' por variável de ambiente
             content = re.sub(
                 r"'/administrativo\d*",
-                "' . \$_ENV['URL_ADM'] . '",
+                """' . $_ENV['URL_ADM'] . '""",
                 content
             )
             
             # Substitui "/administrativo" por variável de ambiente
             content = re.sub(
                 r'"/administrativo\d*',
-                '" . \$_ENV["URL_ADM"] . "',
+                r'" . $_ENV["URL_ADM"] . "',
                 content
             )
             
             # Substitui window.location.href
             content = re.sub(
                 r'window\.location\.href\s*=\s*"/administrativo\d*',
-                'window.location.href = "' . \$_ENV["URL_ADM"] . '"',
+                '''window.location.href = "' . $_ENV["URL_ADM"] . '"''',
                 content
             )
             
             # Substitui header Location
-            content = re.sub(
-                r"header\('Location:\s*/administrativo\d*",
-                "header('Location: " . \$_ENV['URL_ADM'] . "'",
-                content
-            )
+            # Removido: substituição de header Location para evitar quebrar strings complexas
             
             # Substitui fetch URLs
             content = re.sub(
                 r"fetch\('/administrativo\d*",
-                "fetch('" . \$_ENV['URL_ADM'] . "'",
+                """fetch('" . $_ENV['URL_ADM'] . "'""",
                 content
             )
             
             # Substitui src URLs
             content = re.sub(
                 r'src="/administrativo\d*',
-                'src="' . \$_ENV['URL_ADM'] . '"',
+                """src='""" + '" . $_ENV["URL_ADM"] . "' + """'""",
                 content
             )
             
             # Substitui href URLs
             content = re.sub(
                 r'href="/administrativo\d*',
-                'href="' . \$_ENV['URL_ADM'] . '"',
+                """href='""" + '" . $_ENV["URL_ADM"] . "' + """'""",
                 content
             )
             
             # Substitui action URLs
             content = re.sub(
                 r'action="/administrativo\d*',
-                'action="' . \$_ENV['URL_ADM'] . '"',
+                """action='""" + '" . $_ENV["URL_ADM"] . "' + """'""",
                 content
             )
             
