@@ -227,6 +227,30 @@ jobs:
           quit
           EOF
 
+      # Captura e exibe logs detalhados do deploy
+      - name: Capturar Logs Detalhados do Deploy
+        if: always()
+        run: |
+          echo "🔍 === CAPTURA DE LOGS DETALHADOS ==="
+          echo "📊 Status de cada tentativa:"
+          echo "   Tentativa 1: ${{ steps.deploy1.outcome }}"
+          echo "   Tentativa 2: ${{ steps.deploy2.outcome }}"
+          echo "   Tentativa 3: ${{ steps.deploy3.outcome }}"
+          echo "   Tentativa 4: ${{ steps.deploy4.outcome }}"
+          echo "   Tentativa 5: ${{ steps.deploy5.outcome }}"
+          echo ""
+          echo "📋 Logs detalhados estão disponíveis em:"
+          echo "   GitHub Actions → Jobs → deploy → Steps"
+          echo ""
+          echo "🔍 Para ver logs de arquivos específicos:"
+          echo "   1. Expanda o step 'Deploy Incremental - Tentativa X'"
+          echo "   2. Procure por mensagens como:"
+          echo "      ✅ 'Uploading: README.md' (arquivo novo)"
+          echo "      🔄 'Updating: README.md' (arquivo modificado)"
+          echo "      ⏭️ 'Skipping: README.md' (arquivo idêntico)"
+          echo ""
+          echo "💡 Dica: Use Ctrl+F nos logs para buscar por 'README.md'"
+
       # Verificação final e relatório de integridade detalhado
       - name: Verificar Deploy e Gerar Relatório Detalhado
         if: always()
@@ -284,3 +308,16 @@ jobs:
           echo "   💾 Economiza banda (não repete arquivos)"
           echo "   🛡️ Preserva progresso (continua onde parou)"
           echo "   🔄 Sempre atualiza o que mudou"
+          echo ""
+          echo "🔍 === COMO VER OS LOGS DETALHADOS ==="
+          echo "📋 Para ver logs detalhados em tempo real:"
+          echo "1. Clique no job 'deploy' no GitHub Actions"
+          echo "2. Clique no step 'Deploy Incremental - Tentativa X'"
+          echo "3. Expanda os logs para ver cada arquivo sendo processado"
+          echo "4. Procure por mensagens como:"
+          echo "   - 'Uploading: arquivo.php' (arquivo novo)"
+          echo "   - 'Updating: arquivo.php' (arquivo modificado)"
+          echo "   - 'Skipping: arquivo.php' (arquivo idêntico)"
+          echo ""
+          echo "💡 Dica: Os logs 'verbose' mostram TUDO, mas podem ser longos"
+          echo "💡 Dica: Use Ctrl+F para buscar por arquivos específicos nos logs"
