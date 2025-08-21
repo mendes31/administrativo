@@ -1,4 +1,4 @@
-name: Deploy PHP para Kinghost (Estratégia Dividida)
+name: Deploy PHP para Kinghost (Deploy Forçado - Sem Queda)
 
 on:
   push:
@@ -15,8 +15,9 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # Estratégia 1: Deploy Core Files com retry automático
-      - name: Deploy Core Files (PHP, Config) - Tentativa 1
+      # Estratégia 1: Deploy único e completo com retry infinito
+      - name: Deploy Completo - Tentativa 1
+        id: deploy1
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -26,7 +27,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 30000  # 30 segundos (mais conservador)
+          timeout: 300000  # 5 minutos (muito alto para evitar queda)
           exclude: |
             .git/
             .git/**
@@ -44,23 +45,11 @@ jobs:
             logs/**
             vendor/
             vendor/**
-            bootstrap-5.3.3-dist/
-            bootstrap-5.3.3-dist/**
-            DataTables/
-            DataTables/**
-            startbootstrap-sb-admin-gh-pages/
-            startbootstrap-sb-admin-gh-pages/**
-            app/adms/Views/**
-            public/adms/image/**
-            public/adms/uploads/**
-            public/adms/css/**
-            public/adms/js/**
-            public/adms/jquery/**
-            public/adms/DataTables/**
 
-      # Retry automático para Core Files
-      - name: Deploy Core Files (PHP, Config) - Tentativa 2
-        if: failure()
+      # Retry automático infinito até completar
+      - name: Deploy Completo - Tentativa 2
+        if: failure() && steps.deploy1.outcome == 'failure'
+        id: deploy2
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -70,7 +59,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 30000
+          timeout: 300000
           exclude: |
             .git/
             .git/**
@@ -88,23 +77,10 @@ jobs:
             logs/**
             vendor/
             vendor/**
-            bootstrap-5.3.3-dist/
-            bootstrap-5.3.3-dist/**
-            DataTables/
-            DataTables/**
-            startbootstrap-sb-admin-gh-pages/
-            startbootstrap-sb-admin-gh-pages/**
-            app/adms/Views/**
-            public/adms/image/**
-            public/adms/uploads/**
-            public/adms/css/**
-            public/adms/js/**
-            public/adms/jquery/**
-            public/adms/DataTables/**
 
-      # Retry final para Core Files
-      - name: Deploy Core Files (PHP, Config) - Tentativa 3
-        if: failure()
+      - name: Deploy Completo - Tentativa 3
+        if: failure() && steps.deploy2.outcome == 'failure'
+        id: deploy3
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -114,7 +90,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 30000
+          timeout: 300000
           exclude: |
             .git/
             .git/**
@@ -132,138 +108,10 @@ jobs:
             logs/**
             vendor/
             vendor/**
-            bootstrap-5.3.3-dist/
-            bootstrap-5.3.3-dist/**
-            DataTables/
-            DataTables/**
-            startbootstrap-sb-admin-gh-pages/
-            startbootstrap-sb-admin-gh-pages/**
-            app/adms/Views/**
-            public/adms/image/**
-            public/adms/uploads/**
-            public/adms/css/**
-            public/adms/js/**
-            public/adms/jquery/**
-            public/adms/DataTables/**
 
-      # Estratégia 2: Deploy de Views com retry automático
-      - name: Deploy Views (Templates) - Tentativa 1
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./app/adms/Views/
-          server-dir: ./administrativo/app/adms/Views/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 30000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-
-      - name: Deploy Views (Templates) - Tentativa 2
-        if: failure()
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./app/adms/Views/
-          server-dir: ./administrativo/app/adms/Views/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 30000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-
-      # Estratégia 3: Deploy de Assets públicos (arquivos pequenos)
-      - name: Deploy Public Assets
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./public/
-          server-dir: ./administrativo/public/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-            public/adms/image/**
-            public/adms/uploads/**
-            public/adms/css/**
-            public/adms/js/**
-            public/adms/jquery/**
-            public/adms/DataTables/**
-
-      # Estratégia 4: Deploy de Controllers e Models (arquivos pequenos)
-      - name: Deploy Controllers e Models
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./app/adms/Controllers/
-          server-dir: ./administrativo/app/adms/Controllers/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-
-      - name: Deploy Models
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./app/adms/Models/
-          server-dir: ./administrativo/app/adms/Models/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-
-      # Estratégia 5: Deploy de Helpers e Routes (arquivos pequenos)
-      - name: Deploy Helpers e Routes
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./app/Helpers/
-          server-dir: ./administrativo/app/Helpers/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-
-      - name: Deploy Routes
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./routes/
-          server-dir: ./administrativo/routes/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 60000
-          exclude: |
-            **/.DS_Store
-            **/*.log
-
-      # Estratégia 6: Deploy de arquivos raiz (arquivos pequenos)
-      - name: Deploy Root Files
+      - name: Deploy Completo - Tentativa 4
+        if: failure() && steps.deploy3.outcome == 'failure'
+        id: deploy4
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -273,7 +121,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 60000
+          timeout: 300000
           exclude: |
             .git/
             .git/**
@@ -291,21 +139,10 @@ jobs:
             logs/**
             vendor/
             vendor/**
-            bootstrap-5.3.3-dist/
-            bootstrap-5.3.3-dist/**
-            DataTables/
-            DataTables/**
-            startbootstrap-sb-admin-gh-pages/
-            startbootstrap-sb-admin-gh-pages/**
-            app/
-            public/
-            routes/
-            scripts/
-            database/
 
-      # Estratégia de fallback: Deploy de arquivos críticos individuais
-      - name: Deploy Arquivos Críticos (Fallback)
-        if: failure()
+      - name: Deploy Completo - Tentativa 5
+        if: failure() && steps.deploy4.outcome == 'failure'
+        id: deploy5
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -315,7 +152,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 15000  # 15 segundos (muito conservador)
+          timeout: 300000
           exclude: |
             .git/
             .git/**
@@ -333,25 +170,59 @@ jobs:
             logs/**
             vendor/
             vendor/**
-            bootstrap-5.3.3-dist/
-            bootstrap-5.3.3-dist/**
-            DataTables/
-            DataTables/**
-            startbootstrap-sb-admin-gh-pages/
-            startbootstrap-sb-admin-gh-pages/**
-            app/adms/Views/**
-            app/adms/Controllers/**
-            app/adms/Models/**
-            app/Helpers/**
-            public/**
-            routes/**
-            scripts/**
-            database/**
 
-      # Instruções pós-deploy
-      - name: Instruções pós-deploy
+      # Estratégia 2: Fallback para lftp se todas as tentativas FTP falharem
+      - name: Install lftp (Fallback)
+        if: failure() && steps.deploy5.outcome == 'failure'
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy via lftp (Fallback Forçado)
+        if: failure() && steps.deploy5.outcome == 'failure'
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
         run: |
-          echo "✅ Deploy concluído!"
+          echo "🚨 FTP falhou 5 vezes, usando lftp como fallback..."
+          echo "📁 Enviando TODOS os arquivos para administrativo/"
+          
+          # Deploy forçado com lftp
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set ftp:passive-mode true
+          set ftp:ssl-allow no
+          set net:timeout 120
+          set net:max-retries 50
+          set net:reconnect-interval-base 2
+          set net:reconnect-interval-max 10
+          set net:idle 60
+          set xfer:clobber on
+          
+          echo "🔄 Iniciando deploy forçado..."
+          mirror -R --parallel=1 --continue --no-perms --verbose \
+            --exclude-glob .git/** \
+            --exclude-glob .github/** \
+            --exclude-glob .gitignore \
+            --exclude-glob .env \
+            --exclude-glob logs/** \
+            --exclude-glob vendor/** \
+            --exclude-glob node_modules/** \
+            --exclude-glob .vscode/** \
+            ./ administrativo
+          
+          echo "✅ Deploy lftp concluído!"
+          quit
+          EOF
+
+      # Verificação final do deploy
+      - name: Verificar Deploy
+        if: always()
+        run: |
+          if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
+            echo "✅ Deploy FTP bem-sucedido!"
+          else
+            echo "⚠️ Deploy FTP falhou, mas lftp foi executado como fallback"
+          fi
+          
           echo "📋 Próximos passos no servidor:"
           echo "1. Acesse via SSH ou painel KingHost"
           echo "2. Execute: cd administrativo"
@@ -359,3 +230,11 @@ jobs:
           echo "4. Configure .env com URL_ADM correta"
           echo "5. Execute: php scripts/generate-htaccess.php"
           echo "6. Verifique permissões: chmod 755 public/uploads/"
+          echo "7. Verifique se TODAS as pastas foram enviadas:"
+          echo "   - app/adms/Controllers/"
+          echo "   - app/adms/Models/"
+          echo "   - app/adms/Views/"
+          echo "   - app/Helpers/"
+          echo "   - routes/"
+          echo "   - public/"
+          echo "   - scripts/"
