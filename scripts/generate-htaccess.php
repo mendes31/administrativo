@@ -11,26 +11,26 @@
  * @version 1.0
  */
 
-// Verificar se está sendo executado da raiz do projeto
-if (!file_exists('.env')) {
-    echo "❌ Erro: Execute este script da raiz do projeto\n";
-    echo "💡 Use: php scripts/generate-htaccess.php\n";
-    exit(1);
+// Tentar carregar variáveis de ambiente (opcional na CI)
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    if (file_exists(__DIR__ . '/../.env') && class_exists('Dotenv\\Dotenv')) {
+        $dotenv = Dotenv\Dotenv::createUnsafeImmutable(__DIR__ . '/..');
+        $dotenv->load();
+    }
 }
 
-// Carregar variáveis de ambiente
-require_once './vendor/autoload.php';
-$dotenv = Dotenv\Dotenv::createUnsafeImmutable(__DIR__ . '/..');
-$dotenv->load();
-
 // Extrair o caminho da URL_ADM
-    $urlAdm = $_ENV['URL_ADM'] ?? 'http://localhost/administrativo/';
-    $path = parse_url($urlAdm, PHP_URL_PATH);
+    $urlAdm = getenv('URL_ADM');
+    if (!$urlAdm && isset($_ENV['URL_ADM'])) {
+        $urlAdm = $_ENV['URL_ADM'];
+    }
+    if (!$urlAdm) {
+        $urlAdm = 'http://localhost/administrativo/';
+    }
+
+    $path = parse_url($urlAdm, PHP_URL_PATH) ?: '/administrativo/';
     $path = rtrim($path, '/') . '/';
-    
-    // Extrair host da URL para usar no ErrorDocument
-    $host = parse_url($urlAdm, PHP_URL_HOST) ?: 'localhost';
-    $scheme = parse_url($urlAdm, PHP_URL_SCHEME) ?: 'http';
 
 echo "🔧 Gerando .htaccess dinamicamente...\n";
 echo "📁 URL configurada: $urlAdm\n";
@@ -53,8 +53,8 @@ RewriteCond %{REQUEST_FILENAME} !-d
 # Redireciona tudo para index.php, preservando subdiretórios e pontos
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
-# Quando houver o erro 403 redirecionar o usuário 
-ErrorDocument 403 {$scheme}://{$host}{$path}error403   
+# Quando houver o erro 403 redirecionar o usuário (caminho relativo)
+ErrorDocument 403 {$path}error403   
 
 # Bloquear a opção listar os arquivos do diretório
 Options -Indexes
