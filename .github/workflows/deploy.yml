@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - dev-master
   workflow_dispatch: {}
 
 jobs:
@@ -14,95 +13,199 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+
+      # Estratégia 1: Deploy em lotes pequenos para evitar timeout
+      - name: Deploy Core Files (PHP, Config)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          fetch-depth: 2
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./
+          server-dir: ./www/administrativo/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000  # 60 segundos (limite do servidor)
+          exclude: |
+            .git/
+            .git/**
+            .github/
+            .github/**
+            .gitignore
+            .DS_Store
+            README.md
+            LICENSE.txt
+            node_modules/
+            node_modules/**
+            .vscode/
+            .vscode/**
+            logs/
+            logs/**
+            vendor/
+            vendor/**
+            bootstrap-5.3.3-dist/
+            bootstrap-5.3.3-dist/**
+            DataTables/
+            DataTables/**
+            startbootstrap-sb-admin-gh-pages/
+            startbootstrap-sb-admin-gh-pages/**
+            app/adms/Views/**
+            public/adms/image/**
+            public/adms/uploads/**
+            public/adms/css/**
+            public/adms/js/**
+            public/adms/jquery/**
+            public/adms/DataTables/**
 
-      - name: Setup PHP com Composer
-        uses: shivammathur/setup-php@v2
+      # Estratégia 2: Deploy de Views separadamente (arquivos pequenos)
+      - name: Deploy Views (Templates)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          php-version: '8.3.14'
-          coverage: none
-          tools: composer:2.8.5
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./app/adms/Views/
+          server-dir: ./www/administrativo/app/adms/Views/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            **/.DS_Store
+            **/*.log
 
-      - name: Validar PHP e Composer
+      # Estratégia 3: Deploy de Assets públicos (arquivos pequenos)
+      - name: Deploy Public Assets
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./public/
+          server-dir: ./www/administrativo/public/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            **/.DS_Store
+            **/*.log
+            public/adms/image/**
+            public/adms/uploads/**
+            public/adms/css/**
+            public/adms/js/**
+            public/adms/jquery/**
+            public/adms/DataTables/**
+
+      # Estratégia 4: Deploy de Controllers e Models (arquivos pequenos)
+      - name: Deploy Controllers e Models
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./app/adms/Controllers/
+          server-dir: ./www/administrativo/app/adms/Controllers/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            **/.DS_Store
+            **/*.log
+
+      - name: Deploy Models
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./app/adms/Models/
+          server-dir: ./www/administrativo/app/adms/Models/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            **/.DS_Store
+            **/*.log
+
+      # Estratégia 5: Deploy de Helpers e Routes (arquivos pequenos)
+      - name: Deploy Helpers e Routes
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./app/Helpers/
+          server-dir: ./www/administrativo/app/Helpers/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            **/.DS_Store
+            **/*.log
+
+      - name: Deploy Routes
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./routes/
+          server-dir: ./www/administrativo/routes/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            **/.DS_Store
+            **/*.log
+
+      # Estratégia 6: Deploy de arquivos raiz (arquivos pequenos)
+      - name: Deploy Root Files
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./
+          server-dir: ./www/administrativo/
+          dangerous-clean-slate: false
+          log-level: verbose
+          timeout: 60000
+          exclude: |
+            .git/
+            .git/**
+            .github/
+            .github/**
+            .gitignore
+            .DS_Store
+            README.md
+            LICENSE.txt
+            node_modules/
+            node_modules/**
+            .vscode/
+            .vscode/**
+            logs/
+            logs/**
+            vendor/
+            vendor/**
+            bootstrap-5.3.3-dist/
+            bootstrap-5.3.3-dist/**
+            DataTables/
+            DataTables/**
+            startbootstrap-sb-admin-gh-pages/
+            startbootstrap-sb-admin-gh-pages/**
+            app/
+            public/
+            routes/
+            scripts/
+            database/
+
+      # Instruções pós-deploy
+      - name: Instruções pós-deploy
         run: |
-          php -v
-          composer --version
-          composer validate --no-check-publish
-
-      # Dependências não serão enviadas; composer deve ser executado no servidor (SSH/cron)
-
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Deploy via lftp (FTPS com fallback FTP)
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USER }}
-          FTP_PASS: ${{ secrets.FTP_PASS }}
-        run: |
-          set +e
-          echo "Tentando FTPS (porta 21, TLS explícito)..."
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set ftp:passive-mode true
-          set ftp:ssl-allow yes
-          set ftp:ssl-force yes
-          set ftp:ssl-protect-data yes
-          set ftp:ssl-verify no
-          set net:timeout 60
-          set net:max-retries 12
-          set net:reconnect-interval-base 5
-          set net:reconnect-interval-max 60
-          set net:idle 30
-          set xfer:clobber on
-          mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
-            --exclude-glob .git/** \
-            --exclude-glob .github/** \
-            --exclude-glob .gitignore \
-            --exclude-glob .env \
-            --exclude-glob logs/** \
-            --exclude-glob vendor/** \
-            --exclude-glob node_modules/** \
-            --exclude-glob .vscode/** \
-            --exclude-glob bootstrap-5.3.3-dist/** \
-            --exclude-glob DataTables/** \
-            --exclude-glob startbootstrap-sb-admin-gh-pages/** \
-            --exclude-glob scripts/fix_urls.py \
-            --exclude-glob scripts/fix_urls.sh \
-            ./ administrativo
-          quit
-          EOF
-          STATUS=$?
-          if [ $STATUS -ne 0 ]; then
-            echo "FTPS falhou, tentando FTP simples (sem TLS)..."
-            lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-            set ftp:passive-mode true
-            set ftp:ssl-allow no
-            set net:timeout 60
-            set net:max-retries 12
-            set net:reconnect-interval-base 5
-            set net:reconnect-interval-max 60
-            set net:idle 30
-            set xfer:clobber on
-            mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
-              --exclude-glob .git/** \
-              --exclude-glob .github/** \
-              --exclude-glob .gitignore \
-              --exclude-glob .env \
-              --exclude-glob logs/** \
-              --exclude-glob vendor/** \
-              --exclude-glob node_modules/** \
-              --exclude-glob .vscode/** \
-              --exclude-glob bootstrap-5.3.3-dist/** \
-              --exclude-glob DataTables/** \
-              --exclude-glob startbootstrap-sb-admin-gh-pages/** \
-              --exclude-glob scripts/fix_urls.py \
-              --exclude-glob scripts/fix_urls.sh \
-              ./ administrativo
-            quit
-            EOF
-          fi
-
-      # Sem deploy de vendor: instale no servidor após o upload
-
-      # Etapas separadas removidas; deploy único cria toda a estrutura
+          echo "✅ Deploy concluído!"
+          echo "📋 Próximos passos no servidor:"
+          echo "1. Acesse via SSH ou painel KingHost"
+          echo "2. Execute: cd www/administrativo"
+          echo "3. Execute: composer install --no-dev --optimize-autoloader"
+          echo "4. Configure .env com URL_ADM correta"
+          echo "5. Execute: php scripts/generate-htaccess.php"
+          echo "6. Verifique permissões: chmod 755 public/uploads/"
