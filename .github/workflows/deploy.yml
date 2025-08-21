@@ -35,7 +35,7 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy via lftp (SFTP incremental)
+      - name: Deploy via lftp (SFTP incremental com logs)
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_USER: ${{ secrets.SFTP_USER }}
@@ -43,22 +43,21 @@ jobs:
         run: |
           lftp -u "$SFTP_USER","$SFTP_PASS" sftp://$SFTP_HOST:22 <<'EOF'
           set sftp:auto-confirm yes
-          set net:timeout 30
-          set net:max-retries 10
+          set cmd:trace yes
+          debug 6
+          set net:timeout 60
+          set net:max-retries 12
           set net:reconnect-interval-base 5
           set net:reconnect-interval-max 60
-          set net:idle 15
+          set net:idle 30
           set xfer:clobber on
 
-          # garantir que o diretório remoto exista
-          mkdir -p administrativo || true
-
           mirror -R \
-            --parallel=2 \
+            --parallel=1 \
             --only-newer \
             --continue \
             --no-perms \
-            --create-dirs \
+            --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
@@ -72,7 +71,7 @@ jobs:
             --exclude-glob startbootstrap-sb-admin-gh-pages/** \
             --exclude-glob scripts/fix_urls.py \
             --exclude-glob scripts/fix_urls.sh \
-            ./ administrativo/
+            ./administrativo/
           quit
           EOF
 
