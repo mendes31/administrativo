@@ -9,7 +9,7 @@
  * - Isso garante robustez e flexibilidade para qualquer tela de listagem, mesmo com múltiplos filtros e paginação.
  *
  * Exemplo de URL suportada:
- *   /administrativo2/?url=list-pages&page=2&per_page=10&nome=teste&status=Ativo
+ *   $_ENV['URL_ADM']?url=list-pages&page=2&per_page=10&nome=teste&status=Ativo
  *
  * Se 'url' e 'controller' estiverem ausentes ou inválidos, o usuário é redirecionado para o dashboard.
  */
@@ -173,7 +173,7 @@ class LoadPageAdm
         $routeParam = trim($routeParam);
         if (empty($routeParam)) {
             // Log detalhado do erro de parâmetro
-            file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
+            file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
                 date('Y-m-d H:i:s') . ' - [LoadPageAdm] NENHUM PARÂMETRO DE ROTA VÁLIDO (url/controller) - url: ' . ($_GET['url'] ?? 'null') . ' | controller: ' . ($_GET['controller'] ?? 'null') .
                 ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
                 ' | _SESSION: ' . json_encode($_SESSION) . "\n",
@@ -197,7 +197,7 @@ class LoadPageAdm
             $_SESSION['error'] = "Necessário estar logado para acessar pagina restrita.";
 
             // Log detalhado do motivo do redirecionamento para login
-            file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
+            file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
                 date('Y-m-d H:i:s') . ' - [LoadPageAdm] REDIRECIONA LOGIN - controller: ' . ($this->urlController ?? 'null') .
                 ' | parametro: ' . ($this->urlParameter ?? 'null') .
                 ' | session_id: ' . (session_id() ?: 'null') .
@@ -230,7 +230,7 @@ class LoadPageAdm
                 }
                 if (!$controllerExists) {
                     // Log do fallback
-                    file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
+                    file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
                         date('Y-m-d H:i:s') . ' - [LoadPageAdm] Fallback para listagem padrão - parâmetro de ação inválido: ' . $routeParam .
                         ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
                         ' | _SESSION: ' . json_encode($_SESSION) . "\n",
@@ -263,7 +263,7 @@ class LoadPageAdm
             }
             if (!$controllerExists) {
                 // Log do fallback
-                file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
+                file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
                     date('Y-m-d H:i:s') . ' - [LoadPageAdm] Fallback para listagem padrão - parâmetro de ação inválido: ' . $routeParam .
                     ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
                     ' | _SESSION: ' . json_encode($_SESSION) . "\n",

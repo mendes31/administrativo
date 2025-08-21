@@ -510,8 +510,8 @@ checkPaymentStatus(somePaymentId);
                 }
 
                 // Montar URL da verificação
-                // BASE_URL: injeta via PHP a URL base do sistema (ex: http://localhost/sistema/).
-                // verifyURL: monta a URL completa para a requisição AJAX que vai verificar o "busy". Exemplo: http://localhost/sistema/check-busy/123
+                // BASE_URL: injeta via PHP a URL base do sistema (ex: <?php echo $_ENV['URL_ADM']; ?>).
+// verifyURL: monta a URL completa para a requisição AJAX que vai verificar o "busy". Exemplo: <?php echo $_ENV['URL_ADM']; ?>check-busy/123
                 const BASE_URL = "<?php echo rtrim($_ENV['URL_ADM']) ; ?>";
                 const verifyURL = `${BASE_URL}check-busy/${id}`;
 

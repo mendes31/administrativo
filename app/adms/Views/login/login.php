@@ -12,7 +12,7 @@ if (!empty($_GET['error'])) {
     <div class="card shadow-lg border-0 rounded-lg mt-5">
 
         <div class="text-center mt-4">
-            <img src="/administrativo2/public/adms/image/logo/Logo-Tiaraju.png" alt="Logo Tiaraju" style="max-width: 200px;">
+                            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/logo/Logo-Tiaraju.png" alt="Logo Tiaraju" style="max-width: 200px;">
         </div>
 
         <div class="card-header">

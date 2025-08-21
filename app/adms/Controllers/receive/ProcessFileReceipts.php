@@ -317,7 +317,7 @@ if ($arquivo['type'] == "text/csv") {
 
 // Após o fechamento do arquivo e contagem dos registros:
 // Redireciona para list-receipts com popup de resultado
-echo "<script>alert('Importação finalizada!\\nRegistros importados: $importados\\nRegistros atualizados: $atualizados\\nRegistros ignorados (já existentes e sem alteração): $ignorados');window.location.href='/administrativo/list-payments';</script>";
+echo "<script>alert('Importação finalizada!\\nRegistros importados: $importados\\nRegistros atualizados: $atualizados\\nRegistros ignorados (já existentes e sem alteração): $ignorados');window.location.href='" . $_ENV['URL_ADM'] . "list-payments';</script>";
 exit;
 
 // Função para converter encoding se necessário

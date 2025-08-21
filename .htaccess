@@ -1,7 +1,10 @@
 # Documentação: https://httpd.apache.org/docs/2.4/rewrite/flags.html
+# Arquivo gerado automaticamente pelo script scripts/generate-htaccess.php
+# Para alterar, edite o arquivo .env e execute o script novamente
+# 
 # Ativa o módulo Rewrite, que faz a reescrita de URL.
 RewriteEngine On
-RewriteBase /administrativo2/
+RewriteBase /administrativo/
 
 # Não reescrever se for arquivo ou diretório físico
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -11,7 +14,7 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
 # Quando houver o erro 403 redirecionar o usuário 
-ErrorDocument 403 http://localhost/administrativo2/error403   
+ErrorDocument 403 http://localhost/administrativo/error403   
 
 # Bloquear a opção listar os arquivos do diretório
 Options -Indexes
@@ -28,7 +31,7 @@ RewriteRule ^vendor/ - [F]
     Require all denied
 </FilesMatch>
 
-<FilesMatch "^\.env.exemple$">
+<FilesMatch "^\.env\.exemple$">
     Require all denied
 </FilesMatch>
 
@@ -40,20 +43,18 @@ RewriteRule ^vendor/ - [F]
     Require all denied
 </FilesMatch>
 
-<FilesMatch "^composer.json$">
+<FilesMatch "^composer\.json$">
     Require all denied
 </FilesMatch>
 
-<FilesMatch "^composer.lock$">
+<FilesMatch "^composer\.lock$">
     Require all denied
 </FilesMatch>
 
-<FilesMatch "^LICENSE.txt$">
+<FilesMatch "^LICENSE\.txt$">
     Require all denied
 </FilesMatch>
 
-<FilesMatch "^README.md$">
+<FilesMatch "^README\.md$">
     Require all denied
 </FilesMatch>
-
-

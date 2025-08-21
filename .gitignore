@@ -1,6 +1,9 @@
 # Arquivos e diretórios que não devem ser enviados para o GitHub
 /vendor/
 
+# Scripts de desenvolvimento (opcional - remover se quiser versionar)
+# /scripts/
+
 # Ignorar todos os arquivos dentro do diretório logs
 logs/*
 
