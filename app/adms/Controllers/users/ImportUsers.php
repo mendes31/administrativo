@@ -153,7 +153,8 @@ class ImportUsers
             if (!mb_check_encoding($name, 'UTF-8')) {
                 $name = mb_convert_encoding($name, 'UTF-8', 'UTF-8');
             }
-            $name = mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+            // Preservar exatamente como na planilha (apenas normalizar espaços)
+            $name = preg_replace('/\s+/u', ' ', $name);
             
             $email = trim((string)($row[$map['email']] ?? ''));
             if (!mb_check_encoding($email, 'UTF-8')) {

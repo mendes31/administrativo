@@ -129,8 +129,8 @@ class ImportCostCenters
                 $name = mb_convert_encoding($name, 'UTF-8', 'UTF-8');
             }
             
-            // Normalizar caracteres especiais
-            $name = mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+            // Preservar exatamente como está na planilha (apenas normalizar espaços)
+            $name = preg_replace('/\s+/u', ' ', $name);
 
             try {
                 $existing = $repo->getByName($name);
