@@ -40,9 +40,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/**                    # exclui qualquer pasta logs
-            !app/adms/Controllers/logs/**
-            !app/adms/Views/logs/**
+            **/*.log                   # exclui apenas arquivos de log
             vendor/
             vendor/**
 
@@ -72,9 +70,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/**                    # exclui qualquer pasta logs
-            !app/adms/Controllers/logs/**
-            !app/adms/Views/logs/**
+            **/*.log                   # exclui apenas arquivos de log
             vendor/
             vendor/**
 
@@ -104,9 +100,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/**                    # exclui qualquer pasta logs
-            !app/adms/Controllers/logs/**
-            !app/adms/Views/logs/**
+            **/*.log                   # exclui apenas arquivos de log
             vendor/
             vendor/**
 
@@ -136,9 +130,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/**                    # exclui qualquer pasta logs
-            !app/adms/Controllers/logs/**
-            !app/adms/Views/logs/**
+            **/*.log                   # exclui apenas arquivos de log
             vendor/
             vendor/**
 
@@ -168,9 +160,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/**                    # exclui qualquer pasta logs
-            !app/adms/Controllers/logs/**
-            !app/adms/Views/logs/**
+            **/*.log                   # exclui apenas arquivos de log
             vendor/
             vendor/**
 
