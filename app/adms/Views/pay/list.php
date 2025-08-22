@@ -305,13 +305,38 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_pay');
                     <?php } ?>
                 </div>
 
-                <div class="text-end text-secondary small mb-2">
-                    Exibindo <?php echo count($this->data['payments']); ?> registro(s) nesta página.
+                <!-- Info + Paginação Desktop -->
+                <div class="d-none d-md-block">
+                    <div class="text-end text-secondary small mb-2">
+                        Exibindo <?php echo count($this->data['payments']); ?> registro(s) nesta página.
+                    </div>
+                    <?php include_once './app/adms/Views/partials/pagination.php'; ?>
+                </div>
+
+                <!-- Paginação Mobile -->
+                <div class="d-block d-md-none mt-2">
+                    <div class="text-secondary small text-center mb-1">
+                        Exibindo <?php echo count($this->data['payments']); ?> registro(s) nesta página.
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <?php
+                        ob_start();
+                        include './app/adms/Views/partials/pagination.php';
+                        $paginationHtml = ob_get_clean();
+                        if ($paginationHtml) {
+                            $paginationHtml = str_replace(
+                                ['>Primeira<','>Primeiro<','>Anterior<','>Próximo<','>Última<','>Último<'],
+                                ['>&laquo;<','>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<','>&raquo;<'],
+                                $paginationHtml
+                            );
+                            $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                            echo $paginationHtml;
+                        }
+                        ?>
+                    </div>
                 </div>
 
             <?php
-                // Inclui o arquivo de paginação
-                include_once './app/adms/Views/partials/pagination.php';
             } else {
                 echo "<div class='alert alert-danger' role='alert'>Nenhuma Conta encontrada!</div>";
             } ?>

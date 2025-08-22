@@ -191,8 +191,8 @@ file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/fontawesome/css/all.min.css?v=20250822">
 
     <!-- CSS Reset e Ajustes de Padronização -->
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>adms/css/reset.css">
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>adms/css/custom-ajustes.css">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/reset.css?v=20250822">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/custom-ajustes.css?v=20250822">
     
     <!-- Sistema Responsivo para Diferentes Resoluções -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
