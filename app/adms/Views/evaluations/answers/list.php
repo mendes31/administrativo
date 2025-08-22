@@ -90,7 +90,7 @@ if (!isset($this->data['access_level'])) {
                             <h6 class="m-0 font-weight-bold text-primary">Respostas</h6>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
+                            <div class="table-responsive d-none d-md-block list-desktop">
                                 <table class="table table-bordered" width="100%" cellspacing="0">
                                     <thead>
                                         <tr>
@@ -146,20 +146,39 @@ if (!isset($this->data['access_level'])) {
                                     </tbody>
                                 </table>
                             </div>
-                            <!-- Paginação -->
-                            <?php if (!empty($this->data['pagination'])) { ?>
-                                <div class="d-flex justify-content-center">
-                                    <?php
-                                    if (is_array($this->data['pagination'])) {
-                                        foreach ($this->data['pagination'] as $item) {
-                                            echo $item . ' ';
-                                        }
-                                    } else {
-                                        echo $this->data['pagination'];
-                                    }
-                                    ?>
-                                </div>
-                            <?php } ?>
+                            <!-- Cards Mobile -->
+                            <div class="d-block d-md-none list-mobile">
+                                <?php foreach (($this->data['answers'] ?? []) as $answer) { ?>
+                                    <div class="card mb-2 shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>#<?= $answer['id'] ?> - <?= htmlspecialchars($answer['usuario_nome'] ?? $answer['usuario_id']) ?></strong>
+                                                <span><?= date('d/m/Y H:i', strtotime($answer['created_at'])) ?></span>
+                                            </div>
+                                            <div><b>Modelo:</b> <?= htmlspecialchars($answer['modelo_titulo'] ?? $answer['evaluation_model_id']) ?></div>
+                                            <div class="mt-1"><b>Pergunta:</b> <?= htmlspecialchars($answer['pergunta'] ?? $answer['evaluation_question_id']) ?></div>
+                                            <div class="mt-1"><b>Resposta:</b> <?= strlen($answer['resposta']) > 80 ? substr($answer['resposta'], 0, 80) . '...' : $answer['resposta'] ?></div>
+                                            <div class="mt-1"><b>Status:</b> <span class="badge bg-<?php $m=['aprovada'=>'success','reprovada'=>'danger','pendente'=>'warning']; echo $m[$answer['status']??'pendente']??'secondary'; ?>"><?= ucfirst($answer['status']??'pendente') ?></span></div>
+                                            <div class="mt-2">
+                                                <a href="<?= $urlAdm ?>view-evaluation-answer/index/<?= $answer['id'] ?>" class="btn btn-info btn-sm me-1"><i class="fas fa-eye"></i></a>
+                                                <a href="<?= $urlAdm ?>update-evaluation-answer/index/<?= $answer['id'] ?>" class="btn btn-warning btn-sm me-1"><i class="fas fa-edit"></i></a>
+                                                <a href="<?= $urlAdm ?>delete-evaluation-answer/index/<?= $answer['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja deletar esta resposta?')"><i class="fas fa-trash"></i></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php } ?>
+                                <!-- Paginação Mobile -->
+                                <?php if (!empty($this->data['pagination'])) { ?>
+                                    <div class="d-flex justify-content-center">
+                                        <?php
+                                        $pag = $this->data['pagination'];
+                                        if (is_array($pag)) { $out = implode(' ', $pag); } else { $out = $pag; }
+                                        $out = str_replace(['>Primeiro<','>Anterior<','>Próximo<','>Último<'],['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],$out);
+                                        echo preg_replace('/class=\"pagination(.*?)\"/','class="pagination pagination-sm$1"',$out,1);
+                                        ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
                         </div>
                     </div>
                 </div>

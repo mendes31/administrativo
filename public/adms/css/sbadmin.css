@@ -1,3 +1,33 @@
+/* Cache-bust helper */
+#logTable { border-collapse: separate; }
+/* Forçar layout mobile/desktop em Log de Acessos */
+@media (max-width: 767.98px) {
+  .log-desktop { display: none !important; }
+}
+@media (min-width: 768px) {
+  .log-mobile { display: none !important; }
+}
+
+/* Padrão genérico para listas */
+@media (max-width: 991.98px) {
+  .list-desktop { display: none !important; }
+}
+@media (min-width: 992px) {
+  .list-mobile { display: none !important; }
+}
+
+/* Paginação compacta para mobile */
+@media (max-width: 991.98px) {
+  .pagination.pagination-sm .page-link {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.72rem;
+    min-width: 1.8rem;
+    text-align: center;
+  }
+  .pagination.pagination-sm {
+    gap: 0.15rem;
+  }
+}
 @charset "UTF-8";
 /*!
 * Start Bootstrap - SB Admin v7.0.7 (https://startbootstrap.com/template/sb-admin)

@@ -82,6 +82,7 @@ class ScreenResolutionHelper
             ],
             'mobile' => [
                 'container' => 'container-fluid px-2',
+                // Garantir que tabelas desktop sumam no mobile e cards fiquem visíveis
                 'table' => 'd-none d-md-block',
                 'cards' => 'row g-2',
                 'card_cols' => 'col-12',

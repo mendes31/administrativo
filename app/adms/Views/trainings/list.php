@@ -105,7 +105,7 @@ use App\adms\Helpers\FormatHelper;
                 </div>
             </form>
             <!-- Tabela Desktop -->
-            <div class="d-none d-md-block">
+            <div class="d-none d-md-block list-desktop">
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover w-100" style="min-width: 1200px;">
                         <thead class="table-dark">
@@ -230,7 +230,7 @@ use App\adms\Helpers\FormatHelper;
                 </div>
             </div>
             <!-- Cards Mobile -->
-            <div class="d-block d-md-none">
+            <div class="d-block d-md-none list-mobile">
                 <?php if (!empty($this->data['trainings'])): ?>
                     <?php foreach ($this->data['trainings'] as $i => $training): ?>
                         <div class="card mb-3 shadow-sm">
@@ -307,8 +307,39 @@ use App\adms\Helpers\FormatHelper;
                         ?>
                     </div>
                 </div>
-                <!-- Remover o bloco mobile duplicado abaixo -->
-                <!-- <div class="d-flex d-md-none flex-column align-items-center w-100"> ... </div> -->
+                <!-- Paginação Mobile -->
+                <div class="d-flex d-md-none flex-column align-items-center w-100 mt-2">
+                    <div class="text-secondary small w-100 text-center mb-1">
+                        <?php
+                        $firstItem = $this->data['pagination']['first_item'] ?? '';
+                        $lastItem = $this->data['pagination']['last_item'] ?? '';
+                        $total = $this->data['pagination']['total'] ?? '';
+                        if (is_array($firstItem)) $firstItem = '';
+                        if (is_array($lastItem)) $lastItem = '';
+                        if (is_array($total)) $total = '';
+                        ?>
+                        <?php if (!empty($total)): ?>
+                            Mostrando <?= $firstItem ?> até <?= $lastItem ?> de <?= $total ?> registro(s)
+                        <?php else: ?>
+                            Exibindo <?= is_array($this->data['trainings']) ? count($this->data['trainings']) : 0; ?> registro(s) nesta página.
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-100 d-flex justify-content-center">
+                        <?php
+                        $paginationHtml = $this->data['pagination']['html'] ?? '';
+                        if (is_array($paginationHtml)) $paginationHtml = '';
+                        if ($paginationHtml) {
+                            $paginationHtml = str_replace(
+                                ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                $paginationHtml
+                            );
+                            $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                            echo $paginationHtml;
+                        }
+                        ?>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

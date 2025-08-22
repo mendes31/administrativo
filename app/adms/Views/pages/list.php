@@ -88,7 +88,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                     <input type="hidden" name="page" value="1">
                 </form>
 
-                <div class="table-responsive d-none d-md-block">
+                <div class="table-responsive d-none d-md-block list-desktop">
                     <table class="table table-striped table-hover" id="tabela">
                         <thead>
                             <tr>
@@ -151,7 +151,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                     </table>
                 </div>
                 <!-- CARDS MOBILE -->
-                <div class="d-block d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php if (!empty($this->data['pages'])): ?>
                         <?php foreach ($this->data['pages'] as $i => $page) { ?>
                             <div class="card mb-2 shadow-sm" style="border-radius: 10px;">
@@ -213,7 +213,20 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                         <?php endif; ?>
                     </div>
                     <div class="w-100 d-flex justify-content-center">
-                        <?php include './app/adms/Views/partials/pagination.php'; ?>
+                        <?php
+                        ob_start();
+                        include './app/adms/Views/partials/pagination.php';
+                        $paginationHtml = ob_get_clean();
+                        if ($paginationHtml) {
+                            $paginationHtml = str_replace(
+                                ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                $paginationHtml
+                            );
+                            $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                            echo $paginationHtml;
+                        }
+                        ?>
                     </div>
                 </div>
 

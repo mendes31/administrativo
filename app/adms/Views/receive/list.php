@@ -110,7 +110,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_receive');
             ?>
 
                 <!-- Tabela desktop -->
-                <div class="table-responsive d-none d-md-block">
+                <div class="table-responsive d-none d-md-block list-desktop">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -230,7 +230,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_receive');
                 </div>
 
                 <!-- Cards mobile -->
-                <div class="d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php foreach ($this->data['receipts'] as $receive) {
                         extract($receive);
                         $totalRecebido = 0;

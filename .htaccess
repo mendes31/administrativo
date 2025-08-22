@@ -1,3 +1,19 @@
+# Security headers recommended
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "no-referrer-when-downgrade"
+</IfModule>
+
+# Ensure proper MIME types
+AddType text/css .css
+AddType application/javascript .js
+
+# Compression (optional if not already enabled globally)
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/css application/javascript application/json
+</IfModule>
 # Documentação: https://httpd.apache.org/docs/2.4/rewrite/flags.html
 # Arquivo gerado automaticamente pelo script scripts/generate-htaccess.php
 # Para alterar, edite o arquivo .env e execute o script novamente

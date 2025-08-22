@@ -59,7 +59,7 @@ use App\adms\Helpers\FormatHelper;
 
             <?php if (!empty($this->data['registros'])): ?>
                 <!-- Tabela Desktop -->
-                <div class="d-none d-md-block">
+                <div class="d-none d-md-block list-desktop">
                     <div class="table-responsive">
                         <table class="table table-striped table-hover">
                             <thead class="table-dark">
@@ -117,7 +117,7 @@ use App\adms\Helpers\FormatHelper;
                 </div>
 
                 <!-- Cards Mobile -->
-                <div class="d-block d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php foreach ($this->data['registros'] as $i => $finalidade): ?>
                         <div class="card mb-3 shadow-sm">
                             <div class="card-body">
@@ -178,7 +178,18 @@ use App\adms\Helpers\FormatHelper;
                             Exibindo <?= count($this->data['registros']) ?> registro(s) nesta página.
                         </div>
                         <div class="w-100 d-flex justify-content-center">
-                            <?= $this->data['paginator'] ?? '' ?>
+                            <?php
+                            $paginationHtml = $this->data['paginator'] ?? '';
+                            if ($paginationHtml) {
+                                $paginationHtml = str_replace(
+                                    ['>Primeira<','>Anterior<','>Próximo<','>Última<'],
+                                    ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                    $paginationHtml
+                                );
+                                $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                                echo $paginationHtml;
+                            }
+                            ?>
                         </div>
                     </div>
                 </div>

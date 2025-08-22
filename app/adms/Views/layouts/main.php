@@ -177,7 +177,7 @@ file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json
 
     <!-- <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css"> -->
 
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/sbadmin.css">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/sbadmin.css?v=20250822">
 
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/bootstrap.min.css">
 
@@ -185,9 +185,10 @@ file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json
 
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.css">
 
-    <script src="https://use.fontawesome.com/releases/v6.6.0/js/all.js" crossorigin="anonymous"></script>
+    <!-- Removido Font Awesome JS externo para evitar aviso de header nosniff; CSS já cobre os ícones -->
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Font Awesome local (self-host) -->
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/fontawesome/css/all.min.css?v=20250822">
 
     <!-- CSS Reset e Ajustes de Padronização -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>adms/css/reset.css">
@@ -273,8 +274,10 @@ file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json
     <!-- Ajax para funcionar Mascaras JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js"></script>
     
-    <!-- Sistema Responsivo para Diferentes Resoluções -->
+    <!-- Sistema Responsivo para Diferentes Resoluções (opcional) -->
+    <?php if (($_ENV['USE_SCREEN_RESOLUTION'] ?? 'Não') === 'Sim'): ?>
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/screen-resolution.js"></script>
+    <?php endif; ?>
 
     <!-- Configurações de Sessão da Política de Senhas -->
     <script>
@@ -287,6 +290,9 @@ file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json
 
     <!-- Verificação Automática de Sessão -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js"></script>
+
+    <!-- Responsividade genérica de listas (desktop x mobile) -->
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
 
     <!-- JavaScript específico para página de permissões -->
     <?php if (strpos($this->view, 'permission/list.php') !== false): ?>

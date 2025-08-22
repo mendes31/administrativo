@@ -74,7 +74,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
             ?>
 
                 <!-- Tabela Desktop -->
-                <div class="table-responsive d-none d-md-block">
+                <div class="table-responsive d-none d-md-block list-desktop">
                     <table class="table table-striped table-hover" id="tabela">
                         <thead>
                             <tr>
@@ -136,7 +136,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
                 </div>
 
                 <!-- CARDS MOBILE -->
-                <div class="d-block d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php foreach ($this->data['accessLevels'] as $i => $accessLevel) { extract($accessLevel); ?>
                         <div class="card mb-3 shadow-sm">
                             <div class="card-body">
@@ -183,7 +183,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
                             <?php endif; ?>
                         </div>
                         <div class="w-100 d-flex justify-content-center">
-                            <?= $this->data['pagination']['html'] ?? '' ?>
+                            <?php
+                            $paginationHtml = $this->data['pagination']['html'] ?? '';
+                            if ($paginationHtml) {
+                                $paginationHtml = str_replace(
+                                    ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                    ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                    $paginationHtml
+                                );
+                                $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                                echo $paginationHtml;
+                            }
+                            ?>
                         </div>
                     </div>
                 </div>

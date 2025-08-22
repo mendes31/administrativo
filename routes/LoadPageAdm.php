@@ -187,6 +187,17 @@ class LoadPageAdm
         }
         $this->urlController = SlugController::slugController($routeParam);
 
+        // Rota especial: screen-resolution (retorna JSON). Precisa ser tratada antes das checagens padrão
+        if ($this->urlController === 'ScreenResolution') {
+            $controller = new \App\adms\Controllers\Services\ScreenResolutionController();
+            if (!empty($this->urlParameter) && $this->urlParameter === 'set') {
+                $controller->setScreenResolution();
+            } else {
+                $controller->getScreenResolution();
+            }
+            return;
+        }
+
         // Verificar se existe a pagina
         if (!$this->checkPageExists()) {
 

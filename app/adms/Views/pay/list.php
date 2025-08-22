@@ -110,7 +110,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_pay');
             ?>
 
                 <!-- Tabela desktop -->
-                <div class="table-responsive d-none d-md-block">
+                <div class="table-responsive d-none d-md-block list-desktop">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -236,7 +236,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_pay');
                 </div>
 
                 <!-- Cards mobile -->
-                <div class="d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php foreach ($this->data['payments'] as $pay) {
                         extract($pay);
                         $totalPago = 0;

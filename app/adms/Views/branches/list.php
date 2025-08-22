@@ -63,6 +63,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
                         <a href="?limpar_filtros=1" class="btn btn-secondary mt-4 ms-2">Limpar Filtros</a>
                     </div>
                 </form>
+                <div class="table-responsive d-none d-md-block list-desktop">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -108,7 +109,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
                         <?php } ?>
                     </tbody>
                 </table>
-                <div class="d-flex justify-content-between align-items-center mt-2">
+                </div>
+                <div class="d-none d-md-flex justify-content-between align-items-center mt-2">
                     <div class="text-secondary small">
                         <?php if (!empty($this->data['pagination']['total'])): ?>
                             Mostrando <?= $this->data['pagination']['first_item'] ?> até <?= $this->data['pagination']['last_item'] ?> de <?= $this->data['pagination']['total'] ?> registro(s)
@@ -118,6 +120,60 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
                     </div>
                     <div>
                         <?= $this->data['pagination']['html'] ?? '' ?>
+                    </div>
+                </div>
+                <!-- Cards mobile -->
+                <div class="d-block d-md-none list-mobile">
+                    <?php foreach ($this->data['branches'] as $branch) { extract($branch); ?>
+                    <div class="card mb-2 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong><?= $name ?></strong>
+                                <span class="text-muted small">ID: <?= $id ?></span>
+                            </div>
+                            <div class="mb-1"><b>Código:</b> <?= $code ?></div>
+                            <div class="mb-1"><b>Status:</b> <?= $active ? '<span class="badge bg-success">Ativo</span>' : '<span class="badge bg-danger">Inativo</span>' ?></div>
+                            <div class="mt-2">
+                                <?php if (in_array('ViewBranch', $this->data['buttonPermission'])) {
+                                    echo "<a href='{$_ENV['URL_ADM']}view-branch/$id' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Visualizar</a>";
+                                }
+                                if (in_array('UpdateBranch', $this->data['buttonPermission'])) {
+                                    echo "<a href='{$_ENV['URL_ADM']}update-branch/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a>";
+                                }
+                                if (in_array('DeleteBranch', $this->data['buttonPermission'])) { ?>
+                                    <form id="formDeleteMobile<?= $id; ?>" action="<?= $_ENV['URL_ADM']; ?>delete-branch" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
+                                        <input type="hidden" name="id" id="id" value="<?= $id ?? ''; ?>">
+                                        <input type="hidden" name="name" id="name" value="<?= $name ?? ''; ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm me-1 mb-1" onclick="confirmDeletion(event, <?= $id; ?>)"><i class="fa-regular fa-trash-can"></i> Apagar</button>
+                                    </form>
+                                <?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
+                    <div class="d-flex d-md-none flex-column align-items-center w-100 mt-2">
+                        <div class="text-secondary small w-100 text-center mb-1">
+                            <?php if (!empty($this->data['pagination']['total'])): ?>
+                                Mostrando <?= $this->data['pagination']['first_item'] ?> até <?= $this->data['pagination']['last_item'] ?> de <?= $this->data['pagination']['total'] ?> registro(s)
+                            <?php else: ?>
+                                Exibindo <?= count($this->data['branches']); ?> registro(s) nesta página.
+                            <?php endif; ?>
+                        </div>
+                        <div class="w-100 d-flex justify-content-center">
+                            <?php
+                            $paginationHtml = $this->data['pagination']['html'] ?? '';
+                            if ($paginationHtml) {
+                                $paginationHtml = str_replace(
+                                    ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                    ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                    $paginationHtml
+                                );
+                                $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                                echo $paginationHtml;
+                            }
+                            ?>
+                        </div>
                     </div>
                 </div>
             <?php } else {

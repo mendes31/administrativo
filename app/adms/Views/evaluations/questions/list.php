@@ -95,7 +95,7 @@ if (!isset($this->data['access_level'])) {
                             <h6 class="m-0 font-weight-bold text-primary">Perguntas de Avaliação</h6>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
+                            <div class="table-responsive d-none d-md-block list-desktop">
                                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                                     <thead>
                                         <tr>
@@ -167,20 +167,45 @@ if (!isset($this->data['access_level'])) {
                                 </table>
                             </div>
 
-                            <!-- Pagination -->
-                            <?php if (!empty($this->data['pagination'])) { ?>
-                                <div class="d-flex justify-content-center">
-                                    <?php
-                                    if (is_array($this->data['pagination'])) {
-                                        foreach ($this->data['pagination'] as $item) {
-                                            echo $item . ' ';
-                                        }
-                                    } else {
-                                        echo $this->data['pagination'];
-                                    }
-                                    ?>
-                                </div>
-                            <?php } ?>
+                            <!-- Cards Mobile -->
+                            <div class="d-block d-md-none list-mobile">
+                                <?php foreach (($this->data['questions'] ?? []) as $question) { ?>
+                                    <div class="card mb-2 shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>#<?= $question['id'] ?> - <?= htmlspecialchars($question['model_name'] ?? 'N/A') ?></strong>
+                                                <span><?= date('d/m/Y H:i', strtotime($question['created_at'])) ?></span>
+                                            </div>
+                                            <div class="mt-1"><b>Pergunta:</b> <?= strlen($question['pergunta']) > 80 ? substr($question['pergunta'], 0, 80) . '...' : $question['pergunta'] ?></div>
+                                            <div class="mt-1"><b>Tipo:</b> <?= htmlspecialchars($question['tipo']) ?></div>
+                                            <div class="mt-2">
+                                                <?php if ($this->data['buttonPermission']['ViewEvaluationQuestion']) { ?>
+                                                    <a href="<?= $urlAdm ?>view-evaluation-question/index/<?= $question['id'] ?>" class="btn btn-info btn-sm me-1"><i class="fas fa-eye"></i></a>
+                                                <?php } ?>
+                                                <?php if ($this->data['buttonPermission']['UpdateEvaluationQuestion']) { ?>
+                                                    <a href="<?= $urlAdm ?>update-evaluation-question/index/<?= $question['id'] ?>" class="btn btn-warning btn-sm me-1"><i class="fas fa-edit"></i></a>
+                                                <?php } ?>
+                                                <?php if ($this->data['buttonPermission']['DeleteEvaluationQuestion']) { ?>
+                                                    <a href="<?= $urlAdm ?>delete-evaluation-question/index/<?= $question['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja apagar esta pergunta?')"><i class="fas fa-trash"></i></a>
+                                                <?php } ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php } ?>
+                                <!-- Paginação Mobile -->
+                                <?php if (!empty($this->data['pagination'])) { ?>
+                                    <div class="d-flex justify-content-center">
+                                        <?php
+                                        $pag = $this->data['pagination'];
+                                        if (is_array($pag)) {
+                                            $out = implode(' ', $pag);
+                                        } else { $out = $pag; }
+                                        $out = str_replace(['>Primeiro<','>Anterior<','>Próximo<','>Último<'],['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],$out);
+                                        echo preg_replace('/class=\"pagination(.*?)\"/','class="pagination pagination-sm$1"',$out,1);
+                                        ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
                         </div>
                     </div>
 

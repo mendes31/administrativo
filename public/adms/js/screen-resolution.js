@@ -121,10 +121,19 @@ class ScreenResolutionManager {
             mainContainer.className = this.classes.container;
         }
 
-        // Aplicar classes às tabelas
-        const tables = document.querySelectorAll('.table-responsive');
+        // Aplicar classes às tabelas (preservando classes personalizadas como 'log-desktop')
+        const tables = document.querySelectorAll('.log-desktop, .table-responsive');
         tables.forEach(table => {
-            table.className = this.classes.table;
+            try {
+                // Remover conjuntos anteriores que controlam visibilidade
+                table.classList.remove('d-none', 'd-md-block', 'table-responsive');
+                // Aplicar classes alvo token a token
+                const target = (this.classes && this.classes.table) ? this.classes.table : 'table-responsive';
+                target.split(/\s+/).forEach(cls => { if (cls) table.classList.add(cls); });
+            } catch (e) {
+                // Fallback absoluto
+                table.className += ' ' + (this.classes && this.classes.table ? this.classes.table : 'table-responsive');
+            }
         });
 
         // Aplicar classes aos cards

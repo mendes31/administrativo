@@ -89,7 +89,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             </form>
 
             <!-- Tabela Desktop -->
-            <div class="table-responsive d-none d-md-block">
+            <div class="table-responsive d-none d-md-block list-desktop">
                 <table class="table table-bordered table-striped table-hover table-fixed">
                     <thead class="table-dark">
                         <tr>
@@ -209,7 +209,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             </div>
 
             <!-- Cards Mobile -->
-            <div class="d-block d-md-none">
+            <div class="d-block d-md-none list-mobile">
                 <?php if (!empty($this->data['informativos'])): ?>
                     <?php foreach ($this->data['informativos'] as $informativo): ?>
                         <div class="card mb-3 shadow-sm">
@@ -305,8 +305,22 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
 
             <!-- Paginação -->
             <?php if (isset($this->data['pagination'])): ?>
-                <div class="d-flex justify-content-center mt-3">
+                <div class="d-flex justify-content-center mt-3 d-none d-md-flex">
                     <?php echo $this->data['pagination']['html']; ?>
+                </div>
+                <div class="d-flex justify-content-center mt-3 d-md-none">
+                    <?php
+                    $paginationHtml = $this->data['pagination']['html'] ?? '';
+                    if ($paginationHtml) {
+                        $paginationHtml = str_replace(
+                            ['>Primeira<','>Anterior<','>Próximo<','>Última<','>Primeiro<'],
+                            ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<','>&laquo;<'],
+                            $paginationHtml
+                        );
+                        $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                        echo $paginationHtml;
+                    }
+                    ?>
                 </div>
             <?php endif; ?>
         </div>

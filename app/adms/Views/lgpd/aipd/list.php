@@ -276,9 +276,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_aipd');
                         <?php endif; ?>
                     </div>
                     <div class="w-100 d-flex justify-content-center">
-                        <?php if (!empty($this->data['paginator'])): ?>
-                            <?= $this->data['paginator'] ?>
-                        <?php endif; ?>
+                        <?php
+                        if (!empty($this->data['paginator'])) {
+                            $paginationHtml = $this->data['paginator'];
+                            $paginationHtml = str_replace(
+                                ['>Primeira<','>Anterior<','>Próximo<','>Última<'],
+                                ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                $paginationHtml
+                            );
+                            $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                            echo $paginationHtml;
+                        }
+                        ?>
                     </div>
                 </div>
 

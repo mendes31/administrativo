@@ -64,7 +64,7 @@ $plans = $this->data['plans'] ?? [];
             </form>
 
             <!-- Tabela -->
-            <div class="table-responsive d-none d-md-block">
+            <div class="table-responsive d-none d-md-block list-desktop">
                 <table class="table table-bordered table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
@@ -133,7 +133,7 @@ $plans = $this->data['plans'] ?? [];
             </div>
 
             <!-- CARDS MOBILE -->
-            <div class="d-block d-md-none">
+            <div class="d-block d-md-none list-mobile">
                 <?php if (!empty($plans)) : ?>
                     <?php foreach ($plans as $i => $plan) : ?>
                         <div class="card mb-3 shadow-sm">
@@ -184,8 +184,16 @@ $plans = $this->data['plans'] ?? [];
                     </div>
                     <div class="w-100 d-flex justify-content-center">
                         <?php if (!empty($pagination['links'])): ?>
-                            <ul class="pagination mb-0">
-                                <?= $pagination['links'] ?>
+                            <?php
+                            $links = $pagination['links'];
+                            $links = str_replace(
+                                ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                $links
+                            );
+                            ?>
+                            <ul class="pagination pagination-sm mb-0">
+                                <?= $links ?>
                             </ul>
                         <?php endif; ?>
                     </div>

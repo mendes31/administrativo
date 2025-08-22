@@ -1,3 +1,17 @@
+/* Compatibilidade/hardening sugerido pelo DevTools */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* Complementar ao vendor: garantir suporte padrão onde houver apenas prefixo */
+body { text-size-adjust: 100%; }
+
+/* Safari: usar valor padronizado quando vendor usa -webkit-match-parent */
+th { text-align: match-parent; }
+
+/* SweetAlert (evitar seleção no Safari com prefixo) */
+.swal2-icon { -webkit-user-select: none; user-select: none; }
+
+/* Prefixos para user-select quando necessário */
+.no-select { -webkit-user-select: none; -ms-user-select: none; user-select: none; }
 
 /* Remove o sublinhado */
 .custom-tooltip {

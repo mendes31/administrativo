@@ -70,7 +70,7 @@ $filter_name = htmlspecialchars($_GET['name'] ?? '');
                 </form>
 
                 <!-- Tabela Desktop -->
-                <div class="table-responsive d-none d-md-block">
+                <div class="table-responsive d-none d-md-block list-desktop">
                     <table class="table table-striped table-hover" id="tabela">
                         <thead>
                             <tr>
@@ -110,7 +110,7 @@ $filter_name = htmlspecialchars($_GET['name'] ?? '');
                 </div>
 
                 <!-- CARDS MOBILE -->
-                <div class="d-block d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php foreach ($this->data['groupsPages'] as $i => $groupPage) { extract($groupPage); ?>
                         <div class="card mb-3 shadow-sm">
                             <div class="card-body">
@@ -150,7 +150,18 @@ $filter_name = htmlspecialchars($_GET['name'] ?? '');
                             <?php endif; ?>
                         </div>
                         <div class="w-100 d-flex justify-content-center">
-                            <?= $this->data['pagination']['html'] ?? '' ?>
+                            <?php
+                            $paginationHtml = $this->data['pagination']['html'] ?? '';
+                            if ($paginationHtml) {
+                                $paginationHtml = str_replace(
+                                    ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                    ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                    $paginationHtml
+                                );
+                                $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                                echo $paginationHtml;
+                            }
+                            ?>
                         </div>
                     </div>
                 </div>

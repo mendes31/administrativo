@@ -72,7 +72,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_evaluation_model');
             if ($this->data['models'] ?? false) {
             ?>
 
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-md-block list-desktop">
                     <table class="table table-striped table-hover" id="tabela">
                         <thead>
                             <tr>
@@ -138,9 +138,69 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_evaluation_model');
                     </table>
                 </div>
 
+                <!-- Cards Mobile -->
+                <div class="d-block d-md-none list-mobile">
+                    <?php foreach (($this->data['models'] ?? []) as $i => $model) { extract($model); ?>
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1"><b><?= htmlspecialchars($titulo) ?></b></h6>
+                                        <div class="mb-1"><b>ID:</b> <?= $id ?></div>
+                                        <div class="mb-1"><b>Treinamento:</b> <?= htmlspecialchars($training_name ?? 'N/A') ?></div>
+                                        <div class="mb-1"><b>Status:</b> <?= ($ativo == 1) ? '<span class="badge bg-success">Ativo</span>' : '<span class="badge bg-secondary">Inativo</span>' ?></div>
+                                        <div class="mb-1"><b>Criado em:</b> <?= date('d/m/Y H:i', strtotime($created_at)) ?></div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <?php
+                                    if (in_array('ViewEvaluationModel', $this->data['buttonPermission'])) {
+                                        echo "<a href='{$_ENV['URL_ADM']}view-evaluation-model/$id' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Visualizar</a> ";
+                                    }
+                                    if (in_array('UpdateEvaluationModel', $this->data['buttonPermission'])) {
+                                        echo "<a href='{$_ENV['URL_ADM']}update-evaluation-model/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
+                                    }
+                                    if (in_array('DeleteEvaluationModel', $this->data['buttonPermission'])) { ?>
+                                        <form id="formDeleteMobile<?= $id; ?>" action="<?= $_ENV['URL_ADM']; ?>delete-evaluation-model" method="POST" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
+                                            <input type="hidden" name="id" id="id" value="<?= $id ?? ''; ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm me-1 mb-1" onclick="confirmDeletion(event, <?= $id; ?>)">
+                                                <i class="fa-regular fa-trash-can"></i> Apagar
+                                            </button>
+                                        </form>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php } ?>
+                    <!-- Paginação Mobile -->
+                    <div class="d-flex d-md-none flex-column align-items-center w-100 mt-2">
+                        <div class="text-secondary small w-100 text-center mb-1">
+                            Exibindo <?= is_array($this->data['models']) ? count($this->data['models']) : 0; ?> registro(s) nesta página.
+                        </div>
+                        <div class="w-100 d-flex justify-content-center">
+                            <?php
+                            ob_start();
+                            include './app/adms/Views/partials/pagination.php';
+                            $paginationHtml = ob_get_clean();
+                            if ($paginationHtml) {
+                                $paginationHtml = str_replace(
+                                    ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                    ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                    $paginationHtml
+                                );
+                                $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                                echo $paginationHtml;
+                            }
+                            ?>
+                        </div>
+                    </div>
+
             <?php
-                // Inclui o arquivo de paginação
+                // Paginação Desktop
+                echo '<div class="d-none d-md-block">';
                 include_once './app/adms/Views/partials/pagination.php';
+                echo '</div>';
             } else {
                 // Acessa o ELSE quando não existir registros
                 echo "<div class='alert alert-info' role='alert'>

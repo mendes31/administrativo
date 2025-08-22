@@ -14,13 +14,15 @@ if (!empty($_SESSION['user_id'])) {
 
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-nav">
     <a class="navbar-brand ps-3" href="<?php echo $_ENV['URL_ADM']; ?>dashboard">Tiaraju</a>
-    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
+    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" type="button" aria-label="Alternar menu lateral" title="Alternar menu lateral">
+        <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
     <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
         
     </form>
     <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
         <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu do usuário">
                 <?php if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png'): ?>
                     <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/<?php echo $userInfo['id']; ?>/<?php echo $userInfo['image']; ?>" 
                          alt="Foto do usuário" 

@@ -66,6 +66,7 @@
         <span class="fw-bold">$ Total: R$ <?php echo number_format($this->data['totalGeral'], 2, ',', '.'); ?></span>
     </div>
 
+    <div class="table-responsive d-none d-md-block list-desktop">
     <table class="table table-striped table-hover">
         <thead>
             <tr>
@@ -120,7 +121,29 @@
             <?php endforeach; ?>
         </tbody>
     </table>
-    <div class="text-end mt-2">
+    </div>
+    <div class="text-end mt-2 d-none d-md-block">
         <span class="fw-bold">Saldo do Período: R$ <?php echo number_format($saldo, 2, ',', '.'); ?></span>
+    </div>
+    <!-- Cards Mobile -->
+    <div class="d-block d-md-none list-mobile">
+        <?php foreach (($this->data['movements'] ?? []) as $mov): ?>
+            <div class="card mb-2 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <strong><?= htmlspecialchars($mov['movement']) ?></strong>
+                        <span><?= date('d/m/Y', strtotime($mov['created_at'])) ?></span>
+                    </div>
+                    <div class="small text-muted">Emissão: <?= !empty($mov['issue_date']) ? date('d/m/Y', strtotime($mov['issue_date'])) : '-' ?></div>
+                    <div><b>Descrição:</b> <?= htmlspecialchars($mov['description']) ?></div>
+                    <div><b>Banco:</b> <?= htmlspecialchars($mov['bank_name'] ?? '-') ?></div>
+                    <div><b>Forma:</b> <?= htmlspecialchars($mov['method_name'] ?? '-') ?></div>
+                    <div class="mt-1"><b>Valor:</b> R$ <?= number_format((float)$mov['movement_value'], 2, ',', '.') ?></div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        <div class="text-end text-secondary small mt-2">
+            Saldo do Período: R$ <?= number_format($saldo, 2, ',', '.') ?>
+        </div>
     </div>
 </div> 

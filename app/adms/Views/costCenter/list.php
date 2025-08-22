@@ -73,7 +73,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_cost_center');
                         <a href="?limpar_filtros=1" class="btn btn-secondary mt-4 ms-2">Limpar Filtros</a>
                     </div>
                 </form>
-                <table class="table table-striped table-hover d-none d-md-table">
+                <div class="table-responsive d-none d-md-block list-desktop">
+                <table class="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th scope="col">ID</th>
@@ -110,8 +111,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_cost_center');
                         <?php } ?>
                     </tbody>
                 </table>
+                </div>
                 <!-- Cards mobile -->
-                <div class="d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php foreach ($this->data['costCenters'] as $costCenter) { extract($costCenter); ?>
                     <div class="card mb-2 shadow-sm">
                         <div class="card-body">
@@ -148,7 +150,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_cost_center');
                             <?php endif; ?>
                         </div>
                         <div class="w-100 d-flex justify-content-center">
-                            <?= $this->data['pagination']['html'] ?? '' ?>
+                            <?php
+                            $paginationHtml = $this->data['pagination']['html'] ?? '';
+                            if ($paginationHtml) {
+                                $paginationHtml = str_replace(
+                                    ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                    ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                    $paginationHtml
+                                );
+                                $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                                echo $paginationHtml;
+                            }
+                            ?>
                         </div>
                     </div>
                 </div>

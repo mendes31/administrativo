@@ -85,7 +85,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_data_mapping');
                     <input type="hidden" name="page" value="1">
                 </form>
 
-                <div class="table-responsive d-none d-md-block">
+                <div class="table-responsive d-none d-md-block list-desktop">
                     <table class="table table-striped table-hover" id="tabela">
                         <thead>
                             <tr>
@@ -152,7 +152,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_data_mapping');
                     </table>
                 </div>
                 <!-- CARDS MOBILE -->
-                <div class="d-block d-md-none">
+                <div class="d-block d-md-none list-mobile">
                     <?php if (!empty($this->data['dataMappings'])): ?>
                         <?php foreach ($this->data['dataMappings'] as $i => $mapping) { ?>
                             <div class="card mb-2 shadow-sm" style="border-radius: 10px;">
@@ -214,7 +214,20 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_data_mapping');
                         <?php endif; ?>
                     </div>
                     <div class="w-100 d-flex justify-content-center">
-                        <?php include './app/adms/Views/partials/pagination.php'; ?>
+                        <?php
+                        ob_start();
+                        include './app/adms/Views/partials/pagination.php';
+                        $paginationHtml = ob_get_clean();
+                        if ($paginationHtml) {
+                            $paginationHtml = str_replace(
+                                ['>Primeiro<','>Anterior<','>Próximo<','>Último<'],
+                                ['>&laquo;<','>&lsaquo;<','>&rsaquo;<','>&raquo;<'],
+                                $paginationHtml
+                            );
+                            $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                            echo $paginationHtml;
+                        }
+                        ?>
                     </div>
                 </div>
 
