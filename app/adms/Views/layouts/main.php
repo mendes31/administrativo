@@ -164,7 +164,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     $sessionRepo->updateSessionActivity($_SESSION['user_id'], $_SESSION['session_id']);
 }
 
-file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . PHP_EOL, FILE_APPEND);
+// Log temporário desativado no servidor (evita erro quando sem diretório logs)
+// file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . PHP_EOL, FILE_APPEND);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $_ENV['APP_LOCALE']; ?>">

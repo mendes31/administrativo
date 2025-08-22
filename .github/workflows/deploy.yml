@@ -40,8 +40,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/
-            logs/**
+            /logs/**           # exclui apenas logs na raiz do projeto
             vendor/
             vendor/**
 
@@ -71,8 +70,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/
-            logs/**
+            /logs/**           # exclui apenas logs na raiz do projeto
             vendor/
             vendor/**
 
@@ -102,8 +100,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/
-            logs/**
+            /logs/**           # exclui apenas logs na raiz do projeto
             vendor/
             vendor/**
 
@@ -133,8 +130,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/
-            logs/**
+            /logs/**           # exclui apenas logs na raiz do projeto
             vendor/
             vendor/**
 
@@ -164,8 +160,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            logs/
-            logs/**
+            /logs/**           # exclui apenas logs na raiz do projeto
             vendor/
             vendor/**
 
