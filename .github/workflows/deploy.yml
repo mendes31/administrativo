@@ -20,9 +20,9 @@ jobs:
         id: deploy1
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USER }}
+          password: ${{ env.FTP_PASS }}
           local-dir: ./
           server-dir: ./administrativo/
           dangerous-clean-slate: false
@@ -40,7 +40,9 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            /logs/**           # exclui apenas logs na raiz do projeto
+            logs/**                    # exclui qualquer pasta logs
+            !app/adms/Controllers/logs/**
+            !app/adms/Views/logs/**
             vendor/
             vendor/**
 
@@ -50,9 +52,9 @@ jobs:
         id: deploy2
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USER }}
+          password: ${{ env.FTP_PASS }}
           local-dir: ./
           server-dir: ./administrativo/
           dangerous-clean-slate: false
@@ -70,7 +72,9 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            /logs/**           # exclui apenas logs na raiz do projeto
+            logs/**                    # exclui qualquer pasta logs
+            !app/adms/Controllers/logs/**
+            !app/adms/Views/logs/**
             vendor/
             vendor/**
 
@@ -80,9 +84,9 @@ jobs:
         id: deploy3
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USER }}
+          password: ${{ env.FTP_PASS }}
           local-dir: ./
           server-dir: ./administrativo/
           dangerous-clean-slate: false
@@ -100,7 +104,9 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            /logs/**           # exclui apenas logs na raiz do projeto
+            logs/**                    # exclui qualquer pasta logs
+            !app/adms/Controllers/logs/**
+            !app/adms/Views/logs/**
             vendor/
             vendor/**
 
@@ -110,9 +116,9 @@ jobs:
         id: deploy4
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USER }}
+          password: ${{ env.FTP_PASS }}
           local-dir: ./
           server-dir: ./administrativo/
           dangerous-clean-slate: false
@@ -130,7 +136,9 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            /logs/**           # exclui apenas logs na raiz do projeto
+            logs/**                    # exclui qualquer pasta logs
+            !app/adms/Controllers/logs/**
+            !app/adms/Views/logs/**
             vendor/
             vendor/**
 
@@ -140,9 +148,9 @@ jobs:
         id: deploy5
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USER }}
+          password: ${{ env.FTP_PASS }}
           local-dir: ./
           server-dir: ./administrativo/
           dangerous-clean-slate: false
@@ -160,7 +168,9 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            /logs/**           # exclui apenas logs na raiz do projeto
+            logs/**                    # exclui qualquer pasta logs
+            !app/adms/Controllers/logs/**
+            !app/adms/Views/logs/**
             vendor/
             vendor/**
 
@@ -172,9 +182,9 @@ jobs:
       - name: Deploy via lftp (Fallback Incremental)
         if: failure() && steps.deploy5.outcome == 'failure'
         env:
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USER }}
-          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_HOST: ${{ env.FTP_SERVER }}
+          FTP_USER: ${{ env.FTP_USER }}
+          FTP_PASS: ${{ env.FTP_PASS }}
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           echo "📁 Verificando arquivos existentes e enviando apenas o que falta..."
@@ -250,9 +260,9 @@ jobs:
       - name: Criar Pastas Essenciais no Servidor
         if: always()
         env:
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USER }}
-          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_HOST: ${{ env.FTP_SERVER }}
+          FTP_USER: ${{ env.FTP_USER }}
+          FTP_PASS: ${{ env.FTP_PASS }}
         run: |
           echo "🔧 === CRIAÇÃO DE PASTAS ESSENCIAIS ==="
           echo "📁 Criando pastas necessárias no servidor..."
