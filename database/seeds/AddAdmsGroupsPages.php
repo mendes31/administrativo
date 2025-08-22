@@ -51,6 +51,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Planejamento Estratégico', 'obs' => 'Gestão de planos e indicadores estratégicos'], // Nº 29
             ['name' => 'Informativos', 'obs' => 'Páginas de informativos'], // Nº 30
             ['name' => 'LGPD', 'obs' => 'Gestão da LGPD e privacidade'], // Nº 31
+            ['name' => 'Sessões', 'obs' => 'Gerenciamento de sessões do sistema'], // Nº 32
         ];
 
         foreach ($grupos as $grupo) {

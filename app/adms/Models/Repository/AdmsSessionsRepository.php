@@ -11,7 +11,9 @@ class AdmsSessionsRepository extends DbConnection
 
     public function saveSession(int $userId, string $sessionId): void
     {
-        $sql = "INSERT INTO {$this->table} (user_id, session_id, status, created_at) VALUES (:user_id, :session_id, 'ativa', NOW()) ON DUPLICATE KEY UPDATE session_id = :session_id, status = 'ativa', created_at = NOW()";
+        $sql = "INSERT INTO {$this->table} (user_id, session_id, status, created_at, updated_at)
+                VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())
+                ON DUPLICATE KEY UPDATE session_id = :session_id, status = 'ativa', created_at = NOW(), updated_at = NOW()";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);

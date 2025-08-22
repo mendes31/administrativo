@@ -120,10 +120,17 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         header("Location: {$_ENV['URL_ADM']}login?msg=" . urlencode($msg));
         exit;
     }
-    // Buscar política de senha para expiração dinâmica
+    // Buscar política de senha para expiração dinâmica (apenas para configuração JavaScript)
     $policyRepo = new \App\adms\Models\Repository\AdmsPasswordPolicyRepository();
     $policy = $policyRepo->getPolicy();
     $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $policy->expirar_sessao_por_tempo === 'Sim');
+    
+    // NOTA: A verificação de expiração por tempo foi movida para o JavaScript
+    // para evitar conflitos e loops infinitos. O servidor apenas verifica
+    // se a sessão existe e está ativa no banco.
+    
+    // Comentado para evitar dupla verificação:
+    /*
     $limite = ($policy && isset($policy->tempo_expiracao_sessao)) ? ((int)$policy->tempo_expiracao_sessao * 60) : 1800;
     if ($expirarPorTempo) {
         $agora = time();
@@ -148,11 +155,11 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     $params['secure'], $params['httponly']
                 );
             }
-            // session_destroy(); // Removido para evitar destruição global da sessão
             header('Location: ' . $_ENV['URL_ADM'] . 'login?error=' . urlencode('Sua sessão expirou por inatividade. Faça login novamente.'));
             exit;
         }
     }
+    */
     // Atualiza o updated_at da sessão ativa
     $sessionRepo->updateSessionActivity($_SESSION['user_id'], $_SESSION['session_id']);
 }
@@ -268,6 +275,18 @@ file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json
     
     <!-- Sistema Responsivo para Diferentes Resoluções -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/screen-resolution.js"></script>
+
+    <!-- Configurações de Sessão da Política de Senhas -->
+    <script>
+        window.sessionConfig = {
+            enabled: <?php echo json_encode($expirarPorTempo ?? false); ?>,
+            timeoutMinutes: <?php echo json_encode(($policy && isset($policy->tempo_expiracao_sessao)) ? (int)$policy->tempo_expiracao_sessao : 30); ?>,
+            warningTime: <?php echo json_encode(($policy && isset($policy->tempo_expiracao_sessao)) ? (int)$policy->tempo_expiracao_sessao : 30); ?>
+        };
+    </script>
+
+    <!-- Verificação Automática de Sessão -->
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js"></script>
 
     <!-- JavaScript específico para página de permissões -->
     <?php if (strpos($this->view, 'permission/list.php') !== false): ?>

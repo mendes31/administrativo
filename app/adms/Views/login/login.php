@@ -1,11 +1,6 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
-
-// Exibir mensagem de erro vinda da query string
-if (!empty($_GET['error'])) {
-    echo '<div class="alert alert-danger" role="alert">' . htmlspecialchars($_GET['error']) . '</div>';
-}
 ?>
 
 <div class="col-lg-5">
@@ -20,6 +15,17 @@ if (!empty($_GET['error'])) {
         </div>
 
         <div class="card-body">
+            <?php if (!empty($_GET['msg'])): ?>
+                <div class="alert alert-warning" role="alert">
+                    <?= htmlspecialchars($_GET['msg']) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($_GET['error'])): ?>
+                <div class="alert alert-danger" role="alert">
+                    <?= htmlspecialchars($_GET['error']) ?>
+                </div>
+            <?php endif; ?>
             <?php if (!empty($_SESSION['error'])): ?>
                 <div class="alert alert-danger" role="alert">
                     <?= htmlspecialchars($_SESSION['error']) ?>
