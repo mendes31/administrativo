@@ -257,6 +257,18 @@ body, html, .container-fluid, .card {
   max-width: 100vw;
 }
 
+/* Destaques para páginas de logs */
+.log-field-card .card-title {
+  font-size: 0.95rem;
+}
+.log-field-card .small {
+  line-height: 1.2;
+}
+.badge.bg-warning.text-dark {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+}
+
 
 
 
