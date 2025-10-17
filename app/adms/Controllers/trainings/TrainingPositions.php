@@ -25,14 +25,14 @@ class TrainingPositions
     private function saveTrainingPositions(int $trainingId): void
     {
         $obrigatorio = $_POST['obrigatorio'] ?? [];
-        $reciclagem = $_POST['reciclagem'] ?? [];
+        $tipos = $_POST['tipo_treinamento'] ?? [];
         
         // Buscar vínculos existentes ANTES da alteração
         $trainingPositionsRepo = new TrainingPositionsRepository();
         $existingLinks = $trainingPositionsRepo->getPositionsByTraining($trainingId);
         $existingObrigatorios = array_column($existingLinks, 'adms_position_id');
         
-        $result = $trainingPositionsRepo->saveTrainingPositions($trainingId, $obrigatorio, $reciclagem);
+        $result = $trainingPositionsRepo->saveTrainingPositions($trainingId, $obrigatorio, $tipos);
         
         if ($result) {
             $_SESSION['success'] = 'Vínculos atualizados com sucesso!';

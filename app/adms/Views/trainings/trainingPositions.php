@@ -49,7 +49,7 @@ use App\adms\Helpers\FormatHelper;
                                 </th>
                                 <th style="width:60px;" class="text-center">ID</th>
                                 <th>Cargo</th>
-                                <th style="width:150px;" class="text-center">Período Reciclagem</th>
+                                <th style="width:180px;" class="text-center">Tipo do Treinamento</th>
                                 <th style="width:100px;" class="text-center">Status</th>
                             </tr>
                         </thead>
@@ -77,7 +77,7 @@ use App\adms\Helpers\FormatHelper;
                                                        value="1"
                                                        id="pos<?php echo $position['id']; ?>" 
                                                        <?php echo $isLinked ? 'checked' : ''; ?>
-                                                       onchange="toggleReciclagem(<?php echo $position['id']; ?>)">
+                                                       onchange="toggleObrigatorio(<?php echo $position['id']; ?>)">
                                             </div>
                                         </td>
                                         <td class="text-center">
@@ -87,25 +87,17 @@ use App\adms\Helpers\FormatHelper;
                                             <strong><?php echo htmlspecialchars($position['name']); ?></strong>
                                         </td>
                                         <td class="text-center">
-                                            <div class="input-group input-group-sm">
-                                                <input type="number" 
-                                                       class="form-control form-control-sm" 
-                                                       name="reciclagem[<?php echo $position['id']; ?>]" 
-                                                       value="<?php echo isset($linkedData['reciclagem_periodo']) && $linkedData['reciclagem_periodo'] !== null ? $linkedData['reciclagem_periodo'] : ''; ?>"
-                                                       min="0" 
-                                                       max="120"
-                                                       placeholder="Meses"
-                                                       id="reciclagem_<?php echo $position['id']; ?>"
-                                                       onchange="updatePeriodoText(<?php echo $position['id']; ?>)"
-                                                       oninput="updatePeriodoText(<?php echo $position['id']; ?>)"
-                                                       <?php echo !$isLinked ? 'disabled' : ''; ?>>
-                                                <span class="input-group-text" id="periodo_text_<?php echo $position['id']; ?>">
-                                                    <?php 
-                                                    $periodo = (int)($linkedData['reciclagem_periodo'] ?? 0);
-                                                    echo $periodo === 1 ? 'mês' : 'meses';
-                                                    ?>
-                                                </span>
-                                            </div>
+                                            <select class="form-select form-select-sm w-auto d-inline-block"
+                                                    name="tipo_treinamento[<?php echo $position['id']; ?>]"
+                                                    id="tipo_<?php echo $position['id']; ?>"
+                                                    <?php echo !$isLinked ? 'disabled' : ''; ?>
+                                            >
+                                                <?php 
+                                                    $tipo = $linkedData['tipo_treinamento'] ?? 'Inicial';
+                                                ?>
+                                                <option value="Inicial" <?php echo ($tipo === 'Inicial') ? 'selected' : ''; ?>>Inicial</option>
+                                                <option value="Continuo" <?php echo ($tipo === 'Continuo') ? 'selected' : ''; ?>>Contínuo</option>
+                                            </select>
                                         </td>
                                         <td class="text-center">
                                             <?php if ($isLinked): ?>
@@ -158,35 +150,19 @@ use App\adms\Helpers\FormatHelper;
 </div>
 
 <script>
-function toggleReciclagem(positionId) {
+function toggleObrigatorio(positionId) {
     const checkbox = document.getElementById('pos' + positionId);
-    const reciclagemInput = document.getElementById('reciclagem_' + positionId);
-    const periodoText = document.getElementById('periodo_text_' + positionId);
+    const tipoSelect = document.getElementById('tipo_' + positionId);
     const row = checkbox.closest('tr');
     
     if (checkbox.checked) {
-        reciclagemInput.disabled = false;
+        if (tipoSelect) tipoSelect.disabled = false;
         row.classList.add('table-success');
         row.classList.remove('table-light');
-        updatePeriodoText(positionId);
     } else {
-        reciclagemInput.disabled = true;
-        reciclagemInput.value = '';
+        if (tipoSelect) tipoSelect.disabled = true;
         row.classList.remove('table-success');
         row.classList.add('table-light');
-        periodoText.textContent = 'meses';
-    }
-}
-
-function updatePeriodoText(positionId) {
-    const reciclagemInput = document.getElementById('reciclagem_' + positionId);
-    const periodoText = document.getElementById('periodo_text_' + positionId);
-    const valor = parseInt(reciclagemInput.value) || 0;
-    
-    if (valor === 1) {
-        periodoText.textContent = 'mês';
-    } else {
-        periodoText.textContent = 'meses';
     }
 }
 
@@ -194,7 +170,7 @@ function selectAll() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = true;
-        toggleReciclagem(checkbox.id.replace('pos', ''));
+        toggleObrigatorio(checkbox.id.replace('pos', ''));
     });
 }
 
@@ -202,7 +178,7 @@ function deselectAll() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
-        toggleReciclagem(checkbox.id.replace('pos', ''));
+        toggleObrigatorio(checkbox.id.replace('pos', ''));
     });
 }
 
@@ -210,7 +186,7 @@ function deselectAll() {
 document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
-        toggleReciclagem(checkbox.id.replace('pos', ''));
+        toggleObrigatorio(checkbox.id.replace('pos', ''));
     });
 });
 </script> 

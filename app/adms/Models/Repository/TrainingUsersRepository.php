@@ -57,18 +57,35 @@ class TrainingUsersRepository extends DbConnection
         }
 
         try {
-            // Buscar prazo_treinamento do treinamento
-            $sqlPrazo = "SELECT prazo_treinamento FROM adms_trainings WHERE id = :training_id";
-            $stmtPrazo = $this->getConnection()->prepare($sqlPrazo);
-            $stmtPrazo->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
-            $stmtPrazo->execute();
-            $prazo = (int)($stmtPrazo->fetchColumn() ?? 0);
+            // Determinar prazo pelo tipo_treinamento no vínculo por cargo (Inicial=90, Continuo=365)
+            $prazoDias = 90; // default
+            try {
+                // Buscar cargo do usuário
+                $stmtUser = $this->getConnection()->prepare('SELECT user_position_id FROM adms_users WHERE id = :uid');
+                $stmtUser->bindValue(':uid', $userId, PDO::PARAM_INT);
+                $stmtUser->execute();
+                $userPositionId = (int)($stmtUser->fetchColumn() ?? 0);
+                if ($userPositionId) {
+                    $stmtTipo = $this->getConnection()->prepare('SELECT tipo_treinamento FROM adms_training_positions WHERE adms_training_id = :tid AND adms_position_id = :pid LIMIT 1');
+                    $stmtTipo->bindValue(':tid', $trainingId, PDO::PARAM_INT);
+                    $stmtTipo->bindValue(':pid', $userPositionId, PDO::PARAM_INT);
+                    $stmtTipo->execute();
+                    $tipo = $stmtTipo->fetchColumn();
+                    if ($tipo === 'Continuo') {
+                        $prazoDias = 365;
+                    } else {
+                        $prazoDias = 90;
+                    }
+                }
+            } catch (\Exception $e) {
+                $prazoDias = 90;
+            }
 
             // Calcular data limite
             if ($dataLimiteManual) {
                 $dataLimite = $dataLimiteManual;
             } else {
-                $dataLimite = (new \DateTime())->modify("+{$prazo} days")->format('Y-m-d');
+                $dataLimite = (new \DateTime())->modify("+{$prazoDias} days")->format('Y-m-d');
             }
 
             $sql = 'INSERT INTO adms_training_users (adms_user_id, adms_training_id, status, tipo_vinculo, motivo, created_at, updated_at, data_limite_primeiro_treinamento)
@@ -737,13 +754,25 @@ class TrainingUsersRepository extends DbConnection
 
             if ($reprovado) {
                 // NÃO marcar como concluído!
-                // Atualizar motivo e prazo para retreinamento, manter status ativo
-                $sqlPrazo = "SELECT prazo_treinamento FROM adms_trainings WHERE id = ?";
-                $stmtPrazo = $this->getConnection()->prepare($sqlPrazo);
-                $stmtPrazo->bindValue(1, $trainingId, PDO::PARAM_INT);
-                $stmtPrazo->execute();
-                $prazo = (int)($stmtPrazo->fetchColumn() ?? 0);
-                $dataLimite = (new \DateTime())->modify("+{$prazo} days")->format('Y-m-d');
+                // Reabre prazo a partir de hoje conforme tipo_treinamento (Inicial=90, Continuo=365)
+                $prazoDias = 90;
+                try {
+                    $stmtUser = $this->getConnection()->prepare('SELECT user_position_id FROM adms_users WHERE id = :uid');
+                    $stmtUser->bindValue(':uid', $userId, PDO::PARAM_INT);
+                    $stmtUser->execute();
+                    $userPositionId = (int)($stmtUser->fetchColumn() ?? 0);
+                    if ($userPositionId) {
+                        $stmtTipo = $this->getConnection()->prepare('SELECT tipo_treinamento FROM adms_training_positions WHERE adms_training_id = :tid AND adms_position_id = :pid LIMIT 1');
+                        $stmtTipo->bindValue(':tid', $trainingId, PDO::PARAM_INT);
+                        $stmtTipo->bindValue(':pid', $userPositionId, PDO::PARAM_INT);
+                        $stmtTipo->execute();
+                        $tipo = $stmtTipo->fetchColumn();
+                        $prazoDias = ($tipo === 'Continuo') ? 365 : 90;
+                    }
+                } catch (\Exception $e) {
+                    $prazoDias = 90;
+                }
+                $dataLimite = (new \DateTime())->modify("+{$prazoDias} days")->format('Y-m-d');
                 $sql = 'UPDATE adms_training_users SET status = "dentro_do_prazo", motivo = "retreinamento", data_limite_primeiro_treinamento = :dataLimite, updated_at = NOW() WHERE adms_user_id = :userId AND adms_training_id = :trainingId';
                 $stmt = $this->getConnection()->prepare($sql);
                 $stmt->bindValue(':dataLimite', $dataLimite, PDO::PARAM_STR);
