@@ -25,12 +25,23 @@ class CSRFHelper
      */
     public static function generateCSRFToken(string $formIdentifier): string
     {
+        // Garantir que a sessão tenha o array de tokens CSRF
+        if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
+            $_SESSION['csrf_tokens'] = [];
+        }
+        
         // A função random_bytes gera uma sequência de 32 bytes aleatórios.
         // A função bin2hex converte os bytes binários gerados pela random_bytes em uma representação hexadecimal.
         $token = bin2hex(random_bytes(32));
 
         // Salvar o TOKEN CSRF na sessão
         $_SESSION['csrf_tokens'][$formIdentifier] = $token;
+        
+        // Log para debug
+        file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
+            date('Y-m-d H:i:s') . " - [CSRF] TOKEN GERADO - form: {$formIdentifier}, token: {$token}\n", 
+            FILE_APPEND
+        );
 
         // Retornar o token gerado
         return $token;
@@ -48,14 +59,50 @@ class CSRFHelper
      */
      public static function validateCSRFToken(string $formIdentifier, string $token)
      {
-        // Verificar se existe o csrf_token e se o valor que vem do formulário é igual ao csrf salvo na sessão.
-        if(isset($_SESSION['csrf_tokens'][$formIdentifier]) && hash_equals($_SESSION['csrf_tokens'][$formIdentifier], $token)){
-
-            // Token usado deve se rinvalidado.
+        // Log detalhado para debug
+        file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
+            date('Y-m-d H:i:s') . " - [CSRF] VALIDANDO - form: {$formIdentifier}, token_recebido: {$token}\n", 
+            FILE_APPEND
+        );
+        
+        // Verificar se a sessão tem tokens CSRF
+        if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
+            file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
+                date('Y-m-d H:i:s') . " - [CSRF] ERRO: Sessão não tem tokens CSRF\n", 
+                FILE_APPEND
+            );
+            return false;
+        }
+        
+        // Verificar se existe o token específico para este formulário
+        if (!isset($_SESSION['csrf_tokens'][$formIdentifier])) {
+            file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
+                date('Y-m-d H:i:s') . " - [CSRF] ERRO: Token não encontrado para form: {$formIdentifier}\n", 
+                FILE_APPEND
+            );
+            return false;
+        }
+        
+        // Verificar se o token recebido é igual ao token salvo na sessão
+        if (hash_equals($_SESSION['csrf_tokens'][$formIdentifier], $token)) {
+            // Log para debug
+            file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
+                date('Y-m-d H:i:s') . " - [CSRF] TOKEN VALIDO - form: {$formIdentifier}, token: {$token}\n", 
+                FILE_APPEND
+            );
+            
+            // Token usado deve ser invalidado.
             unset($_SESSION['csrf_tokens'][$formIdentifier]);
-
+            
             return true;
         }
+        
+        // Log para debug
+        file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
+            date('Y-m-d H:i:s') . " - [CSRF] TOKEN INVALIDO - form: {$formIdentifier}, token_recebido: {$token}, token_sessao: " . ($_SESSION['csrf_tokens'][$formIdentifier] ?? 'NULL') . "\n", 
+            FILE_APPEND
+        );
+        
         return false;
      }
 

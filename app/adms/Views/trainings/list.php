@@ -16,10 +16,18 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-graduation-cap me-2"></i>Listar Treinamentos</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
-                <a href="<?php echo $_ENV['URL_ADM']; ?>create-training" class="btn btn-success btn-sm mb-1 btn-min-width-90"><i class="fa-solid fa-plus"></i> Cadastrar</a>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>training-kpi-dashboard" class="btn btn-primary btn-sm mb-1 btn-min-width-70"><i class="fas fa-chart-line"></i> KPIs</a>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>training-matrix-manager" class="btn btn-warning btn-sm mb-1 btn-min-width-70"><i class="fas fa-table"></i> Matriz</a>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-training-status" class="btn btn-info btn-sm mb-1 btn-min-width-70"><i class="fas fa-chart-bar"></i> Status</a>
+                <?php if (in_array('CreateTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>create-training" class="btn btn-success btn-sm mb-1 btn-min-width-90"><i class="fa-solid fa-plus"></i> Cadastrar</a>
+                <?php } ?>
+                <?php if (in_array('TrainingKpiDashboard', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-kpi-dashboard" class="btn btn-primary btn-sm mb-1 btn-min-width-70"><i class="fas fa-chart-line"></i> KPIs</a>
+                <?php } ?>
+                <?php if (in_array('TrainingMatrixManager', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-matrix-manager" class="btn btn-warning btn-sm mb-1 btn-min-width-70"><i class="fas fa-table"></i> Matriz</a>
+                <?php } ?>
+                <?php if (in_array('ListTrainingStatus', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-training-status" class="btn btn-info btn-sm mb-1 btn-min-width-70"><i class="fas fa-chart-bar"></i> Status</a>
+                <?php } ?>
             </span>
         </div>
         <div class="card-body">
@@ -101,35 +109,35 @@ use App\adms\Helpers\FormatHelper;
                 </div>
                 <div class="col-md-2 filtros-btns-row w-100 mt-2">
                     <button type="submit" class="btn btn-primary btn-sm btn-filtros-mobile" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"><i class="fa fa-search"></i> Filtrar</button>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-trainings" class="btn btn-secondary btn-sm btn-filtros-mobile" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"><i class="fa fa-times"></i> Limpar</a>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-trainings?limpar=1" class="btn btn-secondary btn-sm btn-filtros-mobile" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"><i class="fa fa-times"></i> Limpar</a>
                 </div>
             </form>
             <!-- Tabela Desktop -->
             <div class="d-none d-md-block list-desktop">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover w-100" style="min-width: 1200px;">
-                        <thead class="table-dark">
+                <div>
+                    <table class="table table-bordered table-striped table-hover w-100 table-training-list">
+                        <thead class="thead-green">
                             <tr>
-                                <th style="width:6%; text-align:left; padding-left:12px;">Código</th>
-                                <th style="text-align:left; padding-left:12px;">Nome</th>
-                                <th style="width:6%; text-align:left; padding-left:12px;">Reciclar</th>
-                                <th style="text-align:left; padding-left:12px;">Área Resp.</th>
-                                <th style="text-align:left; padding-left:12px;">Área Elab.</th>
-                                <th style="text-align:left; padding-left:12px;">Obrigatoriedade</th>
-                                <th style="width:7%; text-align:left; padding-left:12px;">Categoria</th>
-                                <th style="text-align:left; padding-left:12px;">Instrutor</th>
-                                <th style="width:7%; text-align:left; padding-left:12px;">Carga Horária</th>
-                                <th style="width:7%; text-align:left; padding-left:12px;">Cargos Vinculados</th>
-                                <th style="width:7%; text-align:left; padding-left:12px;">Status</th>
-                                <th style="width:7%; text-align:left; padding-left:12px;">Ações</th>
+                                <th style="width:7%; text-align:left; padding:6px 6px; white-space:normal;">Código</th>
+                                <th style="width:16%; text-align:left; padding:6px 6px; white-space:normal;">Nome</th>
+                                <th style="width:6%; text-align:left; padding:6px 6px; white-space:normal;">Reciclar</th>
+                                <th style="width:8%; text-align:left; padding:6px 6px; white-space:normal;">Área Resp.</th>
+                                <th style="width:8%; text-align:left; padding:6px 6px; white-space:normal;">Área Elab.</th>
+                                <th style="width:9%; text-align:left; padding:6px 6px; white-space:normal;">Obrigatoriedade</th>
+                                <th style="width:7%; text-align:left; padding:6px 6px; white-space:normal;">Categoria</th>
+                                <th style="width:9%; text-align:left; padding:6px 6px; white-space:normal;">Instrutor</th>
+                                <th style="width:6%; text-align:left; padding:6px 6px; white-space:normal;">Carga Horária</th>
+                                <th style="width:7%; text-align:left; padding:6px 6px; white-space:normal;">Cargos Vinculados</th>
+                                <th style="width:8%; text-align:left; padding:6px 6px; white-space:normal;">Status</th>
+                                <th class="actions-col" style="text-align:left;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!empty($this->data['trainings'])): ?>
                                 <?php foreach ($this->data['trainings'] as $training): ?>
                                     <tr>
-                                        <td style="text-align:left; padding-left:12px;"><strong><?php echo is_array($training['codigo']) ? '' : htmlspecialchars($training['codigo']); ?></strong></td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;"><strong><?php echo is_array($training['codigo']) ? '' : htmlspecialchars($training['codigo']); ?></strong></td>
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <div>
                                                 <strong><?php echo is_array($training['nome']) ? '' : htmlspecialchars($training['nome']); ?></strong>
                                                 <?php if (!empty($training['versao']) && !is_array($training['versao'])): ?>
@@ -137,30 +145,30 @@ use App\adms\Helpers\FormatHelper;
                                                 <?php endif; ?>
                                             </div>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php if (!empty($training['reciclagem']) && !empty($training['reciclagem_periodo'])): ?>
                                                 <?php echo is_array($training['reciclagem_periodo']) ? '' : FormatHelper::formatReciclagemPeriodoTable((int)$training['reciclagem_periodo']); ?>
                                             <?php else: ?>
                                                 N/A
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php echo htmlspecialchars($training['area_responsavel_nome'] ?? '-'); ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php echo htmlspecialchars($training['area_elaborador_nome'] ?? '-'); ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php echo htmlspecialchars($training['tipo_obrigatoriedade'] ?? '-'); ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php if (!empty($training['tipo'])): ?>
                                                 <span class="badge bg-primary"><?php echo is_array($training['tipo']) ? '' : htmlspecialchars($training['tipo']); ?></span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php
                                             if (!empty($training['instructor_name']) && !is_array($training['instructor_name'])) {
                                                 echo '<i class="fas fa-user-tie me-1"></i>' . htmlspecialchars($training['instructor_name']);
@@ -173,7 +181,7 @@ use App\adms\Helpers\FormatHelper;
                                             }
                                             ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php if (!empty($training['carga_horaria']) && !is_array($training['carga_horaria'])): ?>
                                                 <span class="badge bg-warning text-dark">
                                                     <?php echo htmlspecialchars(substr($training['carga_horaria'], 0, 5)); ?>
@@ -182,7 +190,7 @@ use App\adms\Helpers\FormatHelper;
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php 
                                             $cargosVinculados = (int)($training['cargos_vinculados'] ?? 0);
                                             $colaboradoresVinculados = (int)($training['colaboradores_vinculados'] ?? 0);
@@ -200,7 +208,7 @@ use App\adms\Helpers\FormatHelper;
                                                 <i class="fas fa-users me-1"></i><?php echo $colaboradoresVinculados; ?>
                                             </span>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <?php if ($training['ativo']): ?>
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check me-1"></i>Ativo
@@ -211,13 +219,23 @@ use App\adms\Helpers\FormatHelper;
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align:left; padding-left:12px;">
+                                        <td style="text-align:left; padding:6px 6px; white-space:normal; word-break:break-word;">
                                             <div class="btn-group" role="group">
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo $training['id']; ?>" class="btn btn-primary btn-sm" title="Visualizar"><i class="fas fa-eye"></i></a>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm" title="Vincular Cargos"><i class="fas fa-link"></i></a>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                                <?php if (in_array('ViewTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo $training['id']; ?>" class="btn btn-primary btn-sm" title="Visualizar"><i class="fas fa-eye"></i></a>
+                                                <?php } ?>
+                                                <?php if (in_array('UpdateTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>
+                                                <?php } ?>
+                                                <?php if (in_array('TrainingPositions', $this->data['buttonPermission'] ?? [])) { ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm" title="Vincular Cargos"><i class="fas fa-link"></i></a>
+                                                <?php } ?>
+                                                <?php if (in_array('LinkTrainingUsers', $this->data['buttonPermission'] ?? [])) { ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
+                                                <?php } ?>
+                                                <?php if (in_array('DeleteTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                                <?php } ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -266,11 +284,21 @@ use App\adms\Helpers\FormatHelper;
                                     <div class="mb-1"><b>Cargos Vinculados:</b> <?= (int)($training['cargos_vinculados'] ?? 0); ?></div>
                                     <div class="mb-1"><b>Colaboradores Vinculados:</b> <?= (int)($training['colaboradores_vinculados'] ?? 0); ?></div>
                                     <div class="mt-2">
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo $training['id']; ?>" class="btn btn-primary btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> </a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> </a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm me-1 mb-1" title="Vincular Cargos"><i class="fas fa-link"></i></a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm me-1 mb-1" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                        <?php if (in_array('ViewTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo $training['id']; ?>" class="btn btn-primary btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> </a>
+                                        <?php } ?>
+                                        <?php if (in_array('UpdateTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> </a>
+                                        <?php } ?>
+                                        <?php if (in_array('TrainingPositions', $this->data['buttonPermission'] ?? [])) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm me-1 mb-1" title="Vincular Cargos"><i class="fas fa-link"></i></a>
+                                        <?php } ?>
+                                        <?php if (in_array('LinkTrainingUsers', $this->data['buttonPermission'] ?? [])) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm me-1 mb-1" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
+                                        <?php } ?>
+                                        <?php if (in_array('DeleteTraining', $this->data['buttonPermission'] ?? [])) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                        <?php } ?>
                                     </div>
                                 </div>
                             </div>

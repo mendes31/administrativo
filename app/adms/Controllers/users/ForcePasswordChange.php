@@ -18,34 +18,58 @@ class ForcePasswordChange
 
     public function index(): void
     {
+        // Garantir que a sessão esteja ativa e estável
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
-        file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [force_password_change] INICIO - session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . "\n", FILE_APPEND);
-        file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Início do método index\n", FILE_APPEND);
-        file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Sessão recebida: " . json_encode($_SESSION) . "\n", FILE_APPEND);
-        if (empty($_SESSION['user_id'])) {
-            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Sessão inválida\n", FILE_APPEND);
-            $_SESSION['error'] = 'Sessão inválida! Faça login para continuar.';
+        
+        // Aguardar um momento para a sessão se estabilizar após redirecionamento
+        usleep(100000); // 0.1 segundo
+        
+        // Verificar se a sessão está válida
+        if (empty($_SESSION['user_id']) || empty($_SESSION['force_password_change'])) {
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Sessão inválida ou não autorizada para alteração de senha\n", FILE_APPEND);
+            $_SESSION['error'] = 'Sessão inválida ou não autorizada para alteração de senha! Faça login novamente.';
             header('Location: ' . $_ENV['URL_ADM'] . 'login');
             exit;
         }
+        
+        // Log para debug
+        file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [force_password_change] INICIO - session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . "\n", FILE_APPEND);
+        file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Início do método index\n", FILE_APPEND);
+        file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Sessão recebida: " . json_encode($_SESSION) . "\n", FILE_APPEND);
         $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
-        if (isset($this->data['form']['csrf_token']) && CSRFHelper::validateCSRFToken('form_force_password_change', $this->data['form']['csrf_token'])) {
-            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Submissão do formulário\n", FILE_APPEND);
-            $this->editPasswordUser();
-        } else {
-            $viewUser = new UsersRepository();
-            $this->data['form'] = $viewUser->getUser((int)$_SESSION['user_id']);
-            if (!$this->data['form']) {
-                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Usuário não encontrado\n", FILE_APPEND);
-                GenerateLog::generateLog('error', 'Usuário não encontrado.', ['id' => (int)$_SESSION['user_id']]);
-                $_SESSION['error'] = 'Usuário não encontrado.';
-                header('Location: ' . $_ENV['URL_ADM'] . 'login');
+        
+        // Verificar se é uma submissão de formulário
+        if (isset($this->data['form']['csrf_token']) && !empty($this->data['form']['csrf_token'])) {
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Tentativa de submissão com token: " . $this->data['form']['csrf_token'] . "\n", FILE_APPEND);
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Tokens na sessão: " . json_encode($_SESSION['csrf_tokens'] ?? []) . "\n", FILE_APPEND);
+            
+            // Validar token CSRF
+            if (CSRFHelper::validateCSRFToken('form_force_password_change', $this->data['form']['csrf_token'])) {
+                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Token CSRF válido, processando alteração de senha\n", FILE_APPEND);
+                $this->editPasswordUser();
                 return;
+            } else {
+                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Token CSRF inválido - Token recebido: " . $this->data['form']['csrf_token'] . "\n", FILE_APPEND);
+                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Tokens disponíveis na sessão: " . json_encode($_SESSION['csrf_tokens'] ?? []) . "\n", FILE_APPEND);
+                $_SESSION['error'] = 'Token de segurança inválido. Tente novamente.';
             }
-            $this->viewUser();
+        } else {
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Nenhum token CSRF recebido no formulário\n", FILE_APPEND);
         }
+        
+        // Carregar dados do usuário para exibir na view
+        $viewUser = new UsersRepository();
+        $this->data['form'] = $viewUser->getUser((int)$_SESSION['user_id']);
+        if (!$this->data['form']) {
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Usuário não encontrado\n", FILE_APPEND);
+            GenerateLog::generateLog('error', 'Usuário não encontrado.', ['id' => (int)$_SESSION['user_id']]);
+            $_SESSION['error'] = 'Usuário não encontrado.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'login');
+            return;
+        }
+        $this->viewUser();
     }
 
     private function viewUser(): void

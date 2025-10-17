@@ -21,7 +21,7 @@ class ExtendSession
         }
 
         // Verificar se há uma sessão ativa
-        if (empty($_SESSION['user_id'])) {
+        if (empty($_SESSION['user_id']) || empty($_SESSION['session_id'])) {
             $this->sendJsonResponse(['error' => 'Usuário não autenticado'], 401);
             return;
         }
@@ -40,16 +40,23 @@ class ExtendSession
 
         // Atualizar última atividade no banco
         $sessionsRepository = new AdmsSessionsRepository();
-        $sessionsRepository->updateSessionActivity($_SESSION['user_id'], $_SESSION['session_id']);
+        $result = $sessionsRepository->updateSessionActivity($_SESSION['user_id'], $_SESSION['session_id']);
         
-        // Atualizar timestamp da sessão
-        $_SESSION['last_activity'] = time();
-        
-        $this->sendJsonResponse([
-            'success' => true,
-            'message' => 'Sessão estendida com sucesso',
-            'timestamp' => date('Y-m-d H:i:s')
-        ]);
+        if ($result) {
+            // Atualizar timestamp da sessão local
+            $_SESSION['last_activity'] = time();
+            
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'Sessão estendida com sucesso',
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+        } else {
+            $this->sendJsonResponse([
+                'success' => false,
+                'message' => 'Erro ao estender sessão'
+            ], 500);
+        }
     }
 
     /**

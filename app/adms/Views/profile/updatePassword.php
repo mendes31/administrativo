@@ -46,11 +46,15 @@ use App\adms\Helpers\CSRFHelper;
                         <div class="col-12">
                             <label for="password" class="form-label">Nova Senha</label>
                             <div class="input-group">
-                                <input type="password" 
+                                <input type="password"
                                        name="password" 
                                        class="form-control <?php echo isset($this->data['errors']['password']) ? 'is-invalid' : ''; ?>" 
                                        id="password" 
-                                       placeholder="Digite sua nova senha">
+                                       placeholder="Digite a nova senha"
+                                       oninput="this.value = this.value.replace(/\s/g, '')" 
+                                       onpaste="this.value = this.value.replace(/\s/g, '')"
+                                       autocomplete="new-password"
+                                       required>
                                 <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                     <i class="fas fa-eye" id="eyeIcon"></i>
                                 </button>
@@ -69,7 +73,11 @@ use App\adms\Helpers\CSRFHelper;
                                        name="confirm_password" 
                                        class="form-control <?php echo isset($this->data['errors']['confirm_password']) ? 'is-invalid' : ''; ?>" 
                                        id="confirm_password" 
-                                       placeholder="Confirme sua nova senha">
+                                       placeholder="Confirme a nova senha"
+                                       oninput="this.value = this.value.replace(/\s/g, '')" 
+                                       onpaste="this.value = this.value.replace(/\s/g, '')"
+                                       autocomplete="new-password"
+                                       required>
                                 <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
                                     <i class="fas fa-eye" id="eyeConfirmIcon"></i>
                                 </button>

@@ -28,15 +28,53 @@ class ListTrainingStatus
         $positionsRepo = new PositionsRepository();
         $trainingsRepo = new TrainingsRepository();
 
-        // Filtros da URL
-        $statusFiltro = $_GET['status'] ?? '';
-        $filters = [
-            'colaborador' => $_GET['colaborador'] ?? null,
-            'departamento' => $_GET['departamento'] ?? null,
-            'cargo' => $_GET['cargo'] ?? null,
-            'treinamento' => $_GET['treinamento'] ?? null,
-            'status' => $statusFiltro,
-        ];
+        // Verificar se o usuário clicou em "Limpar"
+        if (isset($_GET['limpar'])) {
+            unset($_SESSION['training_status_filters']);
+            // Redirecionar para a página sem parâmetros
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-training-status');
+            exit;
+        }
+
+        // Verificar se há filtros na URL
+        $hasUrlFilters = !empty($_GET['colaborador']) || !empty($_GET['departamento']) || 
+                         !empty($_GET['cargo']) || !empty($_GET['treinamento']) || 
+                         !empty($_GET['status']) || !empty($_GET['codigo']) ||
+                         !empty($_GET['area_responsavel_id']) || !empty($_GET['area_elaborador_id']);
+
+        // Se há filtros na URL, salvá-los na sessão
+        if ($hasUrlFilters) {
+            $filters = [
+                'colaborador' => $_GET['colaborador'] ?? null,
+                'departamento' => $_GET['departamento'] ?? null,
+                'cargo' => $_GET['cargo'] ?? null,
+                'treinamento' => $_GET['treinamento'] ?? null,
+                'status' => $_GET['status'] ?? '',
+                'codigo' => $_GET['codigo'] ?? null,
+                'area_responsavel_id' => $_GET['area_responsavel_id'] ?? null,
+                'area_elaborador_id' => $_GET['area_elaborador_id'] ?? null,
+            ];
+            $_SESSION['training_status_filters'] = $filters;
+        } 
+        // Se não há filtros na URL, usar os da sessão (se existirem)
+        elseif (isset($_SESSION['training_status_filters'])) {
+            $filters = $_SESSION['training_status_filters'];
+        } 
+        // Se não há filtros em nenhum lugar, usar valores vazios
+        else {
+            $filters = [
+                'colaborador' => null,
+                'departamento' => null,
+                'cargo' => null,
+                'treinamento' => null,
+                'status' => '',
+                'codigo' => null,
+                'area_responsavel_id' => null,
+                'area_elaborador_id' => null,
+            ];
+        }
+
+        $statusFiltro = $filters['status'] ?? '';
 
         // Dados para a view
         $this->data = [

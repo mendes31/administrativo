@@ -11,9 +11,12 @@ class AdmsSessionsRepository extends DbConnection
 
     public function saveSession(int $userId, string $sessionId): void
     {
+        // Primeiro, invalidar todas as sessões antigas do usuário
+        $this->invalidateAllSessionsByUserId($userId);
+        
+        // Depois, criar a nova sessão
         $sql = "INSERT INTO {$this->table} (user_id, session_id, status, created_at, updated_at)
-                VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())
-                ON DUPLICATE KEY UPDATE session_id = :session_id, status = 'ativa', created_at = NOW(), updated_at = NOW()";
+                VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
@@ -72,13 +75,34 @@ class AdmsSessionsRepository extends DbConnection
         $stmt->execute();
     }
 
-    public function updateSessionActivity(int $userId, string $sessionId): void
+    public function updateSessionActivity(int $userId, string $sessionId): bool
     {
-        $sql = "UPDATE {$this->table} SET updated_at = NOW() WHERE user_id = :user_id AND session_id = :session_id AND status = 'ativa'";
+        try {
+            $sql = "UPDATE {$this->table} SET updated_at = NOW() WHERE user_id = :user_id AND session_id = :session_id AND status = 'ativa'";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
+            $stmt->execute();
+            
+            return $stmt->rowCount() > 0;
+        } catch (\Exception $e) {
+            error_log("Erro ao atualizar atividade da sessão: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Retorna todas as sessões ativas de um usuário
+     */
+    public function getActiveSessionsByUserId(int $userId): array
+    {
+        $sql = "SELECT id, user_id, session_id, status, created_at, updated_at
+                FROM {$this->table}
+                WHERE user_id = :user_id AND status = 'ativa'";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
         $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function getSessionByUserIdAndSessionId(int $userId, string $sessionId): ?array

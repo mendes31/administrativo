@@ -33,6 +33,14 @@ class MatrixByUser
         $responsiveClasses = ScreenResolutionHelper::getResponsiveClasses($resolution['category']);
         $paginationSettings = ScreenResolutionHelper::getPaginationSettings($resolution['category']);
         
+        // Verificar se o usuário clicou em "Limpar"
+        if (isset($_GET['limpar'])) {
+            unset($_SESSION['matrix_by_user_filters']);
+            // Redirecionar para a página sem parâmetros
+            header('Location: ' . $_ENV['URL_ADM'] . 'matrix-by-user');
+            exit;
+        }
+
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
         
         // Usar configuração responsiva para per_page
@@ -42,13 +50,39 @@ class MatrixByUser
             $perPage = $paginationSettings['per_page'];
         }
         $offset = ($page - 1) * $perPage;
-        $filters = [
-            'colaborador' => $_GET['colaborador'] ?? null,
-            'departamento' => $_GET['departamento'] ?? null,
-            'cargo' => $_GET['cargo'] ?? null,
-            'treinamento' => $_GET['treinamento'] ?? null,
-            'tipo_vinculo' => $_GET['tipo_vinculo'] ?? null,
-        ];
+
+        // Verificar se há filtros na URL
+        $hasUrlFilters = !empty($_GET['colaborador']) || !empty($_GET['departamento']) || 
+                         !empty($_GET['cargo']) || !empty($_GET['treinamento']) ||
+                         !empty($_GET['tipo_vinculo']) || !empty($_GET['codigo']);
+
+        // Se há filtros na URL, salvá-los na sessão
+        if ($hasUrlFilters) {
+            $filters = [
+                'colaborador' => $_GET['colaborador'] ?? null,
+                'departamento' => $_GET['departamento'] ?? null,
+                'cargo' => $_GET['cargo'] ?? null,
+                'treinamento' => $_GET['treinamento'] ?? null,
+                'tipo_vinculo' => $_GET['tipo_vinculo'] ?? null,
+                'codigo' => $_GET['codigo'] ?? null,
+            ];
+            $_SESSION['matrix_by_user_filters'] = $filters;
+        } 
+        // Se não há filtros na URL, usar os da sessão (se existirem)
+        elseif (isset($_SESSION['matrix_by_user_filters'])) {
+            $filters = $_SESSION['matrix_by_user_filters'];
+        } 
+        // Se não há filtros em nenhum lugar, usar valores vazios
+        else {
+            $filters = [
+                'colaborador' => null,
+                'departamento' => null,
+                'cargo' => null,
+                'treinamento' => null,
+                'tipo_vinculo' => null,
+                'codigo' => null,
+            ];
+        }
         
         $matrixByUser = [];
         $total = 0;
@@ -65,6 +99,16 @@ class MatrixByUser
                 $matrixByUser = [];
             }
             $total = count($this->trainingUsersRepo->getMandatoryMatrixByUser($filters, 1000000, 0));
+        }
+
+        // Filtrar por código (parcial) se informado
+        if (!empty($filters['codigo'])) {
+            $codigoFiltro = trim((string)$filters['codigo']);
+            $matrixByUser = array_values(array_filter($matrixByUser, function($row) use ($codigoFiltro) {
+                $codigo = $row['codigo'] ?? $row['training_code'] ?? '';
+                return stripos((string)$codigo, $codigoFiltro) !== false;
+            }));
+            $total = count($matrixByUser);
         }
 
         // Exportação - Buscar todos os dados sem paginação

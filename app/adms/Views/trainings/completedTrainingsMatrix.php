@@ -157,6 +157,10 @@ $performanceFilter = $_GET['performance'] ?? '';
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label for="codigo" class="form-label mb-1">Código</label>
+                    <input type="text" name="codigo" id="codigo" class="form-control" placeholder="Buscar por código" value="<?= htmlspecialchars($this->data['filters']['codigo'] ?? '') ?>">
+                </div>
+                <div class="col-md-2">
                     <label for="performance" class="form-label mb-1">Aproveitamento</label>
                     <select name="performance" id="performance" class="form-select">
                         <option value="">Todos</option>
@@ -167,7 +171,7 @@ $performanceFilter = $_GET['performance'] ?? '';
                 </div>
                 <div class="col-md-2 d-flex gap-2 align-items-end">
                     <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"><i class="fas fa-search"></i> Filtrar</button>
-                    <a href="<?= $_ENV['URL_ADM'] ?>completed-trainings-matrix" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"><i class="fas fa-times"></i> Limpar</a>
+                    <a href="<?= $_ENV['URL_ADM'] ?>completed-trainings-matrix?limpar=1" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"><i class="fas fa-times"></i> Limpar</a>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <label for="per_page" class="form-label mb-1 me-2">Exibir</label>

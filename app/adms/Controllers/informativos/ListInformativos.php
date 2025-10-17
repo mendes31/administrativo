@@ -4,6 +4,8 @@ namespace App\adms\Controllers\informativos;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -28,7 +30,8 @@ class ListInformativos
         }
         
         $filters = [
-            'categoria' => $_GET['categoria'] ?? '',
+            'categoria_id' => $_GET['categoria_id'] ?? '',
+            'department_id' => $_GET['department_id'] ?? '',
             'ativo' => $_GET['ativo'] ?? '',
             'urgente' => $_GET['urgente'] ?? '',
             'data_inicio' => $_GET['data_inicio'] ?? '',
@@ -37,6 +40,18 @@ class ListInformativos
         ];
         
         $repo = new InformativosRepository();
+
+        // Permissões para decidir escopo de listagem
+        $permRepo = new ButtonPermissionUserRepository();
+        $perms = $permRepo->buttonPermission(['CreateInformativo','UpdateInformativo']);
+        $isEditor = is_array($perms) && count($perms) > 0;
+
+        if (!$isEditor) {
+            // Usuário comum: apenas ativos e dentro da janela de publicação
+            $filters['ativo'] = '1';
+            $filters['apenas_janela_publicacao'] = true;
+        }
+
         $this->data['informativos'] = $repo->getAllInformativos((int)$page, (int)$this->limitResult, $filters);
         $totalInformativos = $repo->getTotalInformativos($filters);
         
@@ -51,12 +66,14 @@ class ListInformativos
         $this->data['pagination'] = $pagination;
         $this->data['per_page'] = $this->limitResult;
         $this->data['categorias'] = $repo->getCategorias();
+        $deptRepo = new DepartmentsRepository();
+        $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
         $this->data['filters'] = $filters;
         
         $pageElements = [
             'title_head' => 'Listar Informativos',
             'menu' => 'list-informativos',
-            'buttonPermission' => ['CreateInformativo', 'ViewInformativo', 'UpdateInformativo', 'DeleteInformativo'],
+            'buttonPermission' => ['CreateInformativo', 'ViewInformativo', 'UpdateInformativo', 'DeleteInformativo', 'RelatorioInformativo'],
         ];
         
         $pageLayoutService = new PageLayoutService();

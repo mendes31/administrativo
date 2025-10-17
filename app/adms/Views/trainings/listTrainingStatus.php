@@ -8,16 +8,17 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
 .table-sticky-header tbody td {
     text-align: left !important;
     vertical-align: middle;
+    white-space: normal !important; /* permite quebra de linha */
 }
-.table-sticky-header th.id-col { width: 4%; min-width: 40px; }
-.table-sticky-header th.codigo-col { width: 8%; min-width: 90px; }
-.table-sticky-header th.treinamento-col { width: 22%; min-width: 180px; }
-.table-sticky-header th.colaborador-col { width: 16%; min-width: 140px; }
-.table-sticky-header th.departamento-col { width: 14%; min-width: 120px; }
+/* Dimensionamento para caber 100% sem rolagem */
+.table-sticky-header th.codigo-col { width: 8%; min-width: 70px; }
+.table-sticky-header th.treinamento-col { width: 23%; min-width: 160px; }
+.table-sticky-header th.colaborador-col { width: 16%; min-width: 120px; }
+.table-sticky-header th.departamento-col { width: 12%; min-width: 110px; }
 .table-sticky-header th.cargo-col { width: 10%; min-width: 90px; }
-.table-sticky-header th.status-col { width: 10%; min-width: 90px; }
-.table-sticky-header th.prazo-col { width: 10%; min-width: 110px; }
-.table-sticky-header th.acoes-col { width: 6%; min-width: 60px; text-align: center !important; }
+.table-sticky-header th.status-col { width: 9%; min-width: 80px; }
+.table-sticky-header th.prazo-col { width: 9%; min-width: 90px; }
+.table-sticky-header th.acoes-col { width: 9%; min-width: 80px; text-align: center !important; }
 .sticky-cards {
     position: static;
 }
@@ -219,14 +220,13 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
                     <button type="submit" class="btn btn-primary w-100">Filtrar</button>
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
-                    <a href="<?= $_ENV['URL_ADM'] ?>list-training-status" class="btn btn-secondary w-100">Limpar</a>
+                    <a href="<?= $_ENV['URL_ADM'] ?>list-training-status?limpar=1" class="btn btn-secondary w-100">Limpar</a>
                 </div>
             </form>
             <div class="table-responsive table-scroll d-none d-md-block">
-                <table class="table table-striped table-hover table-sticky-header" style="table-layout: fixed; width: 100%;">
-                    <thead>
+                <table class="table table-striped table-hover table-sticky-header" style="table-layout: auto; width: 100%;">
+                    <thead class="thead-green">
                         <tr>
-                            <th class="id-col">ID</th>
                             <th class="codigo-col">Código</th>
                             <th class="treinamento-col">Treinamento</th>
                             <th class="colaborador-col">Colaborador</th>
@@ -270,7 +270,6 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
                             if (!$matchCodigo) continue;
                             ?>
                             <tr>
-                                <td><?= $row['training_user_id'] ?? '-' ?></td>
                                 <td><?= htmlspecialchars($row['codigo']) ?></td>
                                 <td>
                                     <strong><?= htmlspecialchars($row['training_name']) ?></strong>

@@ -28,6 +28,11 @@ class ViewInformativo
         }
 
         $this->data['informativo'] = $informativo;
+        // Status de leitura/ciência do usuário logado
+        $userId = $_SESSION['user_id'] ?? null;
+        if ($userId) {
+            $this->data['read_status'] = $repo->getReadByUser((int)$informativo['id'], (int)$userId);
+        }
 
         $pageElements = [
             'title_head' => 'Visualizar Informativo',
@@ -37,6 +42,11 @@ class ViewInformativo
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+
+        // Marcar leitura para o usuário logado
+        if ($userId) {
+            $repo->upsertRead((int)$informativo['id'], (int)$userId);
+        }
 
         $loadView = new LoadViewService('adms/Views/informativos/view', $this->data);
         $loadView->loadView();

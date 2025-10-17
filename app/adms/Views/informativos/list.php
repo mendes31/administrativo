@@ -30,13 +30,24 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             
             <!-- Filtros -->
             <form method="GET" class="row g-2 mb-3 align-items-end">
-                <div class="col-md-2">
-                    <label for="categoria" class="form-label mb-1">Categoria</label>
-                    <select name="categoria" id="categoria" class="form-select">
+                <div class="col-md-3">
+                    <label for="categoria_id" class="form-label mb-1">Categoria</label>
+                    <select name="categoria_id" id="categoria_id" class="form-select">
                         <option value="">Todas</option>
                         <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
-                            <option value="<?= htmlspecialchars($categoria) ?>" <?= (($this->data['filters']['categoria'] ?? '') === $categoria) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($categoria) ?>
+                            <option value="<?= (int)$categoria['id'] ?>" <?= (($this->data['filters']['categoria_id'] ?? '') == $categoria['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($categoria['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="department_id" class="form-label mb-1">Departamento</label>
+                    <select name="department_id" id="department_id" class="form-select">
+                        <option value="">Todos</option>
+                        <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
+                            <option value="<?= (int)$dep['id'] ?>" <?= (($this->data['filters']['department_id'] ?? '') == $dep['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($dep['name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -93,23 +104,20 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                 <table class="table table-bordered table-striped table-hover table-fixed">
                     <thead class="table-dark">
                         <tr>
-                            <th class="text-center" style="width: 5%;">ID</th>
-                            <th style="width: 25%;">Título</th>
-                            <th style="width: 15%;">Categoria</th>
-                            <th style="width: 20%;">Resumo</th>
-                            <th class="text-center" style="width: 10%;">Urgente</th>
-                            <th class="text-center" style="width: 10%;">Status</th>
-                            <th class="text-center" style="width: 10%;">Data</th>
-                            <th class="text-center" style="width: 5%;">Ações</th>
+                            <th style="width: 26%;">Título</th>
+                            <th style="width: 12%;">Categoria</th>
+                            <th style="width: 12%;">Departamento</th>
+                            <th style="width: 18%;">Resumo</th>
+                            <th class="text-center" style="width: 8%;">Urgente</th>
+                            <th class="text-center" style="width: 8%;">Status</th>
+                            <th class="text-center" style="width: 8%;">Data</th>
+                            <th class="text-center" style="width: 10%;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($this->data['informativos'])): ?>
                             <?php foreach ($this->data['informativos'] as $informativo): ?>
                                 <tr>
-                                    <td class="text-center">
-                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($informativo['id']); ?></span>
-                                    </td>
                                     <td>
                                         <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
@@ -128,7 +136,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria']); ?></span>
+                                        <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($informativo['department_name'] ?? ''); ?></span>
                                     </td>
                                     <td>
                                         <?php echo htmlspecialchars($informativo['resumo'] ?? substr(strip_tags($informativo['conteudo']), 0, 100) . '...'); ?>
@@ -154,7 +165,12 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <small><?php echo date('d/m/Y H:i', strtotime($informativo['created_at'])); ?></small>
+                                        <div class="d-flex flex-column small">
+                                            <span title="Publicado em"><?php echo date('d/m/Y H:i', strtotime($informativo['created_at'])); ?></span>
+                                            <?php if (!empty($informativo['expire_at'])): ?>
+                                                <span class="text-muted" title="Expira em"><i class="fas fa-hourglass-end me-1"></i><?php echo date('d/m/Y H:i', strtotime($informativo['expire_at'])); ?></span>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
@@ -166,6 +182,11 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <?php if (in_array('UpdateInformativo', $this->data['buttonPermission'])): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>update-informativo/<?php echo $informativo['id']; ?>" class="btn btn-warning btn-sm" title="Editar">
                                                     <i class="fas fa-edit"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('RelatorioInformativo', $this->data['buttonPermission'])): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo?informativo_id=<?php echo $informativo['id']; ?>" class="btn btn-info btn-sm" title="Relatório">
+                                                    <i class="fas fa-chart-bar"></i>
                                                 </a>
                                             <?php endif; ?>
                                             <?php if (in_array('DeleteInformativo', $this->data['buttonPermission'])): ?>
@@ -225,13 +246,19 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <?php endif; ?>
                                         </h5>
                                         <div class="mb-1">
-                                            <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria']); ?></span>
+                                            <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
+                                            <?php if (!empty($informativo['department_name'])): ?>
+                                                <span class="badge bg-secondary ms-1"><?php echo htmlspecialchars($informativo['department_name']); ?></span>
+                                            <?php endif; ?>
                                             <?php if ($informativo['ativo']): ?>
                                                 <span class="badge bg-success ms-1">Ativo</span>
                                             <?php else: ?>
                                                 <span class="badge bg-danger ms-1">Inativo</span>
                                             <?php endif; ?>
                                         </div>
+                                        <?php if (!empty($informativo['expire_at'])): ?>
+                                            <div class="text-muted small" title="Expira em"><i class="fas fa-hourglass-end me-1"></i><?php echo date('d/m/Y H:i', strtotime($informativo['expire_at'])); ?></div>
+                                        <?php endif; ?>
                                         <div class="mb-1">
                                             <small class="text-muted">
                                                 <i class="fas fa-calendar"></i> <?php echo date('d/m/Y H:i', strtotime($informativo['created_at'])); ?>
@@ -260,6 +287,11 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                         <?php if (in_array('UpdateInformativo', $this->data['buttonPermission'])): ?>
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>update-informativo/<?php echo $informativo['id']; ?>" class="btn btn-warning btn-sm mb-1" title="Editar">
                                                 <i class="fas fa-edit"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (in_array('RelatorioInformativo', $this->data['buttonPermission'])): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo?informativo_id=<?php echo $informativo['id']; ?>" class="btn btn-info btn-sm mb-1" title="Relatório">
+                                                <i class="fas fa-chart-bar"></i>
                                             </a>
                                         <?php endif; ?>
                                         <?php if (in_array('DeleteInformativo', $this->data['buttonPermission'])): ?>

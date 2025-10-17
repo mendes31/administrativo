@@ -1,11 +1,12 @@
 <?php
+
 // Buscar informações do usuário logado
 $userInfo = null;
 if (!empty($_SESSION['user_id'])) {
     try {
         $userRepo = new \App\adms\Models\Repository\UsersRepository();
         $userInfo = $userRepo->getUser($_SESSION['user_id']);
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         // Em caso de erro, continuar sem as informações do usuário
         $userInfo = null;
     }

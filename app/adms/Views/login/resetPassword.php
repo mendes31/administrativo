@@ -31,13 +31,19 @@ use App\adms\Helpers\CSRFHelper;
 
                 <div class="form-floating mb-3">
                     <input type="password" name="password" class="form-control" id="password"
-                        placeholder="Senha com mínimo 6 caracteres" value="<?php echo $this->data['form']['password'] ?? ''; ?>">
+                        placeholder="Senha com mínimo 6 caracteres" value="<?php echo $this->data['form']['password'] ?? ''; ?>"
+                        oninput="this.value = this.value.replace(/\s/g, '')" 
+                        onpaste="this.value = this.value.replace(/\s/g, '')"
+                        autocomplete="new-password">
                     <label for="password">Senha</label>
                 </div>
 
                 <div class="form-floating mb-3">
                     <input type="password" name="confirm_password" class="form-control" id="confirm_password"
-                        placeholder="Confirmar a Senha" value="<?php echo $this->data['form']['confirm_password'] ?? ''; ?>">
+                        placeholder="Confirmar a Senha" value="<?php echo $this->data['form']['confirm_password'] ?? ''; ?>"
+                        oninput="this.value = this.value.replace(/\s/g, '')" 
+                        onpaste="this.value = this.value.replace(/\s/g, '')"
+                        autocomplete="new-password">
                     <label for="password">Confirmar a Senha</label>
                 </div>
 

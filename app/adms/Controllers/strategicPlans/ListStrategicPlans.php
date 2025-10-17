@@ -16,7 +16,7 @@ use App\adms\Views\Services\LoadViewService;
 class ListStrategicPlans
 {
     /** @var array|string|null $data Dados que devem ser enviados para a VIEW */
-    private array|string|null $data = null;
+    private array $data = [];
 
     /** @var int $limitResult Limite de registros por página */
     private int $limitResult = 20;

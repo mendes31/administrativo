@@ -4,6 +4,7 @@ namespace App\adms\Controllers\informativos;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -30,6 +31,8 @@ class UpdateInformativo
 
         $this->data['informativo'] = $informativo;
         $this->data['categorias'] = $repo->getCategorias();
+        $deptRepo = new DepartmentsRepository();
+        $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->update((int)$id);
@@ -57,23 +60,29 @@ class UpdateInformativo
 
         $titulo = trim($_POST['titulo'] ?? '');
         $conteudo = trim($_POST['conteudo'] ?? '');
-        $categoria = trim($_POST['categoria'] ?? '');
+        $categoriaId = (int)($_POST['categoria_id'] ?? 0);
+        $categoriaNome = trim($_POST['categoria'] ?? '');
+        $departmentId = (int)($_POST['department_id'] ?? 0);
+        $publishAt = trim($_POST['publish_at'] ?? '');
+        $expireAt = trim($_POST['expire_at'] ?? '');
         $urgente = isset($_POST['urgente']) ? true : false;
+        $requiresAck = isset($_POST['requires_ack']) ? true : false;
         $ativo = isset($_POST['ativo']) ? true : false;
 
-        // Validações
         if (empty($titulo)) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O título é obrigatório!</div>';
             return;
         }
-
         if (empty($conteudo)) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O conteúdo é obrigatório!</div>';
             return;
         }
-
-        if (empty($categoria)) {
+        if ($categoriaId <= 0) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">A categoria é obrigatória!</div>';
+            return;
+        }
+        if ($departmentId <= 0) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O departamento é obrigatório!</div>';
             return;
         }
 
@@ -94,10 +103,37 @@ class UpdateInformativo
 
         // Upload de novo anexo
         $anexo = $this->data['informativo']['anexo'];
-        if (isset($_FILES['anexo']) && $_FILES['anexo']['error'] === UPLOAD_ERR_OK) {
-            $novoAnexo = $this->uploadFile($_FILES['anexo'], 'anexos', $anexo);
-            if ($novoAnexo) {
-                $anexo = $novoAnexo;
+        if (isset($_FILES['anexo'])) {
+            if ($_FILES['anexo']['error'] === UPLOAD_ERR_OK) {
+                $novoAnexo = $this->uploadFile($_FILES['anexo'], 'anexos', $anexo);
+                if ($novoAnexo) {
+                    $anexo = $novoAnexo;
+                } else {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Não foi possível salvar o anexo. Verifique o tipo e o tamanho do arquivo (máx. 5MB) e tente novamente.</div>';
+                    return;
+                }
+            } elseif ($_FILES['anexo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Erro no upload do anexo. Código: ' . (int)$_FILES['anexo']['error'] . '</div>';
+                return;
+            } elseif (!empty($_FILES['anexo']['name']) && empty($_FILES['anexo']['tmp_name'])) {
+                $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">O arquivo não foi recebido pelo servidor (tmp_name vazio). Verifique limites de upload do PHP (upload_max_filesize/post_max_size) e tente novamente.</div>';
+                return;
+            }
+        }
+
+        // Validações de datas
+        $now = new \DateTime('now');
+        $publishDt = null; $expireDt = null;
+        if (!empty($publishAt)) { $publishDt = new \DateTime($publishAt); }
+        if (!empty($expireAt)) {
+            $expireDt = new \DateTime($expireAt);
+            if ($publishDt && $expireDt <= $publishDt) {
+                $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">A data de expiração deve ser maior que a data de publicação!</div>';
+                return;
+            }
+            if (!$publishDt && $expireDt <= $now) {
+                $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">A expiração deve ser maior que agora quando não há publicação futura.</div>';
+                return;
             }
         }
 
@@ -105,11 +141,16 @@ class UpdateInformativo
             'titulo' => $titulo,
             'conteudo' => $conteudo,
             'resumo' => $resumo,
-            'categoria' => $categoria,
+            'categoria' => $categoriaNome,
+            'categoria_id' => $categoriaId,
+            'department_id' => $departmentId,
             'imagem' => $imagem,
             'anexo' => $anexo,
             'urgente' => $urgente,
+            'requires_ack' => $requiresAck,
             'ativo' => $ativo,
+            'publish_at' => $publishDt ? $publishDt->format('Y-m-d H:i:s') : null,
+            'expire_at' => $expireDt ? $expireDt->format('Y-m-d H:i:s') : null,
         ];
 
         $repo = new InformativosRepository();
@@ -131,73 +172,42 @@ class UpdateInformativo
 
     private function uploadFile(array $file, string $folder, ?string $oldFile = null): ?string
     {
-        // Verificar se o arquivo foi enviado corretamente
         if (!isset($file) || !is_array($file) || $file['error'] !== UPLOAD_ERR_OK) {
-            error_log('Arquivo não foi enviado corretamente: ' . ($file['error'] ?? 'desconhecido'));
             return null;
         }
-
-        // Verificar se o arquivo temporário existe
         if (!is_uploaded_file($file['tmp_name'])) {
-            error_log('Arquivo temporário não existe ou não é válido: ' . $file['tmp_name']);
             return null;
         }
-
-        // Caminho correto para uploads (subindo 4 níveis)
         $basePath = dirname(__DIR__, 4);
         $uploadDir = $basePath . '/public/adms/uploads/' . $folder . '/';
-        error_log('UPLOAD DIR (corrigido): ' . $uploadDir);
-        // Criar diretório se não existir
-        if (!is_dir($uploadDir)) {
-            if (!mkdir($uploadDir, 0755, true)) {
-                error_log('Não foi possível criar o diretório: ' . $uploadDir);
-                return null;
-            }
-        }
-        // Verificar se o diretório é gravável
-        if (!is_writable($uploadDir)) {
-            error_log('Diretório não é gravável: ' . $uploadDir);
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
             return null;
         }
-        // Para imagens, verificar extensão
+        if (!is_writable($uploadDir)) {
+            return null;
+        }
         if ($folder === 'imagens') {
             $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             if (!in_array($extension, $allowedExtensions)) {
-                error_log('Extensão não permitida para imagem: ' . $extension);
                 return null;
             }
         }
-        // Validar tamanho (5MB)
-        $maxSize = 5 * 1024 * 1024;
+        // Limite alinhado ao php.ini (upload_max_filesize/post_max_size). Aqui usamos 20MB por segurança.
+        $maxSize = 20 * 1024 * 1024;
         if ($file['size'] > $maxSize) {
-            error_log('Arquivo muito grande: ' . $file['size'] . ' bytes');
             return null;
         }
-        // Gerar nome único para o arquivo
         $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        if ($extension) {
-            $filename = uniqid() . '_' . time() . '.' . $extension;
-        } else {
-            $filename = uniqid() . '_' . time();
-        }
+        $filename = uniqid() . '_' . time() . ($extension ? '.' . $extension : '');
         $filepath = $uploadDir . $filename;
-        // Mover arquivo
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            // Remover arquivo antigo se existir
             if ($oldFile) {
                 $oldPath = $basePath . '/public/adms/uploads/' . $oldFile;
-                if (file_exists($oldPath)) {
-                    unlink($oldPath);
-                }
+                if (file_exists($oldPath)) { @unlink($oldPath); }
             }
             return $folder . '/' . $filename;
-        } else {
-            error_log('Erro ao mover arquivo: ' . $file['tmp_name'] . ' para ' . $filepath);
-            error_log('Erro do PHP: ' . (error_get_last()['message'] ?? 'Desconhecido'));
-            return null;
         }
+        return null;
     }
-
-    // Remover métodos removerImagem e removerAnexo para isolar o problema do upload/atualização.
 } 

@@ -89,8 +89,7 @@ th { text-align: match-parent; }
 
 
 .bg-nav {
-    background-color: #2C844B;
-    /* background-color: #183181; */
+    background-color: #2E9263;
 }
 .bg-login {
   background-color: #2C844B;
@@ -103,10 +102,13 @@ th { text-align: match-parent; }
 }
 
 .sb-sidenav-five {
-    /* background-color: #F9fafc; */
-    background-color: #2C844B;
+    background-color: #2E9263;
     box-shadow: 0 8px 14px rgba(0, 0, 0, .10), 0 8px 8px rgba(0, 0, 0, .10) !important;
 }
+
+/* Ocultar visualmente scrollbar do menu sem desabilitar rolagem */
+.sb-sidenav-five .sb-sidenav-menu::-webkit-scrollbar { width: 0; height: 0; }
+.sb-sidenav-five .sb-sidenav-menu { scrollbar-width: none; -ms-overflow-style: none; }
 
 .sb-sidenav-five .sb-sidenav-menu .sb-sidenav-menu-heading {
   color: rgba(41, 41, 41, 0.5);

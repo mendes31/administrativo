@@ -3,7 +3,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-// Força cabeçalhos/ambiente UTF-8 na resposta HTML
+// ForÃ§a cabeÃ§alhos/ambiente UTF-8 na resposta HTML
 if (!headers_sent()) {
     header('Content-Type: text/html; charset=UTF-8');
 }
@@ -17,7 +17,7 @@ if (function_exists('mb_http_output')) {
     mb_http_output('UTF-8');
 }
 
-// Teste de execução do layout
+// Teste de execuÃ§Ã£o do layout
 // echo "<!-- LAYOUT MAIN EXECUTADO -->";
 
 // Log alternativo com caminho absoluto
@@ -29,7 +29,7 @@ if (function_exists('mb_http_output')) {
 //     FILE_APPEND
 // );
 
-// Log de início do layout para capturar erros fatais
+// Log de inÃ­cio do layout para capturar erros fatais
 // file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
 //     date('Y-m-d H:i:s') . ' - [LAYOUT] INICIO RENDERIZACAO - session_id: ' . (session_id() ?: 'null') .
 //     ' | _SESSION: ' . json_encode($_SESSION) .
@@ -41,7 +41,7 @@ if (function_exists('mb_http_output')) {
 
 
 
-// Verificar se há erros fatais
+// Verificar se hÃ¡ erros fatais
 $error = error_get_last();
 if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
     file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
@@ -54,14 +54,14 @@ if (!isset($_ENV['DB_HOST'])) {
     require_once __DIR__ . '/../../Helpers/EnvLoader.php';
     \App\adms\Helpers\EnvLoader::load();
 }
-// Supondo que o .env já esteja carregado via alguma lib tipo vlucas/phpdotenv
+// Supondo que o .env jÃ¡ esteja carregado via alguma lib tipo vlucas/phpdotenv
 $urlAdm = getenv('URL_ADM');
 
 if (!isset($_SESSION['session_id']) || $_SESSION['session_id'] !== session_id()) {
     $_SESSION['session_id'] = session_id();
 }
 
-// Checagem de sessão invalidada
+// Checagem de sessÃ£o invalidada
 if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     $sessionRepo = new \App\adms\Models\Repository\AdmsSessionsRepository();
     $sess = $sessionRepo->getSessionByUserIdAndSessionId($_SESSION['user_id'], session_id());
@@ -77,37 +77,37 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     $motivos = [];
     
     if (!$sess) {
-        $motivos[] = 'Sessão não encontrada no banco';
+        $motivos[] = 'SessÃ£o nÃ£o encontrada no banco';
     } elseif ($sess['status'] !== 'ativa') {
-        $motivos[] = 'Sessão inativa';
+        $motivos[] = 'SessÃ£o inativa';
     }
     
-    // Log antes da checagem de queda de sessão
+    // Log antes da checagem de queda de sessÃ£o
     // file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
     //     date('Y-m-d H:i:s') . ' - [main] PRE-CHECAGEM QUEDA - user_id: ' . ($_SESSION['user_id'] ?? 'null') .
     //     ' | session_id(): ' . session_id() .
-    //     ' | Motivos: ' . (isset($motivos) ? implode(', ', $motivos) : 'ainda não definido') .
-    //     ' | Status da sessão: ' . ($sess['status'] ?? 'null') .
+    //     ' | Motivos: ' . (isset($motivos) ? implode(', ', $motivos) : 'ainda nÃ£o definido') .
+    //     ' | Status da sessÃ£o: ' . ($sess['status'] ?? 'null') .
     //     ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
     //     ' | GET: ' . json_encode($_GET) . "\n",
     //     FILE_APPEND
     // );
     
     if (!empty($motivos) || ($sess && $sess['status'] === 'invalidada')) {
-        $msg = !empty($motivos) ? implode(' e ', $motivos) . '! Contate o Administrador do sistema.' : 'Sessão invalidada. Faça login novamente.';
+        $msg = !empty($motivos) ? implode(' e ', $motivos) . '! Contate o Administrador do sistema.' : 'SessÃ£o invalidada. FaÃ§a login novamente.';
         
-        // Log detalhado do motivo da queda da sessão
+        // Log detalhado do motivo da queda da sessÃ£o
         file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
-            date('Y-m-d H:i:s') . ' - [main] QUEDA DE SESSÃO - user_id: ' . $_SESSION['user_id'] . 
+            date('Y-m-d H:i:s') . ' - [main] QUEDA DE SESSÃƒO - user_id: ' . $_SESSION['user_id'] . 
             ' | session_id(): ' . session_id() . 
             ' | Motivos: ' . implode(', ', $motivos) . 
-            ' | Status da sessão: ' . ($sess['status'] ?? 'null') . 
+            ' | Status da sessÃ£o: ' . ($sess['status'] ?? 'null') . 
             ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') . 
             ' | GET: ' . json_encode($_GET) . "\n",
             FILE_APPEND
         );
         
-        // Limpar apenas a sessão do usuário impactado
+        // Limpar apenas a sessÃ£o do usuÃ¡rio impactado
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
@@ -116,29 +116,36 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 $params['secure'], $params['httponly']
             );
         }
-        // session_destroy(); // Removido para evitar destruição global da sessão
-        header("Location: {$_ENV['URL_ADM']}login?msg=" . urlencode($msg));
-        exit;
+        
+        // Verificar se já está na página de login para evitar redirecionamento desnecessário
+        if (!strpos($_SERVER['REQUEST_URI'] ?? '', 'login')) {
+            header("Location: {$_ENV['URL_ADM']}login?msg=" . urlencode($msg));
+            exit;
+        }
     }
-    // Buscar política de senha para expiração dinâmica (apenas para configuração JavaScript)
+    
+    // Buscar polÃ­tica de senha para expiraÃ§Ã£o dinÃ¢mica (apenas para configuraÃ§Ã£o JavaScript)
     $policyRepo = new \App\adms\Models\Repository\AdmsPasswordPolicyRepository();
     $policy = $policyRepo->getPolicy();
     $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $policy->expirar_sessao_por_tempo === 'Sim');
     
-    // NOTA: A verificação de expiração por tempo foi movida para o JavaScript
-    // para evitar conflitos e loops infinitos. O servidor apenas verifica
-    // se a sessão existe e está ativa no banco.
+    // Definir limite para configuração JavaScript
+    $limite = ($policy && isset($policy->tempo_expiracao_sessao)) ? ((int)$policy->tempo_expiracao_sessao * 60) : 1800;
     
-    // Comentado para evitar dupla verificação:
+    // NOTA: A verificaÃ§Ã£o de expiraÃ§Ã£o por tempo foi movida para o JavaScript
+    // para evitar conflitos e loops infinitos. O servidor apenas verifica
+    // se a sessÃ£o existe e estÃ¡ ativa no banco.
+    
+    // Comentado para evitar dupla verificaÃ§Ã£o:
     /*
     $limite = ($policy && isset($policy->tempo_expiracao_sessao)) ? ((int)$policy->tempo_expiracao_sessao * 60) : 1800;
     if ($expirarPorTempo) {
         $agora = time();
         $ultimaAtividade = strtotime($sess['updated_at'] ?? $sess['created_at']);
         if ($agora - $ultimaAtividade > $limite) {
-            // Log de expiração por tempo
+            // Log de expiraÃ§Ã£o por tempo
             file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
-                date('Y-m-d H:i:s') . ' - [main] EXPIRAÇÃO POR TEMPO - user_id: ' . $_SESSION['user_id'] . 
+                date('Y-m-d H:i:s') . ' - [main] EXPIRAÃ‡ÃƒO POR TEMPO - user_id: ' . $_SESSION['user_id'] . 
                 ' | session_id(): ' . session_id() . 
                 ' | Tempo limite: ' . $limite . 's' .
                 ' | Tempo decorrido: ' . ($agora - $ultimaAtividade) . 's' .
@@ -155,16 +162,17 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     $params['secure'], $params['httponly']
                 );
             }
-            header('Location: ' . $_ENV['URL_ADM'] . 'login?error=' . urlencode('Sua sessão expirou por inatividade. Faça login novamente.'));
+            header('Location: ' . $_ENV['URL_ADM'] . 'login?error=' . urlencode('Sua sessÃ£o expirou por inatividade. FaÃ§a login novamente.'));
             exit;
         }
     }
     */
-    // Atualiza o updated_at da sessão ativa
+    
+    // Atualiza o updated_at da sessÃ£o ativa
     $sessionRepo->updateSessionActivity($_SESSION['user_id'], $_SESSION['session_id']);
 }
 
-// Log temporário desativado no servidor (evita erro quando sem diretório logs)
+// Log temporÃ¡rio desativado no servidor (evita erro quando sem diretÃ³rio logs)
 // file_put_contents('caminho_do_log', 'session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . PHP_EOL, FILE_APPEND);
 ?>
 <!DOCTYPE html>
@@ -176,7 +184,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
 
-    <!-- <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css"> -->
+    
 
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/sbadmin.css?v=20250822">
 
@@ -186,19 +194,22 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.css">
 
-    <!-- Removido Font Awesome JS externo para evitar aviso de header nosniff; CSS já cobre os ícones -->
+    <!-- Removido Font Awesome JS externo para evitar aviso de header nosniff; CSS jÃ¡ cobre os Ã­cones -->
 
     <!-- Font Awesome local (self-host) -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/fontawesome/css/all.min.css?v=20250822">
 
-    <!-- CSS Reset e Ajustes de Padronização -->
+    <!-- CSS Reset e Ajustes de PadronizaÃ§Ã£o -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/reset.css?v=20250822">
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/custom-ajustes.css?v=20250822">
     
-    <!-- Sistema Responsivo para Diferentes Resoluções -->
+    <!-- CSS personalizado do projeto (deve ficar por último para sobrescrever) -->
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20250905">
+    
+    <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
 
-    <!-- CSS específico para página de permissões -->
+    <!-- CSS especÃ­fico para pÃ¡gina de permissÃµes -->
     <?php if (strpos($this->view, 'permission/list.php') !== false): ?>
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/permission-list.css">
     <?php endif; ?>
@@ -238,7 +249,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
                 <?php
 
-                // Inclui o conteúdo principal da página, que é especificado pela propriedade $this->view. Este arquivo é dinâmico e pode variar conforme a lógica do controlador ou o contexto da página.
+                // Inclui o conteÃºdo principal da pÃ¡gina, que Ã© especificado pela propriedade $this->view. Este arquivo Ã© dinÃ¢mico e pode variar conforme a lÃ³gica do controlador ou o contexto da pÃ¡gina.
                 include $this->view;
 
                 ?>
@@ -249,7 +260,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     <div class="d-flex align-items-center justify-content-between small">
                         <div class="text-muted">Copyright &copy; <?php echo $_ENV['APP_NAME'] . " " . date("Y"); ?></div>
                         <div>
-                            <a href="#" class="text-decoration-none">Política de Privacidade</a>
+                            <a href="#" class="text-decoration-none">PolÃ­tica de Privacidade</a>
                             &middot;
                             <a href="#" class="text-decoration-none">Termos de Uso</a>
                         </div>
@@ -275,8 +286,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <!-- Ajax para funcionar Mascaras JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js"></script>
     
-    <!-- Sistema Responsivo para Diferentes Resoluções (opcional) -->
-    <?php if (($_ENV['USE_SCREEN_RESOLUTION'] ?? 'Não') === 'Sim'): ?>
+    <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes (opcional) -->
+    <?php if (($_ENV['USE_SCREEN_RESOLUTION'] ?? 'NÃ£o') === 'Sim'): ?>
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/screen-resolution.js"></script>
     <?php endif; ?>
 
@@ -285,17 +296,17 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         window.sessionConfig = {
             enabled: <?php echo json_encode($expirarPorTempo ?? false); ?>,
             timeoutMinutes: <?php echo json_encode(($policy && isset($policy->tempo_expiracao_sessao)) ? (int)$policy->tempo_expiracao_sessao : 30); ?>,
-            warningTime: <?php echo json_encode(($policy && isset($policy->tempo_expiracao_sessao)) ? (int)$policy->tempo_expiracao_sessao : 30); ?>
+            warningTime: <?php echo json_encode($limite * 1000); ?> // Converter para milissegundos
         };
     </script>
 
-    <!-- Verificação Automática de Sessão -->
+    <!-- VerificaÃ§Ã£o AutomÃ¡tica de SessÃ£o -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js"></script>
 
-    <!-- Responsividade genérica de listas (desktop x mobile) -->
+    <!-- Responsividade genÃ©rica de listas (desktop x mobile) -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
 
-    <!-- JavaScript específico para página de permissões -->
+    <!-- JavaScript especÃ­fico para pÃ¡gina de permissÃµes -->
     <?php if (strpos($this->view, 'permission/list.php') !== false): ?>
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=<?php echo time(); ?>"></script>
     <?php endif; ?>
@@ -306,7 +317,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <?php if (isset($_SESSION['user_id'])): ?>
         <li class="nav-item">
             <a class="nav-link" href="<?= $_ENV['URL_ADM'] ?>minhas-avaliacoes">
-                <i class="fas fa-clipboard-list me-2"></i>Minhas Avaliações
+                <i class="fas fa-clipboard-list me-2"></i>Minhas AvaliaÃ§Ãµes
             </a>
         </li>
     <?php endif; ?>
@@ -325,11 +336,11 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     console.log('FETCH RESPONSE:', data);
                     if (data && data.logout) {
                         console.log('LOGOUT DETECTADO VIA FETCH:', data);
-                        alert(data.message || "Sua sessão foi encerrada. Faça login novamente.");
+                        alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
                         window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
-                        return Promise.reject("Sessão encerrada");
+                        return Promise.reject("SessÃ£o encerrada");
                     }
-                } catch (e) { /* Não é JSON, ignora */ }
+                } catch (e) { /* NÃ£o Ã© JSON, ignora */ }
                 return response;
             });
         };
@@ -343,14 +354,322 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 console.log('AJAX RESPONSE:', data);
                 if (data && data.logout) {
                     console.log('LOGOUT DETECTADO VIA AJAX:', data);
-                    alert(data.message || "Sua sessão foi encerrada. Faça login novamente.");
+                    alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
                     window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                 }
-            } catch (e) { /* Não é JSON, ignora */ }
+            } catch (e) { /* NÃ£o Ã© JSON, ignora */ }
         });
     }
+    </script>
+
+    <script>
+        // Restaurar contexto da aplicação após login
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se há contexto salvo para esta aba específica
+            const tabId = getTabIdFromAnyStorage();
+            if (tabId) {
+                restoreApplicationContextForTab(tabId);
+            }
+        });
+
+        // Função robusta para obter Tab ID de qualquer storage
+        function getTabIdFromAnyStorage() {
+            console.log('Buscando Tab ID em todos os storages disponíveis...');
+            
+            // Detectar navegador
+            const userAgent = navigator.userAgent;
+            const isFirefox = userAgent.includes('Firefox');
+            
+            if (isFirefox) {
+                console.log('Firefox detectado - usando estratégia específica');
+                return getTabIdFromFirefox();
+            }
+            
+            // Estratégia padrão para outros navegadores
+            const storages = [
+                { name: 'localStorage', get: () => localStorage.getItem('current_tab_id') },
+                { name: 'sessionStorage', get: () => sessionStorage.getItem('current_tab_id') },
+                { name: 'cookies', get: () => {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        const [cookieKey, cookieValue] = cookie.trim().split('=');
+                        if (cookieKey === 'current_tab_id') {
+                            return decodeURIComponent(cookieValue);
+                        }
+                    }
+                    return null;
+                }},
+                { name: 'global', get: () => window.currentTabId }
+            ];
+            
+            for (let storage of storages) {
+                try {
+                    const tabId = storage.get();
+                    if (tabId) {
+                        console.log(`Tab ID encontrado em ${storage.name}:`, tabId);
+                        return tabId;
+                    }
+                } catch (error) {
+                    console.warn(`Erro ao ler de ${storage.name}:`, error);
+                }
+            }
+            
+            console.log('Nenhum Tab ID encontrado em nenhum storage');
+            return null;
+        }
+        
+        // Estratégia específica para Firefox
+        function getTabIdFromFirefox() {
+            console.log('Firefox: Buscando Tab ID em todos os métodos disponíveis...');
+            
+            const firefoxMethods = [
+                { name: 'localStorage', get: () => localStorage.getItem('current_tab_id') },
+                { name: 'sessionStorage', get: () => sessionStorage.getItem('current_tab_id') },
+                { name: 'cookies', get: () => {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        const [cookieKey, cookieValue] = cookie.trim().split('=');
+                        if (cookieKey === 'current_tab_id') {
+                            return decodeURIComponent(cookieValue);
+                        }
+                    }
+                    return null;
+                }},
+                { name: 'global', get: () => window.currentTabId },
+                { name: 'firefoxGlobal', get: () => window.firefoxTabId },
+                { name: 'DOM', get: () => document.documentElement.getAttribute('data-tab-id') },
+                { name: 'metaTag', get: () => document.querySelector('meta[name="firefox-tab-id"]')?.content },
+                { name: 'title', get: () => {
+                    const titleMatch = document.title.match(/\[TAB:([^\]]+)\]/);
+                    return titleMatch ? titleMatch[1] : null;
+                }}
+            ];
+            
+            for (let method of firefoxMethods) {
+                try {
+                    const tabId = method.get();
+                    if (tabId) {
+                        console.log(`Firefox: Tab ID encontrado em ${method.name}:`, tabId);
+                        return tabId;
+                    }
+                } catch (error) {
+                    console.warn(`Firefox: Erro ao ler de ${method.name}:`, error);
+                }
+            }
+            
+            console.log('Firefox: Nenhum Tab ID encontrado em nenhum método');
+            return null;
+        }
+
+        // Função para restaurar contexto da aplicação para uma aba específica
+        function restoreApplicationContextForTab(tabId) {
+            try {
+                console.log('Restaurando contexto para aba:', tabId);
+                
+                // Restaurar posição de scroll
+                const savedScroll = getDataFromAnyStorage(`scroll_position_${tabId}`);
+                if (savedScroll) {
+                    const scrollData = savedScroll;
+                    const timeDiff = Date.now() - scrollData.timestamp;
+                    
+                    // Restaurar apenas se não for muito antigo (menos de 1 hora)
+                    if (timeDiff < 3600000) {
+                        setTimeout(() => {
+                            window.scrollTo(scrollData.x, scrollData.y);
+                            console.log('Posição de scroll restaurada para aba:', tabId);
+                        }, 500);
+                    }
+                    
+                    // Limpar dados antigos
+                    clearDataFromAnyStorage(`scroll_position_${tabId}`);
+                }
+
+                // Restaurar dados de formulários
+                const formKeys = getAllFormKeys(tabId);
+                formKeys.forEach(key => {
+                    const formData = getDataFromAnyStorage(key);
+                    if (formData) {
+                        const timeDiff = Date.now() - formData.timestamp;
+                        
+                        // Restaurar apenas se não for muito antigo (menos de 1 hora)
+                        if (timeDiff < 3600000) {
+                            // Tentar encontrar o formulário correspondente
+                            const forms = document.querySelectorAll('form');
+                            const formIndex = parseInt(key.replace(`form_state_${tabId}_`, ''));
+                            
+                            if (forms[formIndex] && formData.action === forms[formIndex].action) {
+                                // Restaurar dados do formulário
+                                Object.keys(formData.data).forEach(fieldName => {
+                                    const field = forms[formIndex].querySelector(`[name="${fieldName}"]`);
+                                    if (field && field.type !== 'password') { // Não restaurar senhas
+                                        field.value = formData.data[fieldName];
+                                    }
+                                });
+                                
+                                console.log(`Formulário ${formIndex} restaurado para aba:`, tabId);
+                            }
+                        }
+                        
+                        // Limpar dados antigos
+                        clearDataFromAnyStorage(key);
+                    }
+                });
+
+                // Limpar URL salva após restaurar
+                clearDataFromAnyStorage(`current_url_${tabId}`);
+                
+                console.log('Contexto da aplicação restaurado com sucesso para aba:', tabId);
+            } catch (error) {
+                console.error('Erro ao restaurar contexto:', error);
+            }
+        }
+        
+        // Função robusta para obter dados de qualquer storage
+        function getDataFromAnyStorage(key) {
+            // Estratégia 1: localStorage
+            try {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    console.log(`Dados encontrados no localStorage: ${key}`);
+                    return JSON.parse(data);
+                }
+            } catch (error) {
+                console.warn(`Erro ao ler do localStorage para ${key}:`, error);
+            }
+            
+            // Estratégia 2: sessionStorage
+            try {
+                const data = sessionStorage.getItem(key);
+                if (data) {
+                    console.log(`Dados encontrados no sessionStorage: ${key}`);
+                    return JSON.parse(data);
+                }
+            } catch (error) {
+                console.warn(`Erro ao ler do sessionStorage para ${key}:`, error);
+            }
+            
+            // Estratégia 3: Cookies
+            try {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [cookieKey, cookieValue] = cookie.trim().split('=');
+                    if (cookieKey === key) {
+                        const data = decodeURIComponent(cookieValue);
+                        console.log(`Dados encontrados em cookie: ${key}`);
+                        return JSON.parse(data);
+                    }
+                }
+            } catch (error) {
+                console.warn(`Erro ao ler de cookie para ${key}:`, error);
+            }
+            
+            // Estratégia 4: Variável global
+            try {
+                const data = window[`storage_${key}`];
+                if (data) {
+                    console.log(`Dados encontrados em variável global: ${key}`);
+                    return JSON.parse(data);
+                }
+            } catch (error) {
+                console.warn(`Erro ao ler de variável global para ${key}:`, error);
+            }
+            
+            return null;
+        }
+        
+        // Função robusta para limpar dados de qualquer storage
+        function clearDataFromAnyStorage(key) {
+            // Estratégia 1: localStorage
+            try {
+                localStorage.removeItem(key);
+                console.log(`Dados removidos do localStorage: ${key}`);
+            } catch (error) {
+                console.warn(`Erro ao remover do localStorage para ${key}:`, error);
+            }
+            
+            // Estratégia 2: sessionStorage
+            try {
+                sessionStorage.removeItem(key);
+                console.log(`Dados removidos do sessionStorage: ${key}`);
+            } catch (error) {
+                console.warn(`Erro ao remover do sessionStorage para ${key}:`, error);
+            }
+            
+            // Estratégia 3: Cookies
+            try {
+                document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+                console.log(`Dados removidos de cookie: ${key}`);
+            } catch (error) {
+                console.warn(`Erro ao remover de cookie para ${key}:`, error);
+            }
+            
+            // Estratégia 4: Variável global
+            try {
+                delete window[`storage_${key}`];
+                console.log(`Dados removidos de variável global: ${key}`);
+            } catch (error) {
+                console.warn(`Erro ao remover de variável global para ${key}:`, error);
+            }
+        }
+        
+        // Função para obter todas as chaves de formulário de qualquer storage
+        function getAllFormKeys(tabId) {
+            const keys = [];
+            const prefix = `form_state_${tabId}_`;
+            
+            // Estratégia 1: localStorage
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith(prefix)) {
+                        keys.push(key);
+                    }
+                }
+            } catch (error) {
+                console.warn('Erro ao ler chaves do localStorage:', error);
+            }
+            
+            // Estratégia 2: sessionStorage
+            try {
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    if (key && key.startsWith(prefix)) {
+                        keys.push(key);
+                    }
+                }
+            } catch (error) {
+                console.warn('Erro ao ler chaves do sessionStorage:', error);
+            }
+            
+            // Estratégia 3: Cookies
+            try {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [cookieKey] = cookie.trim().split('=');
+                    if (cookieKey && cookieKey.startsWith(prefix)) {
+                        keys.push(cookieKey);
+                    }
+                }
+            } catch (error) {
+                console.warn('Erro ao ler chaves de cookie:', error);
+            }
+            
+            // Estratégia 4: Variável global
+            try {
+                for (let key in window) {
+                    if (key.startsWith(`storage_${prefix}`)) {
+                        keys.push(key.replace('storage_', ''));
+                    }
+                }
+            } catch (error) {
+                console.warn('Erro ao ler chaves de variável global:', error);
+            }
+            
+            return keys;
+        }
     </script>
 
 </body>
 
 </html>
+

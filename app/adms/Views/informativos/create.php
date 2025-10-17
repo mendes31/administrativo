@@ -25,22 +25,33 @@ use App\adms\Helpers\CSRFHelper;
                                 <input type="text" class="form-control form-control-lg rounded-3" id="titulo" name="titulo" required maxlength="255" placeholder="Digite o título do comunicado">
                             </div>
                             <div class="col-md-6">
-                                <label for="categoria" class="form-label fw-semibold">Categoria *</label>
-                                <select class="form-select form-select-lg rounded-3" id="categoria" name="categoria" required>
+                                <label for="categoria_id" class="form-label fw-semibold">Categoria *</label>
+                                <select class="form-select form-select-lg rounded-3" id="categoria_id" name="categoria_id" required>
                                     <option value="">Selecione uma categoria</option>
                                     <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
-                                        <option value="<?= htmlspecialchars($categoria) ?>"><?= htmlspecialchars($categoria) ?></option>
+                                        <option value="<?= (int)$categoria['id'] ?>"><?= htmlspecialchars($categoria['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <input type="hidden" name="categoria" id="categoria_nome_hidden">
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="data_publicacao" class="form-label fw-semibold">Data de Publicação</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-calendar-alt"></i></span>
-                                    <input type="date" class="form-control form-control-lg rounded-3 border-start-0" id="data_publicacao" name="data_publicacao" value="<?php echo date('Y-m-d'); ?>">
-                                </div>
+                                <label for="department_id" class="form-label fw-semibold">Departamento (publicante) *</label>
+                                <select class="form-select form-select-lg rounded-3" id="department_id" name="department_id" required>
+                                    <option value="">Selecione o departamento</option>
+                                    <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
+                                        <option value="<?= (int)$dep['id'] ?>"><?= htmlspecialchars($dep['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="publish_at" class="form-label fw-semibold">Publicar em</label>
+                                <input type="datetime-local" class="form-control form-control-lg rounded-3" id="publish_at" name="publish_at">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="expire_at" class="form-label fw-semibold">Expira em</label>
+                                <input type="datetime-local" class="form-control form-control-lg rounded-3" id="expire_at" name="expire_at">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -80,6 +91,14 @@ use App\adms\Helpers\CSRFHelper;
                                     <input class="form-check-input" type="checkbox" id="urgente" name="urgente">
                                     <label class="form-check-label fw-semibold text-danger" for="urgente">
                                         <i class="fas fa-exclamation-triangle me-1"></i>Urgente
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="requires_ack" name="requires_ack">
+                                    <label class="form-check-label fw-semibold" for="requires_ack">
+                                        Exigir ciência do usuário
                                     </label>
                                 </div>
                             </div>
@@ -141,6 +160,13 @@ use App\adms\Helpers\CSRFHelper;
 }
 </style> 
 <script>
+// Manter campo legado com o nome da categoria selecionada
+document.getElementById('categoria_id')?.addEventListener('change', function(){
+  const sel = this;
+  const nome = sel.options[sel.selectedIndex]?.text || '';
+  const hidden = document.getElementById('categoria_nome_hidden');
+  if (hidden) hidden.value = nome;
+});
 function previewImagem(input) {
     const preview = document.getElementById('preview-imagem');
     preview.innerHTML = '';

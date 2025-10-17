@@ -44,16 +44,39 @@ $informativo = $this->data['informativo'];
                     
                     <div class="col-md-4">
                         <div class="mb-3">
-                            <label for="categoria" class="form-label">Categoria <span class="text-danger">*</span></label>
-                            <select class="form-select" id="categoria" name="categoria" required>
+                            <label for="categoria_id" class="form-label">Categoria <span class="text-danger">*</span></label>
+                            <select class="form-select" id="categoria_id" name="categoria_id" required>
                                 <option value="">Selecione uma categoria</option>
                                 <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
-                                    <option value="<?= htmlspecialchars($categoria) ?>" 
-                                            <?= ($informativo['categoria'] === $categoria) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($categoria) ?>
+                                    <?php $selected = ((int)($informativo['categoria_id'] ?? 0) === (int)$categoria['id']) ? 'selected' : ''; ?>
+                                    <option value="<?= (int)$categoria['id'] ?>" <?= $selected ?>>
+                                        <?= htmlspecialchars($categoria['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <input type="hidden" name="categoria" id="categoria_nome_hidden" value="<?= htmlspecialchars($informativo['categoria'] ?? '') ?>">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">Departamento (publicante) <span class="text-danger">*</span></label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">Selecione o departamento</option>
+                                <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
+                                    <?php $selected = ((int)($informativo['department_id'] ?? 0) === (int)$dep['id']) ? 'selected' : ''; ?>
+                                    <option value="<?= (int)$dep['id'] ?>" <?= $selected ?>><?= htmlspecialchars($dep['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 row g-2">
+                            <div class="col-md-6">
+                                <label for="publish_at" class="form-label">Publicar em</label>
+                                <input type="datetime-local" class="form-control" id="publish_at" name="publish_at" value="<?= !empty($informativo['publish_at']) ? date('Y-m-d\TH:i', strtotime($informativo['publish_at'])) : '' ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="expire_at" class="form-label">Expira em</label>
+                                <input type="datetime-local" class="form-control" id="expire_at" name="expire_at" value="<?= !empty($informativo['expire_at']) ? date('Y-m-d\TH:i', strtotime($informativo['expire_at'])) : '' ?>">
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -113,6 +136,15 @@ $informativo = $this->data['informativo'];
                                        <?= $informativo['urgente'] ? 'checked' : '' ?>>
                                 <label class="form-check-label" for="urgente">
                                     <i class="fas fa-exclamation-triangle text-danger me-1"></i>Marcar como urgente
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="requires_ack" name="requires_ack" 
+                                       <?= !empty($informativo['requires_ack']) ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="requires_ack">
+                                    Exigir ciência do usuário
                                 </label>
                             </div>
                         </div>
@@ -179,7 +211,7 @@ document.getElementById('imagem').addEventListener('change', function(e) {
 document.querySelector('form').addEventListener('submit', function(e) {
     const titulo = document.getElementById('titulo').value.trim();
     const conteudo = document.getElementById('conteudo').value.trim();
-    const categoria = document.getElementById('categoria').value;
+    const categoria = document.getElementById('categoria_id').value;
     
     if (!titulo) {
         e.preventDefault();
@@ -198,8 +230,23 @@ document.querySelector('form').addEventListener('submit', function(e) {
     if (!categoria) {
         e.preventDefault();
         alert('A categoria é obrigatória!');
-        document.getElementById('categoria').focus();
+        document.getElementById('categoria_id').focus();
         return false;
     }
+    const depSel = document.getElementById('department_id').value;
+    if (!depSel) {
+        e.preventDefault();
+        alert('O departamento é obrigatório!');
+        document.getElementById('department_id').focus();
+        return false;
+    }
+});
+
+// Preencher campo legado com nome da categoria
+document.getElementById('categoria_id')?.addEventListener('change', function(){
+  const sel = this;
+  const nome = sel.options[sel.selectedIndex]?.text || '';
+  const hidden = document.getElementById('categoria_nome_hidden');
+  if (hidden) hidden.value = nome;
 });
 </script> 

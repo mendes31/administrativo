@@ -100,6 +100,29 @@
         gap: 0.5rem;
     }
     
+    /* Ajustes para mobile */
+    .group-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .group-actions .btn {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .group-counters {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .group-counters .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+    
     .group-header .d-flex.align-items-center.gap-2 {
         width: 100%;
         justify-content: space-between;
@@ -140,7 +163,7 @@
     border-radius: 6px;
     padding: 0.75rem;
     text-align: center;
-    width: 20%;
+    width: 15%;
     border: 1px solid #e9ecef;
 }
 
@@ -151,7 +174,7 @@
     color: #000000;
     line-height: 1.4;
     padding-right: 1.5rem;
-    width: 20%;
+    width: 30%;
 }
 
 /* Descrição da página com estilo elegante e fonte maior */
@@ -168,7 +191,7 @@
 /* Status da página com badges melhorados e fonte maior */
 .group-content-row td:nth-child(5) {
     text-align: center;
-    width: 20%;
+    width: 15%;
 }
 
 /* Primeira coluna (Status) com largura uniforme */
@@ -351,6 +374,41 @@
     .group-name {
         min-width: auto;
         margin-right: 0;
+    }
+    
+    /* Estilos específicos para cards mobile */
+    .group-card .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .group-card .card-body {
+        padding: 1rem;
+    }
+    
+    .group-card .card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    
+    .group-card .card .card {
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        margin-bottom: 0.75rem;
+    }
+    
+    .group-card .card .card-body {
+        padding: 0.75rem;
+    }
+    
+    .group-card .form-check-input {
+        width: 3rem;
+        height: 1.5rem;
+    }
+    
+    .group-card .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
     }
 }
 

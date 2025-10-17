@@ -94,12 +94,18 @@ if (!empty($_SESSION['force_password_change'])): ?>
 
                 <div class="col-md-6">
                     <label for="password" class="form-label">Senha</label>
-                    <input type="password" name="password" class="form-control" id="password" placeholder="Senha minímo 6 caracteres e deve conter letra, número e caractere especial." value="<?php echo $this->data['form']['password'] ?? ''; ?>">
+                    <input type="password" name="password" class="form-control" id="password" placeholder="Senha minímo 6 caracteres e deve conter letra, número e caractere especial." value="<?php echo $this->data['form']['password'] ?? ''; ?>"
+                       oninput="this.value = this.value.replace(/\s/g, '')" 
+                       onpaste="this.value = this.value.replace(/\s/g, '')"
+                       autocomplete="new-password">
                 </div>
 
                 <div class="col-md-6">
                     <label for="confirm_password" class="form-label">Confirmar a Senha</label>
-                    <input type="password" name="confirm_password" class="form-control" id="confirm_password" placeholder="Confirmar a senha" value="<?php echo $this->data['form']['confirm_password'] ?? ''; ?>">
+                    <input type="password" name="confirm_password" class="form-control" id="confirm_password" placeholder="Confirmar a senha" value="<?php echo $this->data['form']['confirm_password'] ?? ''; ?>"
+                       oninput="this.value = this.value.replace(/\s/g, '')" 
+                       onpaste="this.value = this.value.replace(/\s/g, '')"
+                       autocomplete="new-password">
                 </div>
 
                 <div class="col-12">

@@ -17,7 +17,7 @@ $plans = $this->data['plans'] ?? [];
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-project-diagram me-2"></i>Listar Planos Estratégicos</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
-                <a href="/adms/create-strategic-plan" class="btn btn-success btn-sm mb-1"><i class="fas fa-plus"></i> Cadastrar</a>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>create-strategic-plan" class="btn btn-success btn-sm mb-1"><i class="fas fa-plus"></i> Cadastrar</a>
             </span>
         </div>
         <div class="card-body">
@@ -83,9 +83,9 @@ $plans = $this->data['plans'] ?? [];
                                 <tr>
                                     <td><?= htmlspecialchars($plan['id']) ?></td>
                                     <td><?= htmlspecialchars($plan['title']) ?></td>
-                                    <td><?= htmlspecialchars($plan['department_name'] ?? $plan['department_id'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($plan['responsible_name'] ?? $plan['responsible_id'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($plan['start_date']) ?> a <?= htmlspecialchars($plan['end_date']) ?></td>
+                                    <td><?= htmlspecialchars($plan['dep_name'] ?? 'Não informado') ?></td>
+                                    <td><?= htmlspecialchars($plan['user_name'] ?? 'Não informado') ?></td>
+                                    <td><?= date('d/m/Y', strtotime($plan['start_date'])) ?> a <?= date('d/m/Y', strtotime($plan['end_date'])) ?></td>
                                     <td>
                                         <?php
                                         $status = $plan['status'];
@@ -98,9 +98,10 @@ $plans = $this->data['plans'] ?? [];
                                         <span class="badge bg-<?= $badge ?>"><?= htmlspecialchars($status) ?></span>
                                     </td>
                                     <td>
-                                        <a href="/adms/view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-info" title="Visualizar"><i class="fas fa-eye"></i></a>
-                                        <a href="/adms/edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
-                                        <a href="/adms/delete-strategic-plan-/<?= $plan['id'] ?>" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i></a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-info" title="Visualizar"><i class="fas fa-eye"></i></a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-plan-indicators/<?= $plan['id'] ?>" class="btn btn-sm btn-primary" title="Indicadores"><i class="fas fa-chart-line"></i></a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -157,13 +158,14 @@ $plans = $this->data['plans'] ?? [];
                                     <button class="btn btn-outline-primary btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#cardPlanDetails<?= $i ?>" aria-expanded="false" aria-controls="cardPlanDetails<?= $i ?>">Ver mais</button>
                                 </div>
                                 <div class="collapse mt-2" id="cardPlanDetails<?= $i ?>">
-                                    <div><b>Departamento:</b> <?= htmlspecialchars($plan['department_name'] ?? $plan['department_id'] ?? '') ?></div>
-                                    <div><b>Responsável:</b> <?= htmlspecialchars($plan['responsible_name'] ?? $plan['responsible_id'] ?? '') ?></div>
-                                    <div><b>Período:</b> <?= htmlspecialchars($plan['start_date']) ?> a <?= htmlspecialchars($plan['end_date']) ?></div>
+                                    <div><b>Departamento:</b> <?= htmlspecialchars($plan['dep_name'] ?? 'Não informado') ?></div>
+                                    <div><b>Responsável:</b> <?= htmlspecialchars($plan['user_name'] ?? 'Não informado') ?></div>
+                                    <div><b>Período:</b> <?= date('d/m/Y', strtotime($plan['start_date'])) ?> a <?= date('d/m/Y', strtotime($plan['end_date'])) ?></div>
                                     <div class="mt-2">
-                                        <a href="/adms/view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-info btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> Visualizar</a>
-                                        <a href="/adms/edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> Editar</a>
-                                        <a href="/adms/delete-strategic-plan-/<?= $plan['id'] ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i> Excluir</a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-info btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> Visualizar</a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-plan-indicators/<?= $plan['id'] ?>" class="btn btn-primary btn-sm me-1 mb-1" title="Indicadores"><i class="fas fa-chart-line"></i> Indicadores</a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> Editar</a>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-strategic-plan/<?= $plan['id'] ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i> Excluir</a>
                                     </div>
                                 </div>
                             </div>

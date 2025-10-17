@@ -4,9 +4,11 @@ console.log('🚀 JavaScript de permissões carregado! - Timestamp:', new Date()
 
 // ===== FUNÇÕES DE GRUPOS =====
 
-// Alternar visibilidade de um grupo
+// Funções auxiliares removidas - botões de ação não são mais necessários
+
+// Alternar visibilidade de um grupo (DESKTOP)
 function toggleGroup(groupId) {
-    console.log('🔄 Alternando grupo:', groupId);
+    console.log('🔄 Alternando grupo DESKTOP:', groupId);
     
     const groupHeader = document.querySelector(`[data-group="${groupId}"]`);
     const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
@@ -54,12 +56,56 @@ function toggleGroup(groupId) {
     console.log('📊 Estado final do grupo:', finalState ? 'EXPANDIDO' : 'COLAPSADO');
 }
 
-// Expandir todos os grupos
-function expandAllGroups() {
-    console.log('📂 Expandindo todos os grupos');
+// Alternar visibilidade de um grupo (MOBILE)
+function toggleGroupMobile(groupId) {
+    console.log('🔄 Alternando grupo MOBILE:', groupId);
     
+    const groupCard = document.querySelector(`.group-card[data-group="${groupId}"]`);
+    const contentMobile = document.querySelector(`.group-content-mobile[data-group-content="${groupId}"]`);
+    const toggleIcon = groupCard.querySelector('.toggle-icon-mobile');
+    
+    console.log('🔍 Elementos mobile encontrados:');
+    console.log('- groupCard:', groupCard);
+    console.log('- contentMobile:', contentMobile);
+    console.log('- toggleIcon:', toggleIcon);
+    
+    if (!groupCard || !contentMobile || !toggleIcon) {
+        console.error('Elementos mobile do grupo não encontrados:', groupId);
+        return;
+    }
+    
+    // Verificar se o grupo está expandido
+    const isExpanded = groupCard.classList.contains('expanded');
+    console.log('📊 Estado atual do grupo mobile:', isExpanded ? 'EXPANDIDO' : 'COLAPSADO');
+    
+    if (isExpanded) {
+        // Colapsar grupo
+        console.log('📁 Colapsando grupo mobile:', groupId);
+        groupCard.classList.remove('expanded');
+        contentMobile.style.display = 'none';
+        toggleIcon.style.transform = 'rotate(0deg)';
+        console.log('✅ Grupo mobile colapsado:', groupId);
+    } else {
+        // Expandir grupo
+        console.log('📂 Expandindo grupo mobile:', groupId);
+        groupCard.classList.add('expanded');
+        contentMobile.style.display = 'block';
+        toggleIcon.style.transform = 'rotate(90deg)';
+        console.log('✅ Grupo mobile expandido:', groupId);
+    }
+    
+    // Verificar estado final
+    const finalState = groupCard.classList.contains('expanded');
+    console.log('📊 Estado final do grupo mobile:', finalState ? 'EXPANDIDO' : 'COLAPSADO');
+}
+
+// Expandir todos os grupos (DESKTOP + MOBILE)
+function expandAllGroups() {
+    console.log('📂 Expandindo todos os grupos (DESKTOP + MOBILE)');
+    
+    // Desktop
     const allGroups = document.querySelectorAll('[data-group]');
-    console.log(`📊 Total de grupos encontrados: ${allGroups.length}`);
+    console.log(`📊 Total de grupos desktop encontrados: ${allGroups.length}`);
     
     let expandedCount = 0;
     allGroups.forEach((group, index) => {
@@ -68,7 +114,7 @@ function expandAllGroups() {
             const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
             const toggleIcon = group.querySelector('.toggle-icon');
             
-            console.log(`📂 Expandindo grupo ${index + 1}: ${groupId} (${contentRows.length} linhas)`);
+            console.log(`📂 Expandindo grupo desktop ${index + 1}: ${groupId} (${contentRows.length} linhas)`);
             
             // Expandir diretamente sem chamar toggleGroup
             group.classList.add('expanded');
@@ -83,15 +129,42 @@ function expandAllGroups() {
         }
     });
     
-    console.log(`✅ ${expandedCount} grupos expandidos de ${allGroups.length} total`);
+    // Mobile
+    const allGroupCards = document.querySelectorAll('.group-card');
+    console.log(`📊 Total de grupos mobile encontrados: ${allGroupCards.length}`);
+    
+    let expandedMobileCount = 0;
+    allGroupCards.forEach((card, index) => {
+        if (!card.classList.contains('expanded')) {
+            const groupId = card.dataset.group;
+            const contentMobile = card.querySelector('.group-content-mobile');
+            const toggleIcon = card.querySelector('.toggle-icon-mobile');
+            
+            console.log(`📂 Expandindo grupo mobile ${index + 1}: ${groupId}`);
+            
+            // Expandir diretamente
+            card.classList.add('expanded');
+            if (contentMobile) {
+                contentMobile.style.display = 'block';
+            }
+            if (toggleIcon) {
+                toggleIcon.style.transform = 'rotate(90deg)';
+            }
+            
+            expandedMobileCount++;
+        }
+    });
+    
+    console.log(`✅ ${expandedCount} grupos desktop e ${expandedMobileCount} grupos mobile expandidos`);
 }
 
-// Colapsar todos os grupos
+// Colapsar todos os grupos (DESKTOP + MOBILE)
 function collapseAllGroups() {
-    console.log('📁 Colapsando todos os grupos');
+    console.log('📁 Colapsando todos os grupos (DESKTOP + MOBILE)');
     
+    // Desktop
     const allGroups = document.querySelectorAll('[data-group]');
-    console.log(`📊 Total de grupos encontrados: ${allGroups.length}`);
+    console.log(`📊 Total de grupos desktop encontrados: ${allGroups.length}`);
     
     let collapsedCount = 0;
     allGroups.forEach((group, index) => {
@@ -100,7 +173,7 @@ function collapseAllGroups() {
             const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
             const toggleIcon = group.querySelector('.toggle-icon');
             
-            console.log(`📁 Colapsando grupo ${index + 1}: ${groupId} (${contentRows.length} linhas)`);
+            console.log(`📁 Colapsando grupo desktop ${index + 1}: ${groupId} (${contentRows.length} linhas)`);
             
             // Colapsar diretamente sem chamar toggleGroup
             group.classList.remove('expanded');
@@ -115,77 +188,171 @@ function collapseAllGroups() {
         }
     });
     
-    console.log(`✅ ${collapsedCount} grupos colapsados de ${allGroups.length} total`);
+    // Mobile
+    const allGroupCards = document.querySelectorAll('.group-card');
+    console.log(`📊 Total de grupos mobile encontrados: ${allGroupCards.length}`);
+    
+    let collapsedMobileCount = 0;
+    allGroupCards.forEach((card, index) => {
+        if (card.classList.contains('expanded')) {
+            const groupId = card.dataset.group;
+            const contentMobile = card.querySelector('.group-content-mobile');
+            const toggleIcon = card.querySelector('.toggle-icon-mobile');
+            
+            console.log(`📁 Colapsando grupo mobile ${index + 1}: ${groupId}`);
+            
+            // Colapsar diretamente
+            card.classList.remove('expanded');
+            if (contentMobile) {
+                contentMobile.style.display = 'none';
+            }
+            if (toggleIcon) {
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+            
+            collapsedMobileCount++;
+        }
+    });
+    
+    console.log(`✅ ${collapsedCount} grupos desktop e ${collapsedMobileCount} grupos mobile colapsados`);
 }
 
 // ===== FUNÇÕES DE PERMISSÕES =====
 
-// Autorizar todas as permissões de um grupo
+// Autorizar todas as permissões de um grupo (DESKTOP + MOBILE)
 function authorizeGroup(groupId) {
     console.log('✅ Autorizando grupo:', groupId);
     
-    const checkboxes = document.querySelectorAll(`[data-group-content="${groupId}"] .permission-toggle`);
-    
-    checkboxes.forEach(checkbox => {
+    // Desktop: Autorizar checkboxes na tabela (APENAS DESKTOP)
+    const desktopTable = document.querySelector('.table-permissions-desktop');
+    const desktopCheckboxes = desktopTable ? desktopTable.querySelectorAll(`[data-group-content="${groupId}"] .permission-toggle`) : [];
+    desktopCheckboxes.forEach(checkbox => {
         checkbox.checked = true;
     });
     
+    // Mobile: Autorizar checkboxes nos cards (APENAS MOBILE)
+    const groupCard = document.querySelector(`.group-card[data-group="${groupId}"]`);
+    if (groupCard) {
+        const mobileCheckboxes = groupCard.querySelectorAll('.permission-toggle');
+        mobileCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
+    
     // Atualizar contadores
     updateGroupCounters(groupId);
     
-    console.log(`Grupo ${groupId}: ${checkboxes.length} permissões autorizadas`);
+    console.log(`✅ Grupo ${groupId}: ${desktopCheckboxes.length} permissões desktop e ${groupCard ? groupCard.querySelectorAll('.permission-toggle').length : 0} mobile autorizadas`);
 }
 
-// Revogar todas as permissões de um grupo
+// Revogar todas as permissões de um grupo (DESKTOP + MOBILE)
 function revokeGroup(groupId) {
     console.log('❌ Revogando grupo:', groupId);
     
-    const checkboxes = document.querySelectorAll(`[data-group-content="${groupId}"] .permission-toggle`);
-    
-    checkboxes.forEach(checkbox => {
+    // Desktop: Revogar checkboxes na tabela (APENAS DESKTOP)
+    const desktopTable = document.querySelector('.table-permissions-desktop');
+    const desktopCheckboxes = desktopTable ? desktopTable.querySelectorAll(`[data-group-content="${groupId}"] .permission-toggle`) : [];
+    desktopCheckboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
+    
+    // Mobile: Revogar checkboxes nos cards (APENAS MOBILE)
+    const groupCard = document.querySelector(`.group-card[data-group="${groupId}"]`);
+    if (groupCard) {
+        const mobileCheckboxes = groupCard.querySelectorAll('.permission-toggle');
+        mobileCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
     
     // Atualizar contadores
     updateGroupCounters(groupId);
     
-    console.log(`Grupo ${groupId}: ${checkboxes.length} permissões revogadas`);
+    console.log(`❌ Grupo ${groupId}: ${desktopCheckboxes.length} permissões desktop e ${groupCard ? groupCard.querySelectorAll('.permission-toggle').length : 0} mobile revogadas`);
 }
 
 // ===== FUNÇÕES DE CONTADORES =====
 
-// Atualizar contadores de um grupo específico
+// Atualizar contadores de um grupo específico (DESKTOP + MOBILE)
 function updateGroupCounters(groupId) {
     console.log('📊 Atualizando contadores do grupo:', groupId);
     
+    // Desktop: Atualizar contadores na tabela (APENAS DESKTOP)
     const groupHeader = document.querySelector(`[data-group="${groupId}"]`);
-    if (!groupHeader) {
-        console.error('Cabeçalho do grupo não encontrado:', groupId);
-        return;
+    if (groupHeader) {
+        console.log('📊 Atualizando contadores DESKTOP para grupo:', groupId);
+        
+        // BUSCAR APENAS CHECKBOXES DO DESKTOP (tabela visível)
+        const desktopTable = document.querySelector('.table-permissions-desktop');
+        const checkboxes = desktopTable ? desktopTable.querySelectorAll(`[data-group-content="${groupId}"] .permission-toggle`) : [];
+        
+        const totalCount = checkboxes.length;
+        let authorizedCount = 0;
+        
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                authorizedCount++;
+            }
+        });
+        
+        const revokedCount = totalCount - authorizedCount;
+        
+        // Debug: Verificar todos os checkboxes encontrados
+        console.log(`🔍 Desktop - Checkboxes encontrados: ${checkboxes.length} (apenas tabela desktop)`);
+        
+        // Atualizar elementos de contador no desktop
+        const totalElement = groupHeader.querySelector('.group-counters .bg-secondary');
+        const authorizedElement = groupHeader.querySelector('.group-counters .bg-success');
+        const revokedElement = groupHeader.querySelector('.group-counters .bg-danger');
+        
+        if (totalElement) totalElement.textContent = `Total: ${totalCount}`;
+        if (authorizedElement) authorizedElement.textContent = `Autorizadas: ${authorizedCount}`;
+        if (revokedElement) revokedElement.textContent = `Revogadas: ${revokedCount}`;
+        
+        console.log(`📊 Desktop - Grupo ${groupId}: ${totalCount} total, ${authorizedCount} autorizadas, ${revokedCount} revogadas`);
     }
     
-    const checkboxes = document.querySelectorAll(`[data-group-content="${groupId}"] .permission-toggle`);
-    const totalCount = checkboxes.length;
-    let authorizedCount = 0;
+    // Mobile: Atualizar contadores nos cards
+    const groupCard = document.querySelector(`.group-card[data-group="${groupId}"]`);
+    if (groupCard) {
+        console.log('📊 Atualizando contadores MOBILE para grupo:', groupId);
+        
+        const checkboxes = groupCard.querySelectorAll('.permission-toggle');
+        const totalCount = checkboxes.length;
+        let authorizedCount = 0;
+        
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                authorizedCount++;
+            }
+        });
+        
+        const revokedCount = totalCount - authorizedCount;
+        
+        // Debug: Verificar checkboxes mobile
+        console.log(`🔍 Mobile - Checkboxes encontrados: ${checkboxes.length}`);
+        
+        // Atualizar elementos de contador no mobile (CORRIGIDO: buscar diretamente no card-header)
+        const totalElement = groupCard.querySelector('.card-header .bg-secondary');
+        const authorizedElement = groupCard.querySelector('.card-header .bg-success');
+        const revokedElement = groupCard.querySelector('.card-header .bg-danger');
+        
+        // Debug: Verificar se os elementos foram encontrados
+        console.log(`🔍 Mobile - Elementos de contador encontrados:`);
+        console.log(`  - Total: ${totalElement ? '✅' : '❌'}`);
+        console.log(`  - Autorizadas: ${authorizedElement ? '✅' : '❌'}`);
+        console.log(`  - Revogadas: ${revokedElement ? '✅' : '❌'}`);
+        
+        if (totalElement) totalElement.textContent = `Total: ${totalCount}`;
+        if (authorizedElement) authorizedElement.textContent = `Autorizadas: ${authorizedCount}`;
+        if (revokedElement) revokedElement.textContent = `Revogadas: ${revokedCount}`;
+        
+        console.log(`📊 Mobile - Grupo ${groupId}: ${totalCount} total, ${authorizedCount} autorizadas, ${revokedCount} revogadas`);
+    }
     
-    checkboxes.forEach(checkbox => {
-        if (checkbox.checked) {
-            authorizedCount++;
-        }
-    });
-    
-    const revokedCount = totalCount - authorizedCount;
-    
-    // Atualizar elementos de contador
-    const totalElement = groupHeader.querySelector('.group-counters .bg-secondary');
-    const authorizedElement = groupHeader.querySelector('.group-counters .bg-success');
-    const revokedElement = groupHeader.querySelector('.group-counters .bg-danger');
-    
-    if (totalElement) totalElement.textContent = `Total: ${totalCount}`;
-    if (authorizedElement) authorizedElement.textContent = `Autorizadas: ${authorizedCount}`;
-    if (revokedElement) revokedElement.textContent = `Revogadas: ${revokedCount}`;
-    
-    console.log(`📊 Grupo ${groupId}: ${totalCount} total, ${authorizedCount} autorizadas, ${revokedCount} revogadas`);
+    if (!groupHeader && !groupCard) {
+        console.error('❌ Nenhum elemento do grupo encontrado (desktop ou mobile):', groupId);
+    }
 }
 
 
@@ -196,6 +363,7 @@ function updateGroupCounters(groupId) {
 function filterGroups(searchTerm) {
     console.log('🔍 Filtrando grupos por:', searchTerm);
     
+    // Desktop
     const allGroups = document.querySelectorAll('[data-group]');
     const searchLower = searchTerm.toLowerCase();
     
@@ -221,7 +389,26 @@ function filterGroups(searchTerm) {
         }
     });
     
-    console.log('Filtro aplicado');
+    // Mobile
+    const allGroupCards = document.querySelectorAll('.group-card');
+    allGroupCards.forEach(card => {
+        const groupId = card.dataset.group;
+        const groupName = groupId.toLowerCase();
+        const contentMobile = card.querySelector('.group-content-mobile');
+        
+        if (searchTerm === '' || groupName.includes(searchLower)) {
+            // Mostrar grupo
+            card.style.display = 'block';
+        } else {
+            // Ocultar grupo
+            card.style.display = 'none';
+            if (contentMobile) {
+                contentMobile.style.display = 'none';
+            }
+        }
+    });
+    
+    console.log('Filtro aplicado para desktop e mobile');
 }
 
 // ===== FUNÇÕES DE SALVAMENTO =====
@@ -252,7 +439,11 @@ function savePermissions() {
         return;
     }
     
-    const form = saveButton.closest('form');
+    // O botão "Salvar" pode estar fora do <form>; capturar o formulário por seletor global
+    let form = document.getElementById('permissionsForm');
+    if (!form) {
+        form = saveButton.closest('form') || document.querySelector('form[action*="list-access-levels-permissions"]');
+    }
     if (!form) {
         console.error('Formulário não encontrado');
         showError('Formulário não encontrado');
@@ -272,8 +463,21 @@ function savePermissions() {
         return;
     }
     
-    // Coletar todas as permissões
-    const allToggles = document.querySelectorAll('.permission-toggle');
+    // Coletar as permissões apenas da UI visível (evita duplicidade desktop/mobile)
+    let allToggles = [];
+    try {
+        const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+        if (isDesktop) {
+            const desktopContainer = form.querySelector('.table-permissions-desktop');
+            allToggles = desktopContainer ? desktopContainer.querySelectorAll('.permission-toggle') : form.querySelectorAll('.permission-toggle');
+        } else {
+            const mobileContainer = form.querySelector('.d-block.d-md-none');
+            allToggles = mobileContainer ? mobileContainer.querySelectorAll('.permission-toggle') : form.querySelectorAll('.permission-toggle');
+        }
+    } catch (e) {
+        console.warn('Fallback para coleta padrão de toggles:', e);
+        allToggles = form.querySelectorAll('.permission-toggle');
+    }
     console.log('Total de toggles encontrados:', allToggles.length);
     
     const permissions = {};
@@ -286,6 +490,17 @@ function savePermissions() {
             console.log(`Página ${pageId}: ${isChecked ? '✅ Marcado (1)' : '❌ Desmarcado (0)'}`);
         }
     });
+
+    // Forçar inclusão de toggles visíveis desktop mesmo se houver duplicados ocultos mobile
+    if (Object.keys(permissions).length === 0) {
+        const backupToggles = form.querySelectorAll('.permission-toggle');
+        backupToggles.forEach((toggle) => {
+            const pageId = toggle.dataset.pageId;
+            if (pageId && !(pageId in permissions)) {
+                permissions[pageId] = toggle.checked ? 1 : 0;
+            }
+        });
+    }
     
     console.log('Permissões coletadas:', permissions);
     
@@ -437,6 +652,17 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('❌ Botão Salvar Permissões NÃO encontrado!');
     }
+
+    // Configurar event listener para o botão Salvar (mobile)
+    const saveButtonMobile = document.getElementById('savePermissionsBtnMobile');
+    if (saveButtonMobile) {
+        console.log('✅ Botão Salvar Permissões (mobile) encontrado:', saveButtonMobile);
+        saveButtonMobile.addEventListener('click', function(event) {
+            console.log('🔔 Evento click capturado no botão Salvar (mobile)');
+            event.preventDefault();
+            confirmAndSavePermissions();
+        });
+    }
     
     // Configurar event listeners para toggles de permissão
     const permissionToggles = document.querySelectorAll('.permission-toggle');
@@ -453,9 +679,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Verificar se há grupos e configurar inicialização
     const allGroups = document.querySelectorAll('[data-group]');
-    console.log(`📊 ${allGroups.length} grupos encontrados na página`);
+    console.log(`📊 ${allGroups.length} grupos desktop encontrados na página`);
     
-    // Garantir que todos os grupos iniciem colapsados e atualizar contadores
+    // Garantir que todos os grupos desktop iniciem colapsados e atualizar contadores
     allGroups.forEach(group => {
         const groupId = group.dataset.group;
         const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
@@ -475,7 +701,30 @@ document.addEventListener('DOMContentLoaded', function() {
         updateGroupCounters(groupId);
     });
     
-    console.log(`✅ ${allGroups.length} grupos inicializados como colapsados e contadores atualizados`);
+    // Verificar grupos mobile
+    const allGroupCards = document.querySelectorAll('.group-card');
+    console.log(`📊 ${allGroupCards.length} grupos mobile encontrados na página`);
+    
+    // Garantir que todos os grupos mobile iniciem colapsados
+    allGroupCards.forEach(card => {
+        const groupId = card.dataset.group;
+        const contentMobile = card.querySelector('.group-content-mobile');
+        const toggleIcon = card.querySelector('.toggle-icon-mobile');
+        
+        // Garantir que grupos iniciem colapsados
+        card.classList.remove('expanded');
+        if (contentMobile) {
+            contentMobile.style.display = 'none';
+        }
+        
+        if (toggleIcon) {
+            toggleIcon.style.transform = 'rotate(0deg)';
+        }
+        
+        // Atualizar contadores iniciais (já feito na função updateGroupCounters)
+    });
+    
+    console.log(`✅ ${allGroups.length} grupos desktop e ${allGroupCards.length} grupos mobile inicializados como colapsados e contadores atualizados`);
     
     console.log('🏁 === INICIALIZAÇÃO COMPLETA CONCLUÍDA ===');
 });

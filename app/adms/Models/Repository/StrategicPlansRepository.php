@@ -17,7 +17,15 @@ class StrategicPlansRepository extends DbConnection
 
     public function getById(int $id): ?array
     {
-        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_strategic_plans WHERE id = :id');
+        $sql = 'SELECT 
+                    sp.*,
+                    d.name as dep_name,
+                    u.name as user_name
+                FROM adms_strategic_plans sp
+                LEFT JOIN adms_departments d ON sp.department_id = d.id
+                LEFT JOIN adms_users u ON sp.responsible_id = u.id
+                WHERE sp.id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute(['id' => $id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ?: null;
@@ -106,7 +114,14 @@ class StrategicPlansRepository extends DbConnection
             $params[':status'] = $criteria['status'];
         }
         $whereSql = !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
-        $sql = 'SELECT * FROM adms_strategic_plans ' . $whereSql . ' ORDER BY created_at DESC LIMIT :limit OFFSET :offset';
+        $sql = 'SELECT 
+                    sp.*,
+                    d.name as dep_name,
+                    u.name as user_name
+                FROM adms_strategic_plans sp
+                LEFT JOIN adms_departments d ON sp.department_id = d.id
+                LEFT JOIN adms_users u ON sp.responsible_id = u.id
+                ' . $whereSql . ' ORDER BY sp.created_at DESC LIMIT :limit OFFSET :offset';
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, PDO::PARAM_STR);

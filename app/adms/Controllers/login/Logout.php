@@ -4,6 +4,7 @@ namespace App\adms\Controllers\login;
 
 use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\LogAcessosRepository;
+use App\adms\Controllers\Services\RequestHelper;
 
 class Logout
 {
@@ -16,6 +17,12 @@ class Logout
         if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
             $sessionRepo = new \App\adms\Models\Repository\AdmsSessionsRepository();
             $sessionRepo->invalidateSessionByUserIdAndSessionId($_SESSION['user_id'], $_SESSION['session_id']);
+
+            // Registrar LOGOUT
+            $logAcessosRepo = new LogAcessosRepository();
+            $ip = RequestHelper::getClientIp();
+            $ua = RequestHelper::getUserAgent();
+            $logAcessosRepo->registrarAcesso((int)$_SESSION['user_id'], 'LOGOUT', $ip, $ua);
         }
         
         $_SESSION = [];

@@ -9,7 +9,7 @@
  * - Isso garante robustez e flexibilidade para qualquer tela de listagem, mesmo com múltiplos filtros e paginação.
  *
  * Exemplo de URL suportada:
- *   $_ENV['URL_ADM']?url=list-pages&page=2&per_page=10&nome=teste&status=Ativo
+ *   /administrativo2/?url=list-pages&page=2&per_page=10&nome=teste&status=Ativo
  *
  * Se 'url' e 'controller' estiverem ausentes ou inválidos, o usuário é redirecionado para o dashboard.
  */
@@ -103,8 +103,7 @@ class LoadPageAdm
         "LgpdAipdTemplateSaude", "LgpdAipdTemplateFinanceiro", "LgpdAipdTemplateEcommerce", "LgpdAipdTemplateEducacao", "LgpdAipdTemplateRh", "LgpdAipdTemplateMarketing", "LgpdAipdTemplateTelecom", "LgpdAipdTemplateLogistica", "LgpdAipdTemplateJuridico",
         "LgpdConsentimentos", "LgpdConsentimentosCreate", "LgpdConsentimentosEdit", "LgpdConsentimentosView", "LgpdConsentimentosDelete",
         "LgpdConsentimentoColeta", "LgpdConsentimentoColetaProcessar", "LgpdConsentimentoEmail", "LgpdConsentimentoEmailProcessar",
-        "LgpdTia", "LgpdTiaCreate", "LgpdTiaEdit", "LgpdTiaView", "LgpdTiaDelete", "LgpdTiaDashboard", "LgpdTiaTemplateFinanceiro", "LgpdTiaTemplateMarketing", "LgpdTiaTemplateRh", "LgpdTiaTemplateTi", "LgpdTiaTemplates", "LgpdRipdExportPdf", "LgpdRipdExportPdfList", "LgpdRipdExportPdfView",
-        "CheckSession", "ExtendSession"
+        "LgpdTia", "LgpdTiaCreate", "LgpdTiaEdit", "LgpdTiaView", "LgpdTiaDelete", "LgpdTiaDashboard", "LgpdTiaTemplateFinanceiro", "LgpdTiaTemplateMarketing", "LgpdTiaTemplateRh", "LgpdTiaTemplateTi", "LgpdTiaTemplates", "LgpdTiaExportPdf", "LgpdTiaExportPdfList", "LgpdTiaExportPdfView"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -133,8 +132,7 @@ class LoadPageAdm
         "movement",
         "qualityAssurance",
         "trainings",
-        "evaluations",
-        "session",
+        "evaluations",  
         "settings",
         "strategicPlans",
         "strategicIndicators",
@@ -175,7 +173,7 @@ class LoadPageAdm
         $routeParam = trim($routeParam);
         if (empty($routeParam)) {
             // Log detalhado do erro de parâmetro
-            file_put_contents(__DIR__ . '/../logs/session_debug2.log',
+            file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
                 date('Y-m-d H:i:s') . ' - [LoadPageAdm] NENHUM PARÂMETRO DE ROTA VÁLIDO (url/controller) - url: ' . ($_GET['url'] ?? 'null') . ' | controller: ' . ($_GET['controller'] ?? 'null') .
                 ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
                 ' | _SESSION: ' . json_encode($_SESSION) . "\n",
@@ -186,17 +184,6 @@ class LoadPageAdm
             exit;
         }
         $this->urlController = SlugController::slugController($routeParam);
-
-        // Rota especial: screen-resolution (retorna JSON). Precisa ser tratada antes das checagens padrão
-        if ($this->urlController === 'ScreenResolution') {
-            $controller = new \App\adms\Controllers\Services\ScreenResolutionController();
-            if (!empty($this->urlParameter) && $this->urlParameter === 'set') {
-                $controller->setScreenResolution();
-            } else {
-                $controller->getScreenResolution();
-            }
-            return;
-        }
 
         // Verificar se existe a pagina
         if (!$this->checkPageExists()) {
@@ -210,7 +197,7 @@ class LoadPageAdm
             $_SESSION['error'] = "Necessário estar logado para acessar pagina restrita.";
 
             // Log detalhado do motivo do redirecionamento para login
-            file_put_contents(__DIR__ . '/../logs/session_debug2.log',
+            file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
                 date('Y-m-d H:i:s') . ' - [LoadPageAdm] REDIRECIONA LOGIN - controller: ' . ($this->urlController ?? 'null') .
                 ' | parametro: ' . ($this->urlParameter ?? 'null') .
                 ' | session_id: ' . (session_id() ?: 'null') .
@@ -222,7 +209,6 @@ class LoadPageAdm
 
             // Redirecionar o usuário para a pagina de login
             header("Location: {$_ENV['URL_ADM']}login");
-            exit;
         }
 
         // Verificar se a classe/controller existe
@@ -244,7 +230,7 @@ class LoadPageAdm
                 }
                 if (!$controllerExists) {
                     // Log do fallback
-                    file_put_contents(__DIR__ . '/../logs/session_debug2.log',
+                    file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
                         date('Y-m-d H:i:s') . ' - [LoadPageAdm] Fallback para listagem padrão - parâmetro de ação inválido: ' . $routeParam .
                         ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
                         ' | _SESSION: ' . json_encode($_SESSION) . "\n",
@@ -277,7 +263,7 @@ class LoadPageAdm
             }
             if (!$controllerExists) {
                 // Log do fallback
-                file_put_contents(__DIR__ . '/../logs/session_debug2.log',
+                file_put_contents('C:/wamp64/www/administrativo2/app/logs/session_debug2.log',
                     date('Y-m-d H:i:s') . ' - [LoadPageAdm] Fallback para listagem padrão - parâmetro de ação inválido: ' . $routeParam .
                     ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') .
                     ' | _SESSION: ' . json_encode($_SESSION) . "\n",
@@ -349,7 +335,9 @@ class LoadPageAdm
 
                 // Criar o caminho da controller/classe
                 $this->classLoad = "\\App\\$package\\Controllers\\$directory\\" . $this->urlController;
-                
+
+                var_dump($this->classLoad);
+
                 // Verificar se a classe existe
                 if (class_exists($this->classLoad)) {
 
@@ -396,6 +384,8 @@ class LoadPageAdm
         }
 
         // Debug: mostrar controller e método
+        var_dump('Controller:', $this->classLoad, 'Método:', $metodo, 'Parâmetro:', $this->urlParameter);
+
         if (method_exists($classLoad, $metodo)) {
             GenerateLog::generateLog("info", "Pagina acessada.", ['pagina' => $this->urlController, 'parametro' => $this->urlParameter]);
             $classLoad->{$metodo}();
@@ -405,3 +395,4 @@ class LoadPageAdm
         }
     }
 }
+

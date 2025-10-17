@@ -3,6 +3,8 @@
 namespace App\adms\Controllers\session;
 
 use App\adms\Models\Repository\AdmsSessionsRepository;
+use App\adms\Models\Repository\LogAcessosRepository;
+use App\adms\Controllers\Services\RequestHelper;
 
 /**
  * Controller para verificar se a sessão atual é válida
@@ -21,8 +23,8 @@ class CheckSession
         }
 
         // Verificar se há uma sessão ativa
-        if (empty($_SESSION['user_id'])) {
-            $this->sendJsonResponse(['valid' => false, 'message' => 'Usuário não autenticado']);
+        if (empty($_SESSION['user_id']) || empty($_SESSION['session_id'])) {
+            $this->sendJsonResponse(['valid' => false, 'message' => 'Usuário não autenticado', 'user_id' => null]);
             return;
         }
 
@@ -35,52 +37,48 @@ class CheckSession
         
         if (!$expirarPorTempo) {
             // Se não estiver habilitado, sempre retornar válida
-            $this->sendJsonResponse(['valid' => true, 'message' => 'Expiração por tempo desabilitada']);
+            $this->sendJsonResponse(['valid' => true, 'message' => 'Expiração por tempo desabilitada', 'user_id' => (int)$_SESSION['user_id']]);
             return;
         }
 
         // Verificar se a sessão existe no banco
         $sessionsRepository = new AdmsSessionsRepository();
-        $sessionData = $sessionsRepository->getSessionBySessionId($_SESSION['session_id'] ?? '');
+        $sessionData = $sessionsRepository->getSessionByUserIdAndSessionId($_SESSION['user_id'], $_SESSION['session_id']);
         
-        if (!$sessionData) {
-            $this->sendJsonResponse(['valid' => false, 'message' => 'Sessão inválida']);
+        if (!$sessionData || $sessionData['status'] !== 'ativa') {
+            $this->sendJsonResponse(['valid' => false, 'message' => 'Sessão inválida', 'user_id' => (int)$_SESSION['user_id']]);
             return;
         }
 
-        // Verificar se a sessão não expirou (fallback robusto)
-        $updatedAt = $sessionData['updated_at'] ?? null;
-        $createdAt = $sessionData['created_at'] ?? null;
-        $lastActivity = null;
-        if (!empty($updatedAt)) {
-            $lastActivity = strtotime($updatedAt);
-        }
-        if (!$lastActivity && !empty($createdAt)) {
-            $lastActivity = strtotime($createdAt);
-        }
-        if (!$lastActivity) {
-            $lastActivity = time(); // fallback defensivo
-        }
+        // Calcular tempo restante baseado na última atividade
+        $lastActivity = strtotime($sessionData['updated_at'] ?? $sessionData['created_at']);
         $sessionTimeout = ($policy && isset($policy->tempo_expiracao_sessao)) ? ((int)$policy->tempo_expiracao_sessao * 60) : 1800; // Padrão 30 minutos
         $currentTime = time();
+        $expiresIn = $sessionTimeout - ($currentTime - $lastActivity);
         
-        if (($currentTime - $lastActivity) > $sessionTimeout) {
-            // Sessão expirou
-            $sessionsRepository->deleteSessionBySessionId($_SESSION['session_id']);
-            session_destroy();
+        // Verificar se a sessão expirou
+        if ($expiresIn <= 0) {
+            // Sessão expirou - invalidar
+            $sessionsRepository->invalidateSessionByUserIdAndSessionId($_SESSION['user_id'], $_SESSION['session_id']);
             
-            $this->sendJsonResponse(['valid' => false, 'message' => 'Sessão expirada']);
+            // Registrar LOGOUT_TIMEOUT
+            try {
+                $logRepo = new LogAcessosRepository();
+                $ip = RequestHelper::getClientIp();
+                $ua = RequestHelper::getUserAgent();
+                $logRepo->registrarAcesso((int)$_SESSION['user_id'], 'LOGOUT_TIMEOUT', $ip, $ua);
+            } catch (\Throwable $t) { /* noop */ }
+            
+            $this->sendJsonResponse(['valid' => false, 'message' => 'Sessão expirada', 'user_id' => (int)$_SESSION['user_id']]);
             return;
         }
-
-        // Calcular tempo restante
-        $expiresIn = $sessionTimeout - ($currentTime - $lastActivity);
         
         $this->sendJsonResponse([
             'valid' => true,
             'message' => 'Sessão válida',
             'expiresIn' => $expiresIn,
-            'lastActivity' => date('Y-m-d H:i:s', $lastActivity)
+            'lastActivity' => date('Y-m-d H:i:s', $lastActivity),
+            'user_id' => (int)$_SESSION['user_id']
         ]);
     }
 

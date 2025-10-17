@@ -94,16 +94,16 @@ use App\adms\Helpers\FormatHelper;
                             </div>
                             <div class="col-md-4">
                                 <label for="data_avaliacao" class="form-label">
-                                    <strong>Data de Avaliação</strong>
+                                    <strong>Data de Avaliação *</strong>
                                 </label>
                                 <input type="date" 
                                        name="data_avaliacao" 
                                        class="form-control" 
                                        id="data_avaliacao" 
                                        value="<?php echo $this->data['trainingUser']['data_avaliacao'] ?? ''; ?>"
-                                       min="<?php echo $this->data['trainingUser']['data_realizacao'] ?? ''; ?>"
-                                       max="<?php echo date('Y-m-d'); ?>">
-                                <div class="form-text">Data em que a avaliação do treinamento foi realizada</div>
+                                       min="<?php echo ($this->data['trainingUser']['data_realizacao'] ?? ''); ?>"
+                                       max="<?php echo date('Y-m-d'); ?>" required>
+                                <div class="form-text">Data em que a avaliação do treinamento foi realizada (obrigatória)</div>
                             </div>
                             <div class="col-md-4">
                                 <label for="nota" class="form-label">
@@ -139,6 +139,23 @@ use App\adms\Helpers\FormatHelper;
                         </div>
 
                         <!-- Campos do Instrutor -->
+                        <script>
+                        // Sincronizar automaticamente data_avaliacao com data_realizacao quando vazio
+                        (function(){
+                            const dataRealizacao = document.getElementById('data_realizacao');
+                            const dataAvaliacao = document.getElementById('data_avaliacao');
+                            if (dataRealizacao && dataAvaliacao) {
+                                const sync = () => {
+                                    // Avaliação deve ficar entre realização e hoje
+                                    dataAvaliacao.min = dataRealizacao.value || '';
+                                    dataAvaliacao.max = new Date().toISOString().slice(0,10);
+                                };
+                                dataRealizacao.addEventListener('change', sync);
+                                // inicial
+                                sync();
+                            }
+                        })();
+                        </script>
                         <div class="row mb-3">
                             <div class="col-md-3">
                                 <label for="instructor_type" class="form-label">

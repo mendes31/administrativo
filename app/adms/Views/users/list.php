@@ -42,29 +42,29 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
             // Inclui o arquivo que exibe mensagens de sucesso e erro
             include './app/adms/Views/partials/alerts.php';
             ?>
-            <form method="get" class="row g-2 mb-3 align-items-end">
-                <div class="col-md-3">
+            <form method="get" class="row g-3 mb-3 align-items-end">
+                <div class="col-md-2">
                     <label for="nome" class="form-label mb-1">Nome</label>
-                    <input type="text" name="nome" id="nome" class="form-control" value="<?= htmlspecialchars($_GET['nome'] ?? '') ?>">
+                    <input type="text" name="nome" id="nome" class="form-control form-control-sm" value="<?= htmlspecialchars($_GET['nome'] ?? '') ?>">
                 </div>
                 <div class="col-md-3">
                     <label for="email" class="form-label mb-1">E-mail</label>
-                    <input type="text" name="email" id="email" class="form-control" value="<?= htmlspecialchars($_GET['email'] ?? '') ?>">
+                    <input type="text" name="email" id="email" class="form-control form-control-sm" value="<?= htmlspecialchars($_GET['email'] ?? '') ?>">
                 </div>
-                <div class="col-md-3 w-100 mb-2">
-                    <label for="per_page" class="form-label mb-1 w-100 text-left">Mostrar</label>
-                    <div class="d-flex align-items-center w-100">
-                        <select name="per_page" id="per_page" class="form-select form-select-sm w-100 me-2" onchange="this.form.submit()">
+                <div class="col-md-2">
+                    <label for="per_page" class="form-label mb-1">Mostrar</label>
+                    <div class="d-flex align-items-center">
+                        <select name="per_page" id="per_page" class="form-select form-select-sm me-2" onchange="this.form.submit()">
                             <?php foreach ([10, 20, 50, 100] as $opt): ?>
                                 <option value="<?= $opt ?>" <?= ($this->data['per_page'] ?? 10) == $opt ? 'selected' : '' ?>><?= $opt ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <span class="form-label mb-1 ms-1">registros</span>
+                        <span class="form-label mb-0 small">registros</span>
                     </div>
                 </div>
-                <div class="col-md-2 filtros-btns-row w-100 mt-2">
-                    <button type="submit" class="btn btn-primary btn-sm btn-filtros-mobile"><i class="fa fa-search"></i> Filtrar</button>
-                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm btn-filtros-mobile"><i class="fa fa-times"></i> Limpar Filtros</a>
+                <div class="col-md-3 d-flex gap-2 flex-nowrap align-items-end">
+                    <button type="submit" class="btn btn-primary btn-sm btn-filter-equal"><i class="fa fa-search"></i> Filtrar</button>
+                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm btn-filter-equal"><i class="fa fa-times"></i> Limpar</a>
                 </div>
             </form>
             <?php
@@ -73,47 +73,53 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
             ?>
                 <!-- Tabela Desktop -->
                 <div class="table-responsive d-none d-md-block list-desktop">
-                    <table class="table table-striped table-hover">
+                    <table class="table table-striped table-hover table-users-desktop">
                         <thead>
                             <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Nome</th>
-                                <th scope="col" class="d-none d-md-table-cell">E-mail</th>
-                                <th scope="col" class="d-none d-md-table-cell">Usuário</th>
-                                <th scope="col" class="d-none d-md-table-cell">Departamento</th>
-                                <th scope="col" class="d-none d-md-table-cell">Cargo</th>
-                                <th scope="col" class="d-none d-md-table-cell">Status</th>
-                                <th scope="col" class="d-none d-md-table-cell">Bloqueado</th>
-                                <th scope="col" class="text-center">Ações</th>
+                                <th scope="col" style="width: 5%;">ID</th>
+                                <th scope="col" style="width: 20%;">Nome</th>
+                                <th scope="col" style="width: 18%;" class="d-none d-md-table-cell">E-mail</th>
+                                <th scope="col" style="width: 12%;" class="d-none d-md-table-cell">Usuário</th>
+                                <th scope="col" style="width: 15%;" class="d-none d-md-table-cell">Departamento</th>
+                                <th scope="col" style="width: 15%;" class="d-none d-md-table-cell">Cargo</th>
+                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Status</th>
+                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Bloqueado</th>
+                                <th scope="col" style="width: 20%;" class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($this->data['users'] as $user) { extract($user); ?>
                                 <tr>
-                                    <th><?= $id; ?></th>
-                                    <td><?= $name; ?></td>
-                                    <td class="d-none d-md-table-cell"><?= $email; ?></td>
-                                    <td class="d-none d-md-table-cell"><?= $username ?></td>
-                                    <td class="d-none d-md-table-cell"><?= $name_dep ?></td>
-                                    <td class="d-none d-md-table-cell"><?= $name_pos ?></td>
-                                    <td class="d-none d-md-table-cell"><?= $status ?></td>
-                                    <td class="d-none d-md-table-cell"><?= $bloqueado ?></td>
+                                    <th class="text-center"><?= $id; ?></th>
+                                    <td class="text-truncate" title="<?= htmlspecialchars($name); ?>"><?= $name; ?></td>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
+                                    <td class="d-none d-md-table-cell text-center">
+                                        <span class="badge <?= $status === 'Ativo' ? 'bg-success' : 'bg-danger'; ?>"><?= $status ?></span>
+                                    </td>
+                                    <td class="d-none d-md-table-cell text-center">
+                                        <span class="badge <?= $bloqueado === 'Sim' ? 'bg-danger' : 'bg-success'; ?>"><?= $bloqueado ?></span>
+                                    </td>
                                     <td class="text-center">
-                                        <?php
-                                        if (in_array('ViewUser', $this->data['buttonPermission'])) {
-                                            echo "<a href='{$_ENV['URL_ADM']}view-user/$id' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Visualizar</a> ";
-                                        }
-                                        if (in_array('UpdateUser', $this->data['buttonPermission'])) {
-                                            echo "<a href='{$_ENV['URL_ADM']}update-user/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
-                                        }
-                                        if (in_array('DeleteUser', $this->data['buttonPermission'])) {
-                                        ?>
-                                            <form id="formDelete<?= $id; ?>" action="<?= $_ENV['URL_ADM']; ?>delete-user" method="POST" class="d-inline">
-                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
-                                                <input type="hidden" name="id" id="id" value="<?= $id ?? ''; ?>">
-                                                <button type="submit" class="btn btn-danger btn-sm me-1 mb-1" onclick="confirmDeletion(event, <?= $id; ?>)"><i class="fa-regular fa-trash-can"></i> Apagar</button>
-                                            </form>
-                                        <?php } ?>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <?php
+                                            if (in_array('ViewUser', $this->data['buttonPermission'])) {
+                                                echo "<a href='{$_ENV['URL_ADM']}view-user/$id' class='btn btn-info btn-sm' title='Visualizar'><i class='fa-regular fa-eye'></i></a>";
+                                            }
+                                            if (in_array('UpdateUser', $this->data['buttonPermission'])) {
+                                                echo "<a href='{$_ENV['URL_ADM']}update-user/$id' class='btn btn-warning btn-sm' title='Editar'><i class='fa-regular fa-pen-to-square'></i></a>";
+                                            }
+                                            if (in_array('DeleteUser', $this->data['buttonPermission'])) {
+                                            ?>
+                                                <form id="formDelete<?= $id; ?>" action="<?= $_ENV['URL_ADM']; ?>delete-user" method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
+                                                    <input type="hidden" name="id" id="id" value="<?= $id ?? ''; ?>">
+                                                    <button type="submit" class="btn btn-danger btn-sm" title='Apagar' onclick="confirmDeletion(event, <?= $id; ?>)"><i class="fa-regular fa-trash-can"></i></button>
+                                                </form>
+                                            <?php } ?>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php } ?>
@@ -208,3 +214,116 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
 
     </div>
 </div>
+
+<style>
+/* Otimizações para os filtros */
+.form-control-sm, .form-select-sm {
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Botões de filtro com tamanhos iguais */
+.btn-filter-equal {
+    min-width: 100px;
+    width: 100px;
+    text-align: center;
+    justify-content: center;
+}
+
+/* Garantir alinhamento dos filtros */
+.row.g-3 > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.row.g-3 > div:last-child {
+    justify-content: flex-end;
+}
+
+/* Responsividade dos filtros */
+@media (max-width: 767.98px) {
+    .row.g-3 > div {
+        margin-bottom: 1rem;
+    }
+    
+    .row.g-3 > div:last-child {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+}
+
+/* Otimizações específicas para a tabela de usuários no desktop */
+.table-users-desktop {
+    font-size: 0.9rem;
+    table-layout: fixed;
+}
+
+.table-users-desktop th,
+.table-users-desktop td {
+    padding: 0.5rem 0.25rem;
+    vertical-align: middle;
+}
+
+.table-users-desktop .text-truncate {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Otimizar botões de ações */
+.btn-group .btn {
+    width: 32px;
+    height: 32px;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+
+.btn-group .btn i {
+    font-size: 0.875rem;
+}
+
+/* Garantir que a tabela não tenha scroll horizontal desnecessário */
+.table-responsive {
+    overflow-x: visible;
+}
+
+/* Responsividade para telas médias */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .table-users-desktop {
+        font-size: 0.85rem;
+    }
+    
+    .table-users-desktop th,
+    .table-users-desktop td {
+        padding: 0.375rem 0.125rem;
+    }
+    
+    .btn-group .btn {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* Para telas muito grandes, aumentar um pouco o espaçamento */
+@media (min-width: 1200px) {
+    .table-users-desktop th,
+    .table-users-desktop td {
+        padding: 0.625rem 0.375rem;
+    }
+}
+</style>

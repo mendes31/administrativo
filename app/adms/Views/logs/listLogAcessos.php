@@ -31,6 +31,8 @@ $queryString = http_build_query($getParams);
                         <option value="">Todos</option>
                         <option value="LOGIN" <?= ($this->data['filtros']['tipo_acesso'] ?? '') === 'LOGIN' ? 'selected' : '' ?>>LOGIN</option>
                         <option value="LOGOUT" <?= ($this->data['filtros']['tipo_acesso'] ?? '') === 'LOGOUT' ? 'selected' : '' ?>>LOGOUT</option>
+                        <option value="LOGOUT_TIMEOUT" <?= ($this->data['filtros']['tipo_acesso'] ?? '') === 'LOGOUT_TIMEOUT' ? 'selected' : '' ?>>LOGOUT_TIMEOUT</option>
+                        <option value="LOGOUT_CONCURRENT" <?= ($this->data['filtros']['tipo_acesso'] ?? '') === 'LOGOUT_CONCURRENT' ? 'selected' : '' ?>>LOGOUT_CONCURRENT</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -95,7 +97,18 @@ $queryString = http_build_query($getParams);
                                     <td><?= $log['id'] ?></td>
                                     <td><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($log['usuario_email'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars($log['tipo_acesso']) ?></td>
+                                    <td>
+                                        <?php
+                                        $tipoClass = match($log['tipo_acesso']) {
+                                            'LOGIN' => 'badge bg-success',
+                                            'LOGOUT' => 'badge bg-secondary',
+                                            'LOGOUT_TIMEOUT' => 'badge bg-warning text-dark',
+                                            'LOGOUT_CONCURRENT' => 'badge bg-info text-dark',
+                                            default => 'badge bg-secondary'
+                                        };
+                                        ?>
+                                        <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_acesso']) ?></span>
+                                    </td>
                                     <td><?= htmlspecialchars($log['ip']) ?></td>
                                     <td><?= htmlspecialchars($log['user_agent']) ?></td>
                                     <td><?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?></td>
@@ -154,7 +167,19 @@ $queryString = http_build_query($getParams);
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h5 class="card-title mb-1"><b><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?></b></h5>
-                                        <div class="mb-1"><b>Tipo:</b> <?= htmlspecialchars($log['tipo_acesso']) ?></div>
+                                        <div class="mb-1">
+                                            <b>Tipo:</b> 
+                                            <?php
+                                            $tipoClass = match($log['tipo_acesso']) {
+                                                'LOGIN' => 'badge bg-success',
+                                                'LOGOUT' => 'badge bg-secondary',
+                                                'LOGOUT_TIMEOUT' => 'badge bg-warning text-dark',
+                                                'LOGOUT_CONCURRENT' => 'badge bg-info text-dark',
+                                                default => 'badge bg-secondary'
+                                            };
+                                            ?>
+                                            <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_acesso']) ?></span>
+                                        </div>
                                         <div class="mb-1"><b>Data/Hora:</b> <?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?></div>
                                     </div>
                                     <button class="btn btn-outline-primary btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#cardLogDetails<?= $i ?>" aria-expanded="false" aria-controls="cardLogDetails<?= $i ?>">Ver mais</button>

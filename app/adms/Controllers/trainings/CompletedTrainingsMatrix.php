@@ -29,14 +29,50 @@ class CompletedTrainingsMatrix
         $responsiveClasses = ScreenResolutionHelper::getResponsiveClasses($resolution['category']);
         $paginationSettings = ScreenResolutionHelper::getPaginationSettings($resolution['category']);
         
-        $filters = [
-            'colaborador' => $_GET['colaborador'] ?? null,
-            'treinamento' => $_GET['treinamento'] ?? null,
-            'mes' => $_GET['mes'] ?? null,
-            'ano' => $_GET['ano'] ?? null,
-            'sort' => $_GET['sort'] ?? null,
-            'order' => $_GET['order'] ?? null,
-        ];
+        // Verificar se o usuário clicou em "Limpar"
+        if (isset($_GET['limpar'])) {
+            unset($_SESSION['completed_trainings_filters']);
+            // Redirecionar para a página sem parâmetros
+            header('Location: ' . $_ENV['URL_ADM'] . 'completed-trainings-matrix');
+            exit;
+        }
+
+        // Verificar se há filtros na URL
+        $hasUrlFilters = !empty($_GET['colaborador']) || !empty($_GET['treinamento']) || 
+                         !empty($_GET['mes']) || !empty($_GET['ano']) ||
+                         !empty($_GET['sort']) || !empty($_GET['order']) ||
+                         !empty($_GET['codigo']);
+
+        // Se há filtros na URL, salvá-los na sessão
+        if ($hasUrlFilters) {
+            $filters = [
+                'colaborador' => $_GET['colaborador'] ?? null,
+                'treinamento' => $_GET['treinamento'] ?? null,
+                'mes' => $_GET['mes'] ?? null,
+                'ano' => $_GET['ano'] ?? null,
+                'sort' => $_GET['sort'] ?? null,
+                'order' => $_GET['order'] ?? null,
+                'codigo' => $_GET['codigo'] ?? null,
+            ];
+            $_SESSION['completed_trainings_filters'] = $filters;
+        } 
+        // Se não há filtros na URL, usar os da sessão (se existirem)
+        elseif (isset($_SESSION['completed_trainings_filters'])) {
+            $filters = $_SESSION['completed_trainings_filters'];
+        } 
+        // Se não há filtros em nenhum lugar, usar valores vazios
+        else {
+            $filters = [
+                'colaborador' => null,
+                'treinamento' => null,
+                'mes' => null,
+                'ano' => null,
+                'sort' => null,
+                'order' => null,
+                'codigo' => null,
+            ];
+        }
+
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
         
         // Usar configuração responsiva para per_page
@@ -48,6 +84,15 @@ class CompletedTrainingsMatrix
         $matrixData = $this->trainingUsersRepo->getCompletedTrainingsMatrixPaginated($filters, $page, $perPage);
         $matrix = $matrixData['data'];
         $total = $matrixData['total'];
+        // Filtro por código (parcial) em nível de aplicação caso o repositório não trate
+        if (!empty($filters['codigo'])) {
+            $codigoFiltro = trim((string)$filters['codigo']);
+            $matrix = array_values(array_filter($matrix, function($row) use ($codigoFiltro) {
+                $codigo = $row['training_code'] ?? $row['codigo'] ?? '';
+                return stripos((string)$codigo, $codigoFiltro) !== false;
+            }));
+            $total = count($matrix);
+        }
         $summary = $this->trainingUsersRepo->getCompletedTrainingsSummary($filters);
         // Exportação
         if (isset($_GET['export']) && $_GET['export'] === 'excel') {

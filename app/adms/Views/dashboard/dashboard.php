@@ -94,11 +94,18 @@
                         <div class="card border-0 shadow-sm p-4 flex-fill d-flex flex-column card-info" style="border-radius: 14px; min-height: 220px;">
                             <div class="d-flex align-items-center mb-2 gap-2 flex-wrap justify-content-between">
                                 <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-calendar-alt text-muted"></i>
+                                    <i class="fas fa-calendar-alt text-muted" title="Publicado em"></i>
                                     <span class="text-muted small"><?php echo date('d/m/Y', strtotime($info['created_at'])); ?></span>
+                                    <?php if (!empty($info['expire_at'])): ?>
+                                        <i class="fas fa-hourglass-end text-muted ms-3" title="Expira em"></i>
+                                        <span class="text-muted small"><?php echo date('d/m/Y', strtotime($info['expire_at'])); ?></span>
+                                    <?php endif; ?>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-info text-white" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['categoria']); ?> </span>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-info text-white" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['categoria_nome'] ?? $info['categoria']); ?> </span>
+                                    <?php if (!empty($info['department_name'])): ?>
+                                        <span class="badge bg-secondary" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['department_name']); ?> </span>
+                                    <?php endif; ?>
                                     <?php if ($info['urgente']): ?><span class="badge bg-danger">Urgente</span><?php endif; ?>
                                 </div>
                             </div>
@@ -163,18 +170,32 @@
                                         </div>
                                         <button class="btn btn-outline-primary w-100 mt-2" id="verMais-<?php echo $info['id']; ?>" style="display:none;" onclick="abrirModalInformativo(<?php echo $info['id']; ?>)">Ver Mais</button>
                                     </div>
-                                    <div class="mb-3">
-                                        <span class="badge bg-info" style="border-radius: 8px;"><?php echo htmlspecialchars($info['categoria']); ?></span>
+                                    <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+                                        <span class="badge bg-info" style="border-radius: 8px;"><?php echo htmlspecialchars($info['categoria_nome'] ?? $info['categoria']); ?></span>
+                                        <?php if (!empty($info['department_name'])): ?>
+                                            <span class="badge bg-secondary" style="border-radius: 8px;"><?php echo htmlspecialchars($info['department_name']); ?></span>
+                                        <?php endif; ?>
                                         <small class="text-muted ms-2">
                                             <i class="fas fa-user me-1"></i>Por: <?php echo htmlspecialchars($info['usuario_nome'] ?? 'N/A'); ?>
-                                            <span class="ms-2">
+                                            <span class="ms-2" title="Publicado em">
                                                 <i class="fas fa-calendar me-1"></i>
                                                 <?php echo date('d/m/Y H:i', strtotime($info['created_at'])); ?>
                                             </span>
+                                            <?php if (!empty($info['expire_at'])): ?>
+                                                <span class="ms-2" title="Expira em">
+                                                    <i class="fas fa-hourglass-end me-1"></i>
+                                                    <?php echo date('d/m/Y H:i', strtotime($info['expire_at'])); ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </small>
                                     </div>
                                 </div>
                                 <div class="modal-footer" style="border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;">
+                                    <?php if ($info['requires_ack']): ?>
+                                        <button type="button" class="btn btn-success me-auto" id="btn-ack-<?php echo $info['id']; ?>" onclick="confirmarCiencia(<?php echo $info['id']; ?>)" style="border-radius: 8px;">
+                                            <i class="fas fa-check me-1"></i>Estou ciente
+                                        </button>
+                                    <?php endif; ?>
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Fechar</button>
                                 </div>
                             </div>
@@ -313,4 +334,88 @@ function showImageModal(src) {
     var modal = new bootstrap.Modal(document.getElementById('imageModal'));
     modal.show();
 }
+
+function confirmarCiencia(informativoId) {
+    // Desabilitar o botão para evitar cliques múltiplos
+    const btn = document.getElementById(`btn-ack-${informativoId}`);
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Confirmando...';
+    
+    // Fazer a requisição AJAX
+    fetch(`${window.location.origin}/administrativo/acknowledge-informativo/${informativoId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Sucesso - alterar o botão
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Ciente confirmado';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-success');
+            btn.disabled = true;
+            
+            // Mostrar mensagem de sucesso
+            Swal.fire({
+                icon: 'success',
+                title: 'Ciência confirmada!',
+                text: 'Sua confirmação foi registrada com sucesso.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else {
+            // Erro - restaurar o botão
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro!',
+                text: data.message || 'Erro ao confirmar ciência. Tente novamente.',
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        // Erro - restaurar o botão
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro!',
+            text: 'Erro de conexão. Tente novamente.',
+        });
+    });
+}
+// Registrar leitura ao abrir o modal
+document.addEventListener('DOMContentLoaded', function() {
+    <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
+    const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');
+    if (modalEl<?php echo $info['id']; ?>) {
+        modalEl<?php echo $info['id']; ?>.addEventListener('shown.bs.modal', function () {
+            fetch(`${window.location.origin}/administrativo/read-informativo/<?php echo $info['id']; ?>`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            }).then(r => r.json()).then(data => {
+                if (data && data.acknowledged) {
+                    const btn = document.getElementById('btn-ack-<?php echo $info['id']; ?>');
+                    if (btn) {
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-success');
+                        btn.innerHTML = '<i class="fas fa-check me-1"></i>Ciente confirmado';
+                        btn.disabled = true;
+                        btn.onclick = null;
+                    }
+                }
+            }).catch(() => {});
+        });
+    }
+    <?php endforeach; ?>
+});
 </script>

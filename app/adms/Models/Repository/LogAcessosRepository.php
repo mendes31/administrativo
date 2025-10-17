@@ -58,7 +58,7 @@ class LogAcessosRepository extends DbConnection
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY log.data_acesso DESC LIMIT :limit OFFSET :offset';
+        $sql .= ' ORDER BY log.id DESC LIMIT :limit OFFSET :offset';
         
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {

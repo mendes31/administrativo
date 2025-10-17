@@ -192,20 +192,26 @@ class ApplyTraining
             header("Location: " . $redirectUrl);
             exit;
         }
-        // Validação de data de avaliação
+        // Agora data de avaliação é obrigatória quando houver realização
+        if (!empty($data_realizacao) && empty($data_avaliacao)) {
+            $_SESSION['msg'] = "Selecione a data de avaliação (entre a realização e hoje).";
+            $_SESSION['msg_type'] = "danger";
+            saveFormSession();
+            header("Location: " . $redirectUrl);
+            exit;
+        }
+
+        // Validação de data de avaliação (entre realização e hoje)
         if ($data_avaliacao) {
-            // Data de avaliação não pode ser superior à data atual
             if ($data_avaliacao > date('Y-m-d')) {
-                $_SESSION['msg'] = "Data de avaliação não pode ser superior à data atual.";
+                $_SESSION['msg'] = "Data de avaliação deve ser até hoje.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
                 header("Location: " . $redirectUrl);
                 exit;
             }
-            
-            // Data de avaliação não pode ser menor que a data de realização
             if ($data_realizacao && $data_avaliacao < $data_realizacao) {
-                $_SESSION['msg'] = "Data de avaliação não pode ser menor que a data de realização.";
+                $_SESSION['msg'] = "Data de avaliação deve ser igual ou posterior à data de realização.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
                 header("Location: " . $redirectUrl);

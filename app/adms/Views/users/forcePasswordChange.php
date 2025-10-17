@@ -22,11 +22,17 @@ use App\adms\Helpers\CSRFHelper;
                         <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_force_password_change') ?>">
                         <div class="mb-3">
                             <label for="password" class="form-label">Nova Senha</label>
-                            <input type="password" class="form-control" id="password" name="password" required autofocus>
+                            <input type="password" class="form-control" id="password" name="password" required autofocus
+                                   oninput="this.value = this.value.replace(/\s/g, '')" 
+                                   onpaste="this.value = this.value.replace(/\s/g, '')"
+                                   autocomplete="new-password">
                         </div>
                         <div class="mb-3">
                             <label for="password_confirm" class="form-label">Confirme a Nova Senha</label>
-                            <input type="password" class="form-control" id="password_confirm" name="confirm_password" required>
+                            <input type="password" class="form-control" id="password_confirm" name="confirm_password" required
+                                   oninput="this.value = this.value.replace(/\s/g, '')" 
+                                   onpaste="this.value = this.value.replace(/\s/g, '')"
+                                   autocomplete="new-password">
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Alterar Senha</button>
                     </form>
@@ -47,5 +53,29 @@ window.onload = function() {
     document.querySelectorAll('a, button').forEach(function(el) {
         if (!el.closest('form')) el.onclick = function(e) { e.preventDefault(); };
     });
+    
+    // Verificar se o token CSRF foi gerado corretamente
+    const csrfToken = document.querySelector('input[name="csrf_token"]');
+    if (csrfToken && csrfToken.value) {
+        console.log('Token CSRF gerado:', csrfToken.value);
+    } else {
+        console.error('Token CSRF não foi gerado!');
+        // Tentar regenerar o token
+        location.reload();
+    }
 };
+
+// Prevenir submissão dupla do formulário
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+            }
+        });
+    }
+});
 </script> 
