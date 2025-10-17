@@ -25,6 +25,59 @@ $performanceFilter = $_GET['performance'] ?? '';
     color: #155724 !important;
     font-weight: bold !important;
 }
+.table thead th,
+.table tbody td {
+    text-align: left !important;
+    vertical-align: middle;
+    white-space: normal !important; /* permite quebra de linha */
+}
+.thead-green th {
+    color: #ffffff !important;
+}
+.table thead th {
+    color: #ffffff !important;
+}
+table thead th {
+    color: #ffffff !important;
+}
+thead th {
+    color: #ffffff !important;
+}
+#completedTrainingsTable thead th {
+    color: #ffffff !important;
+}
+#completedTrainingsTable .thead-green th {
+    color: #ffffff !important;
+}
+#completedTrainingsTable .table thead th {
+    color: #ffffff !important;
+}
+/* Dimensionamento para caber 100% sem rolagem */
+.table th.colaborador-col { width: 12%; min-width: 100px; }
+.table th.treinamento-col { width: 18%; min-width: 140px; }
+.table th.codigo-col { width: 7%; min-width: 60px; }
+.table th.data-realizacao-col { width: 8%; min-width: 80px; }
+.table th.data-avaliacao-col { width: 8%; min-width: 80px; }
+.table th.horas-col { width: 6%; min-width: 60px; }
+.table th.instrutor-col { width: 10%; min-width: 90px; }
+.table th.nota-col { width: 6%; min-width: 60px; }
+.table th.aproveitamento-col { width: 8%; min-width: 80px; }
+.table th.tipo-col { width: 8%; min-width: 70px; }
+.table th.observacoes-col { width: 9%; min-width: 80px; }
+.sticky-cards {
+    position: static;
+}
+.sticky-top-bloco {
+    position: static;
+    background: #fff;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    box-shadow: 0 2px 4px -2px rgba(0,0,0,0.04);
+}
+.table-scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+}
 </style>
 <div class="container-fluid px-4">
     <div class="mb-1 d-flex align-items-center justify-content-between" style="min-height:48px;">
@@ -185,9 +238,9 @@ $performanceFilter = $_GET['performance'] ?? '';
             </form>
         </div>
     </div>
-    <div class="table-responsive" style="max-height: 70vh;">
-        <table class="table table-striped table-hover" style="table-layout: fixed; width: 100%; min-width:900px;">
-            <thead style="position:sticky;top:0;z-index:1;background:#f8f9fa;">
+    <div class="table-responsive table-scroll" style="max-height: 70vh;">
+        <table id="completedTrainingsTable" class="table table-striped table-hover" style="table-layout: auto; width: 100%;">
+            <thead class="thead-green" style="color: #ffffff !important;">
                 <tr>
                     <?php
                     // Parâmetros atuais
@@ -202,19 +255,20 @@ $performanceFilter = $_GET['performance'] ?? '';
                             $icon = $order === 'asc' ? ' <i class="fas fa-sort-up"></i>' : ' <i class="fas fa-sort-down"></i>';
                         }
                         $url = '?' . http_build_query($params);
-                        return '<a href="' . $url . '" class="text-decoration-none text-dark">' . $label . $icon . '</a>';
+                        return '<a href="' . $url . '" class="text-decoration-none" style="color: #ffffff !important;">' . $label . $icon . '</a>';
                     }
                     ?>
-                    <th><?= sort_link('user_name', 'Colaborador', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('training_name', 'Treinamento', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('training_code', 'Código', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('data_realizacao', 'Data Realização', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('data_avaliacao', 'Data Avaliação', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('carga_horaria', 'Horas', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('instrutor_nome', 'Instrutor', $sort, $order, $params) ?></th>
-                    <th><?= sort_link('nota', 'Nota', $sort, $order, $params) ?></th>
-                    <th>Aproveitamento</th>
-                    <th><?= sort_link('observacoes', 'Observações', $sort, $order, $params) ?></th>
+                    <th class="colaborador-col"><?= sort_link('user_name', 'Colaborador', $sort, $order, $params) ?></th>
+                    <th class="treinamento-col"><?= sort_link('training_name', 'Treinamento', $sort, $order, $params) ?></th>
+                    <th class="codigo-col"><?= sort_link('training_code', 'Código', $sort, $order, $params) ?></th>
+                    <th class="data-realizacao-col"><?= sort_link('data_realizacao', 'Data Realização', $sort, $order, $params) ?></th>
+                    <th class="data-avaliacao-col"><?= sort_link('data_avaliacao', 'Data Avaliação', $sort, $order, $params) ?></th>
+                    <th class="horas-col"><?= sort_link('carga_horaria', 'Horas', $sort, $order, $params) ?></th>
+                    <th class="instrutor-col"><?= sort_link('instrutor_nome', 'Instrutor', $sort, $order, $params) ?></th>
+                    <th class="nota-col"><?= sort_link('nota', 'Nota', $sort, $order, $params) ?></th>
+                    <th class="aproveitamento-col" style="color: #ffffff !important;">Aproveitamento</th>
+                    <th class="tipo-col" style="color: #ffffff !important;">Tipo do Treinamento</th>
+                    <th class="observacoes-col"><?= sort_link('observacoes', 'Observações', $sort, $order, $params) ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -276,11 +330,20 @@ $performanceFilter = $_GET['performance'] ?? '';
                             </td>
                             <td><?= htmlspecialchars($item['nota'] ?? '-') ?></td>
                             <td class="<?= $performance['class'] ?>"><?= $performance['label'] ?></td>
+                            <td>
+                                <?php if (($item['tipo_treinamento'] ?? '') === 'Inicial'): ?>
+                                    <span class="badge bg-info">Inicial</span>
+                                <?php elseif (($item['tipo_treinamento'] ?? '') === 'Continuo'): ?>
+                                    <span class="badge bg-warning">Contínuo</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($item['observacoes'] ?? '-') ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="10" class="text-center text-muted">Nenhum treinamento realizado encontrado.</td></tr>
+                    <tr><td colspan="11" class="text-center text-muted">Nenhum treinamento realizado encontrado.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -340,6 +403,19 @@ $performanceFilter = $_GET['performance'] ?? '';
                                     <span class="badge <?= $performance['class'] ?>"><?= $performance['label'] ?></span>
                                 </div>
                                 <div class="col-6">
+                                    <small class="text-muted">Tipo do Treinamento:</small><br>
+                                    <?php if (($item['tipo_treinamento'] ?? '') === 'Inicial'): ?>
+                                        <span class="badge bg-info">Inicial</span>
+                                    <?php elseif (($item['tipo_treinamento'] ?? '') === 'Continuo'): ?>
+                                        <span class="badge bg-warning">Contínuo</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">-</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-12">
                                     <small class="text-muted">Observações:</small><br>
                                     <strong><?= htmlspecialchars($item['observacoes'] ?? '-') ?></strong>
                                 </div>

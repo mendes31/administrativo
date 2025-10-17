@@ -195,11 +195,13 @@ class TrainingUsersRepository extends DbConnection
                 tu.tipo_vinculo,
                 tu.created_at as vinculo_created_at,
                 tu.data_limite_primeiro_treinamento,
-                tu.data_agendada
+                tu.data_agendada,
+                tp.tipo_treinamento
             FROM adms_training_users tu
             INNER JOIN adms_users u ON u.id = tu.adms_user_id
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
+            LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
             INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
             WHERE 1=1 and tu.status != "concluido"';
         
@@ -845,6 +847,7 @@ class TrainingUsersRepository extends DbConnection
                 t.reciclagem,
                 t.reciclagem_periodo,
                 t.prazo_treinamento,
+                tp.tipo_treinamento,
                 tu.status,
                 tu.tipo_vinculo,
                 tu.created_at as vinculo_created_at,
@@ -854,6 +857,7 @@ class TrainingUsersRepository extends DbConnection
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
             INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+            LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
             WHERE t.ativo = 1';
         $params = [];
         // Apenas aplica filtros se eles forem explicitamente passados
@@ -1156,11 +1160,12 @@ class TrainingUsersRepository extends DbConnection
     public function getAllVinculadosPorTreinamento($trainingId)
     {
         // Buscar todos os vínculos individuais
-        $sqlIndividuais = "SELECT tu.adms_user_id as id, u.name, u.email, 'individual' as tipo, p.name as cargo_nome, d.name as department_nome
+        $sqlIndividuais = "SELECT tu.adms_user_id as id, u.name, u.email, 'individual' as tipo, p.name as cargo_nome, d.name as department_nome, tp.tipo_treinamento
             FROM adms_training_users tu
             INNER JOIN adms_users u ON u.id = tu.adms_user_id
             INNER JOIN adms_positions p ON p.id = u.user_position_id
             INNER JOIN adms_departments d ON d.id = u.user_department_id
+            LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
             WHERE tu.adms_training_id = :training_id AND tu.tipo_vinculo = 'individual'";
         $stmtIndividuais = $this->getConnection()->prepare($sqlIndividuais);
         $stmtIndividuais->bindValue(':training_id', $trainingId, \PDO::PARAM_INT);
@@ -1169,7 +1174,7 @@ class TrainingUsersRepository extends DbConnection
         $idsIndividuais = array_column($individuais, 'id');
 
         // Buscar vínculos por cargo, excluindo quem já tem vínculo individual
-        $sqlCargo = "SELECT u.id, u.name, u.email, 'cargo' as tipo, p.name as cargo_nome, d.name as department_nome
+        $sqlCargo = "SELECT u.id, u.name, u.email, 'cargo' as tipo, p.name as cargo_nome, d.name as department_nome, tp.tipo_treinamento
             FROM adms_users u
             INNER JOIN adms_positions p ON p.id = u.user_position_id
             INNER JOIN adms_departments d ON d.id = u.user_department_id
@@ -1277,11 +1282,13 @@ class TrainingUsersRepository extends DbConnection
                     ta.instructor_user_id,
                     u2.name as instructor_user_name,
                     ta.nota,
-                    ta.observacoes
+                    ta.observacoes,
+                    tp.tipo_treinamento
                 FROM adms_training_applications ta
                 INNER JOIN adms_users u ON u.id = ta.adms_user_id
                 INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
                 LEFT JOIN adms_users u2 ON u2.id = ta.instructor_user_id
+                LEFT JOIN adms_training_positions tp ON tp.adms_training_id = ta.adms_training_id AND tp.adms_position_id = u.user_position_id
                 WHERE ta.status = "concluido"';
         $params = [];
         if (!empty($filters['colaborador'])) {
@@ -1372,6 +1379,7 @@ class TrainingUsersRepository extends DbConnection
                 FROM adms_training_applications ta
                 INNER JOIN adms_users u ON u.id = ta.adms_user_id
                 INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
+                LEFT JOIN adms_training_positions tp ON tp.adms_training_id = ta.adms_training_id AND tp.adms_position_id = u.user_position_id
                 WHERE ta.status = "concluido"';
         
         $params = [];

@@ -4,6 +4,52 @@ if (!isset($this->data['matrixByUser']) || !is_array($this->data['matrixByUser']
 }
 // View: Matriz de Treinamentos por Colaborador
 ?>
+<style>
+.table thead th,
+.table tbody td {
+    text-align: left !important;
+    vertical-align: middle;
+    white-space: normal !important; /* permite quebra de linha */
+}
+.thead-green th {
+    color: #ffffff !important;
+}
+.table thead th {
+    color: #ffffff !important;
+}
+table thead th {
+    color: #ffffff !important;
+}
+thead th {
+    color: #ffffff !important;
+}
+#matrixByUserTable thead th {
+    color: #ffffff !important;
+}
+/* Dimensionamento para caber 100% sem rolagem */
+.table th.nome-col { width: 18%; min-width: 120px; }
+.table th.departamento-col { width: 12%; min-width: 100px; }
+.table th.cargo-col { width: 12%; min-width: 100px; }
+.table th.treinamento-col { width: 20%; min-width: 140px; }
+.table th.codigo-col { width: 8%; min-width: 70px; }
+.table th.versao-col { width: 6%; min-width: 60px; }
+.table th.vinculo-col { width: 12%; min-width: 100px; }
+.table th.tipo-col { width: 12%; min-width: 100px; }
+.sticky-cards {
+    position: static;
+}
+.sticky-top-bloco {
+    position: static;
+    background: #fff;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    box-shadow: 0 2px 4px -2px rgba(0,0,0,0.04);
+}
+.table-scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+</style>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3">Matriz de Treinamentos por Colaborador</h2>
@@ -96,17 +142,18 @@ if (!isset($this->data['matrixByUser']) || !is_array($this->data['matrixByUser']
     <div class="card mb-4 border-light shadow">
         <div class="card-body">
             <!-- Tabela Desktop -->
-            <div class="table-responsive d-none d-md-block">
-                <table class="table table-striped table-hover" id="matrixByUserTable" style="table-layout: fixed; width: 100%;">
-                    <thead>
+            <div class="table-responsive table-scroll d-none d-md-block">
+                <table class="table table-striped table-hover" id="matrixByUserTable" style="table-layout: auto; width: 100%;">
+                    <thead class="thead-green">
                         <tr>
-                            <th class="col-nome">Nome</th>
-                            <th>Departamento</th>
-                            <th>Cargo</th>
-                            <th>Treinamento</th>
-                            <th>Código</th>
-                            <th>Versão</th>
-                            <th>Tipo de Vínculo</th>
+                            <th class="nome-col">Nome</th>
+                            <th class="departamento-col">Departamento</th>
+                            <th class="cargo-col">Cargo</th>
+                            <th class="treinamento-col">Treinamento</th>
+                            <th class="codigo-col">Código</th>
+                            <th class="versao-col">Versão</th>
+                            <th class="vinculo-col">Tipo de Vínculo</th>
+                            <th class="tipo-col">Tipo do Treinamento</th>
                             <!-- <th>Reciclagem</th> -->
                             <!-- <th>Validade</th> -->
                         </tr>
@@ -142,6 +189,15 @@ if (!isset($this->data['matrixByUser']) || !is_array($this->data['matrixByUser']
                                             <span class="badge bg-secondary">-</span>
                                         <?php endif; ?>
                                     </td>
+                                    <td>
+                                        <?php if (($item['tipo_treinamento'] ?? '') === 'Inicial'): ?>
+                                            <span class="badge bg-info">Inicial</span>
+                                        <?php elseif (($item['tipo_treinamento'] ?? '') === 'Continuo'): ?>
+                                            <span class="badge bg-warning">Contínuo</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">-</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <!-- <td>
                                         <?php if (($item['reciclagem'] ?? false) && ($item['reciclagem_periodo'] ?? false)): ?>
                                             <?= $item['reciclagem_periodo'] ?> meses
@@ -159,7 +215,7 @@ if (!isset($this->data['matrixByUser']) || !is_array($this->data['matrixByUser']
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="7" class="text-center text-muted">Nenhum vínculo encontrado.</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted">Nenhum vínculo encontrado.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -181,6 +237,16 @@ if (!isset($this->data['matrixByUser']) || !is_array($this->data['matrixByUser']
                                                 <span class="badge bg-primary">Individual</span>
                                             <?php elseif (($item['tipo_vinculo'] ?? '') === 'cargo'): ?>
                                                 <span class="badge bg-success">Obrigatório por Cargo</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary">-</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="mb-1">
+                                            <b>Tipo do Treinamento:</b> 
+                                            <?php if (($item['tipo_treinamento'] ?? '') === 'Inicial'): ?>
+                                                <span class="badge bg-info">Inicial</span>
+                                            <?php elseif (($item['tipo_treinamento'] ?? '') === 'Continuo'): ?>
+                                                <span class="badge bg-warning">Contínuo</span>
                                             <?php else: ?>
                                                 <span class="badge bg-secondary">-</span>
                                             <?php endif; ?>

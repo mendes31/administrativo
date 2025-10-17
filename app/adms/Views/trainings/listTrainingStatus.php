@@ -4,21 +4,37 @@ $performanceFilter = $_GET['performance'] ?? '';
 $codigoFiltro = trim($_GET['codigo'] ?? '');
 ?>
 <style>
-.table-sticky-header thead th,
-.table-sticky-header tbody td {
+.table thead th,
+.table tbody td {
     text-align: left !important;
     vertical-align: middle;
     white-space: normal !important; /* permite quebra de linha */
 }
+.thead-green th {
+    color: #ffffff !important;
+}
+.table thead th {
+    color: #ffffff !important;
+}
+table thead th {
+    color: #ffffff !important;
+}
+thead th {
+    color: #ffffff !important;
+}
+#trainingStatusTable thead th {
+    color: #ffffff !important;
+}
 /* Dimensionamento para caber 100% sem rolagem */
-.table-sticky-header th.codigo-col { width: 8%; min-width: 70px; }
-.table-sticky-header th.treinamento-col { width: 23%; min-width: 160px; }
-.table-sticky-header th.colaborador-col { width: 16%; min-width: 120px; }
-.table-sticky-header th.departamento-col { width: 12%; min-width: 110px; }
-.table-sticky-header th.cargo-col { width: 10%; min-width: 90px; }
-.table-sticky-header th.status-col { width: 9%; min-width: 80px; }
-.table-sticky-header th.prazo-col { width: 9%; min-width: 90px; }
-.table-sticky-header th.acoes-col { width: 9%; min-width: 80px; text-align: center !important; }
+.table th.codigo-col { width: 7%; min-width: 60px; }
+.table th.treinamento-col { width: 20%; min-width: 140px; }
+.table th.colaborador-col { width: 14%; min-width: 100px; }
+.table th.departamento-col { width: 10%; min-width: 90px; }
+.table th.cargo-col { width: 9%; min-width: 80px; }
+.table th.status-col { width: 8%; min-width: 70px; }
+.table th.prazo-col { width: 8%; min-width: 80px; }
+.table th.tipo-col { width: 8%; min-width: 70px; }
+.table th.acoes-col { width: 8%; min-width: 70px; text-align: center !important; }
 .sticky-cards {
     position: static;
 }
@@ -224,7 +240,7 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
                 </div>
             </form>
             <div class="table-responsive table-scroll d-none d-md-block">
-                <table class="table table-striped table-hover table-sticky-header" style="table-layout: auto; width: 100%;">
+                <table id="trainingStatusTable" class="table table-striped table-hover" style="table-layout: auto; width: 100%;">
                     <thead class="thead-green">
                         <tr>
                             <th class="codigo-col">Código</th>
@@ -240,6 +256,7 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
                             <!-- <th>Aproveitamento</th> -->
                             <th class="prazo-col">Prazo Treinamento</th>
                             <th class="prazo-col">Agendamento</th>
+                            <th class="tipo-col">Tipo do Treinamento</th>
                             <th class="acoes-col text-center">Ações</th>
                         </tr>
                     </thead>
@@ -345,6 +362,15 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
                                     }
                                     ?>
                                 </td>
+                                <td>
+                                    <?php if (($row['tipo_treinamento'] ?? '') === 'Inicial'): ?>
+                                        <span class="badge bg-info">Inicial</span>
+                                    <?php elseif (($row['tipo_treinamento'] ?? '') === 'Continuo'): ?>
+                                        <span class="badge bg-warning">Contínuo</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">-</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="text-center">
                                     <a href="<?= $_ENV['URL_ADM'] ?>schedule-training/<?= $row['user_id'] ?>/<?= $row['training_id'] ?>" class="btn btn-sm btn-info mb-1" title="Agendar"><i class="fas fa-calendar-plus"></i></a>
                                     <?php if (($row['status_dinamico'] ?? $row['status'] ?? '') !== 'concluido'): ?>
@@ -408,6 +434,15 @@ $codigoFiltro = trim($_GET['codigo'] ?? '');
                                         echo '<span class="text-muted">-</span>';
                                     }
                                 ?></div>
+                                <div><b>Tipo do Treinamento:</b> 
+                                    <?php if (($row['tipo_treinamento'] ?? '') === 'Inicial'): ?>
+                                        <span class="badge bg-info">Inicial</span>
+                                    <?php elseif (($row['tipo_treinamento'] ?? '') === 'Continuo'): ?>
+                                        <span class="badge bg-warning">Contínuo</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">-</span>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="mt-2">
                                     <a href="<?= $_ENV['URL_ADM'] ?>schedule-training/<?= $row['user_id'] ?>/<?= $row['training_id'] ?>" class="btn btn-sm btn-info mb-1" title="Agendar"><i class="fas fa-calendar-plus"></i></a>
                                     <?php if (($row['status_dinamico'] ?? $row['status'] ?? '') !== 'concluido'): ?>
