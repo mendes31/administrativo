@@ -171,19 +171,24 @@ class ImportUsers
                 $status = mb_convert_encoding($status, 'UTF-8', 'UTF-8');
             }
             
-            // Normalizar CPF (remover pontos e traços, depois formatar)
+            // Normalizar e validar CPF
             $cpf = trim((string)($row[$map['cpf']] ?? ''));
             if ($cpf !== '') {
-                $cpf = preg_replace('/\D/', '', $cpf); // Remove tudo que não é número
-                if (strlen($cpf) === 11) {
-                    $cpf = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
+                $cpfNumeros = preg_replace('/\D/', '', $cpf); // Remove tudo que não é número
+                if (strlen($cpfNumeros) === 11 && $this->validarCpf($cpfNumeros)) {
+                    $cpf = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpfNumeros);
                 } else {
+                    $cpfOriginal = $cpf; // Salvar CPF original para erro
                     $cpf = ''; // CPF inválido
+                    $this->data['report'][] = ['linha'=>$rows, 'acao'=>'erro', 'email'=>$email, 'msg'=>'CPF inválido: ' . $cpfOriginal];
+                    $errors++;
+                    continue;
                 }
             }
             
             // Normalizar Celular (remover caracteres, depois formatar)
             $celular = trim((string)($row[$map['celular']] ?? ''));
+            $celularOriginal = $celular; // Para debug
             if ($celular !== '') {
                 $celular = preg_replace('/\D/', '', $celular); // Remove tudo que não é número
                 if (strlen($celular) === 11) {
@@ -194,6 +199,7 @@ class ImportUsers
                     $celular = ''; // Celular inválido
                 }
             }
+            
             
             $payload = [
                 'name' => $name,
@@ -214,8 +220,8 @@ class ImportUsers
             ];
 
             try {
-                // Upsert por email/username
-                $existing = $repo->getUserByEmailOrUsername($payload['email'], $payload['username']);
+                // Upsert por email/username/CPF
+                $existing = $repo->getUserByEmailUsernameOrCpf($payload['email'], $payload['username'], $payload['cpf']);
                 if ($existing) {
                     $payload['id'] = (int)$existing['id'];
                     // Import não altera senha em usuários existentes (há fluxo próprio para senha)
@@ -224,10 +230,26 @@ class ImportUsers
                     $payload['name'] = $payload['name'] !== '' ? $payload['name'] : ($existing['name'] ?? '');
                     $payload['email'] = $payload['email'] !== '' ? $payload['email'] : ($existing['email'] ?? '');
                     $payload['username'] = $payload['username'] !== '' ? $payload['username'] : ($existing['username'] ?? '');
-                    if (empty($payload['cpf']) && !empty($existing['cpf'])) $payload['cpf'] = $existing['cpf'];
-                    if (empty($payload['celular']) && !empty($existing['celular'])) $payload['celular'] = $existing['celular'];
-                    $payload['user_department_id'] = $payload['user_department_id'] > 0 ? $payload['user_department_id'] : (int)($existing['user_department_id'] ?? 0);
-                    $payload['user_position_id'] = $payload['user_position_id'] > 0 ? $payload['user_position_id'] : (int)($existing['user_position_id'] ?? 0);
+                    // Preservar CPF e celular existentes apenas se vierem vazios no CSV
+                    // Mas se o CSV tem dados, usar os dados do CSV
+                    if ($payload['cpf'] === null || $payload['cpf'] === '') {
+                        if (!empty($existing['cpf'])) {
+                            $payload['cpf'] = $existing['cpf'];
+                        }
+                    }
+                    if ($payload['celular'] === null || $payload['celular'] === '') {
+                        if (!empty($existing['celular'])) {
+                            $payload['celular'] = $existing['celular'];
+                        }
+                    }
+                    // Preservar department_id e position_id existentes apenas se CSV vier vazio ou 0
+                    // Mas se o CSV tem dados válidos (> 0), usar os dados do CSV
+                    if ($payload['user_department_id'] <= 0) {
+                        $payload['user_department_id'] = (int)($existing['user_department_id'] ?? 0);
+                    }
+                    if ($payload['user_position_id'] <= 0) {
+                        $payload['user_position_id'] = (int)($existing['user_position_id'] ?? 0);
+                    }
                     if (empty($payload['status']) && !empty($existing['status'])) $payload['status'] = $existing['status'];
                     if (empty($payload['bloqueado']) && !empty($existing['bloqueado'])) $payload['bloqueado'] = $existing['bloqueado'];
                     if (empty($payload['senha_nunca_expira']) && !empty($existing['senha_nunca_expira'])) $payload['senha_nunca_expira'] = $existing['senha_nunca_expira'];
@@ -239,6 +261,7 @@ class ImportUsers
                         'status','bloqueado','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'
                     ];
                     $hasDiff = false;
+                    $diffDetails = [];
                     foreach ($keysToCompare as $k) {
                         $newVal = $payload[$k] ?? null;
                         $oldVal = $existing[$k] ?? null;
@@ -248,8 +271,13 @@ class ImportUsers
                             $newVal = is_string($newVal) ? trim((string)$newVal) : $newVal;
                             $oldVal = is_string($oldVal) ? trim((string)$oldVal) : $oldVal;
                         }
-                        if ($newVal !== $oldVal) { $hasDiff = true; break; }
+                        if ($newVal !== $oldVal) { 
+                            $hasDiff = true; 
+                            $diffDetails[$k] = ['old' => $oldVal, 'new' => $newVal];
+                        }
                     }
+                    
+                    
 
                     if (!$hasDiff) {
                         $skipped++;
@@ -320,6 +348,53 @@ class ImportUsers
         
         fclose($out);
         exit;
+    }
+
+    /**
+     * Validar CPF
+     */
+    private function validarCpf(string $cpf): bool
+    {
+        // Remove caracteres não numéricos
+        $cpf = preg_replace('/\D/', '', $cpf);
+        
+        // Verifica se tem 11 dígitos
+        if (strlen($cpf) !== 11) {
+            return false;
+        }
+        
+        // Verifica se todos os dígitos são iguais
+        if (preg_match('/(\d)\1{10}/', $cpf)) {
+            return false;
+        }
+        
+        // Calcula o primeiro dígito verificador
+        $soma = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $soma += intval($cpf[$i]) * (10 - $i);
+        }
+        $resto = $soma % 11;
+        $digito1 = $resto < 2 ? 0 : 11 - $resto;
+        
+        // Verifica o primeiro dígito
+        if (intval($cpf[9]) !== $digito1) {
+            return false;
+        }
+        
+        // Calcula o segundo dígito verificador
+        $soma = 0;
+        for ($i = 0; $i < 10; $i++) {
+            $soma += intval($cpf[$i]) * (11 - $i);
+        }
+        $resto = $soma % 11;
+        $digito2 = $resto < 2 ? 0 : 11 - $resto;
+        
+        // Verifica o segundo dígito
+        if (intval($cpf[10]) !== $digito2) {
+            return false;
+        }
+        
+        return true;
     }
 }
 

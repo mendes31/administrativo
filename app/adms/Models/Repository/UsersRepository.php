@@ -62,7 +62,7 @@ class UsersRepository extends DbConnection
             $params[':email'] = '%' . $filtros['email'] . '%';
         }
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, dep.name name_dep, pos.name name_pos
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
                 INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
                 INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
@@ -88,6 +88,33 @@ class UsersRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':email', $email, PDO::PARAM_STR);
         $stmt->bindValue(':username', $username, PDO::PARAM_STR);
+        $stmt->execute();
+        $u = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $u ?: false;
+    }
+
+    /**
+     * Buscar usuário por email, username ou CPF
+     */
+    public function getUserByEmailUsernameOrCpf(string $email, string $username, ?string $cpf = null): array|false
+    {
+        $sql = 'SELECT * FROM adms_users WHERE email = :email OR username = :username';
+        $params = [
+            ':email' => $email,
+            ':username' => $username
+        ];
+        
+        if (!empty($cpf)) {
+            $sql .= ' OR cpf = :cpf';
+            $params[':cpf'] = $cpf;
+        }
+        
+        $sql .= ' LIMIT 1';
+        
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
         $stmt->execute();
         $u = $stmt->fetch(PDO::FETCH_ASSOC);
         return $u ?: false;
@@ -139,6 +166,8 @@ class UsersRepository extends DbConnection
                     t0.name, 
                     t0.email, 
                     t0.username, 
+                    t0.cpf,
+                    t0.celular,
                     t0.image, 
                     t0.data_nascimento, 
                     t0.user_department_id, 
