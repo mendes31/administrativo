@@ -95,6 +95,12 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dt class="col-sm-3">Usuário: </dt>
                     <dd class="col-sm-9"><?php echo $username; ?></dd>
 
+                    <dt class="col-sm-3">CPF: </dt>
+                    <dd class="col-sm-9"><?php echo !empty($cpf) ? $cpf : '<span class="text-muted">Não informado</span>'; ?></dd>
+
+                    <dt class="col-sm-3">Celular: </dt>
+                    <dd class="col-sm-9"><?php echo !empty($celular) ? $celular : '<span class="text-muted">Não informado</span>'; ?></dd>
+
                     <dt class="col-sm-3">Imagem: </dt>
                     <dd class="col-sm-9">
                         <?php if (!empty($image) && $image !== 'icon_user.png'): ?>

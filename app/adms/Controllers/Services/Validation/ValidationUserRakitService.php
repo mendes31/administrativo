@@ -38,8 +38,8 @@ class ValidationUserRakitService
         $rules = [
             'name'              => 'required',
             'email'             => 'required|email',
-            // 'username'          => 'required|uniqueInColumns:adms_users,username',
-            // 'password'          => 'required|min:6|regex:/[a-zA-Z]/|regex:/[0-9]/|regex:/[^\w\s]/',
+            'cpf'               => 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
+            'celular'           => 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/',
             'data_nascimento'   => 'required|date|before:tomorrow',
             
         ];
@@ -48,7 +48,8 @@ class ValidationUserRakitService
         if(!isset($data['id'])){
             $rules['email'] = 'required|email|uniqueInColumns:adms_users,email;username';
             $rules['username'] = 'required|min:6|regex:/^\S*$/|uniqueInColumns:adms_users,email;username';
-            // $rules['password'] = 'required|regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_]).{6,}$/';
+            $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf';
+            $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
             $rules['password'] = 'required|min:6|regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])/';
             $rules['confirm_password'] = 'required|same:password';
             // Validação de imagem apenas se enviada
@@ -60,6 +61,8 @@ class ValidationUserRakitService
             $rules['id'] = 'required|integer';
             $rules['username'] = 'required|min:6|regex:/^\S*$/|uniqueInColumns:adms_users,email;username,' . $data['id'];
             $rules['email'] = 'required|email|uniqueInColumns:adms_users,email;username,' . $data['id'];
+            $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf,' . $data['id'];
+            $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
             
             if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $rules['image'] = 'uploaded_file:0,2048K,png,jpg,jpeg,gif';
@@ -81,6 +84,13 @@ class ValidationUserRakitService
             'username:min'                  => 'O usuário deve conter no minimo 6 caracteres.',
             'username:regex'                => 'O usuário não pode conter espaços em branco.',
             'username:uniqueInColumns'      => 'O usuário já existe.',
+            
+            'cpf:required'                  => 'O campo CPF é obrigatório.',
+            'cpf:regex'                     => 'O CPF deve estar no formato 000.000.000-00.',
+            'cpf:uniqueInColumns'           => 'Este CPF já está cadastrado.',
+            
+            'celular:required'              => 'O campo celular é obrigatório.',
+            'celular:regex'                 => 'O celular deve estar no formato (00) 00000-0000.',
             
             'password:required'             => 'O campo senha é obrigatório.',
             'password:min'                  => 'A senha deve ter no mínimo 6 caracteres.',

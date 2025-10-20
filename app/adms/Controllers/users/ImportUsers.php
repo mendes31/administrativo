@@ -110,7 +110,7 @@ class ImportUsers
         }
 
         // Cabeçalhos esperados
-        $expected = ['name','email','username','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'];
+        $expected = ['name','email','username','cpf','celular','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'];
         $map = [];
         foreach ($expected as $col) {
             $idx = array_search($col, $header, true);
@@ -171,10 +171,36 @@ class ImportUsers
                 $status = mb_convert_encoding($status, 'UTF-8', 'UTF-8');
             }
             
+            // Normalizar CPF (remover pontos e traços, depois formatar)
+            $cpf = trim((string)($row[$map['cpf']] ?? ''));
+            if ($cpf !== '') {
+                $cpf = preg_replace('/\D/', '', $cpf); // Remove tudo que não é número
+                if (strlen($cpf) === 11) {
+                    $cpf = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
+                } else {
+                    $cpf = ''; // CPF inválido
+                }
+            }
+            
+            // Normalizar Celular (remover caracteres, depois formatar)
+            $celular = trim((string)($row[$map['celular']] ?? ''));
+            if ($celular !== '') {
+                $celular = preg_replace('/\D/', '', $celular); // Remove tudo que não é número
+                if (strlen($celular) === 11) {
+                    $celular = preg_replace('/(\d{2})(\d{5})(\d{4})/', '($1) $2-$3', $celular);
+                } elseif (strlen($celular) === 10) {
+                    $celular = preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $celular);
+                } else {
+                    $celular = ''; // Celular inválido
+                }
+            }
+            
             $payload = [
                 'name' => $name,
                 'email' => $email,
                 'username' => $username,
+                'cpf' => $cpf !== '' ? $cpf : null,
+                'celular' => $celular !== '' ? $celular : null,
                 'user_department_id' => (int)($row[$map['department_id']] ?? 0),
                 'user_position_id' => (int)($row[$map['position_id']] ?? 0),
                 'password' => (string)($row[$map['password']] ?? ''),
@@ -198,6 +224,8 @@ class ImportUsers
                     $payload['name'] = $payload['name'] !== '' ? $payload['name'] : ($existing['name'] ?? '');
                     $payload['email'] = $payload['email'] !== '' ? $payload['email'] : ($existing['email'] ?? '');
                     $payload['username'] = $payload['username'] !== '' ? $payload['username'] : ($existing['username'] ?? '');
+                    if (empty($payload['cpf']) && !empty($existing['cpf'])) $payload['cpf'] = $existing['cpf'];
+                    if (empty($payload['celular']) && !empty($existing['celular'])) $payload['celular'] = $existing['celular'];
                     $payload['user_department_id'] = $payload['user_department_id'] > 0 ? $payload['user_department_id'] : (int)($existing['user_department_id'] ?? 0);
                     $payload['user_position_id'] = $payload['user_position_id'] > 0 ? $payload['user_position_id'] : (int)($existing['user_position_id'] ?? 0);
                     if (empty($payload['status']) && !empty($existing['status'])) $payload['status'] = $existing['status'];
@@ -207,7 +235,7 @@ class ImportUsers
                     if (empty($payload['data_nascimento']) && !empty($existing['data_nascimento'])) $payload['data_nascimento'] = $existing['data_nascimento'];
                     // Verificar diferenças e só atualizar se houver
                     $keysToCompare = [
-                        'name','email','username','user_department_id','user_position_id',
+                        'name','email','username','cpf','celular','user_department_id','user_position_id',
                         'status','bloqueado','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'
                     ];
                     $hasDiff = false;
@@ -284,11 +312,11 @@ class ImportUsers
         $out = fopen('php://output', 'w');
         
         // Cabeçalho com ; como separador
-        fputcsv($out, ['name','email','username','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'], ';');
+        fputcsv($out, ['name','email','username','cpf','celular','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'], ';');
         
         // Linha exemplo com acentos para testar
-        fputcsv($out, ['Maria Silva','maria@empresa.com','maria.silva',1,2,'SenhaForte123!','Ativo','Não',0,'Não','Não','20/08/1990'], ';');
-        fputcsv($out, ['João Santos','joao@empresa.com','joao.santos',2,1,'SenhaForte123!','Ativo','Não',0,'Não','Não','15/03/1985'], ';');
+        fputcsv($out, ['Maria Silva','maria@empresa.com','maria.silva','123.456.789-00','(11) 98765-4321',1,2,'SenhaForte123!','Ativo','Não',0,'Não','Não','20/08/1990'], ';');
+        fputcsv($out, ['João Santos','joao@empresa.com','joao.santos','987.654.321-00','(11) 91234-5678',2,1,'SenhaForte123!','Ativo','Não',0,'Não','Não','15/03/1985'], ';');
         
         fclose($out);
         exit;

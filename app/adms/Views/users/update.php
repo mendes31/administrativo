@@ -66,6 +66,16 @@ use App\adms\Helpers\ImageHelper;
                 </div>
 
                 <div class="col-md-6">
+                    <label for="cpf" class="form-label">CPF</label>
+                    <input type="text" name="cpf" class="form-control" id="cpf" placeholder="000.000.000-00" value="<?php echo $this->data['form']['cpf'] ?? ''; ?>" maxlength="14">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="celular" class="form-label">Celular</label>
+                    <input type="text" name="celular" class="form-control" id="celular" placeholder="(00) 00000-0000" value="<?php echo $this->data['form']['celular'] ?? ''; ?>" maxlength="20">
+                </div>
+
+                <div class="col-md-6">
                     <label for="user_department_id" class="form-label">Departamento</label>
                     <select name="user_department_id" class="form-select" id="user_department_id">
                         <option value="" selected>Selecione</option>
@@ -171,3 +181,26 @@ use App\adms\Helpers\ImageHelper;
     </div>
 
 </div>
+
+<script>
+// Máscara para CPF
+document.getElementById('cpf').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        e.target.value = value;
+    }
+});
+
+// Máscara para Celular
+document.getElementById('celular').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+        value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+        value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+        e.target.value = value;
+    }
+});
+</script>

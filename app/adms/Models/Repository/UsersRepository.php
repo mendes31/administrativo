@@ -187,14 +187,16 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, user_department_id, user_position_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, created_at, image, data_nascimento
+                name, email, username, cpf, celular, user_department_id, user_position_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, created_at, image, data_nascimento
             ) VALUES (
-                :name, :email, :username, :user_department_id, :user_position_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :created_at, :image, :data_nascimento
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :created_at, :image, :data_nascimento
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
             $stmt->bindValue(':email', $data['email'], PDO::PARAM_STR);
             $stmt->bindValue(':username', $data['username'], PDO::PARAM_STR);
+            $stmt->bindValue(':cpf', $data['cpf'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':celular', $data['celular'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':user_department_id', $data['user_department_id'], PDO::PARAM_INT);
             $stmt->bindValue(':user_position_id', $data['user_position_id'], PDO::PARAM_INT);
             $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
@@ -261,7 +263,7 @@ class UsersRepository extends DbConnection
             $dadosAntes = $this->getUser($data['id']);
 
             // QUERY para atualizar o usuário
-            $sql = 'UPDATE adms_users SET name = :name, email = :email, username = :username, user_department_id = :user_department_id, user_position_id = :user_position_id, updated_at = :updated_at';
+            $sql = 'UPDATE adms_users SET name = :name, email = :email, username = :username, cpf = :cpf, celular = :celular, user_department_id = :user_department_id, user_position_id = :user_position_id, updated_at = :updated_at';
             if (isset($data['status'])) {
                 $sql .= ', status = :status';
             }
@@ -310,6 +312,8 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
             $stmt->bindValue(':email', $data['email'], PDO::PARAM_STR);
             $stmt->bindValue(':username', $data['username'], PDO::PARAM_STR);
+            $stmt->bindValue(':cpf', $data['cpf'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':celular', $data['celular'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':user_department_id', (int)$data['user_department_id'], PDO::PARAM_INT);
             $stmt->bindValue(':user_position_id', (int)$data['user_position_id'], PDO::PARAM_INT);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
