@@ -86,6 +86,8 @@ class PageLayoutService
             'LgpdInventoryDelete',
             'LgpdInventoryEdit',
             'LgpdInventoryView',
+            'ListLogAcessos',
+            'ListLogAlteracoes',
             'LgpdRipd',
             'LgpdRipdCreate',
             'LgpdRipdDashboard',
