@@ -41,7 +41,7 @@ class PositionsRepository extends DbConnection
             $params[':name'] = '%' . $filterName . '%';
         }
         $sql = 'SELECT id, name FROM adms_positions '
-            . $where . ' ORDER BY id ASC LIMIT :limit OFFSET :offset';
+            . $where . ' ORDER BY name ASC LIMIT :limit OFFSET :offset';
         $stmt = $this->getConnection()->prepare($sql);
         if (!empty($filterName)) {
             $stmt->bindValue(':name', $params[':name'], PDO::PARAM_STR);
