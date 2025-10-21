@@ -38,6 +38,17 @@ class EditStrategicPlan
             header('Location: ' . $_ENV['URL_ADM'] . 'list-strategic-plans');
             exit;
         }
+
+        // Verificar se o usuário tem permissão para editar este plano
+        if (!$this->hasFullAccess()) {
+            $userDepartmentId = $_SESSION['user_department_id'] ?? null;
+            if ($userDepartmentId && $plan['department_id'] != $userDepartmentId) {
+                $_SESSION['msg'] = "Você não tem permissão para editar este plano!";
+                $_SESSION['msg_type'] = "danger";
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-strategic-plans');
+                exit;
+            }
+        }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = $_POST;
             $this->repository->update($id, $data);
@@ -164,5 +175,23 @@ class EditStrategicPlan
         $stmt->bindValue(':department_id', $departmentId, \PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Verifica se o usuário tem acesso total (super admin ou departamento Diretoria)
+     */
+    private function hasFullAccess(): bool
+    {
+        // Super administrador (nível 1) tem acesso total
+        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+            return true;
+        }
+
+        // Usuários do departamento "Diretoria" também têm acesso total
+        if (isset($_SESSION['user_department']) && $_SESSION['user_department'] === 'Diretoria') {
+            return true;
+        }
+
+        return false;
     }
 } 

@@ -39,6 +39,17 @@ class ViewStrategicPlan
             exit;
         }
 
+        // Verificar se o usuário tem permissão para visualizar este plano
+        if (!$this->hasFullAccess()) {
+            $userDepartmentId = $_SESSION['user_department_id'] ?? null;
+            if ($userDepartmentId && $plan['department_id'] != $userDepartmentId) {
+                $_SESSION['msg'] = "Você não tem permissão para visualizar este plano!";
+                $_SESSION['msg_type'] = "danger";
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-strategic-plans');
+                exit;
+            }
+        }
+
         $this->viewPlan($plan);
     }
 
@@ -64,5 +75,23 @@ class ViewStrategicPlan
         // Carrega a view usando o padrão do projeto
         $loadView = new LoadViewService("adms/Views/strategicPlans/view-strategic-plan", $this->data);
         $loadView->loadView();
+    }
+
+    /**
+     * Verifica se o usuário tem acesso total (super admin ou departamento Diretoria)
+     */
+    private function hasFullAccess(): bool
+    {
+        // Super administrador (nível 1) tem acesso total
+        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+            return true;
+        }
+
+        // Usuários do departamento "Diretoria" também têm acesso total
+        if (isset($_SESSION['user_department']) && $_SESSION['user_department'] === 'Diretoria') {
+            return true;
+        }
+
+        return false;
     }
 }

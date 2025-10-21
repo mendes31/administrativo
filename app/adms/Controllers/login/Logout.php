@@ -22,7 +22,8 @@ class Logout
             $logAcessosRepo = new LogAcessosRepository();
             $ip = RequestHelper::getClientIp();
             $ua = RequestHelper::getUserAgent();
-            $logAcessosRepo->registrarAcesso((int)$_SESSION['user_id'], 'LOGOUT', $ip, $ua);
+            $hostname = RequestHelper::getClientHostname();
+            $logAcessosRepo->registrarAcesso((int)$_SESSION['user_id'], 'LOGOUT', $ip, $ua, null, $hostname);
         }
         
         $_SESSION = [];

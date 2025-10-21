@@ -163,8 +163,9 @@ class Login
                     $logRepo = new LogAcessosRepository();
                     $ipConc = RequestHelper::getClientIp();
                     $uaConc = RequestHelper::getUserAgent();
+                    $hostnameConc = RequestHelper::getClientHostname();
                     foreach ($activeSessions as $old) {
-                        $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? '')); 
+                        $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? ''), $hostnameConc); 
                     }
                 }
                 $sessionRepo->invalidateAllSessionsByUserId((int)$result['id']);
@@ -176,7 +177,8 @@ class Login
             $logAcessosRepo = new LogAcessosRepository();
             $ip = RequestHelper::getClientIp();
             $userAgent = RequestHelper::getUserAgent();
-            $logAcessosRepo->registrarAcesso((int)$result['id'], 'LOGIN', $ip, $userAgent);
+            $hostname = RequestHelper::getClientHostname();
+            $logAcessosRepo->registrarAcesso((int)$result['id'], 'LOGIN', $ip, $userAgent, null, $hostname);
             if($_ENV['APP_LOGS'] == 'Sim'){
             $dataLogs = [
                 'table_name' => 'adms_users',
@@ -195,8 +197,9 @@ class Login
                 $logRepo = new LogAcessosRepository();
                 $ipConc = RequestHelper::getClientIp();
                 $uaConc = RequestHelper::getUserAgent();
+                $hostnameConc = RequestHelper::getClientHostname();
                 foreach ($activeSessions as $old) {
-                    $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? '')); 
+                    $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? ''), $hostnameConc); 
                 }
             }
             $sessionRepo->invalidateAllSessionsByUserId((int)$result['id']);

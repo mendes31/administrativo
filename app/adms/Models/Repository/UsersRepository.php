@@ -98,18 +98,43 @@ class UsersRepository extends DbConnection
      */
     public function getUserByEmailUsernameOrCpf(string $email, string $username, ?string $cpf = null): array|false
     {
-        $sql = 'SELECT * FROM adms_users WHERE email = :email OR username = :username';
+        $sql = 'SELECT 
+                    t0.id, 
+                    t0.name, 
+                    t0.email, 
+                    t0.username, 
+                    t0.cpf,
+                    t0.celular,
+                    t0.image, 
+                    t0.data_nascimento, 
+                    t0.user_department_id, 
+                    t0.user_position_id, 
+                    t0.created_at, 
+                    t0.updated_at, 
+                    t0.status,
+                    t0.bloqueado,
+                    t0.tentativas_login,
+                    t0.senha_nunca_expira,
+                    t0.modificar_senha_proximo_logon,
+                    t1.name dep_name, 
+                    t2.name pos_name,
+                    t3.adms_access_level_id as user_access_level_id
+                FROM adms_users t0
+                INNER JOIN adms_departments t1 ON t0.user_department_id = t1.id
+                INNER JOIN adms_positions t2 ON t0.user_position_id = t2.id
+                LEFT JOIN adms_users_access_levels t3 ON t0.id = t3.adms_user_id
+                WHERE (t0.email = :email OR t0.username = :username';
         $params = [
             ':email' => $email,
             ':username' => $username
         ];
         
         if (!empty($cpf)) {
-            $sql .= ' OR cpf = :cpf';
+            $sql .= ' OR t0.cpf = :cpf';
             $params[':cpf'] = $cpf;
         }
         
-        $sql .= ' LIMIT 1';
+        $sql .= ') LIMIT 1';
         
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {

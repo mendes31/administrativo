@@ -86,6 +86,84 @@ class StrategicPlansRepository extends DbConnection
     }
 
     /**
+     * Buscar planos estratégicos com última observação
+     */
+    public function getAllStrategicPlansWithLastObservation(array $criteria, int $page, int $limit, ?int $userDepartmentId = null, string $orderBy = 'start_date'): array
+    {
+        $offset = max(0, ($page - 1) * $limit);
+        $whereClauses = [];
+        $params = [];
+
+        // Filtro por departamento do usuário logado (se não for super admin)
+        if ($userDepartmentId !== null) {
+            $whereClauses[] = 'sp.department_id = :user_department_id';
+            $params['user_department_id'] = $userDepartmentId;
+        }
+
+        // Construir cláusulas WHERE
+        if (!empty($criteria['titulo'])) {
+            $whereClauses[] = 'sp.title LIKE :titulo';
+            $params['titulo'] = '%' . $criteria['titulo'] . '%';
+        }
+        if (!empty($criteria['departamento'])) {
+            $whereClauses[] = 'd.name LIKE :departamento';
+            $params['departamento'] = '%' . $criteria['departamento'] . '%';
+        }
+        if (!empty($criteria['responsavel'])) {
+            $whereClauses[] = 'u.name LIKE :responsavel';
+            $params['responsavel'] = '%' . $criteria['responsavel'] . '%';
+        }
+        if (!empty($criteria['status'])) {
+            $whereClauses[] = 'sp.status = :status';
+            $params['status'] = $criteria['status'];
+        }
+
+        $whereSql = !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
+
+        $sql = "SELECT 
+                    sp.*,
+                    d.name as dep_name,
+                    u.name as user_name,
+                    u.email as user_email,
+                    last_obs.observation as last_observation,
+                    last_obs.created_at as last_observation_date,
+                    last_obs.user_name as last_observation_user,
+                    last_obs.department_name as last_observation_department
+                FROM adms_strategic_plans sp
+                LEFT JOIN adms_departments d ON sp.department_id = d.id
+                LEFT JOIN adms_users u ON sp.responsible_id = u.id
+                LEFT JOIN (
+                    SELECT 
+                        o1.strategic_plan_id,
+                        o1.observation,
+                        o1.created_at,
+                        u2.name as user_name,
+                        d2.name as department_name
+                    FROM adms_strategic_plan_observations o1
+                    LEFT JOIN adms_users u2 ON o1.user_id = u2.id
+                    LEFT JOIN adms_departments d2 ON u2.user_department_id = d2.id
+                    WHERE o1.created_at = (
+                        SELECT MAX(o2.created_at)
+                        FROM adms_strategic_plan_observations o2
+                        WHERE o2.strategic_plan_id = o1.strategic_plan_id
+                    )
+                ) last_obs ON sp.id = last_obs.strategic_plan_id
+                {$whereSql}
+                ORDER BY sp.start_date ASC, sp.end_date ASC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, \PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Busca paginada e filtrada de planos estratégicos
      * @param array $criteria
      * @param int $page
@@ -137,10 +215,17 @@ class StrategicPlansRepository extends DbConnection
      * @param array $criteria
      * @return int
      */
-    public function getAmountStrategicPlans(array $criteria): int
+    public function getAmountStrategicPlans(array $criteria, ?int $userDepartmentId = null): int
     {
         $whereClauses = [];
         $params = [];
+
+        // Filtro por departamento do usuário logado (se não for super admin)
+        if ($userDepartmentId !== null) {
+            $whereClauses[] = 'department_id = :user_department_id';
+            $params[':user_department_id'] = $userDepartmentId;
+        }
+
         if (!empty($criteria['titulo'])) {
             $whereClauses[] = 'title LIKE :titulo';
             $params[':titulo'] = '%' . $criteria['titulo'] . '%';

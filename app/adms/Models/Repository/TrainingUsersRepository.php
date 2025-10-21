@@ -230,6 +230,10 @@ class TrainingUsersRepository extends DbConnection
             $sql .= ' AND t.area_elaborador_id = ?';
             $params[] = $filters['area_elaborador_id'];
         }
+        if (!empty($filters['codigo'])) {
+            $sql .= ' AND t.codigo LIKE ?';
+            $params[] = '%' . $filters['codigo'] . '%';
+        }
         
         $sql .= ' ORDER BY u.name ASC, t.nome ASC';
         
@@ -881,6 +885,10 @@ class TrainingUsersRepository extends DbConnection
             $sql .= ' AND tu.tipo_vinculo = ?';
             $params[] = $filters['tipo_vinculo'];
         }
+        if (!empty($filters['codigo'])) {
+            $sql .= ' AND t.codigo LIKE ?';
+            $params[] = '%' . $filters['codigo'] . '%';
+        }
         $sql .= ' ORDER BY u.name ASC, t.nome ASC';
         $sql .= ' LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
         $stmt = $this->getConnection()->prepare($sql);
@@ -1307,6 +1315,10 @@ class TrainingUsersRepository extends DbConnection
             $sql .= ' AND YEAR(ta.data_realizacao) = ?';
             $params[] = $filters['ano'];
         }
+        if (!empty($filters['codigo'])) {
+            $sql .= ' AND t.codigo LIKE ?';
+            $params[] = '%' . $filters['codigo'] . '%';
+        }
         $allowedSort = [
             'user_name' => 'u.name',
             'training_name' => 't.nome',
@@ -1354,6 +1366,10 @@ class TrainingUsersRepository extends DbConnection
         if (!empty($filters['ano'])) {
             $sqlCount .= ' AND YEAR(ta.data_realizacao) = ?';
             $paramsCount[] = $filters['ano'];
+        }
+        if (!empty($filters['codigo'])) {
+            $sqlCount .= ' AND t.codigo LIKE ?';
+            $paramsCount[] = '%' . $filters['codigo'] . '%';
         }
         $stmtCount = $this->getConnection()->prepare($sqlCount);
         $stmtCount->execute($paramsCount);

@@ -1,6 +1,29 @@
 <?php
 $plans = $this->data['plans'] ?? [];
 // Cabeçalho já incluso pelo controller
+
+/**
+ * Verifica se o usuário tem permissão para acessar um plano específico
+ */
+function canAccessPlan($plan, $userDepartmentId, $userAccessLevelId, $userDepartment) {
+    // Super administrador (nível 1) tem acesso total
+    if ($userAccessLevelId == 1 || $userAccessLevelId === '1') {
+        return true;
+    }
+    
+    // Usuários do departamento "Diretoria" também têm acesso total
+    if ($userDepartment === 'Diretoria') {
+        return true;
+    }
+    
+    // Outros usuários só podem acessar planos do seu departamento
+    return $userDepartmentId && $plan['department_id'] == $userDepartmentId;
+}
+
+// Dados do usuário logado
+$userDepartmentId = $_SESSION['user_department_id'] ?? null;
+$userAccessLevelId = $_SESSION['user_access_level_id'] ?? null;
+$userDepartment = $_SESSION['user_department'] ?? null;
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -68,23 +91,22 @@ $plans = $this->data['plans'] ?? [];
                 <table class="table table-bordered table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th style="width: 60px;">ID</th>
                             <th>Título</th>
                             <th>Departamento</th>
                             <th>Responsável</th>
                             <th>Período</th>
                             <th>Status</th>
-                            <th style="width: 140px;">Ações</th>
+                            <th>Última Observação</th>
+                            <th style="width: 280px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($plans)) : ?>
                             <?php foreach ($plans as $plan) : ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($plan['id']) ?></td>
-                                    <td><?= htmlspecialchars($plan['title']) ?></td>
-                                    <td><?= htmlspecialchars($plan['dep_name'] ?? 'Não informado') ?></td>
-                                    <td><?= htmlspecialchars($plan['user_name'] ?? 'Não informado') ?></td>
+                                    <td class="title-cell"><?= htmlspecialchars($plan['title']) ?></td>
+                                    <td class="department-cell"><?= htmlspecialchars($plan['dep_name'] ?? 'Não informado') ?></td>
+                                    <td class="responsible-cell"><?= htmlspecialchars($plan['user_name'] ?? 'Não informado') ?></td>
                                     <td><?= date('d/m/Y', strtotime($plan['start_date'])) ?> a <?= date('d/m/Y', strtotime($plan['end_date'])) ?></td>
                                     <td>
                                         <?php
@@ -97,16 +119,67 @@ $plans = $this->data['plans'] ?? [];
                                         ?>
                                         <span class="badge bg-<?= $badge ?>"><?= htmlspecialchars($status) ?></span>
                                     </td>
-                                    <td>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-info" title="Visualizar"><i class="fas fa-eye"></i></a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-plan-indicators/<?= $plan['id'] ?>" class="btn btn-sm btn-primary" title="Indicadores"><i class="fas fa-chart-line"></i></a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i></a>
+                                    <td class="observation-cell">
+                                        <?php if (!empty($plan['last_observation'])) : ?>
+                                            <div class="observation-preview">
+                                                <div class="observation-text-container">
+                                                    <div class="observation-text-short" id="obs-short-<?= $plan['id'] ?>">
+                                                        <?= htmlspecialchars(substr($plan['last_observation'], 0, 80)) ?><?= strlen($plan['last_observation']) > 80 ? '...' : '' ?>
+                                                    </div>
+                                                    <div class="observation-text-full" id="obs-full-<?= $plan['id'] ?>">
+                                                        <?= htmlspecialchars($plan['last_observation']) ?>
+                                                    </div>
+                                                    <?php if (strlen($plan['last_observation']) > 80) : ?>
+                                                        <button type="button" class="observation-toggle-btn" onclick="toggleObservation(<?= $plan['id'] ?>)">
+                                                            <span id="toggle-text-<?= $plan['id'] ?>">Ver mais</span>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="observation-meta">
+                                                    <div class="text-muted observation-meta-user">
+                                                        <strong>Por:</strong> <?= htmlspecialchars($plan['last_observation_user'] ?? 'N/A') ?>
+                                                    </div>
+                                                    <div class="text-muted observation-meta-date">
+                                                        <?= date('d/m/Y H:i', strtotime($plan['last_observation_date'])) ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php else : ?>
+                                            <span class="text-muted">Nenhuma observação</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="actions-cell">
+                                        <?php 
+                                        // Verificar se o usuário tem acesso ao plano (departamento)
+                                        $hasAccess = canAccessPlan($plan, $userDepartmentId, $userAccessLevelId, $userDepartment);
+                                        
+                                        // Verificar permissões de botões
+                                        $buttonPermission = $this->data['buttonPermission'] ?? [];
+                                        ?>
+                                        <?php if ($hasAccess): ?>
+                                            <?php if (in_array('ViewStrategicPlan', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-info" title="Visualizar"><i class="fas fa-eye"></i></a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('ViewPlanIndicators', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-plan-indicators/<?= $plan['id'] ?>" class="btn btn-sm btn-primary" title="Indicadores"><i class="fas fa-chart-line"></i></a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('ViewStrategicPlanObservations', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan-observations/<?= $plan['id'] ?>" class="btn btn-sm btn-success" title="Observações"><i class="fas fa-comments"></i></a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('UpdateStrategicPlan', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('DeleteStrategicPlan', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>delete-strategic-plan/<?= $plan['id'] ?>" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i></a>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted small">Sem permissão</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else : ?>
-                            <tr><td colspan="7" class="text-center">Nenhum plano encontrado.</td></tr>
+                            <tr><td colspan="8" class="text-center">Nenhum plano encontrado.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -141,8 +214,7 @@ $plans = $this->data['plans'] ?? [];
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h5 class="card-title mb-1"><b><?= htmlspecialchars($plan['title']) ?></b></h5>
-                                        <div class="mb-1"><b>ID:</b> <?= htmlspecialchars($plan['id']) ?></div>
+                                        <h5 class="card-title mb-1 title-mobile"><b><?= htmlspecialchars($plan['title']) ?></b></h5>
                                         <div class="mb-1">
                                             <?php
                                             $status = $plan['status'];
@@ -162,10 +234,32 @@ $plans = $this->data['plans'] ?? [];
                                     <div><b>Responsável:</b> <?= htmlspecialchars($plan['user_name'] ?? 'Não informado') ?></div>
                                     <div><b>Período:</b> <?= date('d/m/Y', strtotime($plan['start_date'])) ?> a <?= date('d/m/Y', strtotime($plan['end_date'])) ?></div>
                                     <div class="mt-2">
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-info btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> Visualizar</a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-plan-indicators/<?= $plan['id'] ?>" class="btn btn-primary btn-sm me-1 mb-1" title="Indicadores"><i class="fas fa-chart-line"></i> Indicadores</a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> Editar</a>
-                                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-strategic-plan/<?= $plan['id'] ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i> Excluir</a>
+                                        <?php 
+                                        // Verificar se o usuário tem acesso ao plano (departamento)
+                                        $hasAccess = canAccessPlan($plan, $userDepartmentId, $userAccessLevelId, $userDepartment);
+                                        
+                                        // Verificar permissões de botões
+                                        $buttonPermission = $this->data['buttonPermission'] ?? [];
+                                        ?>
+                                        <?php if ($hasAccess): ?>
+                                            <?php if (in_array('ViewStrategicPlan', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-info btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> Visualizar</a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('ViewPlanIndicators', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-plan-indicators/<?= $plan['id'] ?>" class="btn btn-primary btn-sm me-1 mb-1" title="Indicadores"><i class="fas fa-chart-line"></i> Indicadores</a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('ViewStrategicPlanObservations', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan-observations/<?= $plan['id'] ?>" class="btn btn-success btn-sm me-1 mb-1" title="Observações"><i class="fas fa-comments"></i> Observações</a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('UpdateStrategicPlan', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> Editar</a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('DeleteStrategicPlan', $buttonPermission)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>delete-strategic-plan/<?= $plan['id'] ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este plano?');"><i class="fas fa-trash-alt"></i> Excluir</a>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted small">Sem permissão para acessar este plano</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -204,4 +298,235 @@ $plans = $this->data['plans'] ?? [];
         </div>
     </div>
 </div>
+
+<style>
+.observation-preview {
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 2px 4px;
+    background-color: #f8f9fa;
+    margin: 0;
+    text-align: left;
+    max-width: 250px;
+}
+
+.observation-text-container {
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+.observation-text-short {
+    color: #495057;
+    font-size: 0.9em;
+    line-height: 1.3;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+.observation-text-full {
+    color: #495057;
+    font-size: 0.9em;
+    line-height: 1.3;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    padding: 0;
+    display: none;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.observation-meta {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1px;
+    margin-top: 1px;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.observation-meta-user {
+    font-size: 0.85em !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.observation-meta-date {
+    font-size: 0.8em !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Botão Ver mais */
+.observation-toggle-btn {
+    color: #007bff !important;
+    text-decoration: none !important;
+    font-size: 0.8em !important;
+    margin-top: 4px !important;
+    display: inline-block !important;
+    cursor: pointer !important;
+}
+
+.observation-toggle-btn:hover {
+    color: #0056b3 !important;
+    text-decoration: underline !important;
+}
+
+.observation-meta div:first-child {
+    margin-bottom: 2px;
+}
+
+/* Botão "Ver mais" */
+.btn-link {
+    color: #007bff !important;
+    text-decoration: none !important;
+    font-size: 0.8em;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.btn-link:hover {
+    color: #0056b3 !important;
+    text-decoration: underline !important;
+}
+
+/* Estilos para título e responsável com quebra de linha */
+.title-cell {
+    max-width: 150px !important;
+    min-width: 120px !important;
+    width: 15% !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    line-height: 1.3 !important;
+    vertical-align: middle !important;
+    padding: 6px 8px !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+}
+
+.responsible-cell {
+    max-width: 150px !important;
+    min-width: 120px !important;
+    width: 15% !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    line-height: 1.4 !important;
+    vertical-align: middle !important;
+    padding: 8px 10px !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+}
+
+/* Estilo para coluna departamento */
+.department-cell {
+    max-width: 120px !important;
+    min-width: 100px !important;
+    width: 12% !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    vertical-align: middle !important;
+    padding: 6px 8px !important;
+    overflow-wrap: break-word !important;
+}
+
+/* Estilo para coluna ações */
+.actions-cell {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    padding: 6px 8px !important;
+}
+
+/* Garantir que a tabela tenha largura adequada */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    min-width: 100%;
+    table-layout: auto;
+}
+
+/* Forçar quebra de linha nas células da tabela */
+.table td {
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    vertical-align: middle !important;
+}
+
+/* Estilo específico para célula de observação */
+.observation-cell {
+    vertical-align: middle;
+    padding: 2px 4px;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+    .observation-preview {
+        max-width: 100% !important;
+        margin-bottom: 10px;
+    }
+    
+    .observation-text-full {
+        max-height: 80px;
+    }
+    
+    .title-cell {
+        max-width: 120px !important;
+        min-width: 100px !important;
+        width: 100% !important;
+    }
+    
+    .department-cell {
+        max-width: 100px !important;
+        min-width: 80px !important;
+    }
+    
+    .responsible-cell {
+        max-width: 120px !important;
+        min-width: 100px !important;
+    }
+    
+    .title-mobile {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        white-space: normal !important;
+        line-height: 1.3 !important;
+        font-size: 0.95rem !important;
+        max-width: 100% !important;
+        display: block !important;
+        overflow-wrap: break-word !important;
+    }
+}
+</style>
+
+<script>
+function toggleObservation(planId) {
+    const shortDiv = document.getElementById('obs-short-' + planId);
+    const fullDiv = document.getElementById('obs-full-' + planId);
+    const toggleText = document.getElementById('toggle-text-' + planId);
+    
+    if (fullDiv.style.display === 'none' || fullDiv.style.display === '') {
+        // Mostrar texto completo
+        shortDiv.style.display = 'none';
+        fullDiv.style.display = 'block';
+        toggleText.textContent = 'Ver menos';
+    } else {
+        // Mostrar texto resumido
+        shortDiv.style.display = 'block';
+        fullDiv.style.display = 'none';
+        toggleText.textContent = 'Ver mais';
+    }
+}
+</script>
 <?php // Rodapé já incluso pelo controller ?> 

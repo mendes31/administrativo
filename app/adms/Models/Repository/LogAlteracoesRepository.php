@@ -8,7 +8,7 @@ use Exception;
 
 class LogAlteracoesRepository extends DbConnection
 {
-    public function getAll($pagina = 1, $perPage = 10, $filtros = [])
+    public function getAll($pagina = 1, $perPage = 10, $filtros = [], $orderBy = 'id', $orderDirection = 'DESC')
     {
         $offset = ($pagina - 1) * $perPage;
         $where = [];
@@ -56,7 +56,21 @@ class LogAlteracoesRepository extends DbConnection
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY log.data_alteracao DESC LIMIT :limit OFFSET :offset';
+        
+        // Mapear campos de ordenação para nomes corretos da tabela
+        $orderByMap = [
+            'id' => 'log.id',
+            'tabela' => 'log.tabela',
+            'objeto_id' => 'log.objeto_id',
+            'usuario_nome' => 'usr.name',
+            'data_alteracao' => 'log.data_alteracao',
+            'tipo_operacao' => 'log.tipo_operacao',
+            'ip' => 'log.ip',
+            'hostname' => 'log.hostname'
+        ];
+        
+        $orderField = $orderByMap[$orderBy] ?? 'log.id';
+        $sql .= ' ORDER BY ' . $orderField . ' ' . strtoupper($orderDirection) . ' LIMIT :limit OFFSET :offset';
         
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
@@ -308,7 +322,7 @@ class LogAlteracoesRepository extends DbConnection
     public function insert(array $data): int|bool
     {
         try {
-            $sql = 'INSERT INTO adms_log_alteracoes (tabela, objeto_id, usuario_id, data_alteracao, tipo_operacao, ip, user_agent, criado_por) VALUES (:tabela, :objeto_id, :usuario_id, :data_alteracao, :tipo_operacao, :ip, :user_agent, :criado_por)';
+            $sql = 'INSERT INTO adms_log_alteracoes (tabela, objeto_id, usuario_id, data_alteracao, tipo_operacao, ip, hostname, user_agent, criado_por) VALUES (:tabela, :objeto_id, :usuario_id, :data_alteracao, :tipo_operacao, :ip, :hostname, :user_agent, :criado_por)';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':tabela', $data['tabela']);
             $stmt->bindValue(':objeto_id', $data['objeto_id']);
@@ -316,6 +330,7 @@ class LogAlteracoesRepository extends DbConnection
             $stmt->bindValue(':data_alteracao', $data['data_alteracao']);
             $stmt->bindValue(':tipo_operacao', $data['tipo_operacao']);
             $stmt->bindValue(':ip', $data['ip']);
+            $stmt->bindValue(':hostname', $data['hostname'] ?? null);
             $stmt->bindValue(':user_agent', $data['user_agent']);
             $stmt->bindValue(':criado_por', $data['criado_por']);
             $stmt->execute();

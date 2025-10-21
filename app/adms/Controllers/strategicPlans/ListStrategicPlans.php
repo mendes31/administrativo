@@ -63,14 +63,22 @@ class ListStrategicPlans
         // Instancia o repositório
         $plansRepo = new StrategicPlansRepository();
 
-        // Busca os planos estratégicos com os critérios e paginação
-        $this->data['plans'] = $plansRepo->getAllStrategicPlans(
+        // Verificar se o usuário tem acesso total (super admin ou departamento Diretoria)
+        $userDepartmentId = null;
+        if (!$this->hasFullAccess()) {
+            // Se não tiver acesso total, filtrar por departamento do usuário
+            $userDepartmentId = $_SESSION['user_department_id'] ?? null;
+        }
+
+        // Busca os planos estratégicos com os critérios e paginação (incluindo última observação)
+        $this->data['plans'] = $plansRepo->getAllStrategicPlansWithLastObservation(
             $criteria,
             (int) $page,
             (int) $this->limitResult,
+            $userDepartmentId
         );
         // Total de planos estratégicos (ajustado para considerar a busca com filtros)
-        $total = $plansRepo->getAmountStrategicPlans($criteria);
+        $total = $plansRepo->getAmountStrategicPlans($criteria, $userDepartmentId);
 
         // Gera a paginação
         $this->data['pagination'] = PaginationService::generatePagination(
@@ -85,7 +93,14 @@ class ListStrategicPlans
         $pageElements = [
             'title_head' => 'Listar Planos Estratégicos',
             'menu' => 'list-strategic-plans',
-            'buttonPermission' => ['CreateStrategicPlan', 'ViewStrategicPlan', 'UpdateStrategicPlan', 'DeleteStrategicPlan'],
+            'buttonPermission' => [
+                'CreateStrategicPlan', 
+                'ViewStrategicPlan', 
+                'UpdateStrategicPlan', 
+                'DeleteStrategicPlan',
+                'ViewPlanIndicators',
+                'ViewStrategicPlanObservations'
+            ],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
@@ -97,5 +112,23 @@ class ListStrategicPlans
         // Carrega a VIEW
         $loadView = new LoadViewService("adms/Views/strategicPlans/list", $this->data);
         $loadView->loadView();
+    }
+
+    /**
+     * Verifica se o usuário tem acesso total (super admin ou departamento Diretoria)
+     */
+    private function hasFullAccess(): bool
+    {
+        // Super administrador (nível 1) tem acesso total
+        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+            return true;
+        }
+
+        // Usuários do departamento "Diretoria" também têm acesso total
+        if (isset($_SESSION['user_department']) && $_SESSION['user_department'] === 'Diretoria') {
+            return true;
+        }
+
+        return false;
     }
 } 

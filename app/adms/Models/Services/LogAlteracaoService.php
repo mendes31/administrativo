@@ -4,6 +4,8 @@ namespace App\adms\Models\Services;
 
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
+use App\adms\Controllers\Services\RequestHelper;
+use App\adms\Helpers\EnvLoader;
 
 class LogAlteracaoService
 {
@@ -26,11 +28,19 @@ class LogAlteracaoService
         array $dadosAntes,
         array $dadosDepois
     ): void {
+        // Garantir que o timezone está configurado corretamente
+        EnvLoader::loadWithTimezone();
+        
         $logRepo = new LogAlteracoesRepository();
         $detalheRepo = new LogAlteracoesDetalhesRepository();
 
         // Antes de salvar, garantir que o tipo_operacao está em maiúsculo
         $tipoOperacao = strtoupper($tipoOperacao);
+
+        // Capturar informações do cliente
+        $ip = RequestHelper::getClientIp();
+        $hostname = RequestHelper::getClientHostname();
+        $userAgent = RequestHelper::getUserAgent();
 
         // Cria a instância do log
         $logId = $logRepo->insert([
@@ -39,8 +49,9 @@ class LogAlteracaoService
             'usuario_id' => $usuarioId,
             'data_alteracao' => date('Y-m-d H:i:s'),
             'tipo_operacao' => $tipoOperacao,
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'ip' => $ip,
+            'hostname' => $hostname,
+            'user_agent' => $userAgent,
             'criado_por' => $usuarioId,
         ]);
 

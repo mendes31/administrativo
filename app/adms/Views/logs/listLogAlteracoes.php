@@ -88,49 +88,189 @@ $queryString = http_build_query($getParams);
             </div>
             <!-- Tabela Desktop -->
             <div class="table-responsive d-none d-md-block log-desktop list-desktop">
-                <table class="table table-striped table-hover">
-                    <thead>
+                <table id="logAlteracoesTable" class="table table-bordered table-hover table-striped table-sm">
+                    <thead class="table-success">
                         <tr>
-                            <th>#</th>
-                            <th>Tabela</th>
-                            <th>ID Objeto</th>
-                            <th>Identificador</th>
-                            <th>Usuário</th>
-                            <th>Data</th>
-                            <th>Tipo</th>
-                            <th>IP</th>
-                            <th>Ver Registro</th>
-                            <th>Ações</th>
+                            <th class="text-start" style="width: 4%; padding-left: 8px;">
+                                <?php
+                                $currentOrder = $this->data['order_by'] ?? 'id';
+                                $currentDirection = $this->data['order_direction'] ?? 'DESC';
+                                $newDirection = ($currentOrder === 'id' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'id', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    # 
+                                    <?php if ($currentOrder === 'id'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 10%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'tabela' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'tabela', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    Tabela
+                                    <?php if ($currentOrder === 'tabela'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 6%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'objeto_id' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'objeto_id', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    ID Objeto
+                                    <?php if ($currentOrder === 'objeto_id'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 13%; padding-left: 8px;">Identificador</th>
+                            <th class="text-start" style="width: 12%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'usuario_nome' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'usuario_nome', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    Usuário
+                                    <?php if ($currentOrder === 'usuario_nome'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 10%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'data_alteracao' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'data_alteracao', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    Data
+                                    <?php if ($currentOrder === 'data_alteracao'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 7%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'tipo_operacao' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'tipo_operacao', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    Tipo
+                                    <?php if ($currentOrder === 'tipo_operacao'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 9%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'ip' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'ip', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    IP
+                                    <?php if ($currentOrder === 'ip'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 12%; padding-left: 8px;">
+                                <?php
+                                $newDirection = ($currentOrder === 'hostname' && $currentDirection === 'DESC') ? 'ASC' : 'DESC';
+                                $url = '?' . http_build_query(array_merge($_GET, ['order_by' => 'hostname', 'order_direction' => $newDirection]));
+                                ?>
+                                <a href="<?= $url ?>" class="text-white text-decoration-none">
+                                    Hostname
+                                    <?php if ($currentOrder === 'hostname'): ?>
+                                        <i class="fas fa-sort-<?= $currentDirection === 'DESC' ? 'down' : 'up' ?>"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-sort"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
+                            <th class="text-start" style="width: 7%; padding-left: 8px;">Ver Registro</th>
+                            <th class="text-start" style="width: 6%; padding-left: 8px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($this->data['logs'])): ?>
                             <?php foreach ($this->data['logs'] as $log): ?>
-                                <tr>
-                                    <td><?= $log['id'] ?></td>
-                                    <td><?= htmlspecialchars($log['tabela']) ?></td>
-                                    <td><?= $log['objeto_id'] ?></td>
-                                    <td><?= htmlspecialchars($log['identificador']) ?></td>
-                                    <td><?= $log['usuario_nome'] ? htmlspecialchars($log['usuario_nome']) : $log['usuario_id'] ?></td>
-                                    <td><?= date('d/m/Y H:i', strtotime($log['data_alteracao'])) ?></td>
-                                    <td><?= htmlspecialchars($log['tipo_operacao']) ?></td>
-                                    <td><?= htmlspecialchars($log['ip']) ?></td>
-                                    <td>
+                                <tr class="alteration-row">
+                                    <td class="text-start fw-semibold text-primary" style="padding-left: 8px;">
+                                        <i class="fas fa-hashtag me-1"></i><?= $log['id'] ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-database text-primary me-1"></i><?= htmlspecialchars($log['tabela']) ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-key text-info me-1"></i><?= $log['objeto_id'] ?>
+                                    </td>
+                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                        <i class="fas fa-tag text-success me-1"></i><?= htmlspecialchars($log['identificador']) ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-user text-success me-1"></i><?= $log['usuario_nome'] ? htmlspecialchars($log['usuario_nome']) : $log['usuario_id'] ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-calendar-alt text-warning me-1"></i><?= date('d/m/Y H:i', strtotime($log['data_alteracao'])) ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <?php
+                                        $tipoClass = match($log['tipo_operacao']) {
+                                            'INSERT' => 'badge bg-success',
+                                            'UPDATE' => 'badge bg-warning text-dark',
+                                            'DELETE' => 'badge bg-danger',
+                                            default => 'badge bg-secondary'
+                                        };
+                                        ?>
+                                        <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_operacao']) ?></span>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-globe text-danger me-1"></i><?= htmlspecialchars($log['ip']) ?>
+                                    </td>
+                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                        <i class="fas fa-desktop text-info me-1"></i><?= htmlspecialchars($log['hostname'] ?? 'N/A') ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
                                         <?php if (!empty($log['link_registro'])): ?>
                                             <a href="<?= $log['link_registro'] ?>" class="btn btn-info btn-sm" target="_blank" title="Ver registro original">
-                                                <i class="bi bi-eye"></i>
+                                                <i class="fas fa-eye"></i>
                                             </a>
                                         <?php else: ?>
                                             <span class="text-muted">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
-                                        <a href="<?= $_ENV['URL_ADM'] . 'view-log-alteracao/' . $log['id'] ?>" class="btn btn-primary btn-sm">Detalhes</a>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <a href="<?= $_ENV['URL_ADM'] . 'view-log-alteracao/' . $log['id'] ?>" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="10">Nenhum log encontrado.</td></tr>
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle me-2"></i>Nenhum log encontrado.
+                                </td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -177,34 +317,127 @@ $queryString = http_build_query($getParams);
             <div class="d-block d-md-none log-mobile list-mobile">
                 <?php if (!empty($this->data['logs'])): ?>
                     <?php foreach ($this->data['logs'] as $i => $log): ?>
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h5 class="card-title mb-1"><b><?= htmlspecialchars($log['identificador']) ?></b></h5>
-                                        <div class="mb-1"><b>Tipo:</b> <?= htmlspecialchars($log['tipo_operacao']) ?></div>
-                                        <div class="mb-1"><b>Data/Hora:</b> <?= date('d/m/Y H:i', strtotime($log['data_alteracao'])) ?></div>
+                        <div class="card mb-3 shadow-sm border-0">
+                            <div class="card-header bg-light border-bottom">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-tag text-success me-2"></i>
+                                        <span class="fw-semibold text-primary"><?= htmlspecialchars($log['identificador']) ?></span>
                                     </div>
-                                    <button class="btn btn-outline-primary btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#cardLogAltDetails<?= $i ?>" aria-expanded="false" aria-controls="cardLogAltDetails<?= $i ?>">Ver mais</button>
+                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#cardLogAltDetails<?= $i ?>" aria-expanded="false" aria-controls="cardLogAltDetails<?= $i ?>">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
                                 </div>
-                                <div class="collapse mt-2" id="cardLogAltDetails<?= $i ?>">
-                                    <div><b>ID:</b> <?= $log['id'] ?></div>
-                                    <div><b>Tabela:</b> <?= htmlspecialchars($log['tabela']) ?></div>
-                                    <div><b>Objeto:</b> <?= $log['objeto_id'] ?></div>
-                                    <div><b>Usuário:</b> <?= $log['usuario_nome'] ? htmlspecialchars($log['usuario_nome']) : $log['usuario_id'] ?></div>
-                                    <div><b>IP:</b> <?= htmlspecialchars($log['ip']) ?></div>
-                                    <div class="mt-2 d-flex gap-2">
-                                        <?php if (!empty($log['link_registro'])): ?>
-                                            <a href="<?= $log['link_registro'] ?>" class="btn btn-info btn-sm" target="_blank" title="Ver registro original">Ver registro</a>
-                                        <?php endif; ?>
-                                        <a href="<?= $_ENV['URL_ADM'] . 'view-log-alteracao/' . $log['id'] ?>" class="btn btn-primary btn-sm">Detalhes</a>
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-cog text-secondary me-2"></i>
+                                            <span class="fw-semibold text-secondary">Tipo:</span>
+                                        </div>
+                                        <div class="ms-4">
+                                            <?php
+                                            $tipoClass = match($log['tipo_operacao']) {
+                                                'INSERT' => 'badge bg-success',
+                                                'UPDATE' => 'badge bg-warning text-dark',
+                                                'DELETE' => 'badge bg-danger',
+                                                default => 'badge bg-secondary'
+                                            };
+                                            ?>
+                                            <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_operacao']) ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-calendar-alt text-warning me-2"></i>
+                                            <span class="fw-semibold text-warning">Data/Hora:</span>
+                                        </div>
+                                        <div class="ms-4">
+                                            <span class="badge bg-warning text-dark"><?= date('d/m/Y H:i', strtotime($log['data_alteracao'])) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="collapse mt-3" id="cardLogAltDetails<?= $i ?>">
+                                    <div class="border-top pt-3">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-hashtag text-primary me-2"></i>
+                                                    <span class="fw-semibold text-primary">ID:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-primary text-white"><?= $log['id'] ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-database text-primary me-2"></i>
+                                                    <span class="fw-semibold text-primary">Tabela:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-primary text-white"><?= htmlspecialchars($log['tabela']) ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-key text-info me-2"></i>
+                                                    <span class="fw-semibold text-info">Objeto:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-info text-white"><?= $log['objeto_id'] ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-user text-success me-2"></i>
+                                                    <span class="fw-semibold text-success">Usuário:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-success text-white"><?= $log['usuario_nome'] ? htmlspecialchars($log['usuario_nome']) : $log['usuario_id'] ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-globe text-danger me-2"></i>
+                                                    <span class="fw-semibold text-danger">IP:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-danger text-white"><?= htmlspecialchars($log['ip']) ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-desktop text-info me-2"></i>
+                                                    <span class="fw-semibold text-info">Hostname:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-info text-white"><?= htmlspecialchars($log['hostname'] ?? 'N/A') ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 mt-3">
+                                                <div class="d-flex gap-2">
+                                                    <?php if (!empty($log['link_registro'])): ?>
+                                                        <a href="<?= $log['link_registro'] ?>" class="btn btn-info btn-sm" target="_blank" title="Ver registro original">
+                                                            <i class="fas fa-eye me-1"></i>Ver registro
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <a href="<?= $_ENV['URL_ADM'] . 'view-log-alteracao/' . $log['id'] ?>" class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-info-circle me-1"></i>Detalhes
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="alert alert-danger" role="alert">Nenhum log encontrado.</div>
+                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Nenhum log encontrado.
+                    </div>
                 <?php endif; ?>
 
                 <!-- Paginação Mobile -->
@@ -254,4 +487,211 @@ $queryString = http_build_query($getParams);
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<style>
+/* Estilos para a tabela de logs de alterações */
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.table-striped > tbody > tr:nth-of-type(even) > td {
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.alteration-row:hover {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background-color: #28a745 !important;
+    color: white !important;
+    border-color: #1e7e34 !important;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 8px 6px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+.table th {
+    text-align: left;
+    padding-left: 8px;
+    white-space: nowrap;
+}
+
+/* Estilos para links de ordenação */
+.table th a {
+    color: white !important;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.table th a:hover {
+    color: #f8f9fa !important;
+    text-decoration: none !important;
+}
+
+.table th a i {
+    font-size: 0.8em;
+}
+
+/* Garantir que todas as colunas fiquem visíveis */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#logAlteracoesTable {
+    min-width: 100%;
+    table-layout: fixed;
+}
+
+/* Ajustar larguras específicas das colunas */
+#logAlteracoesTable th:nth-child(1), #logAlteracoesTable td:nth-child(1) { width: 5%; min-width: 50px; }
+#logAlteracoesTable th:nth-child(2), #logAlteracoesTable td:nth-child(2) { width: 12%; min-width: 100px; }
+#logAlteracoesTable th:nth-child(3), #logAlteracoesTable td:nth-child(3) { width: 8%; min-width: 70px; }
+#logAlteracoesTable th:nth-child(4), #logAlteracoesTable td:nth-child(4) { width: 15%; min-width: 120px; }
+#logAlteracoesTable th:nth-child(5), #logAlteracoesTable td:nth-child(5) { width: 15%; min-width: 120px; }
+#logAlteracoesTable th:nth-child(6), #logAlteracoesTable td:nth-child(6) { width: 12%; min-width: 100px; }
+#logAlteracoesTable th:nth-child(7), #logAlteracoesTable td:nth-child(7) { width: 8%; min-width: 70px; }
+#logAlteracoesTable th:nth-child(8), #logAlteracoesTable td:nth-child(8) { width: 10%; min-width: 80px; }
+#logAlteracoesTable th:nth-child(9), #logAlteracoesTable td:nth-child(9) { width: 8%; min-width: 70px; }
+#logAlteracoesTable th:nth-child(10), #logAlteracoesTable td:nth-child(10) { width: 7%; min-width: 60px; }
+
+/* CSS específico para colunas com texto longo */
+#logAlteracoesTable th:nth-child(4), #logAlteracoesTable td:nth-child(4) {
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+    line-height: 1.3 !important;
+}
+
+/* Otimizar para telas menores */
+@media (max-width: 1200px) {
+    #logAlteracoesTable th:nth-child(4), #logAlteracoesTable td:nth-child(4) { 
+        width: 12%; 
+        min-width: 100px; 
+    }
+    #logAlteracoesTable th:nth-child(5), #logAlteracoesTable td:nth-child(5) { 
+        width: 12%; 
+        min-width: 100px; 
+    }
+}
+
+@media (max-width: 992px) {
+    .table td {
+        font-size: 0.85em;
+        padding: 6px 4px;
+    }
+    
+    #logAlteracoesTable th:nth-child(2), #logAlteracoesTable td:nth-child(2) { 
+        width: 10%; 
+        min-width: 80px; 
+    }
+    #logAlteracoesTable th:nth-child(4), #logAlteracoesTable td:nth-child(4) { 
+        width: 14%; 
+        min-width: 100px; 
+        font-size: 0.8em;
+    }
+    #logAlteracoesTable th:nth-child(5), #logAlteracoesTable td:nth-child(5) { 
+        width: 12%; 
+        min-width: 100px; 
+    }
+}
+
+/* Estilos para badges */
+.badge {
+    font-size: 0.85em;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+/* Estilos para cards mobile */
+.log-mobile .card {
+    border-left: 4px solid #28a745;
+    transition: all 0.2s ease;
+}
+
+.log-mobile .card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.log-mobile .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9em;
+    }
+    
+    .badge {
+        font-size: 0.8em;
+        padding: 4px 8px;
+    }
+}
+
+/* Estilos para filtros */
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Botões de ação */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Paginação */
+.pagination .page-link {
+    border-radius: 6px;
+    margin: 0 2px;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+</style> 

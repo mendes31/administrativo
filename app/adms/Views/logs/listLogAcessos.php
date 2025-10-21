@@ -78,26 +78,33 @@ $queryString = http_build_query($getParams);
             </div>
             <!-- Tabela Desktop -->
             <div class="table-responsive d-none d-md-block log-desktop list-desktop">
-                <table id="logTable" class="table table-striped table-hover">
-                    <thead>
+                <table id="logTable" class="table table-bordered table-hover table-striped table-sm">
+                    <thead class="table-success">
                         <tr>
-                            <th>#</th>
-                            <th>Usuário</th>
-                            <th>Email</th>
-                            <th>Tipo</th>
-                            <th>IP</th>
-                            <th>User Agent</th>
-                            <th>Data/Hora</th>
+                            <th class="text-start" style="width: 4%; padding-left: 8px;">#</th>
+                            <th class="text-start" style="width: 15%; padding-left: 8px;">Usuário</th>
+                            <th class="text-start" style="width: 16%; padding-left: 8px;">Email</th>
+                            <th class="text-start" style="width: 8%; padding-left: 8px;">Tipo</th>
+                            <th class="text-start" style="width: 10%; padding-left: 8px;">IP</th>
+                            <th class="text-start" style="width: 13%; padding-left: 8px;">Hostname</th>
+                            <th class="text-start" style="width: 19%; padding-left: 8px;">User Agent</th>
+                            <th class="text-start" style="width: 15%; padding-left: 8px;">Data/Hora</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($this->data['logs'])): ?>
                             <?php foreach ($this->data['logs'] as $log): ?>
-                                <tr>
-                                    <td><?= $log['id'] ?></td>
-                                    <td><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars($log['usuario_email'] ?? '-') ?></td>
-                                    <td>
+                                <tr class="access-row">
+                                    <td class="text-start fw-semibold text-primary" style="padding-left: 8px;">
+                                        <i class="fas fa-hashtag me-1"></i><?= $log['id'] ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-user text-success me-1"></i><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?>
+                                    </td>
+                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                        <i class="fas fa-envelope text-info me-1"></i><?= htmlspecialchars($log['usuario_email'] ?? '-') ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
                                         <?php
                                         $tipoClass = match($log['tipo_acesso']) {
                                             'LOGIN' => 'badge bg-success',
@@ -109,13 +116,26 @@ $queryString = http_build_query($getParams);
                                         ?>
                                         <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_acesso']) ?></span>
                                     </td>
-                                    <td><?= htmlspecialchars($log['ip']) ?></td>
-                                    <td><?= htmlspecialchars($log['user_agent']) ?></td>
-                                    <td><?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?></td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-globe text-danger me-1"></i><?= htmlspecialchars($log['ip']) ?>
+                                    </td>
+                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                        <i class="fas fa-server text-primary me-1"></i><?= htmlspecialchars($log['hostname'] ?? 'N/A') ?>
+                                    </td>
+                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                        <i class="fas fa-desktop text-secondary me-1"></i><?= htmlspecialchars($log['user_agent']) ?>
+                                    </td>
+                                    <td class="text-start" style="padding-left: 8px;">
+                                        <i class="fas fa-calendar-alt text-warning me-1"></i><?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="7">Nenhum log encontrado.</td></tr>
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle me-2"></i>Nenhum log encontrado.
+                                </td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -162,13 +182,26 @@ $queryString = http_build_query($getParams);
             <div class="d-block d-md-none log-mobile list-mobile">
                 <?php if (!empty($this->data['logs'])): ?>
                     <?php foreach ($this->data['logs'] as $i => $log): ?>
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h5 class="card-title mb-1"><b><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?></b></h5>
-                                        <div class="mb-1">
-                                            <b>Tipo:</b> 
+                        <div class="card mb-3 shadow-sm border-0">
+                            <div class="card-header bg-light border-bottom">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user text-success me-2"></i>
+                                        <span class="fw-semibold text-primary"><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?></span>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#cardLogDetails<?= $i ?>" aria-expanded="false" aria-controls="cardLogDetails<?= $i ?>">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-cog text-secondary me-2"></i>
+                                            <span class="fw-semibold text-secondary">Tipo:</span>
+                                        </div>
+                                        <div class="ms-4">
                                             <?php
                                             $tipoClass = match($log['tipo_acesso']) {
                                                 'LOGIN' => 'badge bg-success',
@@ -180,23 +213,76 @@ $queryString = http_build_query($getParams);
                                             ?>
                                             <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_acesso']) ?></span>
                                         </div>
-                                        <div class="mb-1"><b>Data/Hora:</b> <?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?></div>
                                     </div>
-                                    <button class="btn btn-outline-primary btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#cardLogDetails<?= $i ?>" aria-expanded="false" aria-controls="cardLogDetails<?= $i ?>">Ver mais</button>
+                                    <div class="col-12">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-calendar-alt text-warning me-2"></i>
+                                            <span class="fw-semibold text-warning">Data/Hora:</span>
+                                        </div>
+                                        <div class="ms-4">
+                                            <span class="badge bg-warning text-dark"><?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="collapse mt-2" id="cardLogDetails<?= $i ?>">
-                                    <div><b>ID:</b> <?= $log['id'] ?></div>
-                                    <div><b>Email:</b> <?= htmlspecialchars($log['usuario_email'] ?? '-') ?></div>
-                                    <div><b>IP:</b> <?= htmlspecialchars($log['ip']) ?></div>
-                                    <div class="mt-1"><b>User Agent:</b>
-                                        <div class="small text-break"><?= htmlspecialchars($log['user_agent']) ?></div>
+                                <div class="collapse mt-3" id="cardLogDetails<?= $i ?>">
+                                    <div class="border-top pt-3">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-hashtag text-primary me-2"></i>
+                                                    <span class="fw-semibold text-primary">ID:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-primary text-white"><?= $log['id'] ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-envelope text-info me-2"></i>
+                                                    <span class="fw-semibold text-info">Email:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-info text-white"><?= htmlspecialchars($log['usuario_email'] ?? '-') ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-globe text-danger me-2"></i>
+                                                    <span class="fw-semibold text-danger">IP:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-danger text-white"><?= htmlspecialchars($log['ip']) ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-server text-primary me-2"></i>
+                                                    <span class="fw-semibold text-primary">Hostname:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <span class="badge bg-primary text-white"><?= htmlspecialchars($log['hostname'] ?? 'N/A') ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-desktop text-secondary me-2"></i>
+                                                    <span class="fw-semibold text-secondary">User Agent:</span>
+                                                </div>
+                                                <div class="ms-4">
+                                                    <div class="small text-break text-muted"><?= htmlspecialchars($log['user_agent']) ?></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="alert alert-danger" role="alert">Nenhum log encontrado.</div>
+                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Nenhum log encontrado.
+                    </div>
                 <?php endif; ?>
 
                 <!-- Paginação Mobile -->
@@ -246,5 +332,193 @@ $queryString = http_build_query($getParams);
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<style>
+/* Estilos para a tabela de logs de acesso */
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.table-striped > tbody > tr:nth-of-type(even) > td {
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.access-row:hover {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background-color: #28a745 !important;
+    color: white !important;
+    border-color: #1e7e34 !important;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 8px 6px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+.table th {
+    text-align: left;
+    padding-left: 8px;
+    white-space: nowrap;
+}
+
+/* Garantir que todas as colunas fiquem visíveis */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#logTable {
+    min-width: 100%;
+    table-layout: fixed;
+}
+
+/* Ajustar larguras específicas das colunas */
+#logTable th:nth-child(1), #logTable td:nth-child(1) { width: 5%; min-width: 50px; }
+#logTable th:nth-child(2), #logTable td:nth-child(2) { width: 18%; min-width: 120px; }
+#logTable th:nth-child(3), #logTable td:nth-child(3) { width: 20%; min-width: 150px; }
+#logTable th:nth-child(4), #logTable td:nth-child(4) { width: 10%; min-width: 80px; }
+#logTable th:nth-child(5), #logTable td:nth-child(5) { width: 12%; min-width: 100px; }
+#logTable th:nth-child(6), #logTable td:nth-child(6) { width: 20%; min-width: 150px; }
+#logTable th:nth-child(7), #logTable td:nth-child(7) { width: 15%; min-width: 120px; }
+
+/* CSS específico para coluna User Agent */
+#logTable th:nth-child(6), #logTable td:nth-child(6) {
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+    line-height: 1.3 !important;
+    max-width: 200px !important;
+}
+
+/* Otimizar para telas menores */
+@media (max-width: 1200px) {
+    #logTable th:nth-child(6), #logTable td:nth-child(6) { 
+        width: 18%; 
+        min-width: 140px; 
+    }
+    #logTable th:nth-child(7), #logTable td:nth-child(7) { 
+        width: 15%; 
+        min-width: 120px; 
+    }
+}
+
+@media (max-width: 992px) {
+    .table td {
+        font-size: 0.85em;
+        padding: 6px 4px;
+    }
+    
+    #logTable th:nth-child(2), #logTable td:nth-child(2) { 
+        width: 15%; 
+        min-width: 100px; 
+    }
+    #logTable th:nth-child(3), #logTable td:nth-child(3) { 
+        width: 18%; 
+        min-width: 120px; 
+    }
+    #logTable th:nth-child(6), #logTable td:nth-child(6) { 
+        width: 16%; 
+        min-width: 120px; 
+        font-size: 0.8em;
+    }
+}
+
+/* Estilos para badges */
+.badge {
+    font-size: 0.85em;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+/* Estilos para cards mobile */
+.log-mobile .card {
+    border-left: 4px solid #28a745;
+    transition: all 0.2s ease;
+}
+
+.log-mobile .card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.log-mobile .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9em;
+    }
+    
+    .badge {
+        font-size: 0.8em;
+        padding: 4px 8px;
+    }
+}
+
+/* Estilos para filtros */
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Botões de ação */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Paginação */
+.pagination .page-link {
+    border-radius: 6px;
+    margin: 0 2px;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+</style>
+
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/logs-list.js"></script>

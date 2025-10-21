@@ -328,7 +328,9 @@ class SecurityService
         $_SESSION['user_username'] = $user['username'];
         $_SESSION['user_image'] = $user['image'];
         $_SESSION['user_department'] = $user['dep_name'];
+        $_SESSION['user_department_id'] = $user['user_department_id'];
         $_SESSION['user_position'] = $user['pos_name'];
+        $_SESSION['user_access_level_id'] = $user['user_access_level_id'];
         $_SESSION['login_time'] = time();
         $_SESSION['session_id'] = session_id();
     }

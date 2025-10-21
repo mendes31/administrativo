@@ -107,7 +107,9 @@ class ValidationUserLogin
                 $_SESSION['user_username'] = $username;
                 $_SESSION['user_image'] = $image;
                 $_SESSION['user_department'] = $dep_name;
+                $_SESSION['user_department_id'] = $user_department_id;
                 $_SESSION['user_position'] = $pos_name;
+                $_SESSION['user_access_level_id'] = $user_access_level_id;
                 // Limpar mensagem de erro da sessão após login bem-sucedido
                 unset($_SESSION['error']);
                 // Log temporário para depuração de sessões

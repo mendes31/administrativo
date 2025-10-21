@@ -25,29 +25,36 @@ class StrategicDashboard
 
     private function viewDashboard(): void
     {
+        // Verificar se o usuário tem acesso total (super admin ou departamento Diretoria)
+        $userDepartmentId = null;
+        if (!$this->hasFullAccess()) {
+            // Se não tiver acesso total, filtrar por departamento do usuário
+            $userDepartmentId = $_SESSION['user_department_id'] ?? null;
+        }
+
         // Obter estatísticas gerais
-        $stats = $this->getDashboardStats();
+        $stats = $this->getDashboardStats($userDepartmentId);
         
         // Obter estatísticas por período (atual vs anterior)
-        $periodStats = $this->getPeriodComparison();
+        $periodStats = $this->getPeriodComparison($userDepartmentId);
         
         // Obter planos por status
-        $plansByStatus = $this->getPlansByStatus();
+        $plansByStatus = $this->getPlansByStatus($userDepartmentId);
         
         // Obter planos por departamento
-        $plansByDepartment = $this->getPlansByDepartment();
+        $plansByDepartment = $this->getPlansByDepartment($userDepartmentId);
         
         // Obter planos em andamento
-        $activePlans = $this->getActivePlans();
+        $activePlans = $this->getActivePlans($userDepartmentId);
         
         // Obter planos próximos do vencimento
-        $upcomingDeadlines = $this->getUpcomingDeadlines();
+        $upcomingDeadlines = $this->getUpcomingDeadlines($userDepartmentId);
         
         // Obter indicadores de performance
-        $performanceIndicators = $this->getPerformanceIndicators();
+        $performanceIndicators = $this->getPerformanceIndicators($userDepartmentId);
         
         // Obter análise de custos
-        $costAnalysis = $this->getCostAnalysis();
+        $costAnalysis = $this->getCostAnalysis($userDepartmentId);
 
         // Elementos de página
         $pageElements = [
@@ -73,7 +80,25 @@ class StrategicDashboard
         $loadView->loadView();
     }
 
-    private function getDashboardStats(): array
+    /**
+     * Verifica se o usuário tem acesso total (super admin ou departamento Diretoria)
+     */
+    private function hasFullAccess(): bool
+    {
+        // Super administrador (nível 1) tem acesso total
+        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+            return true;
+        }
+
+        // Usuários do departamento "Diretoria" também têm acesso total
+        if (isset($_SESSION['user_department']) && $_SESSION['user_department'] === 'Diretoria') {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getDashboardStats(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     COUNT(*) as total_plans,
@@ -84,7 +109,17 @@ class StrategicDashboard
                     AVG(COALESCE(progress_percentage, 0)) as avg_progress
                 FROM adms_strategic_plans";
         
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " WHERE department_id = :department_id";
+        }
+        
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         
@@ -98,14 +133,20 @@ class StrategicDashboard
         ];
     }
 
-    private function getPlansByStatus(): array
+    private function getPlansByStatus(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     status,
                     COUNT(*) as count,
                     AVG(COALESCE(progress_percentage, 0)) as avg_progress
-                FROM adms_strategic_plans 
-                GROUP BY status 
+                FROM adms_strategic_plans";
+        
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " WHERE department_id = :department_id";
+        }
+        
+        $sql .= " GROUP BY status 
                 ORDER BY 
                     CASE status 
                         WHEN 'Não iniciado' THEN 1
@@ -115,28 +156,44 @@ class StrategicDashboard
                     END";
         
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    private function getPlansByDepartment(): array
+    private function getPlansByDepartment(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     d.name as department_name,
                     COUNT(sp.id) as plan_count,
                     AVG(sp.progress_percentage) as avg_progress
                 FROM adms_strategic_plans sp
-                LEFT JOIN adms_departments d ON sp.department_id = d.id
-                GROUP BY d.id, d.name
+                LEFT JOIN adms_departments d ON sp.department_id = d.id";
+        
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " WHERE sp.department_id = :department_id";
+        }
+        
+        $sql .= " GROUP BY d.id, d.name
                 ORDER BY plan_count DESC
                 LIMIT 10";
         
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    private function getActivePlans(): array
+    private function getActivePlans(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     sp.id,
@@ -150,16 +207,27 @@ class StrategicDashboard
                 FROM adms_strategic_plans sp
                 LEFT JOIN adms_departments d ON sp.department_id = d.id
                 LEFT JOIN adms_users u ON sp.responsible_id = u.id
-                WHERE sp.status IN ('Em andamento', 'Não iniciado')
-                ORDER BY sp.updated_at DESC
+                WHERE sp.status IN ('Em andamento', 'Não iniciado')";
+        
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " AND sp.department_id = :department_id";
+        }
+        
+        $sql .= " ORDER BY sp.updated_at DESC
                 LIMIT 10";
         
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    private function getUpcomingDeadlines(): array
+    private function getUpcomingDeadlines(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     sp.id,
@@ -175,16 +243,27 @@ class StrategicDashboard
                 LEFT JOIN adms_users u ON sp.responsible_id = u.id
                 WHERE sp.status IN ('Em andamento', 'Não iniciado')
                 AND sp.end_date IS NOT NULL
-                AND sp.end_date >= CURDATE()
-                ORDER BY sp.end_date ASC
+                AND sp.end_date >= CURDATE()";
+        
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " AND sp.department_id = :department_id";
+        }
+        
+        $sql .= " ORDER BY sp.end_date ASC
                 LIMIT 10";
         
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    private function getPeriodComparison(): array
+    private function getPeriodComparison(?int $userDepartmentId = null): array
     {
         // Período atual (últimos 30 dias)
         $currentSql = "SELECT 
@@ -204,11 +283,23 @@ class StrategicDashboard
                 FROM adms_strategic_plans 
                 WHERE created_at BETWEEN DATE_SUB(NOW(), INTERVAL 60 DAY) AND DATE_SUB(NOW(), INTERVAL 30 DAY)";
 
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $currentSql .= " AND department_id = :department_id";
+            $previousSql .= " AND department_id = :department_id";
+        }
+
         $currentStmt = $this->repository->getConnection()->prepare($currentSql);
+        if ($userDepartmentId !== null) {
+            $currentStmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
         $currentStmt->execute();
         $current = $currentStmt->fetch(\PDO::FETCH_ASSOC);
 
         $previousStmt = $this->repository->getConnection()->prepare($previousSql);
+        if ($userDepartmentId !== null) {
+            $previousStmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
         $previousStmt->execute();
         $previous = $previousStmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -228,7 +319,7 @@ class StrategicDashboard
         ];
     }
 
-    private function getPerformanceIndicators(): array
+    private function getPerformanceIndicators(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     COUNT(*) as total_plans,
@@ -240,7 +331,17 @@ class StrategicDashboard
                     SUM(CASE WHEN status = 'Concluído' AND how_much IS NOT NULL THEN CAST(how_much AS DECIMAL(15,2)) ELSE 0 END) as spent_budget
                 FROM adms_strategic_plans";
         
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " WHERE department_id = :department_id";
+        }
+        
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -267,7 +368,7 @@ class StrategicDashboard
         ];
     }
 
-    private function getCostAnalysis(): array
+    private function getCostAnalysis(?int $userDepartmentId = null): array
     {
         $sql = "SELECT 
                     d.name as department_name,
@@ -276,13 +377,24 @@ class StrategicDashboard
                     SUM(CASE WHEN sp.status = 'Concluído' AND sp.how_much IS NOT NULL THEN CAST(sp.how_much AS DECIMAL(15,2)) ELSE 0 END) as completed_cost,
                     AVG(COALESCE(sp.progress_percentage, 0)) as avg_progress
                 FROM adms_strategic_plans sp
-                LEFT JOIN adms_departments d ON sp.department_id = d.id
-                GROUP BY d.id, d.name
+                LEFT JOIN adms_departments d ON sp.department_id = d.id";
+        
+        // Adicionar filtro por departamento se especificado
+        if ($userDepartmentId !== null) {
+            $sql .= " WHERE sp.department_id = :department_id";
+        }
+        
+        $sql .= " GROUP BY d.id, d.name
                 HAVING plan_count > 0
                 ORDER BY total_cost DESC
                 LIMIT 10";
         
         $stmt = $this->repository->getConnection()->prepare($sql);
+        
+        if ($userDepartmentId !== null) {
+            $stmt->bindValue(':department_id', $userDepartmentId, \PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }

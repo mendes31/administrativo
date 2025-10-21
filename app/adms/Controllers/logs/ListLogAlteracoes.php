@@ -28,10 +28,26 @@ class ListLogAlteracoes
             'data_inicio' => $_GET['data_inicio'] ?? '',
             'data_fim' => $_GET['data_fim'] ?? '',
         ];
+        
+        // Parâmetros de ordenação
+        $orderBy = $_GET['order_by'] ?? 'id';
+        $orderDirection = $_GET['order_direction'] ?? 'DESC';
+        
+        // Validar parâmetros de ordenação
+        $allowedOrderBy = ['id', 'tabela', 'objeto_id', 'usuario_nome', 'data_alteracao', 'tipo_operacao', 'ip', 'hostname'];
+        if (!in_array($orderBy, $allowedOrderBy)) {
+            $orderBy = 'id';
+        }
+        
+        $allowedDirection = ['ASC', 'DESC'];
+        if (!in_array(strtoupper($orderDirection), $allowedDirection)) {
+            $orderDirection = 'DESC';
+        }
+        
         $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
         $paginaAtual = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $repo = new LogAlteracoesRepository();
-        $this->data['logs'] = $repo->getAll($paginaAtual, $perPage, $filtros);
+        $this->data['logs'] = $repo->getAll($paginaAtual, $perPage, $filtros, $orderBy, $orderDirection);
         // Adiciona o link de registro para cada log
         foreach ($this->data['logs'] as &$log) {
             $log['link_registro'] = $this->getLinkRegistro($log['tabela'], $log['objeto_id']);
@@ -42,6 +58,8 @@ class ListLogAlteracoes
         $this->data['pagina_atual'] = $paginaAtual;
         $this->data['total_registros'] = $repo->countAll($filtros);
         $this->data['total_paginas'] = (int)ceil($this->data['total_registros'] / $perPage);
+        $this->data['order_by'] = $orderBy;
+        $this->data['order_direction'] = $orderDirection;
         $pageElements = [
             'title_head' => 'Log de Modificações',
             'menu' => 'list-log-alteracoes',

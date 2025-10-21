@@ -11,11 +11,12 @@ class LogAcessosRepository extends DbConnection
     public function insert(array $data): int|bool
     {
         try {
-            $sql = 'INSERT INTO adms_log_acessos (usuario_id, tipo_acesso, ip, user_agent, data_acesso, detalhes, criado_por) VALUES (:usuario_id, :tipo_acesso, :ip, :user_agent, :data_acesso, :detalhes, :criado_por)';
+            $sql = 'INSERT INTO adms_log_acessos (usuario_id, tipo_acesso, ip, hostname, user_agent, data_acesso, detalhes, criado_por) VALUES (:usuario_id, :tipo_acesso, :ip, :hostname, :user_agent, :data_acesso, :detalhes, :criado_por)';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':usuario_id', $data['usuario_id']);
             $stmt->bindValue(':tipo_acesso', $data['tipo_acesso']);
             $stmt->bindValue(':ip', $data['ip']);
+            $stmt->bindValue(':hostname', $data['hostname'] ?? null);
             $stmt->bindValue(':user_agent', $data['user_agent']);
             $stmt->bindValue(':data_acesso', $data['data_acesso']);
             $stmt->bindValue(':detalhes', $data['detalhes']);
@@ -123,12 +124,13 @@ class LogAcessosRepository extends DbConnection
     /**
      * Registra um acesso (login/logout)
      */
-    public function registrarAcesso(int $usuarioId, string $tipoAcesso, string $ip, ?string $userAgent = null, ?string $detalhes = null): bool
+    public function registrarAcesso(int $usuarioId, string $tipoAcesso, string $ip, ?string $userAgent = null, ?string $detalhes = null, ?string $hostname = null): bool
     {
         $data = [
             'usuario_id' => $usuarioId,
             'tipo_acesso' => $tipoAcesso,
             'ip' => $ip,
+            'hostname' => $hostname,
             'user_agent' => $userAgent,
             'data_acesso' => date('Y-m-d H:i:s'),
             'detalhes' => $detalhes,

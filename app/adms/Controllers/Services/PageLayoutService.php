@@ -209,6 +209,9 @@ class PageLayoutService
         $userAccessLevelsArray = $usersAccessLevels->getUserAccessLevelArray($_SESSION['user_id']);
         $userAccessLevelsArray = $userAccessLevelsArray ? $userAccessLevelsArray : [];
         if (in_array(1, $userAccessLevelsArray, true)) {
+            // Super Administrador tem acesso a todos os botões solicitados
+            $buttonPermission = new ButtonPermissionUserRepository();
+            $data['buttonPermission'] = $buttonPermission->buttonPermission($data['buttonPermission'] ?? []);
             return array_merge($data, ['menuPermission' => $menu]);
         }
 

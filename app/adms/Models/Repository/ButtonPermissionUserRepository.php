@@ -29,14 +29,22 @@ class ButtonPermissionUserRepository extends DbConnection
      */
     public function buttonPermission(array $button): array|bool
     {
-        // var_dump($button);
-        // return [];
-
         // Verificar se o array $button está vazio
-            if(empty($button)){
-                return [];
-            }
+        if(empty($button)){
+            return [];
+        }
 
+        // Se for super admin (nível 1)
+        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+            $placeholders = implode(', ', array_fill(0, count($button), '?'));
+            $sql = "SELECT controller FROM adms_pages WHERE controller IN ($placeholders) AND page_status = 1";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute($button);
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $result ? array_column($result, 'controller') : [];
+        }
+
+        // Regra normal para outros usuários
         // Criar uma string de placeholders do mesmo tamanho do array de controllers
         $placeholders = implode(', ', array_fill(0, count($button), '?'));
 
