@@ -331,39 +331,46 @@ $menus = [
                 'permission' => 'TestNotification'
             ],
             [
-                'label' => 'Avaliações',
-                'url' => '#',
-                'permission' => 'ListEvaluationModels',
+                'label' => 'Avaliações e Questionários',
+                'icon' => 'fa-solid fa-clipboard-question',
                 'submenu' => [
-                    [
-                        'label' => 'Modelos de Avaliação',
-                        'url' => $_ENV['URL_ADM'] . 'list-evaluation-models',
-                        'permission' => 'ListEvaluationModels'
-                    ],
-                    [
-                        'label' => 'Perguntas de Avaliação',
-                        'url' => $_ENV['URL_ADM'] . 'list-evaluation-questions',
-                        'permission' => 'ListEvaluationQuestions'
-                    ],
-                    [
-                        'label' => 'Respostas de Avaliação',
-                        'url' => $_ENV['URL_ADM'] . 'list-evaluation-answers',
-                        'permission' => 'ListEvaluationAnswers'
-                    ],
                     [
                         'label' => 'Minhas Avaliações',
                         'url' => $_ENV['URL_ADM'] . 'my-evaluations',
-                        'permission' => 'MyEvaluations'
+                        'permission' => 'MyEvaluations',
+                        'icon' => 'fas fa-user-check'
                     ],
                     [
-                        'label' => 'Histórico de Avaliações',
-                        'url' => $_ENV['URL_ADM'] . 'historico-avaliacoes',
-                        'permission' => 'HistoricoAvaliacoes'
+                        'label' => 'Gerenciar Questionários',
+                        'icon' => 'fa-solid fa-folder-open',
+                        'submenu' => [
+                            [
+                                'label' => 'Criar Questionário Completo',
+                                'url' => $_ENV['URL_ADM'] . 'create-evaluation-model-with-questions',
+                                'permission' => 'CreateEvaluationModelWithQuestions'
+                            ],
+                            [
+                                'label' => 'Listar Modelos',
+                                'url' => $_ENV['URL_ADM'] . 'list-evaluation-models',
+                                'permission' => 'ListEvaluationModels'
+                            ]
+                        ]
                     ],
                     [
-                        'label' => 'Notificações',
-                        'url' => $_ENV['URL_ADM'] . 'notificacoes',
-                        'permission' => 'Notificacoes'
+                        'label' => 'Atribuições',
+                        'icon' => 'fa-solid fa-user-graduate',
+                        'submenu' => [
+                            [
+                                'label' => 'Atribuir Avaliação',
+                                'url' => $_ENV['URL_ADM'] . 'assign-evaluation',
+                                'permission' => 'AssignEvaluation'
+                            ],
+                            [
+                                'label' => 'Listar Atribuições',
+                                'url' => $_ENV['URL_ADM'] . 'list-evaluation-assignments',
+                                'permission' => 'ListEvaluationAssignments'
+                            ]
+                        ]
                     ]
                 ]
             ]

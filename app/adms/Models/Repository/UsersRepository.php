@@ -958,8 +958,12 @@ class UsersRepository extends DbConnection
      */
     public function getAllUsersForSelect(): array
     {
-        $sql = 'SELECT id, name, email FROM adms_users ORDER BY name ASC';
+        $sql = 'SELECT id, name, email, status 
+                FROM adms_users 
+                WHERE status = :status 
+                ORDER BY name ASC';
         $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':status', 'Ativo', PDO::PARAM_STR);
         $stmt->execute();
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

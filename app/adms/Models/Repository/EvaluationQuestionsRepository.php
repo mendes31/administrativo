@@ -63,7 +63,9 @@ class EvaluationQuestionsRepository extends DbConnection
         $whereSql = !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
 
         // Consulta SQL com JOIN para buscar nome do modelo
-        $sql = 'SELECT eq.id, eq.evaluation_model_id, eq.pergunta, eq.tipo, eq.opcoes, eq.ordem, eq.created_at, eq.updated_at,
+        $sql = 'SELECT eq.id, eq.evaluation_model_id, eq.pergunta, eq.tipo, eq.opcoes, 
+                       eq.resposta_correta, eq.pontos, eq.explicacao, eq.ordem, 
+                       eq.created_at, eq.updated_at,
                        em.titulo as model_name
                 FROM adms_evaluation_questions eq
                 LEFT JOIN adms_evaluation_models em ON eq.evaluation_model_id = em.id
@@ -150,7 +152,9 @@ class EvaluationQuestionsRepository extends DbConnection
     public function getQuestion(int $id): array|bool
     {
         // QUERY para recuperar o registro do banco de dados
-        $sql = 'SELECT eq.id, eq.evaluation_model_id, eq.pergunta, eq.tipo, eq.opcoes, eq.ordem, eq.created_at, eq.updated_at,
+        $sql = 'SELECT eq.id, eq.evaluation_model_id, eq.pergunta, eq.tipo, eq.opcoes, 
+                       eq.resposta_correta, eq.pontos, eq.explicacao, eq.ordem, 
+                       eq.created_at, eq.updated_at,
                        em.titulo as model_name
                 FROM adms_evaluation_questions eq
                 LEFT JOIN adms_evaluation_models em ON eq.evaluation_model_id = em.id
@@ -175,7 +179,7 @@ class EvaluationQuestionsRepository extends DbConnection
      */
     public function getQuestionsByModel(int $modelId): array
     {
-        $sql = 'SELECT id, pergunta, tipo, opcoes, ordem
+        $sql = 'SELECT id, pergunta, tipo, opcoes, resposta_correta, pontos, explicacao, ordem
                 FROM adms_evaluation_questions
                 WHERE evaluation_model_id = :model_id
                 ORDER BY ordem ASC, created_at ASC';
@@ -196,20 +200,26 @@ class EvaluationQuestionsRepository extends DbConnection
     public function createQuestion(array $data): bool
     {
         try {
-            $sql = 'INSERT INTO adms_evaluation_questions (evaluation_model_id, pergunta, tipo, opcoes, ordem, created_at, updated_at) 
-                    VALUES (:model_id, :pergunta, :tipo, :opcoes, :ordem, NOW(), NOW())';
+            $sql = 'INSERT INTO adms_evaluation_questions 
+                    (evaluation_model_id, pergunta, tipo, opcoes, resposta_correta, pontos, explicacao, ordem, created_at, updated_at) 
+                    VALUES (:model_id, :pergunta, :tipo, :opcoes, :resposta_correta, :pontos, :explicacao, :ordem, NOW(), NOW())';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':model_id', $data['model_id'], PDO::PARAM_INT);
             $stmt->bindValue(':pergunta', $data['pergunta'], PDO::PARAM_STR);
             $stmt->bindValue(':tipo', $data['tipo'], PDO::PARAM_STR);
             $stmt->bindValue(':opcoes', $data['opcoes'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':resposta_correta', $data['resposta_correta'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':pontos', $data['pontos'] ?? 1.00, PDO::PARAM_STR);
+            $stmt->bindValue(':explicacao', $data['explicacao'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':ordem', $data['ordem'] ?? 1, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
             return $this->result;
         } catch (Exception $e) {
-            GenerateLog::generateLog('ERROR', "Erro ao criar pergunta de avaliação: " . $e->getMessage(), null);
+            GenerateLog::generateLog('ERROR', "Erro ao criar pergunta de avaliação: " . $e->getMessage(), [
+                'exception' => $e->getMessage()
+            ]);
             $this->result = false;
             return false;
         }
@@ -227,7 +237,9 @@ class EvaluationQuestionsRepository extends DbConnection
         try {
             $sql = 'UPDATE adms_evaluation_questions 
                     SET evaluation_model_id = :model_id, pergunta = :pergunta, tipo = :tipo, 
-                        opcoes = :opcoes, ordem = :ordem, updated_at = NOW()
+                        opcoes = :opcoes, resposta_correta = :resposta_correta, 
+                        pontos = :pontos, explicacao = :explicacao, ordem = :ordem, 
+                        updated_at = NOW()
                     WHERE id = :id';
 
             $stmt = $this->getConnection()->prepare($sql);
@@ -236,6 +248,9 @@ class EvaluationQuestionsRepository extends DbConnection
             $stmt->bindValue(':pergunta', $data['pergunta'], PDO::PARAM_STR);
             $stmt->bindValue(':tipo', $data['tipo'], PDO::PARAM_STR);
             $stmt->bindValue(':opcoes', $data['opcoes'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':resposta_correta', $data['resposta_correta'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':pontos', $data['pontos'] ?? 1.00, PDO::PARAM_STR);
+            $stmt->bindValue(':explicacao', $data['explicacao'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':ordem', $data['ordem'] ?? 1, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();

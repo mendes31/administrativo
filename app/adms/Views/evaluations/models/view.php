@@ -1,120 +1,132 @@
 <?php
-
-use App\adms\Helpers\CSRFHelper;
-
-// Gera o token CSRF para proteger o formulário de deleção
-$csrf_token = CSRFHelper::generateCSRFToken('form_delete_evaluation_model');
-
+$model = $this->data['model'];
+$questions = $this->data['questions'] ?? [];
+$totalPontos = $this->data['total_pontos'] ?? 0;
+$estatisticas = $this->data['estatisticas_status'] ?? [];
+$atribuicoesRecentes = $this->data['atribuicoes_recentes'] ?? [];
 ?>
 
 <div class="container-fluid px-4">
-
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Visualizar Modelo de Avaliação</h2>
-
+        <h2 class="mt-3">
+            <i class="fas fa-clipboard-list"></i> <?= htmlspecialchars($model['titulo']) ?>
+        </h2>
         <ol class="breadcrumb mb-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-evaluation-models" class="text-decoration-none">Modelos de Avaliação</a></li>
-            <li class="breadcrumb-item">Visualizar</li>
+            <li class="breadcrumb-item">
+                <a href="<?= $_ENV['URL_ADM'] ?>list-evaluation-models" class="text-decoration-none">Avaliações</a>
+            </li>
+            <li class="breadcrumb-item active">Visualizar</li>
         </ol>
     </div>
 
-    <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2">
-            <span>Detalhes do Modelo</span>
+    <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <span class="ms-auto">
-                <?php
-                if (in_array('UpdateEvaluationModel', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}update-evaluation-model/{$this->data['form']['id']}' class='btn btn-warning btn-sm me-2'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
-                }
-
-                if (in_array('DeleteEvaluationModel', $this->data['buttonPermission'])) {
-                ?>
-                    <form id="formDelete<?php echo $this->data['form']['id']; ?>" action="<?php echo $_ENV['URL_ADM']; ?>delete-evaluation-model" method="POST" class="d-inline">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                        <input type="hidden" name="id" value="<?php echo $this->data['form']['id']; ?>">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="confirmDeletion(event, <?php echo $this->data['form']['id']; ?>)">
-                            <i class="fa-regular fa-trash-can"></i> Apagar
-                        </button>
-                    </form>
-                <?php } ?>
-            </span>
-        </div>
-
-        <div class="card-body">
-            <?php
-            // Inclui o arquivo que exibe mensagens de sucesso e erro
-            include './app/adms/Views/partials/alerts.php';
-            ?>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">ID:</label>
-                    <p class="form-control-plaintext"><?php echo $this->data['form']['id']; ?></p>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Status:</label>
-                    <p class="form-control-plaintext">
-                        <?php if ($this->data['form']['ativo'] == 1): ?>
-                            <span class="badge bg-success">Ativo</span>
-                        <?php else: ?>
-                            <span class="badge bg-secondary">Inativo</span>
-                        <?php endif; ?>
-                    </p>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold">Título:</label>
-                <p class="form-control-plaintext"><?php echo htmlspecialchars($this->data['form']['titulo']); ?></p>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold">Descrição:</label>
-                <p class="form-control-plaintext">
-                    <?php echo htmlspecialchars($this->data['form']['descricao'] ?? 'Nenhuma descrição fornecida'); ?>
-                </p>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold">Treinamento:</label>
-                <p class="form-control-plaintext">
-                    <?php echo htmlspecialchars($this->data['form']['training_name'] ?? 'N/A'); ?>
-                </p>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Criado em:</label>
-                    <p class="form-control-plaintext">
-                        <?php echo date('d/m/Y H:i:s', strtotime($this->data['form']['created_at'])); ?>
-                    </p>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Atualizado em:</label>
-                    <p class="form-control-plaintext">
-                        <?php echo date('d/m/Y H:i:s', strtotime($this->data['form']['updated_at'])); ?>
-                    </p>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-end">
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-evaluation-models" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Voltar
+    <!-- DADOS DO MODELO -->
+    <div class="card mb-4 border-primary shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between">
+            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informações do Modelo</h5>
+            <div>
+                <?php if (in_array('UpdateEvaluationModel', $this->data['buttonPermission'])): ?>
+                    <a href="<?= $_ENV['URL_ADM'] ?>update-evaluation-model/<?= $model['id'] ?>" 
+                       class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                <?php endif; ?>
+                
+                <?php if (in_array('AssignEvaluation', $this->data['buttonPermission'])): ?>
+                    <a href="<?= $_ENV['URL_ADM'] ?>assign-evaluation/<?= $model['id'] ?>" 
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus"></i> Atribuir
+                    </a>
+                <?php endif; ?>
+                
+                <!-- Botão de impressão sempre visível -->
+                <a href="<?= $_ENV['URL_ADM'] ?>print-evaluation-blank/<?= $model['id'] ?>" 
+                   class="btn btn-info btn-sm" target="_blank">
+                    <i class="fas fa-print"></i> Imprimir Formulário
                 </a>
             </div>
         </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Treinamento:</strong> <?= htmlspecialchars($model['training_name'] ?? 'N/A') ?></p>
+                    <p><strong>Descrição:</strong><br><?= nl2br(htmlspecialchars($model['descricao'] ?? '')) ?></p>
+                    <p><strong>Total de Questões:</strong> <?= count($questions) ?></p>
+                    <p><strong>Total de Pontos:</strong> <?= number_format($totalPontos, 2) ?></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Nota Mínima:</strong> <?= $model['nota_minima_aprovacao'] ?? '7.00' ?></p>
+                    <p><strong>Permitir Refazer:</strong> <?= ($model['permitir_refazer'] ?? 1) ? 'Sim' : 'Não' ?></p>
+                    <p><strong>Máx Tentativas:</strong> <?= $model['max_tentativas'] ?? 'Ilimitado' ?></p>
+                    <p><strong>Mostrar Gabarito:</strong> <?= ($model['mostrar_gabarito'] ?? 1) ? 'Sim' : 'Não' ?></p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-<?= ($model['ativo'] ?? 1) ? 'success' : 'secondary' ?>">
+                            <?= ($model['ativo'] ?? 1) ? 'Ativo' : 'Inativo' ?>
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTATÍSTICAS -->
+    <?php if (!empty($estatisticas)): ?>
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h4><i class="fas fa-chart-bar"></i> Estatísticas de Atribuições</h4>
+            </div>
+            <?php foreach ($estatisticas as $status => $total): ?>
+                <div class="col-md-2 mb-2">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="mb-0"><?= $total ?></h3>
+                            <small><?= ucfirst($status) ?></small>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- QUESTÕES -->
+    <div class="card mb-4 shadow">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-question-circle"></i> Questões (<?= count($questions) ?>)</h5>
+        </div>
+        <div class="card-body">
+            <?php if (empty($questions)): ?>
+                <div class="alert alert-warning">
+                    Este modelo não possui questões cadastradas.
+                </div>
+            <?php else: ?>
+                <?php foreach ($questions as $index => $q): ?>
+                    <div class="card mb-2">
+                        <div class="card-header bg-light d-flex justify-content-between">
+                            <span><strong><?= $index + 1 ?>.</strong> <?= htmlspecialchars($q['pergunta']) ?></span>
+                            <span class="badge bg-secondary"><?= number_format($q['pontos'], 2) ?> pts</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Tipo:</strong> <?= ucfirst(str_replace('_', ' ', $q['tipo'])) ?></p>
+                            <?php if ($q['resposta_correta']): ?>
+                                <p class="mb-1">
+                                    <i class="fas fa-check text-success"></i> 
+                                    <strong>Gabarito:</strong> <?= htmlspecialchars($q['resposta_correta']) ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php if ($q['explicacao']): ?>
+                                <p class="mb-0"><strong>Explicação:</strong> <?= htmlspecialchars($q['explicacao']) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="text-center mb-4">
+        <a href="<?= $_ENV['URL_ADM'] ?>list-evaluation-models" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
     </div>
 </div>
-
-<script type="text/javascript">
-    function confirmDeletion(event, id) {
-        event.preventDefault();
-        if (confirm('Tem certeza que deseja excluir este modelo de avaliação? Esta ação não pode ser desfeita.')) {
-            document.getElementById('formDelete' + id).submit();
-        }
-    }
-</script> 

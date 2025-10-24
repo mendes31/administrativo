@@ -1,0 +1,817 @@
+/**
+ * Estilos Modernos para Formulários de Avaliação
+ * Mantém a identidade visual do projeto (verde e azul)
+ * Design moderno com melhor UX
+ */
+
+/* ========================================
+   VARIÁVEIS DE CORES (Identidade do Projeto)
+   ======================================== */
+:root {
+    --primary-green: #28a745;
+    --primary-green-dark: #218838;
+    --primary-green-light: #e8f5e9;
+    --primary-blue: #007bff;
+    --primary-blue-dark: #0056b3;
+    --primary-blue-light: #e3f2fd;
+    --danger-red: #dc3545;
+    --warning-yellow: #ffc107;
+    --secondary-gray: #6c757d;
+    --light-gray: #f8f9fa;
+    --border-color: #dee2e6;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   CARDS MODERNOS
+   ======================================== */
+.card {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    border-bottom: 2px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+    border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%) !important;
+    border: none;
+}
+
+.card-header h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* ========================================
+   FORMULÁRIOS MODERNOS
+   ======================================== */
+.form-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-label .text-danger {
+    color: var(--danger-red);
+}
+
+.form-label small {
+    font-weight: 400;
+    color: var(--secondary-gray);
+}
+
+.form-control, .form-select {
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border-color);
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    background-color: #fff;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    outline: none;
+}
+
+.form-control:hover:not(:focus), .form-select:hover:not(:focus) {
+    border-color: #adb5bd;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* ========================================
+   CHECKBOXES E RADIOS MODERNOS
+   ======================================== */
+.form-check {
+    padding-left: 1.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.15);
+}
+
+.form-check-label {
+    font-size: 0.95rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ========================================
+   BOTÕES MODERNOS
+   ======================================== */
+.btn {
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-blue-dark) 0%, #003d82 100%);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--primary-green-dark) 0%, #1e7e34 100%);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger-red) 0%, #c82333 100%);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+}
+
+.btn-secondary {
+    background: var(--secondary-gray);
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-outline-primary {
+    background: transparent;
+    border: 2px solid var(--primary-blue);
+    color: var(--primary-blue);
+    box-shadow: none;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-blue);
+    color: white;
+}
+
+.btn-outline-danger {
+    background: transparent;
+    border: 2px solid var(--danger-red);
+    color: var(--danger-red);
+    box-shadow: none;
+}
+
+.btn-outline-danger:hover {
+    background: var(--danger-red);
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.4rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-lg {
+    padding: 0.85rem 2rem;
+    font-size: 1.05rem;
+}
+
+.btn i {
+    font-size: 1em;
+}
+
+/* ========================================
+   QUESTÃO CARD (Design Moderno)
+   ======================================== */
+.questao-card {
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.questao-card:hover {
+    border-color: var(--primary-blue);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+}
+
+.questao-card .card-header {
+    background: linear-gradient(135deg, var(--light-gray) 0%, #e9ecef 100%);
+    border-bottom: 2px solid var(--border-color);
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.questao-numero {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--primary-blue);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.questao-numero i {
+    font-size: 1.1em;
+}
+
+.questao-card .card-body {
+    padding: 1.5rem;
+    background: #fff;
+}
+
+/* ========================================
+   ALTERNATIVAS (Múltipla Escolha)
+   ======================================== */
+.alternativa-item {
+    margin-bottom: 0.75rem;
+    transition: var(--transition);
+}
+
+.alternativa-item:hover {
+    transform: translateX(5px);
+}
+
+.alternativa-item .input-group-text {
+    border: 1.5px solid var(--border-color);
+    border-right: none;
+    background: var(--light-gray);
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.alternativa-item input[type="radio"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    accent-color: var(--primary-green);
+}
+
+.alternativa-item input[type="radio"]:checked {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.alternativa-item .form-control {
+    border-left: none;
+    border-right: none;
+    border: 1.5px solid var(--border-color);
+    border-left: none;
+    border-right: none;
+}
+
+.alternativa-item .btn {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    box-shadow: none;
+}
+
+/* ========================================
+   CONTAINERS E ÁREAS
+   ======================================== */
+.alternativas-container,
+.gabarito-vf-container,
+.gabarito-texto-container {
+    padding: 1rem;
+    background: var(--light-gray);
+    border-radius: var(--radius-sm);
+    margin-top: 1rem;
+    border: 1px dashed var(--border-color);
+}
+
+#totalPontosArea {
+    background: linear-gradient(135deg, var(--primary-blue-light) 0%, #bbdefb 100%);
+    border-left: 4px solid var(--primary-blue);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    margin-top: 1.5rem;
+    font-size: 1.05rem;
+}
+
+#totalPontosArea strong {
+    color: var(--primary-blue-dark);
+}
+
+#totalPontosDisplay {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+
+/* ========================================
+   QUESTÕES CONTAINER
+   ======================================== */
+#questoesContainer:empty::before {
+    content: '📝 Nenhuma questão adicionada. Clique em "Adicionar Questão" para começar.';
+    display: block;
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--secondary-gray);
+    font-size: 1.1rem;
+    font-weight: 500;
+    background: var(--light-gray);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-color);
+}
+
+/* ========================================
+   BADGES E TAGS
+   ======================================== */
+.badge {
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.text-danger {
+    color: var(--danger-red) !important;
+}
+
+.text-muted {
+    color: var(--secondary-gray) !important;
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   BREADCRUMBS MODERNOS
+   ======================================== */
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: var(--secondary-gray);
+    padding: 0 0.5rem;
+}
+
+.breadcrumb-item a {
+    color: var(--primary-blue);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.breadcrumb-item a:hover {
+    color: var(--primary-blue-dark);
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--secondary-gray);
+}
+
+/* ========================================
+   TÍTULOS E HEADERS
+   ======================================== */
+h2 {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.75rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+h2 i {
+    color: var(--primary-blue);
+}
+
+h5 {
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ========================================
+   ALERTAS MODERNOS
+   ======================================== */
+.alert {
+    border-radius: var(--radius-md);
+    border: none;
+    border-left: 4px solid;
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.alert-info {
+    background: var(--primary-blue-light);
+    border-left-color: var(--primary-blue);
+    color: var(--primary-blue-dark);
+}
+
+.alert-success {
+    background: var(--primary-green-light);
+    border-left-color: var(--primary-green);
+    color: var(--primary-green-dark);
+}
+
+.alert-danger {
+    background: #ffebee;
+    border-left-color: var(--danger-red);
+    color: #c62828;
+}
+
+.alert-warning {
+    background: #fff8e1;
+    border-left-color: var(--warning-yellow);
+    color: #f57f17;
+}
+
+/* ========================================
+   ANIMAÇÕES SUAVES
+   ======================================== */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.questao-card {
+    animation: slideDown 0.4s ease-out;
+}
+
+.alternativa-item {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ========================================
+   INPUT GROUPS MODERNOS
+   ======================================== */
+.input-group {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.input-group-text {
+    background: var(--light-gray);
+    border: 1.5px solid var(--border-color);
+    color: #495057;
+    font-weight: 500;
+}
+
+.input-group .form-control:focus {
+    z-index: 2;
+}
+
+/* ========================================
+   SEPARADORES E ESPAÇAMENTOS
+   ======================================== */
+.mb-1 { margin-bottom: 0.5rem !important; }
+.mb-2 { margin-bottom: 0.75rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mt-2 { margin-top: 0.75rem !important; }
+.mt-3 { margin-top: 1rem !important; }
+
+/* ========================================
+   CONTAINER E LAYOUT
+   ======================================== */
+.container-fluid {
+    padding: 1.5rem 2rem;
+}
+
+.hstack {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.gap-2 {
+    gap: 0.75rem;
+}
+
+.ms-auto {
+    margin-left: auto !important;
+}
+
+.text-end {
+    text-align: right !important;
+}
+
+/* ========================================
+   RESPONSIVIDADE
+   ======================================== */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    .questao-card .card-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+    
+    .questao-card .btnRemoverQuestao {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   TOOLTIPS E HINTS
+   ======================================== */
+.text-muted {
+    font-style: italic;
+}
+
+small.text-muted {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+}
+
+/* ========================================
+   ESTADOS DE LOADING
+   ======================================== */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.form-control:disabled,
+.form-select:disabled {
+    background-color: #e9ecef;
+    opacity: 0.7;
+}
+
+/* ========================================
+   MELHORIAS VISUAIS
+   ======================================== */
+.shadow-sm {
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow {
+    box-shadow: var(--shadow-md) !important;
+}
+
+.border-light {
+    border-color: var(--border-color) !important;
+}
+
+.border-primary {
+    border-color: var(--primary-blue) !important;
+}
+
+.border-secondary {
+    border-color: var(--secondary-gray) !important;
+}
+
+/* ========================================
+   SCROLL SUAVE
+   ======================================== */
+html {
+    scroll-behavior: smooth;
+}
+
+/* ========================================
+   FOCO ACESSÍVEL
+   ======================================== */
+*:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+.btn:focus-visible {
+    outline: 3px solid var(--primary-blue);
+    outline-offset: 3px;
+}
+
+/* ========================================
+   NÚMERO DA QUESTÃO (Destaque Visual)
+   ======================================== */
+.questao-card .numero {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.25rem;
+}
+
+/* ========================================
+   ÁREA DE ALTERNATIVAS
+   ======================================== */
+.alternativas-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.alternativas-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.alternativas-list::-webkit-scrollbar-track {
+    background: var(--light-gray);
+    border-radius: 3px;
+}
+
+.alternativas-list::-webkit-scrollbar-thumb {
+    background: var(--secondary-gray);
+    border-radius: 3px;
+}
+
+.alternativas-list::-webkit-scrollbar-thumb:hover {
+    background: #495057;
+}
+
+/* ========================================
+   DESTAQUE QUANDO CAMPO OBRIGATÓRIO VAZIO
+   ======================================== */
+.form-control:invalid,
+.form-select:invalid {
+    border-color: var(--danger-red);
+}
+
+.form-control:invalid:focus,
+.form-select:invalid:focus {
+    border-color: var(--danger-red);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+}
+
+/* ========================================
+   MELHORIAS NO HEADER DO CARD PRINCIPAL
+   ======================================== */
+.card-header.bg-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+}
+
+/* ========================================
+   GRID RESPONSIVO
+   ======================================== */
+.row {
+    --bs-gutter-x: 1.5rem;
+}
+
+/* ========================================
+   BOTÕES DE AÇÃO (Grupo)
+   ======================================== */
+.text-end .btn + .btn {
+    margin-left: 0.75rem;
+}
+
+@media (max-width: 576px) {
+    .text-end {
+        text-align: center !important;
+    }
+    
+    .text-end .btn {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-bottom: 0.75rem;
+    }
+}
+
+/* ========================================
+   ANIMAÇÃO DO BOTÃO ADICIONAR QUESTÃO
+   ======================================== */
+#btnAdicionarQuestao {
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+#btnAdicionarQuestao:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+#btnAdicionarQuestao:active {
+    transform: scale(0.98);
+}
+
+/* ========================================
+   MELHORIAS NAS SEÇÕES DE GABARITO
+   ======================================== */
+.alternativas-container label,
+.gabarito-vf-container label,
+.gabarito-texto-container label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.75rem;
+}
+
+/* ========================================
+   INDICADOR VISUAL DE TIPO DE QUESTÃO
+   ======================================== */
+.questao-card[data-tipo="multipla_escolha"] {
+    border-left: 4px solid var(--primary-blue);
+}
+
+.questao-card[data-tipo="verdadeiro_falso"] {
+    border-left: 4px solid var(--primary-green);
+}
+
+.questao-card[data-tipo="texto"] {
+    border-left: 4px solid var(--warning-yellow);
+}
+
+.questao-card[data-tipo="numerica"] {
+    border-left: 4px solid #17a2b8;
+}
+

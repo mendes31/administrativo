@@ -23,7 +23,7 @@ class UpdateEvaluationAnswer
     /** @var array|null $dataForm Dados do formulário */
     private array|null $dataForm = null;
 
-    public function index(int $id): void
+    public function index($id = null): void
     {
         $this->dataForm = filter_input_array(INPUT_POST, FILTER_DEFAULT);
 

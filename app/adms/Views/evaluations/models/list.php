@@ -7,10 +7,15 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_evaluation_model');
 
 ?>
 
+<!-- CSS Moderno para Formulários de Avaliação -->
+<link rel="stylesheet" href="<?= $_ENV['URL_ADM'] ?>public/adms/css/evaluation-forms-modern.css">
+
 <div class="container-fluid px-4">
 
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Modelos de Avaliação</h2>
+        <h2 class="mt-3">
+            <i class="fas fa-clipboard-list"></i> Modelos de Avaliação
+        </h2>
 
         <ol class="breadcrumb mb-3 ms-auto">
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
@@ -120,6 +125,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_evaluation_model');
                                         if (in_array('UpdateEvaluationModel', $this->data['buttonPermission'])) {
                                             echo "<a href='{$_ENV['URL_ADM']}update-evaluation-model/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
                                         }
+                                        
+                                        // Botão de impressão sempre visível
+                                        echo "<a href='{$_ENV['URL_ADM']}print-evaluation-blank/$id' class='btn btn-secondary btn-sm me-1 mb-1' target='_blank'><i class='fas fa-print'></i> Imprimir</a> ";
 
                                         if (in_array('DeleteEvaluationModel', $this->data['buttonPermission'])) {
                                         ?>
@@ -160,6 +168,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_evaluation_model');
                                     if (in_array('UpdateEvaluationModel', $this->data['buttonPermission'])) {
                                         echo "<a href='{$_ENV['URL_ADM']}update-evaluation-model/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
                                     }
+                                    
+                                    // Botão de impressão sempre visível
+                                    echo "<a href='{$_ENV['URL_ADM']}print-evaluation-blank/$id' class='btn btn-secondary btn-sm me-1 mb-1' target='_blank'><i class='fas fa-print'></i> Imprimir</a> ";
+                                    
                                     if (in_array('DeleteEvaluationModel', $this->data['buttonPermission'])) { ?>
                                         <form id="formDeleteMobile<?= $id; ?>" action="<?= $_ENV['URL_ADM']; ?>delete-evaluation-model" method="POST" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">

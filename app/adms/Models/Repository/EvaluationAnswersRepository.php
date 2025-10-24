@@ -224,12 +224,18 @@ class EvaluationAnswersRepository extends DbConnection
             $this->result = $stmt->execute();
             
             if ($this->result) {
-                GenerateLog::generateLog("info", "Resposta de avaliação criada com sucesso", null);
+                GenerateLog::generateLog("info", "Resposta de avaliação criada com sucesso", [
+                    'user_id' => $data['adms_user_id'] ?? null,
+                    'model_id' => $data['evaluation_model_id'] ?? null,
+                    'question_id' => $data['evaluation_question_id'] ?? null
+                ]);
             }
             
             return $this->result;
         } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Erro ao criar resposta de avaliação: " . $e->getMessage(), null);
+            GenerateLog::generateLog("error", "Erro ao criar resposta de avaliação: " . $e->getMessage(), [
+                'exception' => $e->getMessage()
+            ]);
             return false;
         }
     }
@@ -265,12 +271,17 @@ class EvaluationAnswersRepository extends DbConnection
             $this->result = $stmt->execute();
             
             if ($this->result) {
-                GenerateLog::generateLog("info", "Resposta de avaliação atualizada com sucesso", null);
+                GenerateLog::generateLog("info", "Resposta de avaliação atualizada com sucesso", [
+                    'answer_id' => $id
+                ]);
             }
             
             return $this->result;
         } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Erro ao atualizar resposta de avaliação: " . $e->getMessage(), null);
+            GenerateLog::generateLog("error", "Erro ao atualizar resposta de avaliação: " . $e->getMessage(), [
+                'answer_id' => $id,
+                'exception' => $e->getMessage()
+            ]);
             return false;
         }
     }
@@ -291,12 +302,17 @@ class EvaluationAnswersRepository extends DbConnection
             $this->result = $stmt->execute();
             
             if ($this->result) {
-                GenerateLog::generateLog("info", "Resposta de avaliação deletada com sucesso", null);
+                GenerateLog::generateLog("info", "Resposta de avaliação deletada com sucesso", [
+                    'answer_id' => $id
+                ]);
             }
             
             return $this->result;
         } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Erro ao deletar resposta de avaliação: " . $e->getMessage(), null);
+            GenerateLog::generateLog("error", "Erro ao deletar resposta de avaliação: " . $e->getMessage(), [
+                'answer_id' => $id,
+                'exception' => $e->getMessage()
+            ]);
             return false;
         }
     }

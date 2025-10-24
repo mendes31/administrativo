@@ -194,14 +194,24 @@ class UpdateUser
                 $trainingUsersRepo = new \App\adms\Models\Repository\TrainingUsersRepository();
                 $trainingUsersRepo->removeActiveLinksByUser($form['id']);
                 
+                // Cancelar avaliações pendentes/em andamento
+                $cancelEvaluationController = new \App\adms\Controllers\evaluations\CancelEvaluationAssignment();
+                $resultadoCancelamento = $cancelEvaluationController->cancelarAvaliacoesUsuario(
+                    $form['id'],
+                    $_SESSION['user_id'] ?? 0,
+                    'Usuário inativado pelo administrador'
+                );
+                
                 // Log da ação
                 \App\adms\Helpers\GenerateLog::generateLog(
                     "info", 
-                    "Usuário inativado - vínculos removidos", 
+                    "Usuário inativado - vínculos e avaliações removidos", 
                     [
                         'user_id' => $form['id'],
                         'user_name' => $userAntigo['name'] ?? '',
-                        'admin_user_id' => $_SESSION['user_id'] ?? 0
+                        'admin_user_id' => $_SESSION['user_id'] ?? 0,
+                        'avaliacoes_canceladas' => $resultadoCancelamento['total_canceladas'] ?? 0,
+                        'avaliacoes_encontradas' => $resultadoCancelamento['total_encontradas'] ?? 0
                     ]
                 );
             } elseif ($statusAnterior === 'Inativo' && $statusNovo === 'Ativo') {

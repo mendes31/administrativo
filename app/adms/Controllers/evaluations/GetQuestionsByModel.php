@@ -17,7 +17,7 @@ class GetQuestionsByModel
      * @param int $modelId ID do modelo de avaliação
      * @return void
      */
-    public function index(int $modelId): void
+    public function index($modelId = null): void
     {
         header('Content-Type: application/json');
         
