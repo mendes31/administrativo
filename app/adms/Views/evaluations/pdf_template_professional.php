@@ -30,46 +30,36 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
             line-height: 1.35;
         }
 
-        /* CABEÇALHO COM LOGOS FORA DA CAIXA */
+        /* CABEÇALHO COM LOGO DENTRO DA CAIXA */
         .header-section {
             margin-bottom: 15px;
             width: 100%;
+            text-align: center;
         }
         .header-layout {
-            width: 100%;
-            white-space: nowrap;
-            font-size: 0; /* Remove espaço entre inline-blocks */
-        }
-        .logo-area {
-            display: inline-block;
-            width: 13%; /* Reduzido para aproximar logos */
-            text-align: center;
-            vertical-align: top;
-            padding-top: 3px; /* Reduzido */
-            font-size: 10pt;
-            white-space: normal;
-        }
-        .box-area {
-            display: inline-block;
-            width: 74%; /* Aumentado para compensar */
-            vertical-align: top;
-            font-size: 10pt;
-            white-space: normal;
-        }
-        .logo-img {
-            max-width: 65px; /* Reduzido */
-            max-height: 45px; /* Reduzido */
-            height: auto;
-        }
-        .logo-tagline {
-            font-size: 6pt; /* Reduzido */
-            margin-top: 2px; /* Reduzido */
-            line-height: 1.05;
+            width: 70%;
+            margin: 0 auto;
         }
         .header-box {
             border: 2px solid #000;
-            padding: 3px 5px; /* Reduzido */
+            padding: 8px 10px;
             text-align: center;
+            position: relative;
+        }
+        .header-logo-top {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .logo-img {
+            max-width: 100px;
+            max-height: 60px;
+            height: auto;
+        }
+        .logo-tagline {
+            font-size: 7pt;
+            margin-top: 3px;
+            line-height: 1.1;
+            color: #2d5f2e;
         }
         .header-title {
             font-size: 10.5pt; /* Reduzido */
@@ -260,34 +250,25 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
     </style>
 </head>
 <body>
-    <!-- CABEÇALHO COM LOGOS FORA DA CAIXA -->
+    <!-- CABEÇALHO COM LOGO DENTRO DA CAIXA -->
     <div class="header-section">
         <div class="header-layout">
-            <!-- LOGO ESQUERDA -->
-            <div class="logo-area">
-                <?php if (file_exists($logoPath)): ?>
-                    <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
-                    <div class="logo-tagline">Natural é se<br>sentir bem</div>
-                <?php endif; ?>
-            </div>
-
-            <!-- CAIXA CENTRAL -->
-            <div class="box-area">
-                <div class="header-box">
-                    <div class="header-title"><?= $codDocumento ?></div>
-                    <div class="header-line"></div>
-                    <div class="header-subtitle"><?= $docCodigo ?></div>
-                    <div class="header-line"></div>
-                    <div class="header-description"><?= strtoupper(htmlspecialchars($model['titulo'])) ?></div>
+            <div class="header-box">
+                <!-- LOGO NO TOPO DA CAIXA -->
+                <div class="header-logo-top">
+                    <?php if (file_exists($logoPath)): ?>
+                        <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
+                        <div class="logo-tagline">Natural é se sentir bem</div>
+                    <?php endif; ?>
                 </div>
-            </div>
-
-            <!-- LOGO DIREITA -->
-            <div class="logo-area">
-                <?php if (file_exists($logoPath)): ?>
-                    <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
-                    <div class="logo-tagline">Natural é se<br>sentir bem</div>
-                <?php endif; ?>
+                
+                <!-- INFORMAÇÕES DO DOCUMENTO -->
+                <div class="header-line"></div>
+                <div class="header-title"><?= $codDocumento ?></div>
+                <div class="header-line"></div>
+                <div class="header-subtitle"><?= $docCodigo ?></div>
+                <div class="header-line"></div>
+                <div class="header-description"><?= strtoupper(htmlspecialchars($model['titulo'])) ?></div>
             </div>
         </div>
     </div>
