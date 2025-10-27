@@ -96,6 +96,8 @@ class CreateEvaluationModelWithQuestions
             $modelData = [
                 'training_id' => (int)$_POST['adms_training_id'],
                 'titulo' => trim($_POST['titulo']),
+                'codigo_documento' => trim($_POST['codigo_documento'] ?? ''),
+                'versao_documento' => trim($_POST['versao_documento'] ?? ''),
                 'descricao' => trim($_POST['descricao'] ?? ''),
                 'nota_minima_aprovacao' => (float)($_POST['nota_minima_aprovacao'] ?? 7.00),
                 'tempo_limite' => !empty($_POST['tempo_limite']) ? (int)$_POST['tempo_limite'] : null,

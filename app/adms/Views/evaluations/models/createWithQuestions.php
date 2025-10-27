@@ -50,6 +50,21 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_create_evaluation_full');
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Código do Documento <span class="text-danger">*</span></label>
+                        <input type="text" name="codigo_documento" class="form-control" required 
+                               placeholder="Ex: AVAL-NOR-TI-0004">
+                        <small class="text-muted">Código de identificação do documento</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Versão <span class="text-danger">*</span></label>
+                        <input type="text" name="versao_documento" class="form-control" required 
+                               placeholder="Ex: 1.0 ou v01">
+                        <small class="text-muted">Versão do documento</small>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Descrição/Instruções</label>
                     <textarea name="descricao" class="form-control" rows="3" 

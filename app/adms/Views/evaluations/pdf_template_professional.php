@@ -30,36 +30,54 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
             line-height: 1.35;
         }
 
-        /* CABEÇALHO COM LOGO DENTRO DA CAIXA */
+        /* CABEÇALHO COM LOGOS NAS LATERAIS */
         .header-section {
             margin-bottom: 15px;
             width: 100%;
-            text-align: center;
+            overflow: hidden;
+            border: 1px solid #ccc;
+            padding: 10px;
         }
         .header-layout {
-            width: 70%;
-            margin: 0 auto;
+            width: 100%;
+            border: none;
         }
-        .header-box {
-            border: 2px solid #000;
-            padding: 8px 10px;
+        .logo-area-left {
+            float: left;
+            width: 100px;
             text-align: center;
-            position: relative;
+            padding-top: 5px;
+            border-right: 1px solid #ccc;
+            padding-right: 10px;
         }
-        .header-logo-top {
+        .logo-area-right {
+            float: right;
+            width: 100px;
             text-align: center;
-            margin-bottom: 8px;
+            padding-top: 5px;
+            border-left: 1px solid #ccc;
+            padding-left: 10px;
+        }
+        .box-area {
+            margin: 0 110px;
         }
         .logo-img {
-            max-width: 100px;
-            max-height: 60px;
+            max-width: 80px;
+            max-height: 55px;
             height: auto;
+            display: block;
+            margin: 0 auto;
         }
         .logo-tagline {
-            font-size: 7pt;
+            font-size: 6.5pt;
             margin-top: 3px;
             line-height: 1.1;
             color: #2d5f2e;
+        }
+        .header-box {
+            border: none;
+            padding: 8px 10px;
+            text-align: center;
         }
         .header-title {
             font-size: 10.5pt; /* Reduzido */
@@ -243,32 +261,43 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
         /* RODAPÉ */
         .footer {
             margin-top: 15px;
-            text-align: right;
+            text-align: center;
             font-size: 8.5pt;
             color: #666;
         }
     </style>
 </head>
 <body>
-    <!-- CABEÇALHO COM LOGO DENTRO DA CAIXA -->
+    <!-- CABEÇALHO COM LOGOS NAS LATERAIS -->
     <div class="header-section">
         <div class="header-layout">
-            <div class="header-box">
-                <!-- LOGO NO TOPO DA CAIXA -->
-                <div class="header-logo-top">
-                    <?php if (file_exists($logoPath)): ?>
-                        <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
-                        <div class="logo-tagline">Natural é se sentir bem</div>
-                    <?php endif; ?>
+            <!-- LOGO ESQUERDA -->
+            <div class="logo-area-left">
+                <?php if (file_exists($logoPath)): ?>
+                    <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
+                    <div class="logo-tagline">Natural é se<br>sentir bem</div>
+                <?php endif; ?>
+            </div>
+
+            <!-- LOGO DIREITA -->
+            <div class="logo-area-right">
+                <?php if (file_exists($logoPath)): ?>
+                    <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
+                    <div class="logo-tagline">Natural é se<br>sentir bem</div>
+                <?php endif; ?>
+            </div>
+
+            <!-- CAIXA CENTRAL -->
+            <div class="box-area">
+                <div class="header-box">
+                    <div class="header-title"><?= strtoupper(htmlspecialchars($model['titulo'] ?? 'TÍTULO DA AVALIAÇÃO')) ?></div>
+                    <div class="header-line"></div>
+                    <div class="header-subtitle"><?= htmlspecialchars($model['codigo_documento'] ?? 'CÓDIGO DO DOCUMENTO') ?></div>
+                    <div class="header-line"></div>
+                    <div class="header-description">
+                        <?= htmlspecialchars($model['training_code'] ?? 'N/A') ?> - <?= strtoupper(htmlspecialchars($model['training_name'] ?? 'TREINAMENTO')) ?>
+                    </div>
                 </div>
-                
-                <!-- INFORMAÇÕES DO DOCUMENTO -->
-                <div class="header-line"></div>
-                <div class="header-title"><?= $codDocumento ?></div>
-                <div class="header-line"></div>
-                <div class="header-subtitle"><?= $docCodigo ?></div>
-                <div class="header-line"></div>
-                <div class="header-description"><?= strtoupper(htmlspecialchars($model['titulo'])) ?></div>
             </div>
         </div>
     </div>
@@ -284,43 +313,20 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
             <span class="info-value"><?= $dataAvaliacao ?></span>
         </div>
         <div class="info-row">
-            <span class="info-label">Código do Documento:</span>
-            <span class="info-value"><?= $docCodigo ?></span>
+            <span class="info-label">Código e Versão do Documento:</span>
+            <span class="info-value"><?= htmlspecialchars($model['training_code'] ?? 'N/A') ?> - v<?= htmlspecialchars($model['training_version'] ?? '01') ?></span>
         </div>
         <div class="info-row">
             <span class="info-label">Nota:</span>
             <span class="info-value" style="font-weight: bold; color: <?= $statusCor ?>;">
                 <?= number_format($attempt['nota_obtida'], 2, ',', '.') ?>
             </span>
+            <span style="margin-left: 10px; padding: 2px 8px; background-color: <?= $statusCorClara ?>; color: <?= $statusCor ?>; font-weight: bold; border: 1px solid <?= $statusCor ?>; font-size: 8pt;">
+                <?= $statusTexto ?>
+            </span>
         </div>
     </div>
 
-    <!-- RESULTADO -->
-    <div class="resultado-box">
-        <div class="resultado-status"><?= $statusTexto ?></div>
-        <div class="metricas">
-            <table>
-                <tr>
-                    <td>
-                        <span class="metrica-valor"><?= number_format($attempt['nota_obtida'], 2, ',', '.') ?></span>
-                        <span class="metrica-label">Nota Final</span>
-                    </td>
-                    <td>
-                        <span class="metrica-valor"><?= $attempt['questoes_corretas'] ?>/<?= $attempt['total_questoes'] ?></span>
-                        <span class="metrica-label">Quest. Corretas</span>
-                    </td>
-                    <td>
-                        <span class="metrica-valor"><?= number_format($attempt['percentual'], 1, ',', '.') ?>%</span>
-                        <span class="metrica-label">Aproveitamento</span>
-                    </td>
-                    <td>
-                        <span class="metrica-valor"><?= number_format($model['nota_minima_aprovacao'] ?? 7.00, 2, ',', '.') ?></span>
-                        <span class="metrica-label">Nota Mínima</span>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
 
     <!-- QUESTÕES E RESPOSTAS -->
     <?php foreach ($questions as $index => $questao): 
@@ -428,6 +434,18 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
     </div>
     <?php endforeach; ?>
 
+    <!-- ASSINATURA (ANTES DO HISTÓRICO) -->
+    <div class="assinatura-section">
+        <div class="assinatura-info">
+            <strong>Colaborador:</strong> <?= htmlspecialchars($user['name']) ?><br>
+            <strong>Data de Impressão:</strong> <?= $dataImpressao ?>
+        </div>
+        <div class="assinatura-linha">
+            <?= htmlspecialchars($user['name']) ?><br>
+            <span style="font-size: 8pt; color: #666;">Assinatura do Colaborador</span>
+        </div>
+    </div>
+
     <!-- HISTÓRICO DE ALTERAÇÕES -->
     <div class="historico-section">
         <div class="historico-titulo">Histórico de Alterações</div>
@@ -440,27 +458,15 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
             </thead>
             <tbody>
                 <tr>
-                    <td class="versao-col">1.0</td>
-                    <td>Emissão inicial do formulário</td>
+                    <td class="versao-col"><?= htmlspecialchars($model['versao_documento'] ?? '1.0') ?></td>
+                    <td><?= htmlspecialchars($model['descricao'] ?? 'Emissão inicial do formulário') ?></td>
                 </tr>
                 <tr>
-                    <td class="versao-col"><?= date('Y-m-d') ?></td>
+                    <td class="versao-col"><?= date('d/m/Y') ?></td>
                     <td>Resultado da Tentativa #<?= $attempt['tentativa_numero'] ?> - <?= $statusTexto ?> - Nota: <?= number_format($attempt['nota_obtida'], 2, ',', '.') ?></td>
                 </tr>
             </tbody>
         </table>
-    </div>
-
-    <!-- ASSINATURA -->
-    <div class="assinatura-section">
-        <div class="assinatura-info">
-            <strong>Colaborador:</strong> <?= htmlspecialchars($user['name']) ?><br>
-            <strong>Data de Impressão:</strong> <?= $dataImpressao ?>
-        </div>
-        <div class="assinatura-linha">
-            <?= htmlspecialchars($user['name']) ?><br>
-            <span style="font-size: 8pt; color: #666;">Assinatura do Colaborador</span>
-        </div>
     </div>
 
     <!-- RODAPÉ -->

@@ -150,8 +150,11 @@ class EvaluationModelsRepository extends DbConnection
     public function getModel(int $id): array|bool
     {
         // QUERY para recuperar o registro do banco de dados
-        $sql = 'SELECT em.id, em.adms_training_id, em.titulo, em.descricao, em.ativo, em.created_at, em.updated_at,
-                       at.nome as training_name
+        $sql = 'SELECT em.id, em.adms_training_id, em.titulo, em.codigo_documento, em.versao_documento, 
+                       em.descricao, em.ativo, em.created_at, em.updated_at,
+                       at.nome as training_name,
+                       at.codigo as training_code,
+                       at.versao as training_version
                 FROM adms_evaluation_models em
                 LEFT JOIN adms_trainings at ON em.adms_training_id = at.id
                 WHERE em.id = :id';
@@ -176,12 +179,14 @@ class EvaluationModelsRepository extends DbConnection
     public function createModel(array $data): bool
     {
         try {
-            $sql = 'INSERT INTO adms_evaluation_models (adms_training_id, titulo, descricao, ativo, created_at, updated_at) 
-                    VALUES (:training_id, :titulo, :descricao, :ativo, NOW(), NOW())';
+            $sql = 'INSERT INTO adms_evaluation_models (adms_training_id, titulo, codigo_documento, versao_documento, descricao, ativo, created_at, updated_at) 
+                    VALUES (:training_id, :titulo, :codigo_documento, :versao_documento, :descricao, :ativo, NOW(), NOW())';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':training_id', $data['training_id'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':titulo', $data['titulo'], PDO::PARAM_STR);
+            $stmt->bindValue(':codigo_documento', $data['codigo_documento'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':versao_documento', $data['versao_documento'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':descricao', $data['descricao'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_INT);
 
@@ -205,14 +210,17 @@ class EvaluationModelsRepository extends DbConnection
     {
         try {
             $sql = 'UPDATE adms_evaluation_models 
-                    SET adms_training_id = :training_id, titulo = :titulo, descricao = :descricao, 
-                        ativo = :ativo, updated_at = NOW()
+                    SET adms_training_id = :training_id, titulo = :titulo, 
+                        codigo_documento = :codigo_documento, versao_documento = :versao_documento,
+                        descricao = :descricao, ativo = :ativo, updated_at = NOW()
                     WHERE id = :id';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->bindValue(':training_id', $data['training_id'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':titulo', $data['titulo'], PDO::PARAM_STR);
+            $stmt->bindValue(':codigo_documento', $data['codigo_documento'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':versao_documento', $data['versao_documento'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':descricao', $data['descricao'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_INT);
 

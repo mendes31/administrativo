@@ -29,36 +29,54 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
             line-height: 1.35;
         }
 
-        /* CABEÇALHO COM LOGO DENTRO DA CAIXA */
+        /* CABEÇALHO COM LOGOS NAS LATERAIS */
         .header-section {
             margin-bottom: 15px;
             width: 100%;
-            text-align: center;
+            overflow: hidden;
+            border: 1px solid #ccc;
+            padding: 10px;
         }
         .header-layout {
-            width: 70%;
-            margin: 0 auto;
+            width: 100%;
+            border: none;
         }
-        .header-box {
-            border: 2px solid #000;
-            padding: 8px 10px;
+        .logo-area-left {
+            float: left;
+            width: 100px;
             text-align: center;
-            position: relative;
+            padding-top: 5px;
+            border-right: 1px solid #ccc;
+            padding-right: 10px;
         }
-        .header-logo-top {
+        .logo-area-right {
+            float: right;
+            width: 100px;
             text-align: center;
-            margin-bottom: 8px;
+            padding-top: 5px;
+            border-left: 1px solid #ccc;
+            padding-left: 10px;
+        }
+        .box-area {
+            margin: 0 110px;
         }
         .logo-img {
-            max-width: 100px;
-            max-height: 60px;
+            max-width: 80px;
+            max-height: 55px;
             height: auto;
+            display: block;
+            margin: 0 auto;
         }
         .logo-tagline {
-            font-size: 7pt;
+            font-size: 6.5pt;
             margin-top: 3px;
             line-height: 1.1;
             color: #2d5f2e;
+        }
+        .header-box {
+            border: none;
+            padding: 8px 10px;
+            text-align: center;
         }
         .header-title {
             font-size: 10.5pt; /* Reduzido */
@@ -94,6 +112,11 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
         .field-label {
             font-weight: bold;
             display: inline;
+        }
+        .field-value {
+            display: inline;
+            margin-left: 5px;
+            font-weight: normal;
         }
         .field-underline {
             display: inline-block;
@@ -165,25 +188,36 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
     </style>
 </head>
 <body>
-    <!-- CABEÇALHO COM LOGO DENTRO DA CAIXA -->
+    <!-- CABEÇALHO COM LOGOS NAS LATERAIS -->
     <div class="header-section">
         <div class="header-layout">
-            <div class="header-box">
-                <!-- LOGO NO TOPO DA CAIXA -->
-                <div class="header-logo-top">
-                    <?php if (file_exists($logoPath)): ?>
-                        <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
-                        <div class="logo-tagline">Natural é se sentir bem</div>
-                    <?php endif; ?>
+            <!-- LOGO ESQUERDA -->
+            <div class="logo-area-left">
+                <?php if (file_exists($logoPath)): ?>
+                    <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
+                    <div class="logo-tagline">Natural é se<br>sentir bem</div>
+                <?php endif; ?>
+            </div>
+
+            <!-- LOGO DIREITA -->
+            <div class="logo-area-right">
+                <?php if (file_exists($logoPath)): ?>
+                    <img src="file://<?= $logoPath ?>" class="logo-img" alt="Logo Tiaraju">
+                    <div class="logo-tagline">Natural é se<br>sentir bem</div>
+                <?php endif; ?>
+            </div>
+
+            <!-- CAIXA CENTRAL -->
+            <div class="box-area">
+                <div class="header-box">
+                    <div class="header-title"><?= strtoupper(htmlspecialchars($model['titulo'] ?? 'TÍTULO DA AVALIAÇÃO')) ?></div>
+                    <div class="header-line"></div>
+                    <div class="header-subtitle"><?= htmlspecialchars($model['codigo_documento'] ?? 'CÓDIGO DO DOCUMENTO') ?></div>
+                    <div class="header-line"></div>
+                    <div class="header-description">
+                        <?= htmlspecialchars($model['training_code'] ?? 'N/A') ?> - <?= strtoupper(htmlspecialchars($model['training_name'] ?? 'TREINAMENTO')) ?>
+                    </div>
                 </div>
-                
-                <!-- INFORMAÇÕES DO DOCUMENTO -->
-                <div class="header-line"></div>
-                <div class="header-title"><?= $codDocumento ?></div>
-                <div class="header-line"></div>
-                <div class="header-subtitle">ID: <?= $model['id'] ?></div>
-                <div class="header-line"></div>
-                <div class="header-description"><?= strtoupper(htmlspecialchars($model['titulo'])) ?></div>
             </div>
         </div>
     </div>
@@ -200,7 +234,7 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
         </div>
         <div class="field-row">
             <span class="field-label">Código e Versão do Documento:</span>
-            <span class="field-underline"></span>
+            <span class="field-value"><?= htmlspecialchars($model['training_code'] ?? 'N/A') ?> - v<?= htmlspecialchars($model['training_version'] ?? '01') ?></span>
         </div>
         <div class="field-row">
             <span class="field-label">Nota:</span>
@@ -255,12 +289,12 @@ $logoPath = str_replace('\\', '/', $logoPath); // Normalizar para MPDF
             </thead>
             <tbody>
                 <tr>
-                    <td class="versao-col">1</td>
-                    <td>Emissão inicial</td>
+                    <td class="versao-col"><?= htmlspecialchars($model['versao_documento'] ?? '1.0') ?></td>
+                    <td><?= htmlspecialchars($model['descricao'] ?? 'Emissão inicial do formulário') ?></td>
                 </tr>
                 <tr>
-                    <td class="versao-col"><?= date('Y-m-d') ?></td>
-                    <td>Formulário impresso para avaliação (Total: <?= $totalPontos ?> pontos | Nota mínima: <?= number_format($model['nota_minima_aprovacao'] ?? 7.00, 2, ',', '.') ?>)</td>
+                    <td class="versao-col"><?= date('d/m/Y') ?></td>
+                    <td>Formulário impresso para avaliação (Total: <?= number_format($totalPontos, 2, ',', '.') ?> pontos | Nota mínima: <?= number_format($model['nota_minima_aprovacao'] ?? 7.00, 2, ',', '.') ?>)</td>
                 </tr>
             </tbody>
         </table>
