@@ -121,7 +121,7 @@ $estatisticas = $this->data['estatisticas'] ?? [];
                                 <small class="text-muted">Data:</small><br>
                                 <strong><?= date('d/m/Y H:i', strtotime($tentativa['data_finalizacao'])) ?></strong>
                             </p>
-                            <a href="<?= $_ENV['URL_ADM'] ?>resultado-avaliacao/<?= $tentativa['id'] ?>" 
+                            <a href="<?= $_ENV['URL_ADM'] ?>view-evaluation-result/<?= $tentativa['id'] ?>" 
                                class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-eye"></i> Ver Detalhes
                             </a>

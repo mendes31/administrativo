@@ -78,8 +78,6 @@ class LoadPageAdm
         "AssignEvaluation", "CancelEvaluationAssignment", "ListEvaluationAssignments",
         "AnswerEvaluation", "ViewEvaluationResult", "EvaluationHistory",
         "MyEvaluations", "PrintEvaluationResult", "PrintEvaluationBlank",
-        // Redirects de URLs antigas para novas
-        "MinhasAvaliacoes", "ResponderQuestionario", "HistoricoAvaliacoes", "ResultadoAvaliacao", "ResponderAvaliacao",
         "GetQuestionsByModel",
         "ScheduleTraining", "ApplyTraining", "ListTrainingStatus", "TrainingPositions", "TrainingMatrixManager", "ListTrainings", "CreateTraining", "UpdateTraining", "DeleteTraining", "ViewTraining", "UpdateTrainingMatrix",
         "MatrixByUser", "TestNotification", "SyncTrainingLinks", "CreateTestData", "TrainingDashboard",
