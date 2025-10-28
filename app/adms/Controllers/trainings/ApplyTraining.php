@@ -334,8 +334,10 @@ class ApplyTraining
                     $avisoRetroativo .= "Aplicado por: " . ($_SESSION['user_id'] ?? 'N/A') . " (" . ($_SESSION['user_name'] ?? 'N/A') . ")\n";
                     file_put_contents(__DIR__ . '/../../logs/lancamentos_retroativos.log', $avisoRetroativo, FILE_APPEND);
                     
-                    // NÃO BLOQUEAR - Apenas avisar
-                    // $_SESSION['msg_warning'] = "Atenção: Data de realização anterior à criação do vínculo.";
+                    // Mostrar aviso na tela (não bloqueia, apenas informa)
+                    $_SESSION['msg_warning'] = "⚠️ Atenção: Data de realização (" . date('d/m/Y', strtotime($data_realizacao)) . 
+                                               ") é anterior à criação do vínculo (" . date('d/m/Y', strtotime($dataCriacaoVinculo)) . 
+                                               "). Lançamento retroativo registrado.";
                 } else {
                     error_log("✓ OK: data_realizacao >= dataCriacaoVinculo");
                 }
