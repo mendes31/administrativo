@@ -1,0 +1,930 @@
+/**
+ * Menu Modernizado - Mobile First ✨
+ * 
+ * DESIGN MODERNO (sb-sidenav-five):
+ * =================================
+ * 🎨 Fundo do sidebar: #2E9263 (VERDE do projeto mantido)
+ * 
+ * 📌 Item ATIVO:
+ * - Fundo: Gradiente branco translúcido
+ * - Texto: #181818 (escuro)
+ * - Ícone: #2E9263 (verde destaque)
+ * - Sem borda verde (removida)
+ * - Border-radius: 8px (cantos arredondados)
+ * - Box-shadow: Sombra suave
+ * - Efeito: Card flutuante moderno
+ * 
+ * 📄 Itens INATIVOS:
+ * - Fundo: Transparente sobre verde
+ * - Texto: Branco translúcido (rgba 0.85)
+ * - Ícones: Branco translúcido (rgba 0.7)
+ * - Border-radius: 8px
+ * - Margin: 2px 8px
+ * 
+ * 🎯 Hover:
+ * - Fundo: Branco translúcido 15%
+ * - Texto: Branco 100%
+ * - Ícone: Branco + scale(1.1)
+ * - Transição suave
+ * 
+ * 📂 Submenus:
+ * - Fundo: Preto translúcido 8%
+ * - Seta animada: › → ▸
+ * - Border-radius: 8px
+ * 
+ * 📱 MOBILE FIRST:
+ * - Touch targets 48px+
+ * - Transições otimizadas
+ * - Scroll suave iOS/Android
+ * - Performance máxima
+ */
+
+/* ========================================
+   OTIMIZAÇÕES MOBILE FIRST
+   ======================================== */
+
+/* Melhorar performance e experiência touch no menu */
+.sb-sidenav *,
+.sb-sidenav-menu * {
+    -webkit-tap-highlight-color: rgba(46, 146, 99, 0.2); /* Highlight verde no toque */
+    -webkit-touch-callout: none; /* Remove menu contextual longo em iOS */
+}
+
+/* Scroll suave e otimizado para mobile */
+.sb-sidenav-menu {
+    -webkit-overflow-scrolling: touch; /* Scroll suave em iOS */
+    scroll-behavior: smooth;
+    overscroll-behavior: contain; /* Previne scroll chain em mobile */
+}
+
+/* Área de toque confortável */
+.sb-sidenav .nav-link {
+    cursor: pointer;
+    user-select: none; /* Previne seleção acidental de texto */
+}
+
+/* ========================================
+   VARIÁVEIS CUSTOMIZADAS PARA O MENU
+   ======================================== */
+:root {
+    /* Cores originais do projeto - com verde no item ativo */
+    --menu-bg-primary: #212529;
+    --menu-bg-secondary: #343a40;
+    --menu-accent: #2E9263;
+    --menu-text: #ffffff;
+    --menu-text-muted: #adb5bd;
+    --menu-active-bg: rgba(46, 146, 99, 0.2);  /* Verde suave #2E9263 com 20% opacidade */
+    --menu-active-text: #ffffff;  /* Texto branco para contraste */
+    --menu-hover-bg: rgba(255, 255, 255, 0.08);
+    --menu-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   CAIXA DE PESQUISA NO MENU
+   ======================================== */
+.menu-search-container {
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);  /* Safari */
+    pointer-events: auto !important;  /* Sempre clicável */
+}
+
+.menu-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    pointer-events: auto !important;  /* Sempre clicável */
+}
+
+.menu-search-box:focus-within {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 
+        0 0 0 3px rgba(255, 255, 255, 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.menu-search-icon {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    margin-right: 0.6rem;
+    transition: color 0.3s ease;
+}
+
+.menu-search-box:focus-within .menu-search-icon {
+    color: #ffffff;
+}
+
+.menu-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 0.9rem;
+    outline: none;
+    padding: 0;
+    font-weight: 400;
+    pointer-events: auto !important;  /* Sempre clicável */
+    touch-action: manipulation;
+}
+
+.menu-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.menu-search-clear {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 0.3rem;
+    margin-left: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.menu-search-clear:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.menu-search-clear:active {
+    transform: scale(0.95);
+}
+
+.menu-search-results {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    padding: 0.3rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+}
+
+.menu-search-count {
+    font-weight: 500;
+}
+
+.menu-search-hint {
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+}
+
+.menu-search-hint kbd {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Destacar itens encontrados na busca */
+.nav-link.search-match {
+    background: rgba(255, 255, 255, 0.25) !important;
+    animation: pulse-search 0.6s ease-in-out;
+}
+
+@keyframes pulse-search {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* No results message */
+.menu-search-no-results {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1rem;
+    font-style: italic;
+}
+
+/* Mobile e Tablet - Otimizações para pesquisa */
+@media (max-width: 991.98px) {
+    .menu-search-container {
+        padding: 0.8rem;
+        pointer-events: auto !important;
+        z-index: 2001 !important;  /* Acima de tudo */
+    }
+    
+    .menu-search-box {
+        padding: 0.7rem 0.9rem;
+        pointer-events: auto !important;
+        z-index: 2001 !important;
+    }
+    
+    .menu-search-input {
+        font-size: 16px !important; /* Previne zoom no iOS */
+        pointer-events: auto !important;
+        touch-action: manipulation;
+    }
+    
+    .menu-search-icon,
+    .menu-search-clear {
+        pointer-events: auto !important;
+    }
+    
+    .menu-search-hint {
+        display: none; /* Oculta hint de teclado em mobile */
+    }
+}
+
+/* ========================================
+   MENU LATERAL BASE
+   ======================================== */
+/* NÃO sobrescrever o background do sb-sidenav-five original que é VERDE #2E9263 */
+.sb-sidenav:not(.sb-sidenav-five) {
+    background: var(--menu-bg-primary);
+    border-right: 1px solid var(--menu-border);
+    box-shadow: 2px 0 8px var(--menu-shadow);
+}
+
+/* Manter o sb-sidenav-five com as cores originais do projeto */
+.sb-sidenav-five {
+    /* O styles_admin.css já define background-color: #2E9263 */
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 14px rgba(0, 0, 0, .10), 0 8px 8px rgba(0, 0, 0, .10) !important;
+}
+
+.sb-sidenav-menu {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Scrollbar customizada e moderna */
+.sb-sidenav-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sb-sidenav-menu::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.sb-sidenav-menu::-webkit-scrollbar-thumb {
+    background: var(--menu-accent);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.sb-sidenav-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--menu-accent-hover);
+}
+
+/* ========================================
+   ITENS DO MENU
+   ======================================== */
+/* Itens do menu para sb-sidenav-five (fundo verde) - SEMPRE VISÍVEL */
+.sb-sidenav-five .nav-link {
+    color: #ffffff !important;  /* Texto BRANCO SÓLIDO sempre visível */
+    padding: 0.9rem 1.2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border-left: none;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    border-radius: 8px;
+    margin: 2px 8px;
+    opacity: 1 !important;
+}
+
+/* Garantir texto branco SEMPRE VISÍVEL em todos os estados não ativos */
+.sb-sidenav-five .sb-sidenav-menu .nav-link {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Sobrescrever estilos originais do styles_admin.css */
+.sb-sidenav-five .sb-sidenav-menu .nav-link:not(.active) {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .sb-sidenav-menu-heading {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Itens do menu para outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .nav-link {
+    color: var(--menu-text);
+    padding: 0.9rem 1.2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border-left: 3px solid transparent;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+/* Efeito hover - sb-sidenav-five (fundo verde) - MODERNIZADO */
+.sb-sidenav-five .nav-link:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.15) !important;  /* Branco translúcido */
+    color: #ffffff !important;  /* Texto branco no hover */
+    padding-left: 1.4rem;
+    border-radius: 8px;
+    margin: 2px 8px;
+    transition: all 0.3s ease;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link:hover:not(.active) {
+    color: #ffffff !important;
+}
+
+.sb-sidenav-five .nav-link:hover:not(.active) .sb-nav-link-icon {
+    color: #ffffff !important;  /* Ícone branco no hover */
+}
+
+/* Efeito hover - outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .nav-link:hover:not(.active) {
+    background: var(--menu-hover-bg);
+    color: #ffffff;
+    padding-left: 1.4rem;
+}
+
+/* Estado ativo - sb-sidenav-five (fundo verde) - TEXTO SEMPRE VISÍVEL */
+.sb-sidenav-five .nav-link.active {
+    background: #f0efef !important;  /* Cinza claro SÓLIDO */
+    color: #181818 !important;  /* Texto ESCURO visível */
+    border-left: none;
+    font-weight: 600;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin: 4px 8px;
+    padding-left: 1rem !important;
+    opacity: 1 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link.active {
+    background: #f0efef !important;
+    color: #181818 !important;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .nav-link.active:hover {
+    background: #e8e8e8 !important;
+    color: #181818 !important;
+    padding-left: 1rem !important;
+    opacity: 1 !important;
+    box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.sb-sidenav-five .nav-link.active .sb-nav-link-icon,
+.sb-sidenav-five .nav-link.active:hover .sb-nav-link-icon {
+    color: #2E9263 !important;  /* Ícone verde para destaque */
+    opacity: 1 !important;
+}
+
+/* Estado ativo - outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .nav-link.active {
+    background: var(--menu-active-bg) !important;
+    color: #ffffff !important;
+    border-left: 3px solid var(--menu-accent);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .nav-link.active:hover {
+    background: var(--menu-active-bg) !important;
+    color: #ffffff !important;
+    padding-left: 1.2rem;
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .nav-link.active:hover .sb-nav-link-icon {
+    color: #ffffff !important;
+}
+
+/* ========================================
+   ÍCONES
+   ======================================== */
+/* Ícones - sb-sidenav-five (fundo verde) - SEMPRE VISÍVEIS */
+.sb-sidenav-five .sb-nav-link-icon {
+    color: #ffffff !important;  /* Ícone BRANCO SÓLIDO sempre visível */
+    font-size: 1.1rem;
+    margin-right: 1rem;
+    transition: all 0.3s ease;
+    min-width: 1.5rem;
+    text-align: center;
+    opacity: 1 !important;
+}
+
+/* Garantir ícones brancos SEMPRE VISÍVEIS em todos os estados não ativos */
+.sb-sidenav-five .sb-sidenav-menu .nav-link .sb-nav-link-icon {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Sobrescrever estilos originais do styles_admin.css para ícones */
+.sb-sidenav-five .sb-sidenav-menu .nav-link:not(.active) .sb-nav-link-icon {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link:not(.active) .sb-sidenav-collapse-arrow {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .nav-link:hover:not(.active) .sb-nav-link-icon {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
+
+/* Ícones - outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .sb-nav-link-icon {
+    color: var(--menu-text-muted);
+    font-size: 1.1rem;
+    margin-right: 1rem;
+    transition: all 0.3s ease;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .nav-link:hover:not(.active) .sb-nav-link-icon {
+    color: var(--menu-accent);
+    transform: scale(1.05);
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .nav-link.active .sb-nav-link-icon {
+    color: #ffffff !important;
+    transform: scale(1);
+}
+
+/* ========================================
+   SUBMENUS - MODERNIZADOS
+   ======================================== */
+/* Submenus para sb-sidenav-five */
+.sb-sidenav-five .sb-sidenav-menu-nested {
+    background: rgba(0, 0, 0, 0.08);
+    border-left: none;
+    margin-left: 0.5rem;
+    border-radius: 8px;
+    padding: 4px 0;
+}
+
+.sb-sidenav-five .sb-sidenav-menu-nested .nav-link {
+    padding: 0.7rem 1rem 0.7rem 2rem;  /* Ajustado padding pois removemos o ícone */
+    font-size: 0.9rem;
+    font-weight: 400;
+    border-left: none;
+    margin: 2px 8px;
+    color: #ffffff !important;  /* Branco SÓLIDO sempre visível */
+    opacity: 1 !important;
+}
+
+/* REMOVER o ponto verde (ícones › e ▸) dos submenus */
+.sb-sidenav-five .sb-sidenav-menu-nested .nav-link::before {
+    content: none !important;  /* Remove completamente os ícones */
+    display: none !important;
+}
+
+.sb-sidenav-five .sb-sidenav-menu-nested .nav-link:hover:not(.active) {
+    color: #ffffff !important;
+}
+
+.sb-sidenav-five .sb-sidenav-menu-nested .nav-link.active::before {
+    content: none !important;  /* Remove no item ativo também */
+    display: none !important;
+}
+
+/* Submenus para outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .sb-sidenav-menu-nested {
+    background: rgba(0, 0, 0, 0.15);
+    border-left: 2px solid var(--menu-accent);
+    margin-left: 1rem;
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .sb-sidenav-menu-nested .nav-link {
+    padding: 0.7rem 1rem 0.7rem 2.5rem;
+    font-size: 0.9rem;
+    font-weight: 400;
+    border-left: none;
+}
+
+/* Submenus aninhados (3º nível) */
+.sb-sidenav-menu-nested .sb-sidenav-menu-nested {
+    margin-left: 0.5rem;
+}
+
+.sb-sidenav-menu-nested .sb-sidenav-menu-nested .nav-link {
+    padding-left: 3.5rem;
+    font-size: 0.85rem;
+}
+
+/* ========================================
+   SETAS DE COLAPSO
+   ======================================== */
+/* Setas para sb-sidenav-five - SEMPRE VISÍVEIS */
+.sb-sidenav-five .sb-sidenav-collapse-arrow {
+    color: #ffffff !important;  /* Branco SÓLIDO sempre visível */
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .nav-link .sb-sidenav-collapse-arrow {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .nav-link:hover .sb-sidenav-collapse-arrow {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.sb-sidenav-five .nav-link.active .sb-sidenav-collapse-arrow {
+    color: #181818 !important;  /* Escuro no item ativo */
+    opacity: 1 !important;
+}
+
+/* Setas para outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .sb-sidenav-collapse-arrow {
+    color: var(--menu-text-muted);
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .nav-link:hover .sb-sidenav-collapse-arrow {
+    color: var(--menu-accent);
+}
+
+/* Rotação das setas */
+.sb-sidenav .nav-link.collapsed .sb-sidenav-collapse-arrow {
+    transform: rotate(-90deg);
+}
+
+.sb-sidenav .nav-link:not(.collapsed) .sb-sidenav-collapse-arrow {
+    transform: rotate(0deg);
+}
+
+/* ========================================
+   RODAPÉ DO MENU - MODERNIZADO
+   ======================================== */
+/* Rodapé para sb-sidenav-five */
+.sb-sidenav-five .sb-sidenav-footer {
+    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.sb-sidenav-five .sb-sidenav-footer .small {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.75rem;
+}
+
+/* Rodapé para outros temas */
+.sb-sidenav:not(.sb-sidenav-five) .sb-sidenav-footer {
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid var(--menu-border);
+    padding: 1rem;
+    color: var(--menu-text-muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.sb-sidenav:not(.sb-sidenav-five) .sb-sidenav-footer .small {
+    color: var(--menu-accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   ANIMAÇÕES DE TRANSIÇÃO
+   ======================================== */
+.collapse {
+    transition: height 0.35s ease;
+}
+
+.collapsing {
+    transition: height 0.35s ease;
+}
+
+/* ========================================
+   BADGES E INDICADORES (opcional)
+   ======================================== */
+.menu-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 10rem;
+    background: var(--menu-accent);
+    margin-left: auto;
+}
+
+/* ========================================
+   RESPONSIVIDADE - MOBILE FIRST
+   ======================================== */
+
+/* Mobile (< 768px) - Otimização para toque */
+@media (max-width: 767.98px) {
+    /* Container do menu - DEVE FICAR ACIMA DO CONTEÚDO */
+    #layoutSidenav #layoutSidenav_nav {
+        z-index: 1050 !important;  /* ACIMA do conteúdo (que tem 1038) */
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 225px !important;
+        height: 100vh !important;
+        pointer-events: auto !important;  /* Menu sempre interativo */
+    }
+    
+    /* Sidebar */
+    .sb-sidenav {
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: auto !important;  /* Sempre interativo */
+    }
+    
+    /* Todos elementos dentro do menu são clicáveis */
+    .sb-sidenav *,
+    .sb-sidenav .nav-link,
+    .sb-sidenav input,
+    .sb-sidenav button {
+        pointer-events: auto !important;
+    }
+    
+    /* Navbar e botão toggle acima de tudo */
+    .sb-topnav,
+    nav.navbar {
+        z-index: 1051 !important;  /* Acima do menu */
+        position: relative;
+    }
+    
+    /* Prevenir cliques múltiplos no toggle */
+    #sidebarToggle {
+        pointer-events: auto !important;
+        touch-action: manipulation;
+        z-index: 1052 !important;  /* Sempre clicável */
+    }
+    
+    /* Overlay escuro APENAS quando menu está ABERTO */
+    #layoutSidenav #layoutSidenav_content:before {
+        content: none;
+        display: none;
+    }
+    
+    /* Quando menu está ABERTO - overlay visual (não clicável) */
+    .sb-sidenav-toggled #layoutSidenav #layoutSidenav_content:before {
+        content: "";
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1045;  /* Entre conteúdo (1) e menu (1050) */
+        cursor: pointer;
+        pointer-events: none !important;  /* Apenas visual */
+    }
+    
+    /* Conteúdo ABAIXO do menu quando aberto */
+    #layoutSidenav_content {
+        position: relative;
+        z-index: 1;  /* Abaixo do menu */
+    }
+    
+    /* Elementos do conteúdo sempre clicáveis mas abaixo do menu */
+    #layoutSidenav_content *,
+    #layoutSidenav_content form,
+    #layoutSidenav_content button,
+    #layoutSidenav_content input,
+    #layoutSidenav_content select,
+    #layoutSidenav_content a {
+        position: relative;
+        z-index: auto;
+        pointer-events: auto !important;
+    }
+    
+    /* Aumentar área de toque para mobile */
+    .sb-sidenav .nav-link {
+        padding: 1rem 1.2rem;
+        font-size: 1rem;
+        min-height: 48px; /* Mínimo recomendado para touch targets */
+        touch-action: manipulation;
+    }
+    
+    /* Ícones maiores em mobile */
+    .sb-sidenav .sb-nav-link-icon {
+        font-size: 1.3rem;
+        margin-right: 1.2rem;
+    }
+    
+    /* Submenus mais espaçados */
+    .sb-sidenav-menu-nested .nav-link {
+        padding: 0.9rem 1rem 0.9rem 3rem;
+        font-size: 0.95rem;
+    }
+    
+    /* Scrollbar mais visível em mobile */
+    .sb-sidenav-menu::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    /* Setas maiores para melhor visualização */
+    .sb-sidenav-collapse-arrow {
+        font-size: 1rem;
+    }
+    
+    /* Rodapé mais compacto em mobile */
+    .sb-sidenav-footer {
+        padding: 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Mantém cores e contraste em mobile */
+    
+    /* Otimizar performance do menu em mobile */
+    .sb-sidenav * {
+        will-change: auto;
+    }
+}
+
+/* Tablet (768px - 991px) - Também funciona como mobile */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    /* Container do menu - DEVE FICAR ACIMA DO CONTEÚDO */
+    #layoutSidenav #layoutSidenav_nav {
+        z-index: 1050 !important;  /* ACIMA do conteúdo */
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 225px !important;
+        height: 100vh !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Sidebar */
+    .sb-sidenav {
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Todos elementos dentro do menu são clicáveis */
+    .sb-sidenav *,
+    .sb-sidenav .nav-link,
+    .sb-sidenav input,
+    .sb-sidenav button {
+        pointer-events: auto !important;
+    }
+    
+    .sb-sidenav .nav-link {
+        padding: 0.9rem 1.1rem;
+    }
+    
+    .sb-sidenav .sb-nav-link-icon {
+        font-size: 1.15rem;
+    }
+    
+    /* Overlay quando menu aberto - visual apenas */
+    .sb-sidenav-toggled #layoutSidenav #layoutSidenav_content:before {
+        content: "";
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1045;  /* Entre conteúdo e menu */
+        cursor: pointer;
+        pointer-events: none !important;
+    }
+    
+    /* Conteúdo abaixo do menu */
+    #layoutSidenav_content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    #layoutSidenav_content *,
+    #layoutSidenav_content form,
+    #layoutSidenav_content button,
+    #layoutSidenav_content input,
+    #layoutSidenav_content select,
+    #layoutSidenav_content a {
+        position: relative;
+        z-index: auto;
+        pointer-events: auto !important;
+    }
+}
+
+/* Desktop (> 992px) */
+@media (min-width: 992px) {
+    /* Comportamento padrão já definido */
+}
+
+/* ========================================
+   COMPATIBILIDADE COM TEMAS
+   ======================================== */
+/* Mantém compatibilidade com possíveis variações de tema */
+
+/* ========================================
+   OTIMIZAÇÕES DE PERFORMANCE MOBILE
+   ======================================== */
+
+/* Desabilita transições durante scroll para melhor performance */
+.sb-sidenav-menu.disable-transitions,
+.sb-sidenav-menu.disable-transitions * {
+    transition: none !important;
+}
+
+/* Otimizar rendering em mobile - efeitos já simplificados */
+
+/* ========================================
+   INDICADORES DE SCROLL (MOBILE)
+   ======================================== */
+
+/* Gradiente indicando que há mais conteúdo abaixo */
+.sb-sidenav-menu.has-scroll-bottom::after {
+    content: '';
+    position: fixed;
+    bottom: 48px; /* Altura do rodapé */
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to top, 
+        var(--menu-bg-primary) 0%, 
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Gradiente indicando que há mais conteúdo acima */
+.sb-sidenav-menu.has-scroll-top::before {
+    content: '';
+    position: fixed;
+    top: 60px; /* Altura do navbar */
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to bottom, 
+        var(--menu-bg-primary) 0%, 
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ========================================
+   FEEDBACK VISUAL DE TOQUE
+   ======================================== */
+
+/* Efeito ripple ao tocar (mobile) */
+.sb-sidenav .nav-link {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s ease;
+}
+
+.sb-sidenav .nav-link:active {
+    transform: scale(0.98);
+}
+
+/* ========================================
+   EFEITOS ESPECIAIS - SIMPLIFICADOS
+   ======================================== */
+/* Linha decorativa sutil no hover (não aplica no item ativo) */
+.sb-sidenav .nav-link:hover:not(.active) {
+    box-shadow: inset 3px 0 0 var(--menu-accent);
+}
+

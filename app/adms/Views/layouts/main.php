@@ -206,6 +206,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <!-- CSS personalizado do projeto (deve ficar por último para sobrescrever) -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20250905">
     
+    <!-- Menu Modernizado -->
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=<?php echo time(); ?>">
+    
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
 
@@ -276,6 +279,22 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/script_admin.js"></script>
+    
+    <!-- Fix para garantir funcionamento do menu toggle -->
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-toggle-fix.js"></script>
+    
+    <!-- Fix para garantir que formulários funcionem em mobile -->
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/forms-mobile-fix.js"></script>
+
+    <!-- Script para rolar automaticamente para o item ativo do menu -->
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js"></script>
+    
+    <!-- Pesquisa no menu -->
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-search.js"></script>
+    
+    <!-- Otimizações para dispositivos móveis -->
+    <!-- TEMPORARIAMENTE DESABILITADO para testes -->
+    <!-- <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-mobile.js"></script> -->
 
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.js"></script>
 

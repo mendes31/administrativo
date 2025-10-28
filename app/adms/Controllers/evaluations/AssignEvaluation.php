@@ -41,7 +41,7 @@ class AssignEvaluation
             
             $pageElements = [
                 'title_head' => 'Atribuir Avaliação',
-                'menu' => 'list-evaluation-models',
+                'menu' => 'assign-evaluation',
                 'buttonPermission' => ['AssignEvaluation'],
             ];
 
@@ -74,7 +74,7 @@ class AssignEvaluation
 
         $pageElements = [
             'title_head' => 'Atribuir Avaliação',
-            'menu' => 'list-evaluation-models',
+            'menu' => 'assign-evaluation',
             'buttonPermission' => ['AssignEvaluation'],
         ];
 

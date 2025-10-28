@@ -606,6 +606,37 @@ if (!function_exists('countPermittedSubmenus')) {
 
 <div id="layoutSidenav_nav">
     <nav class="sb-sidenav accordion sb-sidenav-five" id="sidenavAccordion">
+        
+        <!-- Caixa de Pesquisa do Menu -->
+        <div class="menu-search-container">
+            <div class="menu-search-box">
+                <i class="fas fa-search menu-search-icon"></i>
+                <input 
+                    type="text" 
+                    id="menuSearch" 
+                    class="menu-search-input" 
+                    placeholder="Pesquisar no menu..."
+                    autocomplete="off"
+                    aria-label="Pesquisar itens do menu"
+                >
+                <button 
+                    type="button" 
+                    id="clearMenuSearch" 
+                    class="menu-search-clear"
+                    aria-label="Limpar pesquisa"
+                    style="display: none;"
+                >
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="menu-search-results" id="menuSearchResults" style="display: none;">
+                <span class="menu-search-count">0 resultados</span>
+            </div>
+            <div class="menu-search-hint">
+                <kbd>Ctrl</kbd> + <kbd>K</kbd> para focar
+            </div>
+        </div>
+        
         <div class="sb-sidenav-menu">
             <div class="nav">
                 <?php
