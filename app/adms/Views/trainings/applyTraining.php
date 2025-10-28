@@ -87,9 +87,7 @@ use App\adms\Helpers\FormatHelper;
                                        name="data_realizacao" 
                                        class="form-control" 
                                        id="data_realizacao" 
-                                       value="<?php echo $this->data['trainingUser']['data_realizacao'] ?? date('Y-m-d'); ?>"
-                                       min="<?php echo $this->data['trainingUser']['created_at'] ? date('Y-m-d', strtotime($this->data['trainingUser']['created_at'])) : ''; ?>"
-                                       max="<?php echo date('Y-m-d'); ?>">
+                                       value="<?php echo $this->data['trainingUser']['data_realizacao'] ?? date('Y-m-d'); ?>">
                                 <div class="form-text">Data em que o treinamento foi realizado</div>
                             </div>
                             <div class="col-md-4">
@@ -526,24 +524,8 @@ function fillInstructorEmail() {
 // Validações de data
 function validateDataRealizacao() {
     var dataRealizacao = document.getElementById('data_realizacao');
-    var dataAvaliacao = document.getElementById('data_avaliacao');
-    var hoje = new Date().toISOString().split('T')[0];
     
-    // Data de realização não pode ser superior à data atual
-    if (dataRealizacao.value > hoje) {
-        dataRealizacao.classList.add('is-invalid');
-        showFeedback(dataRealizacao, 'Data de realização não pode ser superior à data atual.');
-        return false;
-    }
-    
-    // Data de realização não pode ser anterior à data de criação do vínculo
-    var dataCriacaoVinculo = '<?php echo $this->data['trainingUser']['created_at'] ? date('Y-m-d', strtotime($this->data['trainingUser']['created_at'])) : ''; ?>';
-    if (dataCriacaoVinculo && dataRealizacao.value < dataCriacaoVinculo) {
-        dataRealizacao.classList.add('is-invalid');
-        showFeedback(dataRealizacao, 'Data de realização não pode ser anterior à data de criação do vínculo.');
-        return false;
-    }
-    
+    // Validações removidas - permitindo qualquer data
     dataRealizacao.classList.remove('is-invalid');
     removeFeedback(dataRealizacao);
     return true;
