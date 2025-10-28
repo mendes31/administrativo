@@ -143,6 +143,7 @@ class ApplyTraining
         function saveFormSession() {
             $_SESSION['form_apply_training'] = [
                 'form_data_realizacao' => $_POST['data_realizacao'] ?? '',
+                'form_data_avaliacao' => $_POST['data_avaliacao'] ?? '',
                 'form_data_agendada' => $_POST['data_agendada'] ?? '',
                 'form_nota' => $_POST['nota'] ?? '',
                 'form_observacoes' => $_POST['observacoes'] ?? '',
@@ -262,6 +263,15 @@ class ApplyTraining
             exit;
         }
 
+        // Validação: se houver nota, data de avaliação é obrigatória
+        if (!empty($nota) && empty($data_avaliacao)) {
+            $_SESSION['msg'] = "Data de avaliação é obrigatória quando há nota informada.";
+            $_SESSION['msg_type'] = "danger";
+            saveFormSession();
+            header("Location: " . $redirectUrl);
+            exit;
+        }
+
         // Validação obrigatória do tipo de instrutor
         if (empty($instructor_type)) {
             $_SESSION['msg'] = "Selecione o tipo de instrutor.";
@@ -322,8 +332,8 @@ class ApplyTraining
                 'data_agendada' => $data_agendada,
                 'nota' => $nota,
                 'observacoes' => $observacoes,
-                'instrutor_nome' => $instrutor_nome,
-                'instrutor_email' => $instrutor_email,
+                'instrutor_nome' => $real_instructor_nome,        // CORRIGIDO: usar o valor processado
+                'instrutor_email' => $real_instructor_email,      // CORRIGIDO: usar o valor processado
                 'instructor_user_id' => $instructor_user_id_to_save,
                 'real_instructor_nome' => $real_instructor_nome,
                 'real_instructor_email' => $real_instructor_email,

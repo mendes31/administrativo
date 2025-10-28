@@ -87,7 +87,7 @@ use App\adms\Helpers\FormatHelper;
                                        name="data_realizacao" 
                                        class="form-control" 
                                        id="data_realizacao" 
-                                       value="<?php echo $this->data['trainingUser']['data_realizacao'] ?? date('Y-m-d'); ?>">
+                                       value="<?php echo $this->data['form_data_realizacao'] ?? $this->data['trainingUser']['data_realizacao'] ?? date('Y-m-d'); ?>">
                                 <div class="form-text">Data em que o treinamento foi realizado</div>
                             </div>
                             <div class="col-md-4">
@@ -98,10 +98,10 @@ use App\adms\Helpers\FormatHelper;
                                        name="data_avaliacao" 
                                        class="form-control" 
                                        id="data_avaliacao" 
-                                       value="<?php echo $this->data['trainingUser']['data_avaliacao'] ?? ''; ?>"
-                                       min="<?php echo ($this->data['trainingUser']['data_realizacao'] ?? ''); ?>"
-                                       max="<?php echo date('Y-m-d'); ?>" required>
-                                <div class="form-text">Data em que a avaliação do treinamento foi realizada (obrigatória)</div>
+                                       value="<?php echo $this->data['form_data_avaliacao'] ?? $this->data['trainingUser']['data_avaliacao'] ?? ''; ?>"
+                                       min="<?php echo ($this->data['form_data_realizacao'] ?? $this->data['trainingUser']['data_realizacao'] ?? ''); ?>"
+                                       max="<?php echo date('Y-m-d'); ?>">
+                                <div class="form-text">Data em que a avaliação foi realizada (obrigatória quando houver nota)</div>
                             </div>
                             <div class="col-md-4">
                                 <label for="nota" class="form-label">
@@ -114,9 +114,8 @@ use App\adms\Helpers\FormatHelper;
                                        min="0" 
                                        max="10" 
                                        step="0.1"
-                                       value="<?php echo $this->data['trainingUser']['nota'] ?? ''; ?>"
-                                       placeholder="0.0 a 10.0"
-                                       required>
+                                       value="<?php echo $this->data['form_nota'] ?? $this->data['trainingUser']['nota'] ?? ''; ?>"
+                                       placeholder="0.0 a 10.0">
                                 <div class="form-text">Nota de 0 a 10 (opcional)</div>
                             </div>
                         </div>
@@ -534,9 +533,21 @@ function validateDataRealizacao() {
 function validateDataAvaliacao() {
     var dataAvaliacao = document.getElementById('data_avaliacao');
     var dataRealizacao = document.getElementById('data_realizacao');
+    var nota = document.getElementById('nota');
     var hoje = new Date().toISOString().split('T')[0];
     
-    if (!dataAvaliacao.value) return true; // Campo opcional
+    // Campo obrigatório se tiver nota
+    if (nota && nota.value && !dataAvaliacao.value) {
+        dataAvaliacao.classList.add('is-invalid');
+        showFeedback(dataAvaliacao, 'Data de avaliação é obrigatória quando há nota.');
+        return false;
+    }
+    
+    if (!dataAvaliacao.value) {
+        dataAvaliacao.classList.remove('is-invalid');
+        removeFeedback(dataAvaliacao);
+        return true; // Opcional se não tiver nota
+    }
     
     // Data de avaliação não pode ser superior à data atual
     if (dataAvaliacao.value > hoje) {
