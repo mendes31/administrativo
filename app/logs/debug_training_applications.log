@@ -4375,3 +4375,97 @@ PARAMS: Array
 )
 
 Novo ID: 60
+
+==== NOVO INSERT ====
+2025-10-28 17:45:47
+Array
+(
+    [adms_user_id] => 8
+    [adms_training_id] => 13
+    [data_realizacao] => 2025-10-09
+    [data_avaliacao] => 2025-10-09
+    [data_agendada] => 
+    [nota] => 9.5
+    [observacoes] => 
+    [instrutor_nome] => Wladimir Ribeiro de Souza
+    [instrutor_email] => wladimir.souza@tiaraju.com.br
+    [instructor_user_id] => 38
+    [real_instructor_nome] => Wladimir Ribeiro de Souza
+    [real_instructor_email] => wladimir.souza@tiaraju.com.br
+    [aplicado_por] => 1
+    [status] => concluido
+)
+
+SQL: INSERT INTO adms_training_applications (
+                        adms_user_id, adms_training_id, data_realizacao, data_avaliacao, data_agendada, instrutor_nome, instrutor_email, instructor_user_id, real_instructor_nome, real_instructor_email, aplicado_por, nota, observacoes, status, created_at, updated_at
+                    ) VALUES (
+                        :adms_user_id, :adms_training_id, :data_realizacao, :data_avaliacao, :data_agendada, :instrutor_nome, :instrutor_email, :instructor_user_id, :real_instructor_nome, :real_instructor_email, :aplicado_por, :nota, :observacoes, :status, :created_at, NOW()
+                    )
+
+PARAMS: Array
+(
+    [:adms_user_id] => 8
+    [:adms_training_id] => 13
+    [:data_realizacao] => 2025-10-09
+    [:data_avaliacao] => 2025-10-09
+    [:data_agendada] => 
+    [:instrutor_nome] => Wladimir Ribeiro de Souza
+    [:instrutor_email] => wladimir.souza@tiaraju.com.br
+    [:instructor_user_id] => 38
+    [:real_instructor_nome] => Wladimir Ribeiro de Souza
+    [:real_instructor_email] => wladimir.souza@tiaraju.com.br
+    [:aplicado_por] => 1
+    [:nota] => 9.5
+    [:observacoes] => 
+    [:status] => concluido
+    [:created_at] => 2025-10-28 17:45:47
+)
+
+Novo ID: 61
+
+==== NOVO INSERT ====
+2025-10-28 17:47:02
+Array
+(
+    [adms_user_id] => 9
+    [adms_training_id] => 13
+    [data_realizacao] => 2025-10-15
+    [data_avaliacao] => 2025-10-15
+    [data_agendada] => 
+    [nota] => 8.8
+    [observacoes] => 
+    [instrutor_nome] => Wladimir Ribeiro de Souza
+    [instrutor_email] => wladimir.souza@tiaraju.com.br
+    [instructor_user_id] => 38
+    [real_instructor_nome] => Wladimir Ribeiro de Souza
+    [real_instructor_email] => wladimir.souza@tiaraju.com.br
+    [aplicado_por] => 1
+    [status] => concluido
+)
+
+SQL: INSERT INTO adms_training_applications (
+                        adms_user_id, adms_training_id, data_realizacao, data_avaliacao, data_agendada, instrutor_nome, instrutor_email, instructor_user_id, real_instructor_nome, real_instructor_email, aplicado_por, nota, observacoes, status, created_at, updated_at
+                    ) VALUES (
+                        :adms_user_id, :adms_training_id, :data_realizacao, :data_avaliacao, :data_agendada, :instrutor_nome, :instrutor_email, :instructor_user_id, :real_instructor_nome, :real_instructor_email, :aplicado_por, :nota, :observacoes, :status, :created_at, NOW()
+                    )
+
+PARAMS: Array
+(
+    [:adms_user_id] => 9
+    [:adms_training_id] => 13
+    [:data_realizacao] => 2025-10-15
+    [:data_avaliacao] => 2025-10-15
+    [:data_agendada] => 
+    [:instrutor_nome] => Wladimir Ribeiro de Souza
+    [:instrutor_email] => wladimir.souza@tiaraju.com.br
+    [:instructor_user_id] => 38
+    [:real_instructor_nome] => Wladimir Ribeiro de Souza
+    [:real_instructor_email] => wladimir.souza@tiaraju.com.br
+    [:aplicado_por] => 1
+    [:nota] => 8.8
+    [:observacoes] => 
+    [:status] => concluido
+    [:created_at] => 2025-10-28 17:47:02
+)
+
+Novo ID: 62

@@ -296,30 +296,55 @@ class ApplyTraining
         error_log("✓ PASSOU: data_realizacao=$data_realizacao, data_agendada=$data_agendada");
 
         // Validações de data
+        error_log("VALIDAÇÃO 8: Verificando data_realizacao");
         if ($data_realizacao) {
             // Data de realização não pode ser superior à data atual
+            error_log("VALIDAÇÃO 8A: data_realizacao vs hoje");
             if ($data_realizacao > date('Y-m-d')) {
+                error_log("❌ FALHOU: data_realizacao ($data_realizacao) é futura");
                 $_SESSION['msg'] = "Data de realização não pode ser superior à data atual.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
                 header("Location: " . $redirectUrl);
                 exit;
             }
+            error_log("✓ PASSOU: data_realizacao não é futura");
             
-            // Data de realização não pode ser anterior à data de criação do vínculo
+            // VALIDAÇÃO FLEXÍVEL: Data de realização vs data de criação do vínculo
+            error_log("VALIDAÇÃO 8B: Verificando data_realizacao vs created_at do vínculo (FLEXÍVEL)");
             $trainingUsersRepo = new TrainingUsersRepository();
             $trainingUser = $trainingUsersRepo->getByUserAndTraining($user_id, $training_id);
+            
             if ($trainingUser && !empty($trainingUser['created_at'])) {
                 $dataCriacaoVinculo = date('Y-m-d', strtotime($trainingUser['created_at']));
+                error_log("Data criação vínculo: $dataCriacaoVinculo");
+                error_log("Data realização: $data_realizacao");
+                
                 if ($data_realizacao < $dataCriacaoVinculo) {
-                    $_SESSION['msg'] = "Data de realização não pode ser anterior à data de criação do vínculo (" . date('d/m/Y', strtotime($dataCriacaoVinculo)) . ").";
-                    $_SESSION['msg_type'] = "danger";
-                    saveFormSession();
-                    header("Location: " . $redirectUrl);
-                    exit;
+                    // PERMITIR data retroativa, mas registrar em log
+                    error_log("⚠️ AVISO: Lançamento RETROATIVO detectado!");
+                    error_log("⚠️ Data de realização ($data_realizacao) é ANTERIOR à criação do vínculo ($dataCriacaoVinculo)");
+                    error_log("⚠️ Usuário: $user_id, Treinamento: $training_id, Aplicado por: " . ($_SESSION['user_id'] ?? 'N/A'));
+                    error_log("⚠️ PERMITINDO salvamento mesmo assim (FLEXIBILIZADO)");
+                    
+                    // Salvar aviso em log específico para auditoria
+                    $avisoRetroativo = date('Y-m-d H:i:s') . " | LANÇAMENTO RETROATIVO | ";
+                    $avisoRetroativo .= "User: $user_id | Training: $training_id | ";
+                    $avisoRetroativo .= "Data Realização: $data_realizacao | Vínculo criado em: $dataCriacaoVinculo | ";
+                    $avisoRetroativo .= "Aplicado por: " . ($_SESSION['user_id'] ?? 'N/A') . " (" . ($_SESSION['user_name'] ?? 'N/A') . ")\n";
+                    file_put_contents(__DIR__ . '/../../logs/lancamentos_retroativos.log', $avisoRetroativo, FILE_APPEND);
+                    
+                    // NÃO BLOQUEAR - Apenas avisar
+                    // $_SESSION['msg_warning'] = "Atenção: Data de realização anterior à criação do vínculo.";
+                } else {
+                    error_log("✓ OK: data_realizacao >= dataCriacaoVinculo");
                 }
+            } else {
+                error_log("ℹ Vínculo não encontrado ou sem created_at - permitindo qualquer data");
             }
+            error_log("✓ PASSOU: Validação 8B - Data retroativa FLEXIBILIZADA");
         }
+        error_log("✓ PASSOU: Todas validações de data_realizacao");
 
         if ($data_agendada && $data_agendada < date('Y-m-d')) {
             $_SESSION['msg'] = "Data de agendamento não pode ser retroativa.";
