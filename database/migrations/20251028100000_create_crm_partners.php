@@ -36,13 +36,13 @@ class CreateCrmPartners extends AbstractMigration
               ->addColumn('source', 'string', ['limit' => 100, 'null' => true])
               
               // Classificação
-              ->addColumn('lead_score', 'integer', ['default' => 0])
+              ->addColumn('lead_score', 'integer', ['default' => 0, 'signed' => false])
               ->addColumn('priority', 'enum', ['values' => ['Baixa', 'Média', 'Alta', 'Urgente'], 'default' => 'Média'])
               ->addColumn('status', 'enum', ['values' => ['Ativo', 'Inativo', 'Bloqueado'], 'default' => 'Ativo'])
               
               // Relacionamento
-              ->addColumn('responsible_user_id', 'integer', ['null' => true])
-              ->addColumn('department_id', 'integer', ['null' => true])
+              ->addColumn('responsible_user_id', 'integer', ['null' => true, 'signed' => false])
+              ->addColumn('department_id', 'integer', ['null' => true, 'signed' => false])
               
               // Datas importantes
               ->addColumn('first_contact_date', 'datetime', ['null' => true])
@@ -57,8 +57,8 @@ class CreateCrmPartners extends AbstractMigration
               ->addColumn('tags', 'string', ['limit' => 500, 'null' => true])
               
               // Auditoria
-              ->addColumn('created_by', 'integer', ['null' => true])
-              ->addColumn('updated_by', 'integer', ['null' => true])
+              ->addColumn('created_by', 'integer', ['null' => true, 'signed' => false])
+              ->addColumn('updated_by', 'integer', ['null' => true, 'signed' => false])
               ->addColumn('created_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])
               ->addColumn('updated_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP', 'update' => 'CURRENT_TIMESTAMP'])
               

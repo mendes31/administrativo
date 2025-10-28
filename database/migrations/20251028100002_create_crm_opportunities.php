@@ -14,12 +14,12 @@ class CreateCrmOpportunities extends AbstractMigration
               ->addColumn('description', 'text', ['null' => true])
               
               // Relacionamento
-              ->addColumn('partner_id', 'integer')
-              ->addColumn('responsible_user_id', 'integer')
+              ->addColumn('partner_id', 'integer', ['signed' => false])
+              ->addColumn('responsible_user_id', 'integer', ['signed' => false])
               
               // Pipeline
-              ->addColumn('stage_id', 'integer')
-              ->addColumn('previous_stage_id', 'integer', ['null' => true])
+              ->addColumn('stage_id', 'integer', ['signed' => false])
+              ->addColumn('previous_stage_id', 'integer', ['null' => true, 'signed' => false])
               ->addColumn('stage_entered_at', 'datetime', ['null' => true])
               
               // Valores
@@ -27,7 +27,7 @@ class CreateCrmOpportunities extends AbstractMigration
               ->addColumn('currency', 'string', ['limit' => 3, 'default' => 'BRL'])
               
               // Probabilidade e Previsão
-              ->addColumn('probability', 'integer', ['default' => 50])
+              ->addColumn('probability', 'integer', ['default' => 50, 'signed' => false])
               ->addColumn('expected_close_date', 'date', ['null' => true])
               ->addColumn('actual_close_date', 'date', ['null' => true])
               
@@ -44,16 +44,16 @@ class CreateCrmOpportunities extends AbstractMigration
               
               // Origem
               ->addColumn('source', 'string', ['limit' => 100, 'null' => true])
-              ->addColumn('campaign_id', 'integer', ['null' => true])
+              ->addColumn('campaign_id', 'integer', ['null' => true, 'signed' => false])
               
               // Observações
               ->addColumn('notes', 'text', ['null' => true])
               ->addColumn('tags', 'string', ['limit' => 500, 'null' => true])
               
               // Auditoria
-              ->addColumn('created_by', 'integer', ['null' => true])
-              ->addColumn('updated_by', 'integer', ['null' => true])
-              ->addColumn('closed_by', 'integer', ['null' => true])
+              ->addColumn('created_by', 'integer', ['null' => true, 'signed' => false])
+              ->addColumn('updated_by', 'integer', ['null' => true, 'signed' => false])
+              ->addColumn('closed_by', 'integer', ['null' => true, 'signed' => false])
               ->addColumn('created_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])
               ->addColumn('updated_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP', 'update' => 'CURRENT_TIMESTAMP'])
               

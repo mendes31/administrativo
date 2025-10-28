@@ -10,9 +10,9 @@ class CreateCrmPipelineStages extends AbstractMigration
         
         $table->addColumn('name', 'string', ['limit' => 100])
               ->addColumn('description', 'text', ['null' => true])
-              ->addColumn('display_order', 'integer')
+              ->addColumn('display_order', 'integer', ['signed' => false])
               ->addColumn('color', 'string', ['limit' => 20, 'default' => '#6c757d'])
-              ->addColumn('conversion_probability', 'integer', ['default' => 0])
+              ->addColumn('conversion_probability', 'integer', ['default' => 0, 'signed' => false])
               ->addColumn('is_active', 'boolean', ['default' => true])
               ->addColumn('is_final_stage', 'boolean', ['default' => false])
               ->addColumn('stage_type', 'enum', ['values' => ['active', 'won', 'lost'], 'default' => 'active'])
