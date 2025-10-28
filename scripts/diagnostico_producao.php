@@ -133,12 +133,21 @@ if (file_exists(__DIR__ . '/../.env')) {
         <h2>3. Conexão com Banco de Dados</h2>
         <?php
         try {
-            require_once __DIR__ . '/../app/adms/Models/Services/DbConnection.php';
-            $db = new \App\adms\Models\Services\DbConnection();
-            $conn = $db->getConnection();
+            // Criar conexão PDO diretamente
+            $host = $_ENV['DB_HOST'] ?? 'localhost';
+            $dbname = $_ENV['DB_NAME'] ?? '';
+            $user = $_ENV['DB_USER'] ?? '';
+            $pass = $_ENV['DB_PASS'] ?? '';
+            
+            $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
+            $conn = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]);
             
             if ($conn) {
                 echo "<div class='status ok'>✓ Conexão com banco de dados: <strong>OK</strong></div>";
+                echo "<div class='code'>Host: $host | Database: $dbname</div>";
                 
                 // Verificar tabela
                 $stmt = $conn->prepare("SHOW TABLES LIKE 'adms_training_applications'");
