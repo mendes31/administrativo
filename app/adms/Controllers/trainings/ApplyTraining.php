@@ -497,6 +497,13 @@ class ApplyTraining
             $_SESSION['msg'] = $msg;
             $_SESSION['msg_type'] = "success";
             
+            // Verificar se há mensagem de warning (lançamento retroativo)
+            if (isset($_SESSION['msg_warning'])) {
+                error_log("⚠️ MENSAGEM DE AVISO ATIVA: " . $_SESSION['msg_warning']);
+            } else {
+                error_log("ℹ Nenhuma mensagem de aviso");
+            }
+            
             error_log("Redirecionando para: " . $_ENV['URL_ADM'] . "list-training-status");
             header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
             

@@ -66,6 +66,12 @@ thead th {
 }
 </style>
 <div class="<?= $responsiveClasses['container'] ?? 'container-fluid px-4' ?>">
+    
+    <?php 
+    // Incluir alertas de sucesso, erro e avisos
+    include './app/adms/Views/partials/alerts.php'; 
+    ?>
+    
     <div class="sticky-top-bloco">
         <div class="mb-1 hstack gap-2">
             <h2 class="mt-3">Status de Treinamentos por Colaborador</h2>
