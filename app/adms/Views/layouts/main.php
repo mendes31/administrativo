@@ -282,9 +282,13 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     
     <!-- Fix para garantir funcionamento do menu toggle -->
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-toggle-fix.js"></script>
+
+    <!-- Fix para modais travados em mobile -->
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/modal-fix.js"></script>
     
     <!-- Fix para garantir que formulários funcionem em mobile -->
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/forms-mobile-fix.js"></script>
+    <!-- TEMPORARIAMENTE DESABILITADO para testar modais -->
+    <!-- <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/forms-mobile-fix.js"></script> -->
 
     <!-- Script para rolar automaticamente para o item ativo do menu -->
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js"></script>

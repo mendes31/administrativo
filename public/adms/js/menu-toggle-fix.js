@@ -47,20 +47,26 @@
                 }
             }
             
-            /**
-             * Log de debug para cliques em mobile
-             */
-            if (window.innerWidth <= 991) {
-                document.addEventListener('click', function(e) {
-                    console.log('🖱️ Clique detectado:', {
-                        target: e.target.tagName,
-                        classes: e.target.className,
-                        id: e.target.id,
-                        menuAberto: document.body.classList.contains('sb-sidenav-toggled'),
-                        pointerEvents: window.getComputedStyle(e.target).pointerEvents
-                    });
-                }, true);
-            }
+                   /**
+                    * Log de debug para cliques em mobile (EXCETO modais e backdrop)
+                    */
+                   if (window.innerWidth <= 991) {
+                       document.addEventListener('click', function(e) {
+                           // NÃO logar cliques em modais ou backdrop para evitar spam
+                           const isInModal = e.target.closest('.modal');
+                           const isBackdrop = e.target.classList.contains('modal-backdrop');
+                           
+                           if (!isInModal && !isBackdrop) {
+                               console.log('🖱️ Clique detectado:', {
+                                   target: e.target.tagName,
+                                   classes: e.target.className,
+                                   id: e.target.id,
+                                   menuAberto: document.body.classList.contains('sb-sidenav-toggled'),
+                                   pointerEvents: window.getComputedStyle(e.target).pointerEvents
+                               });
+                           }
+                       }, true);
+                   }
             
             console.log('✓ Menu toggle fix aplicado (modo debug)');
             

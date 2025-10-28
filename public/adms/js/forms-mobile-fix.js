@@ -19,34 +19,52 @@
         
         /**
          * Garantir que todos os botões de submit sejam clicáveis
+         * EXCETO os que estão dentro de modais
          */
         const submitButtons = document.querySelectorAll('button[type="submit"], button.btn-primary, .btn-filtros-mobile');
         
         submitButtons.forEach(button => {
-            button.style.position = 'relative';
-            button.style.zIndex = '2000'; // Muito acima de tudo
-            button.style.pointerEvents = 'auto';
-            button.style.touchAction = 'manipulation';
+            // NÃO aplicar z-index alto em botões dentro de modais
+            const isInModal = button.closest('.modal');
             
-            console.log('✅ Botão protegido:', button.textContent.trim());
+            if (!isInModal) {
+                button.style.position = 'relative';
+                button.style.zIndex = '2000'; // Apenas para botões fora de modais
+                button.style.pointerEvents = 'auto';
+                button.style.touchAction = 'manipulation';
+                
+                console.log('✅ Botão protegido:', button.textContent.trim());
+            } else {
+                // Botões em modais mantém z-index natural
+                button.style.pointerEvents = 'auto';
+                button.style.touchAction = 'manipulation';
+            }
         });
         
         /**
          * Garantir que todos os formulários sejam submit-áveis
+         * EXCETO os que estão dentro de modais
          */
         const forms = document.querySelectorAll('form');
         
         forms.forEach(form => {
-            form.style.position = 'relative';
-            form.style.zIndex = '1999';
-            form.style.pointerEvents = 'auto';
+            const isInModal = form.closest('.modal');
+            
+            if (!isInModal) {
+                form.style.position = 'relative';
+                form.style.zIndex = '1999';
+                form.style.pointerEvents = 'auto';
+            } else {
+                form.style.pointerEvents = 'auto';
+            }
             
             // Event listener para debug
             form.addEventListener('submit', function(e) {
                 console.log('📤 Formulário sendo enviado:', {
                     action: this.action || 'mesma página',
                     method: this.method || 'GET',
-                    menuAberto: document.body.classList.contains('sb-sidenav-toggled')
+                    menuAberto: document.body.classList.contains('sb-sidenav-toggled'),
+                    emModal: !!isInModal
                 });
             });
         });

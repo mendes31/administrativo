@@ -50,8 +50,8 @@
     </div>
     <!-- Modal de aniversariantes do mês -->
     <div class="modal fade" id="modalAniversariantesMes" tabindex="-1" aria-labelledby="modalAniversariantesMesLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content" style="border-radius: 16px;">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalAniversariantesMesLabel">Aniversariantes do Mês</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -135,69 +135,142 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Modal para cada informativo -->
+                    <!-- Modal para cada informativo - Design Moderno Reformulado -->
                     <div class="modal fade" id="informativoModal<?php echo $info['id']; ?>" tabindex="-1" aria-labelledby="informativoModalLabel<?php echo $info['id']; ?>" aria-hidden="true">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content" style="border-radius: 12px; border: none;">
-                                <div class="modal-header" style="border-radius: 12px 12px 0 0; border-bottom: 1px solid #e9ecef;">
-                                    <h5 class="modal-title" id="informativoModalLabel<?php echo $info['id']; ?>">
+                        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg modal-dialog-centered">
+                            <div class="modal-content informativo-modal-modern">
+                                
+                                <!-- HEADER SIMPLIFICADO - Apenas Título -->
+                                <div class="modal-header border-0 pb-0 informativo-header-novo">
+                                    <h3 class="modal-title w-100 informativo-titulo-novo" id="informativoModalLabel<?php echo $info['id']; ?>">
                                         <?php echo htmlspecialchars($info['titulo']); ?>
-                                        <?php if ($info['urgente']): ?>
-                                            <span class="badge bg-danger ms-2" style="border-radius: 8px;">Urgente</span>
-                                        <?php endif; ?>
-                                    </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </h3>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                 </div>
-                                <div class="modal-body">
-                                    <div class="informativo-card">
-                                        <div class="informativo-conteudo" id="conteudo-<?php echo $info['id']; ?>">
-                                            <?php echo nl2br(htmlspecialchars($info['conteudo'])); ?>
+                                
+                                <!-- BADGES - Logo após o título, dentro do body -->
+                                <div class="informativo-badges-bar">
+                                    <?php if ($info['urgente']): ?>
+                                        <span class="badge badge-urgente">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Urgente
+                                        </span>
+                                    <?php endif; ?>
+                                    <span class="badge badge-categoria">
+                                        <?php echo htmlspecialchars($info['categoria_nome'] ?? $info['categoria']); ?>
+                                    </span>
+                                    <?php if (!empty($info['department_name'])): ?>
+                                        <span class="badge badge-departamento">
+                                            <?php echo htmlspecialchars($info['department_name']); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <!-- BODY - Conteúdo Principal -->
+                                <div class="modal-body informativo-body">
+                                    
+                                    <!-- Seção: Conteúdo do Informativo -->
+                                    <section class="informativo-secao-conteudo">
+                                        <div class="informativo-texto">
+                                            <?php 
+                                            // Preservar formatação original
+                                            $conteudo = trim($info['conteudo']);
+                                            $conteudo = str_replace(["\r\n", "\r"], "\n", $conteudo);
+                                            echo nl2br(htmlspecialchars($conteudo)); 
+                                            ?>
                                         </div>
-                                        <div class="d-flex gap-2 mt-2">
-                                            <?php if (!empty($info['imagem'])): ?>
-                                                <a href="#" onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>'); return false;">
-                                                    <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>"
-                                                         class="img-fluid rounded shadow"
-                                                         alt="Imagem do informativo"
-                                                         style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; cursor: pointer;">
-                                                </a>
-                                            <?php endif; ?>
-                                            <?php if (!empty($info['anexo'])): ?>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>" target="_blank" title="Baixar anexo">
-                                                    <i class="fas fa-file-pdf fa-2x text-danger" style="vertical-align: middle;"></i>
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                        <button class="btn btn-outline-primary w-100 mt-2" id="verMais-<?php echo $info['id']; ?>" style="display:none;" onclick="abrirModalInformativo(<?php echo $info['id']; ?>)">Ver Mais</button>
-                                    </div>
-                                    <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
-                                        <span class="badge bg-info" style="border-radius: 8px;"><?php echo htmlspecialchars($info['categoria_nome'] ?? $info['categoria']); ?></span>
-                                        <?php if (!empty($info['department_name'])): ?>
-                                            <span class="badge bg-secondary" style="border-radius: 8px;"><?php echo htmlspecialchars($info['department_name']); ?></span>
-                                        <?php endif; ?>
-                                        <small class="text-muted ms-2">
-                                            <i class="fas fa-user me-1"></i>Por: <?php echo htmlspecialchars($info['usuario_nome'] ?? 'N/A'); ?>
-                                            <span class="ms-2" title="Publicado em">
-                                                <i class="fas fa-calendar me-1"></i>
-                                                <?php echo date('d/m/Y H:i', strtotime($info['created_at'])); ?>
-                                            </span>
+                                    </section>
+                                    
+                                    <!-- Seção: Anexos (Imagem e PDF) -->
+                                    <?php if (!empty($info['imagem']) || !empty($info['anexo'])): ?>
+                                        <section class="informativo-secao-anexos">
+                                            <h6 class="informativo-secao-titulo">
+                                                <i class="fas fa-paperclip me-2"></i>Anexos
+                                            </h6>
+                                            <div class="informativo-anexos-grid">
+                                                <?php if (!empty($info['imagem'])): ?>
+                                                    <div class="informativo-anexo-item">
+                                                        <a href="#" 
+                                                           onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>'); return false;"
+                                                           class="informativo-imagem-link">
+                                                            <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>"
+                                                                 class="informativo-imagem"
+                                                                 alt="Imagem do informativo"
+                                                                 loading="lazy">
+                                                            <div class="informativo-imagem-overlay">
+                                                                <i class="fas fa-search-plus fa-2x"></i>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($info['anexo'])): ?>
+                                                    <div class="informativo-anexo-item">
+                                                        <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>" 
+                                                           target="_blank" 
+                                                           class="informativo-pdf-link">
+                                                            <i class="fas fa-file-pdf fa-3x mb-2"></i>
+                                                            <span class="d-block fw-bold">Baixar PDF</span>
+                                                            <small class="text-muted">Clique para abrir</small>
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </section>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Seção: Informações de Publicação -->
+                                    <section class="informativo-secao-metadados">
+                                        <div class="row g-3">
+                                            <div class="col-md-4 col-12">
+                                                <div class="informativo-meta-item">
+                                                    <i class="fas fa-user informativo-meta-icon"></i>
+                                                    <div>
+                                                        <small class="text-muted d-block">Publicado por</small>
+                                                        <strong><?php echo htmlspecialchars($info['usuario_nome'] ?? 'N/A'); ?></strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 col-12">
+                                                <div class="informativo-meta-item">
+                                                    <i class="fas fa-calendar-alt informativo-meta-icon"></i>
+                                                    <div>
+                                                        <small class="text-muted d-block">Data de publicação</small>
+                                                        <strong><?php echo date('d/m/Y', strtotime($info['created_at'])); ?></strong>
+                                                        <small class="text-muted d-block"><?php echo date('H:i', strtotime($info['created_at'])); ?></small>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <?php if (!empty($info['expire_at'])): ?>
-                                                <span class="ms-2" title="Expira em">
-                                                    <i class="fas fa-hourglass-end me-1"></i>
-                                                    <?php echo date('d/m/Y H:i', strtotime($info['expire_at'])); ?>
-                                                </span>
+                                                <div class="col-md-4 col-12">
+                                                    <div class="informativo-meta-item">
+                                                        <i class="fas fa-clock informativo-meta-icon"></i>
+                                                        <div>
+                                                            <small class="text-muted d-block">Expira em</small>
+                                                            <strong><?php echo date('d/m/Y', strtotime($info['expire_at'])); ?></strong>
+                                                            <small class="text-muted d-block"><?php echo date('H:i', strtotime($info['expire_at'])); ?></small>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             <?php endif; ?>
-                                        </small>
-                                    </div>
+                                        </div>
+                                    </section>
+                                    
                                 </div>
-                                <div class="modal-footer" style="border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;">
+                                
+                                <!-- FOOTER - Ações -->
+                                <div class="modal-footer informativo-footer">
                                     <?php if ($info['requires_ack']): ?>
-                                        <button type="button" class="btn btn-success me-auto" id="btn-ack-<?php echo $info['id']; ?>" onclick="confirmarCiencia(<?php echo $info['id']; ?>)" style="border-radius: 8px;">
-                                            <i class="fas fa-check me-1"></i>Estou ciente
+                                        <button type="button" 
+                                                class="btn btn-success me-auto" 
+                                                id="btn-ack-<?php echo $info['id']; ?>" 
+                                                onclick="confirmarCiencia(<?php echo $info['id']; ?>)">
+                                            <i class="fas fa-check-circle me-2"></i>Estou ciente
                                         </button>
                                     <?php endif; ?>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Fechar</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-2"></i>Fechar
+                                    </button>
                                 </div>
+                                
                             </div>
                         </div>
                     </div>
@@ -312,27 +385,75 @@
     border-color: #219150 !important;
     cursor: pointer;
 }
-.informativo-conteudo {
+
+/* Limitar altura APENAS nos cards da lista (não no modal) */
+.card .informativo-conteudo {
     max-height: 80px;
     overflow: hidden;
     position: relative;
 }
+
+/* No modal, mostrar conteúdo completo sem limitação */
+.modal-body .informativo-conteudo {
+    max-height: none !important;
+    overflow: visible !important;
+}
 </style>
-<!-- Modal para ampliar imagem -->
+<!-- Modal para ampliar imagem - Tela cheia em mobile -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-body text-center">
-        <img id="modalImage" src="" alt="Imagem ampliada" style="max-width: 100%; max-height: 70vh;">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down modal-xl">
+    <div class="modal-content" style="background-color: #fff;">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background-color: white; border-radius: 50%; padding: 0.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></button>
+      </div>
+      <div class="modal-body text-center d-flex align-items-center justify-content-center p-0" style="background-color: #fff;">
+        <img id="modalImage" src="" alt="Imagem ampliada" class="img-fluid" style="max-width: 100%; max-height: 90vh; width: auto; height: auto; object-fit: contain;">
+      </div>
+      <div class="modal-footer border-0 justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Fechar
+        </button>
       </div>
     </div>
   </div>
 </div>
 <script>
 function showImageModal(src) {
-    document.getElementById('modalImage').src = src;
-    var modal = new bootstrap.Modal(document.getElementById('imageModal'));
-    modal.show();
+    const img = document.getElementById('modalImage');
+    const modalEl = document.getElementById('imageModal');
+    
+    img.src = src;
+    
+    // Garantir que a imagem seja carregada antes de abrir o modal
+    img.onload = function() {
+        var modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',  // Backdrop claro
+            keyboard: true,
+            focus: true
+        });
+        
+        modal.show();
+        
+        // Após abrir, garantir que backdrop seja claro
+        setTimeout(function() {
+            const backdrop = document.querySelector('.modal-backdrop.show');
+            if (backdrop) {
+                backdrop.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                backdrop.style.backdropFilter = 'blur(5px)';
+            }
+            
+            // Garantir que a imagem seja visível e clara
+            img.style.filter = 'brightness(1.1) contrast(1.05)';
+            img.style.opacity = '1';
+            
+            console.log('✅ Modal de imagem aberto - backdrop claro aplicado');
+        }, 100);
+    };
+    
+    // Se der erro ao carregar a imagem
+    img.onerror = function() {
+        alert('Erro ao carregar a imagem. Por favor, tente novamente.');
+    };
 }
 
 function confirmarCiencia(informativoId) {
