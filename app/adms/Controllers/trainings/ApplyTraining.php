@@ -139,19 +139,27 @@ class ApplyTraining
 
     public function apply(): void
     {
-        // LOG DE DEBUG - Verificar se o método está sendo chamado
-        error_log("=== APPLY TRAINING CHAMADO ===");
-        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
-        error_log("POST count: " . count($_POST));
-        error_log("POST recebido: " . print_r($_POST, true));
-        error_log("SESSION user_id: " . ($_SESSION['user_id'] ?? 'NÃO DEFINIDO'));
-        error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'NÃO DEFINIDO'));
-        error_log("Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'NÃO DEFINIDO'));
+        // LOG DE DEBUG AGRESSIVO - Capturar TUDO
+        $logDebug = "=== APPLY TRAINING CHAMADO ===\n";
+        $logDebug .= "Data/Hora: " . date('Y-m-d H:i:s') . "\n";
+        $logDebug .= "REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD'] . "\n";
+        $logDebug .= "POST count: " . count($_POST) . "\n";
+        $logDebug .= "POST recebido: " . print_r($_POST, true) . "\n";
+        $logDebug .= "SESSION user_id: " . ($_SESSION['user_id'] ?? 'NÃO DEFINIDO') . "\n";
+        $logDebug .= "Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'NÃO DEFINIDO') . "\n";
+        $logDebug .= "Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'NÃO DEFINIDO') . "\n";
+        $logDebug .= "URL_ADM: " . ($_ENV['URL_ADM'] ?? 'NÃO DEFINIDO') . "\n";
         
-        // VERIFICAÇÃO CRÍTICA: Se POST está vazio, pode ser problema de configuração
+        // Escrever no arquivo de log E no error_log
+        file_put_contents(__DIR__ . '/../../logs/apply_training_debug.log', $logDebug . "\n", FILE_APPEND);
+        error_log($logDebug);
+        
+        // VERIFICAÇÃO CRÍTICA: Se POST está vazio
         if (empty($_POST)) {
-            error_log("⚠️ ALERTA: POST VAZIO - Possível problema de configuração do servidor!");
-            error_log("php://input: " . file_get_contents('php://input'));
+            $errorMsg = "⚠️ ALERTA: POST VAZIO - Possível problema de configuração do servidor!";
+            file_put_contents(__DIR__ . '/../../logs/apply_training_debug.log', $errorMsg . "\n", FILE_APPEND);
+            error_log($errorMsg);
+            
             $_SESSION['msg'] = "Erro: Dados do formulário não foram recebidos. Verifique a configuração do servidor.";
             $_SESSION['msg_type'] = "danger";
             header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
@@ -199,34 +207,46 @@ class ApplyTraining
         $trainingsRepo = new TrainingsRepository();
 
         // Validações básicas
+        error_log("VALIDAÇÃO 1: Verificando training_id e user_id");
         if (!$training_id || !$user_id) {
+            error_log("❌ FALHOU: training_id=$training_id, user_id=$user_id");
             $_SESSION['msg'] = "Dados obrigatórios não informados.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
+        error_log("✓ PASSOU: training_id=$training_id, user_id=$user_id");
+        
         // Validação obrigatória da nota
+        error_log("VALIDAÇÃO 2: Verificando nota (valor=$nota)");
         if ($nota === null || $nota === '' || !is_numeric($nota) || $nota < 0 || $nota > 10) {
+            error_log("❌ FALHOU: nota inválida ou vazia");
             $_SESSION['msg'] = "O campo Nota é obrigatório e deve estar entre 0 e 10.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
+        error_log("✓ PASSOU: nota=$nota");
         
         // Validação obrigatória da data de avaliação
+        error_log("VALIDAÇÃO 3: Verificando data_avaliacao (valor=$data_avaliacao)");
         if (empty($data_avaliacao)) {
+            error_log("❌ FALHOU: data_avaliacao vazia");
             $_SESSION['msg'] = "A Data de Avaliação é obrigatória.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
+        error_log("✓ PASSOU: data_avaliacao=$data_avaliacao");
 
         // Validação de data de avaliação (entre realização e hoje)
+        error_log("VALIDAÇÃO 4: Verificando limites da data_avaliacao");
         if ($data_avaliacao) {
             if ($data_avaliacao > date('Y-m-d')) {
+                error_log("❌ FALHOU: data_avaliacao ($data_avaliacao) é futura");
                 $_SESSION['msg'] = "Data de avaliação deve ser até hoje.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
@@ -234,6 +254,7 @@ class ApplyTraining
                 exit;
             }
             if ($data_realizacao && $data_avaliacao < $data_realizacao) {
+                error_log("❌ FALHOU: data_avaliacao ($data_avaliacao) < data_realizacao ($data_realizacao)");
                 $_SESSION['msg'] = "Data de avaliação deve ser igual ou posterior à data de realização.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
@@ -241,15 +262,19 @@ class ApplyTraining
                 exit;
             }
         }
+        error_log("✓ PASSOU: data_avaliacao válida");
 
         // Deve ter pelo menos uma data
+        error_log("VALIDAÇÃO 5: Verificando se tem data_realizacao OU data_agendada");
         if (!$data_realizacao && !$data_agendada) {
+            error_log("❌ FALHOU: nenhuma data informada");
             $_SESSION['msg'] = "Informe a data de realização ou agendamento.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
+        error_log("✓ PASSOU: data_realizacao=$data_realizacao, data_agendada=$data_agendada");
 
         // Validações de data
         if ($data_realizacao) {
@@ -286,30 +311,39 @@ class ApplyTraining
         }
 
         // Validação obrigatória do tipo de instrutor
+        error_log("VALIDAÇÃO 6: Verificando instructor_type (valor=$instructor_type)");
         if (empty($instructor_type)) {
+            error_log("❌ FALHOU: instructor_type vazio");
             $_SESSION['msg'] = "Selecione o tipo de instrutor.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
+        error_log("✓ PASSOU: instructor_type=$instructor_type");
+        
         // Validação obrigatória do instrutor conforme o tipo
+        error_log("VALIDAÇÃO 7: Verificando dados do instrutor");
         if ($instructor_type === 'internal') {
             if (empty($instructor_user_id)) {
+                error_log("❌ FALHOU: instructor_user_id vazio (interno)");
                 $_SESSION['msg'] = "Selecione o instrutor interno.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
                 header("Location: " . $redirectUrl);
                 exit;
             }
+            error_log("✓ PASSOU: instructor_user_id=$instructor_user_id (interno)");
         } elseif ($instructor_type === 'external') {
             if (empty($instrutor_nome) || empty($instrutor_email)) {
+                error_log("❌ FALHOU: instrutor_nome ou email vazio (externo)");
                 $_SESSION['msg'] = "Informe o nome e e-mail do instrutor externo.";
                 $_SESSION['msg_type'] = "danger";
                 saveFormSession();
                 header("Location: " . $redirectUrl);
                 exit;
             }
+            error_log("✓ PASSOU: instrutor_nome=$instrutor_nome, email=$instrutor_email (externo)");
         }
 
         // Processar dados do instrutor
@@ -335,6 +369,9 @@ class ApplyTraining
         $applicationsRepo = new TrainingApplicationsRepository();
         $trainingUsersRepo = new TrainingUsersRepository();
         $trainingsRepo = new TrainingsRepository();
+        
+        error_log("✅✅✅ TODAS AS VALIDAÇÕES PASSARAM - INICIANDO SALVAMENTO ✅✅✅");
+        error_log("Dados validados: user=$user_id, training=$training_id, nota=$nota, data_aval=$data_avaliacao");
         
         try {
             error_log("=== PREPARANDO DADOS PARA SALVAR ===");
