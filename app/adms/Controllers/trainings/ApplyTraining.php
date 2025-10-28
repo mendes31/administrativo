@@ -206,17 +206,17 @@ class ApplyTraining
             header("Location: " . $redirectUrl);
             exit;
         }
-        // Validação obrigatória da nota
-        if ($nota === null || $nota === '' || !is_numeric($nota) || $nota < 0 || $nota > 10) {
-            $_SESSION['msg'] = "O campo Nota é obrigatório e deve estar entre 0 e 10.";
+        // Validação da nota (OPCIONAL, mas se informada deve estar entre 0 e 10)
+        if ($nota !== null && $nota !== '' && (!is_numeric($nota) || $nota < 0 || $nota > 10)) {
+            $_SESSION['msg'] = "A nota deve estar entre 0 e 10.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
-        // Agora data de avaliação é obrigatória quando houver realização
-        if (!empty($data_realizacao) && empty($data_avaliacao)) {
-            $_SESSION['msg'] = "Selecione a data de avaliação (entre a realização e hoje).";
+        // Data de avaliação é obrigatória quando houver NOTA
+        if (!empty($nota) && $nota !== '' && empty($data_avaliacao)) {
+            $_SESSION['msg'] = "Data de avaliação é obrigatória quando há nota informada.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
@@ -278,15 +278,6 @@ class ApplyTraining
 
         if ($data_agendada && $data_agendada < date('Y-m-d')) {
             $_SESSION['msg'] = "Data de agendamento não pode ser retroativa.";
-            $_SESSION['msg_type'] = "danger";
-            saveFormSession();
-            header("Location: " . $redirectUrl);
-            exit;
-        }
-
-        // Validação: se houver nota, data de avaliação é obrigatória
-        if (!empty($nota) && empty($data_avaliacao)) {
-            $_SESSION['msg'] = "Data de avaliação é obrigatória quando há nota informada.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
