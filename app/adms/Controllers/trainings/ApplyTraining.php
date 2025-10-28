@@ -139,6 +139,25 @@ class ApplyTraining
 
     public function apply(): void
     {
+        // LOG DE DEBUG - Verificar se o método está sendo chamado
+        error_log("=== APPLY TRAINING CHAMADO ===");
+        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+        error_log("POST count: " . count($_POST));
+        error_log("POST recebido: " . print_r($_POST, true));
+        error_log("SESSION user_id: " . ($_SESSION['user_id'] ?? 'NÃO DEFINIDO'));
+        error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'NÃO DEFINIDO'));
+        error_log("Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'NÃO DEFINIDO'));
+        
+        // VERIFICAÇÃO CRÍTICA: Se POST está vazio, pode ser problema de configuração
+        if (empty($_POST)) {
+            error_log("⚠️ ALERTA: POST VAZIO - Possível problema de configuração do servidor!");
+            error_log("php://input: " . file_get_contents('php://input'));
+            $_SESSION['msg'] = "Erro: Dados do formulário não foram recebidos. Verifique a configuração do servidor.";
+            $_SESSION['msg_type'] = "danger";
+            header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
+            exit;
+        }
+        
         // Antes de cada redirecionamento de erro, salvar os dados do formulário em sessão
         function saveFormSession() {
             $_SESSION['form_apply_training'] = [
@@ -156,6 +175,8 @@ class ApplyTraining
 
         $training_id = (int) ($_POST['training_id'] ?? 0);
         $user_id = (int) ($_POST['user_id'] ?? 0);
+        
+        error_log("Training ID: $training_id, User ID: $user_id");
         $edit_id = (int) ($_POST['edit_id'] ?? 0);
         
         $data_realizacao = $_POST['data_realizacao'] ?? null;
@@ -324,6 +345,8 @@ class ApplyTraining
         $trainingsRepo = new TrainingsRepository();
         
         try {
+            error_log("=== PREPARANDO DADOS PARA SALVAR ===");
+            
             $dados = [
                 'adms_user_id' => $user_id,
                 'adms_training_id' => $training_id,
@@ -340,28 +363,40 @@ class ApplyTraining
                 'aplicado_por' => $aplicado_por,
                 'status' => $data_realizacao ? 'concluido' : 'agendado'
             ];
-           // var_dump($dados); exit;
+            
+            error_log("Dados a salvar: " . print_r($dados, true));
 
             // Atualizar vínculo principal
-            $trainingUsersRepo->applyTraining($user_id, $training_id, [
+            error_log("=== ATUALIZANDO VÍNCULO PRINCIPAL ===");
+            $resultVinculo = $trainingUsersRepo->applyTraining($user_id, $training_id, [
                 'data_realizacao' => $data_realizacao,
                 'data_agendada' => $data_agendada,
                 'nota' => $nota,
                 'observacoes' => $observacoes,
                 'status' => $data_realizacao ? 'concluido' : 'agendado'
             ]);
+            error_log("Resultado vínculo: " . ($resultVinculo ? 'SUCESSO' : 'FALHA'));
 
             if ($edit_id) {
                 // Atualização
+                error_log("=== MODO EDIÇÃO - ID: $edit_id ===");
                 $oldData = $applicationsRepo->getById($edit_id);
-                $applicationsRepo->update($edit_id, $dados);
+                $resultUpdate = $applicationsRepo->update($edit_id, $dados);
+                error_log("Resultado update: " . ($resultUpdate ? 'SUCESSO' : 'FALHA'));
                 LogHelper::logUpdate('adms_training_applications', $edit_id, $oldData, $dados, $aplicado_por);
                 $msg = "Aplicação atualizada com sucesso!";
             } else {
                 // Inserção
+                error_log("=== MODO INSERÇÃO ===");
                 $newId = $applicationsRepo->insert($dados);
-                LogHelper::log('adms_training_applications', 'inserção', $newId, 'Nova aplicação de treinamento', $aplicado_por);
-                $msg = $data_realizacao ? "Treinamento registrado como realizado!" : "Treinamento agendado com sucesso!";
+                error_log("Novo ID retornado: " . ($newId ?: 'FALHA'));
+                
+                if ($newId) {
+                    LogHelper::log('adms_training_applications', 'inserção', $newId, 'Nova aplicação de treinamento', $aplicado_por);
+                    $msg = $data_realizacao ? "Treinamento registrado como realizado!" : "Treinamento agendado com sucesso!";
+                } else {
+                    throw new \Exception("Falha ao inserir aplicação - ID retornado: " . var_export($newId, true));
+                }
             }
 
             // Se foi realizado, analisar aprovação/reprovação e reciclagem
@@ -381,13 +416,26 @@ class ApplyTraining
                 }
             }
 
+            error_log("=== SUCESSO - Salvando mensagem e redirecionando ===");
+            error_log("Mensagem: $msg");
+            
             $_SESSION['msg'] = $msg;
             $_SESSION['msg_type'] = "success";
+            
+            error_log("Redirecionando para: " . $_ENV['URL_ADM'] . "list-training-status");
             header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
             
         } catch (\Exception $e) {
-            $_SESSION['msg'] = "Erro: " . $e->getMessage();
+            error_log("=== ERRO CAPTURADO ===");
+            error_log("Mensagem de erro: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            error_log("Arquivo: " . $e->getFile() . " - Linha: " . $e->getLine());
+            
+            $_SESSION['msg'] = "Erro ao salvar aplicação: " . $e->getMessage();
             $_SESSION['msg_type'] = "danger";
+            saveFormSession();
+            
+            error_log("Redirecionando para: $redirectUrl");
             header("Location: " . $redirectUrl);
         }
         exit;

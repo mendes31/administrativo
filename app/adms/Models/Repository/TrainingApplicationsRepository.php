@@ -16,7 +16,18 @@ class TrainingApplicationsRepository extends DbConnection
     {
         try {
             // Log de debug antes do insert
-            file_put_contents(__DIR__ . '/../../../logs/debug_training_applications.log', "\n==== NOVO INSERT ====".PHP_EOL.date('Y-m-d H:i:s').PHP_EOL.print_r($data, true), FILE_APPEND);
+            $logFile = __DIR__ . '/../../../logs/debug_training_applications.log';
+            $logContent = "\n==== NOVO INSERT ====".PHP_EOL.date('Y-m-d H:i:s').PHP_EOL.print_r($data, true);
+            
+            // Verificar se consegue escrever no log
+            if (!file_put_contents($logFile, $logContent, FILE_APPEND)) {
+                error_log("⚠️ FALHA AO ESCREVER NO LOG: $logFile");
+            } else {
+                error_log("✓ Log escrito em: $logFile");
+            }
+            
+            // Log também no error_log do PHP
+            error_log("TrainingApplicationsRepository::insert() chamado com: " . print_r($data, true));
             // Verifica se já existe aplicação igual (mesmo user, treinamento, nota e created_at)
             $sqlCheck = 'SELECT id FROM adms_training_applications WHERE adms_user_id = :adms_user_id AND adms_training_id = :adms_training_id AND ((nota IS NULL AND :nota IS NULL) OR nota = :nota) AND created_at = :created_at';
             $stmtCheck = $this->getConnection()->prepare($sqlCheck);
@@ -70,8 +81,19 @@ class TrainingApplicationsRepository extends DbConnection
                 ':status' => $data['status'] ?? 'agendado',
                 ':created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
             ], true), FILE_APPEND);
-            $stmt->execute();
+            $executeResult = $stmt->execute();
+            
+            error_log("Execute result: " . ($executeResult ? 'TRUE' : 'FALSE'));
+            
+            if (!$executeResult) {
+                $errorInfo = $stmt->errorInfo();
+                error_log("⚠️ ERRO SQL: " . print_r($errorInfo, true));
+                throw new Exception("Erro SQL: " . ($errorInfo[2] ?? 'Desconhecido'));
+            }
+            
             $novoId = $this->getConnection()->lastInsertId();
+            error_log("Last Insert ID: " . $novoId);
+            
             file_put_contents(__DIR__ . '/../../../logs/debug_training_applications.log', "\nNovo ID: ".$novoId.PHP_EOL, FILE_APPEND);
             
             // Log de inserção
