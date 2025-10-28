@@ -190,7 +190,21 @@ class ApplyTraining
         $data_realizacao = $_POST['data_realizacao'] ?? null;
         $data_avaliacao = $_POST['data_avaliacao'] ?? null;
         $data_agendada = $_POST['data_agendada'] ?? null;
+        
+        // NORMALIZAR NOTA: Converter vírgula para ponto (padrão brasileiro → americano)
         $nota = $_POST['nota'] ?? null;
+        if ($nota !== null && $nota !== '') {
+            // Substituir vírgula por ponto
+            $nota = str_replace(',', '.', $nota);
+            // Remover espaços
+            $nota = trim($nota);
+            // Converter para float e depois string para manter precisão
+            if (is_numeric($nota)) {
+                $nota = (string) (float) $nota;
+            }
+        }
+        error_log("NOTA NORMALIZADA: [" . ($_POST['nota'] ?? 'vazio') . "] → [$nota]");
+        
         $observacoes = $_POST['observacoes'] ?? null;
         $instructor_type = $_POST['instructor_type'] ?? null;
         $instructor_user_id = (int) ($_POST['instructor_user_id'] ?? 0);
@@ -219,16 +233,21 @@ class ApplyTraining
         error_log("✓ PASSOU: training_id=$training_id, user_id=$user_id");
         
         // Validação obrigatória da nota
-        error_log("VALIDAÇÃO 2: Verificando nota (valor=$nota)");
+        error_log("VALIDAÇÃO 2: Verificando nota (valor=$nota, is_numeric=" . (is_numeric($nota) ? 'true' : 'false') . ")");
         if ($nota === null || $nota === '' || !is_numeric($nota) || $nota < 0 || $nota > 10) {
-            error_log("❌ FALHOU: nota inválida ou vazia");
+            $detalhes = "nota_null=" . ($nota === null ? 'SIM' : 'NÃO');
+            $detalhes .= ", nota_empty=" . ($nota === '' ? 'SIM' : 'NÃO');
+            $detalhes .= ", is_numeric=" . (is_numeric($nota) ? 'SIM' : 'NÃO');
+            $detalhes .= ", valor=" . var_export($nota, true);
+            error_log("❌ FALHOU: nota inválida ou vazia - $detalhes");
+            
             $_SESSION['msg'] = "O campo Nota é obrigatório e deve estar entre 0 e 10.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
-        error_log("✓ PASSOU: nota=$nota");
+        error_log("✓ PASSOU: nota=$nota (válida)");
         
         // Validação obrigatória da data de avaliação
         error_log("VALIDAÇÃO 3: Verificando data_avaliacao (valor=$data_avaliacao)");
