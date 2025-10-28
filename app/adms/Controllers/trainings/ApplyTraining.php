@@ -206,17 +206,18 @@ class ApplyTraining
             header("Location: " . $redirectUrl);
             exit;
         }
-        // Validação da nota (OPCIONAL, mas se informada deve estar entre 0 e 10)
-        if ($nota !== null && $nota !== '' && (!is_numeric($nota) || $nota < 0 || $nota > 10)) {
-            $_SESSION['msg'] = "A nota deve estar entre 0 e 10.";
+        // Validação obrigatória da nota
+        if ($nota === null || $nota === '' || !is_numeric($nota) || $nota < 0 || $nota > 10) {
+            $_SESSION['msg'] = "O campo Nota é obrigatório e deve estar entre 0 e 10.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
             exit;
         }
-        // Data de avaliação é obrigatória quando houver NOTA
-        if (!empty($nota) && $nota !== '' && empty($data_avaliacao)) {
-            $_SESSION['msg'] = "Data de avaliação é obrigatória quando há nota informada.";
+        
+        // Validação obrigatória da data de avaliação
+        if (empty($data_avaliacao)) {
+            $_SESSION['msg'] = "A Data de Avaliação é obrigatória.";
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);

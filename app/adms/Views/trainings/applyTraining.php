@@ -100,8 +100,8 @@ use App\adms\Helpers\FormatHelper;
                                        id="data_avaliacao" 
                                        value="<?php echo $this->data['form_data_avaliacao'] ?? $this->data['trainingUser']['data_avaliacao'] ?? ''; ?>"
                                        min="<?php echo ($this->data['form_data_realizacao'] ?? $this->data['trainingUser']['data_realizacao'] ?? ''); ?>"
-                                       max="<?php echo date('Y-m-d'); ?>">
-                                <div class="form-text">Data em que a avaliação foi realizada (obrigatória quando houver nota)</div>
+                                       max="<?php echo date('Y-m-d'); ?>" required>
+                                <div class="form-text">Data em que a avaliação foi realizada (obrigatória)</div>
                             </div>
                             <div class="col-md-4">
                                 <label for="nota" class="form-label">
@@ -115,8 +115,8 @@ use App\adms\Helpers\FormatHelper;
                                        max="10" 
                                        step="0.1"
                                        value="<?php echo $this->data['form_nota'] ?? $this->data['trainingUser']['nota'] ?? ''; ?>"
-                                       placeholder="0.0 a 10.0">
-                                <div class="form-text">Nota de 0 a 10 (opcional)</div>
+                                       placeholder="0.0 a 10.0" required>
+                                <div class="form-text">Nota de 0 a 10 (obrigatória)</div>
                             </div>
                         </div>
 
@@ -533,20 +533,13 @@ function validateDataRealizacao() {
 function validateDataAvaliacao() {
     var dataAvaliacao = document.getElementById('data_avaliacao');
     var dataRealizacao = document.getElementById('data_realizacao');
-    var nota = document.getElementById('nota');
     var hoje = new Date().toISOString().split('T')[0];
     
-    // Campo obrigatório se tiver nota
-    if (nota && nota.value && !dataAvaliacao.value) {
-        dataAvaliacao.classList.add('is-invalid');
-        showFeedback(dataAvaliacao, 'Data de avaliação é obrigatória quando há nota.');
-        return false;
-    }
-    
+    // Campo obrigatório - sempre
     if (!dataAvaliacao.value) {
-        dataAvaliacao.classList.remove('is-invalid');
-        removeFeedback(dataAvaliacao);
-        return true; // Opcional se não tiver nota
+        dataAvaliacao.classList.add('is-invalid');
+        showFeedback(dataAvaliacao, 'Data de avaliação é obrigatória.');
+        return false;
     }
     
     // Data de avaliação não pode ser superior à data atual
