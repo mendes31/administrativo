@@ -85,5 +85,46 @@ class CrmNotesRepository extends DbConnection
             return false;
         }
     }
+
+    /**
+     * Buscar nota por ID
+     */
+    public function getNoteById(int $id): array|bool
+    {
+        $sql = 'SELECT 
+                    n.*,
+                    u.name as created_by_name
+                FROM crm_notes n
+                LEFT JOIN adms_users u ON n.created_by = u.id
+                WHERE n.id = :id';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Deletar nota
+     */
+    public function deleteNote(int $id): bool
+    {
+        try {
+            $sql = 'DELETE FROM crm_notes WHERE id = :id';
+
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog("error", "Erro ao deletar nota", [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return false;
+        }
+    }
 }
 

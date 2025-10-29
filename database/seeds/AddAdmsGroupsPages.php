@@ -53,6 +53,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'LGPD', 'obs' => 'Gestão da LGPD e privacidade'], // Nº 31
             ['name' => 'Sessões', 'obs' => 'Gerenciamento de sessões do sistema'], // Nº 32
             ['name' => 'Estoque', 'obs' => 'Módulo de estoque'], // Nº 33
+            ['name' => 'CRM', 'obs' => 'Gestão de Relacionamento com Clientes'], // Nº 34
         ];
 
         foreach ($grupos as $grupo) {

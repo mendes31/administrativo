@@ -6,10 +6,11 @@ class AddCrmPipelineStages extends AbstractSeed
 {
     /**
      * Seed para criar as etapas padrão do pipeline CRM
+     * Valida se já existem antes de inserir para evitar duplicatas
      */
     public function run(): void
     {
-        $data = [
+        $stages = [
             [
                 'name' => 'Prospecção',
                 'description' => 'Primeiro contato com o lead, identificação de interesse',
@@ -96,8 +97,32 @@ class AddCrmPipelineStages extends AbstractSeed
             ]
         ];
 
-        $table = $this->table('crm_pipeline_stages');
-        $table->insert($data)->saveData();
+        // Validar antes de inserir
+        $data = [];
+        foreach ($stages as $stage) {
+            // Verificar se já existe etapa com o mesmo nome e ordem
+            $existingRecord = $this->query(
+                'SELECT id FROM crm_pipeline_stages WHERE name = :name AND display_order = :display_order',
+                [
+                    'name' => $stage['name'],
+                    'display_order' => $stage['display_order']
+                ]
+            )->fetch();
+
+            // Se não existir, adiciona ao array de inserção
+            if (!$existingRecord) {
+                $data[] = $stage;
+            }
+        }
+
+        // Inserir apenas se houver dados novos
+        if (!empty($data)) {
+            $table = $this->table('crm_pipeline_stages');
+            $table->insert($data)->saveData();
+            echo "✓ " . count($data) . " etapas do pipeline criadas\n";
+        } else {
+            echo "⚠️ Todas as etapas já existem. Nenhuma inserção necessária.\n";
+        }
     }
 }
 

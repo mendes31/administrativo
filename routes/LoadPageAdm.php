@@ -108,7 +108,19 @@ class LoadPageAdm
         "LgpdAipdTemplateSaude", "LgpdAipdTemplateFinanceiro", "LgpdAipdTemplateEcommerce", "LgpdAipdTemplateEducacao", "LgpdAipdTemplateRh", "LgpdAipdTemplateMarketing", "LgpdAipdTemplateTelecom", "LgpdAipdTemplateLogistica", "LgpdAipdTemplateJuridico",
         "LgpdConsentimentos", "LgpdConsentimentosCreate", "LgpdConsentimentosEdit", "LgpdConsentimentosView", "LgpdConsentimentosDelete",
         "LgpdConsentimentoColeta", "LgpdConsentimentoColetaProcessar", "LgpdConsentimentoEmail", "LgpdConsentimentoEmailProcessar",
-        "LgpdTia", "LgpdTiaCreate", "LgpdTiaEdit", "LgpdTiaView", "LgpdTiaDelete", "LgpdTiaDashboard", "LgpdTiaTemplateFinanceiro", "LgpdTiaTemplateMarketing", "LgpdTiaTemplateRh", "LgpdTiaTemplateTi", "LgpdTiaTemplates", "LgpdTiaExportPdf", "LgpdTiaExportPdfList", "LgpdTiaExportPdfView"
+        "LgpdTia", "LgpdTiaCreate", "LgpdTiaEdit", "LgpdTiaView", "LgpdTiaDelete", "LgpdTiaDashboard", "LgpdTiaTemplateFinanceiro", "LgpdTiaTemplateMarketing", "LgpdTiaTemplateRh", "LgpdTiaTemplateTi", "LgpdTiaTemplates", "LgpdTiaExportPdf", "LgpdTiaExportPdfList", "LgpdTiaExportPdfView",
+        // CRM - Módulo de Gestão de Relacionamento com Clientes
+        "CrmDashboard", "CrmKanbanPipeline", "CrmMoveOpportunity",
+        "CrmListPartners", "CrmCreatePartner", "CrmViewPartner", "CrmUpdatePartner", "CrmDeletePartner",
+        "CrmListOpportunities", "CrmCreateOpportunity", "CrmViewOpportunity", "CrmUpdateOpportunity", "CrmDeleteOpportunity",
+        "CrmListActivities", "CrmCreateActivity", "CrmCompleteActivity", "CrmDeleteActivity",
+        "CrmCreateNote", "CrmDeleteNote",
+        "CrmUploadDocument", "CrmDownloadDocument", "CrmDeleteDocument",
+        "CrmListTags", "CrmCreateTag", "CrmUpdateTag", "CrmDeleteTag",
+        "CrmReportPipeline", "CrmReportPerformance", "CrmReportConversion",
+        "CrmImportPartners", "CrmExportPartners", "CrmDownloadTemplatePartners",
+        "CrmImportOpportunities", "CrmExportOpportunities", "CrmDownloadTemplateOpportunities",
+        "WhatsAppConfig", "CrmSendWhatsApp"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -144,7 +156,8 @@ class LoadPageAdm
         "branches",
         "informativos",
         "serveFile",
-        "lgpd"
+        "lgpd",
+        "crm"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

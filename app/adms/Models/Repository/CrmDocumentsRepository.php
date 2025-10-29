@@ -88,5 +88,46 @@ class CrmDocumentsRepository extends DbConnection
             return false;
         }
     }
+
+    /**
+     * Buscar documento por ID
+     */
+    public function getDocumentById(int $id): array|bool
+    {
+        $sql = 'SELECT 
+                    d.*,
+                    u.name as uploaded_by_name
+                FROM crm_documents d
+                LEFT JOIN adms_users u ON d.uploaded_by = u.id
+                WHERE d.id = :id';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Deletar documento
+     */
+    public function deleteDocument(int $id): bool
+    {
+        try {
+            $sql = 'DELETE FROM crm_documents WHERE id = :id';
+
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog("error", "Erro ao deletar documento", [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return false;
+        }
+    }
 }
 

@@ -38,6 +38,12 @@ $menus = [
                             'permission' => 'EmailConfig'
                         ],
                         [
+                            'label' => 'Configuração de WhatsApp',
+                            'url' => $_ENV['URL_ADM'] . 'whatsapp-config',
+                            'permission' => 'WhatsAppConfig',
+                            'icon' => 'fab fa-whatsapp'
+                        ],
+                        [
                             'label' => 'Política de Senha',
                             'url' => $_ENV['URL_ADM'] . 'password-policy' . ($policyId ? '/' . $policyId : ''),
                             'permission' => 'PasswordPolicy'
@@ -140,6 +146,97 @@ $menus = [
                 'url' => $_ENV['URL_ADM'] . 'list-informativos',
                 'permission' => 'ListInformativos'
             ]
+        ]
+    ],
+    [
+        'id' => 'crm',
+        'icon' => 'fa-solid fa-handshake',
+        'label' => 'CRM',
+        'submenu' => [
+            [
+                'label' => 'Dashboard CRM',
+                'url' => $_ENV['URL_ADM'] . 'crm-dashboard',
+                'permission' => 'CrmDashboard',
+                'icon' => 'fas fa-chart-pie'
+            ],
+            [
+                'label' => 'Dashboard Gerencial',
+                'url' => $_ENV['URL_ADM'] . 'crm-manager-dashboard',
+                'permission' => 'CrmManagerDashboard',
+                'icon' => 'fas fa-chart-line'
+            ],
+            [
+                'label' => 'Pipeline de Vendas',
+                'url' => $_ENV['URL_ADM'] . 'crm-kanban-pipeline',
+                'permission' => 'CrmKanbanPipeline',
+                'icon' => 'fas fa-chart-line'
+            ],
+            [
+                'label' => 'Parceiros CRM',
+                'icon' => 'fa-solid fa-users',
+                'submenu' => [
+                    [
+                        'label' => 'Listar Parceiros',
+                        'url' => $_ENV['URL_ADM'] . 'crm-list-partners',
+                        'permission' => 'CrmListPartners'
+                    ],
+                    [
+                        'label' => 'Novo Parceiro',
+                        'url' => $_ENV['URL_ADM'] . 'crm-create-partner',
+                        'permission' => 'CrmCreatePartner'
+                    ],
+                ]
+            ],
+               [
+                   'label' => 'Oportunidades',
+                   'icon' => 'fa-solid fa-bullseye',
+                   'submenu' => [
+                       [
+                           'label' => 'Listar Oportunidades',
+                           'url' => $_ENV['URL_ADM'] . 'crm-list-opportunities',
+                           'permission' => 'CrmListOpportunities'
+                       ],
+                       [
+                           'label' => 'Nova Oportunidade',
+                           'url' => $_ENV['URL_ADM'] . 'crm-create-opportunity',
+                           'permission' => 'CrmCreateOpportunity'
+                       ],
+                   ]
+               ],
+               [
+                   'label' => 'Atividades',
+                   'icon' => 'fa-solid fa-calendar-check',
+                   'submenu' => [
+                       [
+                           'label' => 'Agenda de Atividades',
+                           'url' => $_ENV['URL_ADM'] . 'crm-list-activities',
+                           'permission' => 'CrmListActivities'
+                       ],
+                   ]
+               ],
+               [
+                   'label' => 'Configurações',
+                   'icon' => 'fa-solid fa-cog',
+                   'submenu' => [
+                       [
+                           'label' => 'Gerenciar Tags',
+                           'url' => $_ENV['URL_ADM'] . 'crm-list-tags',
+                           'permission' => 'CrmListTags'
+                       ],
+                       [
+                           'label' => 'Campos Customizáveis',
+                           'url' => $_ENV['URL_ADM'] . 'crm-list-custom-fields',
+                           'permission' => 'CrmListCustomFields',
+                           'icon' => 'fa-solid fa-sliders-h'
+                       ],
+                       [
+                           'label' => 'Automações',
+                           'url' => $_ENV['URL_ADM'] . 'crm-list-automations',
+                           'permission' => 'CrmListAutomations',
+                           'icon' => 'fa-solid fa-robot'
+                       ],
+                   ]
+               ],
         ]
     ],
     [
@@ -280,6 +377,23 @@ $menus = [
                 'label' => 'Relatório Resumo Financeiro',
                 'url' => $_ENV['URL_ADM'] . 'flow-cash-competence',
                 'permission' => 'FlowCashCompetence'
+            ],
+        ]
+    ],
+    [
+        'id' => 'parceiros',
+        'icon' => 'fa-solid fa-handshake-simple',
+        'label' => 'Parceiros de Negócio',
+        'submenu' => [
+            [
+                'label' => 'Clientes',
+                'url' => $_ENV['URL_ADM'] . 'list-customers',
+                'permission' => 'ListCustomers'
+            ],
+            [
+                'label' => 'Fornecedores',
+                'url' => $_ENV['URL_ADM'] . 'list-suppliers',
+                'permission' => 'ListSuppliers'
             ],
         ]
     ],
@@ -519,23 +633,6 @@ $menus = [
         ]
     ],
     [
-        'id' => 'parceiros',
-        'icon' => 'fa-solid fa-handshake-simple',
-        'label' => 'Parceiros',
-        'submenu' => [
-            [
-                'label' => 'Clientes',
-                'url' => $_ENV['URL_ADM'] . 'list-customers',
-                'permission' => 'ListCustomers'
-            ],
-            [
-                'label' => 'Fornecedores',
-                'url' => $_ENV['URL_ADM'] . 'list-suppliers',
-                'permission' => 'ListSuppliers'
-            ],
-        ]
-    ],
-    [
         'id' => 'planejamento-estrategico',
         'icon' => 'fa-solid fa-bullseye',
         'label' => 'Planejamento Estratégico',
@@ -557,6 +654,7 @@ $menus = [
             ],
         ]
     ],
+    
     [
         'id' => 'logout',
         'icon' => 'fa-solid fa-arrow-right-from-bracket',
