@@ -80,6 +80,7 @@ class CrmManagerDashboard
             'pending_activities' => $activitiesRepo->getPendingActivities($userFilters),
             'overdue_activities' => $activitiesRepo->getOverdueActivitiesCount($userFilters),
             'activities_by_type' => $activitiesRepo->getActivitiesByType($userFilters),
+            'recent_activities' => $activitiesRepo->getRecentActivitiesWithDetails($userFilters, 10), // Últimas 10 atividades
             
             // Oportunidades
             'total_opportunities' => $opportunitiesRepo->getTotalOpenOpportunities($userFilters),

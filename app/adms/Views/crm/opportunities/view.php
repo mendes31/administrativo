@@ -385,6 +385,109 @@ $documents = $this->data['documents'] ?? [];
 include('./app/adms/Views/crm/opportunities/modals.php');
 ?>
 
+<!-- Modal de Confirmação de Conflito de Horário -->
+<?php if (isset($_SESSION['schedule_conflict'])): ?>
+    <?php 
+    $conflictData = $_SESSION['schedule_conflict'];
+    $conflicts = $conflictData['conflicts'];
+    $pendingData = $conflictData['pending_data'];
+    unset($_SESSION['schedule_conflict']); // Limpar após exibir
+    ?>
+    <div class="modal fade show" id="modalScheduleConflict" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-warning">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Conflito de Horário Detectado!
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeConflictModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3">
+                        <strong>⚠️ Atenção!</strong> Já existe(m) atividade(s) agendada(s) para 
+                        <strong><?= htmlspecialchars($conflicts[0]['responsible_name'] ?? 'este usuário') ?></strong> 
+                        neste horário:
+                    </div>
+                    
+                    <div class="list-group mb-3">
+                        <?php foreach ($conflicts as $conflict): ?>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-calendar-check text-danger me-1"></i>
+                                            <?= htmlspecialchars($conflict['title']) ?>
+                                        </h6>
+                                        <div class="mt-1">
+                                            <?php if (!empty($conflict['partner_name'])): ?>
+                                                <small class="text-muted me-2">
+                                                    <i class="fas fa-user me-1"></i><?= htmlspecialchars($conflict['partner_name']) ?>
+                                                </small>
+                                            <?php endif; ?>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-tie me-1"></i><?= htmlspecialchars($conflict['responsible_name']) ?>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-clock me-1"></i><?= $conflict['start'] ?> - <?= $conflict['end'] ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>O que deseja fazer?</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Cancelar:</strong> Não criar a atividade</li>
+                            <li><strong>Continuar:</strong> Agendar mesmo com conflito</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeConflictModal()">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>crm-create-activity" style="display: inline;">
+                        <?php foreach ($pendingData as $key => $value): ?>
+                            <?php if (is_array($value)): ?>
+                                <?php foreach ($value as $subKey => $subValue): ?>
+                                    <input type="hidden" name="<?= htmlspecialchars($key) ?>[<?= htmlspecialchars($subKey) ?>]" value="<?= htmlspecialchars($subValue ?? '') ?>">
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($value ?? '') ?>">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        <input type="hidden" name="force_schedule" value="1">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-check me-1"></i>Continuar Mesmo Assim
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function closeConflictModal() {
+        document.getElementById('modalScheduleConflict').style.display = 'none';
+    }
+    
+    // Auto-mostrar modal ao carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modalScheduleConflict');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    });
+    </script>
+<?php endif; ?>
+
 <!-- Modal WhatsApp -->
 <?php 
     $partnerMobile = $opportunity['partner_mobile'] ?? '';

@@ -5,8 +5,10 @@ namespace App\adms\Controllers\crm;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CrmPartnersRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
+use App\adms\Models\Repository\CrmTagsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Helpers\CountryHelper;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -45,11 +47,15 @@ class CrmCreatePartner
         // Carregar campos customizáveis para parceiros
         $customFieldsRepo = new CrmCustomFieldsRepository();
         $this->data['custom_fields'] = $customFieldsRepo->getFieldsByEntity('partner');
+        
+        // Carregar tags disponíveis
+        $tagsRepo = new CrmTagsRepository();
+        $this->data['tags'] = $tagsRepo->getAllTags();
 
         // Layout
         $pageElements = [
             'title_head' => 'Novo Parceiro - CRM',
-            'menu' => 'crm-create-partner',
+            'menu' => 'crm-list-partners', // Manter "Listar Parceiros" selecionado
             'buttonPermission' => ['CrmCreatePartner'],
         ];
         
@@ -62,6 +68,21 @@ class CrmCreatePartner
 
     private function create(): void
     {
+        $country = $_POST['country'] ?? 'BR';
+        $ddi = CountryHelper::getDDI($country);
+        
+        // Concatenar DDI com telefone/celular
+        $phone = $_POST['phone'] ?? null;
+        $mobile = $_POST['mobile'] ?? null;
+        
+        if ($phone) {
+            $phone = CountryHelper::formatPhoneWithDDI($phone, $country);
+        }
+        
+        if ($mobile) {
+            $mobile = CountryHelper::formatPhoneWithDDI($mobile, $country);
+        }
+        
         $data = [
             'code' => $_POST['code'] ?? '',
             'name' => $_POST['name'] ?? '',
@@ -69,8 +90,8 @@ class CrmCreatePartner
             'type_person' => $_POST['type_person'] ?? 'PJ',
             'document' => $_POST['document'] ?? null,
             'email' => $_POST['email'] ?? null,
-            'phone' => $_POST['phone'] ?? null,
-            'mobile' => $_POST['mobile'] ?? null,
+            'phone' => $phone,
+            'mobile' => $mobile,
             'website' => $_POST['website'] ?? null,
             'zip_code' => $_POST['zip_code'] ?? null,
             'address' => $_POST['address'] ?? null,
@@ -79,6 +100,7 @@ class CrmCreatePartner
             'neighborhood' => $_POST['neighborhood'] ?? null,
             'city' => $_POST['city'] ?? null,
             'state' => $_POST['state'] ?? null,
+            'country' => $country,
             'segment' => $_POST['segment'] ?? 'Farma',
             'partner_type' => $_POST['partner_type'] ?? 'Lead',
             'source' => $_POST['source'] ?? null,
@@ -122,6 +144,14 @@ class CrmCreatePartner
             
             if (!empty($customFieldValues)) {
                 $customFieldsRepo->savePartnerFieldValues($partnerId, $customFieldValues);
+            }
+            
+            // Salvar tags
+            if (!empty($_POST['tags']) && is_array($_POST['tags'])) {
+                $tagsRepo = new CrmTagsRepository();
+                foreach ($_POST['tags'] as $tagId) {
+                    $tagsRepo->attachTagToPartner($partnerId, (int)$tagId);
+                }
             }
 
             $_SESSION['msg'] = "Parceiro cadastrado com sucesso!";

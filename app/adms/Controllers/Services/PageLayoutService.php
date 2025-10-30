@@ -240,7 +240,9 @@ class PageLayoutService
             'CrmGenerateProposalPdf',
             // Atividades
             'CrmListActivities',
+            'CrmViewActivity',
             'CrmCreateActivity',
+            'CrmUpdateActivity',
             'CrmCompleteActivity',
             'CrmDeleteActivity',
             // Notas

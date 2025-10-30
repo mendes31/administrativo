@@ -5,8 +5,10 @@ namespace App\adms\Controllers\crm;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CrmPartnersRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
+use App\adms\Models\Repository\CrmTagsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Helpers\CountryHelper;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -60,6 +62,11 @@ class CrmUpdatePartner
         $customFieldsRepo = new CrmCustomFieldsRepository();
         $this->data['custom_fields'] = $customFieldsRepo->getFieldsByEntity('partner');
         $this->data['custom_field_values'] = $customFieldsRepo->getPartnerFieldValues((int)$id);
+        
+        // Carregar tags disponíveis e tags do parceiro
+        $tagsRepo = new CrmTagsRepository();
+        $this->data['tags'] = $tagsRepo->getAllTags();
+        $this->data['partner_tags'] = $tagsRepo->getPartnerTags((int)$id);
 
         // Layout
         $pageElements = [
@@ -77,6 +84,20 @@ class CrmUpdatePartner
 
     private function update(int $id): void
     {
+        $country = $_POST['country'] ?? 'BR';
+        
+        // Concatenar DDI com telefone/celular
+        $phone = $_POST['phone'] ?? null;
+        $mobile = $_POST['mobile'] ?? null;
+        
+        if ($phone) {
+            $phone = CountryHelper::formatPhoneWithDDI($phone, $country);
+        }
+        
+        if ($mobile) {
+            $mobile = CountryHelper::formatPhoneWithDDI($mobile, $country);
+        }
+        
         $data = [
             'id' => $id, // Prioriza ID da URL
             'name' => $_POST['name'] ?? '',
@@ -84,8 +105,8 @@ class CrmUpdatePartner
             'type_person' => $_POST['type_person'] ?? 'PJ',
             'document' => $_POST['document'] ?? null,
             'email' => $_POST['email'] ?? null,
-            'phone' => $_POST['phone'] ?? null,
-            'mobile' => $_POST['mobile'] ?? null,
+            'phone' => $phone,
+            'mobile' => $mobile,
             'website' => $_POST['website'] ?? null,
             'zip_code' => $_POST['zip_code'] ?? null,
             'address' => $_POST['address'] ?? null,
@@ -94,6 +115,7 @@ class CrmUpdatePartner
             'neighborhood' => $_POST['neighborhood'] ?? null,
             'city' => $_POST['city'] ?? null,
             'state' => $_POST['state'] ?? null,
+            'country' => $country,
             'segment' => $_POST['segment'] ?? 'Farma',
             'partner_type' => $_POST['partner_type'] ?? 'Lead',
             'source' => $_POST['source'] ?? null,
@@ -131,6 +153,22 @@ class CrmUpdatePartner
             
             if (!empty($customFieldValues)) {
                 $customFieldsRepo->savePartnerFieldValues($id, $customFieldValues);
+            }
+            
+            // Atualizar tags
+            $tagsRepo = new CrmTagsRepository();
+            
+            // Remover todas as tags antigas
+            $oldTags = $tagsRepo->getPartnerTags($id);
+            foreach ($oldTags as $oldTag) {
+                $tagsRepo->removeTagFromPartner($id, $oldTag['id']);
+            }
+            
+            // Adicionar novas tags
+            if (!empty($_POST['tags']) && is_array($_POST['tags'])) {
+                foreach ($_POST['tags'] as $tagId) {
+                    $tagsRepo->attachTagToPartner($id, (int)$tagId);
+                }
             }
 
             $_SESSION['msg'] = "Parceiro atualizado com sucesso!";

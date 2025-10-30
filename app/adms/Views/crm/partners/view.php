@@ -1,5 +1,25 @@
 <?php
 $partner = $this->data['partner'];
+
+// Função para formatar telefone com DDI e DDD
+function formatPhone($phone) {
+    if (empty($phone)) return '-';
+    
+    $cleanPhone = preg_replace('/\D/', '', $phone);
+    
+    if (strlen($cleanPhone) == 13) {
+        // Celular: +55 (XX) 9XXXX-XXXX
+        return '+' . substr($cleanPhone, 0, 2) . ' (' . substr($cleanPhone, 2, 2) . ') ' . substr($cleanPhone, 4, 5) . '-' . substr($cleanPhone, 9);
+    } elseif (strlen($cleanPhone) == 12) {
+        // Fixo: +55 (XX) XXXX-XXXX
+        return '+' . substr($cleanPhone, 0, 2) . ' (' . substr($cleanPhone, 2, 2) . ') ' . substr($cleanPhone, 4, 4) . '-' . substr($cleanPhone, 8);
+    } elseif (strlen($cleanPhone) >= 10) {
+        // Formato local sem DDI
+        return $cleanPhone;
+    }
+    
+    return $phone;
+}
 ?>
 
 <div class="container-fluid px-4">
@@ -37,7 +57,7 @@ $partner = $this->data['partner'];
                     <?php endif; ?>
                     <p class="mb-2">
                         <i class="fas fa-envelope me-2"></i><?php echo htmlspecialchars($partner['email'] ?? '-'); ?> •
-                        <i class="fas fa-phone me-2"></i><?php echo htmlspecialchars($partner['phone'] ?? $partner['mobile'] ?? '-'); ?>
+                        <i class="fas fa-phone me-2"></i><?php echo htmlspecialchars(formatPhone($partner['phone'] ?? $partner['mobile'] ?? '')); ?>
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
@@ -46,6 +66,9 @@ $partner = $this->data['partner'];
                             <i class="fab fa-whatsapp me-1"></i>WhatsApp
                         </button>
                     <?php endif; ?>
+                    <button type="button" class="btn btn-info mb-2 me-2" data-bs-toggle="modal" data-bs-target="#modalManageTags">
+                        <i class="fas fa-tags me-1"></i>Gerenciar Tags
+                    </button>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>crm-update-partner/<?php echo $partner['id']; ?>" 
                        class="btn btn-warning mb-2 me-2">
                         <i class="fas fa-edit me-1"></i>Editar
@@ -128,11 +151,11 @@ $partner = $this->data['partner'];
                                 </tr>
                                 <tr>
                                     <th>Telefone:</th>
-                                    <td><?php echo htmlspecialchars($partner['phone'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars(formatPhone($partner['phone'] ?? '')); ?></td>
                                 </tr>
                                 <tr>
                                     <th>Celular:</th>
-                                    <td><?php echo htmlspecialchars($partner['mobile'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars(formatPhone($partner['mobile'] ?? '')); ?></td>
                                 </tr>
                             </table>
                         </div>
@@ -154,6 +177,22 @@ $partner = $this->data['partner'];
                                 <tr>
                                     <th>Status:</th>
                                     <td><span class="badge bg-success"><?php echo $partner['status']; ?></span></td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-tags me-1"></i>Tags:</th>
+                                    <td>
+                                        <?php if (!empty($this->data['partner_tags'])): ?>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                <?php foreach ($this->data['partner_tags'] as $tag): ?>
+                                                    <span class="badge" style="background-color: <?= htmlspecialchars($tag['color']) ?>; font-size: 0.85rem;">
+                                                        <i class="fas fa-tag me-1"></i><?= htmlspecialchars($tag['name']) ?>
+                                                    </span>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <small class="text-muted">Nenhuma tag atribuída</small>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>Responsável:</th>
@@ -398,6 +437,109 @@ $this->data['opportunity'] = ['id' => null, 'partner_id' => $partner['id']];
 include('./app/adms/Views/crm/opportunities/modals.php');
 ?>
 
+<!-- Modal de Confirmação de Conflito de Horário -->
+<?php if (isset($_SESSION['schedule_conflict'])): ?>
+    <?php 
+    $conflictData = $_SESSION['schedule_conflict'];
+    $conflicts = $conflictData['conflicts'];
+    $pendingData = $conflictData['pending_data'];
+    unset($_SESSION['schedule_conflict']); // Limpar após exibir
+    ?>
+    <div class="modal fade show" id="modalScheduleConflict" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-warning">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Conflito de Horário Detectado!
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeConflictModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3">
+                        <strong>⚠️ Atenção!</strong> Já existe(m) atividade(s) agendada(s) para 
+                        <strong><?= htmlspecialchars($conflicts[0]['responsible_name'] ?? 'este usuário') ?></strong> 
+                        neste horário:
+                    </div>
+                    
+                    <div class="list-group mb-3">
+                        <?php foreach ($conflicts as $conflict): ?>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-calendar-check text-danger me-1"></i>
+                                            <?= htmlspecialchars($conflict['title']) ?>
+                                        </h6>
+                                        <div class="mt-1">
+                                            <?php if (!empty($conflict['partner_name'])): ?>
+                                                <small class="text-muted me-2">
+                                                    <i class="fas fa-user me-1"></i><?= htmlspecialchars($conflict['partner_name']) ?>
+                                                </small>
+                                            <?php endif; ?>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-tie me-1"></i><?= htmlspecialchars($conflict['responsible_name']) ?>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-clock me-1"></i><?= $conflict['start'] ?> - <?= $conflict['end'] ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>O que deseja fazer?</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Cancelar:</strong> Não criar a atividade</li>
+                            <li><strong>Continuar:</strong> Agendar mesmo com conflito</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeConflictModal()">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>crm-create-activity" style="display: inline;">
+                        <?php foreach ($pendingData as $key => $value): ?>
+                            <?php if (is_array($value)): ?>
+                                <?php foreach ($value as $subKey => $subValue): ?>
+                                    <input type="hidden" name="<?= htmlspecialchars($key) ?>[<?= htmlspecialchars($subKey) ?>]" value="<?= htmlspecialchars($subValue ?? '') ?>">
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($value ?? '') ?>">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        <input type="hidden" name="force_schedule" value="1">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-check me-1"></i>Continuar Mesmo Assim
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function closeConflictModal() {
+        document.getElementById('modalScheduleConflict').style.display = 'none';
+    }
+    
+    // Auto-mostrar modal ao carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modalScheduleConflict');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    });
+    </script>
+<?php endif; ?>
+
 <!-- Modal WhatsApp -->
 <div class="modal fade" id="modalWhatsApp" tabindex="-1">
     <div class="modal-dialog">
@@ -438,6 +580,98 @@ include('./app/adms/Views/crm/opportunities/modals.php');
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn" style="background-color: #25D366; color: white;">
                         <i class="fab fa-whatsapp me-1"></i>Enviar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gerenciar Tags -->
+<div class="modal fade" id="modalManageTags" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="<?= $_ENV['URL_ADM'] ?>crm-update-partner/<?= $partner['id'] ?>">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tags me-2"></i>Gerenciar Tags
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tags atuais -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-check-circle text-success me-1"></i>Tags Atuais:
+                        </h6>
+                        <div id="current-tags-display">
+                            <?php if (!empty($this->data['partner_tags'])): ?>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($this->data['partner_tags'] as $tag): ?>
+                                        <span class="badge" style="background-color: <?= htmlspecialchars($tag['color']) ?>; font-size: 1rem; padding: 0.5rem 0.8rem;">
+                                            <i class="fas fa-tag me-1"></i><?= htmlspecialchars($tag['name']) ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted"><i class="fas fa-info-circle me-1"></i>Nenhuma tag atribuída</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Selecionar novas tags -->
+                    <div>
+                        <h6 class="mb-3">
+                            <i class="fas fa-hand-pointer text-primary me-1"></i>Selecione as Tags:
+                        </h6>
+                        
+                        <?php 
+                        $currentTagIds = !empty($this->data['partner_tags']) ? array_column($this->data['partner_tags'], 'id') : [];
+                        $allTags = $this->data['all_tags'] ?? [];
+                        
+                        // Se não carregou as tags, carregar agora
+                        if (empty($allTags)) {
+                            $tagsRepo = new \App\adms\Models\Repository\CrmTagsRepository();
+                            $allTags = $tagsRepo->getAllTags();
+                        }
+                        ?>
+                        
+                        <?php if (empty($allTags)): ?>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Nenhuma tag cadastrada. 
+                                <a href="<?= $_ENV['URL_ADM'] ?>crm-create-tag" target="_blank" class="alert-link">
+                                    Criar primeira tag
+                                </a>
+                            </div>
+                        <?php else: ?>
+                            <div class="row">
+                                <?php foreach ($allTags as $tag): ?>
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="tags[]" 
+                                                   value="<?= $tag['id'] ?>" 
+                                                   id="tag-manage-<?= $tag['id'] ?>"
+                                                   <?= in_array($tag['id'], $currentTagIds) ? 'checked' : '' ?>>
+                                            <label class="form-check-label w-100" for="tag-manage-<?= $tag['id'] ?>" style="cursor: pointer;">
+                                                <span class="badge" style="background-color: <?= htmlspecialchars($tag['color']) ?>;">
+                                                    <i class="fas fa-tag me-1"></i><?= htmlspecialchars($tag['name']) ?>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i>Salvar Tags
                     </button>
                 </div>
             </form>

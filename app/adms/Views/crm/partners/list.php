@@ -36,13 +36,8 @@ use App\adms\Helpers\FormatHelper;
     </div>
 
     <div class="card mb-4 shadow-sm">
-        <div class="card-header hstack gap-2">
+        <div class="card-header">
             <span><i class="fas fa-list me-2"></i>Listar Parceiros</span>
-            <?php if (in_array('CrmCreatePartner', $this->data['buttonPermission'] ?? [])): ?>
-            <a href="<?php echo $_ENV['URL_ADM']; ?>crm-create-partner" class="btn btn-success btn-sm ms-auto">
-                <i class="fas fa-plus me-1"></i>Novo Parceiro
-            </a>
-            <?php endif; ?>
         </div>
         
         <div class="card-body">
@@ -82,6 +77,16 @@ use App\adms\Helpers\FormatHelper;
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <select name="tag_id" class="form-select">
+                        <option value="">Todas as tags</option>
+                        <?php foreach ($this->data['all_tags'] ?? [] as $tag): ?>
+                            <option value="<?php echo $tag['id']; ?>" <?php echo ($this->data['filters']['tag_id'] ?? '') == $tag['id'] ? 'selected' : ''; ?>>
+                                🏷️ <?php echo htmlspecialchars($tag['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="col-md-3">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter me-1"></i>Filtrar
@@ -104,6 +109,7 @@ use App\adms\Helpers\FormatHelper;
                             <th>Email</th>
                             <th>Telefone</th>
                             <th>Responsável</th>
+                            <th><i class="fas fa-tags me-1"></i>Tags</th>
                             <th>Status</th>
                             <th class="text-center">Ações</th>
                         </tr>
@@ -136,8 +142,41 @@ use App\adms\Helpers\FormatHelper;
                                     <span class="badge bg-<?php echo $typeColor; ?>"><?php echo $partner['partner_type']; ?></span>
                                 </td>
                                 <td><?php echo htmlspecialchars($partner['email'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($partner['phone'] ?? $partner['mobile'] ?? '-'); ?></td>
+                                <td>
+                                    <?php 
+                                    $phone = $partner['phone'] ?? $partner['mobile'] ?? '';
+                                    if ($phone && strlen($phone) >= 12) {
+                                        // Formatar: +55 (XX) XXXXX-XXXX ou +55 (XX) XXXX-XXXX
+                                        $cleanPhone = preg_replace('/\D/', '', $phone);
+                                        if (strlen($cleanPhone) == 13) {
+                                            // Celular: +55 (XX) 9XXXX-XXXX
+                                            $formatted = '+' . substr($cleanPhone, 0, 2) . ' (' . substr($cleanPhone, 2, 2) . ') ' . substr($cleanPhone, 4, 5) . '-' . substr($cleanPhone, 9);
+                                        } elseif (strlen($cleanPhone) == 12) {
+                                            // Fixo: +55 (XX) XXXX-XXXX
+                                            $formatted = '+' . substr($cleanPhone, 0, 2) . ' (' . substr($cleanPhone, 2, 2) . ') ' . substr($cleanPhone, 4, 4) . '-' . substr($cleanPhone, 8);
+                                        } else {
+                                            $formatted = $phone;
+                                        }
+                                        echo htmlspecialchars($formatted);
+                                    } else {
+                                        echo htmlspecialchars($phone ?: '-');
+                                    }
+                                    ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($partner['responsible_name'] ?? '-'); ?></td>
+                                <td>
+                                    <?php if (!empty($partner['tags'])): ?>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <?php foreach ($partner['tags'] as $tag): ?>
+                                                <span class="badge" style="background-color: <?= htmlspecialchars($tag['color']) ?>; font-size: 0.75rem;">
+                                                    <i class="fas fa-tag me-1"></i><?= htmlspecialchars($tag['name']) ?>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <small class="text-muted">-</small>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php
                                     $statusColor = $partner['status'] == 'Ativo' ? 'success' : ($partner['status'] == 'Inativo' ? 'secondary' : 'danger');

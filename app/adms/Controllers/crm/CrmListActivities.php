@@ -4,6 +4,8 @@ namespace App\adms\Controllers\crm;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CrmActivitiesRepository;
+use App\adms\Models\Repository\CrmPartnersRepository;
+use App\adms\Models\Repository\CrmOpportunitiesRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -53,11 +55,16 @@ class CrmListActivities
         // Buscar atividades
         $activitiesRepo = new CrmActivitiesRepository();
         
-        if ($this->data['view_mode'] === 'calendar') {
-            // Para calendário, buscar do mês atual
+        if ($this->data['view_mode'] === 'calendar-month') {
+            // Para calendário mensal, buscar do mês
             $month = $_GET['month'] ?? date('Y-m');
             $this->data['selected_month'] = $month;
             $this->data['activities'] = $activitiesRepo->getActivitiesByMonth($month, $filters);
+        } elseif ($this->data['view_mode'] === 'calendar-week') {
+            // Para calendário semanal, buscar da semana
+            $date = $_GET['date'] ?? date('Y-m-d');
+            $this->data['selected_date'] = $date;
+            $this->data['activities'] = $activitiesRepo->getActivitiesByWeek($date, $filters);
         } else {
             // Para lista, buscar todas com filtro
             $this->data['activities'] = $activitiesRepo->getAllActivities($filters);
@@ -72,6 +79,12 @@ class CrmListActivities
         $this->data['activity_types'] = ['Ligação', 'Reunião', 'E-mail', 'Tarefa'];
         $this->data['statuses'] = ['Pendente', 'Concluída', 'Cancelada'];
         $this->data['priorities'] = ['Baixa', 'Média', 'Alta', 'Urgente'];
+        
+        // Dados para modais de criação/edição
+        $partnersRepo = new CrmPartnersRepository();
+        $opportunitiesRepo = new CrmOpportunitiesRepository();
+        $this->data['partners'] = $partnersRepo->getAllPartnersSelect();
+        $this->data['opportunities'] = $opportunitiesRepo->getAllOpportunitiesSelect();
 
         // Layout
         $pageElements = [

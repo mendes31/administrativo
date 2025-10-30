@@ -180,11 +180,6 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'crm-list-partners',
                         'permission' => 'CrmListPartners'
                     ],
-                    [
-                        'label' => 'Novo Parceiro',
-                        'url' => $_ENV['URL_ADM'] . 'crm-create-partner',
-                        'permission' => 'CrmCreatePartner'
-                    ],
                 ]
             ],
                [

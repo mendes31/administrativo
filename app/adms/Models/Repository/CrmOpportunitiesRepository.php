@@ -254,6 +254,27 @@ class CrmOpportunitiesRepository extends DbConnection
     }
 
     /**
+     * Obter todas as oportunidades para select (id, title)
+     * 
+     * @return array
+     */
+    public function getAllOpportunitiesSelect(): array
+    {
+        $sql = 'SELECT 
+                    id, 
+                    title,
+                    partner_id
+                FROM crm_opportunities
+                WHERE status IN ("Aberta", "Negociação", "Proposta")
+                ORDER BY title ASC';
+        
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Buscar uma oportunidade específica
      *
      * @param int $id ID da oportunidade

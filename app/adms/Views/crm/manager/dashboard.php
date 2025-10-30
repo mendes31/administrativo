@@ -184,27 +184,118 @@ $filters = $this->data['filters'] ?? [];
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0">Atividades por Tipo</h6>
+                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Atividades Recentes</h6>
+                                <span class="badge bg-white text-info"><?= count($stats['recent_activities'] ?? []) ?></span>
                             </div>
-                            <div class="card-body">
-                                <?php if (!empty($stats['activities_by_type'])): ?>
-                                    <?php foreach ($stats['activities_by_type'] as $typeData): ?>
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span>
-                                                <?php
-                                                $icons = ['Ligação' => 'phone', 'Reunião' => 'users', 'E-mail' => 'envelope', 'Tarefa' => 'tasks'];
-                                                $icon = $icons[$typeData['type']] ?? 'tasks';
-                                                ?>
-                                                <i class="fas fa-<?= $icon ?> me-2"></i><?= $typeData['type'] ?>
-                                            </span>
-                                            <span class="badge bg-secondary"><?= $typeData['total'] ?></span>
-                                        </div>
-                                    <?php endforeach; ?>
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                <?php if (!empty($stats['recent_activities'])): ?>
+                                    <div class="list-group list-group-flush">
+                                        <?php foreach ($stats['recent_activities'] as $activity): ?>
+                                            <?php
+                                            // Ícones por tipo
+                                            $icons = [
+                                                'call' => 'phone', 
+                                                'meeting' => 'users', 
+                                                'email' => 'envelope', 
+                                                'task' => 'tasks',
+                                                'note' => 'sticky-note'
+                                            ];
+                                            $icon = $icons[$activity['type']] ?? 'tasks';
+                                            
+                                            // Cores por tipo (iguais ao cadastro/dropdown)
+                                            $typeColors = [
+                                                'call' => '#e91e63',      // Rosa/Pink
+                                                'meeting' => '#9c27b0',   // Roxo
+                                                'email' => '#ba68c8',     // Roxo claro/Lilás
+                                                'task' => '#6a1b9a',      // Roxo escuro
+                                                'note' => '#ff9800'       // Laranja
+                                            ];
+                                            $typeColor = $typeColors[$activity['type']] ?? '#6c757d';
+                                            
+                                            // Cores por status
+                                            $statusColors = [
+                                                'Pendente' => 'warning',
+                                                'Em Andamento' => 'info',
+                                                'Concluída' => 'success',
+                                                'Cancelada' => 'secondary'
+                                            ];
+                                            $statusColor = $statusColors[$activity['status']] ?? 'secondary';
+                                            
+                                            // Cores por prioridade
+                                            $priorityColors = [
+                                                'Alta' => 'danger',
+                                                'Média' => 'warning',
+                                                'Baixa' => 'info',
+                                                'Urgente' => 'danger'
+                                            ];
+                                            $priorityColor = $priorityColors[$activity['priority']] ?? 'secondary';
+                                            
+                                            // Formatar data e hora
+                                            $scheduledDate = $activity['scheduled_date'] ? new DateTime($activity['scheduled_date']) : null;
+                                            $now = new DateTime();
+                                            $isOverdue = $scheduledDate && $scheduledDate < $now && $activity['status'] !== 'Concluída';
+                                            ?>
+                                            <div class="list-group-item px-0 border-0 border-bottom">
+                                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <i class="fas fa-<?= $icon ?> me-1" style="color: <?= $typeColor ?>;"></i>
+                                                            <a href="<?= $_ENV['URL_ADM'] ?>crm-view-activity/<?= $activity['id'] ?>" 
+                                                               class="text-decoration-none">
+                                                                <?= htmlspecialchars($activity['title']) ?>
+                                                            </a>
+                                                        </h6>
+                                                        <?php if (!empty($activity['partner_name'])): ?>
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-user me-1"></i><?= htmlspecialchars($activity['partner_name']) ?>
+                                                            </small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <span class="badge bg-<?= $statusColor ?> ms-2">
+                                                        <?= htmlspecialchars($activity['status']) ?>
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">
+                                                        <?php if ($scheduledDate): ?>
+                                                            <i class="fas fa-calendar-alt me-1"></i>
+                                                            <?= $scheduledDate->format('d/m/Y') ?>
+                                                            <i class="fas fa-clock ms-2 me-1"></i>
+                                                            <?= $scheduledDate->format('H:i') ?>
+                                                        <?php else: ?>
+                                                            <i class="fas fa-calendar-times me-1"></i>
+                                                            Sem data agendada
+                                                        <?php endif; ?>
+                                                    </small>
+                                                    <small>
+                                                        <span class="badge bg-<?= $priorityColor ?>" style="font-size: 0.7rem;">
+                                                            <?= htmlspecialchars($activity['priority']) ?>
+                                                        </span>
+                                                        <?php if ($isOverdue): ?>
+                                                            <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">
+                                                                <i class="fas fa-exclamation-triangle"></i> ATRASADA
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 <?php else: ?>
-                                    <p class="text-muted text-center mb-0">Sem dados</p>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">Nenhuma atividade no período selecionado</p>
+                                    </div>
                                 <?php endif; ?>
                             </div>
+                            <?php if (count($stats['recent_activities'] ?? []) > 0): ?>
+                                <div class="card-footer text-center">
+                                    <a href="<?= $_ENV['URL_ADM'] ?>crm-list-activities" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-list me-1"></i>Ver Todas as Atividades
+                                    </a>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 

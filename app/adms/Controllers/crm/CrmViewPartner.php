@@ -8,6 +8,7 @@ use App\adms\Models\Repository\CrmOpportunitiesRepository;
 use App\adms\Models\Repository\CrmActivitiesRepository;
 use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmDocumentsRepository;
+use App\adms\Models\Repository\CrmTagsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -55,6 +56,11 @@ class CrmViewPartner
         // Buscar documentos do parceiro
         $documentsRepo = new CrmDocumentsRepository();
         $this->data['documents'] = $documentsRepo->getDocumentsByPartner((int)$id);
+        
+        // Buscar tags do parceiro e todas as tags disponíveis
+        $tagsRepo = new CrmTagsRepository();
+        $this->data['partner_tags'] = $tagsRepo->getPartnerTags((int)$id);
+        $this->data['all_tags'] = $tagsRepo->getAllTags();
 
         // Layout
         $pageElements = [

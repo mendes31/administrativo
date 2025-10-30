@@ -5,6 +5,7 @@ namespace App\adms\Controllers\crm;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\CrmPartnersRepository;
+use App\adms\Models\Repository\CrmTagsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -28,7 +29,8 @@ class CrmListPartners
             'segment' => $_GET['segment'] ?? '',
             'partner_type' => $_GET['partner_type'] ?? '',
             'status' => $_GET['status'] ?? '',
-            'responsible_user_id' => $_GET['responsible_user_id'] ?? ''
+            'responsible_user_id' => $_GET['responsible_user_id'] ?? '',
+            'tag_id' => $_GET['tag_id'] ?? ''
         ];
 
         // Paginação
@@ -44,6 +46,13 @@ class CrmListPartners
         $partnersRepo = new CrmPartnersRepository();
         $totalPartners = $partnersRepo->getAmountPartners($filters);
         $this->data['partners'] = $partnersRepo->getAllPartners((int)$page, (int)$this->limitResult, $filters);
+        
+        // Carregar tags de cada parceiro
+        $tagsRepo = new CrmTagsRepository();
+        foreach ($this->data['partners'] as &$partner) {
+            $partner['tags'] = $tagsRepo->getPartnerTags($partner['id']);
+        }
+        unset($partner); // Limpar referência
         
         // Paginação
         $pagination = PaginationService::generatePagination(
@@ -62,6 +71,10 @@ class CrmListPartners
         $this->data['segments'] = ['Farma', 'Suplementos', 'Ambos'];
         $this->data['partner_types'] = ['Lead', 'Cliente', 'Prospect'];
         $this->data['statuses'] = ['Ativo', 'Inativo', 'Bloqueado'];
+        
+        // Tags para filtro
+        $tagsRepo = new CrmTagsRepository();
+        $this->data['all_tags'] = $tagsRepo->getAllTags();
         
         // Usuários e departamentos para filtros
         $usersRepo = new UsersRepository();

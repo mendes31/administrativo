@@ -63,6 +63,16 @@ class CrmPartnersRepository extends DbConnection
             $sql .= ' AND p.responsible_user_id = :responsible_user_id';
             $params[':responsible_user_id'] = $filters['responsible_user_id'];
         }
+        
+        // Filtro por tag
+        if (!empty($filters['tag_id'])) {
+            $sql .= ' AND EXISTS (
+                        SELECT 1 FROM crm_partner_tags pt 
+                        WHERE pt.partner_id = p.id 
+                        AND pt.tag_id = :tag_id
+                    )';
+            $params[':tag_id'] = $filters['tag_id'];
+        }
 
         $sql .= ' ORDER BY p.id DESC LIMIT :limit OFFSET :offset';
 
@@ -113,6 +123,15 @@ class CrmPartnersRepository extends DbConnection
             $sql .= ' AND responsible_user_id = :responsible_user_id';
             $params[':responsible_user_id'] = $filters['responsible_user_id'];
         }
+        
+        // Filtro por tag
+        if (!empty($filters['tag_id'])) {
+            $sql .= ' AND id IN (
+                        SELECT partner_id FROM crm_partner_tags 
+                        WHERE tag_id = :tag_id
+                    )';
+            $params[':tag_id'] = $filters['tag_id'];
+        }
 
         $stmt = $this->getConnection()->prepare($sql);
 
@@ -155,7 +174,7 @@ class CrmPartnersRepository extends DbConnection
             $sql = 'INSERT INTO crm_partners (
                         code, name, trading_name, type_person, document,
                         email, phone, mobile, website,
-                        zip_code, address, number, complement, neighborhood, city, state,
+                        zip_code, address, number, complement, neighborhood, city, state, country,
                         segment, partner_type, source,
                         lead_score, priority, status,
                         responsible_user_id, department_id,
@@ -165,7 +184,7 @@ class CrmPartnersRepository extends DbConnection
                     ) VALUES (
                         :code, :name, :trading_name, :type_person, :document,
                         :email, :phone, :mobile, :website,
-                        :zip_code, :address, :number, :complement, :neighborhood, :city, :state,
+                        :zip_code, :address, :number, :complement, :neighborhood, :city, :state, :country,
                         :segment, :partner_type, :source,
                         :lead_score, :priority, :status,
                         :responsible_user_id, :department_id,
@@ -194,6 +213,7 @@ class CrmPartnersRepository extends DbConnection
             $stmt->bindValue(':neighborhood', $data['neighborhood'] ?? null);
             $stmt->bindValue(':city', $data['city'] ?? null);
             $stmt->bindValue(':state', $data['state'] ?? null);
+            $stmt->bindValue(':country', $data['country'] ?? 'BR');
             
             $stmt->bindValue(':segment', $data['segment']);
             $stmt->bindValue(':partner_type', $data['partner_type'] ?? 'Lead');
@@ -254,7 +274,7 @@ class CrmPartnersRepository extends DbConnection
                         name = :name, trading_name = :trading_name, type_person = :type_person, document = :document,
                         email = :email, phone = :phone, mobile = :mobile, website = :website,
                         zip_code = :zip_code, address = :address, number = :number, complement = :complement,
-                        neighborhood = :neighborhood, city = :city, state = :state,
+                        neighborhood = :neighborhood, city = :city, state = :state, country = :country,
                         segment = :segment, partner_type = :partner_type, source = :source,
                         lead_score = :lead_score, priority = :priority, status = :status,
                         responsible_user_id = :responsible_user_id, department_id = :department_id,
@@ -282,6 +302,7 @@ class CrmPartnersRepository extends DbConnection
             $stmt->bindValue(':neighborhood', $data['neighborhood'] ?? null);
             $stmt->bindValue(':city', $data['city'] ?? null);
             $stmt->bindValue(':state', $data['state'] ?? null);
+            $stmt->bindValue(':country', $data['country'] ?? 'BR');
             
             $stmt->bindValue(':segment', $data['segment']);
             $stmt->bindValue(':partner_type', $data['partner_type']);

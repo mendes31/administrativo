@@ -51,6 +51,30 @@ class CrmCreateActivity
         }
 
         $activitiesRepo = new CrmActivitiesRepository();
+        
+        // Verificar se é um reenvio com confirmação de conflito
+        $forceSchedule = isset($_POST['force_schedule']) && $_POST['force_schedule'] === '1';
+        
+        // Verificar conflito de horário (apenas se não for forçado)
+        if (!$forceSchedule && !empty($data['scheduled_date'])) {
+            $conflicts = $activitiesRepo->checkScheduleConflict(
+                (int)$data['responsible_user_id'],
+                $data['scheduled_date'],
+                $data['duration_minutes'] ? (int)$data['duration_minutes'] : null
+            );
+            
+            if (!empty($conflicts)) {
+                // Armazenar dados na sessão para modal de confirmação
+                $_SESSION['schedule_conflict'] = [
+                    'conflicts' => $conflicts,
+                    'pending_data' => $data
+                ];
+                
+                $this->redirectBack($data);
+                exit;
+            }
+        }
+        
         $result = $activitiesRepo->createActivity($data);
 
         if ($result) {
