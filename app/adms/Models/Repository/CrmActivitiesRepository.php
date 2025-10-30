@@ -509,6 +509,9 @@ class CrmActivitiesRepository extends DbConnection
      */
     public function getAllActivities(array $filters = []): array
     {
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
         $sql = 'SELECT 
                     a.*,
                     p.name as partner_name,
@@ -522,46 +525,89 @@ class CrmActivitiesRepository extends DbConnection
 
         $params = [];
 
-        // Filtros
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND a.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-
-        if (!empty($filters['type'])) {
-            $sql .= ' AND a.type = :type';
-            $params[':type'] = $filters['type'];
-        }
-
-        if (!empty($filters['status'])) {
-            $sql .= ' AND a.status = :status';
-            $params[':status'] = $filters['status'];
-        }
-
-        if (!empty($filters['priority'])) {
-            $sql .= ' AND a.priority = :priority';
-            $params[':priority'] = $filters['priority'];
-        }
-
-        if (!empty($filters['date_from'])) {
-            $sql .= ' AND DATE(a.scheduled_date) >= :date_from';
-            $params[':date_from'] = $filters['date_from'];
-        }
-
-        if (!empty($filters['date_to'])) {
-            $sql .= ' AND DATE(a.scheduled_date) <= :date_to';
-            $params[':date_to'] = $filters['date_to'];
+        if ($usePositional) {
+            // MODO POSICIONAL (com array de IDs)
+            
+            // Filtro por array de IDs permitidos (hierarquia)
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND a.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            // Filtros adicionais
+            if (!empty($filters['type'])) {
+                $sql .= ' AND a.type = ?';
+                $params[] = $filters['type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND a.status = ?';
+                $params[] = $filters['status'];
+            }
+            
+            if (!empty($filters['priority'])) {
+                $sql .= ' AND a.priority = ?';
+                $params[] = $filters['priority'];
+            }
+            
+            if (!empty($filters['date_from'])) {
+                $sql .= ' AND DATE(a.scheduled_date) >= ?';
+                $params[] = $filters['date_from'];
+            }
+            
+            if (!empty($filters['date_to'])) {
+                $sql .= ' AND DATE(a.scheduled_date) <= ?';
+                $params[] = $filters['date_to'];
+            }
+            
+        } else {
+            // MODO NOMEADO (sem array de IDs)
+            
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND a.responsible_user_id = :responsible_user_id';
+                $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            }
+            
+            if (!empty($filters['type'])) {
+                $sql .= ' AND a.type = :type';
+                $params[':type'] = $filters['type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND a.status = :status';
+                $params[':status'] = $filters['status'];
+            }
+            
+            if (!empty($filters['priority'])) {
+                $sql .= ' AND a.priority = :priority';
+                $params[':priority'] = $filters['priority'];
+            }
+            
+            if (!empty($filters['date_from'])) {
+                $sql .= ' AND DATE(a.scheduled_date) >= :date_from';
+                $params[':date_from'] = $filters['date_from'];
+            }
+            
+            if (!empty($filters['date_to'])) {
+                $sql .= ' AND DATE(a.scheduled_date) <= :date_to';
+                $params[':date_to'] = $filters['date_to'];
+            }
         }
 
         $sql .= ' ORDER BY a.scheduled_date ASC, a.created_at DESC';
 
         $stmt = $this->getConnection()->prepare($sql);
 
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        if ($usePositional) {
+            $stmt->execute(array_values($params));
+        } else {
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
         }
-
-        $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -571,6 +617,9 @@ class CrmActivitiesRepository extends DbConnection
      */
     public function getActivitiesByMonth(string $month, array $filters = []): array
     {
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
         $sql = 'SELECT 
                     a.*,
                     p.name as partner_name,
@@ -580,35 +629,52 @@ class CrmActivitiesRepository extends DbConnection
                 LEFT JOIN crm_partners p ON a.partner_id = p.id
                 LEFT JOIN crm_opportunities o ON a.opportunity_id = o.id
                 INNER JOIN adms_users u ON a.responsible_user_id = u.id
-                WHERE DATE_FORMAT(a.scheduled_date, "%Y-%m") = :month';
+                WHERE DATE_FORMAT(a.scheduled_date, "%Y-%m") = ?';
 
-        $params = [':month' => $month];
+        $params = [$month];
 
-        // Filtros adicionais
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND a.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-
-        if (!empty($filters['type'])) {
-            $sql .= ' AND a.type = :type';
-            $params[':type'] = $filters['type'];
-        }
-
-        if (!empty($filters['status'])) {
-            $sql .= ' AND a.status = :status';
-            $params[':status'] = $filters['status'];
+        if ($usePositional) {
+            // Filtro por array de IDs permitidos (hierarquia)
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND a.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            // Filtros adicionais
+            if (!empty($filters['type'])) {
+                $sql .= ' AND a.type = ?';
+                $params[] = $filters['type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND a.status = ?';
+                $params[] = $filters['status'];
+            }
+            
+        } else {
+            // Filtros adicionais (modo nomeado)
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND a.responsible_user_id = ?';
+                $params[] = $filters['responsible_user_id'];
+            }
+            
+            if (!empty($filters['type'])) {
+                $sql .= ' AND a.type = ?';
+                $params[] = $filters['type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND a.status = ?';
+                $params[] = $filters['status'];
+            }
         }
 
         $sql .= ' ORDER BY a.scheduled_date ASC';
 
         $stmt = $this->getConnection()->prepare($sql);
-
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
+        $stmt->execute(array_values($params));
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -626,6 +692,9 @@ class CrmActivitiesRepository extends DbConnection
         $startOfWeek = (clone $dateObj)->modify('-' . ($dayOfWeek - 1) . ' days')->format('Y-m-d');
         $endOfWeek = (clone $dateObj)->modify('+' . (7 - $dayOfWeek) . ' days')->format('Y-m-d');
         
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
         $sql = 'SELECT 
                     a.*,
                     p.name as partner_name,
@@ -635,39 +704,53 @@ class CrmActivitiesRepository extends DbConnection
                 LEFT JOIN crm_partners p ON a.partner_id = p.id
                 LEFT JOIN crm_opportunities o ON a.opportunity_id = o.id
                 INNER JOIN adms_users u ON a.responsible_user_id = u.id
-                WHERE DATE(a.scheduled_date) >= :start_date 
-                  AND DATE(a.scheduled_date) <= :end_date';
+                WHERE DATE(a.scheduled_date) >= ?
+                  AND DATE(a.scheduled_date) <= ?';
 
-        $params = [
-            ':start_date' => $startOfWeek,
-            ':end_date' => $endOfWeek
-        ];
+        $params = [$startOfWeek, $endOfWeek];
 
-        // Filtros adicionais
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND a.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-
-        if (!empty($filters['type'])) {
-            $sql .= ' AND a.type = :type';
-            $params[':type'] = $filters['type'];
-        }
-
-        if (!empty($filters['status'])) {
-            $sql .= ' AND a.status = :status';
-            $params[':status'] = $filters['status'];
+        if ($usePositional) {
+            // Filtro por array de IDs permitidos (hierarquia)
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND a.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            // Filtros adicionais
+            if (!empty($filters['type'])) {
+                $sql .= ' AND a.type = ?';
+                $params[] = $filters['type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND a.status = ?';
+                $params[] = $filters['status'];
+            }
+            
+        } else {
+            // Filtros adicionais (modo padrão)
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND a.responsible_user_id = ?';
+                $params[] = $filters['responsible_user_id'];
+            }
+            
+            if (!empty($filters['type'])) {
+                $sql .= ' AND a.type = ?';
+                $params[] = $filters['type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND a.status = ?';
+                $params[] = $filters['status'];
+            }
         }
 
         $sql .= ' ORDER BY a.scheduled_date ASC';
 
         $stmt = $this->getConnection()->prepare($sql);
-
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
+        $stmt->execute(array_values($params));
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

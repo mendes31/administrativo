@@ -24,9 +24,9 @@ class CrmCreateAutomation
             return;
         }
 
-        // Dados para selects
-        $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
 
         $pageElements = [
             'title_head' => 'Nova Automação - CRM',

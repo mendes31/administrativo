@@ -22,6 +22,9 @@ class CrmPartnersRepository extends DbConnection
     public function getAllPartners(int $page = 1, int $limitResult = 10, array $filters = []): array
     {
         $offset = max(0, ($page - 1) * $limitResult);
+        
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
 
         $sql = 'SELECT 
                     p.*,
@@ -34,58 +37,102 @@ class CrmPartnersRepository extends DbConnection
 
         $params = [];
 
-        // Filtro por busca (nome, email, documento)
-        if (!empty($filters['search'])) {
-            $sql .= ' AND (p.name LIKE :search OR p.email LIKE :search OR p.document LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
+        if ($usePositional) {
+            // MODO POSICIONAL (com array de IDs)
+            
+            // Filtro por busca
+            if (!empty($filters['search'])) {
+                $sql .= ' AND (p.name LIKE ? OR p.email LIKE ? OR p.document LIKE ?)';
+                $params[] = '%' . $filters['search'] . '%';
+                $params[] = '%' . $filters['search'] . '%';
+                $params[] = '%' . $filters['search'] . '%';
+            }
+            
+            // Filtros adicionais
+            if (!empty($filters['segment'])) {
+                $sql .= ' AND p.segment = ?';
+                $params[] = $filters['segment'];
+            }
+            
+            if (!empty($filters['partner_type'])) {
+                $sql .= ' AND p.partner_type = ?';
+                $params[] = $filters['partner_type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND p.status = ?';
+                $params[] = $filters['status'];
+            }
+            
+            // Filtro por array de IDs permitidos (hierarquia)
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND p.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            // Filtro por tag
+            if (!empty($filters['tag_id'])) {
+                $sql .= ' AND EXISTS (
+                            SELECT 1 FROM crm_partner_tags pt 
+                            WHERE pt.partner_id = p.id 
+                            AND pt.tag_id = ?
+                        )';
+                $params[] = $filters['tag_id'];
+            }
+            
+        } else {
+            // MODO NOMEADO (sem array de IDs)
+            
+            if (!empty($filters['search'])) {
+                $sql .= ' AND (p.name LIKE :search OR p.email LIKE :search OR p.document LIKE :search)';
+                $params[':search'] = '%' . $filters['search'] . '%';
+            }
+            
+            if (!empty($filters['segment'])) {
+                $sql .= ' AND p.segment = :segment';
+                $params[':segment'] = $filters['segment'];
+            }
+            
+            if (!empty($filters['partner_type'])) {
+                $sql .= ' AND p.partner_type = :partner_type';
+                $params[':partner_type'] = $filters['partner_type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND p.status = :status';
+                $params[':status'] = $filters['status'];
+            }
+            
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND p.responsible_user_id = :responsible_user_id';
+                $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            }
+            
+            if (!empty($filters['tag_id'])) {
+                $sql .= ' AND EXISTS (
+                            SELECT 1 FROM crm_partner_tags pt 
+                            WHERE pt.partner_id = p.id 
+                            AND pt.tag_id = :tag_id
+                        )';
+                $params[':tag_id'] = $filters['tag_id'];
+            }
         }
 
-        // Filtro por segmento
-        if (!empty($filters['segment'])) {
-            $sql .= ' AND p.segment = :segment';
-            $params[':segment'] = $filters['segment'];
-        }
-
-        // Filtro por tipo de parceiro
-        if (!empty($filters['partner_type'])) {
-            $sql .= ' AND p.partner_type = :partner_type';
-            $params[':partner_type'] = $filters['partner_type'];
-        }
-
-        // Filtro por status
-        if (!empty($filters['status'])) {
-            $sql .= ' AND p.status = :status';
-            $params[':status'] = $filters['status'];
-        }
-
-        // Filtro por responsável
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND p.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-        
-        // Filtro por tag
-        if (!empty($filters['tag_id'])) {
-            $sql .= ' AND EXISTS (
-                        SELECT 1 FROM crm_partner_tags pt 
-                        WHERE pt.partner_id = p.id 
-                        AND pt.tag_id = :tag_id
-                    )';
-            $params[':tag_id'] = $filters['tag_id'];
-        }
-
-        $sql .= ' ORDER BY p.id DESC LIMIT :limit OFFSET :offset';
+        // LIMIT e OFFSET direto no SQL (valores internos seguros)
+        $sql .= ' ORDER BY p.id DESC LIMIT ' . (int)$limitResult . ' OFFSET ' . (int)$offset;
 
         $stmt = $this->getConnection()->prepare($sql);
 
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        if ($usePositional) {
+            $stmt->execute(array_values($params));
+        } else {
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
         }
-
-        $stmt->bindValue(':limit', $limitResult, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-
-        $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -95,51 +142,101 @@ class CrmPartnersRepository extends DbConnection
      */
     public function getAmountPartners(array $filters = []): int
     {
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
         $sql = 'SELECT COUNT(id) as amount_records FROM crm_partners WHERE 1=1';
 
         $params = [];
 
-        if (!empty($filters['search'])) {
-            $sql .= ' AND (name LIKE :search OR email LIKE :search OR document LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
-        }
-
-        if (!empty($filters['segment'])) {
-            $sql .= ' AND segment = :segment';
-            $params[':segment'] = $filters['segment'];
-        }
-
-        if (!empty($filters['partner_type'])) {
-            $sql .= ' AND partner_type = :partner_type';
-            $params[':partner_type'] = $filters['partner_type'];
-        }
-
-        if (!empty($filters['status'])) {
-            $sql .= ' AND status = :status';
-            $params[':status'] = $filters['status'];
-        }
-
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-        
-        // Filtro por tag
-        if (!empty($filters['tag_id'])) {
-            $sql .= ' AND id IN (
-                        SELECT partner_id FROM crm_partner_tags 
-                        WHERE tag_id = :tag_id
-                    )';
-            $params[':tag_id'] = $filters['tag_id'];
+        if ($usePositional) {
+            // MODO POSICIONAL
+            
+            if (!empty($filters['search'])) {
+                $sql .= ' AND (name LIKE ? OR email LIKE ? OR document LIKE ?)';
+                $params[] = '%' . $filters['search'] . '%';
+                $params[] = '%' . $filters['search'] . '%';
+                $params[] = '%' . $filters['search'] . '%';
+            }
+            
+            if (!empty($filters['segment'])) {
+                $sql .= ' AND segment = ?';
+                $params[] = $filters['segment'];
+            }
+            
+            if (!empty($filters['partner_type'])) {
+                $sql .= ' AND partner_type = ?';
+                $params[] = $filters['partner_type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND status = ?';
+                $params[] = $filters['status'];
+            }
+            
+            // Filtro por array de IDs permitidos
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            if (!empty($filters['tag_id'])) {
+                $sql .= ' AND id IN (
+                            SELECT partner_id FROM crm_partner_tags 
+                            WHERE tag_id = ?
+                        )';
+                $params[] = $filters['tag_id'];
+            }
+            
+        } else {
+            // MODO NOMEADO
+            
+            if (!empty($filters['search'])) {
+                $sql .= ' AND (name LIKE :search OR email LIKE :search OR document LIKE :search)';
+                $params[':search'] = '%' . $filters['search'] . '%';
+            }
+            
+            if (!empty($filters['segment'])) {
+                $sql .= ' AND segment = :segment';
+                $params[':segment'] = $filters['segment'];
+            }
+            
+            if (!empty($filters['partner_type'])) {
+                $sql .= ' AND partner_type = :partner_type';
+                $params[':partner_type'] = $filters['partner_type'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND status = :status';
+                $params[':status'] = $filters['status'];
+            }
+            
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND responsible_user_id = :responsible_user_id';
+                $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            }
+            
+            if (!empty($filters['tag_id'])) {
+                $sql .= ' AND id IN (
+                            SELECT partner_id FROM crm_partner_tags 
+                            WHERE tag_id = :tag_id
+                        )';
+                $params[':tag_id'] = $filters['tag_id'];
+            }
         }
 
         $stmt = $this->getConnection()->prepare($sql);
 
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        if ($usePositional) {
+            $stmt->execute(array_values($params));
+        } else {
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
         }
-
-        $stmt->execute();
 
         return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['amount_records'] ?? 0);
     }
@@ -179,7 +276,7 @@ class CrmPartnersRepository extends DbConnection
                         lead_score, priority, status,
                         responsible_user_id, department_id,
                         first_contact_date, last_contact_date, next_contact_date,
-                        estimated_revenue, notes, tags,
+                        estimated_revenue, notes,
                         created_by, created_at
                     ) VALUES (
                         :code, :name, :trading_name, :type_person, :document,
@@ -189,7 +286,7 @@ class CrmPartnersRepository extends DbConnection
                         :lead_score, :priority, :status,
                         :responsible_user_id, :department_id,
                         :first_contact_date, :last_contact_date, :next_contact_date,
-                        :estimated_revenue, :notes, :tags,
+                        :estimated_revenue, :notes,
                         :created_by, NOW()
                     )';
 
@@ -232,7 +329,6 @@ class CrmPartnersRepository extends DbConnection
             
             $stmt->bindValue(':estimated_revenue', $data['estimated_revenue'] ?? 0);
             $stmt->bindValue(':notes', $data['notes'] ?? null);
-            $stmt->bindValue(':tags', $data['tags'] ?? null);
             
             $stmt->bindValue(':created_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
 
@@ -268,7 +364,22 @@ class CrmPartnersRepository extends DbConnection
     public function updatePartner(array $data): bool
     {
         try {
+            error_log("=== updatePartner INÍCIO ===");
+            error_log("ID para atualizar: " . ($data['id'] ?? 'NULL'));
+            
             $oldData = $this->getPartner($data['id']);
+            
+            if (!$oldData) {
+                error_log("❌ ERRO: Parceiro ID " . $data['id'] . " não encontrado para atualizar!");
+                return false;
+            }
+            
+            error_log("✅ Parceiro encontrado: " . $oldData['name']);
+            error_log("Dados a atualizar - Endereço:");
+            error_log("  state: " . ($data['state'] ?? 'NULL'));
+            error_log("  city: " . ($data['city'] ?? 'NULL'));
+            error_log("  neighborhood: " . ($data['neighborhood'] ?? 'NULL'));
+            error_log("  address: " . ($data['address'] ?? 'NULL'));
 
             $sql = 'UPDATE crm_partners SET
                         name = :name, trading_name = :trading_name, type_person = :type_person, document = :document,
@@ -279,7 +390,7 @@ class CrmPartnersRepository extends DbConnection
                         lead_score = :lead_score, priority = :priority, status = :status,
                         responsible_user_id = :responsible_user_id, department_id = :department_id,
                         last_contact_date = :last_contact_date, next_contact_date = :next_contact_date,
-                        estimated_revenue = :estimated_revenue, notes = :notes, tags = :tags,
+                        estimated_revenue = :estimated_revenue, notes = :notes,
                         updated_by = :updated_by, updated_at = NOW()
                     WHERE id = :id';
 
@@ -320,12 +431,14 @@ class CrmPartnersRepository extends DbConnection
             
             $stmt->bindValue(':estimated_revenue', $data['estimated_revenue'] ?? 0);
             $stmt->bindValue(':notes', $data['notes'] ?? null);
-            $stmt->bindValue(':tags', $data['tags'] ?? null);
             
             $stmt->bindValue(':updated_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
 
+            error_log("🔄 Executando SQL UPDATE...");
             $result = $stmt->execute();
+            error_log("✅ SQL executado | Result: " . ($result ? 'true' : 'false'));
+            error_log("📊 Linhas afetadas: " . $stmt->rowCount());
 
             if ($result && $oldData) {
                 LogAlteracaoService::registrarAlteracao(
@@ -338,11 +451,19 @@ class CrmPartnersRepository extends DbConnection
                 );
             }
 
+            error_log("✅ updatePartner CONCLUÍDO com sucesso!");
             return $result;
         } catch (Exception $e) {
+            error_log("❌❌❌ ERRO NO updatePartner:");
+            error_log("Mensagem: " . $e->getMessage());
+            error_log("Arquivo: " . $e->getFile());
+            error_log("Linha: " . $e->getLine());
+            error_log("SQL Error: " . ($stmt->errorInfo()[2] ?? 'N/A'));
+            
             GenerateLog::generateLog("error", "Parceiro não atualizado.", [
-                'id' => $data['id'],
-                'error' => $e->getMessage()
+                'id' => $data['id'] ?? 'NULL',
+                'error' => $e->getMessage(),
+                'sql_error' => $stmt->errorInfo() ?? []
             ]);
             return false;
         }

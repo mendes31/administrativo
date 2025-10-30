@@ -277,6 +277,36 @@ $activities = $this->data['activities'] ?? [];
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label">
+                            Responsável *
+                            <?php if (count($this->data['users'] ?? [$_SESSION['user_id']]) == 1): ?>
+                                <i class="fas fa-info-circle text-info" title="Você só pode atribuir para si mesmo. Gerentes podem atribuir para subordinados."></i>
+                            <?php endif; ?>
+                        </label>
+                        <select name="responsible_user_id" class="form-select" required <?php echo count($this->data['users'] ?? [$_SESSION['user_id']]) == 1 ? 'readonly style="background-color: #e9ecef; pointer-events: none;"' : ''; ?>>
+                            <?php if (!empty($this->data['users'])): ?>
+                                <?php foreach ($this->data['users'] as $user): ?>
+                                    <option value="<?php echo $user['id']; ?>" <?php echo $user['id'] == $_SESSION['user_id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($user['name']); ?>
+                                        <?php if ($user['id'] == $_SESSION['user_id']): ?> (Você)<?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="<?= $_SESSION['user_id'] ?>" selected><?= $_SESSION['user_name'] ?? 'Você' ?> (Você)</option>
+                            <?php endif; ?>
+                        </select>
+                        <?php if (count($this->data['users'] ?? [$_SESSION['user_id']]) == 1): ?>
+                            <div class="form-text text-muted">
+                                <i class="fas fa-user me-1"></i>Apenas você pode ser o responsável por esta atividade.
+                            </div>
+                        <?php else: ?>
+                            <div class="form-text text-success">
+                                <i class="fas fa-users me-1"></i>Como gerente, você pode atribuir para qualquer membro da equipe.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label class="form-label">Título *</label>
                         <input type="text" name="title" class="form-control" required>
                     </div>
@@ -384,6 +414,36 @@ $activities = $this->data['activities'] ?? [];
                                 <option value="Urgente" <?= $activity['priority'] === 'Urgente' ? 'selected' : '' ?>>Urgente</option>
                             </select>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Responsável *
+                            <?php if (count($this->data['users'] ?? [$_SESSION['user_id']]) == 1): ?>
+                                <i class="fas fa-info-circle text-info" title="Você só pode atribuir para si mesmo. Gerentes podem atribuir para subordinados."></i>
+                            <?php endif; ?>
+                        </label>
+                        <select name="responsible_user_id" class="form-select" required <?php echo count($this->data['users'] ?? [$_SESSION['user_id']]) == 1 ? 'readonly style="background-color: #e9ecef; pointer-events: none;"' : ''; ?>>
+                            <?php if (!empty($this->data['users'])): ?>
+                                <?php foreach ($this->data['users'] as $user): ?>
+                                    <option value="<?php echo $user['id']; ?>" <?php echo ($activity['responsible_user_id'] ?? $_SESSION['user_id']) == $user['id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($user['name']); ?>
+                                        <?php if ($user['id'] == $_SESSION['user_id']): ?> (Você)<?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="<?= $_SESSION['user_id'] ?>" selected><?= $_SESSION['user_name'] ?? 'Você' ?> (Você)</option>
+                            <?php endif; ?>
+                        </select>
+                        <?php if (count($this->data['users'] ?? [$_SESSION['user_id']]) == 1): ?>
+                            <div class="form-text text-muted">
+                                <i class="fas fa-user me-1"></i>Apenas você pode ser o responsável por esta atividade.
+                            </div>
+                        <?php else: ?>
+                            <div class="form-text text-success">
+                                <i class="fas fa-users me-1"></i>Como gerente, você pode atribuir para qualquer membro da equipe.
+                            </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="mb-3">

@@ -103,6 +103,15 @@ class UpdateUser
         // Instanciar o repositório para recuperar os cargos
         $listPositions = new PositionsRepository();
         $this->data['listPositions'] = $listPositions->getAllPositionsSelect();
+        
+        // Lista de usuários ativos para selecionar como supervisor
+        $usersRepo = new UsersRepository();
+        $this->data['listSupervisors'] = $usersRepo->getAllUsersSelect();
+        
+        // Contar quantos subordinados este usuário tem
+        $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
+        $subordinatesInfo = $hierarchyService::checkSubordinates((int)$this->data['form']['id']);
+        $this->data['subordinates_count'] = $subordinatesInfo['count'];
 
         // Definir o título da página
         // Ativar o item de menu
@@ -201,6 +210,35 @@ class UpdateUser
                     $_SESSION['user_id'] ?? 0,
                     'Usuário inativado pelo administrador'
                 );
+                
+                // Transferir subordinados para o nível superior (hierarquia)
+                $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
+                $subordinatesCheck = $hierarchyService->checkSubordinates($form['id']);
+                
+                if ($subordinatesCheck['has_subordinates']) {
+                    // Promover subordinados para o supervisor do usuário inativado
+                    $promotionResult = $hierarchyService->promoteSubordinates($form['id']);
+                    
+                    \App\adms\Helpers\GenerateLog::generateLog(
+                        "info", 
+                        "Subordinados promovidos automaticamente ao inativar usuário", 
+                        [
+                            'user_id' => $form['id'],
+                            'user_name' => $userAntigo['name'] ?? '',
+                            'subordinados_promovidos' => $promotionResult['promoted_count'] ?? 0,
+                            'novo_supervisor_id' => $promotionResult['new_supervisor_id'] ?? null,
+                            'admin_user_id' => $_SESSION['user_id'] ?? 0
+                        ]
+                    );
+                    
+                    // Adicionar mensagem informativa na sessão
+                    if ($promotionResult['success'] && $promotionResult['promoted_count'] > 0) {
+                        $_SESSION['hierarchy_change_info'] = [
+                            'message' => "Atenção: {$promotionResult['promoted_count']} subordinado(s) foram automaticamente transferidos para o nível superior.",
+                            'details' => $subordinatesCheck['subordinates']
+                        ];
+                    }
+                }
                 
                 // Log da ação
                 \App\adms\Helpers\GenerateLog::generateLog(

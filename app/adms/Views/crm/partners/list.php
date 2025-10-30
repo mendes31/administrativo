@@ -17,27 +17,29 @@ use App\adms\Helpers\FormatHelper;
             <li class="breadcrumb-item">CRM</li>
             <li class="breadcrumb-item active">Parceiros</li>
         </ol>
-        <div class="btn-group ms-auto">
-            <a href="<?= $_ENV['URL_ADM'] ?>crm-create-partner" class="btn btn-success">
-                <i class="fas fa-plus me-2"></i>Novo Parceiro
-            </a>
-            <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
-                <span class="visually-hidden">Toggle</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="<?= $_ENV['URL_ADM'] ?>crm-import-partners">
-                    <i class="fas fa-file-import text-primary me-2"></i>Importar Excel
-                </a></li>
-                <li><a class="dropdown-item" href="<?= $_ENV['URL_ADM'] ?>crm-export-partners">
-                    <i class="fas fa-file-excel text-success me-2"></i>Exportar Excel
-                </a></li>
-            </ul>
-        </div>
     </div>
 
     <div class="card mb-4 shadow-sm">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <span><i class="fas fa-list me-2"></i>Listar Parceiros</span>
+            
+            <!-- Botão Novo Parceiro com Dropdown (dentro do card) -->
+            <div class="btn-group">
+                <a href="<?= $_ENV['URL_ADM'] ?>crm-create-partner" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus me-1"></i>Novo Parceiro
+                </a>
+                <button type="button" class="btn btn-success btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                    <span class="visually-hidden">Toggle</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="<?= $_ENV['URL_ADM'] ?>crm-import-partners">
+                        <i class="fas fa-file-import text-primary me-2"></i>Importar Excel
+                    </a></li>
+                    <li><a class="dropdown-item" href="<?= $_ENV['URL_ADM'] ?>crm-export-partners">
+                        <i class="fas fa-file-excel text-success me-2"></i>Exportar Excel
+                    </a></li>
+                </ul>
+            </div>
         </div>
         
         <div class="card-body">

@@ -25,6 +25,9 @@ class CrmOpportunitiesRepository extends DbConnection
      */
     public function getOpportunitiesByStage(int $stageId, array $filters = []): array
     {
+        // Detectar se vai usar array de IDs (para usar apenas posicionais)
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
         $sql = 'SELECT 
                     o.id,
                     o.code,
@@ -41,35 +44,38 @@ class CrmOpportunitiesRepository extends DbConnection
                 FROM crm_opportunities o
                 INNER JOIN crm_partners p ON o.partner_id = p.id
                 INNER JOIN adms_users u ON o.responsible_user_id = u.id
-                WHERE o.stage_id = :stage_id
-                AND o.status = :status';
+                WHERE o.stage_id = ? 
+                AND o.status = ?';
 
-        $params = [
-            ':stage_id' => $stageId,
-            ':status' => 'Aberta'
-        ];
+        $params = [$stageId, 'Aberta'];
 
-        // Filtro por responsável
+        // Filtro por responsável (usuário específico)
         if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND o.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            $sql .= ' AND o.responsible_user_id = ?';
+            $params[] = $filters['responsible_user_id'];
+        }
+        // Filtro por array de IDs permitidos (hierarquia)
+        elseif ($usePositional) {
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND o.responsible_user_id IN ($placeholders)";
+            
+            // Adicionar IDs ao array de parâmetros
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
         }
 
         // Filtro por busca
         if (!empty($filters['search'])) {
-            $sql .= ' AND (o.title LIKE :search OR p.name LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
+            $sql .= ' AND (o.title LIKE ? OR p.name LIKE ?)';
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
         }
 
         $sql .= ' ORDER BY o.value DESC';
 
         $stmt = $this->getConnection()->prepare($sql);
-
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
+        $stmt->execute(array_values($params)); // array_values para garantir índices sequenciais
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -85,27 +91,29 @@ class CrmOpportunitiesRepository extends DbConnection
     {
         $sql = 'SELECT SUM(o.value) as total
                 FROM crm_opportunities o
-                WHERE o.stage_id = :stage_id
-                AND o.status = :status';
+                WHERE o.stage_id = ?
+                AND o.status = ?';
 
-        $params = [
-            ':stage_id' => $stageId,
-            ':status' => 'Aberta'
-        ];
+        $params = [$stageId, 'Aberta'];
 
-        // Filtro por responsável
+        // Filtro por responsável (usuário específico)
         if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND o.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            $sql .= ' AND o.responsible_user_id = ?';
+            $params[] = $filters['responsible_user_id'];
+        }
+        // Filtro por array de IDs permitidos (hierarquia)
+        elseif (!empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids'])) {
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND o.responsible_user_id IN ($placeholders)";
+            
+            // Adicionar IDs ao array de parâmetros
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
         }
 
         $stmt = $this->getConnection()->prepare($sql);
-
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
+        $stmt->execute(array_values($params)); // array_values para garantir índices sequenciais
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -120,50 +128,88 @@ class CrmOpportunitiesRepository extends DbConnection
      */
     public function getTotalPipelineValue(array $filters = []): float
     {
-        $sql = 'SELECT SUM(o.value) as total
-                FROM crm_opportunities o
-                LEFT JOIN crm_partners p ON o.partner_id = p.id
-                LEFT JOIN crm_pipeline_stages s ON o.stage_id = s.id
-                WHERE o.status = :status';
-
-        $params = [':status' => 'Aberta'];
-
-        // Filtro por responsável
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND o.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-
-        // Filtro por etapa (do gráfico)
-        if (!empty($filters['filter_stage'])) {
-            $sql .= ' AND s.name = :filter_stage';
-            $params[':filter_stage'] = $filters['filter_stage'];
-        }
-
-        // Filtro por segmento (do gráfico)
-        if (!empty($filters['filter_segment'])) {
-            $sql .= ' AND p.segment = :filter_segment';
-            $params[':filter_segment'] = $filters['filter_segment'];
-        }
-
-        // Filtro por período
-        if (!empty($filters['periodo_inicio'])) {
-            $sql .= ' AND o.created_at >= :periodo_inicio';
-            $params[':periodo_inicio'] = $filters['periodo_inicio'];
-        }
-
-        if (!empty($filters['periodo_fim'])) {
-            $sql .= ' AND o.created_at <= :periodo_fim';
-            $params[':periodo_fim'] = $filters['periodo_fim'] . ' 23:59:59';
+        // Detectar se vai usar array de IDs (para manter consistência)
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
+        // Usar apenas posicionais se tiver array de IDs, senão usar nomeados
+        if ($usePositional) {
+            $sql = 'SELECT SUM(o.value) as total
+                    FROM crm_opportunities o
+                    LEFT JOIN crm_partners p ON o.partner_id = p.id
+                    LEFT JOIN crm_pipeline_stages s ON o.stage_id = s.id
+                    WHERE o.status = ?';
+            
+            $params = ['Aberta'];
+            
+            // Filtro por array de IDs permitidos (hierarquia)
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND o.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            // Filtros adicionais
+            if (!empty($filters['filter_stage'])) {
+                $sql .= ' AND s.name = ?';
+                $params[] = $filters['filter_stage'];
+            }
+            if (!empty($filters['filter_segment'])) {
+                $sql .= ' AND p.segment = ?';
+                $params[] = $filters['filter_segment'];
+            }
+            if (!empty($filters['periodo_inicio'])) {
+                $sql .= ' AND o.created_at >= ?';
+                $params[] = $filters['periodo_inicio'];
+            }
+            if (!empty($filters['periodo_fim'])) {
+                $sql .= ' AND o.created_at <= ?';
+                $params[] = $filters['periodo_fim'] . ' 23:59:59';
+            }
+            
+        } else {
+            // Usar parâmetros nomeados (modo normal)
+            $sql = 'SELECT SUM(o.value) as total
+                    FROM crm_opportunities o
+                    LEFT JOIN crm_partners p ON o.partner_id = p.id
+                    LEFT JOIN crm_pipeline_stages s ON o.stage_id = s.id
+                    WHERE o.status = :status';
+            
+            $params = [':status' => 'Aberta'];
+            
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND o.responsible_user_id = :responsible_user_id';
+                $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            }
+            if (!empty($filters['filter_stage'])) {
+                $sql .= ' AND s.name = :filter_stage';
+                $params[':filter_stage'] = $filters['filter_stage'];
+            }
+            if (!empty($filters['filter_segment'])) {
+                $sql .= ' AND p.segment = :filter_segment';
+                $params[':filter_segment'] = $filters['filter_segment'];
+            }
+            if (!empty($filters['periodo_inicio'])) {
+                $sql .= ' AND o.created_at >= :periodo_inicio';
+                $params[':periodo_inicio'] = $filters['periodo_inicio'];
+            }
+            if (!empty($filters['periodo_fim'])) {
+                $sql .= ' AND o.created_at <= :periodo_fim';
+                $params[':periodo_fim'] = $filters['periodo_fim'] . ' 23:59:59';
+            }
         }
 
         $stmt = $this->getConnection()->prepare($sql);
-
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        
+        // Execute baseado no tipo
+        if ($usePositional) {
+            $stmt->execute(array_values($params)); // array_values para garantir índices sequenciais
+        } else {
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
         }
-
-        $stmt->execute();
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -840,6 +886,9 @@ class CrmOpportunitiesRepository extends DbConnection
     public function getAllOpportunities(array $filters = [], int $page = 1, int $perPage = 20): array
     {
         $offset = ($page - 1) * $perPage;
+        
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
 
         // Query base
         $sql = 'SELECT 
@@ -862,45 +911,92 @@ class CrmOpportunitiesRepository extends DbConnection
 
         $params = [];
 
-        // Filtros
-        if (!empty($filters['search'])) {
-            $sql .= ' AND (o.title LIKE :search OR o.code LIKE :search OR p.name LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
-        }
-
-        if (!empty($filters['stage_id'])) {
-            $sql .= ' AND o.stage_id = :stage_id';
-            $params[':stage_id'] = $filters['stage_id'];
-        }
-
-        if (!empty($filters['responsible_user_id'])) {
-            $sql .= ' AND o.responsible_user_id = :responsible_user_id';
-            $params[':responsible_user_id'] = $filters['responsible_user_id'];
-        }
-
-        if (!empty($filters['status'])) {
-            $sql .= ' AND o.status = :status';
-            $params[':status'] = $filters['status'];
+        if ($usePositional) {
+            // MODO POSICIONAL (com array de IDs)
+            
+            // Filtro por busca
+            if (!empty($filters['search'])) {
+                $sql .= ' AND (o.title LIKE ? OR o.code LIKE ? OR p.name LIKE ?)';
+                $params[] = '%' . $filters['search'] . '%';
+                $params[] = '%' . $filters['search'] . '%';
+                $params[] = '%' . $filters['search'] . '%';
+            }
+            
+            // Filtro por etapa
+            if (!empty($filters['stage_id'])) {
+                $sql .= ' AND o.stage_id = ?';
+                $params[] = $filters['stage_id'];
+            }
+            
+            // Filtro por array de IDs permitidos (hierarquia)
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND o.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+            
+            // Filtro por status
+            if (!empty($filters['status'])) {
+                $sql .= ' AND o.status = ?';
+                $params[] = $filters['status'];
+            }
+            
+        } else {
+            // MODO NOMEADO (sem array de IDs)
+            
+            if (!empty($filters['search'])) {
+                $sql .= ' AND (o.title LIKE :search OR o.code LIKE :search OR p.name LIKE :search)';
+                $params[':search'] = '%' . $filters['search'] . '%';
+            }
+            
+            if (!empty($filters['stage_id'])) {
+                $sql .= ' AND o.stage_id = :stage_id';
+                $params[':stage_id'] = $filters['stage_id'];
+            }
+            
+            if (!empty($filters['responsible_user_id'])) {
+                $sql .= ' AND o.responsible_user_id = :responsible_user_id';
+                $params[':responsible_user_id'] = $filters['responsible_user_id'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= ' AND o.status = :status';
+                $params[':status'] = $filters['status'];
+            }
         }
 
         // Contar total de registros
         $sqlCount = str_replace('SELECT o.id, o.code, o.title, o.value, o.probability, o.status, o.created_at, p.name as partner_name, u.name as responsible_name, s.name as stage_name, s.color as stage_color', 'SELECT COUNT(*) as total', $sql);
         $stmtCount = $this->getConnection()->prepare($sqlCount);
-        foreach ($params as $key => $value) {
-            $stmtCount->bindValue($key, $value);
+        
+        if ($usePositional) {
+            // Parâmetros posicionais: executar diretamente com array
+            $stmtCount->execute(array_values($params));
+        } else {
+            // Parâmetros nomeados: bind individual
+            foreach ($params as $key => $value) {
+                $stmtCount->bindValue($key, $value);
+            }
+            $stmtCount->execute();
         }
-        $stmtCount->execute();
+        
         $total = (int)$stmtCount->fetchColumn();
 
         // Buscar dados com paginação
-        $sql .= ' ORDER BY o.created_at DESC LIMIT :limit OFFSET :offset';
+        // LIMIT e OFFSET são valores internos (não vêm do usuário), então podemos colocar direto no SQL
+        $sql .= ' ORDER BY o.created_at DESC LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
+        
         $stmt = $this->getConnection()->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        
+        if ($usePositional) {
+            $stmt->execute(array_values($params));
+        } else {
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
         }
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
 
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

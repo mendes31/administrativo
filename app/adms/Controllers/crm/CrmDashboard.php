@@ -20,13 +20,18 @@ class CrmDashboard
 
     public function index(): void
     {
-        // Verificar se é gestor (Super Admin ou permissões específicas)
-        $isGestor = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        // Usar CrmPermissionService para verificar hierarquia
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $isGestor = $permissionService::isManager();
         $this->data['is_gestor'] = $isGestor;
+        
+        // Obter IDs permitidos (departamento comercial + hierarquia)
+        $allowedUserIds = $permissionService::getAllowedUserIds();
 
-        // Capturar filtros (apenas para gestores)
+        // Capturar filtros
         $filters = [];
         if ($isGestor) {
+            // Gerente: pode filtrar por qualquer subordinado
             $filters = [
                 'periodo_inicio' => $_GET['periodo_inicio'] ?? '',
                 'periodo_fim' => $_GET['periodo_fim'] ?? '',
@@ -35,8 +40,16 @@ class CrmDashboard
                 'filter_stage' => $_GET['filter_stage'] ?? '',
                 'filter_segment' => $_GET['filter_segment'] ?? ''
             ];
+            
+            // Validar se o usuário filtrado está na lista permitida
+            if (!empty($filters['responsible_user_id']) && !in_array($filters['responsible_user_id'], $allowedUserIds)) {
+                // Usuário tentou filtrar por alguém que não pode ver - resetar filtro
+                $filters['responsible_user_id'] = '';
+                $_SESSION['msg'] = "Você não tem permissão para visualizar este usuário.";
+                $_SESSION['msg_type'] = "warning";
+            }
         } else {
-            // Vendedor: sempre filtrar por seu ID
+            // Colaborador: sempre filtrar por seu ID
             $filters['responsible_user_id'] = $_SESSION['user_id'];
             $filters['filter_stage'] = $_GET['filter_stage'] ?? '';
             $filters['filter_segment'] = $_GET['filter_segment'] ?? '';
@@ -74,10 +87,10 @@ class CrmDashboard
             $this->data['pending_followups'] = $activitiesRepo->getUserTodayActivities($userId);
         }
 
-        // Lista de vendedores (apenas para gestores)
+        // Lista de usuários permitidos (departamento comercial + hierarquia)
         if ($isGestor) {
-            $usersRepo = new \App\adms\Models\Repository\UsersRepository();
-            $this->data['users'] = $usersRepo->getAllUsersSelect();
+            // Gerente: mostrar apenas usuários do departamento comercial que pode visualizar
+            $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
             
             // Lista de parceiros para filtro
             $this->data['partners_list'] = $partnersRepo->getAllPartnersSelect();

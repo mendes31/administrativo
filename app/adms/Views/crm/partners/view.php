@@ -557,12 +557,12 @@ include('./app/adms/Views/crm/opportunities/modals.php');
                         <select name="phone_number" class="form-select" required>
                             <?php if (!empty($partner['mobile'])): ?>
                                 <option value="<?= htmlspecialchars($partner['mobile']) ?>">
-                                    📱 <?= htmlspecialchars($partner['mobile']) ?> (Celular)
+                                    📱 <?= htmlspecialchars(formatPhone($partner['mobile'])) ?> (Celular)
                                 </option>
                             <?php endif; ?>
                             <?php if (!empty($partner['phone'])): ?>
                                 <option value="<?= htmlspecialchars($partner['phone']) ?>">
-                                    ☎️ <?= htmlspecialchars($partner['phone']) ?> (Telefone)
+                                    ☎️ <?= htmlspecialchars(formatPhone($partner['phone'])) ?> (Telefone)
                                 </option>
                             <?php endif; ?>
                         </select>

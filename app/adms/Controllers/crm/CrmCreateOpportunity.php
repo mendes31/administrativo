@@ -41,8 +41,9 @@ class CrmCreateOpportunity
         $stagesRepo = new CrmPipelineStagesRepository();
         $this->data['stages'] = $stagesRepo->getActivePipelineStages();
 
-        $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
 
         // Carregar campos customizáveis para oportunidades
         $customFieldsRepo = new CrmCustomFieldsRepository();
@@ -51,7 +52,7 @@ class CrmCreateOpportunity
         // Layout
         $pageElements = [
             'title_head' => 'Nova Oportunidade - CRM',
-            'menu' => 'crm-create-opportunity',
+            'menu' => 'crm-list-opportunities',
             'buttonPermission' => ['CrmCreateOpportunity'],
         ];
         

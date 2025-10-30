@@ -57,7 +57,7 @@ class CrmViewOpportunity
         // Layout
         $pageElements = [
             'title_head' => 'Visualizar Oportunidade - CRM',
-            'menu' => 'crm-kanban-pipeline',
+            'menu' => 'crm-list-opportunities',
             'buttonPermission' => ['CrmViewOpportunity', 'CrmUpdateOpportunity', 'CrmDeleteOpportunity'],
         ];
         

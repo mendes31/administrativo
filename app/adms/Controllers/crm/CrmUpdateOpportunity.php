@@ -52,8 +52,9 @@ class CrmUpdateOpportunity
         $stagesRepo = new CrmPipelineStagesRepository();
         $this->data['stages'] = $stagesRepo->getActiveStages();
 
-        $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
 
         // Carregar campos customizáveis e valores
         $customFieldsRepo = new CrmCustomFieldsRepository();
@@ -63,7 +64,7 @@ class CrmUpdateOpportunity
         // Layout
         $pageElements = [
             'title_head' => 'Editar Oportunidade - CRM',
-            'menu' => 'crm-kanban-pipeline',
+            'menu' => 'crm-list-opportunities',
             'buttonPermission' => ['CrmUpdateOpportunity'],
         ];
         

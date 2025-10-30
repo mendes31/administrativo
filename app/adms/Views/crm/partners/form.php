@@ -156,6 +156,16 @@ $partner = $this->data['partner'] ?? [];
                                     <i class="fas fa-lightbulb text-warning"></i>
                                     Digite o CEP para auto-completar o endereço
                                 </div>
+                                
+                                <!-- Alerta se tem CEP mas sem endereço -->
+                                <?php if (!empty($partner['zip_code']) && empty($partner['city'])): ?>
+                                <div class="alert alert-warning mt-2 mb-2" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>Atenção!</strong> CEP cadastrado mas endereço incompleto.
+                                    <br><small>👉 Clique em <strong>[Buscar]</strong> para preencher automaticamente ou marque "Não sei o CEP" para preencher manualmente.</small>
+                                </div>
+                                <?php endif; ?>
+                                
                                 <div class="form-check mt-2">
                                     <input type="checkbox" class="form-check-input" id="no-cep-checkbox">
                                     <label class="form-check-label" for="no-cep-checkbox">
@@ -204,9 +214,11 @@ $partner = $this->data['partner'] ?? [];
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Estado/UF *</label>
-                                <select name="state" id="state" class="form-select" required disabled>
-                                    <option value="">Aguardando CEP...</option>
+                                <label class="form-label">Estado/UF <?= !empty($partner['state']) ? '*' : '' ?></label>
+                                <select name="state" id="state" class="form-select" <?= !empty($partner['state']) ? 'required' : '' ?> <?= empty($partner['state']) ? 'disabled' : '' ?>>
+                                    <?php if (empty($partner['state'])): ?>
+                                        <option value="">Aguardando CEP...</option>
+                                    <?php endif; ?>
                                     <?php
                                     $selectedState = $partner['state'] ?? '';
                                     
@@ -287,34 +299,42 @@ $partner = $this->data['partner'] ?? [];
                         <!-- ENDEREÇO (auto-completado por CEP) -->
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">Cidade *</label>
-                                <input type="text" name="city" id="city" class="form-control" required
-                                       placeholder="Aguardando CEP..."
+                                <label class="form-label">Cidade <?= !empty($partner['city']) ? '*' : '' ?></label>
+                                <?php 
+                                // DEBUG PHP
+                                $cityValue = $partner['city'] ?? '';
+                                $cityDebug = !empty($cityValue) ? "OK: {$cityValue}" : "VAZIO";
+                                error_log("DEBUG HTML - Cidade: {$cityDebug}");
+                                ?>
+                                <input type="text" name="city" id="city" class="form-control" <?= !empty($partner['city']) ? 'required' : '' ?>
+                                       placeholder="<?= !empty($partner['city']) ? 'Digite a cidade' : 'Aguardando CEP...' ?>"
                                        list="city-suggestions"
-                                       disabled
-                                       value="<?php echo htmlspecialchars($partner['city'] ?? ''); ?>">
+                                       <?= empty($partner['city']) ? 'disabled' : '' ?>
+                                       value="<?php echo htmlspecialchars($partner['city'] ?? ''); ?>"
+                                       data-original-value="<?php echo htmlspecialchars($partner['city'] ?? ''); ?>">
                                 <datalist id="city-suggestions"></datalist>
+                                <small class="text-muted">Debug: <?= $cityDebug ?></small>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Bairro *</label>
-                                <input type="text" name="neighborhood" id="neighborhood" class="form-control" required
-                                       placeholder="Aguardando CEP..."
-                                       disabled
+                                <label class="form-label">Bairro <?= !empty($partner['neighborhood']) ? '*' : '' ?></label>
+                                <input type="text" name="neighborhood" id="neighborhood" class="form-control" <?= !empty($partner['neighborhood']) ? 'required' : '' ?>
+                                       placeholder="<?= !empty($partner['neighborhood']) ? 'Digite o bairro' : 'Aguardando CEP...' ?>"
+                                       <?= empty($partner['neighborhood']) ? 'disabled' : '' ?>
                                        value="<?php echo htmlspecialchars($partner['neighborhood'] ?? ''); ?>">
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-8">
-                                <label class="form-label">Logradouro *</label>
-                                <input type="text" name="address" id="address" class="form-control" required
-                                       placeholder="Aguardando CEP..."
-                                       disabled
+                                <label class="form-label">Logradouro <?= !empty($partner['address']) ? '*' : '' ?></label>
+                                <input type="text" name="address" id="address" class="form-control" <?= !empty($partner['address']) ? 'required' : '' ?>
+                                       placeholder="<?= !empty($partner['address']) ? 'Digite o endereço' : 'Aguardando CEP...' ?>"
+                                       <?= empty($partner['address']) ? 'disabled' : '' ?>
                                        value="<?php echo htmlspecialchars($partner['address'] ?? ''); ?>">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Número *</label>
-                                <input type="text" name="number" id="number" class="form-control" required
+                                <label class="form-label">Número</label>
+                                <input type="text" name="number" id="number" class="form-control"
                                        placeholder="Nº"
                                        value="<?php echo htmlspecialchars($partner['number'] ?? ''); ?>">
                             </div>
@@ -345,15 +365,30 @@ $partner = $this->data['partner'] ?? [];
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Responsável</label>
-                            <select name="responsible_user_id" class="form-select">
+                            <label class="form-label">
+                                Responsável
+                                <?php if (count($this->data['users']) == 1): ?>
+                                    <i class="fas fa-info-circle text-info" title="Você só pode atribuir para si mesmo. Gerentes podem atribuir para subordinados."></i>
+                                <?php endif; ?>
+                            </label>
+                            <select name="responsible_user_id" class="form-select" <?php echo count($this->data['users']) == 1 ? 'readonly style="background-color: #e9ecef; pointer-events: none;"' : ''; ?>>
                                 <option value="">Sem responsável</option>
                                 <?php foreach ($this->data['users'] as $user): ?>
-                                    <option value="<?php echo $user['id']; ?>" <?php echo ($partner['responsible_user_id'] ?? '') == $user['id'] ? 'selected' : ''; ?>>
+                                    <option value="<?php echo $user['id']; ?>" <?php echo ($partner['responsible_user_id'] ?? $_SESSION['user_id']) == $user['id'] ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($user['name']); ?>
+                                        <?php if ($user['id'] == $_SESSION['user_id']): ?> (Você)<?php endif; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (count($this->data['users']) == 1): ?>
+                                <div class="form-text text-muted">
+                                    <i class="fas fa-user me-1"></i>Apenas você pode ser o responsável por este parceiro.
+                                </div>
+                            <?php else: ?>
+                                <div class="form-text text-success">
+                                    <i class="fas fa-users me-1"></i>Como gerente, você pode atribuir para qualquer membro da equipe.
+                                </div>
+                            <?php endif; ?>
                         </div>
                         
                         <div class="mb-3">
@@ -1368,8 +1403,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         const ufOption = Array.from(currentState.options).find(opt => opt.value === data.uf);
                         
                         if (ufOption) {
+                            // HABILITAR o select ANTES de preencher
+                            currentState.disabled = false;
+                            currentState.removeAttribute('disabled');
+                            currentState.removeAttribute('required'); // Adicionar required depois
+                            
                             currentState.value = data.uf;
+                            
+                            // Adicionar required de volta
+                            currentState.required = true;
+                            
                             console.log('✅✅✅ Estado preenchido com SUCESSO:', data.uf, '-', ufOption.textContent);
+                            console.log('  ✅ Estado HABILITADO | disabled:', currentState.disabled, '| value:', currentState.value);
                             
                             // Mostrar DDDs válidos para o estado
                             setTimeout(() => {
@@ -1385,31 +1430,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 200);
                 
+                // HABILITAR E PREENCHER CIDADE
                 cityInput.disabled = false;
+                cityInput.removeAttribute('disabled');
+                cityInput.required = true;
                 cityInput.value = data.localidade || '';
+                console.log('✅ Cidade HABILITADA e preenchida:', cityInput.value, '| disabled:', cityInput.disabled);
                 
+                // HABILITAR E PREENCHER BAIRRO
                 neighborhoodInput.disabled = false;
+                neighborhoodInput.removeAttribute('disabled');
+                neighborhoodInput.required = true;
                 neighborhoodInput.value = data.bairro || '';
+                console.log('✅ Bairro HABILITADO e preenchido:', neighborhoodInput.value, '| disabled:', neighborhoodInput.disabled);
                 
+                // HABILITAR E PREENCHER LOGRADOURO
                 addressInput.disabled = false;
+                addressInput.removeAttribute('disabled');
+                addressInput.required = true;
                 addressInput.value = data.logradouro || '';
+                console.log('✅ Logradouro HABILITADO e preenchido:', addressInput.value, '| disabled:', addressInput.disabled);
                 
-                // Marcar como preenchido pelo CEP (readonly se tiver valor)
+                // Destacar campos preenchidos pelo CEP (fundo azul claro)
                 if (data.logradouro) {
-                    addressInput.readOnly = true;
-                    addressInput.style.backgroundColor = '#e9ecef';
+                    addressInput.style.backgroundColor = '#e3f2fd';
+                    addressInput.readOnly = false; // Garantir que NÃO fica readonly
+                    console.log('  ✅ Logradouro: editável, fundo azul');
                 }
                 if (data.bairro) {
-                    neighborhoodInput.readOnly = true;
-                    neighborhoodInput.style.backgroundColor = '#e9ecef';
+                    neighborhoodInput.style.backgroundColor = '#e3f2fd';
+                    neighborhoodInput.readOnly = false;
+                    console.log('  ✅ Bairro: editável, fundo azul');
                 }
                 if (data.localidade) {
-                    cityInput.readOnly = true;
-                    cityInput.style.backgroundColor = '#e9ecef';
+                    cityInput.style.backgroundColor = '#e3f2fd';
+                    cityInput.readOnly = false;
+                    console.log('  ✅ Cidade: editável, fundo azul');
                 }
                 
+                console.log('✅✅✅ Campos de endereço 100% HABILITADOS e EDITÁVEIS');
+                console.log('📝 Campos podem ser salvos no banco agora!');
+                
                 // Focar no campo Número
-                document.getElementById('number').focus();
+                const numberInput = document.getElementById('number');
+                if (numberInput) {
+                    numberInput.focus();
+                }
                 
                 // Mostrar mensagem de sucesso
                 cepSuccess.style.display = 'block';
@@ -1531,6 +1597,134 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         console.log('✅ Campos bloqueados - Digite o CEP para habilitar');
+    }
+    
+    // ========================================
+    // MODO EDIÇÃO: Garantir que campos salvos permaneçam habilitados
+    // ========================================
+    const isEditMode = document.querySelector('input[name="id"]') !== null;
+    
+    if (isEditMode) {
+        console.log('📝 MODO EDIÇÃO DETECTADO - Preservando dados salvos');
+        
+        // Verificar e GARANTIR que campos com dados permaneçam habilitados
+        setTimeout(function() {
+            const cityInput = document.getElementById('city');
+            const neighborhoodInput = document.getElementById('neighborhood');
+            const addressInput = document.getElementById('address');
+            const stateSelect = document.getElementById('state');
+            const zipCodeInput = document.getElementById('zip_code');
+            
+            // Verificar se TEM endereço completo salvo
+            const hasCity = cityInput && cityInput.value && cityInput.value !== '' && cityInput.value !== 'Aguardando CEP...';
+            const hasNeighborhood = neighborhoodInput && neighborhoodInput.value && neighborhoodInput.value !== '' && neighborhoodInput.value !== 'Aguardando CEP...';
+            const hasAddress = addressInput && addressInput.value && addressInput.value !== '' && addressInput.value !== 'Aguardando CEP...';
+            const hasState = stateSelect && stateSelect.value && stateSelect.value !== '';
+            const hasCEP = zipCodeInput && zipCodeInput.value && zipCodeInput.value !== '';
+            
+            console.log('🔍 DEBUG - Valores dos campos:');
+            console.log('  - Cidade:', cityInput ? cityInput.value : 'NULL');
+            console.log('  - Bairro:', neighborhoodInput ? neighborhoodInput.value : 'NULL');
+            console.log('  - Logradouro:', addressInput ? addressInput.value : 'NULL');
+            console.log('  - Estado:', stateSelect ? stateSelect.value : 'NULL');
+            console.log('  - CEP:', hasCEP ? zipCodeInput.value : 'NULL');
+            
+            if (hasCity || hasNeighborhood || hasAddress || hasState) {
+                console.log('✅ ENDEREÇO SALVO DETECTADO - Habilitando campos...');
+                
+                // FORÇAR habilitação dos campos (ignorar lógica de CEP)
+                if (cityInput) {
+                    cityInput.disabled = false;
+                    cityInput.readOnly = false;
+                    cityInput.removeAttribute('disabled');
+                    cityInput.removeAttribute('readonly');
+                    cityInput.style.backgroundColor = '';
+                    cityInput.placeholder = 'Digite a cidade';
+                    console.log('  ✅ Cidade habilitada:', cityInput.value, '| disabled:', cityInput.disabled);
+                }
+                
+                if (neighborhoodInput) {
+                    neighborhoodInput.disabled = false;
+                    neighborhoodInput.readOnly = false;
+                    neighborhoodInput.removeAttribute('disabled');
+                    neighborhoodInput.removeAttribute('readonly');
+                    neighborhoodInput.style.backgroundColor = '';
+                    neighborhoodInput.placeholder = 'Digite o bairro';
+                    console.log('  ✅ Bairro habilitado:', neighborhoodInput.value, '| disabled:', neighborhoodInput.disabled);
+                }
+                
+                if (addressInput) {
+                    addressInput.disabled = false;
+                    addressInput.readOnly = false;
+                    addressInput.removeAttribute('disabled');
+                    addressInput.removeAttribute('readonly');
+                    addressInput.style.backgroundColor = '';
+                    addressInput.placeholder = 'Digite o endereço';
+                    console.log('  ✅ Logradouro habilitado:', addressInput.value, '| disabled:', addressInput.disabled);
+                }
+                
+                if (stateSelect) {
+                    stateSelect.disabled = false;
+                    stateSelect.removeAttribute('disabled');
+                    console.log('  ✅ Estado habilitado:', stateSelect.value, '| disabled:', stateSelect.disabled);
+                }
+                
+                console.log('✅✅✅ TODOS OS CAMPOS DE ENDEREÇO HABILITADOS PARA EDIÇÃO');
+                console.log('ℹ️ Altere o CEP e clique em Buscar para atualizar, ou edite manualmente');
+                
+            } else {
+                console.log('⚠️ Nenhum endereço salvo - Aguardando CEP ou preenchimento manual');
+                console.log('  hasCity:', hasCity, '| hasNeighborhood:', hasNeighborhood);
+                console.log('  hasAddress:', hasAddress, '| hasState:', hasState);
+            }
+        }, 200); // Delay maior para garantir que o PHP renderizou
+    }
+    
+    // ========================================
+    // VALIDAÇÃO ANTES DE SUBMETER FORMULÁRIO
+    // ========================================
+    const partnerForm = document.querySelector('form[action*="crm-"][action*="-partner"]');
+    if (partnerForm) {
+        partnerForm.addEventListener('submit', function(e) {
+            console.log('📝 Formulário sendo submetido...');
+            console.log('=== VERIFICANDO CAMPOS ANTES DE ENVIAR ===');
+            
+            // Remover 'required' de campos disabled para permitir submit
+            const disabledInputs = partnerForm.querySelectorAll('input[disabled], select[disabled]');
+            disabledInputs.forEach(input => {
+                if (input.hasAttribute('required')) {
+                    input.removeAttribute('required');
+                    console.log('  ✅ Removido required de campo disabled:', input.name);
+                }
+            });
+            
+            // Verificar campos de endereço (para debug)
+            const cityInput = partnerForm.querySelector('[name="city"]');
+            const stateSelect = partnerForm.querySelector('[name="state"]');
+            const neighborhoodInput = partnerForm.querySelector('[name="neighborhood"]');
+            const addressInput = partnerForm.querySelector('[name="address"]');
+            
+            console.log('📊 STATUS DOS CAMPOS DE ENDEREÇO:');
+            console.log('  Estado:', stateSelect ? (stateSelect.disabled ? '🔒 disabled' : '✅ enabled') + ' | value: ' + stateSelect.value : 'NULL');
+            console.log('  Cidade:', cityInput ? (cityInput.disabled ? '🔒 disabled' : '✅ enabled') + ' | value: ' + cityInput.value : 'NULL');
+            console.log('  Bairro:', neighborhoodInput ? (neighborhoodInput.disabled ? '🔒 disabled' : '✅ enabled') + ' | value: ' + neighborhoodInput.value : 'NULL');
+            console.log('  Logradouro:', addressInput ? (addressInput.disabled ? '🔒 disabled' : '✅ enabled') + ' | value: ' + addressInput.value : 'NULL');
+            
+            // Garantir que campos readOnly NÃO sejam disabled
+            const readOnlyInputs = partnerForm.querySelectorAll('[readonly]');
+            readOnlyInputs.forEach(input => {
+                if (input.disabled) {
+                    input.disabled = false;
+                    input.removeAttribute('disabled');
+                    console.log('  ⚠️ Campo readonly estava disabled - Habilitado:', input.name);
+                }
+            });
+            
+            console.log('✅ Validação concluída - Formulário pode ser enviado');
+            return true; // Permitir submit
+        });
+        
+        console.log('✅ Validação de submit adicionada ao formulário');
     }
     
     // ========================================

@@ -23,6 +23,14 @@ class CrmListPartners
 
     public function index(string|int $page = 1): void
     {
+        // Usar CrmPermissionService para verificar hierarquia
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $isManager = $permissionService::isManager();
+        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        
+        // Obter IDs permitidos (usuário + subordinados do departamento comercial)
+        $allowedUserIds = $permissionService::getAllowedUserIds();
+        
         // Capturar filtros
         $filters = [
             'search' => $_GET['search'] ?? '',
@@ -32,6 +40,24 @@ class CrmListPartners
             'responsible_user_id' => $_GET['responsible_user_id'] ?? '',
             'tag_id' => $_GET['tag_id'] ?? ''
         ];
+        
+        // APLICAR FILTRO AUTOMÁTICO POR HIERARQUIA
+        if (!$isSuperAdmin) {
+            // Se filtrou por um usuário específico, validar se tem permissão
+            if (!empty($filters['responsible_user_id'])) {
+                if (!in_array($filters['responsible_user_id'], $allowedUserIds)) {
+                    // Usuário sem permissão - resetar filtro e mostrar alerta
+                    $filters['responsible_user_id'] = '';
+                    $_SESSION['msg'] = "Você não tem permissão para visualizar este usuário.";
+                    $_SESSION['msg_type'] = "warning";
+                }
+            }
+            
+            // FILTRO AUTOMÁTICO: Se não filtrou por usuário específico, aplicar filtro por IDs permitidos
+            if (empty($filters['responsible_user_id']) && !empty($allowedUserIds)) {
+                $filters['allowed_user_ids'] = $allowedUserIds; // Array de IDs permitidos
+            }
+        }
 
         // Paginação
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
@@ -76,9 +102,9 @@ class CrmListPartners
         $tagsRepo = new CrmTagsRepository();
         $this->data['all_tags'] = $tagsRepo->getAllTags();
         
-        // Usuários e departamentos para filtros
-        $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
         
         $deptRepo = new DepartmentsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();

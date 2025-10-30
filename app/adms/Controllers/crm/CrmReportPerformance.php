@@ -25,8 +25,9 @@ class CrmReportPerformance
         $opportunitiesRepo = new CrmOpportunitiesRepository();
         $activitiesRepo = new CrmActivitiesRepository();
 
-        // Buscar vendedores ativos (todos os usuários para simplificar)
-        $users = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $users = $permissionService::getCommercialDepartmentUsers();
 
         $performanceData = [];
 

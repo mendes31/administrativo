@@ -45,6 +45,15 @@ class CrmUpdatePartner
             header("Location: " . $_ENV['URL_ADM'] . "crm-list-partners");
             exit;
         }
+        
+        // DEBUG: Verificar dados carregados
+        error_log("=== DEBUG CrmUpdatePartner ===");
+        error_log("Partner ID: " . $id);
+        error_log("CEP: " . ($this->data['partner']['zip_code'] ?? 'NULL'));
+        error_log("Estado: " . ($this->data['partner']['state'] ?? 'NULL'));
+        error_log("Cidade: " . ($this->data['partner']['city'] ?? 'NULL'));
+        error_log("Bairro: " . ($this->data['partner']['neighborhood'] ?? 'NULL'));
+        error_log("Logradouro: " . ($this->data['partner']['address'] ?? 'NULL'));
 
         // Dados para os selects
         $this->data['segments'] = ['Farma', 'Suplementos', 'Ambos'];
@@ -52,8 +61,9 @@ class CrmUpdatePartner
         $this->data['priorities'] = ['Baixa', 'Média', 'Alta', 'Urgente'];
         $this->data['type_persons'] = ['PF' => 'Pessoa Física', 'PJ' => 'Pessoa Jurídica'];
         
-        $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
         
         $deptRepo = new DepartmentsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
@@ -84,6 +94,20 @@ class CrmUpdatePartner
 
     private function update(int $id): void
     {
+        // DEBUG: Verificar dados recebidos no POST
+        error_log("=== DEBUG UPDATE PARTNER ===");
+        error_log("ID: " . $id);
+        error_log("POST recebido - responsible_user_id:");
+        error_log("  Valor RAW: " . var_export($_POST['responsible_user_id'] ?? 'NOT_SET', true));
+        error_log("  empty(): " . (empty($_POST['responsible_user_id']) ? 'true' : 'false'));
+        error_log("  is_numeric(): " . (isset($_POST['responsible_user_id']) && is_numeric($_POST['responsible_user_id']) ? 'true' : 'false'));
+        error_log("POST recebido - Endereço:");
+        error_log("  state: " . ($_POST['state'] ?? 'NULL'));
+        error_log("  city: " . ($_POST['city'] ?? 'NULL'));
+        error_log("  neighborhood: " . ($_POST['neighborhood'] ?? 'NULL'));
+        error_log("  address: " . ($_POST['address'] ?? 'NULL'));
+        error_log("  zip_code: " . ($_POST['zip_code'] ?? 'NULL'));
+        
         $country = $_POST['country'] ?? 'BR';
         
         // Concatenar DDI com telefone/celular
@@ -121,8 +145,8 @@ class CrmUpdatePartner
             'source' => $_POST['source'] ?? null,
             'priority' => $_POST['priority'] ?? 'Média',
             'status' => $_POST['status'] ?? 'Ativo',
-            'responsible_user_id' => $_POST['responsible_user_id'] ?? null,
-            'department_id' => $_POST['department_id'] ?? null,
+            'responsible_user_id' => (!empty($_POST['responsible_user_id']) && is_numeric($_POST['responsible_user_id'])) ? (int)$_POST['responsible_user_id'] : null,
+            'department_id' => (!empty($_POST['department_id']) && is_numeric($_POST['department_id'])) ? (int)$_POST['department_id'] : null,
             'estimated_revenue' => $_POST['estimated_revenue'] ?? 0,
             'notes' => $_POST['notes'] ?? null,
         ];

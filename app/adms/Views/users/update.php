@@ -115,6 +115,41 @@ use App\adms\Helpers\ImageHelper;
                     </select>
                 </div>
 
+                <div class="col-md-6">
+                    <label for="immediate_supervisor_id" class="form-label">
+                        Supervisor Imediato
+                        <i class="fas fa-info-circle text-info" title="Usuário ao qual este colaborador se reporta diretamente. Gerentes podem visualizar dados de seus subordinados no CRM."></i>
+                    </label>
+                    <select name="immediate_supervisor_id" class="form-select" id="immediate_supervisor_id">
+                        <option value="">Sem supervisor (nível superior)</option>
+                        <?php
+                        // Lista de usuários ativos para selecionar como supervisor
+                        if ($this->data['listSupervisors'] ?? false) {
+                            foreach ($this->data['listSupervisors'] as $supervisor) {
+                                // Não permitir selecionar a si mesmo como supervisor
+                                if (isset($this->data['form']['id']) && $supervisor['id'] == $this->data['form']['id']) {
+                                    continue;
+                                }
+                                
+                                $selected = isset($this->data['form']['immediate_supervisor_id']) && $this->data['form']['immediate_supervisor_id'] == $supervisor['id'] ? 'selected' : '';
+                                echo "<option value='{$supervisor['id']}' $selected>{$supervisor['name']}</option>";
+                            }
+                        }
+                        ?>
+                    </select>
+                    <div class="form-text">
+                        <i class="fas fa-sitemap me-1"></i>
+                        <?php
+                        // Mostrar quantos subordinados este usuário tem
+                        if (isset($this->data['subordinates_count']) && $this->data['subordinates_count'] > 0) {
+                            echo "<span class='text-success'><strong>Este usuário é supervisor de {$this->data['subordinates_count']} colaborador(es)</strong></span>";
+                        } else {
+                            echo "Deixe vazio apenas para cargos de direção/CEO.";
+                        }
+                        ?>
+                    </div>
+                </div>
+
                 <div class="col-md-4">
                     <label for="tentativas_login" class="form-label">Tentativas de Login</label>
                     <input type="number" name="tentativas_login" class="form-control" id="tentativas_login" value="<?php echo $this->data['form']['tentativas_login'] ?? '0'; ?>" readonly>

@@ -67,6 +67,10 @@ class CreateUser
         // Instanciar o repositório para recuperar os cargos
         $listPositions = new PositionsRepository();
         $this->data['listPositions'] = $listPositions->getAllPositionsSelect();
+        
+        // Lista de usuários ativos para selecionar como supervisor
+        $usersRepo = new UsersRepository();
+        $this->data['listSupervisors'] = $usersRepo->getAllUsersSelect();
  
         // Definir o título da página
         // Ativar o item de menu

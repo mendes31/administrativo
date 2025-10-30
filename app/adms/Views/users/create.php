@@ -110,6 +110,29 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
 
                 <div class="col-md-6">
+                    <label for="immediate_supervisor_id" class="form-label">
+                        Supervisor Imediato
+                        <i class="fas fa-info-circle text-info" title="Usuário ao qual este colaborador se reporta diretamente. Gerentes podem visualizar dados de seus subordinados no CRM."></i>
+                    </label>
+                    <select name="immediate_supervisor_id" class="form-select" id="immediate_supervisor_id">
+                        <option value="">Sem supervisor (nível superior)</option>
+                        <?php
+                        // Lista de usuários ativos para selecionar como supervisor
+                        if ($this->data['listSupervisors'] ?? false) {
+                            foreach ($this->data['listSupervisors'] as $supervisor) {
+                                $selected = isset($this->data['form']['immediate_supervisor_id']) && $this->data['form']['immediate_supervisor_id'] == $supervisor['id'] ? 'selected' : '';
+                                echo "<option value='{$supervisor['id']}' $selected>{$supervisor['name']}</option>";
+                            }
+                        }
+                        ?>
+                    </select>
+                    <div class="form-text">
+                        <i class="fas fa-sitemap me-1"></i>
+                        Este campo define a hierarquia organizacional. Deixe vazio apenas para cargos de direção/CEO.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
                     <label for="password" class="form-label">Senha</label>
                     <input type="password" name="password" class="form-control" id="password" placeholder="Senha minímo 6 caracteres e deve conter letra, número e caractere especial." value="<?php echo $this->data['form']['password'] ?? ''; ?>"
                        oninput="this.value = this.value.replace(/\s/g, '')" 

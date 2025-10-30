@@ -38,8 +38,9 @@ class CrmCreatePartner
         $this->data['priorities'] = ['Baixa', 'Média', 'Alta', 'Urgente'];
         $this->data['type_persons'] = ['PF' => 'Pessoa Física', 'PJ' => 'Pessoa Jurídica'];
         
-        $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        // Filtrar apenas usuários do departamento comercial (respeitando hierarquia)
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
         
         $deptRepo = new DepartmentsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
@@ -105,8 +106,8 @@ class CrmCreatePartner
             'partner_type' => $_POST['partner_type'] ?? 'Lead',
             'source' => $_POST['source'] ?? null,
             'priority' => $_POST['priority'] ?? 'Média',
-            'responsible_user_id' => $_POST['responsible_user_id'] ?? null,
-            'department_id' => $_POST['department_id'] ?? null,
+            'responsible_user_id' => (!empty($_POST['responsible_user_id']) && is_numeric($_POST['responsible_user_id'])) ? (int)$_POST['responsible_user_id'] : null,
+            'department_id' => (!empty($_POST['department_id']) && is_numeric($_POST['department_id'])) ? (int)$_POST['department_id'] : null,
             'estimated_revenue' => $_POST['estimated_revenue'] ?? 0,
             'notes' => $_POST['notes'] ?? null,
         ];

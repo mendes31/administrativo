@@ -21,33 +21,44 @@ class CrmListActivities
 
     public function index(): void
     {
-        // Verificar se é gestor
-        $isGestor = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        // Usar CrmPermissionService para verificar hierarquia
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        $isGestor = $permissionService::isManager();
+        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
         $this->data['is_gestor'] = $isGestor;
+        
+        // Obter IDs permitidos (usuário + subordinados do departamento comercial)
+        $allowedUserIds = $permissionService::getAllowedUserIds();
 
         // Capturar modo de visualização (list ou calendar)
         $this->data['view_mode'] = $_GET['view'] ?? 'list';
 
         // Capturar filtros
-        $filters = [];
+        $filters = [
+            'responsible_user_id' => $_GET['responsible_user_id'] ?? '',
+            'type' => $_GET['type'] ?? '',
+            'status' => $_GET['status'] ?? '',
+            'priority' => $_GET['priority'] ?? '',
+            'date_from' => $_GET['date_from'] ?? '',
+            'date_to' => $_GET['date_to'] ?? '',
+        ];
         
-        if ($isGestor) {
-            $filters = [
-                'responsible_user_id' => $_GET['responsible_user_id'] ?? '',
-                'type' => $_GET['type'] ?? '',
-                'status' => $_GET['status'] ?? '',
-                'priority' => $_GET['priority'] ?? '',
-                'date_from' => $_GET['date_from'] ?? '',
-                'date_to' => $_GET['date_to'] ?? '',
-            ];
-        } else {
-            // Vendedor: sempre filtrar por seu ID
-            $filters['responsible_user_id'] = $_SESSION['user_id'];
-            $filters['type'] = $_GET['type'] ?? '';
-            $filters['status'] = $_GET['status'] ?? '';
-            $filters['priority'] = $_GET['priority'] ?? '';
-            $filters['date_from'] = $_GET['date_from'] ?? '';
-            $filters['date_to'] = $_GET['date_to'] ?? '';
+        // APLICAR FILTRO AUTOMÁTICO POR HIERARQUIA
+        if (!$isSuperAdmin) {
+            // Se filtrou por um usuário específico, validar se tem permissão
+            if (!empty($filters['responsible_user_id'])) {
+                if (!in_array($filters['responsible_user_id'], $allowedUserIds)) {
+                    // Usuário sem permissão - resetar filtro e mostrar alerta
+                    $filters['responsible_user_id'] = '';
+                    $_SESSION['msg'] = "Você não tem permissão para visualizar este usuário.";
+                    $_SESSION['msg_type'] = "warning";
+                }
+            }
+            
+            // FILTRO AUTOMÁTICO: Se não filtrou por usuário específico, aplicar filtro por IDs permitidos
+            if (empty($filters['responsible_user_id']) && !empty($allowedUserIds)) {
+                $filters['allowed_user_ids'] = $allowedUserIds; // Array de IDs permitidos
+            }
         }
 
         $this->data['filters'] = $filters;
@@ -70,11 +81,10 @@ class CrmListActivities
             $this->data['activities'] = $activitiesRepo->getAllActivities($filters);
         }
 
-        // Dados para filtros
-        if ($isGestor) {
-            $usersRepo = new UsersRepository();
-            $this->data['users'] = $usersRepo->getAllUsersSelect();
-        }
+        // Dados para filtros e formulários
+        // SEMPRE carregar lista de usuários (filtrada pela hierarquia)
+        // Vendedores verão apenas eles mesmos, gerentes verão a equipe
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
 
         $this->data['activity_types'] = ['Ligação', 'Reunião', 'E-mail', 'Tarefa'];
         $this->data['statuses'] = ['Pendente', 'Concluída', 'Cancelada'];

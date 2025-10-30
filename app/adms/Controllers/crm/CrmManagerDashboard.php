@@ -32,18 +32,36 @@ class CrmManagerDashboard
         $activitiesRepo = new CrmActivitiesRepository();
         $opportunitiesRepo = new CrmOpportunitiesRepository();
         
-        // Buscar todos os usuários com atividades no CRM
+        // FILTRO POR DEPARTAMENTO COMERCIAL + HIERARQUIA
+        // Obter apenas usuários permitidos (departamento comercial + hierarquia)
         $usersRepo = new UsersRepository();
-        $this->data['users'] = $usersRepo->getAllUsersSelect();
+        $permissionService = new \App\adms\Models\Services\CrmPermissionService();
+        
+        // Obter usuários do departamento comercial que o usuário pode visualizar
+        $this->data['users'] = $permissionService::getCommercialDepartmentUsers();
 
         // KPIs por usuário
         $this->data['user_stats'] = [];
         
-        // Se filtrou por usuário específico
+        // Validar se o usuário filtrado está na lista permitida
         if (!empty($filters['user_id'])) {
-            $this->data['user_stats'] = $this->getUserStats((int)$filters['user_id'], $filters, $activitiesRepo, $opportunitiesRepo);
+            $userId = (int)$filters['user_id'];
+            
+            // Verificar se o usuário pode visualizar esse ID
+            if ($permissionService::canViewUser($userId)) {
+                $this->data['user_stats'] = $this->getUserStats($userId, $filters, $activitiesRepo, $opportunitiesRepo);
+            } else {
+                // Usuário sem permissão para ver esse ID - mostrar todos permitidos
+                $_SESSION['msg'] = "Você não tem permissão para visualizar este usuário.";
+                $_SESSION['msg_type'] = "warning";
+                
+                foreach ($this->data['users'] as $user) {
+                    $this->data['user_stats'][$user['id']] = $this->getUserStats($user['id'], $filters, $activitiesRepo, $opportunitiesRepo);
+                    $this->data['user_stats'][$user['id']]['name'] = $user['name'];
+                }
+            }
         } else {
-            // Estatísticas gerais de todos os usuários
+            // Estatísticas de todos os usuários permitidos (departamento comercial + hierarquia)
             foreach ($this->data['users'] as $user) {
                 $this->data['user_stats'][$user['id']] = $this->getUserStats($user['id'], $filters, $activitiesRepo, $opportunitiesRepo);
                 $this->data['user_stats'][$user['id']]['name'] = $user['name'];

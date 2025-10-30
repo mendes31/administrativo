@@ -196,7 +196,8 @@ class UsersRepository extends DbConnection
                     t0.image, 
                     t0.data_nascimento, 
                     t0.user_department_id, 
-                    t0.user_position_id, 
+                    t0.user_position_id,
+                    t0.immediate_supervisor_id,
                     t0.created_at, 
                     t0.updated_at, 
                     t0.status,
@@ -241,9 +242,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, created_at, image, data_nascimento
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, created_at, image, data_nascimento
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :created_at, :image, :data_nascimento
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :created_at, :image, :data_nascimento
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -253,6 +254,7 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':celular', $data['celular'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':user_department_id', $data['user_department_id'], PDO::PARAM_INT);
             $stmt->bindValue(':user_position_id', $data['user_position_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':immediate_supervisor_id', (!empty($data['immediate_supervisor_id']) && is_numeric($data['immediate_supervisor_id'])) ? (int)$data['immediate_supervisor_id'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
             $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
             $stmt->bindValue(':bloqueado', $data['bloqueado'] ?? 'Não', PDO::PARAM_STR);
@@ -315,9 +317,37 @@ class UsersRepository extends DbConnection
             
             // Captura os dados antigos antes da alteração
             $dadosAntes = $this->getUser($data['id']);
+            
+            // HIERARQUIA: Se usuário está sendo inativado E tem subordinados, promovê-los automaticamente
+            if (isset($data['status']) && $data['status'] == 0 && $dadosAntes['status'] == 1) {
+                // Usuário está sendo inativado
+                error_log("=== HIERARQUIA: Usuário {$data['id']} está sendo inativado ===");
+                
+                // Verificar se tem subordinados
+                $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
+                $checkResult = $hierarchyService::checkSubordinates($data['id']);
+                
+                if ($checkResult['has_subordinates']) {
+                    error_log("HIERARQUIA: Usuário tem {$checkResult['count']} subordinados - promovendo automaticamente...");
+                    
+                    // Promover subordinados para o nível superior
+                    $promoteResult = $hierarchyService::promoteSubordinates($data['id']);
+                    
+                    if ($promoteResult['success']) {
+                        error_log("HIERARQUIA: ✅ {$promoteResult['promoted_count']} subordinados promovidos com sucesso");
+                        
+                        // Adicionar mensagem de sucesso na sessão
+                        if (!isset($_SESSION['hierarchy_message'])) {
+                            $_SESSION['hierarchy_message'] = $promoteResult['message'];
+                        }
+                    } else {
+                        error_log("HIERARQUIA: ❌ Erro ao promover subordinados: {$promoteResult['message']}");
+                    }
+                }
+            }
 
             // QUERY para atualizar o usuário
-            $sql = 'UPDATE adms_users SET name = :name, email = :email, username = :username, cpf = :cpf, celular = :celular, user_department_id = :user_department_id, user_position_id = :user_position_id, updated_at = :updated_at';
+            $sql = 'UPDATE adms_users SET name = :name, email = :email, username = :username, cpf = :cpf, celular = :celular, user_department_id = :user_department_id, user_position_id = :user_position_id, immediate_supervisor_id = :immediate_supervisor_id, updated_at = :updated_at';
             if (isset($data['status'])) {
                 $sql .= ', status = :status';
             }
@@ -370,6 +400,7 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':celular', $data['celular'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':user_department_id', (int)$data['user_department_id'], PDO::PARAM_INT);
             $stmt->bindValue(':user_position_id', (int)$data['user_position_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':immediate_supervisor_id', (!empty($data['immediate_supervisor_id']) && is_numeric($data['immediate_supervisor_id'])) ? (int)$data['immediate_supervisor_id'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
             if (isset($data['status'])) {
                 $stmt->bindValue(':status', $data['status'], PDO::PARAM_STR);
@@ -862,6 +893,32 @@ class UsersRepository extends DbConnection
         try {
             // Captura os dados antigos antes da exclusão
             $dadosAntes = $this->getUser($id);
+            
+            // HIERARQUIA: Se usuário tem subordinados, promovê-los ANTES de deletar
+            error_log("=== HIERARQUIA: Verificando subordinados antes de deletar usuário {$id} ===");
+            
+            $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
+            $checkResult = $hierarchyService::checkSubordinates($id);
+            
+            if ($checkResult['has_subordinates']) {
+                error_log("HIERARQUIA: Usuário tem {$checkResult['count']} subordinados - promovendo automaticamente...");
+                
+                // Promover subordinados para o nível superior
+                $promoteResult = $hierarchyService::promoteSubordinates($id);
+                
+                if ($promoteResult['success']) {
+                    error_log("HIERARQUIA: ✅ {$promoteResult['promoted_count']} subordinados promovidos com sucesso");
+                    
+                    // Adicionar mensagem de sucesso na sessão
+                    if (!isset($_SESSION['hierarchy_message'])) {
+                        $_SESSION['hierarchy_message'] = $promoteResult['message'];
+                    }
+                } else {
+                    error_log("HIERARQUIA: ❌ Erro ao promover subordinados: {$promoteResult['message']}");
+                    // Continuar com a exclusão mesmo se promoção falhar (foreign key vai lidar)
+                }
+            }
+            
             $sql = 'DELETE FROM adms_users WHERE id = :id LIMIT 1';
             $stms = $this->getConnection()->prepare($sql);
             $stms->bindValue(':id', $id, PDO::PARAM_INT);

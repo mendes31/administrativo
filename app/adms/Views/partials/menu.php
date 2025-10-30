@@ -191,11 +191,6 @@ $menus = [
                            'url' => $_ENV['URL_ADM'] . 'crm-list-opportunities',
                            'permission' => 'CrmListOpportunities'
                        ],
-                       [
-                           'label' => 'Nova Oportunidade',
-                           'url' => $_ENV['URL_ADM'] . 'crm-create-opportunity',
-                           'permission' => 'CrmCreateOpportunity'
-                       ],
                    ]
                ],
                [
