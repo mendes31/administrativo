@@ -945,6 +945,34 @@ class UsersRepository extends DbConnection
         }
     }
 
+    /**
+     * Obter todos os usuários para organograma
+     */
+    public function getAllUsersForChart(): array
+    {
+        $sql = 'SELECT 
+                    u.id,
+                    u.name,
+                    u.email,
+                    u.image,
+                    u.user_department_id,
+                    u.user_position_id,
+                    u.immediate_supervisor_id,
+                    u.status,
+                    d.name as department_name,
+                    p.name as position_name
+                FROM adms_users u
+                INNER JOIN adms_departments d ON u.user_department_id = d.id
+                INNER JOIN adms_positions p ON u.user_position_id = p.id
+                WHERE u.status = 1
+                ORDER BY u.name ASC';
+        
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
     public function getUserDepartments(int $id): array|bool
     {
         // QUERY para recuperar o registro do banco de dados

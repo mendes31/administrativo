@@ -46,7 +46,7 @@ class LoadPageAdm
 
     private array $listPgPrivate = [
         "Dashboard",
-        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers",
+        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "OrganizationChart",
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
         "ListDepartments",  "CreateDepartment",  "ViewDepartment", "UpdateDepartments", "DeleteDepartment", "ImportDepartments",

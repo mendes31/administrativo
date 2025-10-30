@@ -194,6 +194,7 @@ class PageLayoutService
             'ListTrainings',
             'ListTrainingStatus',
             'ListUsers',
+            'OrganizationChart',
             'MatrixByUser',
             'MenuEstoque',
             'Movements',

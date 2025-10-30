@@ -131,8 +131,19 @@ $menus = [
             ],
             [
                 'label' => 'Usuários',
-                'url' => $_ENV['URL_ADM'] . 'list-users',
-                'permission' => 'ListUsers'
+                'icon' => 'fa-solid fa-users',
+                'submenu' => [
+                    [
+                        'label' => 'Listar Usuários',
+                        'url' => $_ENV['URL_ADM'] . 'list-users',
+                        'permission' => 'ListUsers'
+                    ],
+                    [
+                        'label' => 'Organograma',
+                        'url' => $_ENV['URL_ADM'] . 'organization-chart',
+                        'permission' => 'OrganizationChart'
+                    ],
+                ]
             ],
         ]
     ],
