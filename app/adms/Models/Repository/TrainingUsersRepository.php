@@ -179,6 +179,7 @@ class TrainingUsersRepository extends DbConnection
     public function getTrainingStatusByUser(array $filters = []): array
     {
         // Busca todos os vínculos de treinamentos dos usuários
+        // IMPORTANTE: Filtra apenas usuários ATIVOS e treinamentos ATIVOS
         $sql = 'SELECT 
                 u.id as user_id, 
                 u.name as user_name, 
@@ -198,11 +199,11 @@ class TrainingUsersRepository extends DbConnection
                 tu.data_agendada,
                 tp.tipo_treinamento
             FROM adms_training_users tu
-            INNER JOIN adms_users u ON u.id = tu.adms_user_id
+            INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = "Ativo"
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
             LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
-            INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+            INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
             WHERE 1=1 and tu.status != "concluido"';
         
         $params = [];
@@ -1530,12 +1531,26 @@ class TrainingUsersRepository extends DbConnection
     }
 
     public function recreateLinksForUser($userId, $userPositionId) {
+        // Verificar se o usuário está ativo antes de recriar vínculos
+        $usersRepo = new \App\adms\Models\Repository\UsersRepository();
+        $user = $usersRepo->getUser($userId);
+        if (!$user || $user['status'] !== 'Ativo') {
+            // Usuário inativo - não recriar vínculos
+            return;
+        }
+        
         $trainingPositionsRepo = new \App\adms\Models\Repository\TrainingPositionsRepository();
         $trainingsRepo = new \App\adms\Models\Repository\TrainingsRepository();
         $mandatoryTrainings = $trainingPositionsRepo->getTrainingsByPosition($userPositionId);
         foreach ($mandatoryTrainings as $trainingId) {
-            $lastCompleted = $this->getLastCompletedTraining($userId, $trainingId);
+            // Verificar se o treinamento está ativo antes de criar vínculo
             $training = $trainingsRepo->getTraining($trainingId);
+            if (!$training || $training['ativo'] != 1) {
+                // Treinamento inativo - pular
+                continue;
+            }
+            
+            $lastCompleted = $this->getLastCompletedTraining($userId, $trainingId);
             if ($lastCompleted && $training['reciclagem']) {
                 if ($this->isReciclagemVencida($lastCompleted['data_realizacao'], $training['reciclagem_periodo'])) {
                     $this->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo', 'cargo', null, 'reciclagem');
@@ -1547,14 +1562,73 @@ class TrainingUsersRepository extends DbConnection
     }
 
     public function recreateLinksForTraining($trainingId) {
+        // Verificar se o treinamento está ativo antes de recriar vínculos
+        $trainingsRepo = new \App\adms\Models\Repository\TrainingsRepository();
+        $training = $trainingsRepo->getTraining($trainingId);
+        if (!$training || $training['ativo'] != 1) {
+            // Treinamento inativo - não recriar vínculos
+            return;
+        }
+        
         $trainingPositionsRepo = new \App\adms\Models\Repository\TrainingPositionsRepository();
         $positions = $trainingPositionsRepo->getPositionsByTraining($trainingId);
         $usersRepo = new \App\adms\Models\Repository\UsersRepository();
         foreach ($positions as $pos) {
             $users = $usersRepo->getUsersByPosition($pos['adms_position_id']);
             foreach ($users as $user) {
-                $this->recreateLinksForUser($user['id'], $pos['adms_position_id']);
+                // Verificar se o usuário está ativo antes de recriar vínculo
+                if ($user['status'] === 'Ativo') {
+                    $this->recreateLinksForUser($user['id'], $pos['adms_position_id']);
+                }
             }
         }
+    }
+
+    /**
+     * Remove vínculos órfãos (usuários inativos ou treinamentos inativos)
+     * Este método deve ser executado periodicamente para manter a integridade dos dados
+     */
+    public function cleanupOrphanLinks(): array
+    {
+        $results = [
+            'removed_inactive_users' => 0,
+            'removed_inactive_trainings' => 0,
+            'total_removed' => 0
+        ];
+        
+        try {
+            // Remover vínculos de usuários inativos (exceto concluídos)
+            $sqlUsers = "DELETE tu FROM adms_training_users tu
+                        INNER JOIN adms_users u ON u.id = tu.adms_user_id
+                        WHERE u.status != 'Ativo' AND tu.status != 'concluido'";
+            $stmtUsers = $this->getConnection()->prepare($sqlUsers);
+            $stmtUsers->execute();
+            $results['removed_inactive_users'] = $stmtUsers->rowCount();
+            
+            // Remover vínculos de treinamentos inativos (exceto concluídos)
+            $sqlTrainings = "DELETE tu FROM adms_training_users tu
+                            INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+                            WHERE t.ativo != 1 AND tu.status != 'concluido'";
+            $stmtTrainings = $this->getConnection()->prepare($sqlTrainings);
+            $stmtTrainings->execute();
+            $results['removed_inactive_trainings'] = $stmtTrainings->rowCount();
+            
+            $results['total_removed'] = $results['removed_inactive_users'] + $results['removed_inactive_trainings'];
+            
+            // Log da ação
+            if ($results['total_removed'] > 0) {
+                GenerateLog::generateLog("info", "Vínculos órfãos removidos", [
+                    'removed_inactive_users' => $results['removed_inactive_users'],
+                    'removed_inactive_trainings' => $results['removed_inactive_trainings'],
+                    'total_removed' => $results['total_removed']
+                ]);
+            }
+        } catch (Exception $e) {
+            GenerateLog::generateLog("error", "Erro ao limpar vínculos órfãos", [
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        return $results;
     }
 } 

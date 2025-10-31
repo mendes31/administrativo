@@ -15,8 +15,15 @@ class TrainingMatrixService
         $usersRepo = new UsersRepository();
         $trainingPositionsRepo = new TrainingPositionsRepository();
         $trainingUsersRepo = new TrainingUsersRepository();
+        $trainingsRepo = new TrainingsRepository();
 
         $user = $usersRepo->getUser($userId);
+        
+        // Verificar se o usuário está ativo
+        if (!$user || $user['status'] !== 'Ativo') {
+            return;
+        }
+        
         $userPosition = $user['user_position_id']; // cargo único do usuário
 
         // Treinamentos obrigatórios para o cargo do usuário
@@ -26,9 +33,13 @@ class TrainingMatrixService
         // Remove todos os vínculos que não são mais obrigatórios
         $trainingUsersRepo->deleteByUserAndNotInTrainings($userId, $mandatoryTrainings);
 
-        // Garante que todos os obrigatórios estejam na matriz
+        // Garante que todos os obrigatórios estejam na matriz (apenas treinamentos ativos)
         foreach ($mandatoryTrainings as $trainingId) {
-            $trainingUsersRepo->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo');
+            $training = $trainingsRepo->getTraining($trainingId);
+            // Apenas criar vínculo se o treinamento estiver ativo
+            if ($training && $training['ativo'] == 1) {
+                $trainingUsersRepo->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo');
+            }
         }
     }
 
@@ -60,11 +71,23 @@ class TrainingMatrixService
         // Buscar cargos vinculados ao treinamento
         $linkedPositions = $trainingPositionsRepo->getPositionsByTraining($trainingId);
         
+        // Verificar se o treinamento está ativo
+        $training = $trainingsRepo->getTraining($trainingId);
+        if (!$training || $training['ativo'] != 1) {
+            return $results;
+        }
+        
         foreach ($linkedPositions as $position) {
             // Buscar usuários com este cargo
             $usersWithPosition = $usersRepo->getUsersByPosition($position['adms_position_id']);
             
             foreach ($usersWithPosition as $user) {
+                // Verificar se o usuário está ativo antes de criar vínculo
+                if ($user['status'] !== 'Ativo') {
+                    $results['users_skipped']++;
+                    continue;
+                }
+                
                 // Verificar se o usuário já realizou este treinamento
                 $lastCompleted = $trainingUsersRepo->getLastCompletedTraining($user['id'], $trainingId);
                 
@@ -81,7 +104,6 @@ class TrainingMatrixService
                     $results['users_added']++;
                 } else {
                     // Usuário já realizou - verificar se precisa de reciclagem
-                    $training = $trainingsRepo->getTraining($trainingId);
                     if ($training['reciclagem'] && $training['reciclagem_periodo']) {
                         // Verificar se a reciclagem está vencida
                         if ($trainingUsersRepo->isReciclagemVencida(
@@ -135,10 +157,22 @@ class TrainingMatrixService
         
         $userPosition = $user['user_position_id'];
         
+        // Verificar se o usuário está ativo
+        if ($user['status'] !== 'Ativo') {
+            return $results;
+        }
+        
         // Buscar treinamentos obrigatórios para o cargo do usuário
         $mandatoryTrainingIds = $trainingPositionsRepo->getTrainingsByPosition($userPosition);
         
         foreach ($mandatoryTrainingIds as $trainingId) {
+            // Verificar se o treinamento está ativo antes de criar vínculo
+            $training = $trainingsRepo->getTraining($trainingId);
+            if (!$training || $training['ativo'] != 1) {
+                // Treinamento inativo - pular
+                $results['trainings_skipped']++;
+                continue;
+            }
             
             // Verificar se o usuário já realizou este treinamento
             $lastCompleted = $trainingUsersRepo->getLastCompletedTraining($userId, $trainingId);
@@ -156,8 +190,7 @@ class TrainingMatrixService
                 $results['trainings_added']++;
             } else {
                 // Usuário já realizou - verificar se precisa de reciclagem
-                $training = $trainingsRepo->getTraining($trainingId);
-                if ($training && $training['reciclagem'] && $training['reciclagem_periodo']) {
+                if ($training['reciclagem'] && $training['reciclagem_periodo']) {
                     // Verificar se a reciclagem está vencida
                     if ($trainingUsersRepo->isReciclagemVencida(
                         $lastCompleted['data_realizacao'], 
@@ -205,12 +238,27 @@ class TrainingMatrixService
             return $results;
         }
         
+        // Verificar se o usuário está ativo
+        if ($user['status'] !== 'Ativo') {
+            return $results;
+        }
+        
         $userPosition = $user['user_position_id'];
         
         // Buscar treinamentos obrigatórios para o cargo do usuário
         $mandatoryTrainingIds = $trainingPositionsRepo->getTrainingsByPosition($userPosition);
         
+        $trainingsRepo = new TrainingsRepository();
+        
         foreach ($mandatoryTrainingIds as $trainingId) {
+            // Verificar se o treinamento está ativo antes de criar vínculo
+            $training = $trainingsRepo->getTraining($trainingId);
+            if (!$training || $training['ativo'] != 1) {
+                // Treinamento inativo - pular
+                $results['no_changes']++;
+                continue;
+            }
+            
             // Verificar se já existe vínculo
             $existingLink = $trainingUsersRepo->getByUserAndTraining($userId, $trainingId);
             
