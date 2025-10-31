@@ -103,28 +103,28 @@ use App\adms\Helpers\FormatHelper;
     <div class="row mb-4">
         <!-- Gráfico de Status (Pizza) -->
         <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
+            <div class="card shadow mb-4 h-100">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-pie me-2"></i>Distribuição por Status
                     </h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="statusChart" width="400" height="200"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    <canvas id="statusChart" style="max-width: 100%; height: auto;"></canvas>
                 </div>
             </div>
         </div>
 
         <!-- Gráfico de Realizações Mensais (Barras) -->
         <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
+            <div class="card shadow mb-4 h-100">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-bar me-2"></i>Realizações por Mês
                     </h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="monthlyChart" width="400" height="200"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    <canvas id="monthlyChart" style="max-width: 100%; height: auto;"></canvas>
                 </div>
             </div>
         </div>
@@ -426,6 +426,8 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1.2,
             plugins: {
                 legend: {
                     position: 'bottom'
@@ -458,6 +460,8 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1.2,
             scales: {
                 y: {
                     beginAtZero: true,
