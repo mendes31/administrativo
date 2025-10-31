@@ -13,14 +13,6 @@ class AddCrmSampleData extends AbstractSeed
 {
     public function run(): void
     {
-        // Verificar se já existem dados
-        $existingPartners = $this->query('SELECT COUNT(*) as total FROM crm_partners')->fetch();
-        
-        if ($existingPartners['total'] > 0) {
-            echo "⚠️ Já existem parceiros cadastrados. Seed não será executado.\n";
-            return;
-        }
-
         // ===== PARCEIROS DE EXEMPLO =====
         $partners = [
             [
@@ -113,10 +105,38 @@ class AddCrmSampleData extends AbstractSeed
             ]
         ];
 
-        $partnersTable = $this->table('crm_partners');
-        $partnersTable->insert($partners)->save();
+        // Inserir apenas parceiros que não existem (verificando por código)
+        $partnersToInsert = [];
+        foreach ($partners as $partner) {
+            $exists = $this->query(
+                'SELECT id FROM crm_partners WHERE code = :code',
+                ['code' => $partner['code']]
+            )->fetch();
+            
+            if (!$exists) {
+                $partnersToInsert[] = $partner;
+            }
+        }
 
-        echo "✓ 4 parceiros de exemplo criados\n";
+        if (!empty($partnersToInsert)) {
+            $partnersTable = $this->table('crm_partners');
+            $partnersTable->insert($partnersToInsert)->saveData();
+            echo "✓ " . count($partnersToInsert) . " parceiro(s) de exemplo criado(s)\n";
+        } else {
+            echo "⚠️ Todos os parceiros de exemplo já existem. Nenhuma inserção necessária.\n";
+        }
+
+        // Obter IDs dos parceiros para vincular oportunidades
+        $partnerIds = [];
+        foreach ($partners as $partner) {
+            $found = $this->query(
+                'SELECT id FROM crm_partners WHERE code = :code',
+                ['code' => $partner['code']]
+            )->fetch();
+            if ($found) {
+                $partnerIds[$partner['code']] = $found['id'];
+            }
+        }
 
         // ===== OPORTUNIDADES DE EXEMPLO =====
         $opportunities = [
@@ -124,7 +144,7 @@ class AddCrmSampleData extends AbstractSeed
                 'code' => 'OPP00001',
                 'title' => 'Venda Sistema de Gestão Completo',
                 'description' => 'Implantação do sistema completo de gestão farmacêutica',
-                'partner_id' => 1,
+                'partner_id' => $partnerIds['P00001'] ?? null,
                 'responsible_user_id' => 1,
                 'stage_id' => 3, // Proposta
                 'value' => 45000.00,
@@ -143,7 +163,7 @@ class AddCrmSampleData extends AbstractSeed
                 'code' => 'OPP00002',
                 'title' => 'Consultoria em Gestão de Estoque',
                 'description' => 'Consultoria especializada para otimização de estoque',
-                'partner_id' => 2,
+                'partner_id' => $partnerIds['P00002'] ?? null,
                 'responsible_user_id' => 1,
                 'stage_id' => 2, // Qualificação
                 'value' => 15000.00,
@@ -162,7 +182,7 @@ class AddCrmSampleData extends AbstractSeed
                 'code' => 'OPP00003',
                 'title' => 'Fornecimento de Suplementos Premium',
                 'description' => 'Fornecimento mensal de linha premium de suplementos',
-                'partner_id' => 3,
+                'partner_id' => $partnerIds['P00003'] ?? null,
                 'responsible_user_id' => 1,
                 'stage_id' => 1, // Prospecção
                 'value' => 80000.00,
@@ -181,7 +201,7 @@ class AddCrmSampleData extends AbstractSeed
                 'code' => 'OPP00004',
                 'title' => 'Expansão para 5 Novas Filiais',
                 'description' => 'Expansão do sistema atual para cobrir 5 novas filiais',
-                'partner_id' => 4,
+                'partner_id' => $partnerIds['P00004'] ?? null,
                 'responsible_user_id' => 1,
                 'stage_id' => 4, // Negociação
                 'value' => 120000.00,
@@ -198,13 +218,36 @@ class AddCrmSampleData extends AbstractSeed
             ]
         ];
 
-        $opportunitiesTable = $this->table('crm_opportunities');
-        $opportunitiesTable->insert($opportunities)->save();
+        // Filtrar oportunidades válidas (que têm partner_id) e que não existem
+        $opportunitiesToInsert = [];
+        foreach ($opportunities as $opportunity) {
+            // Pular se não tem partner_id válido
+            if (empty($opportunity['partner_id'])) {
+                continue;
+            }
 
-        echo "✓ 4 oportunidades de exemplo criadas\n";
+            // Verificar se já existe oportunidade com o mesmo código
+            $exists = $this->query(
+                'SELECT id FROM crm_opportunities WHERE code = :code',
+                ['code' => $opportunity['code']]
+            )->fetch();
+            
+            if (!$exists) {
+                $opportunitiesToInsert[] = $opportunity;
+            }
+        }
+
+        if (!empty($opportunitiesToInsert)) {
+            $opportunitiesTable = $this->table('crm_opportunities');
+            $opportunitiesTable->insert($opportunitiesToInsert)->saveData();
+            echo "✓ " . count($opportunitiesToInsert) . " oportunidade(s) de exemplo criada(s)\n";
+        } else {
+            echo "⚠️ Todas as oportunidades de exemplo já existem. Nenhuma inserção necessária.\n";
+        }
+
         echo "\n";
         echo "═══════════════════════════════════════\n";
-        echo "✅ CRM POPULADO COM DADOS DE EXEMPLO!\n";
+        echo "✅ CRM SEED CONCLUÍDO!\n";
         echo "═══════════════════════════════════════\n";
         echo "📊 Acesse: crm-kanban-pipeline\n";
         echo "👥 Acesse: crm-list-partners\n";
