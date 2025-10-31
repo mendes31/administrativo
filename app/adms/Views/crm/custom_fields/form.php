@@ -106,9 +106,34 @@ if ($isEdit && !empty($field['field_options'])) {
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Ordem de Exibição</label>
-                        <input type="number" name="display_order" class="form-control" 
-                               value="<?= $field['display_order'] ?? 0 ?>" min="0">
-                        <div class="form-text">Campos serão ordenados por este valor</div>
+                        <?php if ($isEdit): ?>
+                            <!-- Em edição: permitir alterar -->
+                            <input type="number" name="display_order" class="form-control" 
+                                   value="<?= $field['display_order'] ?? 0 ?>" min="0" step="10">
+                            <div class="form-text">
+                                <i class="fas fa-edit text-warning me-1"></i>
+                                Você pode alterar a ordem aqui. Use múltiplos de 10 (10, 20, 30...)
+                            </div>
+                        <?php else: ?>
+                            <!-- Em criação: automático e readonly -->
+                            <input type="hidden" name="display_order" value="<?= $field['display_order'] ?? 0 ?>">
+                            <input type="number" class="form-control" 
+                                   value="<?= $field['display_order'] ?? 0 ?>" 
+                                   readonly 
+                                   disabled
+                                   style="background-color: #e9ecef; cursor: not-allowed;">
+                            <div class="form-text">
+                                <i class="fas fa-magic text-success me-1"></i>
+                                <strong>Ordem calculada automaticamente:</strong> <span class="badge bg-success"><?= $field['display_order'] ?? 0 ?></span>
+                                <br><small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    A ordem será incrementada automaticamente em múltiplos de 10 (10, 20, 30...).
+                                    <br>
+                                    <i class="fas fa-edit me-1"></i>
+                                    Você pode alterar a ordem após criar o campo (edite o campo).
+                                </small>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Status</label>
@@ -149,6 +174,78 @@ if ($isEdit && !empty($field['field_options'])) {
             </form>
         </div>
     </div>
+
+    <!-- Tabela de Campos Existentes (para referência) -->
+    <?php if (!$isEdit && !empty($this->data['existing_fields'])): ?>
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Campos Existentes (<?= $field['entity_type'] === 'partner' ? 'Parceiros' : 'Oportunidades' ?>)
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">
+                    <i class="fas fa-lightbulb me-1"></i>
+                    Use esta tabela como referência para escolher a ordem de exibição.
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 10%;">Ordem</th>
+                                <th style="width: 30%;">Label</th>
+                                <th style="width: 30%;">Nome (slug)</th>
+                                <th style="width: 20%;">Tipo</th>
+                                <th style="width: 10%;" class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($this->data['existing_fields'] as $existingField): ?>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-info"><?= $existingField['display_order'] ?? 0 ?></span>
+                                    </td>
+                                    <td><?= htmlspecialchars($existingField['field_label']) ?></td>
+                                    <td><code><?= htmlspecialchars($existingField['field_name']) ?></code></td>
+                                    <td><?= ucfirst($existingField['field_type']) ?></td>
+                                    <td class="text-center">
+                                        <?php if ($existingField['is_active']): ?>
+                                            <span class="badge bg-success">Ativo</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-info mt-3 mb-2">
+                    <strong><i class="fas fa-info-circle me-1"></i>Informações sobre a Ordem:</strong><br>
+                    <small>
+                        • A ordem é calculada <strong>automaticamente</strong> em múltiplos de 10 (10, 20, 30...)<br>
+                        • Você <strong>NÃO precisa</strong> escolher a ordem ao criar o campo<br>
+                        • A ordem <strong>PODE ser alterada</strong> depois (edite o campo e mude o número)<br>
+                        • Menor número = aparece primeiro | Maior número = aparece depois
+                    </small>
+                </div>
+                <div class="alert alert-warning mt-2 mb-0">
+                    <strong><i class="fas fa-map-marker-alt me-1"></i>Onde os campos aparecerão no formulário?</strong><br>
+                    <small>
+                        Os campos customizados aparecerão em uma <strong>seção separada</strong> chamada "Campos Customizáveis", 
+                        localizada <strong>DEPOIS</strong> das seções "Informações Básicas" e "Classificação", 
+                        mas <strong>ANTES</strong> dos botões "Salvar" e "Cancelar".<br><br>
+                        <strong>Estrutura do formulário:</strong><br>
+                        1️⃣ Informações Básicas (nome, email, telefone, endereço...)<br>
+                        2️⃣ Classificação (tipo, responsável, departamento...)<br>
+                        3️⃣ <strong>📋 Campos Customizáveis</strong> ← SEUS CAMPOS APARECERÃO AQUI<br>
+                        4️⃣ Botões (Salvar/Cancelar)
+                    </small>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
 </div>
 

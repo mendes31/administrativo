@@ -113,8 +113,19 @@ class CrmUpdateOpportunity
             $customFieldValues = [];
             foreach ($customFields as $field) {
                 $fieldName = 'custom_field_' . $field['id'];
+                
+                // Tratar checkbox (array) e outros tipos
                 if (isset($_POST[$fieldName])) {
-                    $customFieldValues[$field['id']] = $_POST[$fieldName];
+                    if (is_array($_POST[$fieldName])) {
+                        // Checkbox: converter array para string separada por vírgulas
+                        $customFieldValues[$field['id']] = implode(',', $_POST[$fieldName]);
+                    } else {
+                        // Outros tipos: usar valor direto
+                        $customFieldValues[$field['id']] = $_POST[$fieldName];
+                    }
+                } elseif ($field['field_type'] === 'checkbox') {
+                    // Checkbox não marcado: salvar vazio
+                    $customFieldValues[$field['id']] = '';
                 }
             }
             

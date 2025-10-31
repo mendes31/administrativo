@@ -24,12 +24,29 @@ class CrmCreateCustomField
         }
 
         // Exibir formulário
+        $entityType = $_GET['entity_type'] ?? 'partner';
+        
+        // Calcular próxima ordem de exibição baseada nos campos existentes
+        // Sempre incrementa de 10 em 10 (múltiplos de 10)
+        $customFieldsRepo = new CrmCustomFieldsRepository();
+        $existingFields = $customFieldsRepo->getAllFields(['entity_type' => $entityType]);
+        $nextOrder = 10; // Primeiro campo sempre começa em 10
+        if (!empty($existingFields)) {
+            $maxOrder = max(array_column($existingFields, 'display_order'));
+            // Garantir que sempre seja múltiplo de 10
+            $nextOrder = (intval($maxOrder / 10) + 1) * 10;
+        }
+        
         $this->data['field'] = [
-            'entity_type' => $_GET['entity_type'] ?? 'partner',
+            'entity_type' => $entityType,
             'field_type' => 'text',
             'is_required' => 0,
-            'status' => 'active'
+            'status' => 'active',
+            'display_order' => $nextOrder
         ];
+        
+        // Passar campos existentes para exibir na view
+        $this->data['existing_fields'] = $existingFields;
 
         $pageElements = [
             'title_head' => 'Novo Campo Customizável - CRM',
@@ -46,14 +63,25 @@ class CrmCreateCustomField
 
     private function create(): void
     {
+        // Calcular ordem automaticamente (múltiplos de 10)
+        $entityType = $_POST['entity_type'] ?? 'partner';
+        $customFieldsRepo = new CrmCustomFieldsRepository();
+        $existingFields = $customFieldsRepo->getAllFields(['entity_type' => $entityType]);
+        $displayOrder = 10; // Primeiro campo sempre começa em 10
+        if (!empty($existingFields)) {
+            $maxOrder = max(array_column($existingFields, 'display_order'));
+            // Garantir que sempre seja múltiplo de 10
+            $displayOrder = (intval($maxOrder / 10) + 1) * 10;
+        }
+        
         $data = [
-            'entity_type' => $_POST['entity_type'] ?? 'partner',
+            'entity_type' => $entityType,
             'field_name' => $_POST['field_name'] ?? '',
             'field_label' => $_POST['field_label'] ?? '',
             'field_type' => $_POST['field_type'] ?? 'text',
             'options' => $_POST['options'] ?? null,
             'is_required' => isset($_POST['is_required']) ? 1 : 0,
-            'display_order' => (int)($_POST['display_order'] ?? 0),
+            'display_order' => $displayOrder, // Usar ordem calculada automaticamente
             'status' => $_POST['status'] ?? 'active'
         ];
 

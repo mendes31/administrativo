@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\CrmCustomFieldsHelper;
+
 $isEdit = !empty($this->data['partner']);
 $partner = $this->data['partner'] ?? [];
 ?>
@@ -525,6 +527,19 @@ $partner = $this->data['partner'] ?? [];
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
+
+                <!-- Campos Customizáveis -->
+                <?php if (!empty($this->data['custom_fields'])): ?>
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-cog me-2"></i>Campos Customizáveis</h5></div>
+                        <div class="card-body">
+                            <?php
+                            $customFieldValues = $this->data['custom_field_values'] ?? [];
+                            echo CrmCustomFieldsHelper::renderFields($this->data['custom_fields'], $customFieldValues);
+                            ?>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
                 <div class="d-grid gap-2">

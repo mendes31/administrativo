@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\CrmCustomFieldsHelper;
+
 $opportunity = $this->data['opportunity'] ?? [];
 $stageHistory = $this->data['stage_history'] ?? [];
 $activities = $this->data['activities'] ?? [];
@@ -102,6 +104,16 @@ $documents = $this->data['documents'] ?? [];
                                 </div>
                                 <?php endif; ?>
                             </div>
+                            
+                            <!-- Campos Customizáveis -->
+                            <?php if (!empty($this->data['custom_fields'])): ?>
+                                <div class="mt-4 pt-3 border-top">
+                                    <?php
+                                    $customFieldValues = $this->data['custom_field_values'] ?? [];
+                                    echo CrmCustomFieldsHelper::displayFields($this->data['custom_fields'], $customFieldValues);
+                                    ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

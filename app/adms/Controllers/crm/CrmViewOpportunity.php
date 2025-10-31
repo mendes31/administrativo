@@ -7,6 +7,7 @@ use App\adms\Models\Repository\CrmOpportunitiesRepository;
 use App\adms\Models\Repository\CrmActivitiesRepository;
 use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmDocumentsRepository;
+use App\adms\Models\Repository\CrmCustomFieldsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -53,6 +54,11 @@ class CrmViewOpportunity
         // Buscar documentos
         $documentsRepo = new CrmDocumentsRepository();
         $this->data['documents'] = $documentsRepo->getDocumentsByOpportunity((int)$id);
+
+        // Carregar campos customizáveis e valores
+        $customFieldsRepo = new CrmCustomFieldsRepository();
+        $this->data['custom_fields'] = $customFieldsRepo->getFieldsByEntity('opportunity');
+        $this->data['custom_field_values'] = $customFieldsRepo->getOpportunityFieldValues((int)$id);
 
         // Layout
         $pageElements = [

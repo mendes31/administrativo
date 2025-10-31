@@ -56,6 +56,9 @@ class CrmUpdateCustomField
 
     private function update(int $id): void
     {
+        // Permitir alterar a ordem (pode ser qualquer valor, mas recomenda-se múltiplos de 10)
+        $displayOrder = (int)($_POST['display_order'] ?? 0);
+        
         $data = [
             'id' => $id,
             'entity_type' => $_POST['entity_type'] ?? 'partner',
@@ -64,7 +67,7 @@ class CrmUpdateCustomField
             'field_type' => $_POST['field_type'] ?? 'text',
             'options' => $_POST['options'] ?? null,
             'is_required' => isset($_POST['is_required']) ? 1 : 0,
-            'display_order' => (int)($_POST['display_order'] ?? 0),
+            'display_order' => $displayOrder, // Permite alterar a ordem
             'status' => $_POST['status'] ?? 'active'
         ];
 

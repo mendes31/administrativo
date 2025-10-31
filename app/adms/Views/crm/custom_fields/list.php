@@ -51,19 +51,25 @@ $entityTypeFilter = $this->data['entity_type_filter'] ?? '';
                         <thead class="table-dark">
                             <tr>
                                 <th style="width: 5%;">#</th>
-                                <th style="width: 15%;">Entidade</th>
-                                <th style="width: 20%;">Nome do Campo</th>
-                                <th style="width: 20%;">Label</th>
-                                <th style="width: 15%;">Tipo</th>
-                                <th style="width: 10%;" class="text-center">Obrigatório</th>
-                                <th style="width: 10%;" class="text-center">Status</th>
-                                <th style="width: 10%;" class="text-center">Ações</th>
+                                <th style="width: 10%;">Ordem</th>
+                                <th style="width: 12%;">Entidade</th>
+                                <th style="width: 18%;">Nome do Campo</th>
+                                <th style="width: 18%;">Label</th>
+                                <th style="width: 12%;">Tipo</th>
+                                <th style="width: 8%;" class="text-center">Obrigatório</th>
+                                <th style="width: 8%;" class="text-center">Status</th>
+                                <th style="width: 9%;" class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($fields as $field): ?>
+                            <?php foreach ($fields as $index => $field): ?>
                                 <tr>
                                     <td><?= $field['id'] ?></td>
+                                    <td>
+                                        <span class="badge bg-info" title="Ordem de exibição">
+                                            <?= $field['display_order'] ?? 0 ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge <?= $field['entity_type'] === 'partner' ? 'bg-primary' : 'bg-success' ?>">
                                             <?= $field['entity_type'] === 'partner' ? 'Parceiro' : 'Oportunidade' ?>

@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\CrmCustomFieldsHelper;
+
 $partner = $this->data['partner'];
 
 // Função para formatar telefone com DDI e DDD
@@ -213,6 +215,21 @@ function formatPhone($phone) {
                             </table>
                         </div>
                     </div>
+                    
+                    <!-- Campos Customizáveis -->
+                    <?php if (!empty($this->data['custom_fields'])): ?>
+                        <div class="card shadow-sm mt-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Campos Customizáveis</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $customFieldValues = $this->data['custom_field_values'] ?? [];
+                                echo CrmCustomFieldsHelper::displayFields($this->data['custom_fields'], $customFieldValues);
+                                ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
