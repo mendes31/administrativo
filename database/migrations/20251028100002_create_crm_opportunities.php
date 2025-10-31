@@ -6,6 +6,11 @@ class CreateCrmOpportunities extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_opportunities')) {
+            return;
+        }
+
         $table = $this->table('crm_opportunities');
         
         // Identificação

@@ -6,6 +6,11 @@ class CreateCrmTags extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_tags')) {
+            return;
+        }
+
         $table = $this->table('crm_tags');
         
         $table->addColumn('name', 'string', ['limit' => 50])

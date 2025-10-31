@@ -6,6 +6,11 @@ class CreateCrmPipelineStages extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_pipeline_stages')) {
+            return;
+        }
+
         $table = $this->table('crm_pipeline_stages');
         
         $table->addColumn('name', 'string', ['limit' => 100])

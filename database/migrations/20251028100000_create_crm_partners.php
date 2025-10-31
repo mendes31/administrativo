@@ -6,6 +6,11 @@ class CreateCrmPartners extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_partners')) {
+            return;
+        }
+
         $table = $this->table('crm_partners');
         
         // Identificação

@@ -7,9 +7,10 @@ class CreateCrmAutomations extends AbstractMigration
     public function change(): void
     {
         // Tabela de automações
-        $table = $this->table('crm_automations');
-        
-        $table->addColumn('name', 'string', ['limit' => 255, 'comment' => 'Nome da automação'])
+        if (!$this->hasTable('crm_automations')) {
+            $table = $this->table('crm_automations');
+            
+            $table->addColumn('name', 'string', ['limit' => 255, 'comment' => 'Nome da automação'])
               ->addColumn('description', 'text', ['null' => true])
               ->addColumn('entity_type', 'enum', [
                   'values' => ['partner', 'opportunity', 'activity'],
@@ -36,11 +37,13 @@ class CreateCrmAutomations extends AbstractMigration
               ->addIndex(['is_active'])
               ->addForeignKey('created_by', 'adms_users', 'id', ['delete' => 'SET_NULL', 'update' => 'CASCADE'])
               ->create();
+        }
 
         // Tabela de logs de execução de automações
-        $table = $this->table('crm_automation_logs');
-        
-        $table->addColumn('automation_id', 'integer', ['signed' => false])
+        if (!$this->hasTable('crm_automation_logs')) {
+            $table = $this->table('crm_automation_logs');
+            
+            $table->addColumn('automation_id', 'integer', ['signed' => false])
               ->addColumn('entity_type', 'string', ['limit' => 50])
               ->addColumn('entity_id', 'integer', ['signed' => false])
               ->addColumn('status', 'enum', ['values' => ['success', 'failed', 'skipped']])
@@ -52,6 +55,7 @@ class CreateCrmAutomations extends AbstractMigration
               ->addIndex(['entity_type', 'entity_id'])
               ->addIndex(['executed_at'])
               ->create();
+        }
     }
 }
 

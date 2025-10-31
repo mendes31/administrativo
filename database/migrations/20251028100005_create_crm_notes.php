@@ -6,6 +6,11 @@ class CreateCrmNotes extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_notes')) {
+            return;
+        }
+
         $table = $this->table('crm_notes');
         
         $table->addColumn('partner_id', 'integer', ['null' => true, 'signed' => false])

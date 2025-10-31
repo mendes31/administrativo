@@ -6,6 +6,11 @@ class CreateCrmDocuments extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_documents')) {
+            return;
+        }
+
         $table = $this->table('crm_documents');
         
         $table->addColumn('partner_id', 'integer', ['null' => true, 'signed' => false])

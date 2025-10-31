@@ -6,6 +6,11 @@ class CreateCrmPartnerTags extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_partner_tags')) {
+            return;
+        }
+
         $table = $this->table('crm_partner_tags', ['id' => false, 'primary_key' => ['partner_id', 'tag_id']]);
         
         $table->addColumn('partner_id', 'integer', ['null' => false, 'signed' => false])

@@ -7,9 +7,10 @@ class CreateCrmCustomFields extends AbstractMigration
     public function change(): void
     {
         // Tabela de definição de campos customizados
-        $table = $this->table('crm_custom_fields', ['id' => true]);
-        
-        $table->addColumn('entity_type', 'enum', [
+        if (!$this->hasTable('crm_custom_fields')) {
+            $table = $this->table('crm_custom_fields', ['id' => true]);
+            
+            $table->addColumn('entity_type', 'enum', [
                   'values' => ['partner', 'opportunity'],
                   'comment' => 'Tipo de entidade (parceiro ou oportunidade)'
               ])
@@ -27,11 +28,13 @@ class CreateCrmCustomFields extends AbstractMigration
               ->addColumn('updated_at', 'datetime', ['null' => true])
               ->addIndex(['entity_type', 'field_name'], ['unique' => true])
               ->create();
+        }
 
         // Tabela de valores dos campos customizados para parceiros
-        $table = $this->table('crm_custom_field_values_partners', ['id' => true]);
-        
-        $table->addColumn('partner_id', 'integer', ['signed' => false])
+        if (!$this->hasTable('crm_custom_field_values_partners')) {
+            $table = $this->table('crm_custom_field_values_partners', ['id' => true]);
+            
+            $table->addColumn('partner_id', 'integer', ['signed' => false])
               ->addColumn('custom_field_id', 'integer', ['signed' => false])
               ->addColumn('field_value', 'text', ['null' => true])
               ->addColumn('created_at', 'datetime', ['null' => true])
@@ -40,11 +43,13 @@ class CreateCrmCustomFields extends AbstractMigration
               ->addForeignKey('custom_field_id', 'crm_custom_fields', 'id', ['delete' => 'CASCADE'])
               ->addIndex(['partner_id', 'custom_field_id'], ['unique' => true])
               ->create();
+        }
 
         // Tabela de valores dos campos customizados para oportunidades
-        $table = $this->table('crm_custom_field_values_opportunities', ['id' => true]);
-        
-        $table->addColumn('opportunity_id', 'integer', ['signed' => false])
+        if (!$this->hasTable('crm_custom_field_values_opportunities')) {
+            $table = $this->table('crm_custom_field_values_opportunities', ['id' => true]);
+            
+            $table->addColumn('opportunity_id', 'integer', ['signed' => false])
               ->addColumn('custom_field_id', 'integer', ['signed' => false])
               ->addColumn('field_value', 'text', ['null' => true])
               ->addColumn('created_at', 'datetime', ['null' => true])
@@ -53,6 +58,7 @@ class CreateCrmCustomFields extends AbstractMigration
               ->addForeignKey('custom_field_id', 'crm_custom_fields', 'id', ['delete' => 'CASCADE'])
               ->addIndex(['opportunity_id', 'custom_field_id'], ['unique' => true])
               ->create();
+        }
     }
 }
 

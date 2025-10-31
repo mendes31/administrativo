@@ -6,6 +6,11 @@ class CreateCrmActivities extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_activities')) {
+            return;
+        }
+
         $table = $this->table('crm_activities');
         
         $table->addColumn('type', 'enum', ['values' => ['call', 'email', 'meeting', 'task', 'note']])

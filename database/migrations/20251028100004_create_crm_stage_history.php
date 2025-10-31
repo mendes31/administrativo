@@ -6,6 +6,11 @@ class CreateCrmStageHistory extends AbstractMigration
 {
     public function change()
     {
+        // Verificar se a tabela já existe
+        if ($this->hasTable('crm_stage_history')) {
+            return;
+        }
+
         $table = $this->table('crm_stage_history');
         
         $table->addColumn('opportunity_id', 'integer', ['signed' => false])
