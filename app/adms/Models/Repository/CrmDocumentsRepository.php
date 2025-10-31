@@ -68,21 +68,45 @@ class CrmDocumentsRepository extends DbConnection
                     )';
 
             $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':partner_id', $data['partner_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':opportunity_id', $data['opportunity_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':file_name', $data['file_name']);
-            $stmt->bindValue(':file_path', $data['file_path']);
-            $stmt->bindValue(':file_size', $data['file_size'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':file_type', $data['file_type'] ?? null);
-            $stmt->bindValue(':description', $data['description'] ?? null);
+            
+            // Tratar valores NULL corretamente
+            $partnerId = !empty($data['partner_id']) ? (int)$data['partner_id'] : null;
+            $opportunityId = !empty($data['opportunity_id']) ? (int)$data['opportunity_id'] : null;
+            $fileSize = !empty($data['file_size']) ? (int)$data['file_size'] : null;
+            
+            if ($partnerId !== null) {
+                $stmt->bindValue(':partner_id', $partnerId, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(':partner_id', null, PDO::PARAM_NULL);
+            }
+            
+            if ($opportunityId !== null) {
+                $stmt->bindValue(':opportunity_id', $opportunityId, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(':opportunity_id', null, PDO::PARAM_NULL);
+            }
+            
+            $stmt->bindValue(':file_name', $data['file_name'] ?? '', PDO::PARAM_STR);
+            $stmt->bindValue(':file_path', $data['file_path'] ?? '', PDO::PARAM_STR);
+            
+            if ($fileSize !== null) {
+                $stmt->bindValue(':file_size', $fileSize, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(':file_size', null, PDO::PARAM_NULL);
+            }
+            
+            $stmt->bindValue(':file_type', $data['file_type'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':description', $data['description'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':uploaded_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
 
             $stmt->execute();
 
             return $this->getConnection()->lastInsertId();
         } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Documento não cadastrado.", [
-                'error' => $e->getMessage()
+            GenerateLog::generateLog("error", "Erro ao registrar documento no banco de dados", [
+                'data' => $data,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return false;

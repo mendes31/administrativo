@@ -68,18 +68,35 @@ class CrmNotesRepository extends DbConnection
                     )';
 
             $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':partner_id', $data['partner_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':opportunity_id', $data['opportunity_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':content', $data['content']);
-            $stmt->bindValue(':is_pinned', $data['is_pinned'] ?? 0, PDO::PARAM_INT);
+            
+            // Tratar valores NULL corretamente
+            $partnerId = !empty($data['partner_id']) ? (int)$data['partner_id'] : null;
+            $opportunityId = !empty($data['opportunity_id']) ? (int)$data['opportunity_id'] : null;
+            
+            if ($partnerId !== null) {
+                $stmt->bindValue(':partner_id', $partnerId, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(':partner_id', null, PDO::PARAM_NULL);
+            }
+            
+            if ($opportunityId !== null) {
+                $stmt->bindValue(':opportunity_id', $opportunityId, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(':opportunity_id', null, PDO::PARAM_NULL);
+            }
+            
+            $stmt->bindValue(':content', $data['content'] ?? '', PDO::PARAM_STR);
+            $stmt->bindValue(':is_pinned', $data['is_pinned'] ?? ($data['is_important'] ?? 0), PDO::PARAM_INT);
             $stmt->bindValue(':created_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
 
             $stmt->execute();
 
             return $this->getConnection()->lastInsertId();
         } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Nota não cadastrada.", [
-                'error' => $e->getMessage()
+            GenerateLog::generateLog("error", "Erro ao criar nota", [
+                'data' => $data,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return false;

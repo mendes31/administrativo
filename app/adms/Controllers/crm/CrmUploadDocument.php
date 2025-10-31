@@ -82,14 +82,15 @@ class CrmUploadDocument
         }
 
         // Salvar no banco de dados
+        // Converter valores vazios para null
         $data = [
-            'partner_id' => $partnerId,
-            'opportunity_id' => $opportunityId,
+            'partner_id' => !empty($partnerId) ? (int)$partnerId : null,
+            'opportunity_id' => !empty($opportunityId) ? (int)$opportunityId : null,
             'file_name' => $file['name'],
             'file_path' => $filePath,
             'file_type' => $file['type'],
-            'file_size' => $file['size'],
-            'description' => $description,
+            'file_size' => (int)$file['size'],
+            'description' => !empty($description) ? $description : null,
         ];
 
         $documentsRepo = new CrmDocumentsRepository();

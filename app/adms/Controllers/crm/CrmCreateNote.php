@@ -30,9 +30,13 @@ class CrmCreateNote
             exit;
         }
 
+        // Converter valores vazios para null
+        $partnerId = !empty($_POST['partner_id']) ? (int)$_POST['partner_id'] : null;
+        $opportunityId = !empty($_POST['opportunity_id']) ? (int)$_POST['opportunity_id'] : null;
+        
         $data = [
-            'partner_id' => $_POST['partner_id'] ?? null,
-            'opportunity_id' => $_POST['opportunity_id'] ?? null,
+            'partner_id' => $partnerId,
+            'opportunity_id' => $opportunityId,
             'content' => trim($_POST['content'] ?? ''),
             'is_important' => isset($_POST['is_important']) ? 1 : 0,
         ];
