@@ -67,7 +67,11 @@ class TrainingPositions
             foreach ($allObrigatorios as $cargoId) {
                 $users = $usersRepo->getUsersByPosition($cargoId);
                 foreach ($users as $user) {
-                    $trainingUsersRepo->recreateLinksForUser($user['id'], $cargoId);
+                    // Verificar se o usuário está ativo antes de recriar vínculos
+                    // (otimização: evita chamar recreateLinksForUser para usuários inativos)
+                    if (isset($user['status']) && $user['status'] === 'Ativo') {
+                        $trainingUsersRepo->recreateLinksForUser($user['id'], $cargoId);
+                    }
                 }
             }
         } else {

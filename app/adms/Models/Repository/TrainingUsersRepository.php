@@ -1132,17 +1132,18 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getUsuariosVinculados($trainingId)
     {
-        // Vínculos diretos
+        // Vínculos diretos (apenas usuários ATIVOS)
         $sqlDireto = "SELECT u.id, u.name, u.email, 'direto' as tipo
             FROM adms_training_users tu
-            INNER JOIN adms_users u ON u.id = tu.adms_user_id
+            INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
             WHERE tu.adms_training_id = :training_id";
 
-        // Vínculos por cargo (sem vínculo direto)
+        // Vínculos por cargo (sem vínculo direto) - apenas usuários ATIVOS
         $sqlCargo = "SELECT u.id, u.name, u.email, 'cargo' as tipo
             FROM adms_users u
             INNER JOIN adms_training_positions tp ON tp.adms_position_id = u.user_position_id
             WHERE tp.adms_training_id = :training_id
+            AND u.status = 'Ativo'
             AND u.id NOT IN (
                 SELECT adms_user_id FROM adms_training_users WHERE adms_training_id = :training_id
             )";
@@ -1168,10 +1169,10 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getAllVinculadosPorTreinamento($trainingId)
     {
-        // Buscar todos os vínculos individuais
+        // Buscar todos os vínculos individuais (apenas usuários ATIVOS)
         $sqlIndividuais = "SELECT tu.adms_user_id as id, u.name, u.email, 'individual' as tipo, p.name as cargo_nome, d.name as department_nome, tp.tipo_treinamento
             FROM adms_training_users tu
-            INNER JOIN adms_users u ON u.id = tu.adms_user_id
+            INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
             INNER JOIN adms_positions p ON p.id = u.user_position_id
             INNER JOIN adms_departments d ON d.id = u.user_department_id
             LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
@@ -1182,7 +1183,7 @@ class TrainingUsersRepository extends DbConnection
         $individuais = $stmtIndividuais->fetchAll(\PDO::FETCH_ASSOC);
         $idsIndividuais = array_column($individuais, 'id');
 
-        // Buscar vínculos por cargo, excluindo quem já tem vínculo individual
+        // Buscar vínculos por cargo, excluindo quem já tem vínculo individual (apenas usuários ATIVOS)
         $sqlCargo = "SELECT u.id, u.name, u.email, 'cargo' as tipo, p.name as cargo_nome, d.name as department_nome, tp.tipo_treinamento
             FROM adms_users u
             INNER JOIN adms_positions p ON p.id = u.user_position_id
@@ -1190,6 +1191,7 @@ class TrainingUsersRepository extends DbConnection
             INNER JOIN adms_training_positions tp ON tp.adms_position_id = u.user_position_id
             WHERE tp.adms_training_id = :training_id
             AND tp.obrigatorio = 1
+            AND u.status = 'Ativo'
             " . (count($idsIndividuais) ? ("AND u.id NOT IN (" . implode(',', $idsIndividuais) . ")") : "") .
             " ORDER BY u.name ASC";
         $stmtCargo = $this->getConnection()->prepare($sqlCargo);

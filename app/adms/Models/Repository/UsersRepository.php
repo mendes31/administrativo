@@ -1087,7 +1087,7 @@ class UsersRepository extends DbConnection
      */
     public function getUsersByPosition(int $positionId): array
     {
-        $sql = 'SELECT id, name, email, user_department_id, user_position_id 
+        $sql = 'SELECT id, name, email, user_department_id, user_position_id, status 
                 FROM adms_users 
                 WHERE user_position_id = :position_id 
                 ORDER BY name ASC';

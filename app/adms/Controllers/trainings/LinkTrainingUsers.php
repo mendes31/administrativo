@@ -46,10 +46,18 @@ class LinkTrainingUsers
         $this->data['vinculados'] = $trainingUsersRepo->getAllVinculadosPorTreinamento($id);
         $vinculadosIds = array_column($this->data['vinculados'], 'id');
 
-        // Buscar todos os usuários
+        // Buscar todos os usuários (apenas ativos)
         $todos = $usersRepo->getAllUsersSelect();
-        // Filtrar: só mostrar no select quem NÃO está em cargos obrigatórios E NÃO está vinculado direto
-        $this->data['users'] = array_filter($todos, function($u) use ($vinculadosIds, $cargosObrigatorios) {
+        // Filtrar: só mostrar no select quem NÃO está em cargos obrigatórios E NÃO está vinculado direto E está ATIVO
+        // Precisamos buscar o status do usuário para filtrar
+        $todosComStatus = [];
+        foreach ($todos as $user) {
+            $userFull = $usersRepo->getUser($user['id']);
+            if ($userFull && $userFull['status'] === 'Ativo') {
+                $todosComStatus[] = array_merge($user, ['user_position_id' => $userFull['user_position_id'] ?? null]);
+            }
+        }
+        $this->data['users'] = array_filter($todosComStatus, function($u) use ($vinculadosIds, $cargosObrigatorios) {
             return !in_array($u['id'], $vinculadosIds) && !in_array($u['user_position_id'] ?? null, $cargosObrigatorios);
         });
 
