@@ -53,6 +53,7 @@ class UsersRepository extends DbConnection
         $offset = max(0, ($page - 1) * $limitResult);
         $where = [];
         $params = [];
+        
         if (!empty($filtros['nome'])) {
             $where[] = 'usr.name LIKE :nome';
             $params[':nome'] = '%' . $filtros['nome'] . '%';
@@ -61,6 +62,27 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.email LIKE :email';
             $params[':email'] = '%' . $filtros['email'] . '%';
         }
+        if (!empty($filtros['usuario'])) {
+            $where[] = 'usr.username LIKE :usuario';
+            $params[':usuario'] = '%' . $filtros['usuario'] . '%';
+        }
+        if (!empty($filtros['departamento_id']) && is_numeric($filtros['departamento_id'])) {
+            $where[] = 'usr.user_department_id = :departamento_id';
+            $params[':departamento_id'] = (int)$filtros['departamento_id'];
+        }
+        if (!empty($filtros['cargo_id']) && is_numeric($filtros['cargo_id'])) {
+            $where[] = 'usr.user_position_id = :cargo_id';
+            $params[':cargo_id'] = (int)$filtros['cargo_id'];
+        }
+        if (!empty($filtros['status']) && in_array($filtros['status'], ['Ativo', 'Inativo'])) {
+            $where[] = 'usr.status = :status';
+            $params[':status'] = $filtros['status'];
+        }
+        if ($filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
+            $where[] = 'usr.bloqueado = :bloqueado';
+            $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+        }
+        
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
@@ -71,7 +93,8 @@ class UsersRepository extends DbConnection
                 LIMIT :limit OFFSET :offset';
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+            $paramType = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $paramType);
         }
         $stmt->bindValue(':limit', $limitResult, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -157,22 +180,71 @@ class UsersRepository extends DbConnection
     {
         $where = [];
         $params = [];
+        
         if (!empty($filtros['nome'])) {
-            $where[] = 'name LIKE :nome';
+            $where[] = 'usr.name LIKE :nome';
             $params[':nome'] = '%' . $filtros['nome'] . '%';
         }
         if (!empty($filtros['email'])) {
-            $where[] = 'email LIKE :email';
+            $where[] = 'usr.email LIKE :email';
             $params[':email'] = '%' . $filtros['email'] . '%';
         }
+        if (!empty($filtros['usuario'])) {
+            $where[] = 'usr.username LIKE :usuario';
+            $params[':usuario'] = '%' . $filtros['usuario'] . '%';
+        }
+        if (!empty($filtros['departamento_id']) && is_numeric($filtros['departamento_id'])) {
+            $where[] = 'usr.user_department_id = :departamento_id';
+            $params[':departamento_id'] = (int)$filtros['departamento_id'];
+        }
+        if (!empty($filtros['cargo_id']) && is_numeric($filtros['cargo_id'])) {
+            $where[] = 'usr.user_position_id = :cargo_id';
+            $params[':cargo_id'] = (int)$filtros['cargo_id'];
+        }
+        if (!empty($filtros['status']) && in_array($filtros['status'], ['Ativo', 'Inativo'])) {
+            $where[] = 'usr.status = :status';
+            $params[':status'] = $filtros['status'];
+        }
+        if ($filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
+            $where[] = 'usr.bloqueado = :bloqueado';
+            $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+        }
+        
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $sql = 'SELECT COUNT(id) as amount_records FROM adms_users ' . $whereSql;
+        $sql = 'SELECT COUNT(usr.id) as amount_records 
+                FROM adms_users usr
+                INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
+                INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
+                ' . $whereSql;
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+            $paramType = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $paramType);
         }
         $stmt->execute();
         return ($stmt->fetch(PDO::FETCH_ASSOC)['amount_records']) ?? 0;
+    }
+    
+    /**
+     * Obter departamentos para filtro
+     */
+    public function getDepartmentsForFilter(): array
+    {
+        $sql = 'SELECT id, name FROM adms_departments ORDER BY name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Obter cargos para filtro
+     */
+    public function getPositionsForFilter(): array
+    {
+        $sql = 'SELECT id, name FROM adms_positions ORDER BY name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

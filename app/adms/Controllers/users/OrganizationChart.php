@@ -27,15 +27,86 @@ class OrganizationChart
         // Buscar todos os usuários ativos
         $allUsers = $usersRepo->getAllUsersForChart();
         
-        // Organizar em estrutura hierárquica
-        $this->data['hierarchy'] = $this->buildHierarchy($allUsers);
+        // Normalizar caminhos das imagens
+        foreach ($allUsers as &$user) {
+            if (!empty($user['image'])) {
+                $baseUploads = 'public/adms/uploads/';
+                $hasSubdir = strpos($user['image'], '/') !== false || strpos($user['image'], '\\') !== false;
+                $relativePath = $hasSubdir ? $user['image'] : ('users/' . $user['id'] . '/' . $user['image']);
+                if (file_exists($baseUploads . $relativePath)) {
+                    $user['image'] = $relativePath;
+                } else {
+                    $user['image'] = null;
+                }
+            } else {
+                $user['image'] = null;
+            }
+        }
+        unset($user);
+        
+        // Separar usuários com e sem supervisor
+        $usersWithSupervisor = [];
+        $orphans = []; // Sem supervisor e sem subordinados
+        
+        foreach ($allUsers as $user) {
+            if ($user['immediate_supervisor_id'] === null || $user['immediate_supervisor_id'] === '') {
+                // Verificar se tem subordinados
+                $hasSubordinates = false;
+                foreach ($allUsers as $otherUser) {
+                    if (isset($otherUser['immediate_supervisor_id']) && 
+                        $otherUser['immediate_supervisor_id'] !== null && 
+                        (int)$otherUser['immediate_supervisor_id'] === (int)$user['id']) {
+                        $hasSubordinates = true;
+                        break;
+                    }
+                }
+                
+                if (!$hasSubordinates) {
+                    $orphans[] = $user;
+                } else {
+                    $usersWithSupervisor[] = $user;
+                }
+            } else {
+                $usersWithSupervisor[] = $user;
+            }
+        }
+        
+        // Organizar em estrutura hierárquica (apenas os com supervisor ou que são topo)
+        $this->data['hierarchy'] = $this->buildHierarchy($usersWithSupervisor);
+        
+        // Adicionar galho de "Órfãos" se houver
+        if (!empty($orphans)) {
+            $orphansBranch = [];
+            foreach ($orphans as $orphan) {
+                $orphansBranch[] = [
+                    'user' => $orphan,
+                    'children' => [],
+                    'children_count' => 0,
+                    'total_subordinates' => 0
+                ];
+            }
+            $this->data['hierarchy'][] = [
+                'user' => [
+                    'id' => 0,
+                    'name' => 'Sem Hierarquia Definida',
+                    'position_name' => 'Usuários sem supervisor',
+                    'department_name' => 'Vários Departamentos',
+                    'image' => null,
+                    'immediate_supervisor_id' => null
+                ],
+                'children' => $orphansBranch,
+                'children_count' => count($orphansBranch),
+                'total_subordinates' => 0
+            ];
+        }
         
         // Estatísticas
         $this->data['stats'] = [
             'total_users' => count($allUsers),
             'total_managers' => $this->countManagers($allUsers),
             'total_levels' => $this->countLevels($allUsers),
-            'largest_team' => $this->getLargestTeam($allUsers)
+            'largest_team' => $this->getLargestTeam($allUsers),
+            'orphans_count' => count($orphans)
         ];
         
         // Filtro por departamento (opcional)
@@ -51,8 +122,8 @@ class OrganizationChart
         // Layout
         $pageElements = [
             'title_head' => 'Organograma da Empresa',
-            'menu' => 'list-users',
-            'buttonPermission' => ['ListUsers'],
+            'menu' => 'organization-chart',
+            'buttonPermission' => ['OrganizationChart'],
         ];
         
         $pageLayoutService = new PageLayoutService();

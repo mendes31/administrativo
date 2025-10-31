@@ -45,11 +45,53 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
             <form method="get" class="row g-3 mb-3 align-items-end">
                 <div class="col-md-2">
                     <label for="nome" class="form-label mb-1">Nome</label>
-                    <input type="text" name="nome" id="nome" class="form-control form-control-sm" value="<?= htmlspecialchars($_GET['nome'] ?? '') ?>">
+                    <input type="text" name="nome" id="nome" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['nome'] ?? '') ?>">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="email" class="form-label mb-1">E-mail</label>
-                    <input type="text" name="email" id="email" class="form-control form-control-sm" value="<?= htmlspecialchars($_GET['email'] ?? '') ?>">
+                    <input type="text" name="email" id="email" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['email'] ?? '') ?>">
+                </div>
+                <div class="col-md-2">
+                    <label for="usuario" class="form-label mb-1">Usuário</label>
+                    <input type="text" name="usuario" id="usuario" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['usuario'] ?? '') ?>">
+                </div>
+                <div class="col-md-2">
+                    <label for="departamento_id" class="form-label mb-1">Departamento</label>
+                    <select name="departamento_id" id="departamento_id" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <?php foreach ($this->data['departments'] ?? [] as $dept): ?>
+                            <option value="<?= $dept['id'] ?>" <?= ($this->data['filtros']['departamento_id'] ?? '') == $dept['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($dept['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="cargo_id" class="form-label mb-1">Cargo</label>
+                    <select name="cargo_id" id="cargo_id" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <?php foreach ($this->data['positions'] ?? [] as $pos): ?>
+                            <option value="<?= $pos['id'] ?>" <?= ($this->data['filtros']['cargo_id'] ?? '') == $pos['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($pos['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label mb-1">Status</label>
+                    <select name="status" id="status" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="Ativo" <?= ($this->data['filtros']['status'] ?? '') == 'Ativo' ? 'selected' : '' ?>>Ativo</option>
+                        <option value="Inativo" <?= ($this->data['filtros']['status'] ?? '') == 'Inativo' ? 'selected' : '' ?>>Inativo</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="bloqueado" class="form-label mb-1">Bloqueado</label>
+                    <select name="bloqueado" id="bloqueado" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="1" <?= ($this->data['filtros']['bloqueado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
+                        <option value="0" <?= ($this->data['filtros']['bloqueado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <label for="per_page" class="form-label mb-1">Mostrar</label>
@@ -62,9 +104,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <span class="form-label mb-0 small">registros</span>
                     </div>
                 </div>
-                <div class="col-md-3 d-flex gap-2 flex-nowrap align-items-end">
-                    <button type="submit" class="btn btn-primary btn-sm btn-filter-equal"><i class="fa fa-search"></i> Filtrar</button>
-                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm btn-filter-equal"><i class="fa fa-times"></i> Limpar</a>
+                <div class="col-md-4 d-flex gap-2 flex-nowrap align-items-end">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Filtrar</button>
+                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm"><i class="fa fa-times"></i> Limpar</a>
                 </div>
             </form>
             <?php
