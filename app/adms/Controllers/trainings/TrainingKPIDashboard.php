@@ -32,20 +32,62 @@ class TrainingKpiDashboard
 
     public function index(): void
     {
-        $data = [
-            'title_head' => 'Dashboard de KPIs - Treinamentos',
-            'menu' => 'training-kpi-dashboard',
-            'buttonPermission' => ['TrainingKpiDashboard'],
-        ];
+        try {
+            $data = [
+                'title_head' => 'Dashboard de KPIs - Treinamentos',
+                'menu' => 'training-kpi-dashboard',
+                'buttonPermission' => ['TrainingKpiDashboard'],
+            ];
 
-        $pageLayout = new PageLayoutService();
-        $data = array_merge($data, $pageLayout->configurePageElements($data));
-        
-        // Carregar dados para os KPIs e gráficos
-        $data['dashboard'] = $this->getDashboardData();
-        
-        $loadView = new LoadViewService('adms/Views/trainings/kpiDashboard', $data);
-        $loadView->loadView();
+            $pageLayout = new PageLayoutService();
+            $data = array_merge($data, $pageLayout->configurePageElements($data));
+            
+            // Carregar dados para os KPIs e gráficos
+            try {
+                $data['dashboard'] = $this->getDashboardData();
+            } catch (\Exception $e) {
+                // Log do erro
+                error_log("Erro ao carregar dados do dashboard: " . $e->getMessage());
+                error_log("Trace: " . $e->getTraceAsString());
+                
+                // Definir dados vazios para evitar erro fatal
+                $data['dashboard'] = [
+                    'summary' => ['total' => 0, 'concluidos' => 0, 'pendentes' => 0, 'vencidos' => 0],
+                    'statusCounts' => [],
+                    'monthlyRealizations' => [],
+                    'topPendingUsers' => [],
+                    'topCriticalTrainings' => [],
+                    'expiring' => [],
+                    'departmentStats' => [],
+                    'positionStats' => [],
+                    'recentApplications' => [],
+                    'mostAppliedTrainings' => [],
+                ];
+                
+                // Adicionar mensagem de erro para debug (remover em produção se necessário)
+                if (ini_get('display_errors')) {
+                    $data['error_message'] = "Erro ao carregar dados: " . $e->getMessage();
+                }
+            }
+            
+            $loadView = new LoadViewService('adms/Views/trainings/kpiDashboard', $data);
+            $loadView->loadView();
+        } catch (\Exception $e) {
+            // Log do erro crítico
+            error_log("Erro crítico no TrainingKpiDashboard: " . $e->getMessage());
+            error_log("Trace: " . $e->getTraceAsString());
+            
+            // Exibir erro se display_errors estiver ativo
+            if (ini_get('display_errors')) {
+                echo "<h1>Erro ao carregar Dashboard de KPIs</h1>";
+                echo "<p><strong>Erro:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+                echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+            } else {
+                // Redirecionar para dashboard em caso de erro em produção
+                header("Location: " . $_ENV['URL_ADM'] . "dashboard");
+                exit;
+            }
+        }
     }
 
     private function getDashboardData(): array
