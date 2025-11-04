@@ -120,7 +120,12 @@ class LoadPageAdm
         "CrmReportPipeline", "CrmReportPerformance", "CrmReportConversion",
         "CrmImportPartners", "CrmExportPartners", "CrmDownloadTemplatePartners",
         "CrmImportOpportunities", "CrmExportOpportunities", "CrmDownloadTemplateOpportunities",
-        "WhatsAppConfig", "CrmSendWhatsApp"
+        "WhatsAppConfig", "CrmSendWhatsApp",
+        // Relatórios Dinâmicos
+        "ListDynamicReports", "DynamicReportBuilder", "ViewDynamicReport", "SaveDynamicReport", "ExecuteDynamicReport",
+        "DeleteDynamicReport", "ExportDynamicReportExcel", "ExportDynamicReportPdf", "ExportDynamicReportCsv",
+        // Dashboards de KPI
+        "ListKpiDashboards", "ViewKpiDashboard", "CreateKpiDashboard", "UpdateKpiDashboard", "DeleteKpiDashboard", "GetKpiWidgetData"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -157,7 +162,9 @@ class LoadPageAdm
         "informativos",
         "serveFile",
         "lgpd",
-        "crm"
+        "crm",
+        "reports",
+        "dashboards"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */
@@ -354,8 +361,6 @@ class LoadPageAdm
                 // Criar o caminho da controller/classe
                 $this->classLoad = "\\App\\$package\\Controllers\\$directory\\" . $this->urlController;
 
-                var_dump($this->classLoad);
-
                 // Verificar se a classe existe
                 if (class_exists($this->classLoad)) {
 
@@ -400,9 +405,6 @@ class LoadPageAdm
         if (!empty($this->urlParameter) && method_exists($classLoad, $this->urlParameter)) {
             $metodo = $this->urlParameter;
         }
-
-        // Debug: mostrar controller e método
-        var_dump('Controller:', $this->classLoad, 'Método:', $metodo, 'Parâmetro:', $this->urlParameter);
 
         if (method_exists($classLoad, $metodo)) {
             GenerateLog::generateLog("info", "Pagina acessada.", ['pagina' => $this->urlController, 'parametro' => $this->urlParameter]);

@@ -1,0 +1,8 @@
+Aguardando você:
+
+1. Editar php.ini (remover ; do extension=pdo_odbc)
+2. Salvar (Ctrl+S)
+3. Reiniciar WAMP
+
+Depois me avise que testamos a conexão!
+

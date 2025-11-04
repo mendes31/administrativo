@@ -657,6 +657,26 @@ $menus = [
     ],
     
     [
+        'id' => 'relatorios',
+        'icon' => 'fa-solid fa-chart-line',
+        'label' => 'Relatórios Dinâmicos',
+        'submenu' => [
+            [
+                'label' => 'Meus Relatórios',
+                'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports',
+                'permission' => 'ListDynamicReports',
+                'icon' => 'fa-solid fa-list'
+            ],
+            [
+                'label' => 'Criar Relatório',
+                'url' => $_ENV['URL_ADM'] . 'dynamic-report-builder',
+                'permission' => 'DynamicReportBuilder',
+                'icon' => 'fa-solid fa-plus-circle'
+            ],
+        ]
+    ],
+    
+    [
         'id' => 'logout',
         'icon' => 'fa-solid fa-arrow-right-from-bracket',
         'label' => 'Sair',

@@ -283,6 +283,16 @@ class PageLayoutService
             'CrmDownloadTemplateOpportunities',
             // CRM - Envio WhatsApp
             'CrmSendWhatsApp',
+            // Relatórios Dinâmicos
+            'ListDynamicReports',
+            'DynamicReportBuilder',
+            'ViewDynamicReport',
+            'SaveDynamicReport',
+            'ExecuteDynamicReport',
+            'DeleteDynamicReport',
+            'ExportDynamicReportExcel',
+            'ExportDynamicReportPdf',
+            'ExportDynamicReportCsv',
         ];
 
         // Verificar se o usuário está logado
