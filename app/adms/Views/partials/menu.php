@@ -659,8 +659,14 @@ $menus = [
     [
         'id' => 'relatorios',
         'icon' => 'fa-solid fa-chart-line',
-        'label' => 'Relatórios Dinâmicos',
+        'label' => 'Relatórios',
         'submenu' => [
+            [
+                'label' => 'Meus Dashboards',
+                'url' => $_ENV['URL_ADM'] . 'list-dashboards',
+                'permission' => 'ListDashboards',
+                'icon' => 'fa-solid fa-chart-pie'
+            ],
             [
                 'label' => 'Meus Relatórios',
                 'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports',

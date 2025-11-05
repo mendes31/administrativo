@@ -1,68 +1,103 @@
 <?php
-$this->layout('layouts/main', ['pageTitle' => 'Dashboards de KPI']); ?>
+use App\adms\Helpers\CSRFHelper;
+
+$dashboards = $this->data['dashboards'] ?? [];
+?>
 
 <div class="container-fluid px-4">
-    <h1 class="mt-4">Dashboards de KPI</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>dashboard">Home</a></li>
-        <li class="breadcrumb-item active">Dashboards de KPI</li>
-    </ol>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mt-3">
+            <i class="fas fa-chart-pie text-primary"></i> Meus Dashboards
+        </h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Meus Dashboards</li>
+            </ol>
+        </nav>
+    </div>
 
-    <?= $_SESSION['msg'] ?? ''; unset($_SESSION['msg']); ?>
+    <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-tachometer-alt me-1"></i>
-            Meus Dashboards
-            <a href="<?= $_ENV['URL_ADM'] ?>create-kpi-dashboard" class="btn btn-success btn-sm float-end">
-                <i class="fas fa-plus"></i> Novo Dashboard
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Dashboards Disponíveis</h5>
+            <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="btn btn-light btn-sm">
+                <i class="fas fa-plus"></i> Criar a partir de Relatório
             </a>
         </div>
         <div class="card-body">
             <?php if (empty($dashboards)): ?>
                 <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    Nenhum dashboard encontrado. <a href="<?= $_ENV['URL_ADM'] ?>create-kpi-dashboard">Criar novo dashboard</a>
+                    <i class="fas fa-info-circle"></i> 
+                    Nenhum dashboard encontrado. 
+                    <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="alert-link">Crie um relatório primeiro</a> 
+                    e depois clique em "Criar Dashboard" para transformá-lo em um dashboard interativo com KPIs e gráficos.
                 </div>
             <?php else: ?>
-                <div class="row">
+                <div class="row g-3">
                     <?php foreach ($dashboards as $dashboard): ?>
-                        <div class="col-xl-4 col-md-6 mb-4">
-                            <div class="card border-left-primary shadow h-100">
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 border-<?= $dashboard['is_public'] ? 'success' : 'primary' ?> shadow-sm">
+                                <div class="card-header bg-<?= $dashboard['is_public'] ? 'success' : 'primary' ?> text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-chart-bar"></i> 
+                                        <?= htmlspecialchars($dashboard['name']) ?>
+                                        <?php if ($dashboard['is_public']): ?>
+                                            <span class="badge bg-light text-success ms-2">Público</span>
+                                        <?php endif; ?>
+                                    </h6>
+                                </div>
                                 <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                <?= htmlspecialchars($dashboard['name'] ?? '') ?>
-                                            </div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                <small class="text-muted">
-                                                    <?= htmlspecialchars($dashboard['description'] ?? 'Sem descrição') ?>
-                                                </small>
-                                            </div>
-                                            <div class="mt-2">
-                                                <span class="badge bg-info"><?= $dashboard['widget_count'] ?? 0 ?> widgets</span>
-                                                <?php if ($dashboard['is_public']): ?>
-                                                    <span class="badge bg-success">Público</span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-secondary">Privado</span>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="mt-2">
-                                                <small class="text-muted">
-                                                    Criado por: <?= htmlspecialchars($dashboard['creator_name'] ?? '') ?>
-                                                </small>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-chart-area fa-2x text-gray-300"></i>
-                                        </div>
+                                    <?php if (!empty($dashboard['description'])): ?>
+                                        <p class="card-text text-muted small">
+                                            <?= nl2br(htmlspecialchars($dashboard['description'])) ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-file-alt"></i> 
+                                            Relatório: <strong><?= htmlspecialchars($dashboard['report_name']) ?></strong>
+                                        </small>
                                     </div>
-                                    <div class="mt-3">
-                                        <a href="<?= $_ENV['URL_ADM'] ?>view-kpi-dashboard?id=<?= $dashboard['id'] ?>" 
-                                           class="btn btn-primary btn-sm w-100">
-                                            <i class="fas fa-eye"></i> Visualizar
+                                    
+                                    <?php if (!empty($dashboard['category'])): ?>
+                                        <div class="mb-2">
+                                            <span class="badge bg-secondary"><?= htmlspecialchars($dashboard['category']) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <div class="small text-muted">
+                                        <i class="fas fa-eye"></i> <?= number_format($dashboard['views_count']) ?> visualizações
+                                        <br>
+                                        <i class="fas fa-user"></i> Por: <?= htmlspecialchars($dashboard['creator_name']) ?>
+                                        <br>
+                                        <i class="fas fa-calendar"></i> <?= date('d/m/Y', strtotime($dashboard['created_at'])) ?>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-flex gap-2">
+                                        <a href="<?= $_ENV['URL_ADM'] ?>view-dashboard/<?= $dashboard['id'] ?>" 
+                                           class="btn btn-primary btn-sm flex-fill">
+                                            <i class="fas fa-eye"></i> Abrir
                                         </a>
+                                        <?php if ($dashboard['created_by'] == ($_SESSION['user_id'] ?? 0) || ($_SESSION['user_access_level_id'] ?? 0) == 1): 
+                                            // Gerar token único para este formulário
+                                            $delete_token = CSRFHelper::generateCSRFToken('form_delete_dashboard_' . $dashboard['id']);
+                                        ?>
+                                            <form method="POST" action="<?= $_ENV['URL_ADM'] ?>delete-dashboard" 
+                                                  class="d-inline"
+                                                  id="formDelete<?= $dashboard['id'] ?>"
+                                                  onsubmit="return confirm('Deseja realmente deletar este dashboard?')">
+                                                <input type="hidden" name="csrf_token" value="<?= $delete_token ?>">
+                                                <input type="hidden" name="dashboard_id" value="<?= $dashboard['id'] ?>">
+                                                <input type="hidden" name="id" value="<?= $dashboard['id'] ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -73,4 +108,3 @@ $this->layout('layouts/main', ['pageTitle' => 'Dashboards de KPI']); ?>
         </div>
     </div>
 </div>
-

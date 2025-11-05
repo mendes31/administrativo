@@ -226,13 +226,27 @@ $availableTables = $this->data['availableTables'] ?? [];
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-edit"></i> Query SQL:
-                            </label>
-                            <textarea name="custom_sql" id="customSql" class="form-control font-monospace border-primary" 
-                                      rows="12" placeholder="Digite sua query SQL aqui...&#10;&#10;Exemplo:&#10;SELECT * FROM OITM&#10;&#10;ou&#10;&#10;SELECT ItemCode, ItemName, OnHand &#10;FROM OITM&#10;WHERE OnHand > 0&#10;ORDER BY ItemName"
-                                      style="font-size: 14px; background-color: #f8f9fa;"><?= htmlspecialchars($report['custom_sql'] ?? '') ?></textarea>
-                            <div class="form-text">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0">
+                                    <i class="fas fa-edit"></i> Query SQL:
+                                </label>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="decreaseEditorBtn" title="Diminuir editor">
+                                        <i class="fas fa-compress-alt"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="increaseEditorBtn" title="Aumentar editor">
+                                        <i class="fas fa-expand-alt"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="fullscreenEditorBtn" title="Tela cheia">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="sqlEditorWrapper" style="position: relative;">
+                                <div id="sqlEditorContainer" style="height: 250px; border: 2px solid #0d6efd; border-radius: 5px;"></div>
+                            </div>
+                            <textarea name="custom_sql" id="customSql" style="display: none;"><?= htmlspecialchars($report['custom_sql'] ?? '') ?></textarea>
+                            <div class="form-text mt-2">
                                 <i class="fas fa-shield-alt text-success"></i> 
                                 Apenas queries <strong>SELECT</strong> são permitidas por segurança.
                             </div>
@@ -316,7 +330,146 @@ let reportState = {
     queryMode: 'builder'
 };
 
+let sqlEditor = null;
+let monacoLoaded = false;
+let editorInitialized = false;
+let loadingMonaco = false; // Flag para evitar carregamentos simultâneos
+
+// Função para carregar Monaco Editor dinamicamente
+function loadMonacoEditor() {
+    return new Promise((resolve, reject) => {
+        if (monacoLoaded) {
+            resolve();
+            return;
+        }
+        
+        // Se já está carregando, aguardar
+        if (loadingMonaco) {
+            console.log('⏳ Já está carregando Monaco, aguardando...');
+            const checkInterval = setInterval(() => {
+                if (monacoLoaded) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+            return;
+        }
+        
+        loadingMonaco = true;
+        console.log('📦 Carregando Monaco Editor...');
+        
+        // Verificar se o loader já foi adicionado
+        if (document.querySelector('script[src*="monaco-editor"]')) {
+            console.log('⚠️ Script Monaco já existe no DOM');
+            monacoLoaded = true;
+            loadingMonaco = false;
+            resolve();
+            return;
+        }
+        
+        // Carregar loader do Monaco
+        const loaderScript = document.createElement('script');
+        loaderScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js';
+        loaderScript.onload = () => {
+            // Configurar require do Monaco
+            window.require.config({ 
+                paths: { 
+                    vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' 
+                }
+            });
+            
+            window.require(['vs/editor/editor.main'], () => {
+                monacoLoaded = true;
+                loadingMonaco = false;
+                console.log('✅ Monaco Editor biblioteca carregada!');
+                resolve();
+            });
+        };
+        loaderScript.onerror = () => {
+            loadingMonaco = false;
+            reject(new Error('Falha ao carregar Monaco Editor'));
+        };
+        document.head.appendChild(loaderScript);
+    });
+}
+
+// Função para inicializar o Monaco Editor
+async function initMonacoEditor() {
+    // Verificar se já existe um editor criado
+    if (sqlEditor !== null) {
+        console.log('✅ Editor já existe, apenas ajustando layout');
+        sqlEditor.layout();
+        return;
+    }
+    
+    if (editorInitialized) {
+        console.log('⚠️ Editor marcado como inicializado mas sqlEditor é null, reinicializando...');
+        editorInitialized = false;
+    }
+    
+    try {
+        console.log('🚀 Iniciando Monaco Editor...');
+        await loadMonacoEditor();
+        createEditor();
+    } catch (error) {
+        console.error('❌ Erro ao carregar Monaco Editor:', error);
+    }
+}
+
+function createEditor() {
+    const container = document.getElementById('sqlEditorContainer');
+    if (!container) {
+        console.error('❌ Container não encontrado!');
+        return;
+    }
+    
+    // Verificar se o container já tem um editor (Monaco cria divs internas)
+    if (container.children.length > 0) {
+        console.log('⚠️ Container já tem editor, pulando criação');
+        return;
+    }
+    
+    const initialValue = document.getElementById('customSql').value || `-- Digite sua query SQL aqui
+-- Exemplo:
+SELECT * FROM OITM
+
+-- Ou com filtros:
+-- SELECT ItemCode, ItemName, OnHand 
+-- FROM OITM
+-- WHERE OnHand > 0
+-- ORDER BY ItemName`;
+
+    console.log('🎨 Criando editor Monaco...');
+    sqlEditor = monaco.editor.create(container, {
+        value: initialValue,
+        language: 'sql',
+        theme: 'vs',
+        automaticLayout: true,
+        fontSize: 14,
+        minimap: { enabled: true },
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        lineNumbers: 'on',
+        renderWhitespace: 'selection',
+        bracketPairColorization: {enabled: true},
+        suggest: {
+            showKeywords: true,
+            showSnippets: true
+        }
+    });
+
+    // Sincronizar com o textarea oculto
+    sqlEditor.onDidChangeModelContent(() => {
+        document.getElementById('customSql').value = sqlEditor.getValue();
+    });
+    
+    editorInitialized = true;
+    console.log('✅ Monaco Editor inicializado com sucesso!');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOM carregado!');
+    
     // Busca de tabelas
     document.getElementById('tableSearch').addEventListener('input', function(e) {
         const search = e.target.value.toLowerCase();
@@ -390,10 +543,169 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Troca de aba
     document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+        console.log('🔍 Aba encontrada:', tab.id, tab);
+        
         tab.addEventListener('shown.bs.tab', function(e) {
+            console.log('🔄 Aba trocada para:', e.target.id);
             reportState.queryMode = e.target.id === 'sql-tab' ? 'custom_sql' : 'builder';
             document.getElementById('queryMode').value = reportState.queryMode;
+            
+            // Inicializar Monaco Editor quando a aba SQL for aberta
+            if (e.target.id === 'sql-tab') {
+                console.log('📝 Iniciando Monaco Editor...');
+                setTimeout(() => {
+                    initMonacoEditor();
+                }, 100);
+            }
         });
+        
+        // Adicionar evento de clique também
+        tab.addEventListener('click', function(e) {
+            console.log('👆 Clique na aba:', e.target.id);
+        });
+    });
+    
+    // Listener direto no botão SQL tab (fallback)
+    const sqlTabBtn = document.getElementById('sql-tab');
+    if (sqlTabBtn) {
+        console.log('✅ Botão SQL-tab encontrado, adicionando listener direto');
+        sqlTabBtn.addEventListener('click', function() {
+            console.log('🎯 Clique direto no SQL-tab!');
+            
+            // Aguardar a transição do Bootstrap (geralmente 150ms)
+            setTimeout(() => {
+                console.log('🔍 Verificando se aba SQL está visível...');
+                const sqlModeDiv = document.getElementById('sql-mode');
+                const isVisible = sqlModeDiv && (
+                    sqlModeDiv.classList.contains('show') || 
+                    sqlModeDiv.classList.contains('active') ||
+                    sqlModeDiv.style.display !== 'none'
+                );
+                
+                console.log('📊 Status da aba SQL:', {
+                    exists: !!sqlModeDiv,
+                    hasShow: sqlModeDiv?.classList.contains('show'),
+                    hasActive: sqlModeDiv?.classList.contains('active'),
+                    display: sqlModeDiv?.style.display,
+                    isVisible: isVisible
+                });
+                
+                if (isVisible) {
+                    console.log('✅ Aba SQL está visível, inicializando editor...');
+                    initMonacoEditor();
+                } else {
+                    console.log('⏳ Aba SQL ainda não está visível, tentando novamente em 300ms...');
+                    setTimeout(() => {
+                        const isNowVisible = sqlModeDiv && (
+                            sqlModeDiv.classList.contains('show') || 
+                            sqlModeDiv.classList.contains('active')
+                        );
+                        
+                        console.log('🔄 Segunda tentativa - Aba visível?', isNowVisible);
+                        
+                        if (isNowVisible) {
+                            initMonacoEditor();
+                        } else {
+                            console.error('❌ Aba SQL não está abrindo. Possível conflito de JavaScript.');
+                        }
+                    }, 300);
+                }
+            }, 200);
+        });
+    }
+
+    // Controles do Editor
+    let editorHeight = 250; // Altura inicial
+    let isFullscreen = false;
+    
+    document.getElementById('decreaseEditorBtn').addEventListener('click', function() {
+        if (editorHeight > 150) {
+            editorHeight -= 50;
+            document.getElementById('sqlEditorContainer').style.height = editorHeight + 'px';
+            if (sqlEditor) sqlEditor.layout();
+            console.log('📏 Editor reduzido para:', editorHeight + 'px');
+        }
+    });
+    
+    document.getElementById('increaseEditorBtn').addEventListener('click', function() {
+        if (editorHeight < 800) {
+            editorHeight += 50;
+            document.getElementById('sqlEditorContainer').style.height = editorHeight + 'px';
+            if (sqlEditor) sqlEditor.layout();
+            console.log('📏 Editor aumentado para:', editorHeight + 'px');
+        }
+    });
+    
+    document.getElementById('fullscreenEditorBtn').addEventListener('click', function() {
+        const wrapper = document.getElementById('sqlEditorWrapper');
+        const container = document.getElementById('sqlEditorContainer');
+        const btn = this;
+        
+        if (!isFullscreen) {
+            // Entrar em tela cheia
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '0';
+            wrapper.style.left = '0';
+            wrapper.style.width = '100%';
+            wrapper.style.height = '100%';
+            wrapper.style.zIndex = '9999';
+            wrapper.style.backgroundColor = '#f8f9fa';
+            wrapper.style.padding = '20px';
+            
+            container.style.height = 'calc(100% - 100px)';
+            container.style.border = '2px solid #0d6efd';
+            
+            // Adicionar header no topo
+            const header = document.createElement('div');
+            header.id = 'fullscreenHeader';
+            header.style.cssText = 'margin-bottom: 15px; padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;';
+            header.innerHTML = `
+                <div>
+                    <h5 class="mb-0"><i class="fas fa-code"></i> Editor SQL - Modo Tela Cheia</h5>
+                    <small class="text-muted">Pressione ESC ou clique no botão para sair</small>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('fullscreenEditorBtn').click()">
+                    <i class="fas fa-times"></i> Fechar (ESC)
+                </button>
+            `;
+            wrapper.insertBefore(header, container);
+            
+            btn.innerHTML = '<i class="fas fa-compress"></i>';
+            btn.title = 'Sair da tela cheia';
+            
+            isFullscreen = true;
+            if (sqlEditor) sqlEditor.layout();
+            console.log('🖥️ Modo tela cheia ativado');
+        } else {
+            // Sair da tela cheia
+            const header = document.getElementById('fullscreenHeader');
+            if (header) header.remove();
+            
+            wrapper.style.position = 'relative';
+            wrapper.style.top = '';
+            wrapper.style.left = '';
+            wrapper.style.width = '';
+            wrapper.style.height = '';
+            wrapper.style.zIndex = '';
+            wrapper.style.backgroundColor = '';
+            wrapper.style.padding = '';
+            
+            container.style.height = editorHeight + 'px';
+            
+            btn.innerHTML = '<i class="fas fa-expand"></i>';
+            btn.title = 'Tela cheia';
+            
+            isFullscreen = false;
+            if (sqlEditor) sqlEditor.layout();
+            console.log('🖥️ Modo tela cheia desativado');
+        }
+    });
+    
+    // ESC para sair do fullscreen
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isFullscreen) {
+            document.getElementById('fullscreenEditorBtn').click();
+        }
     });
 
     // Prévia
@@ -677,7 +989,8 @@ async function showPreviewBuilder() {
 }
 
 async function showPreviewSQL() {
-    const sql = document.getElementById('customSql').value.trim();
+    // Pegar o valor do Monaco Editor
+    const sql = sqlEditor ? sqlEditor.getValue().trim() : document.getElementById('customSql').value.trim();
     
     if (!sql) {
         alert('Digite uma query SQL!');
@@ -735,14 +1048,27 @@ function renderPreview(result) {
         renderChart(result.data, visualizationType);
     }
     
-    document.getElementById('previewContent').insertAdjacentHTML('beforeend', `
+    // Mostrar informações e avisos
+    let infoHtml = `
         <div class="alert alert-info mt-3">
             <i class="fas fa-info-circle"></i> 
             ${result.rows_count} registro(s) | ${result.execution_time}s | 
             Conexão: ${result.connection_type === 'sap_b1' ? 'SAP B1 HANA' : 'Local'}
             ${result.sql ? '<br><small><code>' + result.sql + '</code></small>' : ''}
         </div>
-    `);
+    `;
+    
+    // Adicionar warning se existir
+    if (result.warning) {
+        infoHtml += `
+            <div class="alert alert-warning mt-2">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>Atenção:</strong> ${result.warning}
+            </div>
+        `;
+    }
+    
+    document.getElementById('previewContent').insertAdjacentHTML('beforeend', infoHtml);
 }
 
 function renderTable(data) {
@@ -800,8 +1126,13 @@ function onFormSubmit(e) {
     console.log('💾 Salvando relatório - aba ativa:', activeTab);
     
     if (activeTab === 'sql-mode') {
+        // Sincronizar Monaco Editor com textarea antes de enviar
+        if (sqlEditor) {
+            document.getElementById('customSql').value = sqlEditor.getValue();
+        }
+        
         // Modo SQL Personalizado
-        const sql = document.getElementById('customSQL').value.trim();
+        const sql = document.getElementById('customSql').value.trim();
         console.log('📝 SQL a salvar:', sql);
         
         if (!sql) {
@@ -849,5 +1180,35 @@ function onFormSubmit(e) {
 }
 .min-height-100 {
     min-height: 100px;
+}
+
+/* Estilos para o editor em tela cheia */
+#sqlEditorWrapper {
+    transition: all 0.3s ease;
+}
+
+#sqlEditorWrapper[style*="position: fixed"] {
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Botões de controle do editor */
+#decreaseEditorBtn, #increaseEditorBtn, #fullscreenEditorBtn {
+    transition: all 0.2s ease;
+}
+
+#decreaseEditorBtn:hover, #increaseEditorBtn:hover {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+#fullscreenEditorBtn:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Animação suave para redimensionamento */
+#sqlEditorContainer {
+    transition: height 0.3s ease;
 }
 </style>

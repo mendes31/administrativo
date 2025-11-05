@@ -1,104 +1,242 @@
 <?php
-$this->layout('layouts/main', ['pageTitle' => $dashboard['name'] ?? 'Dashboard KPI']); ?>
+$dashboard = $this->data['dashboard'] ?? [];
+$kpisConfig = $dashboard['kpis_config'] ?? [];
+$chartsConfig = $dashboard['charts_config'] ?? [];
+$filtersConfig = $dashboard['filters_config'] ?? [];
+?>
 
 <div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mt-3">
+            <i class="fas fa-chart-pie text-primary"></i> <?= htmlspecialchars($dashboard['name']) ?>
+        </h2>
         <div>
-            <h1><?= htmlspecialchars($dashboard['name'] ?? 'Dashboard') ?></h1>
-            <p class="text-muted"><?= htmlspecialchars($dashboard['description'] ?? '') ?></p>
-        </div>
-        <div>
-            <a href="<?= $_ENV['URL_ADM'] ?>list-kpi-dashboards" class="btn btn-secondary">
+            <a href="<?= $_ENV['URL_ADM'] ?>list-dashboards" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            <a href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $dashboard['dynamic_report_id'] ?>" class="btn btn-info">
+                <i class="fas fa-file-alt"></i> Ver Relatório Original
             </a>
         </div>
     </div>
 
-    <div id="kpi-dashboard-container" 
-         data-dashboard-id="<?= $dashboard['id'] ?>"
-         data-refresh-interval="<?= $dashboard['refresh_interval'] ?? 0 ?>">
-        
-        <div class="row" id="widgets-container">
-            <?php if (empty($widgets)): ?>
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        Nenhum widget configurado neste dashboard.
-                    </div>
-                </div>
-            <?php else: ?>
-                <?php foreach ($widgets as $widget): ?>
-                    <?php
-                    $sizeClass = match($widget['size'] ?? 'medium') {
-                        'small' => 'col-xl-3 col-lg-4 col-md-6',
-                        'medium' => 'col-xl-4 col-lg-6 col-md-6',
-                        'large' => 'col-xl-6 col-lg-6 col-md-12',
-                        'full' => 'col-12',
-                        default => 'col-xl-4 col-lg-6 col-md-6'
-                    };
-                    
-                    $colorClass = match($widget['color_scheme'] ?? 'primary') {
-                        'success' => 'border-left-success',
-                        'danger' => 'border-left-danger',
-                        'warning' => 'border-left-warning',
-                        'info' => 'border-left-info',
-                        default => 'border-left-primary'
-                    };
-                    ?>
-                    
-                    <div class="<?= $sizeClass ?> mb-4">
-                        <div class="card <?= $colorClass ?> shadow h-100 kpi-widget" 
-                             data-widget-id="<?= $widget['id'] ?>"
-                             data-widget-type="<?= $widget['widget_type'] ?>"
-                             data-report-id="<?= $widget['report_id'] ?? '' ?>">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-<?= $widget['color_scheme'] ?? 'primary' ?> text-uppercase mb-1">
-                                            <?= htmlspecialchars($widget['title'] ?? '') ?>
-                                        </div>
-                                        
-                                        <?php if (in_array($widget['widget_type'], ['number', 'gauge'])): ?>
-                                            <div class="h3 mb-0 font-weight-bold text-gray-800" id="widget-value-<?= $widget['id'] ?>">
-                                                <i class="fas fa-spinner fa-spin"></i> Carregando...
-                                            </div>
-                                            <?php if ($widget['target_value']): ?>
-                                                <div class="mt-2">
-                                                    <small class="text-muted">Meta: <?= number_format((float)$widget['target_value'], 2, ',', '.') ?></small>
-                                                    <div class="progress mt-1" style="height: 5px;">
-                                                        <div class="progress-bar" role="progressbar" 
-                                                             id="widget-progress-<?= $widget['id'] ?>"
-                                                             style="width: 0%"></div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-                                        
-                                        <?php elseif (strpos($widget['widget_type'], 'chart_') === 0): ?>
-                                            <canvas id="widget-chart-<?= $widget['id'] ?>" style="max-height: 250px;"></canvas>
-                                        
-                                        <?php elseif ($widget['widget_type'] === 'table'): ?>
-                                            <div class="table-responsive" id="widget-table-<?= $widget['id'] ?>">
-                                                <i class="fas fa-spinner fa-spin"></i> Carregando...
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    
-                                    <?php if ($widget['icon']): ?>
-                                        <div class="col-auto">
-                                            <i class="<?= htmlspecialchars($widget['icon']) ?> fa-2x text-gray-300"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+    <?php include './app/adms/Views/partials/alerts.php'; ?>
+
+    <?php if (!empty($dashboard['description'])): ?>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> <?= nl2br(htmlspecialchars($dashboard['description'])) ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Filtros Dinâmicos -->
+    <?php if (!empty($filtersConfig)): ?>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros</h5>
+            </div>
+            <div class="card-body">
+                <form id="filtersForm">
+                    <div class="row g-3">
+                        <?php foreach ($filtersConfig as $filter): ?>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold"><?= htmlspecialchars($filter['label']) ?></label>
+                                <?php if ($filter['type'] === 'year'): ?>
+                                    <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" class="form-select">
+                                        <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
+                                            <option value="<?= $y ?>"><?= $y ?></option>
+                                        <?php endfor; ?>
+                                    </select>
+                                <?php elseif ($filter['type'] === 'month'): ?>
+                                    <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" class="form-select">
+                                        <option value="">Todos os meses</option>
+                                        <?php for ($m = 1; $m <= 12; $m++): ?>
+                                            <option value="<?= $m ?>"><?= date('F', mktime(0, 0, 0, $m, 1)) ?></option>
+                                        <?php endfor; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <input type="text" name="filters[<?= htmlspecialchars($filter['field']) ?>]" 
+                                           class="form-control" placeholder="Digite...">
+                                <?php endif; ?>
                             </div>
+                        <?php endforeach; ?>
+                        
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-search"></i> Consultar
+                            </button>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                </form>
+            </div>
         </div>
+    <?php endif; ?>
+
+    <!-- Loading -->
+    <div id="loadingIndicator" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        <p class="mt-3">Carregando dados...</p>
+    </div>
+
+    <!-- Conteúdo do Dashboard -->
+    <div id="dashboardContent">
+        <!-- KPIs -->
+        <div class="row g-3 mb-4" id="kpisRow">
+            <div class="col-12 text-center text-muted">
+                <i class="fas fa-info-circle"></i> Clique em "Consultar" para carregar os dados
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row g-3 mb-4" id="chartsRow">
+            <!-- Gráficos serão renderizados aqui -->
+        </div>
+
+        <!-- Info -->
+        <div class="alert alert-info mt-3" id="dataInfo" style="display: none;"></div>
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="<?= $_ENV['URL_ADM'] ?>public/adms/js/kpi-dashboard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const dashboardId = <?= $dashboard['id'] ?>;
+const kpisConfig = <?= json_encode($kpisConfig) ?>;
+const chartsConfig = <?= json_encode($chartsConfig) ?>;
+let chartInstances = {};
 
+document.getElementById('filtersForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('dashboard_id', dashboardId);
+    
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('dashboardContent').style.display = 'none';
+    
+    try {
+        const response = await fetch('<?= $_ENV['URL_ADM'] ?>execute-dashboard', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            updateDashboard(result);
+        } else {
+            alert('Erro: ' + result.error);
+        }
+        
+    } catch (error) {
+        alert('Erro ao carregar dados: ' + error.message);
+    } finally {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = 'block';
+    }
+});
+
+function updateDashboard(result) {
+    // Atualizar KPIs
+    updateKPIs(result.kpis);
+    
+    // Atualizar Gráficos
+    updateCharts(result.chart_data);
+    
+    // Info
+    const info = document.getElementById('dataInfo');
+    info.textContent = `${result.rows_count} registros processados em ${result.execution_time}s`;
+    info.style.display = 'block';
+}
+
+function updateKPIs(kpis) {
+    const row = document.getElementById('kpisRow');
+    row.innerHTML = '';
+    
+    for (const [label, kpi] of Object.entries(kpis)) {
+        const col = document.createElement('div');
+        col.className = `col-md-${12 / Math.min(Object.keys(kpis).length, 4)}`;
+        
+        let formattedValue = kpi.value;
+        if (kpi.format === 'currency') {
+            formattedValue = 'R$ ' + parseFloat(kpi.value).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        } else if (kpi.format === 'percent') {
+            formattedValue = parseFloat(kpi.value).toFixed(2) + '%';
+        } else {
+            formattedValue = parseInt(kpi.value).toLocaleString('pt-BR');
+        }
+        
+        col.innerHTML = `
+            <div class="card border-${kpi.color} shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">${label}</h6>
+                            <h3 class="text-${kpi.color} mb-0">${formattedValue}</h3>
+                        </div>
+                        <div class="bg-${kpi.color} bg-opacity-10 p-3 rounded">
+                            <i class="fas ${kpi.icon} fa-2x text-${kpi.color}"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        row.appendChild(col);
+    }
+}
+
+function updateCharts(chartData) {
+    const row = document.getElementById('chartsRow');
+    row.innerHTML = '';
+    
+    let chartIndex = 0;
+    for (const [chartKey, data] of Object.entries(chartData)) {
+        const config = chartsConfig[chartKey] || {};
+        
+        const col = document.createElement('div');
+        col.className = 'col-md-6';
+        
+        const canvasId = 'chart_' + chartIndex;
+        col.innerHTML = `
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">${config.title || 'Gráfico ' + (chartIndex + 1)}</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="${canvasId}" height="200"></canvas>
+                </div>
+            </div>
+        `;
+        row.appendChild(col);
+        
+        // Renderizar gráfico
+        setTimeout(() => {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: config.type || 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: config.title,
+                        data: Object.values(data),
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }, 100);
+        
+        chartIndex++;
+    }
+}
+</script>

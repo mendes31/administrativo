@@ -293,6 +293,15 @@ class PageLayoutService
             'ExportDynamicReportExcel',
             'ExportDynamicReportPdf',
             'ExportDynamicReportCsv',
+            // Dashboard de Vendas SAP B1
+            'SalesDashboard',
+            'SalesDashboardData',
+            // Dashboards Personalizados
+            'ListDashboards',
+            'CreateDashboard',
+            'ViewDashboard',
+            'DeleteDashboard',
+            'ExecuteDashboard',
         ];
 
         // Verificar se o usuário está logado

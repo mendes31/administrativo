@@ -551,12 +551,23 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Exportar Relatório Excel', 'controller' => 'ExportDynamicReportExcel', 'controller_url' => 'export-dynamic-report-excel', 'directory' => 'reports', 'obs' => 'Exportar relatório para Excel.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Exportar Relatório PDF', 'controller' => 'ExportDynamicReportPdf', 'controller_url' => 'export-dynamic-report-pdf', 'directory' => 'reports', 'obs' => 'Exportar relatório para PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Exportar Relatório CSV', 'controller' => 'ExportDynamicReportCsv', 'controller_url' => 'export-dynamic-report-csv', 'directory' => 'reports', 'obs' => 'Exportar relatório para CSV.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            // ===== DASHBOARD DE VENDAS (SAP B1) =====
+            ['name'=> 'Dashboard de Vendas SAP B1', 'controller' => 'SalesDashboard', 'controller_url' => 'sales-dashboard', 'directory' => 'reports', 'obs' => 'Dashboard interativo de vendas do SAP B1 com filtros por ano, mês, vendedor e grupo de parceiro.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'API - Dados Dashboard Vendas', 'controller' => 'SalesDashboardData', 'controller_url' => 'sales-dashboard-data', 'directory' => 'reports', 'obs' => 'API para buscar dados filtrados do dashboard de vendas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            
+            // ===== DASHBOARDS PERSONALIZADOS =====
+            ['name'=> 'Listar Dashboards', 'controller' => 'ListDashboards', 'controller_url' => 'list-dashboards', 'directory' => 'dashboards', 'obs' => 'Listar todos os dashboards personalizados criados a partir de relatórios.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Criar Dashboard', 'controller' => 'CreateDashboard', 'controller_url' => 'create-dashboard', 'directory' => 'dashboards', 'obs' => 'Criar dashboard personalizado com KPIs e gráficos a partir de relatório.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Visualizar Dashboard', 'controller' => 'ViewDashboard', 'controller_url' => 'view-dashboard', 'directory' => 'dashboards', 'obs' => 'Visualizar dashboard com filtros dinâmicos e KPIs.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Deletar Dashboard', 'controller' => 'DeleteDashboard', 'controller_url' => 'delete-dashboard', 'directory' => 'dashboards', 'obs' => 'Deletar dashboard personalizado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Executar Dashboard', 'controller' => 'ExecuteDashboard', 'controller_url' => 'execute-dashboard', 'directory' => 'dashboards', 'obs' => 'API para executar dashboard com filtros e retornar KPIs.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
         ];
 
         // Percorrer o array com dados que devem ser validados antes de cadastrar
         foreach ($pages as $page) {
-            // Verificar se o registro já existe no banco de dados
-            $existingRecord = $this->query('SELECT id FROM adms_pages WHERE name=:name', ['name' => $page['name']])->fetch();
+            // Verificar se o registro já existe no banco de dados (por controller_url que é único)
+            $controllerUrl = $page['controller_url'];
+            $existingRecord = $this->fetchRow("SELECT id FROM adms_pages WHERE controller_url = '{$controllerUrl}'");
 
             // Se o registro não existir, insere os dados na variável $data para em seguida cadastrar na tabela
             if (!$existingRecord) {
@@ -577,10 +588,10 @@ class AddAdmsPages extends AbstractSeed
             }
         }
 
-        // Indicar em qual tabela deve salvar
-        $adms_pages = $this->table('adms_pages');
-
-        // Inserir os registros na tabela
-        $adms_pages->insert($data)->save();
+        // Indicar em qual tabela deve salvar e inserir apenas se houver dados novos
+        if (!empty($data)) {
+            $adms_pages = $this->table('adms_pages');
+            $adms_pages->insert($data)->save();
+        }
     }
 }

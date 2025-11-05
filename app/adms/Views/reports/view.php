@@ -19,6 +19,9 @@ $result = $this->data['result'] ?? null;
                     <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>
+                    <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard/<?= $report['id'] ?>" class="btn btn-success">
+                        <i class="fas fa-chart-bar"></i> Criar Dashboard
+                    </a>
                     <?php if ($report['created_by'] == ($_SESSION['user_id'] ?? 0)): ?>
                         <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder?id=<?= $report['id'] ?>" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Editar

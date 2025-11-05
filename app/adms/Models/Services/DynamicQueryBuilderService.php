@@ -184,23 +184,86 @@ class DynamicQueryBuilderService
             if ($connectionType === 'sap_b1') {
                 error_log("🔷 Executando via ODBC HANA: $sql");
                 
-                $hanaConnection = SapB1HanaConnection::getInstance();
-                $stmt = $hanaConnection->query($sql);
-                $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                $executionTime = microtime(true) - $startTime;
-                
-                // IMPORTANTE: Converter encoding dos dados do HANA para UTF-8
-                $results = $this->convertEncodingToUtf8($results);
-                
-                return [
-                    'success' => true,
-                    'data' => $results,
-                    'rows_count' => count($results),
-                    'execution_time' => round($executionTime, 4),
-                    'connection_type' => 'sap_b1',
-                    'sql' => $sql,
-                    'query_mode' => 'custom_sql'
-                ];
+                try {
+                    $hanaConnection = SapB1HanaConnection::getInstance();
+                    
+                    // Verificar se a query já tem LIMIT
+                    $hasLimit = preg_match('/\bLIMIT\s+\d+/i', $sql);
+                    $autoLimitApplied = false;
+                    
+                    // Se não tem LIMIT, adicionar automaticamente para preview (máximo 1000 registros)
+                    if (!$hasLimit) {
+                        $sql .= ' LIMIT 1000';
+                        $autoLimitApplied = true;
+                        error_log("⚠️ LIMIT automático aplicado: 1000 registros");
+                    }
+                    
+                    $stmt = $hanaConnection->query($sql);
+                    
+                    // Buscar dados em chunks para economizar memória
+                    $results = [];
+                    $chunkSize = 500;
+                    $totalFetched = 0;
+                    
+                    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                        $results[] = $row;
+                        $totalFetched++;
+                        
+                        // Limite de segurança: máximo 5000 registros em preview
+                        if ($totalFetched >= 5000) {
+                            error_log("⚠️ Limite de segurança atingido: 5000 registros");
+                            break;
+                        }
+                    }
+                    
+                    $executionTime = microtime(true) - $startTime;
+                    
+                    // IMPORTANTE: Converter encoding dos dados do HANA para UTF-8
+                    $results = $this->convertEncodingToUtf8($results);
+                    
+                    $rowCount = count($results);
+                    $warning = null;
+                    
+                    // Avisos
+                    if ($autoLimitApplied) {
+                        $warning = "📊 LIMIT automático de 1000 registros aplicado. Para ver todos os dados, adicione 'LIMIT X' manualmente na query.";
+                    } elseif ($totalFetched >= 5000) {
+                        $warning = "⚠️ Limite de segurança: mostrando apenas os primeiros 5000 registros. Adicione filtros (datas, status) para reduzir o volume.";
+                    } elseif ($rowCount > 2000) {
+                        $warning = "Query retornou {$rowCount} registros. Para melhor performance em relatórios, adicione filtros de data.";
+                    }
+                    
+                    return [
+                        'success' => true,
+                        'data' => $results,
+                        'rows_count' => $rowCount,
+                        'execution_time' => round($executionTime, 4),
+                        'connection_type' => 'sap_b1',
+                        'sql' => $sql,
+                        'query_mode' => 'custom_sql',
+                        'warning' => $warning,
+                        'auto_limit_applied' => $autoLimitApplied
+                    ];
+                } catch (\PDOException $pdoEx) {
+                    // Erro específico do SAP HANA via ODBC
+                    $errorMsg = $pdoEx->getMessage();
+                    $errorCode = $pdoEx->getCode();
+                    
+                    // Extrair mensagem mais limpa do HANA
+                    if (preg_match('/SQLSTATE\[(\w+)\]: (.+)/', $errorMsg, $matches)) {
+                        $errorMsg = $matches[2];
+                    }
+                    
+                    error_log("❌ Erro SAP HANA: [{$errorCode}] {$errorMsg}");
+                    
+                    return [
+                        'success' => false,
+                        'error' => "Erro SAP B1 HANA: {$errorMsg}",
+                        'error_code' => $errorCode,
+                        'connection_type' => 'sap_b1',
+                        'sql' => $sql
+                    ];
+                }
             }
             
             // Se for local, usar PDO
@@ -220,14 +283,16 @@ class DynamicQueryBuilderService
                 'query_mode' => 'custom_sql'
             ];
         } catch (\PDOException $e) {
+            error_log("❌ Erro PDO: " . $e->getMessage());
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => "Erro de banco de dados: " . $e->getMessage(),
                 'connection_type' => $this->connectionType,
                 'sql' => $sql,
                 'error_code' => $e->getCode()
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
+            error_log("❌ Erro geral: " . $e->getMessage());
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
