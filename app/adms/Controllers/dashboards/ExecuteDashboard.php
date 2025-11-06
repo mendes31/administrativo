@@ -35,8 +35,8 @@ class ExecuteDashboard
                 throw new \Exception('Dashboard não encontrado');
             }
             
-            // Aplicar filtros na query do relatório
-            $sql = $this->applyFilters($dashboard['custom_sql'], $filters, $dashboard['filters_config']);
+            // Aplicar filtros na query do relatório usando WHERE
+            $sql = $this->applyFiltersWithWhere($dashboard['custom_sql'], $filters, $dashboard['filters_config']);
             
             // Executar query
             $queryBuilder = new DynamicQueryBuilderService();
@@ -71,6 +71,93 @@ class ExecuteDashboard
         exit;
     }
     
+    /**
+     * Aplicar filtros adicionando AND na cláusula WHERE existente
+     */
+    private function applyFiltersWithWhere(string $sql, array $filters, array $filtersConfig): string
+    {
+        // Remover ponto e vírgula final se houver
+        $sql = rtrim(trim($sql), ';');
+        
+        // Construir cláusulas WHERE
+        $whereClauses = [];
+        
+        foreach ($filtersConfig as $filter) {
+            $field = $filter['field'] ?? '';
+            $type = $filter['type'] ?? 'text';
+            
+            if (!isset($filters[$field]) || $filters[$field] === '' || $filters[$field] === null) {
+                continue;
+            }
+            
+            $value = $filters[$field];
+            
+            // Aplicar filtro conforme tipo (adaptado para HANA SQL)
+            switch ($type) {
+                case 'year':
+                    // Para HANA, usar YEAR(campo)
+                    if (preg_match('/YEAR\s*\([^)]+\)/i', $field)) {
+                        // Já tem YEAR na expressão do campo
+                        $whereClauses[] = "{$field} = " . (int)$value;
+                    } else {
+                        // Campo sem YEAR - adicionar YEAR() para HANA
+                        $whereClauses[] = "YEAR(T0.\"DataCriação\") = " . (int)$value;
+                    }
+                    break;
+                    
+                case 'month':
+                    // Para HANA, usar MONTH(campo)
+                    if (preg_match('/MONTH\s*\([^)]+\)/i', $field)) {
+                        // Já tem MONTH na expressão do campo
+                        $whereClauses[] = "{$field} = " . (int)$value;
+                    } else {
+                        // Campo sem MONTH - adicionar MONTH() para HANA
+                        $whereClauses[] = "MONTH(T0.\"DataCriação\") = " . (int)$value;
+                    }
+                    break;
+                    
+                case 'number':
+                    // Número direto
+                    $whereClauses[] = "\"{$field}\" = " . (int)$value;
+                    break;
+                    
+                case 'text':
+                default:
+                    // Texto - usar aspas simples e escape (sem alias, campo direto)
+                    $escapedValue = str_replace("'", "''", $value);
+                    $whereClauses[] = "\"{$field}\" = '{$escapedValue}'";
+                    break;
+            }
+        }
+        
+        // Se não houver filtros, retornar SQL original
+        if (empty($whereClauses)) {
+            error_log("🔍 Nenhum filtro aplicado - SQL original");
+            return $sql;
+        }
+        
+        // Adicionar AND com filtros
+        $whereClause = implode(' AND ', $whereClauses);
+        
+        // Adicionar filtros ANTES do ORDER BY (para preservar WHERE original)
+        if (preg_match('/\bORDER\s+BY\b/i', $sql)) {
+            // Tem ORDER BY - adicionar AND antes dele
+            $sql = preg_replace('/\bORDER\s+BY\b/i', "AND {$whereClause} ORDER BY", $sql, 1);
+            error_log("🔍 Filtros adicionados antes do ORDER BY");
+        } else {
+            // Não tem ORDER BY - adicionar no final
+            $sql .= " AND {$whereClause}";
+            error_log("🔍 Filtros adicionados no final da query");
+        }
+        
+        error_log("🔍 Filtros aplicados: " . $whereClause);
+        
+        return $sql;
+    }
+    
+    /**
+     * Aplicar filtros substituindo variáveis (método antigo - mantido para compatibilidade)
+     */
     private function applyFilters(string $sql, array $filters, array $filtersConfig): string
     {
         // Substituir variáveis de filtro configuradas

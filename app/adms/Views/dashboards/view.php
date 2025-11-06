@@ -11,11 +11,19 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
             <i class="fas fa-chart-pie text-primary"></i> <?= htmlspecialchars($dashboard['name']) ?>
         </h2>
         <div>
-            <a href="<?= $_ENV['URL_ADM'] ?>list-dashboards" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </a>
+            <?php if ($dashboard['created_by'] == ($_SESSION['user_id'] ?? 0)): ?>
+                <a href="<?= $_ENV['URL_ADM'] ?>edit-dashboard/<?= $dashboard['id'] ?>" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+                <button type="button" class="btn btn-outline-warning" onclick="duplicateDashboard(<?= $dashboard['id'] ?>)">
+                    <i class="fas fa-copy"></i> Duplicar
+                </button>
+            <?php endif; ?>
             <a href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $dashboard['dynamic_report_id'] ?>" class="btn btn-info">
                 <i class="fas fa-file-alt"></i> Ver Relatório Original
+            </a>
+            <a href="<?= $_ENV['URL_ADM'] ?>list-dashboards" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
     </div>
@@ -37,13 +45,22 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
             <div class="card-body">
                 <form id="filtersForm">
                     <div class="row g-3">
-                        <?php foreach ($filtersConfig as $filter): ?>
+                        <?php foreach ($filtersConfig as $index => $filter): ?>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold"><?= htmlspecialchars($filter['label']) ?></label>
+                                <label class="form-label fw-bold">
+                                    <?= htmlspecialchars($filter['label']) ?>
+                                    <?php if (!empty($filter['required'])): ?>
+                                        <span class="text-danger">*</span>
+                                    <?php endif; ?>
+                                </label>
                                 <?php if ($filter['type'] === 'year'): ?>
-                                    <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" class="form-select">
+                                    <?php $defaultYear = $filter['default_value'] ?? ''; ?>
+                                    <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" class="form-select" <?= !empty($filter['required']) ? 'required' : '' ?>>
+                                        <?php if (empty($filter['required'])): ?>
+                                            <option value="">Todos os anos</option>
+                                        <?php endif; ?>
                                         <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
-                                            <option value="<?= $y ?>"><?= $y ?></option>
+                                            <option value="<?= $y ?>" <?= ($defaultYear == $y) ? 'selected' : '' ?>><?= $y ?></option>
                                         <?php endfor; ?>
                                     </select>
                                 <?php elseif ($filter['type'] === 'month'): ?>
@@ -54,8 +71,12 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                                         <?php endfor; ?>
                                     </select>
                                 <?php else: ?>
-                                    <input type="text" name="filters[<?= htmlspecialchars($filter['field']) ?>]" 
-                                           class="form-control" placeholder="Digite...">
+                                    <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" 
+                                            class="form-select filter-dynamic" 
+                                            data-field="<?= htmlspecialchars($filter['field']) ?>"
+                                            id="filter_<?= $index ?>">
+                                        <option value="">Carregando...</option>
+                                    </select>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
@@ -102,6 +123,39 @@ const dashboardId = <?= $dashboard['id'] ?>;
 const kpisConfig = <?= json_encode($kpisConfig) ?>;
 const chartsConfig = <?= json_encode($chartsConfig) ?>;
 let chartInstances = {};
+
+// Carregar opções de filtros dinâmicos
+document.addEventListener('DOMContentLoaded', function() {
+    const dynamicFilters = document.querySelectorAll('.filter-dynamic');
+    
+    dynamicFilters.forEach(async function(select) {
+        const fieldName = select.dataset.field;
+        
+        try {
+            const response = await fetch(`<?= $_ENV['URL_ADM'] ?>get-filter-options?dashboard_id=${dashboardId}&field=${encodeURIComponent(fieldName)}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                select.innerHTML = '<option value="">Todos</option>';
+                
+                result.options.forEach(function(option) {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.textContent = option.label;
+                    select.appendChild(opt);
+                });
+                
+                console.log(`✅ ${result.count} opções carregadas para ${fieldName}`);
+            } else {
+                select.innerHTML = '<option value="">Erro ao carregar</option>';
+                console.error('Erro:', result.error);
+            }
+        } catch (error) {
+            select.innerHTML = '<option value="">Erro ao carregar</option>';
+            console.error('Erro ao carregar opções:', error);
+        }
+    });
+});
 
 document.getElementById('filtersForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -238,5 +292,25 @@ function updateCharts(chartData) {
         
         chartIndex++;
     }
+}
+
+// Duplicar dashboard
+function duplicateDashboard(dashboardId) {
+    if (!confirm('Duplicar este dashboard?\n\nIsso criará uma cópia editável com todas as configurações atuais.')) {
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?= $_ENV['URL_ADM'] ?>duplicate-dashboard';
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'dashboard_id';
+    input.value = dashboardId;
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>

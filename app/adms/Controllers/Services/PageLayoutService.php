@@ -299,9 +299,12 @@ class PageLayoutService
             // Dashboards Personalizados
             'ListDashboards',
             'CreateDashboard',
+            'EditDashboard',
+            'DuplicateDashboard',
             'ViewDashboard',
             'DeleteDashboard',
             'ExecuteDashboard',
+            'GetFilterOptions',
         ];
 
         // Verificar se o usuário está logado
