@@ -7,6 +7,15 @@ use App\adms\Models\Repository\DashboardsRepository;
 
 class DeleteDashboard
 {
+    /**
+     * Verificar se usuário tem acesso total (super admin)
+     */
+    private function hasFullAccess(): bool
+    {
+        // Super administrador (nível 1) tem acesso total
+        return isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+    }
+    
     public function index(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -42,8 +51,11 @@ class DeleteDashboard
             exit;
         }
         
-        // Verificar se é o criador
-        if ($dashboard['created_by'] != $userId && $_SESSION['user_access_level_id'] != 1) {
+        // Verificar permissão (seguindo padrão do projeto)
+        $isCreator = $dashboard['created_by'] == $userId;
+        
+        if (!$this->hasFullAccess() && !$isCreator) {
+            error_log("❌ Tentativa de deletar dashboard sem permissão - User: {$userId}, Dashboard: {$id}");
             $_SESSION['error'] = 'Você não tem permissão para deletar este dashboard!';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dashboards');
             exit;

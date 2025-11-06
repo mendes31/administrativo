@@ -11,7 +11,14 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
             <i class="fas fa-chart-pie text-primary"></i> <?= htmlspecialchars($dashboard['name']) ?>
         </h2>
         <div>
-            <?php if ($dashboard['created_by'] == ($_SESSION['user_id'] ?? 0)): ?>
+            <?php 
+            // Verificar permissão (seguindo padrão do projeto)
+            $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+            $isCreator = $dashboard['created_by'] == ($_SESSION['user_id'] ?? 0);
+            $canEdit = $isSuperAdmin || $isCreator;
+            
+            if ($canEdit):
+            ?>
                 <a href="<?= $_ENV['URL_ADM'] ?>edit-dashboard/<?= $dashboard['id'] ?>" class="btn btn-warning">
                     <i class="fas fa-edit"></i> Editar
                 </a>
@@ -46,6 +53,11 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                 <form id="filtersForm">
                     <div class="row g-3">
                         <?php foreach ($filtersConfig as $index => $filter): ?>
+                            <?php 
+                                // Detectar tipo de filtro pelo label
+                                $isYearFilter = (stripos($filter['label'], 'ano') !== false || stripos($filter['label'], 'year') !== false);
+                                $isMonthFilter = (stripos($filter['label'], 'mês') !== false || stripos($filter['label'], 'mes') !== false || stripos($filter['label'], 'month') !== false);
+                            ?>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold">
                                     <?= htmlspecialchars($filter['label']) ?>
@@ -53,24 +65,39 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                                         <span class="text-danger">*</span>
                                     <?php endif; ?>
                                 </label>
-                                <?php if ($filter['type'] === 'year'): ?>
-                                    <?php $defaultYear = $filter['default_value'] ?? ''; ?>
-                                    <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" class="form-select" <?= !empty($filter['required']) ? 'required' : '' ?>>
-                                        <?php if (empty($filter['required'])): ?>
-                                            <option value="">Todos os anos</option>
-                                        <?php endif; ?>
-                                        <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
-                                            <option value="<?= $y ?>" <?= ($defaultYear == $y) ? 'selected' : '' ?>><?= $y ?></option>
-                                        <?php endfor; ?>
-                                    </select>
-                                <?php elseif ($filter['type'] === 'month'): ?>
+                                
+                                <?php if ($isYearFilter): ?>
+                                    <!-- FILTRO ANO: Campo digitável -->
+                                    <?php $defaultYear = $filter['default_value'] ?? date('Y'); ?>
+                                    <input type="text" 
+                                           name="filters[<?= htmlspecialchars($filter['field']) ?>]" 
+                                           class="form-control" 
+                                           placeholder="Digite o ano (ex: <?= date('Y') ?>)"
+                                           value="<?= htmlspecialchars($defaultYear) ?>"
+                                           pattern="\d{4}"
+                                           title="Digite um ano válido (4 dígitos)"
+                                           <?= !empty($filter['required']) ? 'required' : '' ?>>
+                                    
+                                <?php elseif ($isMonthFilter): ?>
+                                    <!-- FILTRO MÊS: Lista fixa de 12 meses -->
                                     <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" class="form-select">
-                                        <option value="">Todos os meses</option>
-                                        <?php for ($m = 1; $m <= 12; $m++): ?>
-                                            <option value="<?= $m ?>"><?= date('F', mktime(0, 0, 0, $m, 1)) ?></option>
-                                        <?php endfor; ?>
+                                        <option value="">Todos</option>
+                                        <option value="01">Janeiro</option>
+                                        <option value="02">Fevereiro</option>
+                                        <option value="03">Março</option>
+                                        <option value="04">Abril</option>
+                                        <option value="05">Maio</option>
+                                        <option value="06">Junho</option>
+                                        <option value="07">Julho</option>
+                                        <option value="08">Agosto</option>
+                                        <option value="09">Setembro</option>
+                                        <option value="10">Outubro</option>
+                                        <option value="11">Novembro</option>
+                                        <option value="12">Dezembro</option>
                                     </select>
+                                    
                                 <?php else: ?>
+                                    <!-- OUTROS FILTROS: Carregamento dinâmico via AJAX -->
                                     <select name="filters[<?= htmlspecialchars($filter['field']) ?>]" 
                                             class="form-select filter-dynamic" 
                                             data-field="<?= htmlspecialchars($filter['field']) ?>"

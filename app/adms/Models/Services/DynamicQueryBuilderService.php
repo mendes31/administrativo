@@ -307,15 +307,36 @@ class DynamicQueryBuilderService
      */
     private function detectConnectionFromSQL(string $sql): string
     {
-        // Se contém tabelas típicas do SAP B1
-        $sapB1Tables = ['OCRD', 'OINV', 'ORDR', 'OITM', 'OITW', 'OPCH', 'OPOR'];
+        // Tabelas típicas do SAP B1 (prefixos O, I, @ e outras conhecidas)
+        $sapB1Tables = [
+            // Parceiros de Negócio
+            'OCRD', 'OCRG', 'CRD1',
+            // Vendas
+            'OINV', 'INV1', 'ORDR', 'RDR1', 'OQUT', 'QUT1', 'ORDN', 'RDN1', 'ORIN', 'RIN1', 'RIN3', 'RIN12',
+            // Compras
+            'OPCH', 'PCH1', 'OPOR', 'POR1', 'OPRQ', 'PRQ1', 'OPDN', 'PDN1',
+            // Itens
+            'OITM', 'OITB', 'OITW',
+            // Vendedores
+            'OSLP',
+            // Utilização
+            'OUSG',
+            // Filiais
+            'OBPL',
+            // Financeiro
+            'OJDT', 'JDT1', 'OACT',
+            // Outros
+            'OADM', 'ONNM'
+        ];
         
         foreach ($sapB1Tables as $table) {
             if (stripos($sql, $table) !== false) {
+                error_log("🔍 Tabela SAP detectada: {$table} → Usando conexão sap_b1");
                 return 'sap_b1';
             }
         }
         
+        error_log("ℹ️ Nenhuma tabela SAP detectada → Usando conexão local");
         return 'local';
     }
 

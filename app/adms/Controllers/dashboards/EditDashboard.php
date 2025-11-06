@@ -10,9 +10,25 @@ use App\adms\Views\Services\LoadViewService;
 class EditDashboard
 {
     private array $data = [];
+    
+    /**
+     * Verificar se usuário tem acesso total (super admin)
+     */
+    private function hasFullAccess(): bool
+    {
+        // Super administrador (nível 1) tem acesso total
+        return isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+    }
 
     public function index(?string $id = null): void
     {
+        // Se for POST, processar atualização
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->update();
+            return;
+        }
+        
+        // Se não for POST, carregar view de edição
         if (!$id) {
             $_SESSION['error'] = 'Dashboard não especificado!';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dashboards');
@@ -39,9 +55,11 @@ class EditDashboard
             exit;
         }
         
-        // Verificar se é o criador (apenas criador pode editar)
-        if ($dashboard['created_by'] != $userId) {
-            $_SESSION['error'] = 'Apenas o criador do dashboard pode editá-lo!';
+        // Verificar permissão de edição (seguindo padrão do projeto)
+        $isCreator = $dashboard['created_by'] == $userId;
+        
+        if (!$this->hasFullAccess() && !$isCreator) {
+            $_SESSION['error'] = 'Apenas o criador do dashboard ou super administrador pode editá-lo!';
             header('Location: ' . $_ENV['URL_ADM'] . 'view-dashboard/' . $dashboardId);
             exit;
         }
@@ -65,22 +83,39 @@ class EditDashboard
         $loadView->loadView();
     }
     
-    public function update(): void
+    private function update(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $_SESSION['error'] = 'Método inválido!';
-            header('Location: ' . $_ENV['URL_ADM'] . 'list-dashboards');
-            exit;
-        }
+        // Log COMPLETO do POST recebido
+        error_log("========================================");
+        error_log("🔍 EditDashboard::update() - POST RECEBIDO:");
+        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+        error_log("POST Keys: " . implode(', ', array_keys($_POST)));
+        error_log("dashboard_id RAW: " . var_export($_POST['dashboard_id'] ?? 'NÃO ENVIADO', true));
+        error_log("name: " . ($_POST['name'] ?? 'NÃO ENVIADO'));
+        error_log("report_ids: " . ($_POST['report_ids'] ?? 'NÃO ENVIADO'));
+        error_log("========================================");
         
         $dashboardId = (int)($_POST['dashboard_id'] ?? 0);
         $userId = $_SESSION['user_id'] ?? 0;
+        
+        error_log("📊 dashboard_id convertido para INT: {$dashboardId}");
         
         $repo = new DashboardsRepository();
         
         // Verificar acesso
         $dashboard = $repo->getById($dashboardId);
-        if (!$dashboard || $dashboard['created_by'] != $userId) {
+        
+        if (!$dashboard) {
+            $_SESSION['error'] = 'Dashboard não encontrado!';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-dashboards');
+            exit;
+        }
+        
+        // Verificar permissão (seguindo padrão do projeto)
+        $isCreator = $dashboard['created_by'] == $userId;
+        
+        if (!$this->hasFullAccess() && !$isCreator) {
+            error_log("❌ Tentativa de edição sem permissão - User: {$userId}, Dashboard: {$dashboardId}");
             $_SESSION['error'] = 'Você não tem permissão para editar este dashboard!';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dashboards');
             exit;
@@ -88,15 +123,59 @@ class EditDashboard
         
         try {
             // Preparar dados
+            $measuresConfig = json_decode($_POST['measures_config'] ?? '[]', true);
+            $kpisConfig = json_decode($_POST['kpis_config'] ?? '[]', true);
+            $chartsConfig = json_decode($_POST['charts_config'] ?? '[]', true);
+            $filtersConfig = json_decode($_POST['filters_config'] ?? '[]', true);
+            
+            error_log("📝 Dados recebidos do POST:");
+            error_log("   measures_config: " . count($measuresConfig) . " medidas (Bytes: " . strlen($_POST['measures_config'] ?? '') . ")");
+            error_log("   kpis_config: " . count($kpisConfig) . " kpis (Bytes: " . strlen($_POST['kpis_config'] ?? '') . ")");
+            error_log("   filters_config: " . count($filtersConfig) . " filtros (Bytes: " . strlen($_POST['filters_config'] ?? '') . ")");
+            error_log("   charts_config: " . count($chartsConfig) . " gráficos (Bytes: " . strlen($_POST['charts_config'] ?? '') . ")");
+            
+            error_log("📊 Dados existentes no banco:");
+            error_log("   measures_config: " . count($dashboard['measures_config']) . " medidas");
+            error_log("   kpis_config: " . count($dashboard['kpis_config']) . " kpis");
+            error_log("   filters_config: " . count($dashboard['filters_config']) . " filtros");
+            error_log("   charts_config: " . count($dashboard['charts_config']) . " gráficos");
+            
+            // PROTEÇÃO INTELIGENTE: Só proteger se receber vazio E tiver dados no banco E o campo no POST for realmente vazio (2 bytes = "[]")
+            $protectionApplied = false;
+            
+            if (empty($measuresConfig) && !empty($dashboard['measures_config']) && strlen($_POST['measures_config'] ?? '') <= 2) {
+                error_log("⚠️ PROTEÇÃO measures_config: mantendo " . count($dashboard['measures_config']) . " medidas existentes");
+                $measuresConfig = $dashboard['measures_config'];
+                $protectionApplied = true;
+            }
+            if (empty($kpisConfig) && !empty($dashboard['kpis_config']) && strlen($_POST['kpis_config'] ?? '') <= 2) {
+                error_log("⚠️ PROTEÇÃO kpis_config: mantendo " . count($dashboard['kpis_config']) . " kpis existentes");
+                $kpisConfig = $dashboard['kpis_config'];
+                $protectionApplied = true;
+            }
+            if (empty($chartsConfig) && !empty($dashboard['charts_config']) && strlen($_POST['charts_config'] ?? '') <= 2) {
+                error_log("⚠️ PROTEÇÃO charts_config: mantendo " . count($dashboard['charts_config']) . " gráficos existentes");
+                $chartsConfig = $dashboard['charts_config'];
+                $protectionApplied = true;
+            }
+            // FILTERS: NÃO aplicar proteção, sempre aceitar o que vier do POST
+            // (permite edição dos filtros)
+            
+            if ($protectionApplied) {
+                error_log("🛡️ Proteção ativada - dados preservados");
+            } else {
+                error_log("✅ Nenhuma proteção necessária - salvando dados do POST");
+            }
+            
             $data = [
                 'name' => $_POST['name'] ?? '',
                 'description' => $_POST['description'] ?? null,
                 'category' => $_POST['category'] ?? null,
                 'is_public' => isset($_POST['is_public']) ? 1 : 0,
-                'measures_config' => json_decode($_POST['measures_config'] ?? '[]', true),
-                'kpis_config' => json_decode($_POST['kpis_config'] ?? '[]', true),
-                'charts_config' => json_decode($_POST['charts_config'] ?? '[]', true),
-                'filters_config' => json_decode($_POST['filters_config'] ?? '[]', true),
+                'measures_config' => $measuresConfig,
+                'kpis_config' => $kpisConfig,
+                'charts_config' => $chartsConfig,
+                'filters_config' => $filtersConfig,
                 'layout' => $_POST['layout'] ?? 'default'
             ];
             
@@ -105,7 +184,16 @@ class EditDashboard
                 throw new \Exception('Nome do dashboard é obrigatório!');
             }
             
-            // Atualizar
+            // Atualizar relatórios vinculados (se fornecido)
+            if (isset($_POST['report_ids'])) {
+                $reportIds = json_decode($_POST['report_ids'], true);
+                if (is_array($reportIds) && !empty($reportIds)) {
+                    $repo->updateReports($dashboardId, $reportIds);
+                    error_log("✅ Relatórios do dashboard {$dashboardId} atualizados: " . implode(', ', $reportIds));
+                }
+            }
+            
+            // Atualizar dashboard
             $success = $repo->update($dashboardId, $data);
             
             if ($success) {

@@ -93,40 +93,45 @@ class ExecuteDashboard
             $value = $filters[$field];
             
             // Aplicar filtro conforme tipo (adaptado para HANA SQL)
-            switch ($type) {
-                case 'year':
-                    // Para HANA, usar YEAR(campo)
-                    if (preg_match('/YEAR\s*\([^)]+\)/i', $field)) {
-                        // Já tem YEAR na expressão do campo
-                        $whereClauses[] = "{$field} = " . (int)$value;
-                    } else {
-                        // Campo sem YEAR - adicionar YEAR() para HANA
-                        $whereClauses[] = "YEAR(T0.\"DataCriação\") = " . (int)$value;
-                    }
-                    break;
-                    
-                case 'month':
-                    // Para HANA, usar MONTH(campo)
-                    if (preg_match('/MONTH\s*\([^)]+\)/i', $field)) {
-                        // Já tem MONTH na expressão do campo
-                        $whereClauses[] = "{$field} = " . (int)$value;
-                    } else {
-                        // Campo sem MONTH - adicionar MONTH() para HANA
-                        $whereClauses[] = "MONTH(T0.\"DataCriação\") = " . (int)$value;
-                    }
-                    break;
-                    
-                case 'number':
-                    // Número direto
-                    $whereClauses[] = "\"{$field}\" = " . (int)$value;
-                    break;
-                    
-                case 'text':
-                default:
-                    // Texto - usar aspas simples e escape (sem alias, campo direto)
-                    $escapedValue = str_replace("'", "''", $value);
-                    $whereClauses[] = "\"{$field}\" = '{$escapedValue}'";
-                    break;
+            // Detectar se é filtro de ano/mês pelo label
+            $isYearFilter = (stripos($filter['label'] ?? '', 'ano') !== false || stripos($filter['label'] ?? '', 'year') !== false);
+            $isMonthFilter = (stripos($filter['label'] ?? '', 'mês') !== false || stripos($filter['label'] ?? '', 'mes') !== false);
+            
+            if ($isYearFilter) {
+                // Filtro de ANO: extrair apenas o ano da data
+                $whereClauses[] = "YEAR(\"{$field}\") = " . (int)$value;
+                error_log("📅 Filtro ANO aplicado: YEAR(\"{$field}\") = " . (int)$value);
+            } elseif ($isMonthFilter) {
+                // Filtro de MÊS: extrair apenas o mês da data
+                $whereClauses[] = "MONTH(\"{$field}\") = " . (int)$value;
+                error_log("📅 Filtro MÊS aplicado: MONTH(\"{$field}\") = " . (int)$value);
+            } else {
+                // Outros filtros: mapear aliases para campos reais da query
+                $fieldMappings = [
+                    'nomeVendedor' => 'T2."SlpName"',
+                    'nomeGrupoPN' => 'T7."GroupName"',
+                    'nomePN' => 'T0."CardName"',
+                    'nomeItem' => 'T1."Dscription"',
+                    'nomeGrupoItem' => 'T5."ItmsGrpNam"',
+                    'Utilizacao' => 'T3."Usage"',
+                    'Estado' => 'CASE WHEN T9."StateS" = \'\' THEN T9."StateB" ELSE T9."StateS" END'
+                ];
+                
+                $actualField = $fieldMappings[$field] ?? "\"{$field}\"";
+                
+                switch ($type) {
+                    case 'number':
+                        $whereClauses[] = "{$actualField} = " . (int)$value;
+                        break;
+                        
+                    case 'text':
+                    default:
+                        $escapedValue = str_replace("'", "''", $value);
+                        $whereClauses[] = "{$actualField} = '{$escapedValue}'";
+                        break;
+                }
+                
+                error_log("🔍 Filtro aplicado: {$actualField} = '{$value}'");
             }
         }
         

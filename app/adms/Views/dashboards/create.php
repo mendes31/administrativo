@@ -173,7 +173,7 @@ $reports = $this->data['reports'] ?? [];
                             <!-- Medidas serão adicionadas aqui -->
                         </div>
                         
-                        <button type="button" class="btn btn-outline-purple btn-sm" id="addMeasureBtn" style="border-color: #6f42c1; color: #6f42c1;">
+                        <button type="button" class="btn btn-outline-purple btn-sm" data-bs-toggle="modal" data-bs-target="#measureModal" onclick="openMeasureModal()" style="border-color: #6f42c1; color: #6f42c1;">
                             <i class="fas fa-plus"></i> Nova Medida
                         </button>
                         
@@ -210,7 +210,7 @@ $reports = $this->data['reports'] ?? [];
                             <!-- KPIs serão adicionados aqui -->
                         </div>
                         
-                        <button type="button" class="btn btn-outline-success btn-sm" id="addKpiBtn">
+                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#kpiModal" onclick="openKpiModal()">
                             <i class="fas fa-plus"></i> Adicionar KPI
                         </button>
                         
@@ -230,7 +230,7 @@ $reports = $this->data['reports'] ?? [];
                     <!-- Filtros serão adicionados aqui -->
                 </div>
                 
-                <button type="button" class="btn btn-outline-info btn-sm" id="addFilterBtn">
+                <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal" onclick="openFilterModal()">
                     <i class="fas fa-plus"></i> Adicionar Filtro
                 </button>
                 
@@ -255,7 +255,7 @@ $reports = $this->data['reports'] ?? [];
                             <!-- Gráficos serão adicionados aqui -->
                         </div>
                         
-                        <button type="button" class="btn btn-outline-warning btn-sm" id="addChartBtn">
+                        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#chartModal" onclick="openChartModal()">
                             <i class="fas fa-plus"></i> Adicionar Gráfico
                         </button>
                         
@@ -279,6 +279,346 @@ $reports = $this->data['reports'] ?? [];
         </div>
         </div>
     </form>
+</div>
+
+<!-- MODAIS GRÁFICOS -->
+
+<!-- Modal de Medida -->
+<div class="modal fade" id="measureModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title"><i class="fas fa-calculator"></i> <span id="measureModalTitle">Adicionar Medida Calculada</span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="measureEditIndex" value="-1">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nome da Medida *</label>
+                    <input type="text" id="measureName" class="form-control" placeholder="Ex: Ticket Médio, Taxa de Devolução">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Fórmula *</label>
+                    <textarea id="measureFormula" class="form-control font-monospace" rows="4" 
+                              placeholder="Ex: [Total c/ Desc] / COUNT([NumDoc])
+
+Funções disponíveis:
+• SUM([campo]) - Soma
+• AVG([campo]) - Média  
+• COUNT([campo]) - Contagem
+• MIN([campo]) - Mínimo
+• MAX([campo]) - Máximo"></textarea>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Formato de Exibição *</label>
+                        <select id="measureFormat" class="form-select">
+                            <option value="number">Número (1.234)</option>
+                            <option value="currency">Moeda (R$ 1.234,56)</option>
+                            <option value="percent">Percentual (12,34%)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="saveMeasure()">
+                    <i class="fas fa-check"></i> Salvar Medida
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de KPI -->
+<div class="modal fade" id="kpiModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-tachometer-alt"></i> <span id="kpiModalTitle">Adicionar KPI</span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="kpiEditIndex" value="-1">
+                <input type="hidden" id="kpiPreSelectedField" value="">
+                
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="alert alert-light border">
+                            <strong>Configurar KPI:</strong>
+                            <br><small class="text-muted">Selecione uma medida calculada ou campo de relatório.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">1️⃣ Tipo de Fonte *</label>
+                        <select id="kpiSourceType" class="form-select" onchange="loadKpiFieldsFromSource()">
+                            <option value="">-- Escolha --</option>
+                            <option value="measure">📐 Medida Calculada</option>
+                            <option value="report">📊 Campo de Relatório</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6" id="kpiSourceContainer" style="display: none;">
+                        <label class="form-label fw-bold">2️⃣ Selecionar Relatório *</label>
+                        <select id="kpiSource" class="form-select" onchange="loadKpiFields()">
+                            <option value="">-- Escolha --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6" id="kpiFieldContainer" style="display: none;">
+                        <label class="form-label fw-bold">3️⃣ Selecionar Campo *</label>
+                        <select id="kpiField" class="form-select">
+                            <option value="">-- Escolha o campo --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Rótulo (Título) *</label>
+                        <input type="text" id="kpiLabel" class="form-control" placeholder="Ex: Faturamento Total">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Agregação</label>
+                        <select id="kpiAggregation" class="form-select">
+                            <option value="">(Nenhuma - usar medida calculada)</option>
+                            <option value="sum">Soma (SUM)</option>
+                            <option value="avg">Média (AVG)</option>
+                            <option value="count">Contagem (COUNT)</option>
+                            <option value="count_distinct">Contagem Única (COUNT DISTINCT)</option>
+                            <option value="min">Mínimo (MIN)</option>
+                            <option value="max">Máximo (MAX)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Formato</label>
+                        <select id="kpiFormat" class="form-select">
+                            <option value="number">Número</option>
+                            <option value="currency">Moeda (R$)</option>
+                            <option value="percent">Percentual (%)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Ícone (FontAwesome)</label>
+                        <select id="kpiIcon" class="form-select">
+                            <option value="fa-dollar-sign">💰 Dinheiro</option>
+                            <option value="fa-chart-line">📈 Crescimento</option>
+                            <option value="fa-chart-bar">📊 Gráfico</option>
+                            <option value="fa-receipt">🧾 Recibo</option>
+                            <option value="fa-boxes">📦 Caixas</option>
+                            <option value="fa-percentage">% Percentual</option>
+                            <option value="fa-coins">🪙 Moedas</option>
+                            <option value="fa-file-invoice">📄 Fatura</option>
+                            <option value="fa-users">👥 Usuários</option>
+                            <option value="fa-shopping-cart">🛒 Carrinho</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Cor</label>
+                        <select id="kpiColor" class="form-select">
+                            <option value="success" style="background-color: #d4edda;">🟢 Verde (Positivo)</option>
+                            <option value="primary" style="background-color: #cfe2ff;">🔵 Azul (Informação)</option>
+                            <option value="warning" style="background-color: #fff3cd;">🟡 Amarelo (Alerta)</option>
+                            <option value="danger" style="background-color: #f8d7da;">🔴 Vermelho (Negativo)</option>
+                            <option value="info" style="background-color: #d1ecf1;">💙 Azul Claro</option>
+                            <option value="secondary" style="background-color: #e2e3e5;">⚫ Cinza</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="saveKpi()">
+                    <i class="fas fa-check"></i> Salvar KPI
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Filtro -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-filter"></i> <span id="filterModalTitle">Adicionar Filtro</span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="filterEditIndex" value="-1">
+                <input type="hidden" id="filterPreSelectedField" value="">
+                
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="alert alert-light border">
+                            <strong>Selecione o Campo para Filtrar:</strong>
+                            <br><small class="text-muted">Escolha o relatório e depois o campo específico.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">1️⃣ Selecionar Relatório *</label>
+                        <select id="filterReportSource" class="form-select" onchange="loadFilterFields()">
+                            <option value="">-- Escolha o relatório --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6" id="filterFieldContainer" style="display: none;">
+                        <label class="form-label fw-bold">2️⃣ Selecionar Campo *</label>
+                        <select id="filterField" class="form-select">
+                            <option value="">-- Escolha o campo --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Rótulo (Título) *</label>
+                        <input type="text" id="filterLabel" class="form-control" placeholder="Ex: Vendedor, Período, Categoria">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tipo de Filtro *</label>
+                        <select id="filterType" class="form-select">
+                            <option value="text">📝 Texto (dropdown ou input)</option>
+                            <option value="number">🔢 Número</option>
+                            <option value="date">📅 Data</option>
+                            <option value="year">📆 Ano</option>
+                            <option value="month">📅 Mês</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Valor Padrão</label>
+                        <input type="text" id="filterDefaultValue" class="form-control" placeholder="Ex: 2025, João Silva">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" id="filterRequired" class="form-check-input">
+                            <label class="form-check-label" for="filterRequired">
+                                <i class="fas fa-exclamation-circle"></i> Campo obrigatório
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Relatório de Filtro (Opcional)</label>
+                        <select id="filterReportId" class="form-select">
+                            <option value="">Usar query do dashboard</option>
+                            <option value="15">[FILTRO] Vendedores</option>
+                            <option value="16">[FILTRO] Grupos de Parceiros</option>
+                            <option value="18">[FILTRO] Itens</option>
+                            <option value="19">[FILTRO] Parceiros</option>
+                        </select>
+                        <small class="text-muted">Para listar TODOS os valores (sem limite)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info" onclick="saveFilter()">
+                    <i class="fas fa-check"></i> Salvar Filtro
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Gráfico -->
+<div class="modal fade" id="chartModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-chart-bar"></i> <span id="chartModalTitle">Adicionar Gráfico</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="chartEditKey" value="">
+                <input type="hidden" id="chartPreSelectedGroupBy" value="">
+                <input type="hidden" id="chartPreSelectedValue" value="">
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tipo de Gráfico *</label>
+                        <select id="chartType" class="form-select">
+                            <option value="bar">📊 Barras</option>
+                            <option value="line">📈 Linhas</option>
+                            <option value="pie">🥧 Pizza</option>
+                            <option value="doughnut">🍩 Rosca</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Título do Gráfico *</label>
+                        <input type="text" id="chartTitle" class="form-control" placeholder="Ex: Faturamento por Vendedor">
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr>
+                        <strong>Eixo X (Categorias):</strong>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">1️⃣ Relatório para Agrupar *</label>
+                        <select id="chartGroupByReport" class="form-select" onchange="loadChartGroupByFields()">
+                            <option value="">-- Escolha o relatório --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6" id="chartGroupByContainer" style="display: none;">
+                        <label class="form-label fw-bold">2️⃣ Campo de Agrupamento (Eixo X) *</label>
+                        <select id="chartGroupBy" class="form-select">
+                            <option value="">-- Escolha o campo --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr>
+                        <strong>Eixo Y (Valores):</strong>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">1️⃣ Relatório para Valores *</label>
+                        <select id="chartValueReport" class="form-select" onchange="loadChartValueFields()">
+                            <option value="">-- Escolha o relatório --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6" id="chartValueContainer" style="display: none;">
+                        <label class="form-label fw-bold">2️⃣ Campo de Valor (Eixo Y) *</label>
+                        <select id="chartValueField" class="form-select">
+                            <option value="">-- Escolha o campo --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Agregação *</label>
+                        <select id="chartAggregation" class="form-select">
+                            <option value="sum">Soma (SUM)</option>
+                            <option value="avg">Média (AVG)</option>
+                            <option value="count">Contagem (COUNT)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Cor (Opcional)</label>
+                        <input type="color" id="chartColor" class="form-control form-control-color" value="#4CAF50">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="saveChart()">
+                    <i class="fas fa-check"></i> Salvar Gráfico
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -326,53 +666,10 @@ document.getElementById('btnNextStep')?.addEventListener('click', function() {
 function initStep2Events() {
     console.log('🎯 Inicializando eventos da etapa 2...');
     
-    // Botão Adicionar KPI
-    const addKpiBtn = document.getElementById('addKpiBtn');
-    if (addKpiBtn) {
-        addKpiBtn.onclick = function() {
-            const field = prompt('Nome do campo (ex: TotalLinha, Qtde):');
-            if (!field) return;
-            
-            const label = prompt('Rótulo do KPI (ex: Faturamento Total):') || field;
-            const aggregation = prompt('Agregação (sum, avg, count, count_distinct, min, max):', 'sum');
-            const format = prompt('Formato (number, currency, percent):', 'currency');
-            const icon = prompt('Ícone FontAwesome (ex: fa-dollar-sign):', 'fa-chart-line');
-            const color = prompt('Cor (primary, success, danger, warning, info):', 'success');
-            
-            kpis.push({ field, label, aggregation, format, icon, color });
-            updateKpisDisplay();
-        };
-        console.log('✅ Evento addKpiBtn adicionado');
-    }
+    // Os botões agora usam modais (data-bs-toggle e onclick definidos no HTML)
+    // Apenas garantir que as funções de modal estejam disponíveis
     
-    // Botão Adicionar Filtro
-    const addFilterBtn = document.getElementById('addFilterBtn');
-    if (addFilterBtn) {
-        addFilterBtn.onclick = function() {
-            addFilter();
-        };
-        console.log('✅ Evento addFilterBtn adicionado');
-    }
-    
-    // Botão Adicionar Gráfico
-    const addChartBtn = document.getElementById('addChartBtn');
-    if (addChartBtn) {
-        addChartBtn.onclick = function() {
-            addChart();
-        };
-        console.log('✅ Evento addChartBtn adicionado');
-    }
-    
-    // Botão Adicionar Medida
-    const addMeasureBtn = document.getElementById('addMeasureBtn');
-    if (addMeasureBtn) {
-        addMeasureBtn.onclick = function() {
-            addMeasure();
-        };
-        console.log('✅ Evento addMeasureBtn adicionado');
-    }
-    
-    console.log('✅ Todos os eventos da etapa 2 inicializados!');
+    console.log('✅ Eventos da etapa 2 prontos (usando modais)!');
 }
 
 // Adicionar Medida Calculada
@@ -509,6 +806,466 @@ function removeMeasure(index) {
     updateMeasuresDisplay();
     updateFieldsPanel();
 }
+
+// ========== FUNÇÕES DOS MODAIS GRÁFICOS ==========
+
+// Funções de Modal de Medida
+function openMeasureModal(preFilledName = '', preFilledFormula = '') {
+    document.getElementById('measureModalTitle').textContent = 'Adicionar Medida Calculada';
+    document.getElementById('measureName').value = preFilledName;
+    document.getElementById('measureFormula').value = preFilledFormula;
+    document.getElementById('measureFormat').value = 'number';
+    document.getElementById('measureEditIndex').value = '-1';
+    
+    new bootstrap.Modal(document.getElementById('measureModal')).show();
+}
+
+function saveMeasure() {
+    const name = document.getElementById('measureName').value.trim();
+    const formula = document.getElementById('measureFormula').value.trim();
+    const format = document.getElementById('measureFormat').value;
+    
+    if (!name || !formula) {
+        alert('❌ Nome e fórmula são obrigatórios!');
+        return;
+    }
+    
+    if (!validateFormula(formula)) {
+        alert('❌ Fórmula inválida! Use apenas funções permitidas e operadores matemáticos.');
+        return;
+    }
+    
+    measures.push({ name, formula, format });
+    updateMeasuresDisplay();
+    updateFieldsPanel();
+    
+    bootstrap.Modal.getInstance(document.getElementById('measureModal')).hide();
+    console.log('✅ Medida criada:', name);
+}
+
+// Funções de Modal de KPI
+function openKpiModal(preSelectedField = '') {
+    document.getElementById('kpiModalTitle').textContent = 'Adicionar KPI';
+    document.getElementById('kpiSourceType').value = '';
+    document.getElementById('kpiSource').value = '';
+    document.getElementById('kpiField').value = '';
+    document.getElementById('kpiLabel').value = '';
+    document.getElementById('kpiAggregation').value = 'sum';
+    document.getElementById('kpiFormat').value = 'currency';
+    document.getElementById('kpiIcon').value = 'fa-dollar-sign';
+    document.getElementById('kpiColor').value = 'success';
+    document.getElementById('kpiEditIndex').value = '-1';
+    document.getElementById('kpiPreSelectedField').value = preSelectedField;
+    
+    // Esconder containers
+    document.getElementById('kpiSourceContainer').style.display = 'none';
+    document.getElementById('kpiFieldContainer').style.display = 'none';
+    
+    // Popular dropdowns
+    populateReportDropdowns();
+    
+    // Se houver campo pré-selecionado, configurar
+    if (preSelectedField) {
+        document.getElementById('kpiSourceType').value = 'report';
+        loadKpiFieldsFromSource();
+        if (selectedReports.length > 0) {
+            document.getElementById('kpiSource').value = selectedReports[0].id;
+            loadKpiFields();
+            setTimeout(() => {
+                document.getElementById('kpiField').value = preSelectedField;
+                document.getElementById('kpiLabel').value = preSelectedField;
+            }, 300);
+        }
+    }
+    
+    new bootstrap.Modal(document.getElementById('kpiModal')).show();
+}
+
+function saveKpi() {
+    const field = document.getElementById('kpiField').value;
+    const label = document.getElementById('kpiLabel').value.trim();
+    const aggregation = document.getElementById('kpiAggregation').value;
+    const format = document.getElementById('kpiFormat').value;
+    const icon = document.getElementById('kpiIcon').value;
+    const color = document.getElementById('kpiColor').value;
+    const sourceType = document.getElementById('kpiSourceType').value;
+    const source = document.getElementById('kpiSource').value;
+    
+    if (!field) {
+        alert('❌ Selecione um campo ou medida!');
+        return;
+    }
+    
+    if (!label) {
+        alert('❌ Rótulo é obrigatório!');
+        return;
+    }
+    
+    const kpiData = { 
+        field, 
+        label, 
+        aggregation, 
+        format, 
+        icon, 
+        color,
+        source_type: sourceType,
+        source_report_id: sourceType === 'report' ? source : null,
+        source_measure: sourceType === 'measure' ? field : null
+    };
+    
+    kpis.push(kpiData);
+    updateKpisDisplay();
+    
+    bootstrap.Modal.getInstance(document.getElementById('kpiModal')).hide();
+    console.log('✅ KPI adicionado:', label);
+}
+
+// Funções de Modal de Filtro
+function openFilterModal(preSelectedField = '') {
+    document.getElementById('filterModalTitle').textContent = 'Adicionar Filtro';
+    document.getElementById('filterReportSource').value = '';
+    document.getElementById('filterField').value = '';
+    document.getElementById('filterLabel').value = '';
+    document.getElementById('filterType').value = 'text';
+    document.getElementById('filterDefaultValue').value = '';
+    document.getElementById('filterRequired').checked = false;
+    document.getElementById('filterReportId').value = '';
+    document.getElementById('filterEditIndex').value = '-1';
+    document.getElementById('filterPreSelectedField').value = preSelectedField;
+    
+    // Esconder container de campo
+    document.getElementById('filterFieldContainer').style.display = 'none';
+    
+    // Popular dropdown
+    populateFilterReportDropdowns();
+    
+    // Se houver campo pré-selecionado
+    if (preSelectedField && selectedReports.length > 0) {
+        document.getElementById('filterReportSource').value = selectedReports[0].id;
+        loadFilterFields();
+        setTimeout(() => {
+            document.getElementById('filterField').value = preSelectedField;
+            document.getElementById('filterLabel').value = preSelectedField;
+        }, 300);
+    }
+    
+    new bootstrap.Modal(document.getElementById('filterModal')).show();
+}
+
+function saveFilter() {
+    const field = document.getElementById('filterField').value;
+    const label = document.getElementById('filterLabel').value.trim();
+    const type = document.getElementById('filterType').value;
+    const defaultValue = document.getElementById('filterDefaultValue').value;
+    const required = document.getElementById('filterRequired').checked;
+    const filterReportId = document.getElementById('filterReportId').value;
+    const sourceReportId = document.getElementById('filterReportSource').value;
+    
+    if (!field) {
+        alert('❌ Selecione um campo!');
+        return;
+    }
+    
+    if (!label) {
+        alert('❌ Rótulo é obrigatório!');
+        return;
+    }
+    
+    const filterData = { 
+        field, 
+        label, 
+        type, 
+        default_value: defaultValue,
+        required: required,
+        filter_report_id: filterReportId ? parseInt(filterReportId) : null,
+        source_report_id: sourceReportId ? parseInt(sourceReportId) : null
+    };
+    
+    filters.push(filterData);
+    updateFiltersDisplay();
+    
+    bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
+    console.log('✅ Filtro adicionado:', label);
+}
+
+// Funções de Modal de Gráfico
+function openChartModal(preSelectedGroupBy = '', preSelectedValue = '') {
+    document.getElementById('chartModalTitle').textContent = 'Adicionar Gráfico';
+    document.getElementById('chartType').value = 'bar';
+    document.getElementById('chartTitle').value = '';
+    document.getElementById('chartGroupByReport').value = '';
+    document.getElementById('chartGroupBy').value = '';
+    document.getElementById('chartValueReport').value = '';
+    document.getElementById('chartValueField').value = '';
+    document.getElementById('chartAggregation').value = 'sum';
+    document.getElementById('chartColor').value = '#4CAF50';
+    document.getElementById('chartEditKey').value = '';
+    document.getElementById('chartPreSelectedGroupBy').value = preSelectedGroupBy;
+    document.getElementById('chartPreSelectedValue').value = preSelectedValue;
+    
+    // Esconder containers
+    document.getElementById('chartGroupByContainer').style.display = 'none';
+    document.getElementById('chartValueContainer').style.display = 'none';
+    
+    // Popular dropdowns
+    populateChartReportDropdowns();
+    
+    // Se houver campos pré-selecionados
+    if (selectedReports.length > 0) {
+        if (preSelectedGroupBy) {
+            document.getElementById('chartGroupByReport').value = selectedReports[0].id;
+            loadChartGroupByFields();
+            setTimeout(() => {
+                document.getElementById('chartGroupBy').value = preSelectedGroupBy;
+            }, 300);
+        }
+        if (preSelectedValue) {
+            document.getElementById('chartValueReport').value = selectedReports[0].id;
+            loadChartValueFields();
+            setTimeout(() => {
+                document.getElementById('chartValueField').value = preSelectedValue;
+            }, 300);
+        }
+    }
+    
+    new bootstrap.Modal(document.getElementById('chartModal')).show();
+}
+
+function saveChart() {
+    const type = document.getElementById('chartType').value;
+    const title = document.getElementById('chartTitle').value.trim();
+    const groupBy = document.getElementById('chartGroupBy').value;
+    const valueField = document.getElementById('chartValueField').value;
+    const aggregation = document.getElementById('chartAggregation').value;
+    const color = document.getElementById('chartColor').value;
+    const groupByReport = document.getElementById('chartGroupByReport').value;
+    const valueReport = document.getElementById('chartValueReport').value;
+    
+    if (!title) {
+        alert('❌ Título é obrigatório!');
+        return;
+    }
+    
+    if (!groupBy) {
+        alert('❌ Selecione o campo de agrupamento (Eixo X)!');
+        return;
+    }
+    
+    if (!valueField) {
+        alert('❌ Selecione o campo de valor (Eixo Y)!');
+        return;
+    }
+    
+    const chartData = { 
+        type, 
+        title, 
+        group_by: groupBy, 
+        value_field: valueField, 
+        aggregation, 
+        color,
+        group_by_report_id: groupByReport ? parseInt(groupByReport) : null,
+        value_report_id: valueReport ? parseInt(valueReport) : null
+    };
+    
+    const newKey = 'chart' + (Object.keys(charts).length + 1);
+    charts[newKey] = chartData;
+    updateChartsDisplay();
+    
+    bootstrap.Modal.getInstance(document.getElementById('chartModal')).hide();
+    console.log('✅ Gráfico adicionado:', title);
+}
+
+// Funções de suporte para popula dropdowns
+function populateReportDropdowns() {
+    const kpiSource = document.getElementById('kpiSource');
+    if (kpiSource) {
+        kpiSource.innerHTML = '<option value="">-- Escolha --</option>';
+        selectedReports.forEach(report => {
+            const opt = document.createElement('option');
+            opt.value = report.id;
+            opt.textContent = report.name;
+            kpiSource.appendChild(opt);
+        });
+    }
+}
+
+function populateFilterReportDropdowns() {
+    const filterReportSource = document.getElementById('filterReportSource');
+    if (!filterReportSource) return;
+    
+    filterReportSource.innerHTML = '<option value="">-- Escolha o relatório --</option>';
+    selectedReports.forEach(report => {
+        const opt = document.createElement('option');
+        opt.value = report.id;
+        opt.textContent = report.name;
+        filterReportSource.appendChild(opt);
+    });
+}
+
+function populateChartReportDropdowns() {
+    const groupByReport = document.getElementById('chartGroupByReport');
+    const valueReport = document.getElementById('chartValueReport');
+    
+    if (groupByReport) {
+        groupByReport.innerHTML = '<option value="">-- Escolha o relatório --</option>';
+        selectedReports.forEach(report => {
+            const opt = document.createElement('option');
+            opt.value = report.id;
+            opt.textContent = report.name;
+            groupByReport.appendChild(opt);
+        });
+    }
+    
+    if (valueReport) {
+        valueReport.innerHTML = '<option value="">-- Escolha o relatório --</option>';
+        selectedReports.forEach(report => {
+            const opt = document.createElement('option');
+            opt.value = report.id;
+            opt.textContent = report.name;
+            valueReport.appendChild(opt);
+        });
+    }
+}
+
+// Funções de cascata para carregar campos
+function loadKpiFieldsFromSource() {
+    const sourceType = document.getElementById('kpiSourceType').value;
+    const sourceContainer = document.getElementById('kpiSourceContainer');
+    const fieldContainer = document.getElementById('kpiFieldContainer');
+    
+    if (!sourceType) {
+        sourceContainer.style.display = 'none';
+        fieldContainer.style.display = 'none';
+        return;
+    }
+    
+    if (sourceType === 'measure') {
+        // Usar medidas calculadas - pular etapa 2, mostrar campos diretamente
+        sourceContainer.style.display = 'none';
+        fieldContainer.style.display = 'block';
+        
+        const fieldSelect = document.getElementById('kpiField');
+        fieldSelect.innerHTML = '<option value="">-- Escolha a medida --</option>';
+        
+        measures.forEach(measure => {
+            const opt = document.createElement('option');
+            opt.value = measure.name;
+            opt.textContent = measure.name;
+            fieldSelect.appendChild(opt);
+        });
+    } else {
+        // Usar campos de relatório
+        sourceContainer.style.display = 'block';
+        fieldContainer.style.display = 'none';
+        
+        const sourceSelect = document.getElementById('kpiSource');
+        sourceSelect.innerHTML = '<option value="">-- Escolha o relatório --</option>';
+        selectedReports.forEach(report => {
+            const opt = document.createElement('option');
+            opt.value = report.id;
+            opt.textContent = report.name;
+            sourceSelect.appendChild(opt);
+        });
+    }
+}
+
+function loadKpiFields() {
+    const reportId = document.getElementById('kpiSource').value;
+    const fieldContainer = document.getElementById('kpiFieldContainer');
+    const fieldSelect = document.getElementById('kpiField');
+    
+    if (!reportId) {
+        fieldContainer.style.display = 'none';
+        return;
+    }
+    
+    fieldContainer.style.display = 'block';
+    fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
+    
+    const reportData = availableFields[reportId];
+    if (reportData && reportData.fields) {
+        reportData.fields.forEach(field => {
+            const opt = document.createElement('option');
+            opt.value = field;
+            opt.textContent = field;
+            fieldSelect.appendChild(opt);
+        });
+    }
+}
+
+function loadFilterFields() {
+    const reportId = document.getElementById('filterReportSource').value;
+    const fieldContainer = document.getElementById('filterFieldContainer');
+    const fieldSelect = document.getElementById('filterField');
+    
+    if (!reportId) {
+        fieldContainer.style.display = 'none';
+        return;
+    }
+    
+    fieldContainer.style.display = 'block';
+    fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
+    
+    const reportData = availableFields[reportId];
+    if (reportData && reportData.fields) {
+        reportData.fields.forEach(field => {
+            const opt = document.createElement('option');
+            opt.value = field;
+            opt.textContent = field;
+            fieldSelect.appendChild(opt);
+        });
+    }
+}
+
+function loadChartGroupByFields() {
+    const reportId = document.getElementById('chartGroupByReport').value;
+    const fieldContainer = document.getElementById('chartGroupByContainer');
+    const fieldSelect = document.getElementById('chartGroupBy');
+    
+    if (!reportId) {
+        fieldContainer.style.display = 'none';
+        return;
+    }
+    
+    fieldContainer.style.display = 'block';
+    fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
+    
+    const reportData = availableFields[reportId];
+    if (reportData && reportData.fields) {
+        reportData.fields.forEach(field => {
+            const opt = document.createElement('option');
+            opt.value = field;
+            opt.textContent = field;
+            fieldSelect.appendChild(opt);
+        });
+    }
+}
+
+function loadChartValueFields() {
+    const reportId = document.getElementById('chartValueReport').value;
+    const fieldContainer = document.getElementById('chartValueContainer');
+    const fieldSelect = document.getElementById('chartValueField');
+    
+    if (!reportId) {
+        fieldContainer.style.display = 'none';
+        return;
+    }
+    
+    fieldContainer.style.display = 'block';
+    fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
+    
+    const reportData = availableFields[reportId];
+    if (reportData && reportData.fields) {
+        reportData.fields.forEach(field => {
+            const opt = document.createElement('option');
+            opt.value = field;
+            opt.textContent = field;
+            fieldSelect.appendChild(opt);
+        });
+    }
+}
+
+// ========== FIM DAS FUNÇÕES DOS MODAIS ==========
 
 // Atualizar painel de campos para incluir medidas
 function updateFieldsPanel() {

@@ -125,7 +125,12 @@ class LoadPageAdm
         "ListDynamicReports", "DynamicReportBuilder", "ViewDynamicReport", "SaveDynamicReport", "ExecuteDynamicReport",
         "DeleteDynamicReport", "ExportDynamicReportExcel", "ExportDynamicReportPdf", "ExportDynamicReportCsv",
         // Dashboards de KPI
-        "ListKpiDashboards", "ViewKpiDashboard", "CreateKpiDashboard", "UpdateKpiDashboard", "DeleteKpiDashboard", "GetKpiWidgetData"
+        "ListKpiDashboards", "ViewKpiDashboard", "CreateKpiDashboard", "UpdateKpiDashboard", "DeleteKpiDashboard", "GetKpiWidgetData",
+        // Dashboards Dinâmicos (Power BI-like)
+        "ListDashboards", "CreateDashboard", "ViewDashboard", "EditDashboard", "DeleteDashboard", "DuplicateDashboard",
+        "ExecuteDashboard", "GetFilterOptions",
+        // Dashboard de Vendas SAP B1
+        "SalesDashboard", "SalesDashboardData"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
