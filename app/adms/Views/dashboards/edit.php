@@ -70,6 +70,11 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                     <i class="fas fa-chart-bar"></i> Gráficos <span class="badge bg-secondary" id="chartsCount"><?= count($chartsConfig) ?></span>
                 </button>
             </li>
+            <li class="nav-item">
+                <button class="nav-link" id="relationships-tab" data-bs-toggle="tab" data-bs-target="#relationshipsConfig" type="button">
+                    <i class="fas fa-project-diagram"></i> Relacionamentos <span class="badge bg-secondary" id="relationshipsCount">0</span>
+                </button>
+            </li>
         </ul>
         
         <div class="tab-content" id="editTabsContent">
@@ -175,7 +180,7 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                             <i class="fas fa-plus"></i> Adicionar Nova Medida
                         </button>
                         
-                        <input type="hidden" name="measures_config" id="measuresConfig">
+                        <input type="hidden" name="measures_config" id="measuresConfigInput">
                     </div>
                 </div>
             </div>
@@ -200,7 +205,7 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                             <i class="fas fa-plus"></i> Adicionar Novo KPI
                         </button>
                         
-                        <input type="hidden" name="kpis_config" id="kpisConfig">
+                        <input type="hidden" name="kpis_config" id="kpisConfigInput">
                     </div>
                 </div>
             </div>
@@ -225,7 +230,7 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                             <i class="fas fa-plus"></i> Adicionar Novo Filtro
                         </button>
                         
-                        <input type="hidden" name="filters_config" id="filtersConfig">
+                        <input type="hidden" name="filters_config" id="filtersConfigInput">
                     </div>
                 </div>
             </div>
@@ -250,13 +255,97 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                             <i class="fas fa-plus"></i> Adicionar Novo Gráfico
                         </button>
                         
-                        <input type="hidden" name="charts_config" id="chartsConfig">
+                        <input type="hidden" name="charts_config" id="chartsConfigInput">
                     </div>
                 </div>
             </div>
             
+            <div class="tab-pane fade" id="relationshipsConfig" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-project-diagram"></i> Relacionamentos entre Fontes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-link"></i>
+                            Conecte relatórios usando campos-chave para combinar dados e propagar filtros como no Power BI.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-lg-8">
+                        <div class="relationship-canvas border rounded p-3 bg-light position-relative" id="relationshipsCanvas"></div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header bg-light fw-bold">
+                                        <i class="fas fa-plus-circle"></i> Nova Conexão
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Relatório Primário</label>
+                                            <select class="form-select" id="relationshipPrimaryReport"></select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Campo Primário</label>
+                                            <select class="form-select" id="relationshipPrimaryField"></select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Relatório Relacionado</label>
+                                            <select class="form-select" id="relationshipForeignReport"></select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Campo Relacionado</label>
+                                            <select class="form-select" id="relationshipForeignField"></select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Tipo de Relacionamento</label>
+                                            <select class="form-select" id="relationshipType">
+                                                <option value="one_to_many">1 : N (Um para muitos)</option>
+                                                <option value="many_to_one">N : 1 (Muitos para um)</option>
+                                                <option value="many_to_many">N : N (Muitos para muitos)</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Direção do Filtro</label>
+                                            <select class="form-select" id="relationshipFilterDirection">
+                                                <option value="bidirectional">Bidirecional</option>
+                                                <option value="primary_to_foreign">Primário → Relacionado</option>
+                                                <option value="foreign_to_primary">Relacionado → Primário</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Tipo de Junção</label>
+                                            <select class="form-select" id="relationshipJoinType">
+                                                <option value="inner">INNER JOIN</option>
+                                                <option value="left">LEFT JOIN</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" value="1" id="relationshipActive" checked>
+                                            <label class="form-check-label" for="relationshipActive">Relacionamento ativo</label>
+                                        </div>
+                                        <button type="button" class="btn btn-warning w-100" id="addRelationshipBtn">
+                                            <i class="fas fa-link"></i> Criar Relacionamento
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-3 small text-muted">
+                                    <i class="fas fa-lightbulb"></i> Adicione os relatórios na aba "Fontes de Dados" antes de configurar um relacionamento.
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="fw-bold">Relacionamentos existentes</h6>
+                        <div id="relationshipsList" class="list-group mb-3"></div>
+
+                        <input type="hidden" name="relationships" id="relationshipsConfigInput">
+                    </div>
+                </div>
+            </div>
         </div>
-        
+
         <!-- Botões de Ação Fixos -->
         <div class="card shadow-sm mt-4 sticky-bottom bg-light">
             <div class="card-body">
@@ -630,21 +719,64 @@ let measures = <?= json_encode($measuresConfig) ?>;
 let kpis = <?= json_encode($kpisConfig) ?>;
 let filters = <?= json_encode($filtersConfig) ?>;
 let charts = <?= json_encode($chartsConfig) ?>;
+let relationships = <?= json_encode($dashboard['relationships'] ?? []) ?>;
 let linkedReports = <?= json_encode($dashboard['reports'] ?? []) ?>;
 let availableReports = <?= json_encode($reports) ?>;
 let availableFields = {};
+let relationshipEditIndex = -1;
+let currentRelationshipSelection = null;
 
-console.log('📊 Dashboard carregado:', { measures, kpis, filters, charts, linkedReports });
+const RELATIONSHIP_NODE_WIDTH = 220;
+const RELATIONSHIP_NODE_HEIGHT = 140;
+let relationshipPositions = {};
+let relationshipLayoutMeta = { width: null, height: null };
+const relationshipCanvasState = { canvas: null, svg: null, edgesGroup: null, nodeElements: {}, edges: [], listItems: {} };
+let relationshipRenderTimer = null;
+
+if (!Array.isArray(relationships)) {
+    relationships = [];
+}
+
+console.log('📊 Dashboard carregado:', { measures, kpis, filters, charts, relationships, linkedReports });
+
+function getReportFields(reportId) {
+    const numericId = parseInt(reportId);
+    const sources = [
+        availableFields[numericId],
+        availableFields[String(numericId)],
+        availableFields[reportId]
+    ];
+
+    for (const source of sources) {
+        if (!source) {
+            continue;
+        }
+
+        if (Array.isArray(source)) {
+            return source;
+        }
+
+        if (source.fields && Array.isArray(source.fields)) {
+            return source.fields;
+        }
+    }
+
+    return [];
+}
 
 // ========== INICIALIZAÇÃO DOS CAMPOS HIDDEN ==========
 // CRÍTICO: Inicializar campos hidden no carregamento da página
 // Se não fizer isso, ao clicar em "Salvar" sem ter editado nada, 
 // o servidor receberá valores vazios e apagará todas as configurações!
 function initializeHiddenFields() {
-    document.getElementById('measuresConfig').value = JSON.stringify(measures);
-    document.getElementById('kpisConfig').value = JSON.stringify(kpis);
-    document.getElementById('filtersConfig').value = JSON.stringify(filters);
-    document.getElementById('chartsConfig').value = JSON.stringify(charts);
+    document.getElementById('measuresConfigInput').value = JSON.stringify(measures);
+    document.getElementById('kpisConfigInput').value = JSON.stringify(kpis);
+    document.getElementById('filtersConfigInput').value = JSON.stringify(filters);
+    document.getElementById('chartsConfigInput').value = JSON.stringify(charts);
+    const relationshipsInput = document.getElementById('relationshipsConfigInput');
+    if (relationshipsInput) {
+        relationshipsInput.value = JSON.stringify(relationships);
+    }
     document.getElementById('reportIdsInput').value = JSON.stringify(linkedReports.map(r => r.report_id));
     
     console.log('✅ Campos hidden inicializados');
@@ -653,6 +785,7 @@ function initializeHiddenFields() {
     console.log('   filters:', filters.length);
     console.log('   charts:', Object.keys(charts).length);
     console.log('   reports:', linkedReports.length);
+    console.log('   relationships:', relationships.length);
 }
 
 // Inicializar ao carregar
@@ -664,6 +797,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateKpisDisplay();
     updateFiltersDisplay();
     updateChartsDisplay();
+    updateRelationshipsDisplay();
+    refreshRelationshipDropdowns();
     
     // Event delegation para botões de relatórios (evita múltiplos listeners)
     const linkedReportsContainer = document.getElementById('linkedReportsContainer');
@@ -679,6 +814,26 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (primaryBtn) {
                 const index = parseInt(primaryBtn.getAttribute('data-index'));
                 setPrimaryReport(index);
+            }
+        });
+    }
+
+    // Eventos de relacionamento
+    document.getElementById('relationshipPrimaryReport')?.addEventListener('change', () => fillRelationshipFields('primary'));
+    document.getElementById('relationshipForeignReport')?.addEventListener('change', () => fillRelationshipFields('foreign'));
+    document.getElementById('addRelationshipBtn')?.addEventListener('click', addOrUpdateRelationship);
+
+    const relationshipsList = document.getElementById('relationshipsList');
+    if (relationshipsList) {
+        relationshipsList.addEventListener('click', function(e) {
+            const removeBtn = e.target.closest('.remove-relationship-btn');
+            const editBtn = e.target.closest('.edit-relationship-btn');
+            if (removeBtn) {
+                const index = parseInt(removeBtn.getAttribute('data-index'));
+                removeRelationship(index);
+            } else if (editBtn) {
+                const index = parseInt(editBtn.getAttribute('data-index'));
+                editRelationship(index);
             }
         });
     }
@@ -745,6 +900,7 @@ function updateLinkedReportsDisplay() {
     
     updateReportDropdown();
     loadFieldsFromReports(); // Recarregar campos
+    renderRelationshipsCanvas();
 }
 
 function updateReportDropdown() {
@@ -789,8 +945,13 @@ document.getElementById('addReportBtn')?.addEventListener('click', async functio
         is_primary: linkedReports.length === 0,
         display_order: linkedReports.length + 1
     });
+
+    relationshipPositions = {};
+    relationshipLayoutMeta = { width: null, height: null };
     
     updateLinkedReportsDisplay();
+    refreshRelationshipDropdowns();
+    updateRelationshipsDisplay();
     
     console.log('✅ Relatório adicionado:', report.name);
 });
@@ -832,12 +993,539 @@ function removeLinkedReport(index) {
     
     updateLinkedReportsDisplay();
     console.log('✅ Display atualizado');
+
+    // Remover relacionamentos que dependiam do relatório excluído
+    const removedReportId = removed[0]?.report_id;
+    if (removedReportId) {
+        const originalLength = relationships.length;
+        relationships = relationships.filter(rel => rel.primary_report_id !== removedReportId && rel.foreign_report_id !== removedReportId);
+        if (relationships.length !== originalLength) {
+            console.log('🔄 Relacionamentos atualizados após remoção de relatório.');
+        }
+
+        if (relationships.length === 0) {
+            currentRelationshipSelection = null;
+        } else if (currentRelationshipSelection !== null) {
+            if (currentRelationshipSelection >= relationships.length) {
+                currentRelationshipSelection = relationships.length - 1;
+            }
+        }
+
+        updateRelationshipsDisplay();
+        refreshRelationshipDropdowns();
+    }
+
+    if (removedReportId) {
+        delete relationshipPositions[removedReportId];
+        relationshipLayoutMeta = { width: null, height: null };
+    }
 }
 
 function setPrimaryReport(index) {
     linkedReports.forEach(r => r.is_primary = false);
     linkedReports[index].is_primary = true;
     updateLinkedReportsDisplay();
+}
+
+function refreshRelationshipDropdowns() {
+    const primarySelect = document.getElementById('relationshipPrimaryReport');
+    const foreignSelect = document.getElementById('relationshipForeignReport');
+    const addButton = document.getElementById('addRelationshipBtn');
+
+    if (!primarySelect || !foreignSelect) {
+        return;
+    }
+
+    const prevPrimary = primarySelect.value;
+    const prevForeign = foreignSelect.value;
+
+    primarySelect.innerHTML = '<option value="">-- Selecionar relatório --</option>';
+    foreignSelect.innerHTML = '<option value="">-- Selecionar relatório --</option>';
+
+    linkedReports.forEach(report => {
+        const optionPrimary = document.createElement('option');
+        optionPrimary.value = report.report_id;
+        optionPrimary.textContent = report.name || `Relatório ${report.report_id}`;
+        primarySelect.appendChild(optionPrimary);
+
+        const optionForeign = optionPrimary.cloneNode(true);
+        foreignSelect.appendChild(optionForeign);
+    });
+
+    if (prevPrimary && [...primarySelect.options].some(opt => opt.value === prevPrimary)) {
+        primarySelect.value = prevPrimary;
+    }
+    if (prevForeign && [...foreignSelect.options].some(opt => opt.value === prevForeign)) {
+        foreignSelect.value = prevForeign;
+    }
+
+    fillRelationshipFields('primary');
+    fillRelationshipFields('foreign');
+
+    if (addButton) {
+        addButton.disabled = linkedReports.length < 2;
+        addButton.title = linkedReports.length < 2 ? 'Adicione pelo menos dois relatórios para criar relacionamentos.' : '';
+    }
+
+    renderRelationshipsCanvas();
+}
+
+function fillRelationshipFields(type) {
+    const reportSelect = type === 'primary'
+        ? document.getElementById('relationshipPrimaryReport')
+        : document.getElementById('relationshipForeignReport');
+    const fieldSelect = type === 'primary'
+        ? document.getElementById('relationshipPrimaryField')
+        : document.getElementById('relationshipForeignField');
+
+    if (!reportSelect || !fieldSelect) {
+        return;
+    }
+
+    const previousValue = fieldSelect.value;
+    fieldSelect.innerHTML = '<option value="">-- Selecionar campo --</option>';
+
+    const reportId = parseInt(reportSelect.value);
+    if (!reportId || !availableFields[reportId]?.fields) {
+        fieldSelect.disabled = true;
+        return;
+    }
+
+    availableFields[reportId].fields.forEach(fieldName => {
+        const option = document.createElement('option');
+        option.value = fieldName;
+        option.textContent = fieldName;
+        fieldSelect.appendChild(option);
+    });
+
+    fieldSelect.disabled = false;
+
+    if (previousValue && [...fieldSelect.options].some(opt => opt.value === previousValue)) {
+        fieldSelect.value = previousValue;
+    }
+}
+
+function updateRelationshipsDisplay() {
+    const list = document.getElementById('relationshipsList');
+    const badge = document.getElementById('relationshipsCount');
+    const hiddenInput = document.getElementById('relationshipsConfigInput');
+
+    if (!list) {
+        return;
+    }
+
+    relationshipCanvasState.listItems = {};
+
+    if (currentRelationshipSelection !== null && (!Array.isArray(relationships) || currentRelationshipSelection >= relationships.length)) {
+        currentRelationshipSelection = (relationships && relationships.length > 0) ? relationships.length - 1 : null;
+    }
+
+    list.innerHTML = '';
+
+    if (!Array.isArray(relationships) || relationships.length === 0) {
+        list.innerHTML = '<div class="list-group-item list-group-item-light"><i class="fas fa-info-circle"></i> Nenhum relacionamento configurado.</div>';
+    } else {
+        relationships.forEach((rel, index) => {
+            const primaryName = getReportName(rel.primary_report_id);
+            const foreignName = getReportName(rel.foreign_report_id);
+            const item = document.createElement('div');
+            item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-3';
+            item.dataset.relationshipIndex = String(index);
+            item.innerHTML = `
+                <div>
+                    <div class="fw-bold">${primaryName || 'Relatório ' + rel.primary_report_id}<span class="text-muted">.${rel.primary_field}</span>
+                        <i class="fas fa-exchange-alt text-muted mx-2"></i>
+                        ${foreignName || 'Relatório ' + rel.foreign_report_id}<span class="text-muted">.${rel.foreign_field}</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Tipo: ${rel.relationship_type || 'one_to_many'} |
+                        Filtro: ${rel.filter_direction || 'bidirectional'} |
+                        Junção: ${rel.join_type || 'inner'}
+                        ${rel.active ? '' : ' | <span class="text-danger">Inativo</span>'}
+                    </div>
+                </div>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary edit-relationship-btn" data-index="${index}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger remove-relationship-btn" data-index="${index}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            item.addEventListener('click', (event) => {
+                if (event.target.closest('button')) {
+                    return;
+                }
+                focusRelationship(index, { scrollToList: false });
+            });
+
+            list.appendChild(item);
+            relationshipCanvasState.listItems[index] = item;
+        });
+    }
+
+    if (badge) {
+        badge.textContent = Array.isArray(relationships) ? relationships.length : 0;
+    }
+    if (hiddenInput) {
+        hiddenInput.value = JSON.stringify(relationships);
+    }
+
+    renderRelationshipsCanvas();
+    applyRelationshipSelection();
+}
+
+function addOrUpdateRelationship() {
+    const primaryReportId = parseInt(document.getElementById('relationshipPrimaryReport')?.value || '');
+    const primaryField = document.getElementById('relationshipPrimaryField')?.value || '';
+    const foreignReportId = parseInt(document.getElementById('relationshipForeignReport')?.value || '');
+    const foreignField = document.getElementById('relationshipForeignField')?.value || '';
+    const relationshipType = document.getElementById('relationshipType')?.value || 'one_to_many';
+    const filterDirection = document.getElementById('relationshipFilterDirection')?.value || 'bidirectional';
+    const joinType = document.getElementById('relationshipJoinType')?.value || 'inner';
+    const isActive = document.getElementById('relationshipActive')?.checked ?? true;
+
+    if (!primaryReportId || !primaryField || !foreignReportId || !foreignField) {
+        alert('❌ Informe relatório e campo em ambos os lados do relacionamento.');
+        return;
+    }
+
+    if (primaryReportId === foreignReportId && primaryField === foreignField) {
+        alert('❌ O relacionamento precisa usar campos diferentes.');
+        return;
+    }
+
+    const relationshipData = {
+        ...(
+            relationshipEditIndex >= 0
+                ? relationships[relationshipEditIndex] || {}
+                : {}
+        ),
+        primary_report_id: primaryReportId,
+        primary_field: primaryField,
+        foreign_report_id: foreignReportId,
+        foreign_field: foreignField,
+        relationship_type: relationshipType,
+        filter_direction: filterDirection,
+        join_type: joinType,
+        active: isActive ? 1 : 0
+    };
+
+    let targetIndex;
+
+    if (relationshipEditIndex >= 0) {
+        relationships[relationshipEditIndex] = relationshipData;
+        targetIndex = relationshipEditIndex;
+    } else {
+        const duplicate = relationships.find(rel => rel.primary_report_id === relationshipData.primary_report_id &&
+            rel.primary_field === relationshipData.primary_field &&
+            rel.foreign_report_id === relationshipData.foreign_report_id &&
+            rel.foreign_field === relationshipData.foreign_field);
+        if (duplicate) {
+            alert('⚠️ Já existe um relacionamento configurado com esses campos.');
+            return;
+        }
+        relationships.push(relationshipData);
+        targetIndex = relationships.length - 1;
+    }
+
+    updateRelationshipsDisplay();
+    focusRelationship(targetIndex, { openForm: true, scrollToList: true });
+}
+
+function renderRelationshipsCanvas() {
+    const canvas = document.getElementById('relationshipsCanvas');
+    if (!canvas) {
+        return;
+    }
+
+    relationshipCanvasState.canvas = canvas;
+    canvas.innerHTML = '';
+
+    if (!Array.isArray(linkedReports) || linkedReports.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'relationship-placeholder';
+        emptyMessage.innerHTML = '<i class="fas fa-info-circle"></i> Adicione relatórios na aba "Fontes de Dados" para habilitar relacionamentos.';
+        canvas.appendChild(emptyMessage);
+        relationshipCanvasState.svg = null;
+        relationshipCanvasState.edgesGroup = null;
+        relationshipCanvasState.nodeElements = {};
+        return;
+    }
+
+    const width = canvas.clientWidth || canvas.offsetWidth || 780;
+    const height = Math.max(canvas.clientHeight || canvas.offsetHeight || 420, 360);
+
+    if (!relationshipLayoutMeta.width || Object.keys(relationshipPositions).length !== linkedReports.length) {
+        relationshipPositions = computeRelationshipAutoLayout(linkedReports, width, height);
+    } else if (relationshipLayoutMeta.width && relationshipLayoutMeta.height && (relationshipLayoutMeta.width !== width || relationshipLayoutMeta.height !== height)) {
+        const scaleX = width / relationshipLayoutMeta.width;
+        const scaleY = height / relationshipLayoutMeta.height;
+        Object.keys(relationshipPositions).forEach((key) => {
+            const pos = relationshipPositions[key];
+            relationshipPositions[key] = {
+                x: clampValue(pos.x * scaleX, RELATIONSHIP_NODE_WIDTH / 2, width - RELATIONSHIP_NODE_WIDTH / 2),
+                y: clampValue(pos.y * scaleY, RELATIONSHIP_NODE_HEIGHT / 2, height - RELATIONSHIP_NODE_HEIGHT / 2)
+            };
+        });
+    }
+
+    relationshipLayoutMeta = { width, height };
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('relationship-svg');
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    defs.appendChild(createRelationshipMarker('relationshipArrowEnd', '#0d6efd', false));
+    defs.appendChild(createRelationshipMarker('relationshipArrowStart', '#0d6efd', true));
+    svg.appendChild(defs);
+
+    const edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    edgesGroup.setAttribute('class', 'relationship-edges-group');
+    svg.appendChild(edgesGroup);
+
+    const nodesLayer = document.createElement('div');
+    nodesLayer.className = 'relationship-nodes-layer';
+
+    relationshipCanvasState.svg = svg;
+    relationshipCanvasState.edgesGroup = edgesGroup;
+    relationshipCanvasState.nodeElements = {};
+    relationshipCanvasState.edges = [];
+
+    if (!canvas.dataset.relationshipCanvasBound) {
+        canvas.addEventListener('click', (event) => {
+            if (event.target === canvas || event.target.classList.contains('relationship-nodes-layer')) {
+                clearRelationshipSelection();
+            }
+        });
+        canvas.dataset.relationshipCanvasBound = '1';
+    }
+
+    linkedReports.forEach((report) => {
+        const reportId = report.report_id ?? report.id;
+        const position = relationshipPositions[reportId];
+
+        const node = document.createElement('div');
+        node.className = 'relationship-node-card' + (report.is_primary ? ' relationship-node-primary' : '');
+        node.dataset.reportId = reportId;
+
+        const header = document.createElement('div');
+        header.className = 'relationship-node-header';
+        const headerIcon = document.createElement('i');
+        headerIcon.className = 'fas fa-database';
+        const headerText = document.createElement('span');
+        headerText.textContent = report.name || `Relatório ${reportId}`;
+        header.appendChild(headerIcon);
+        header.appendChild(headerText);
+        if (report.is_primary) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary ms-1';
+            badge.textContent = 'Principal';
+            header.appendChild(badge);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'relationship-node-body';
+        const idInfo = document.createElement('small');
+        idInfo.textContent = `ID: ${reportId}`;
+        body.appendChild(idInfo);
+
+        if (report.category) {
+            const categoryBadge = document.createElement('span');
+            categoryBadge.className = 'badge bg-light text-dark mt-1';
+            categoryBadge.textContent = report.category;
+            body.appendChild(categoryBadge);
+        }
+        if (report.data_source) {
+            const sourceBadge = document.createElement('span');
+            sourceBadge.className = 'badge bg-info text-white ms-1 mt-1';
+            sourceBadge.textContent = String(report.data_source).toUpperCase();
+            body.appendChild(sourceBadge);
+        }
+
+        node.appendChild(header);
+        node.appendChild(body);
+
+        nodesLayer.appendChild(node);
+        relationshipCanvasState.nodeElements[reportId] = node;
+
+        setRelationshipNodePosition(node, position);
+        initRelationshipNodeDrag(node, reportId);
+    });
+
+    canvas.appendChild(svg);
+    canvas.appendChild(nodesLayer);
+
+    updateRelationshipEdges();
+
+    if (!Array.isArray(relationships) || relationships.length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'relationship-placeholder relationship-placeholder-on-top';
+        hint.innerHTML = '<i class="fas fa-info-circle"></i> Nenhum relacionamento configurado. Use o formulário à direita para criar conexões.';
+        canvas.appendChild(hint);
+    }
+}
+
+function resetRelationshipForm() {
+    relationshipEditIndex = -1;
+    const primarySelect = document.getElementById('relationshipPrimaryReport');
+    const foreignSelect = document.getElementById('relationshipForeignReport');
+    if (primarySelect) primarySelect.value = '';
+    if (foreignSelect) foreignSelect.value = '';
+    fillRelationshipFields('primary');
+    fillRelationshipFields('foreign');
+    const relTypeSelect = document.getElementById('relationshipType');
+    if (relTypeSelect) relTypeSelect.value = 'one_to_many';
+    const filterDirectionSelect = document.getElementById('relationshipFilterDirection');
+    if (filterDirectionSelect) filterDirectionSelect.value = 'bidirectional';
+    const joinTypeSelect = document.getElementById('relationshipJoinType');
+    if (joinTypeSelect) joinTypeSelect.value = 'inner';
+    const activeCheckbox = document.getElementById('relationshipActive');
+    if (activeCheckbox) activeCheckbox.checked = true;
+    const addButton = document.getElementById('addRelationshipBtn');
+    if (addButton) {
+        addButton.textContent = 'Criar Relacionamento';
+    }
+}
+
+function clearRelationshipSelection() {
+    currentRelationshipSelection = null;
+    applyRelationshipSelection();
+    resetRelationshipForm();
+}
+
+function focusRelationship(index, options = {}) {
+    const { openForm = true, scrollToList = false } = options;
+
+    if (!Array.isArray(relationships) || index < 0 || index >= relationships.length) {
+        return;
+    }
+
+    currentRelationshipSelection = index;
+    applyRelationshipSelection();
+
+    if (openForm) {
+        populateRelationshipForm(index);
+    }
+
+    if (scrollToList) {
+        const listItem = relationshipCanvasState.listItems[index];
+        if (listItem) {
+            listItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+}
+
+function applyRelationshipSelection() {
+    Object.values(relationshipCanvasState.nodeElements || {}).forEach((node) => {
+        node.classList.remove('relationship-node-selected');
+    });
+    Object.values(relationshipCanvasState.listItems || {}).forEach((item) => {
+        item.classList.remove('relationship-list-item-selected');
+    });
+
+    (relationshipCanvasState.edges || []).forEach((edge) => {
+        edge.line.classList.remove('relationship-edge-selected');
+        edge.label.classList.remove('relationship-edge-label-selected');
+    });
+
+    if (currentRelationshipSelection === null || currentRelationshipSelection < 0 || currentRelationshipSelection >= relationships.length) {
+        return;
+    }
+
+    const rel = relationships[currentRelationshipSelection];
+    const edgeMeta = (relationshipCanvasState.edges || []).find(e => e.index === currentRelationshipSelection);
+
+    if (edgeMeta) {
+        edgeMeta.line.classList.add('relationship-edge-selected');
+        edgeMeta.label.classList.add('relationship-edge-label-selected');
+    }
+
+    const primaryNode = relationshipCanvasState.nodeElements[rel.primary_report_id];
+    const foreignNode = relationshipCanvasState.nodeElements[rel.foreign_report_id];
+    if (primaryNode) primaryNode.classList.add('relationship-node-selected');
+    if (foreignNode) foreignNode.classList.add('relationship-node-selected');
+
+    const listItem = relationshipCanvasState.listItems[currentRelationshipSelection];
+    if (listItem) {
+        listItem.classList.add('relationship-list-item-selected');
+    }
+}
+
+function populateRelationshipForm(index) {
+    if (index < 0 || index >= relationships.length) {
+        return;
+    }
+
+    const rel = relationships[index];
+    relationshipEditIndex = index;
+    refreshRelationshipDropdowns();
+
+    document.getElementById('relationshipPrimaryReport').value = rel.primary_report_id;
+    fillRelationshipFields('primary');
+    document.getElementById('relationshipPrimaryField').value = rel.primary_field;
+
+    document.getElementById('relationshipForeignReport').value = rel.foreign_report_id;
+    fillRelationshipFields('foreign');
+    document.getElementById('relationshipForeignField').value = rel.foreign_field;
+
+    document.getElementById('relationshipType').value = rel.relationship_type || 'one_to_many';
+    document.getElementById('relationshipFilterDirection').value = rel.filter_direction || 'bidirectional';
+    document.getElementById('relationshipJoinType').value = rel.join_type || 'inner';
+    document.getElementById('relationshipActive').checked = !!rel.active;
+
+    const addButton = document.getElementById('addRelationshipBtn');
+    if (addButton) {
+        addButton.textContent = 'Salvar Relacionamento';
+    }
+}
+
+function removeRelationship(index) {
+    if (index < 0 || index >= relationships.length) {
+        return;
+    }
+
+    if (!confirm('❌ Remover este relacionamento?')) {
+        return;
+    }
+
+    relationships.splice(index, 1);
+
+    if (relationships.length === 0) {
+        currentRelationshipSelection = null;
+    } else if (currentRelationshipSelection !== null) {
+        if (currentRelationshipSelection === index) {
+            currentRelationshipSelection = null;
+        } else if (currentRelationshipSelection > index) {
+            currentRelationshipSelection -= 1;
+        }
+    }
+
+    updateRelationshipsDisplay();
+
+    if (currentRelationshipSelection !== null) {
+        focusRelationship(currentRelationshipSelection, { openForm: true, scrollToList: false });
+    } else {
+        clearRelationshipSelection();
+    }
+}
+
+function editRelationship(index) {
+    focusRelationship(index, { openForm: true, scrollToList: true });
+}
+
+function getReportName(reportId) {
+    const fromLinked = linkedReports.find(r => r.report_id === parseInt(reportId));
+    if (fromLinked) {
+        return fromLinked.name || `Relatório ${reportId}`;
+    }
+    const fromAvailable = availableReports.find(r => r.id === parseInt(reportId));
+    return fromAvailable ? fromAvailable.name : `Relatório ${reportId}`;
 }
 
 // ========== CAMPOS DISPONÍVEIS ==========
@@ -879,6 +1567,7 @@ async function loadFieldsFromReports() {
         }
         
         updateFieldDropdowns();
+        refreshRelationshipDropdowns();
         
     } catch (error) {
         console.error('❌ Erro ao carregar campos:', error);
@@ -1287,7 +1976,7 @@ function updateMeasuresDisplay() {
         });
     }
     
-    document.getElementById('measuresConfig').value = JSON.stringify(measures);
+    document.getElementById('measuresConfigInput').value = JSON.stringify(measures);
     document.getElementById('measuresCount').textContent = measures.length;
     
     // Atualizar dropdown de medidas no KPI
@@ -1410,7 +2099,7 @@ function updateKpisDisplay() {
         });
     }
     
-    document.getElementById('kpisConfig').value = JSON.stringify(kpis);
+    document.getElementById('kpisConfigInput').value = JSON.stringify(kpis);
     document.getElementById('kpisCount').textContent = kpis.length;
 }
 
@@ -1579,7 +2268,7 @@ function updateFiltersDisplay() {
         });
     }
     
-    document.getElementById('filtersConfig').value = JSON.stringify(filters);
+    document.getElementById('filtersConfigInput').value = JSON.stringify(filters);
     document.getElementById('filtersCount').textContent = filters.length;
 }
 
@@ -1691,7 +2380,8 @@ function saveFilter() {
         default_value: defaultValue,
         required: required,
         filter_report_id: filterReportId ? parseInt(filterReportId) : null,
-        source_field: sourceField
+        source_field: sourceField,
+        source_report_id: sourceReportId ? parseInt(sourceReportId) : null
     };
     
     console.log('💾 Dados finais do filtro:', filterData);
@@ -1761,7 +2451,7 @@ function updateChartsDisplay() {
         }
     }
     
-    document.getElementById('chartsConfig').value = JSON.stringify(charts);
+    document.getElementById('chartsConfigInput').value = JSON.stringify(charts);
     document.getElementById('chartsCount').textContent = Object.keys(charts).length;
 }
 
@@ -1900,10 +2590,10 @@ document.getElementById('dashboardForm').addEventListener('submit', function(e) 
     const dashboardIdValue = dashboardIdInput ? dashboardIdInput.value : 'NÃO ENCONTRADO';
     
     // Pegar valores dos campos hidden
-    const measuresValue = document.getElementById('measuresConfig').value;
-    const kpisValue = document.getElementById('kpisConfig').value;
-    const filtersValue = document.getElementById('filtersConfig').value;
-    const chartsValue = document.getElementById('chartsConfig').value;
+    const measuresValue = document.getElementById('measuresConfigInput').value;
+    const kpisValue = document.getElementById('kpisConfigInput').value;
+    const filtersValue = document.getElementById('filtersConfigInput').value;
+    const chartsValue = document.getElementById('chartsConfigInput').value;
     const reportIdsValue = document.getElementById('reportIdsInput').value;
     
     console.log('========================================');
@@ -1941,6 +2631,229 @@ document.getElementById('dashboardForm').addEventListener('submit', function(e) 
     
     console.log('✅ Enviando formulário...');
 });
+
+const relationshipCanvasState = { canvas: null, svg: null, edgesGroup: null, nodeElements: {} };
+let relationshipRenderTimer = null;
+
+window.addEventListener('resize', () => {
+    if (relationshipRenderTimer) {
+        clearTimeout(relationshipRenderTimer);
+    }
+    relationshipRenderTimer = setTimeout(() => {
+        renderRelationshipsCanvas();
+    }, 200);
+});
+
+function computeRelationshipAutoLayout(reports, width, height) {
+    const positions = {};
+    const total = reports.length;
+
+    if (total === 1) {
+        const reportId = reports[0].report_id ?? reports[0].id;
+        positions[reportId] = {
+            x: width / 2,
+            y: height / 2
+        };
+        return positions;
+    }
+
+    const radius = Math.max(Math.min(width, height) / 2 - Math.max(RELATIONSHIP_NODE_WIDTH, RELATIONSHIP_NODE_HEIGHT), 120);
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    reports.forEach((report, index) => {
+        const reportId = report.report_id ?? report.id;
+        const angle = (index / total) * (Math.PI * 2);
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        positions[reportId] = {
+            x: clampValue(x, RELATIONSHIP_NODE_WIDTH / 2, width - RELATIONSHIP_NODE_WIDTH / 2),
+            y: clampValue(y, RELATIONSHIP_NODE_HEIGHT / 2, height - RELATIONSHIP_NODE_HEIGHT / 2)
+        };
+    });
+
+    return positions;
+}
+
+function clampValue(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function createRelationshipMarker(id, color, reverse = false) {
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', id);
+    marker.setAttribute('markerWidth', '12');
+    marker.setAttribute('markerHeight', '12');
+    marker.setAttribute('refX', reverse ? '0' : '12');
+    marker.setAttribute('refY', '6');
+    marker.setAttribute('orient', 'auto');
+    marker.setAttribute('markerUnits', 'strokeWidth');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', reverse ? 'M12,0 L0,6 L12,12' : 'M0,0 L12,6 L0,12');
+    path.setAttribute('fill', color);
+
+    marker.appendChild(path);
+    return marker;
+}
+
+function setRelationshipNodePosition(node, position) {
+    if (!position) {
+        return;
+    }
+    node.style.left = `${position.x - RELATIONSHIP_NODE_WIDTH / 2}px`;
+    node.style.top = `${position.y - RELATIONSHIP_NODE_HEIGHT / 2}px`;
+}
+
+function initRelationshipNodeDrag(node, reportId) {
+    node.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        node.setPointerCapture(event.pointerId);
+        node.classList.add('relationship-node-dragging');
+
+        const startPosition = { ...relationshipPositions[reportId] };
+        const startX = event.clientX;
+        const startY = event.clientY;
+
+        const onPointerMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+            const width = relationshipLayoutMeta.width || (relationshipCanvasState.canvas?.clientWidth ?? 0);
+            const height = relationshipLayoutMeta.height || (relationshipCanvasState.canvas?.clientHeight ?? 0);
+
+            relationshipPositions[reportId] = {
+                x: clampValue(startPosition.x + deltaX, RELATIONSHIP_NODE_WIDTH / 2, width - RELATIONSHIP_NODE_WIDTH / 2),
+                y: clampValue(startPosition.y + deltaY, RELATIONSHIP_NODE_HEIGHT / 2, height - RELATIONSHIP_NODE_HEIGHT / 2)
+            };
+
+            setRelationshipNodePosition(node, relationshipPositions[reportId]);
+            updateRelationshipEdges();
+        };
+
+        const onPointerUp = () => {
+            node.classList.remove('relationship-node-dragging');
+            node.releasePointerCapture(event.pointerId);
+            node.removeEventListener('pointermove', onPointerMove);
+            node.removeEventListener('pointerup', onPointerUp);
+            node.removeEventListener('pointercancel', onPointerUp);
+        };
+
+        node.addEventListener('pointermove', onPointerMove);
+        node.addEventListener('pointerup', onPointerUp);
+        node.addEventListener('pointercancel', onPointerUp);
+    });
+}
+
+function getRelationshipCardinalityLabel(type) {
+    switch ((type || '').toLowerCase()) {
+        case 'one_to_many':
+            return '1 : N';
+        case 'many_to_one':
+            return 'N : 1';
+        case 'many_to_many':
+            return 'N : N';
+        default:
+            return type || '1 : N';
+    }
+}
+
+function updateRelationshipEdges() {
+    if (!relationshipCanvasState.svg || !relationshipCanvasState.edgesGroup) {
+        return;
+    }
+
+    const edgesGroup = relationshipCanvasState.edgesGroup;
+    while (edgesGroup.firstChild) {
+        edgesGroup.removeChild(edgesGroup.firstChild);
+    }
+
+    relationshipCanvasState.edges = [];
+
+    if (!Array.isArray(relationships) || relationships.length === 0) {
+        return;
+    }
+
+    relationships.forEach((relationship, index) => {
+        const primaryId = relationship.primary_report_id;
+        const foreignId = relationship.foreign_report_id;
+        const primaryPos = relationshipPositions[primaryId];
+        const foreignPos = relationshipPositions[foreignId];
+
+        if (!primaryPos || !foreignPos) {
+            return;
+        }
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('class', 'relationship-edge');
+        line.setAttribute('x1', primaryPos.x);
+        line.setAttribute('y1', primaryPos.y);
+        line.setAttribute('x2', foreignPos.x);
+        line.setAttribute('y2', foreignPos.y);
+        line.setAttribute('stroke', '#0d6efd');
+        line.setAttribute('stroke-width', '2');
+        line.dataset.relationshipIndex = String(index);
+
+        const direction = (relationship.filter_direction || 'bidirectional').toLowerCase();
+        if (direction === 'primary_to_foreign') {
+            line.setAttribute('marker-end', 'url(#relationshipArrowEnd)');
+        } else if (direction === 'foreign_to_primary') {
+            line.setAttribute('marker-start', 'url(#relationshipArrowStart)');
+        } else {
+            line.setAttribute('marker-start', 'url(#relationshipArrowStart)');
+            line.setAttribute('marker-end', 'url(#relationshipArrowEnd)');
+        }
+
+        const focusHandler = (event) => {
+            event.stopPropagation();
+            focusRelationship(index, { scrollToList: true });
+        };
+
+        line.addEventListener('click', focusHandler);
+        line.addEventListener('pointerdown', (event) => event.stopPropagation());
+        edgesGroup.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('class', 'relationship-edge-label');
+        text.setAttribute('text-anchor', 'middle');
+        text.style.pointerEvents = 'auto';
+        text.style.cursor = 'pointer';
+        text.dataset.relationshipIndex = String(index);
+
+        const midX = (primaryPos.x + foreignPos.x) / 2;
+        const midY = (primaryPos.y + foreignPos.y) / 2;
+        text.setAttribute('x', midX);
+        text.setAttribute('y', midY - 8);
+
+        const cardinalityLabel = getRelationshipCardinalityLabel(relationship.relationship_type);
+        const joinLabel = (relationship.join_type || 'INNER').toUpperCase();
+        let directionSymbol = '↔';
+        if (direction === 'primary_to_foreign') {
+            directionSymbol = '→';
+        } else if (direction === 'foreign_to_primary') {
+            directionSymbol = '←';
+        }
+
+        text.textContent = `${directionSymbol} ${cardinalityLabel} · ${joinLabel}`;
+        text.addEventListener('click', focusHandler);
+        text.addEventListener('pointerdown', (event) => event.stopPropagation());
+        edgesGroup.appendChild(text);
+
+        relationshipCanvasState.edges.push({
+            index,
+            line,
+            label: text,
+            primaryId,
+            foreignId
+        });
+    });
+
+    applyRelationshipSelection();
+}
+
 </script>
 
 <style>
@@ -1958,5 +2871,146 @@ document.getElementById('dashboardForm').addEventListener('submit', function(e) 
 
 .badge {
     font-size: 0.75rem;
+}
+
+.relationship-canvas {
+    position: relative;
+    min-height: 360px;
+    border: 1px solid #e0e3ef;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 25%, transparent 25%) -10px 0/20px 20px,
+                linear-gradient(225deg, rgba(13, 110, 253, 0.05) 25%, transparent 25%) -10px 0/20px 20px,
+                linear-gradient(45deg, rgba(13, 110, 253, 0.05) 25%, transparent 25%) 0 0/20px 20px,
+                linear-gradient(315deg, rgba(13, 110, 253, 0.05) 25%, #ffffff 25%) 0 0/20px 20px;
+    overflow: hidden;
+}
+
+.relationship-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.relationship-nodes-layer {
+    position: absolute;
+    inset: 0;
+}
+
+.relationship-node-card {
+    position: absolute;
+    width: 220px;
+    min-height: 140px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(13, 110, 253, 0.12);
+    padding: 12px 14px;
+    cursor: grab;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    user-select: none;
+}
+
+.relationship-node-card.relationship-node-dragging {
+    cursor: grabbing;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+    transform: scale(1.02);
+}
+
+.relationship-node-primary {
+    border: 1px solid rgba(13, 110, 253, 0.35);
+}
+
+.relationship-node-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #0d6efd;
+    margin-bottom: 4px;
+}
+
+.relationship-node-header i {
+    font-size: 1rem;
+}
+
+.relationship-node-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #495057;
+}
+
+.relationship-node-body .badge {
+    align-self: flex-start;
+}
+
+.relationship-placeholder {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    background: rgba(248, 249, 250, 0.95);
+    border: 1px dashed rgba(13, 110, 253, 0.25);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    pointer-events: none;
+}
+
+.relationship-placeholder-on-top {
+    bottom: 12px;
+    top: auto;
+}
+
+.relationship-edges-group .relationship-edge {
+    pointer-events: stroke;
+    cursor: pointer;
+}
+
+.relationship-edge-label {
+    fill: #0d6efd;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-shadow: 0 0 4px #ffffff;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.relationship-edge-selected {
+    stroke: #fd7e14 !important;
+}
+
+.relationship-edge-label-selected {
+    fill: #fd7e14 !important;
+}
+
+.relationship-node-selected {
+    box-shadow: 0 14px 28px rgba(253, 126, 20, 0.35);
+    border-color: rgba(253, 126, 20, 0.55);
+}
+
+.relationship-list-item-selected {
+    border-left: 4px solid #fd7e14;
+    background: rgba(253, 126, 20, 0.08);
+}
+
+.relationship-links-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.relationship-links-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
 }
 </style>

@@ -121,6 +121,7 @@ class LoadPageAdm
         "CrmImportPartners", "CrmExportPartners", "CrmDownloadTemplatePartners",
         "CrmImportOpportunities", "CrmExportOpportunities", "CrmDownloadTemplateOpportunities",
         "WhatsAppConfig", "CrmSendWhatsApp",
+        "SapApiConfig", "SaveSapApiConfig", "TestSapApiConfig",
         // Relatórios Dinâmicos
         "ListDynamicReports", "DynamicReportBuilder", "ViewDynamicReport", "SaveDynamicReport", "ExecuteDynamicReport",
         "DeleteDynamicReport", "ExportDynamicReportExcel", "ExportDynamicReportPdf", "ExportDynamicReportCsv",

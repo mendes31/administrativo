@@ -189,10 +189,11 @@ class DynamicQueryBuilderService
                     
                     // Verificar se a query já tem LIMIT
                     $hasLimit = preg_match('/\bLIMIT\s+\d+/i', $sql);
+                    $disableAutoLimit = !empty($config['disable_auto_limit']);
                     $autoLimitApplied = false;
                     
-                    // Se não tem LIMIT, adicionar automaticamente para preview (máximo 1000 registros)
-                    if (!$hasLimit) {
+                    // Se não tem LIMIT e não foi solicitado full refresh, aplicar automaticamente (máximo 1000 registros)
+                    if (!$hasLimit && !$disableAutoLimit) {
                         $sql .= ' LIMIT 1000';
                         $autoLimitApplied = true;
                         error_log("⚠️ LIMIT automático aplicado: 1000 registros");
@@ -204,14 +205,15 @@ class DynamicQueryBuilderService
                     $results = [];
                     $chunkSize = 500;
                     $totalFetched = 0;
+                    $safetyLimit = $disableAutoLimit ? null : 5000;
                     
                     while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                        $results[] = $row;
+                        $results[] = $this->normalizeRowEncoding($row);
                         $totalFetched++;
                         
                         // Limite de segurança: máximo 5000 registros em preview
-                        if ($totalFetched >= 5000) {
-                            error_log("⚠️ Limite de segurança atingido: 5000 registros");
+                        if ($safetyLimit !== null && $totalFetched >= $safetyLimit) {
+                            error_log("⚠️ Limite de segurança atingido: {$safetyLimit} registros");
                             break;
                         }
                     }
@@ -224,12 +226,11 @@ class DynamicQueryBuilderService
                     $rowCount = count($results);
                     $warning = null;
                     
-                    // Avisos
                     if ($autoLimitApplied) {
-                        $warning = "📊 LIMIT automático de 1000 registros aplicado. Para ver todos os dados, adicione 'LIMIT X' manualmente na query.";
-                    } elseif ($totalFetched >= 5000) {
-                        $warning = "⚠️ Limite de segurança: mostrando apenas os primeiros 5000 registros. Adicione filtros (datas, status) para reduzir o volume.";
-                    } elseif ($rowCount > 2000) {
+                        $warning = "📊 LIMIT automático de 1000 registros aplicado. Para ver todos os dados, clique em 'Atualizar Dados'.";
+                    } elseif ($safetyLimit !== null && $totalFetched >= $safetyLimit) {
+                        $warning = "⚠️ Limite de segurança: mostrando apenas os primeiros {$safetyLimit} registros. Use filtros (datas, status) para reduzir o volume ou execute uma atualização completa.";
+                    } elseif ($rowCount > 2000 && !$disableAutoLimit) {
                         $warning = "Query retornou {$rowCount} registros. Para melhor performance em relatórios, adicione filtros de data.";
                     }
                     
@@ -242,7 +243,9 @@ class DynamicQueryBuilderService
                         'sql' => $sql,
                         'query_mode' => 'custom_sql',
                         'warning' => $warning,
-                        'auto_limit_applied' => $autoLimitApplied
+                        'auto_limit_applied' => $autoLimitApplied,
+                        'safety_limit' => $safetyLimit,
+                        'disable_auto_limit' => $disableAutoLimit
                     ];
                 } catch (\PDOException $pdoEx) {
                     // Erro específico do SAP HANA via ODBC
@@ -280,7 +283,8 @@ class DynamicQueryBuilderService
                 'execution_time' => round($executionTime, 4),
                 'connection_type' => 'local',
                 'sql' => $sql,
-                'query_mode' => 'custom_sql'
+                'query_mode' => 'custom_sql',
+                'disable_auto_limit' => !empty($config['disable_auto_limit'])
             ];
         } catch (\PDOException $e) {
             error_log("❌ Erro PDO: " . $e->getMessage());
@@ -467,19 +471,48 @@ class DynamicQueryBuilderService
      */
     private function convertEncodingToUtf8(array $data): array
     {
-        array_walk_recursive($data, function(&$item) {
-            if (is_string($item) && !empty($item)) {
-                // Detectar encoding
-                $encoding = mb_detect_encoding($item, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
-                
-                // Só converter se NÃO for UTF-8
-                if ($encoding && $encoding !== 'UTF-8') {
-                    $item = mb_convert_encoding($item, 'UTF-8', $encoding);
-                }
-                // Se já for UTF-8, não fazer nada
+        foreach ($data as $index => $row) {
+            if (is_array($row)) {
+                $data[$index] = $this->normalizeRowEncoding($row);
+            } elseif (is_string($row)) {
+                $data[$index] = $this->normalizeValueEncoding($row);
             }
-        });
+        }
         return $data;
+    }
+
+    private function normalizeRowEncoding(array $row): array
+    {
+        foreach ($row as $column => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if (is_string($value)) {
+                $row[$column] = $this->normalizeValueEncoding($value);
+            }
+        }
+
+        return $row;
+    }
+
+    private function normalizeValueEncoding(string $value): string
+    {
+        $cleaned = @preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value);
+        if ($cleaned !== null) {
+            $value = $cleaned;
+        }
+
+        $encoding = mb_detect_encoding($value, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $value = mb_convert_encoding($value, 'UTF-8', $encoding);
+        }
+
+        if (!mb_check_encoding($value, 'UTF-8')) {
+            $value = utf8_encode($value);
+        }
+
+        return $value;
     }
 }
 

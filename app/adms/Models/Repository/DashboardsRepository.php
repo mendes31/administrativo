@@ -71,6 +71,7 @@ class DashboardsRepository extends DbConnection
         $result['kpis_config'] = $result['kpis_config'] ? json_decode($result['kpis_config'], true) : [];
         $result['charts_config'] = $result['charts_config'] ? json_decode($result['charts_config'], true) : [];
         $result['filters_config'] = $result['filters_config'] ? json_decode($result['filters_config'], true) : [];
+        $result['relationships'] = $this->getDashboardRelationships($id);
         
         return $result;
     }
@@ -169,6 +170,81 @@ class DashboardsRepository extends DbConnection
         
         return true;
     }
+
+    /**
+     * Listar relacionamentos configurados para o dashboard
+     */
+    public function getDashboardRelationships(int $dashboardId): array
+    {
+        $sql = "SELECT 
+                    id,
+                    dashboard_id,
+                    primary_report_id,
+                    primary_field,
+                    foreign_report_id,
+                    foreign_field,
+                    relationship_type,
+                    filter_direction,
+                    join_type,
+                    active,
+                    created_at,
+                    updated_at
+                FROM adms_dashboard_relationships
+                WHERE dashboard_id = :dashboard_id
+                ORDER BY id ASC";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':dashboard_id', $dashboardId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Substituir relacionamentos do dashboard
+     */
+    public function replaceRelationships(int $dashboardId, array $relationships): void
+    {
+        $conn = $this->getConnection();
+        $conn->beginTransaction();
+
+        try {
+            $deleteStmt = $conn->prepare('DELETE FROM adms_dashboard_relationships WHERE dashboard_id = :dashboard_id');
+            $deleteStmt->execute([':dashboard_id' => $dashboardId]);
+
+            if (!empty($relationships)) {
+                $insertSql = 'INSERT INTO adms_dashboard_relationships 
+                    (dashboard_id, primary_report_id, primary_field, foreign_report_id, foreign_field, relationship_type, filter_direction, join_type, active, created_at)
+                    VALUES (:dashboard_id, :primary_report_id, :primary_field, :foreign_report_id, :foreign_field, :relationship_type, :filter_direction, :join_type, :active, NOW())';
+
+                $insertStmt = $conn->prepare($insertSql);
+
+                foreach ($relationships as $relationship) {
+                    if (empty($relationship['primary_report_id']) || empty($relationship['primary_field']) ||
+                        empty($relationship['foreign_report_id']) || empty($relationship['foreign_field'])) {
+                        continue; // ignorar relações incompletas
+                    }
+
+                    $insertStmt->execute([
+                        ':dashboard_id' => $dashboardId,
+                        ':primary_report_id' => (int)$relationship['primary_report_id'],
+                        ':primary_field' => $relationship['primary_field'],
+                        ':foreign_report_id' => (int)$relationship['foreign_report_id'],
+                        ':foreign_field' => $relationship['foreign_field'],
+                        ':relationship_type' => $relationship['relationship_type'] ?? 'one_to_many',
+                        ':filter_direction' => $relationship['filter_direction'] ?? 'bidirectional',
+                        ':join_type' => $relationship['join_type'] ?? 'inner',
+                        ':active' => isset($relationship['active']) ? (int)(bool)$relationship['active'] : 1,
+                    ]);
+                }
+            }
+
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
+        }
+    }
     
     /**
      * Criar novo dashboard
@@ -196,7 +272,13 @@ class DashboardsRepository extends DbConnection
         $stmt->bindValue(':layout', $data['layout'] ?? 'default');
         $stmt->execute();
         
-        return (int) $this->getConnection()->lastInsertId();
+        $dashboardId = (int) $this->getConnection()->lastInsertId();
+
+        if (!empty($data['relationships']) && is_array($data['relationships'])) {
+            $this->replaceRelationships($dashboardId, $data['relationships']);
+        }
+        
+        return $dashboardId;
     }
     
     /**
@@ -229,7 +311,13 @@ class DashboardsRepository extends DbConnection
         $stmt->bindValue(':filters_config', json_encode($data['filters_config'] ?? []));
         $stmt->bindValue(':layout', $data['layout'] ?? 'default');
         
-        return $stmt->execute();
+        $executed = $stmt->execute();
+        
+        if ($executed && array_key_exists('relationships', $data) && is_array($data['relationships'])) {
+            $this->replaceRelationships($id, $data['relationships']);
+        }
+        
+        return $executed;
     }
     
     /**

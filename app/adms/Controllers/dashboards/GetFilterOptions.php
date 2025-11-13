@@ -11,6 +11,24 @@ use App\adms\Models\Services\DynamicQueryBuilderService;
  */
 class GetFilterOptions
 {
+    private function quoteIdentifier(string $field): string
+    {
+        $trimmed = trim($field);
+
+        // Evitar dupla citação se já existir
+        if (str_starts_with($trimmed, '"') && str_ends_with($trimmed, '"')) {
+            return $trimmed;
+        }
+
+        // Campos com funções ou pontos devem ser tratados parcialmente
+        if (str_contains($trimmed, '.')) {
+            $parts = array_map(fn($part) => $part === '*' ? '*' : '"' . str_replace('"', '', trim($part)) . '"', explode('.', $trimmed));
+            return implode('.', $parts);
+        }
+
+        return '"' . str_replace('"', '', $trimmed) . '"';
+    }
+
     public function index(): void
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -115,69 +133,116 @@ class GetFilterOptions
                 // CORREÇÃO: Usar DynamicReportsRepository em vez de DashboardsRepository
                 $reportsRepo = new DynamicReportsRepository();
                 $filterReport = $reportsRepo->getById($filterReportId);
-                
-                if ($filterReport) {
-                    $sql = $filterReport['custom_sql'];
-                    $fieldName = $sourceField; // Usar nome do campo do relatório de filtro
-                    error_log("   ✅ Relatório de filtro encontrado: {$filterReport['name']}");
-                    error_log("   ✅ SQL: " . substr($sql, 0, 200) . "...");
-                    error_log("   ✅ Campo a extrair: {$fieldName}");
-                } else {
-                    error_log("   ❌ Relatório de filtro {$filterReportId} NÃO ENCONTRADO! Usando query original");
-                    $sql = $dashboard['custom_sql'];
+
+                if (!$filterReport || empty($filterReport['custom_sql'])) {
+                    error_log("Filtro {$filterLabel}: relatório {$filterReportId} não encontrado ou sem SQL.");
+                    echo json_encode(['success' => false, 'error' => 'Relatório de filtro não encontrado.']);
+                    return;
                 }
+
+                $sql = $filterReport['custom_sql'];
+
+                // Limitar apenas aos campos necessários (value/label) para evitar consumo excessivo de memória
+                if (!empty($filterReport['source_field'])) {
+                    $valueField = $filterReport['source_field'];
+                    $labelField = $filterReport['display_field'] ?? $filterReport['source_field'];
+                    $sql = "SELECT {$valueField} as value, {$labelField} as label FROM ( {$sql} ) AS src";
+                }
+
+                $queryBuilder = new DynamicQueryBuilderService();
+                $response = $queryBuilder->executeReport([
+                    'custom_sql' => $sql,
+                    'query_mode' => 'custom_sql',
+                    'disable_limit' => true
+                ]);
+                
+                if (($response['success'] ?? false) && !empty($response['data'])) {
+                    $options = [];
+                    foreach ($response['data'] as $row) {
+                        if (isset($row['value']) || isset($row['label'])) {
+                            $options[] = [
+                                'value' => $row['value'] ?? $row['label'],
+                                'label' => $row['label'] ?? $row['value'] ?? ''
+                            ];
+                        } elseif (isset($row[$sourceField])) {
+                            $options[] = [
+                                'value' => $row[$sourceField],
+                                'label' => $row[$sourceField]
+                            ];
+                        }
+                    }
+
+                    $options = array_values(array_unique($options, SORT_REGULAR));
+                    usort($options, fn($a, $b) => strcmp($a['label'], $b['label']));
+
+                    echo json_encode([
+                        'success' => true,
+                        'options' => $options,
+                        'count' => count($options)
+                    ], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+
+                // Caso tenha ocorrido erro ou não existam dados
+                $errorMessage = $response['error'] ?? 'Nenhuma opção encontrada para este filtro.';
+                echo json_encode([
+                    'success' => false,
+                    'error' => $errorMessage,
+                    'options' => [],
+                    'count' => 0
+                ], JSON_UNESCAPED_UNICODE);
+                
             } else {
                 error_log("   ℹ️ Nenhum filter_report_id configurado, usando query do dashboard");
                 $sql = $dashboard['custom_sql'];
-            }
-            error_log("========================================");
-            
-            // Para relatórios de filtro (vendedores, grupos), não limitar
-            // Para query principal, limitar a 5000 registros
-            $useLimit = !$filterReportId;
-            
-            if ($useLimit && !preg_match('/\bTOP\s+\d+/i', $sql) && !preg_match('/\bLIMIT\s+\d+/i', $sql)) {
-                // Adicionar TOP 5000 após SELECT para query principal
-                $sql = preg_replace('/\bSELECT\b/i', 'SELECT TOP 5000', $sql, 1);
-            }
-            
-            $queryBuilder = new DynamicQueryBuilderService();
-            $result = $queryBuilder->executeReport([
-                'custom_sql' => $sql,
-                'query_mode' => 'custom_sql'
-            ]);
-            
-            if (!$result['success']) {
-                throw new \Exception($result['error'] ?? 'Erro ao buscar opções');
-            }
-            
-            // Extrair valores distintos do campo específico
-            $uniqueValues = [];
-            
-            foreach ($result['data'] as $row) {
-                $value = $row[$fieldName] ?? null;
                 
-                if ($value !== null && $value !== '' && !isset($uniqueValues[$value])) {
-                    $uniqueValues[$value] = true;
+                // Para relatórios de filtro (vendedores, grupos), não limitar
+                // Para query principal, limitar a 5000 registros
+                $useLimit = false; // Não usar limit para relatórios de filtro
+                
+                if ($useLimit && !preg_match('/\bTOP\s+\d+/i', $sql) && !preg_match('/\bLIMIT\s+\d+/i', $sql)) {
+                    // Adicionar TOP 5000 após SELECT para query principal
+                    $sql = preg_replace('/\bSELECT\b/i', 'SELECT TOP 5000', $sql, 1);
                 }
+                
+                $queryBuilder = new DynamicQueryBuilderService();
+                $result = $queryBuilder->executeReport([
+                    'custom_sql' => $sql,
+                    'query_mode' => 'custom_sql'
+                ]);
+                
+                if (!$result['success']) {
+                    throw new \Exception($result['error'] ?? 'Erro ao buscar opções');
+                }
+                
+                // Extrair valores distintos do campo específico
+                $uniqueValues = [];
+                
+                foreach ($result['data'] as $row) {
+                    $value = $row[$fieldName] ?? null;
+                    
+                    if ($value !== null && $value !== '' && !isset($uniqueValues[$value])) {
+                        $uniqueValues[$value] = true;
+                    }
+                }
+                
+                // Converter para array de opções
+                $options = [];
+                foreach (array_keys($uniqueValues) as $value) {
+                    $options[] = ['value' => $value, 'label' => $value];
+                }
+                
+                // Ordenar alfabeticamente
+                usort($options, function($a, $b) {
+                    return strcmp($a['label'], $b['label']);
+                });
+                
+                echo json_encode([
+                    'success' => true,
+                    'options' => $options,
+                    'count' => count($options)
+                ], JSON_UNESCAPED_UNICODE);
             }
-            
-            // Converter para array de opções
-            $options = [];
-            foreach (array_keys($uniqueValues) as $value) {
-                $options[] = ['value' => $value, 'label' => $value];
-            }
-            
-            // Ordenar alfabeticamente
-            usort($options, function($a, $b) {
-                return strcmp($a['label'], $b['label']);
-            });
-            
-            echo json_encode([
-                'success' => true,
-                'options' => $options,
-                'count' => count($options)
-            ], JSON_UNESCAPED_UNICODE);
             
         } catch (\Exception $e) {
             echo json_encode([

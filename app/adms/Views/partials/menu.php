@@ -38,6 +38,12 @@ $menus = [
                             'permission' => 'EmailConfig'
                         ],
                         [
+                            'label' => 'Configuração SAP API',
+                            'url' => $_ENV['URL_ADM'] . 'sap-api-config',
+                            'permission' => 'SapApiConfig',
+                            'icon' => 'fas fa-link'
+                        ],
+                        [
                             'label' => 'Configuração de WhatsApp',
                             'url' => $_ENV['URL_ADM'] . 'whatsapp-config',
                             'permission' => 'WhatsAppConfig',

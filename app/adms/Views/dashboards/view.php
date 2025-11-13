@@ -109,9 +109,14 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                         <?php endforeach; ?>
                         
                         <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-search"></i> Consultar
-                            </button>
+                            <div class="btn-group w-100">
+                                <button type="submit" class="btn btn-success flex-fill" id="btnConsult">
+                                    <i class="fas fa-search"></i> Consultar
+                                </button>
+                                <button type="button" class="btn btn-outline-primary flex-fill" id="btnRefresh">
+                                    <i class="fas fa-sync-alt"></i> Atualizar Dados
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -150,9 +155,14 @@ const dashboardId = <?= $dashboard['id'] ?>;
 const kpisConfig = <?= json_encode($kpisConfig) ?>;
 const chartsConfig = <?= json_encode($chartsConfig) ?>;
 let chartInstances = {};
+let isLoading = false;
+let consultButton = null;
+let refreshButton = null;
 
-// Carregar opções de filtros dinâmicos
 document.addEventListener('DOMContentLoaded', function() {
+    consultButton = document.getElementById('btnConsult');
+    refreshButton = document.getElementById('btnRefresh');
+    const filtersForm = document.getElementById('filtersForm');
     const dynamicFilters = document.querySelectorAll('.filter-dynamic');
     
     dynamicFilters.forEach(async function(select) {
@@ -182,38 +192,93 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Erro ao carregar opções:', error);
         }
     });
+    
+    if (filtersForm) {
+        filtersForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitDashboard(false);
+        });
+    }
+    
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function() {
+            submitDashboard(true);
+        });
+    }
 });
 
-document.getElementById('filtersForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
+async function submitDashboard(fullRefresh = false) {
+    if (isLoading) {
+        return;
+    }
+
+    const filtersForm = document.getElementById('filtersForm');
+    if (!filtersForm) {
+        alert('Formulário de filtros não encontrado.');
+        return;
+    }
+
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const contentContainer = document.getElementById('dashboardContent');
+
+    isLoading = true;
+    const originalConsultText = consultButton ? consultButton.innerHTML : '';
+    const originalRefreshText = refreshButton ? refreshButton.innerHTML : '';
+    if (consultButton) {
+        consultButton.disabled = true;
+        consultButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Consultando...';
+    }
+    if (refreshButton) {
+        refreshButton.disabled = true;
+        if (fullRefresh) {
+            refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Atualizando...';
+        }
+    }
+
+    const formData = new FormData(filtersForm);
     formData.append('dashboard_id', dashboardId);
-    
-    document.getElementById('loadingIndicator').style.display = 'block';
-    document.getElementById('dashboardContent').style.display = 'none';
-    
+    formData.append('full_refresh', fullRefresh ? '1' : '0');
+
+    loadingIndicator.style.display = 'block';
+    contentContainer.style.display = 'none';
+
     try {
         const response = await fetch('<?= $_ENV['URL_ADM'] ?>execute-dashboard', {
             method: 'POST',
             body: formData
         });
-        
-        const result = await response.json();
-        
+
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('Resposta bruta:', responseText);
+            throw new Error(`Resposta inválida do servidor: ${parseError.message}`);
+        }
+
         if (result.success) {
             updateDashboard(result);
         } else {
-            alert('Erro: ' + result.error);
+            alert('Erro: ' + (result.error || 'Falha ao executar dashboard.'));
         }
-        
     } catch (error) {
         alert('Erro ao carregar dados: ' + error.message);
+        console.error('submitDashboard error:', error);
     } finally {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('dashboardContent').style.display = 'block';
+        loadingIndicator.style.display = 'none';
+        contentContainer.style.display = 'block';
+        if (consultButton) {
+            consultButton.disabled = false;
+            consultButton.innerHTML = originalConsultText;
+        }
+        if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.innerHTML = originalRefreshText || '<i class="fas fa-sync-alt"></i> Atualizar Dados';
+        }
+        isLoading = false;
     }
-});
+}
 
 function updateDashboard(result) {
     // Atualizar KPIs
@@ -224,7 +289,33 @@ function updateDashboard(result) {
     
     // Info
     const info = document.getElementById('dataInfo');
-    info.textContent = `${result.rows_count} registros processados em ${result.execution_time}s`;
+    const infoParts = [];
+    const rowsCount = typeof result.rows_count !== 'undefined' ? result.rows_count : (result.data ? result.data.length : 0);
+    infoParts.push(`${rowsCount} registros processados`);
+    
+    if (result.execution_time) {
+        infoParts.push(`em ${result.execution_time}s`);
+    }
+    
+    if (result.from_cache) {
+        infoParts.push(`cache: ${formatDateTime(result.cache_timestamp)}`);
+    } else if (result.cache_timestamp) {
+        infoParts.push(`atualizado em ${formatDateTime(result.cache_timestamp)}`);
+    }
+    
+    if (result.cache_source) {
+        infoParts.push(`origem: ${formatCacheSource(result.cache_source)}`);
+    }
+    
+    if (result.auto_limit_applied) {
+        infoParts.push('Pré-visualização limitada (1000 registros)');
+    }
+    
+    if (result.warning) {
+        infoParts.push(result.warning);
+    }
+    
+    info.textContent = infoParts.join(' • ');
     info.style.display = 'block';
 }
 
@@ -318,6 +409,32 @@ function updateCharts(chartData) {
         }, 100);
         
         chartIndex++;
+    }
+}
+
+function formatDateTime(isoString) {
+    if (!isoString) return '--';
+    try {
+        const dt = new Date(isoString);
+        if (isNaN(dt.getTime())) {
+            return isoString;
+        }
+        return dt.toLocaleString('pt-BR');
+    } catch (error) {
+        return isoString;
+    }
+}
+
+function formatCacheSource(source) {
+    switch (source) {
+        case 'full-refresh':
+            return 'atualização completa';
+        case 'preview-limit':
+            return 'pré-visualização (limitada)';
+        case 'query':
+            return 'consulta do banco';
+        default:
+            return source;
     }
 }
 

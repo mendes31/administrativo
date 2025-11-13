@@ -63,8 +63,16 @@ class CreateDashboard
             'kpis_config' => json_decode($_POST['kpis_config'] ?? '[]', true),
             'charts_config' => json_decode($_POST['charts_config'] ?? '[]', true),
             'filters_config' => json_decode($_POST['filters_config'] ?? '[]', true),
-            'layout' => $_POST['layout'] ?? 'default'
+            'layout' => $_POST['layout'] ?? 'default',
+            'relationships' => json_decode($_POST['relationships'] ?? '[]', true)
         ];
+
+        // Garantir que estruturas inválidas não quebrem o processo
+        $data['measures_config'] = is_array($data['measures_config']) ? $data['measures_config'] : [];
+        $data['kpis_config'] = is_array($data['kpis_config']) ? $data['kpis_config'] : [];
+        $data['charts_config'] = is_array($data['charts_config']) ? $data['charts_config'] : [];
+        $data['filters_config'] = is_array($data['filters_config']) ? $data['filters_config'] : [];
+        $data['relationships'] = is_array($data['relationships']) ? $data['relationships'] : [];
         
         if (empty($data['name']) || empty($data['dynamic_report_id'])) {
             $_SESSION['error'] = 'Nome e Relatório são obrigatórios!';

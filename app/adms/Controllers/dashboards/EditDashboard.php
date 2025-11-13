@@ -127,6 +127,13 @@ class EditDashboard
             $kpisConfig = json_decode($_POST['kpis_config'] ?? '[]', true);
             $chartsConfig = json_decode($_POST['charts_config'] ?? '[]', true);
             $filtersConfig = json_decode($_POST['filters_config'] ?? '[]', true);
+            $relationshipsConfig = json_decode($_POST['relationships'] ?? '[]', true);
+
+            $measuresConfig = is_array($measuresConfig) ? $measuresConfig : [];
+            $kpisConfig = is_array($kpisConfig) ? $kpisConfig : [];
+            $chartsConfig = is_array($chartsConfig) ? $chartsConfig : [];
+            $filtersConfig = is_array($filtersConfig) ? $filtersConfig : [];
+            $relationshipsConfig = is_array($relationshipsConfig) ? $relationshipsConfig : [];
             
             error_log("📝 Dados recebidos do POST:");
             error_log("   measures_config: " . count($measuresConfig) . " medidas (Bytes: " . strlen($_POST['measures_config'] ?? '') . ")");
@@ -176,7 +183,8 @@ class EditDashboard
                 'kpis_config' => $kpisConfig,
                 'charts_config' => $chartsConfig,
                 'filters_config' => $filtersConfig,
-                'layout' => $_POST['layout'] ?? 'default'
+                'layout' => $_POST['layout'] ?? 'default',
+                'relationships' => $relationshipsConfig
             ];
             
             // Validar

@@ -21,6 +21,13 @@ class ExecuteDashboard
             $dashboardId = (int)($_POST['dashboard_id'] ?? 0);
             $userId = $_SESSION['user_id'] ?? 0;
             $filters = $_POST['filters'] ?? [];
+            $fullRefresh = isset($_POST['full_refresh']) && $_POST['full_refresh'] === '1';
+
+            if ($fullRefresh) {
+                ini_set('memory_limit', '1024M');
+            }
+            
+            $normalizedFilters = $this->normalizeFilters($filters);
             
             $repo = new DashboardsRepository();
             
@@ -35,17 +42,40 @@ class ExecuteDashboard
                 throw new \Exception('Dashboard não encontrado');
             }
             
-            // Aplicar filtros na query do relatório usando WHERE
-            $sql = $this->applyFiltersWithWhere($dashboard['custom_sql'], $filters, $dashboard['filters_config']);
+            if (!$fullRefresh) {
+                $cached = $this->loadCache($dashboardId, $normalizedFilters);
+                if ($cached !== null) {
+                    $cachedResult = $cached['result'];
+                    $cachedResult['from_cache'] = true;
+                    $cachedResult['cache_timestamp'] = $cached['generated_at'] ?? null;
+                    echo json_encode($cachedResult, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                    exit;
+                }
+            }
             
-            // Executar query
+            $sqlParts = $this->buildSqlWithRelationships($dashboard['reports'] ?? [], $dashboard['relationships'] ?? []);
+            $filterClauses = $this->buildFilterClauses(
+                $filters,
+                $dashboard['filters_config'] ?? [],
+                $sqlParts['alias_map'],
+                $sqlParts['primary_report_id']
+            );
+            $sql = $this->assembleSql($sqlParts, $filterClauses);
+
             $queryBuilder = new DynamicQueryBuilderService();
             $result = $queryBuilder->executeReport([
                 'custom_sql' => $sql,
-                'query_mode' => 'custom_sql'
+                'query_mode' => 'custom_sql',
+                'disable_auto_limit' => $fullRefresh
             ]);
             
             if ($result['success']) {
+                $result['relationships_applied'] = $sqlParts['applied_relationships'];
+                if (!empty($sqlParts['pending_relationships'])) {
+                    $result['relationships_pending'] = $sqlParts['pending_relationships'];
+                }
+                $result['filters_applied'] = $filterClauses;
+                
                 // Calcular medidas antes dos KPIs
                 $measures = $dashboard['measures_config'] ?? [];
                 if (!empty($measures)) {
@@ -57,6 +87,11 @@ class ExecuteDashboard
                 
                 // Agregar dados para gráficos
                 $result['chart_data'] = $this->aggregateForCharts($result['data'], $dashboard['charts_config']);
+                
+                $result['from_cache'] = false;
+                $result['cache_timestamp'] = date('c');
+                $result['cache_source'] = $fullRefresh ? 'full-refresh' : (($result['auto_limit_applied'] ?? false) ? 'preview-limit' : 'query');
+                $this->storeCache($dashboardId, $normalizedFilters, $result);
             }
             
             echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -71,142 +106,272 @@ class ExecuteDashboard
         exit;
     }
     
-    /**
-     * Aplicar filtros adicionando AND na cláusula WHERE existente
-     */
-    private function applyFiltersWithWhere(string $sql, array $filters, array $filtersConfig): string
+    private function buildSqlWithRelationships(array $reports, array $relationships): array
     {
-        // Remover ponto e vírgula final se houver
-        $sql = rtrim(trim($sql), ';');
-        
-        // Construir cláusulas WHERE
-        $whereClauses = [];
-        
-        foreach ($filtersConfig as $filter) {
-            $field = $filter['field'] ?? '';
-            $type = $filter['type'] ?? 'text';
-            
-            if (!isset($filters[$field]) || $filters[$field] === '' || $filters[$field] === null) {
+        if (empty($reports)) {
+            throw new \InvalidArgumentException('Nenhum relatório vinculado ao dashboard.');
+        }
+
+        $reportsById = [];
+        $aliases = [];
+        $primaryId = null;
+
+        foreach ($reports as $report) {
+            $reportId = (int)($report['report_id'] ?? $report['id'] ?? 0);
+            if ($reportId === 0) {
                 continue;
             }
-            
-            $value = $filters[$field];
-            
-            // Aplicar filtro conforme tipo (adaptado para HANA SQL)
-            // Detectar se é filtro de ano/mês pelo label
-            $isYearFilter = (stripos($filter['label'] ?? '', 'ano') !== false || stripos($filter['label'] ?? '', 'year') !== false);
-            $isMonthFilter = (stripos($filter['label'] ?? '', 'mês') !== false || stripos($filter['label'] ?? '', 'mes') !== false);
-            
-            if ($isYearFilter) {
-                // Filtro de ANO: extrair apenas o ano da data
-                $whereClauses[] = "YEAR(\"{$field}\") = " . (int)$value;
-                error_log("📅 Filtro ANO aplicado: YEAR(\"{$field}\") = " . (int)$value);
-            } elseif ($isMonthFilter) {
-                // Filtro de MÊS: extrair apenas o mês da data
-                $whereClauses[] = "MONTH(\"{$field}\") = " . (int)$value;
-                error_log("📅 Filtro MÊS aplicado: MONTH(\"{$field}\") = " . (int)$value);
-            } else {
-                // Outros filtros: mapear aliases para campos reais da query
-                $fieldMappings = [
-                    'nomeVendedor' => 'T2."SlpName"',
-                    'nomeGrupoPN' => 'T7."GroupName"',
-                    'nomePN' => 'T0."CardName"',
-                    'nomeItem' => 'T1."Dscription"',
-                    'nomeGrupoItem' => 'T5."ItmsGrpNam"',
-                    'Utilizacao' => 'T3."Usage"',
-                    'Estado' => 'CASE WHEN T9."StateS" = \'\' THEN T9."StateB" ELSE T9."StateS" END'
-                ];
-                
-                $actualField = $fieldMappings[$field] ?? "\"{$field}\"";
-                
-                switch ($type) {
-                    case 'number':
-                        $whereClauses[] = "{$actualField} = " . (int)$value;
-                        break;
-                        
-                    case 'text':
-                    default:
-                        $escapedValue = str_replace("'", "''", $value);
-                        $whereClauses[] = "{$actualField} = '{$escapedValue}'";
-                        break;
+
+            $reportsById[$reportId] = $report;
+            $aliases[$reportId] = 'r' . $reportId;
+
+            if (($report['is_primary'] ?? false) && $primaryId === null) {
+                $primaryId = $reportId;
+            }
+        }
+
+        if ($primaryId === null) {
+            $primaryId = (int)array_key_first($reportsById);
+        }
+
+        if ($primaryId === 0 || !isset($reportsById[$primaryId])) {
+            throw new \InvalidArgumentException('Relatório principal não identificado.');
+        }
+
+        $primarySql = $reportsById[$primaryId]['custom_sql'] ?? '';
+        if (trim($primarySql) === '') {
+            throw new \InvalidArgumentException('Relatório principal sem SQL configurado.');
+        }
+
+        $selectParts = [$aliases[$primaryId] . '.*'];
+        $fromClause = sprintf('FROM (%s) AS %s', $this->wrapSubquery($primarySql), $aliases[$primaryId]);
+        $joins = [];
+        $whereConditions = [];
+        $joined = [$primaryId => true];
+        $processedRelationships = [];
+        $pending = [];
+
+        foreach ($relationships as $relationship) {
+            if (isset($relationship['active']) && !$relationship['active']) {
+                continue;
+            }
+
+            $primaryRelId = isset($relationship['primary_report_id']) ? (int)$relationship['primary_report_id'] : null;
+            $foreignRelId = isset($relationship['foreign_report_id']) ? (int)$relationship['foreign_report_id'] : null;
+
+            if (!$primaryRelId || !$foreignRelId) {
+                continue;
+            }
+
+            if (!isset($reportsById[$primaryRelId], $reportsById[$foreignRelId])) {
+                continue;
+            }
+
+            $pending[] = $relationship;
+        }
+
+        $maxIterations = max(count($pending), 1) * 4;
+        $iteration = 0;
+
+        while (!empty($pending) && $iteration < $maxIterations) {
+            $progress = false;
+
+            foreach ($pending as $index => $relationship) {
+                $primaryRelId = (int)$relationship['primary_report_id'];
+                $foreignRelId = (int)$relationship['foreign_report_id'];
+
+                $primaryJoined = isset($joined[$primaryRelId]);
+                $foreignJoined = isset($joined[$foreignRelId]);
+
+                if (!$primaryJoined && !$foreignJoined) {
+                    continue;
                 }
-                
-                error_log("🔍 Filtro aplicado: {$actualField} = '{$value}'");
-            }
-        }
-        
-        // Se não houver filtros, retornar SQL original
-        if (empty($whereClauses)) {
-            error_log("🔍 Nenhum filtro aplicado - SQL original");
-            return $sql;
-        }
-        
-        // Adicionar AND com filtros
-        $whereClause = implode(' AND ', $whereClauses);
-        
-        // Adicionar filtros ANTES do ORDER BY (para preservar WHERE original)
-        if (preg_match('/\bORDER\s+BY\b/i', $sql)) {
-            // Tem ORDER BY - adicionar AND antes dele
-            $sql = preg_replace('/\bORDER\s+BY\b/i', "AND {$whereClause} ORDER BY", $sql, 1);
-            error_log("🔍 Filtros adicionados antes do ORDER BY");
-        } else {
-            // Não tem ORDER BY - adicionar no final
-            $sql .= " AND {$whereClause}";
-            error_log("🔍 Filtros adicionados no final da query");
-        }
-        
-        error_log("🔍 Filtros aplicados: " . $whereClause);
-        
-        return $sql;
-    }
-    
-    /**
-     * Aplicar filtros substituindo variáveis (método antigo - mantido para compatibilidade)
-     */
-    private function applyFilters(string $sql, array $filters, array $filtersConfig): string
-    {
-        // Substituir variáveis de filtro configuradas
-        foreach ($filtersConfig as $filter) {
-            $field = $filter['field'] ?? '';
-            $variable = $filter['variable'] ?? '';
-            $type = $filter['type'] ?? 'text';
-            
-            if (!$variable || !isset($filters[$field])) {
-                continue;
-            }
-            
-            $value = $filters[$field];
-            
-            // Se vazio, remover o filtro
-            if (empty($value)) {
-                $sql = str_replace($variable, '', $sql);
-                continue;
-            }
-            
-            // Aplicar filtro conforme tipo
-            switch ($type) {
-                case 'year':
-                case 'number':
-                    $sql = str_replace($variable, $value, $sql);
-                    break;
-                    
-                case 'month':
-                    if (is_numeric($value)) {
-                        $sql = str_replace($variable, "AND MONTH(T0.\"DocDate\") = {$value}", $sql);
-                    } else {
-                        $sql = str_replace($variable, '', $sql);
+
+                $baseId = $primaryJoined ? $primaryRelId : $foreignRelId;
+                $joinId = $baseId === $primaryRelId ? $foreignRelId : $primaryRelId;
+
+                $baseField = $baseId === $primaryRelId ? ($relationship['primary_field'] ?? '') : ($relationship['foreign_field'] ?? '');
+                $joinField = $baseId === $primaryRelId ? ($relationship['foreign_field'] ?? '') : ($relationship['primary_field'] ?? '');
+
+                if ($baseField === '' || $joinField === '') {
+                    unset($pending[$index]);
+                    continue;
+                }
+
+                $joinType = strtoupper($relationship['join_type'] ?? 'INNER');
+                if (!in_array($joinType, ['INNER', 'LEFT'], true)) {
+                    $joinType = 'INNER';
+                }
+
+                $baseAlias = $aliases[$baseId];
+                $joinAlias = $aliases[$joinId];
+
+                if (!isset($joined[$joinId])) {
+                    $joinSql = $reportsById[$joinId]['custom_sql'] ?? '';
+                    if (trim($joinSql) === '') {
+                        unset($pending[$index]);
+                        continue;
                     }
+
+                    $joins[] = sprintf(
+                        '%s JOIN (%s) AS %s ON %s = %s',
+                        $joinType,
+                        $this->wrapSubquery($joinSql),
+                        $joinAlias,
+                        $baseAlias . '.' . $this->quoteIdentifier($baseField),
+                        $joinAlias . '.' . $this->quoteIdentifier($joinField)
+                    );
+
+                    $selectParts[] = $joinAlias . '.*';
+                    $joined[$joinId] = true;
+                } else {
+                    $whereConditions[] = sprintf(
+                        '%s.%s = %s.%s',
+                        $aliases[$primaryRelId],
+                        $this->quoteIdentifier($relationship['primary_field']),
+                        $aliases[$foreignRelId],
+                        $this->quoteIdentifier($relationship['foreign_field'])
+                    );
+                }
+
+                $processedRelationships[] = $relationship;
+                unset($pending[$index]);
+                $progress = true;
+            }
+
+            if (!$progress) {
+                break;
+            }
+
+            $iteration++;
+        }
+
+        return [
+            'select' => $selectParts,
+            'from' => $fromClause,
+            'joins' => array_values($joins),
+            'where' => $whereConditions,
+            'alias_map' => $aliases,
+            'primary_report_id' => $primaryId,
+            'applied_relationships' => $processedRelationships,
+            'pending_relationships' => array_values($pending)
+        ];
+    }
+
+    private function buildFilterClauses(array $filters, array $filtersConfig, array $aliasMap, int $primaryReportId): array
+    {
+        $clauses = [];
+
+        foreach ($filtersConfig as $filter) {
+            $fieldKey = $filter['field'] ?? '';
+            if ($fieldKey === '') {
+                continue;
+            }
+
+            if (!array_key_exists($fieldKey, $filters)) {
+                continue;
+            }
+
+            $value = $filters[$fieldKey];
+            if ($value === '' || $value === null || (is_array($value) && empty(array_filter($value, fn($v) => $v !== '' && $v !== null)))) {
+                continue;
+            }
+
+            $sourceReportId = isset($filter['source_report_id']) ? (int)$filter['source_report_id'] : null;
+            $alias = $aliasMap[$sourceReportId] ?? $aliasMap[$primaryReportId] ?? null;
+
+            if (!$alias) {
+                continue;
+            }
+
+            $fieldExpression = $filter['source_field'] ?? $fieldKey;
+            $identifier = $alias . '.' . $this->quoteIdentifier($fieldExpression);
+            $type = $filter['type'] ?? 'text';
+            $label = $filter['label'] ?? '';
+
+            $isYearFilter = $type === 'year' || stripos($label, 'ano') !== false || stripos($label, 'year') !== false;
+            $isMonthFilter = $type === 'month' || stripos($label, 'mês') !== false || stripos($label, 'mes') !== false;
+
+            if ($isYearFilter) {
+                $clauses[] = sprintf('YEAR(%s) = %d', $identifier, (int)$value);
+                continue;
+            }
+
+            if ($isMonthFilter) {
+                $clauses[] = sprintf('MONTH(%s) = %d', $identifier, (int)$value);
+                continue;
+            }
+
+            if (is_array($value)) {
+                $sanitized = array_values(array_filter($value, fn($v) => $v !== '' && $v !== null));
+                if (empty($sanitized)) {
+                    continue;
+                }
+
+                $escaped = array_map(fn($v) => "'" . str_replace("'", "''", (string)$v) . "'", $sanitized);
+                $clauses[] = sprintf('%s IN (%s)', $identifier, implode(', ', $escaped));
+                continue;
+            }
+
+            switch ($type) {
+                case 'number':
+                    if (!is_numeric($value)) {
+                        continue 2;
+                    }
+                    $clauses[] = sprintf('%s = %d', $identifier, (int)$value);
                     break;
-                    
+
                 case 'text':
                 default:
-                    $escapedValue = addslashes($value);
-                    $sql = str_replace($variable, "AND {$field} = '{$escapedValue}'", $sql);
+                    $escapedValue = str_replace("'", "''", (string)$value);
+                    $clauses[] = sprintf("%s = '%s'", $identifier, $escapedValue);
                     break;
             }
         }
-        
+
+        return $clauses;
+    }
+
+    private function assembleSql(array $parts, array $whereClauses): string
+    {
+        $selectClause = 'SELECT ' . implode(",\n       ", $parts['select']);
+        $sql = $selectClause . "\n" . $parts['from'];
+
+        if (!empty($parts['joins'])) {
+            $sql .= "\n" . implode("\n", $parts['joins']);
+        }
+
+        $allConditions = array_merge($parts['where'], $whereClauses);
+        if (!empty($allConditions)) {
+            $sql .= "\nWHERE " . implode("\n  AND ", $allConditions);
+        }
+
         return $sql;
+    }
+
+    private function wrapSubquery(string $sql): string
+    {
+        return rtrim(trim($sql), ';');
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        $identifier = trim($identifier);
+
+        if ($identifier === '') {
+            return '""';
+        }
+
+        if (str_contains($identifier, '.')) {
+            $parts = array_map('trim', explode('.', $identifier));
+            $parts = array_map(function ($part) {
+                $part = trim($part, '"');
+                return '"' . $part . '"';
+            }, $parts);
+            return implode('.', $parts);
+        }
+
+        return '"' . trim($identifier, '"') . '"';
     }
     
     /**
@@ -638,6 +803,108 @@ class ExecuteDashboard
         }
         
         return $charts;
+    }
+
+    private function normalizeFilters(array $filters): array
+    {
+        if (empty($filters)) {
+            return [];
+        }
+        foreach ($filters as $key => $value) {
+            if (is_string($value)) {
+                $filters[$key] = trim($value);
+            }
+        }
+        ksort($filters);
+        return $filters;
+    }
+
+    private function getCacheDirectory(): string
+    {
+        $dir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'dashboards';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        return $dir;
+    }
+
+    private function getCacheFilePath(int $dashboardId, array $filters): string
+    {
+        $key = empty($filters) ? 'base' : md5(json_encode($filters));
+        return $this->getCacheDirectory() . DIRECTORY_SEPARATOR . "dashboard_{$dashboardId}_{$key}.json";
+    }
+
+    private function loadCache(int $dashboardId, array $filters): ?array
+    {
+        $path = $this->getCacheFilePath($dashboardId, $filters);
+        if (!is_file($path)) {
+            return null;
+        }
+        $content = @file_get_contents($path);
+        if ($content === false) {
+            return null;
+        }
+
+        $currentLimit = ini_get('memory_limit');
+        if ($currentLimit !== false) {
+            $bytes = $this->convertToBytes($currentLimit);
+            if ($bytes > 0 && $bytes < 1024 * 1024 * 1024) { // menor que 1GB
+                ini_set('memory_limit', '1024M');
+            }
+        } else {
+            ini_set('memory_limit', '1024M');
+        }
+
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('⚠️ Falha ao decodificar cache do dashboard: ' . json_last_error_msg());
+            return null;
+        }
+
+        if (!is_array($data) || empty($data['result'])) {
+            return null;
+        }
+        return $data;
+    }
+
+    private function convertToBytes(string $limit): int
+    {
+        $unit = strtolower($limit[strlen($limit) - 1]);
+        $value = (int)$limit;
+
+        switch ($unit) {
+            case 'g':
+                $value *= 1024;
+            case 'm':
+                $value *= 1024;
+            case 'k':
+                $value *= 1024;
+        }
+
+        return $value;
+    }
+
+    private function storeCache(int $dashboardId, array $filters, array $result): void
+    {
+        if (empty($result['success'])) {
+            return;
+        }
+
+        $path = $this->getCacheFilePath($dashboardId, $filters);
+        $resultForCache = $result;
+        unset($resultForCache['from_cache'], $resultForCache['cache_timestamp']);
+
+        $data = [
+            'generated_at' => date('c'),
+            'filters' => $filters,
+            'result' => $resultForCache
+        ];
+
+        try {
+            file_put_contents($path, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+        } catch (\Throwable $e) {
+            error_log('⚠️ Falha ao gravar cache do dashboard: ' . $e->getMessage());
+        }
     }
 }
 
