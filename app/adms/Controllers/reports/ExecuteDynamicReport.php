@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\reports;
 
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
 
@@ -9,11 +10,19 @@ class ExecuteDynamicReport
 {
     public function index(): void
     {
-        // Aumentar limite de memória para 512MB (queries do SAP podem retornar muitos dados)
-        ini_set('memory_limit', '512M');
+        // LOG USANDO error_log() QUE SEMPRE FUNCIONA
+        error_log("===========================================");
+        error_log("🚀 ExecuteDynamicReport::index() - MÉTODO CHAMADO");
+        error_log("📍 __DIR__: " . __DIR__);
+        error_log("📍 REQUEST_METHOD: " . ($_SERVER['REQUEST_METHOD'] ?? 'N/A'));
+        error_log("📍 POST data: " . json_encode($_POST));
+        error_log("===========================================");
         
-        // Aumentar tempo de execução para 120 segundos
-        ini_set('max_execution_time', '120');
+        // Sem limite de memória (queries do SAP podem retornar muitos dados - todas as vendas, etc)
+        ini_set('memory_limit', '-1');
+        
+        // Aumentar tempo de execução para 10 minutos (queries grandes podem demorar)
+        ini_set('max_execution_time', '600');
         
         // Registrar handler de erros fatais
         register_shutdown_function(function() {
@@ -46,26 +55,62 @@ class ExecuteDynamicReport
         header('Cache-Control: no-cache, must-revalidate');
         
         try {
+            error_log("📊 ExecuteDynamicReport - Verificando REQUEST_METHOD: " . ($_SERVER['REQUEST_METHOD'] ?? 'N/A'));
+            
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                error_log("❌ ExecuteDynamicReport - Método inválido");
                 throw new \Exception('Método inválido - use POST');
             }
             
             $reportId = $_POST['report_id'] ?? null;
             $queryMode = $_POST['query_mode'] ?? 'builder';
+            $forceRefresh = !empty($_POST['force_refresh']);
             
-            // Log de debug
-            error_log("📊 ExecuteDynamicReport - report_id: {$reportId}, query_mode: {$queryMode}");
+            error_log("📊 ExecuteDynamicReport - report_id: {$reportId}, query_mode: {$queryMode}, force_refresh: " . ($forceRefresh ? 'true' : 'false'));
+            
+            // Validar CSRF token apenas para salvamento (não para previews)
+            // Previews podem ser chamados múltiplas vezes e o token seria invalidado
+            $isPreview = empty($reportId) || $reportId === 'preview';
+            
+            if (!$isPreview) {
+                // Apenas validar CSRF para salvamento de relatórios
+                $csrfToken = $_POST['csrf_token'] ?? '';
+                error_log("📊 ExecuteDynamicReport - Validando CSRF (não é preview)");
+                
+                if (!empty($csrfToken)) {
+                    if (!CSRFHelper::validateCSRFToken('form_dynamic_report', $csrfToken)) {
+                        error_log("❌ ExecuteDynamicReport - CSRF token inválido");
+                        throw new \Exception('Token de segurança inválido. Recarregue a página e tente novamente.');
+                    }
+                    error_log("✅ ExecuteDynamicReport - CSRF token válido");
+                } else {
+                    error_log("⚠️ ExecuteDynamicReport - CSRF token não recebido para salvamento");
+                }
+            } else {
+                error_log("ℹ️ ExecuteDynamicReport - Modo preview, CSRF não obrigatório");
+            }
             
             // Modo preview: criar relatório temporário a partir dos dados POST
-            if (empty($reportId) || $reportId === 'preview') {
+            if ($isPreview) {
+                $cacheNamespace = 'preview_' . ($_SESSION['user_id'] ?? 'guest');
                 if ($queryMode === 'custom_sql') {
                     // SQL Personalizado
+                    $customSql = $_POST['custom_sql'] ?? '';
+                    
+                    error_log("📝 SQL Recebido do POST (raw): " . bin2hex(substr($customSql, 0, 50)));
+                    error_log("📝 SQL Recebido do POST (string): [" . $customSql . "]");
+                    error_log("📝 SQL Length: " . strlen($customSql));
+                    error_log("📝 SQL após trim: [" . trim($customSql) . "]");
+                    
                     $report = [
-                        'custom_sql' => $_POST['custom_sql'] ?? '',
+                        'custom_sql' => $customSql,
                         'query_mode' => 'custom_sql',
-                        'visualization_type' => $_POST['visualization_type'] ?? 'table'
+                        'visualization_type' => $_POST['visualization_type'] ?? 'table',
+                        'cache_namespace' => $cacheNamespace,
+                        'force_refresh' => $forceRefresh
                     ];
-                    error_log("📝 SQL Personalizado: " . substr($report['custom_sql'] ?? '', 0, 100) . '...');
+                    
+                    error_log("📝 SQL no report: " . substr($report['custom_sql'] ?? '', 0, 200));
                 } else {
                     // Builder
                     $report = [
@@ -75,7 +120,9 @@ class ExecuteDynamicReport
                         'groupby' => json_decode($_POST['groupby'] ?? '[]', true),
                         'orderby' => json_decode($_POST['orderby'] ?? '[]', true),
                         'query_mode' => 'builder',
-                        'visualization_type' => $_POST['visualization_type'] ?? 'table'
+                        'visualization_type' => $_POST['visualization_type'] ?? 'table',
+                        'cache_namespace' => $cacheNamespace,
+                        'force_refresh' => $forceRefresh
                     ];
                     error_log("🔨 Builder - data_source: " . ($report['data_source'] ?? 'vazio'));
                 }
@@ -87,16 +134,25 @@ class ExecuteDynamicReport
                 if (!$report) {
                     throw new \Exception('Relatório não encontrado');
                 }
+
+                $report['cache_namespace'] = 'report_' . $reportId;
+                $report['force_refresh'] = $forceRefresh;
             }
+            
+            error_log("📊 ExecuteDynamicReport - Antes de chamar queryBuilder");
+            error_log("📊 ExecuteDynamicReport - Report: " . json_encode($report, JSON_UNESCAPED_UNICODE));
             
             $queryBuilder = new DynamicQueryBuilderService();
             $result = $queryBuilder->executeReport($report);
             
+            error_log("📊 ExecuteDynamicReport - Resultado: " . ($result['success'] ? 'SUCESSO' : 'ERRO'));
+            
             // Só registrar execução se não for preview
             if ($result['success'] && !empty($reportId) && $reportId !== 'preview') {
                 $repo = $repo ?? new DynamicReportsRepository();
-                $repo->logExecution((int)$reportId, $_SESSION['user_id'] ?? 0,
-                    $result['execution_time'] ?? 0, $result['rows_count'] ?? 0);
+                $executionTime = (float)($result['execution_time'] ?? 0.0);
+                $rowsCount = (int)($result['rows_count'] ?? 0);
+                $repo->logExecution((int)$reportId, $_SESSION['user_id'] ?? 0, $executionTime, $rowsCount);
             }
             
             // Limpar buffer e enviar apenas JSON
@@ -105,7 +161,9 @@ class ExecuteDynamicReport
             
         } catch (\Throwable $e) {
             // Capturar QUALQUER erro (incluindo Error e Exception)
-            error_log("❌ Erro capturado: " . $e->getMessage());
+            error_log("❌ ERRO CAPTURADO: " . $e->getMessage());
+            error_log("❌ Arquivo: " . $e->getFile() . ":" . $e->getLine());
+            error_log("❌ Trace: " . substr($e->getTraceAsString(), 0, 1000));
             
             ob_clean();
             echo json_encode([

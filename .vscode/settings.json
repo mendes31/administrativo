@@ -1,3 +1,17 @@
 {
-    "git.ignoreLimitWarning": true
+    "intelephense.diagnostics.undefinedFunctions": false,
+    "intelephense.diagnostics.undefinedTypes": false,
+    "intelephense.files.exclude": [
+        "**/node_modules/**",
+        "**/.cursor/**",
+        "**/vendor/**",
+        "**/intelephense/lib/stub/**"
+    ],
+    "intelephense.diagnostics.undefinedSymbols": false,
+    "intelephense.diagnostics.run": "onSave",
+    "files.exclude": {
+        "**/.cursor/extensions/**/node_modules/intelephense/lib/stub/**": true
+    },
+    "intelephense.diagnostics.enable": true,
+    "intelephense.diagnostics.completedLanguages": []
 }

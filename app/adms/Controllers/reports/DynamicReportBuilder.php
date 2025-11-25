@@ -14,6 +14,7 @@ class DynamicReportBuilder
     {
         $repo = new DynamicReportsRepository();
         $this->data['availableTables'] = $repo->getAvailableTables();
+        $sapScope = (!empty($_GET['source']) && $_GET['source'] === 'sap');
         
         if (!empty($_GET['id'])) {
             $reportId = (int)$_GET['id'];
@@ -27,8 +28,8 @@ class DynamicReportBuilder
         }
         
         $pageElements = [
-            'title_head' => 'Construtor de Relatórios',
-            'menu' => 'relatorios',
+            'title_head' => $sapScope ? 'Construtor de Relatórios SAP' : 'Construtor de Relatórios',
+            'menu' => $sapScope ? 'relatorios-sap' : 'relatorios',
             'buttonPermission' => []
         ];
         

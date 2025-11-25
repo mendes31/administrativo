@@ -1,6 +1,7 @@
 <?php
 $categories = $this->data['categories'] ?? [];
 $reports = $this->data['reports'] ?? [];
+$pageTitle = $this->data['page_title'] ?? 'Meus Relatórios';
 ?>
 
 <div class="container-fluid">
@@ -8,7 +9,7 @@ $reports = $this->data['reports'] ?? [];
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-0">
-                    <i class="fas fa-chart-line"></i> Meus Relatórios
+                    <i class="fas fa-chart-line"></i> <?= htmlspecialchars($pageTitle) ?>
                 </h1>
                 <?php if (in_array('DynamicReportBuilder', $this->data['buttonPermission'] ?? [])): ?>
                     <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder" class="btn btn-primary">
@@ -69,9 +70,14 @@ $reports = $this->data['reports'] ?? [];
                                         <i class="fas <?= $icon ?>"></i>
                                         <?= htmlspecialchars($report['name']) ?>
                                     </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <?php if (!empty($report['is_sap'])): ?>
+                                            <span class="badge bg-warning text-dark">SAP API</span>
+                                        <?php endif; ?>
                                     <?php if ($report['is_favorite']): ?>
                                         <i class="fas fa-star text-warning"></i>
                                     <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                             <div class="card-body">

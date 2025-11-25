@@ -4,6 +4,8 @@ namespace App\adms\Models\Services;
 
 use PDO;
 use Exception;
+use App\adms\Models\Services\ReportCacheService;
+use App\adms\Models\Services\SapReportApiService;
 
 class DynamicQueryBuilderService
 {
@@ -11,6 +13,8 @@ class DynamicQueryBuilderService
     private ?PDO $localConnection = null;
     private string $connectionType = 'local';
     private ?SapB1ServiceLayer $sapServiceLayer = null;
+    private ?ReportCacheService $cacheService = null;
+    private ?SapReportApiService $sapApiService = null;
 
     public function setConnection(string $type = 'local'): void
     {
@@ -37,8 +41,10 @@ class DynamicQueryBuilderService
     
     private function getActiveConnection(): PDO
     {
-        if ($this->connectionType === 'sap_b1') {
-            return SapB1HanaConnection::getInstance();
+        // SEMPRE usar API para SAP (não mais conexão direta ODBC)
+        // Este método só é usado para conexões locais agora
+        if ($this->connectionType === 'sap_api' || $this->connectionType === 'sap_api') {
+            throw new Exception('Conexão SAP deve usar API, não conexão direta. Use executeSapApiQuery()');
         }
         return $this->getLocalConnection();
     }
@@ -56,8 +62,18 @@ class DynamicQueryBuilderService
 
     public function executeReport(array $config): array
     {
+        error_log("🔷 DynamicQueryBuilderService::executeReport - INÍCIO");
+        error_log("🔷 query_mode: " . ($config['query_mode'] ?? 'não definido'));
+        error_log("🔷 custom_sql presente: " . (!empty($config['custom_sql']) ? 'SIM' : 'NÃO'));
+        
+        $forceRefresh = (bool)($config['force_refresh'] ?? false);
+        $cacheNamespace = $config['cache_namespace'] ?? null;
+
         // Verificar se é SQL personalizado
         if (!empty($config['custom_sql']) || ($config['query_mode'] ?? 'builder') === 'custom_sql') {
+            error_log("🔷 Modo: SQL Personalizado - Chamando executeCustomSQL");
+            $config['force_refresh'] = $forceRefresh;
+            $config['cache_namespace'] = $cacheNamespace;
             return $this->executeCustomSQL($config);
         }
         
@@ -65,7 +81,8 @@ class DynamicQueryBuilderService
         $isSapB1 = $this->isSapB1Table($dataSource);
         
         if ($isSapB1) {
-            $this->setConnection('sap_b1');
+            // SEMPRE usar API para SAP (não mais conexão direta ODBC)
+            $this->setConnection('sap_api');
         } else {
             $this->setConnection('local');
         }
@@ -75,33 +92,40 @@ class DynamicQueryBuilderService
         try {
             $sql = $this->buildQuery($config);
             
-            // Se for SAP B1, usar ODBC HANA também no modo Builder
+            // Paginação
+            $page = (int)($config['page'] ?? 1);
+            $perPage = (int)($config['per_page'] ?? 25);
+            
+            // Se for SAP, usar API (não mais ODBC HANA direto)
             if ($isSapB1) {
-                error_log("🔷 Executando Builder via ODBC HANA: $sql");
+                error_log("🔷 Executando Builder via API SAP: $sql");
                 
-                $hanaConnection = SapB1HanaConnection::getInstance();
-                $stmt = $hanaConnection->query($sql);
-                $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                $executionTime = microtime(true) - $startTime;
+                $forceRefresh = (bool)($config['force_refresh'] ?? false);
+                $cacheNamespace = $config['cache_namespace'] ?? null;
                 
-                // Converter encoding para UTF-8
-                $results = $this->convertEncodingToUtf8($results);
-                
-                return [
-                    'success' => true,
-                    'data' => $results,
-                    'rows_count' => count($results),
-                    'execution_time' => round($executionTime, 4),
-                    'connection_type' => 'sap_b1',
-                    'sql' => $sql,
-                    'query_mode' => 'builder'
-                ];
+                return $this->executeSapApiQuery($sql, $forceRefresh, $cacheNamespace, $page, $perPage);
             }
             
-            // Se for local, usar PDO
+            // Se for local, usar PDO com paginação
             $params = $this->extractParameters($config);
-            $stmt = $this->getActiveConnection()->prepare($sql);
             
+            // Contar total de registros
+            $countSql = "SELECT COUNT(*) as total FROM ({$sql}) as count_query";
+            $pdo = $this->getActiveConnection();
+            $countStmt = $pdo->prepare($countSql);
+            foreach ($params as $key => $value) {
+                $countStmt->bindValue($key, $value);
+            }
+            $countStmt->execute();
+            $totalRows = (int)$countStmt->fetchColumn();
+            
+            // Aplicar LIMIT/OFFSET
+            $offset = max(0, ($page - 1) * $perPage);
+            if (!preg_match('/\bLIMIT\s+\d+/i', $sql)) {
+                $sql .= " LIMIT {$perPage} OFFSET {$offset}";
+            }
+            
+            $stmt = $pdo->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
@@ -114,6 +138,7 @@ class DynamicQueryBuilderService
                 'success' => true,
                 'data' => $results,
                 'rows_count' => count($results),
+                'total_rows' => $totalRows,
                 'execution_time' => round($executionTime, 4),
                 'connection_type' => $this->connectionType,
                 'sql' => $sql
@@ -162,117 +187,65 @@ class DynamicQueryBuilderService
      */
     private function executeCustomSQL(array $config): array
     {
+        error_log("🔷 DynamicQueryBuilderService::executeCustomSQL - INÍCIO");
+        
         $sql = trim($config['custom_sql'] ?? '');
+        error_log("🔷 SQL recebido (raw): [" . substr($sql, 0, 200) . "]");
+        error_log("🔷 SQL length: " . strlen($sql));
         
         if (empty($sql)) {
+            error_log("❌ SQL vazio!");
             return ['success' => false, 'error' => 'SQL personalizado não fornecido'];
         }
         
+        // Remover números ou caracteres inválidos no início (comum em editores como Monaco)
+        $sql = preg_replace('/^[\d\s]+/i', '', $sql);
+        $sql = trim($sql);
+        error_log("🔷 SQL após limpeza: [" . substr($sql, 0, 200) . "]");
+        
         // Validar que é apenas SELECT
         if (!preg_match('/^\s*SELECT\s+/i', $sql)) {
-            return ['success' => false, 'error' => 'Apenas queries SELECT são permitidas'];
+            error_log("❌ Validação falhou - não começa com SELECT");
+            return ['success' => false, 'error' => 'Apenas queries SELECT são permitidas. SQL recebido: ' . substr($sql, 0, 50)];
         }
         
         // Detectar se é SAP B1 pela SQL
         $connectionType = $this->detectConnectionFromSQL($sql);
+        error_log("🔷 detectConnectionFromSQL retornou: {$connectionType}");
         $this->setConnection($connectionType);
+        error_log("🔷 Connection type após setConnection: {$this->connectionType}");
         
         $startTime = microtime(true);
+        $forceRefresh = (bool)($config['force_refresh'] ?? false);
+        $cacheNamespace = $config['cache_namespace'] ?? null;
+        $page = (int)($config['page'] ?? 1);
+        $perPage = (int)($config['per_page'] ?? 25);
         
         try {
-            // Se for SAP B1, usar ODBC/HDBODBC (não Service Layer)
-            if ($connectionType === 'sap_b1') {
-                error_log("🔷 Executando via ODBC HANA: $sql");
-                
-                try {
-                    $hanaConnection = SapB1HanaConnection::getInstance();
-                    
-                    // Verificar se a query já tem LIMIT
-                    $hasLimit = preg_match('/\bLIMIT\s+\d+/i', $sql);
-                    $disableAutoLimit = !empty($config['disable_auto_limit']);
-                    $autoLimitApplied = false;
-                    
-                    // Se não tem LIMIT e não foi solicitado full refresh, aplicar automaticamente (máximo 1000 registros)
-                    if (!$hasLimit && !$disableAutoLimit) {
-                        $sql .= ' LIMIT 1000';
-                        $autoLimitApplied = true;
-                        error_log("⚠️ LIMIT automático aplicado: 1000 registros");
-                    }
-                    
-                    $stmt = $hanaConnection->query($sql);
-                    
-                    // Buscar dados em chunks para economizar memória
-                    $results = [];
-                    $chunkSize = 500;
-                    $totalFetched = 0;
-                    $safetyLimit = $disableAutoLimit ? null : 5000;
-                    
-                    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                        $results[] = $this->normalizeRowEncoding($row);
-                        $totalFetched++;
-                        
-                        // Limite de segurança: máximo 5000 registros em preview
-                        if ($safetyLimit !== null && $totalFetched >= $safetyLimit) {
-                            error_log("⚠️ Limite de segurança atingido: {$safetyLimit} registros");
-                            break;
-                        }
-                    }
-                    
-                    $executionTime = microtime(true) - $startTime;
-                    
-                    // IMPORTANTE: Converter encoding dos dados do HANA para UTF-8
-                    $results = $this->convertEncodingToUtf8($results);
-                    
-                    $rowCount = count($results);
-                    $warning = null;
-                    
-                    if ($autoLimitApplied) {
-                        $warning = "📊 LIMIT automático de 1000 registros aplicado. Para ver todos os dados, clique em 'Atualizar Dados'.";
-                    } elseif ($safetyLimit !== null && $totalFetched >= $safetyLimit) {
-                        $warning = "⚠️ Limite de segurança: mostrando apenas os primeiros {$safetyLimit} registros. Use filtros (datas, status) para reduzir o volume ou execute uma atualização completa.";
-                    } elseif ($rowCount > 2000 && !$disableAutoLimit) {
-                        $warning = "Query retornou {$rowCount} registros. Para melhor performance em relatórios, adicione filtros de data.";
-                    }
-                    
-                    return [
-                        'success' => true,
-                        'data' => $results,
-                        'rows_count' => $rowCount,
-                        'execution_time' => round($executionTime, 4),
-                        'connection_type' => 'sap_b1',
-                        'sql' => $sql,
-                        'query_mode' => 'custom_sql',
-                        'warning' => $warning,
-                        'auto_limit_applied' => $autoLimitApplied,
-                        'safety_limit' => $safetyLimit,
-                        'disable_auto_limit' => $disableAutoLimit
-                    ];
-                } catch (\PDOException $pdoEx) {
-                    // Erro específico do SAP HANA via ODBC
-                    $errorMsg = $pdoEx->getMessage();
-                    $errorCode = $pdoEx->getCode();
-                    
-                    // Extrair mensagem mais limpa do HANA
-                    if (preg_match('/SQLSTATE\[(\w+)\]: (.+)/', $errorMsg, $matches)) {
-                        $errorMsg = $matches[2];
-                    }
-                    
-                    error_log("❌ Erro SAP HANA: [{$errorCode}] {$errorMsg}");
-                    
-                    return [
-                        'success' => false,
-                        'error' => "Erro SAP B1 HANA: {$errorMsg}",
-                        'error_code' => $errorCode,
-                        'connection_type' => 'sap_b1',
-                        'sql' => $sql
-                    ];
-                }
+            // SEMPRE usar API para SAP (não mais conexão direta ODBC)
+            if ($connectionType === 'sap_api') {
+                error_log("🔷 Connection type é sap_api - Chamando executeSapApiQuery");
+                return $this->executeSapApiQuery($sql, $forceRefresh, $cacheNamespace, $page, $perPage);
             }
             
-            // Se for local, usar PDO
+            // Se for local, usar PDO com paginação
             error_log("✅ Executando via PDO Local: $sql");
             
-            $stmt = $this->getActiveConnection()->query($sql);
+            // Contar total de registros (sem LIMIT)
+            $countSql = "SELECT COUNT(*) as total FROM ({$sql}) as count_query";
+            $pdo = $this->getActiveConnection();
+            $countStmt = $pdo->prepare($countSql);
+            $countStmt->execute();
+            $totalRows = (int)$countStmt->fetchColumn();
+            
+            // Aplicar LIMIT/OFFSET
+            $offset = max(0, ($page - 1) * $perPage);
+            if (!preg_match('/\bLIMIT\s+\d+/i', $sql)) {
+                $sql .= " LIMIT {$perPage} OFFSET {$offset}";
+            }
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $executionTime = microtime(true) - $startTime;
             
@@ -280,6 +253,7 @@ class DynamicQueryBuilderService
                 'success' => true,
                 'data' => $results,
                 'rows_count' => count($results),
+                'total_rows' => $totalRows,
                 'execution_time' => round($executionTime, 4),
                 'connection_type' => 'local',
                 'sql' => $sql,
@@ -308,40 +282,175 @@ class DynamicQueryBuilderService
     
     /**
      * Detectar conexão a partir do SQL
+     * SEMPRE usa API para SAP (não mais conexão direta ODBC)
      */
     private function detectConnectionFromSQL(string $sql): string
     {
-        // Tabelas típicas do SAP B1 (prefixos O, I, @ e outras conhecidas)
-        $sapB1Tables = [
-            // Parceiros de Negócio
-            'OCRD', 'OCRG', 'CRD1',
-            // Vendas
-            'OINV', 'INV1', 'ORDR', 'RDR1', 'OQUT', 'QUT1', 'ORDN', 'RDN1', 'ORIN', 'RIN1', 'RIN3', 'RIN12',
-            // Compras
-            'OPCH', 'PCH1', 'OPOR', 'POR1', 'OPRQ', 'PRQ1', 'OPDN', 'PDN1',
-            // Itens
-            'OITM', 'OITB', 'OITW',
-            // Vendedores
-            'OSLP',
-            // Utilização
-            'OUSG',
-            // Filiais
-            'OBPL',
-            // Financeiro
-            'OJDT', 'JDT1', 'OACT',
-            // Outros
-            'OADM', 'ONNM'
-        ];
-        
-        foreach ($sapB1Tables as $table) {
-            if (stripos($sql, $table) !== false) {
-                error_log("🔍 Tabela SAP detectada: {$table} → Usando conexão sap_b1");
-                return 'sap_b1';
-            }
+        if (self::hasSapSignature($sql)) {
+            error_log("🔍 Query SAP detectada → Usando API SAP (não mais ODBC direto)");
+            return 'sap_api';
         }
-        
+
         error_log("ℹ️ Nenhuma tabela SAP detectada → Usando conexão local");
         return 'local';
+    }
+
+    public static function hasSapSignature(string $sql): bool
+    {
+        $sapB1Tables = [
+            'OCRD', 'OCRG', 'CRD1',
+            'OINV', 'INV1', 'ORDR', 'RDR1', 'OQUT', 'QUT1', 'ORDN', 'RDN1', 'ORIN', 'RIN1', 'RIN3', 'RIN12',
+            'OPCH', 'PCH1', 'OPOR', 'POR1', 'OPRQ', 'PRQ1', 'OPDN', 'PDN1',
+            'OITM', 'OITB', 'OITW',
+            'OSLP',
+            'OUSG',
+            'OBPL',
+            'OJDT', 'JDT1', 'OACT',
+            'OADM', 'ONNM'
+        ];
+
+        foreach ($sapB1Tables as $table) {
+            if (stripos($sql, $table) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function executeSapApiQuery(string $sql, bool $forceRefresh, ?string $namespace, int $page = 1, int $perPage = 25): array
+    {
+        try {
+            error_log("🔷 DynamicQueryBuilderService::executeSapApiQuery - INÍCIO");
+            error_log("🔷 SQL recebido: " . substr($sql, 0, 200));
+            
+            $cacheKey = $this->buildCacheKey($sql, $namespace);
+            $cacheService = $this->getCacheService();
+
+            error_log("🔷 executeSapApiQuery - SQL: " . substr($sql, 0, 100));
+            error_log("🔷 executeSapApiQuery - forceRefresh: " . ($forceRefresh ? 'true' : 'false'));
+            error_log("🔷 executeSapApiQuery - cacheKey: " . $cacheKey);
+
+            if (!$forceRefresh) {
+                $cached = $cacheService->get($cacheKey);
+                if ($cached) {
+                    error_log("✅ Cache encontrado para: " . $cacheKey);
+                    $payload = $cached['data'];
+                    // Não retornar cache se for erro
+                    if (isset($payload['success']) && $payload['success'] === false) {
+                        error_log("⚠️ Cache contém erro, ignorando e fazendo nova consulta");
+                        $cacheService->forget($cacheKey);
+                    } else {
+                        // Garantir que execution_time e rows_count existam mesmo vindo do cache
+                        if (!isset($payload['execution_time'])) {
+                            $payload['execution_time'] = 0.0;
+                        }
+                        if (!isset($payload['rows_count'])) {
+                            $payload['rows_count'] = count($payload['data'] ?? []);
+                        }
+                        
+                        // Aplicar paginação nos dados do cache
+                        $allData = $payload['data'] ?? [];
+                        $totalRows = count($allData);
+                        if (!isset($payload['total_rows'])) {
+                            $payload['total_rows'] = $totalRows;
+                        }
+                        $offset = max(0, ($page - 1) * $perPage);
+                        $paginatedData = array_slice($allData, $offset, $perPage);
+                        $payload['data'] = $paginatedData;
+                        $payload['rows_count'] = count($paginatedData);
+                        
+                        $payload['cache'] = [
+                            'from_cache' => true,
+                            'stored_at' => $cached['stored_at'],
+                            'cache_key' => $cacheKey
+                        ];
+                        return $payload;
+                    }
+                } else {
+                    error_log("ℹ️ Nenhum cache encontrado");
+                }
+            } else {
+                error_log("🔄 Forçando refresh, limpando cache");
+                $cacheService->forget($cacheKey);
+            }
+
+            error_log("📡 Chamando API SAP...");
+            try {
+                $apiResult = $this->getSapApiService()->execute($sql);
+                error_log("✅ API SAP retornou: " . (isset($apiResult['rows_count']) ? $apiResult['rows_count'] . ' registros' : 'erro'));
+            } catch (\Exception $e) {
+                error_log("❌ ERRO ao chamar API SAP: " . $e->getMessage());
+                error_log("❌ Arquivo: " . $e->getFile() . ":" . $e->getLine());
+                throw $e;
+            }
+            // Aplicar paginação nos dados retornados da API
+            $allData = $this->convertEncodingToUtf8($apiResult['data']);
+            $totalRows = count($allData);
+            $offset = max(0, ($page - 1) * $perPage);
+            $paginatedData = array_slice($allData, $offset, $perPage);
+            
+            $result = [
+                'success' => true,
+                'data' => $paginatedData,
+                'rows_count' => count($paginatedData),
+                'total_rows' => $totalRows,
+                'execution_time' => (float)($apiResult['execution_time'] ?? 0.0),
+                'connection_type' => 'sap_api',
+                'sql' => $sql,
+                'query_mode' => 'custom_sql'
+            ];
+
+            $cacheService->put($cacheKey, $result);
+            $result['cache'] = [
+                'from_cache' => false,
+                'stored_at' => time(),
+                'cache_key' => $cacheKey
+            ];
+
+            error_log("✅ executeSapApiQuery - SUCESSO - Retornando " . count($result['data'] ?? []) . " registros");
+            return $result;
+        } catch (Exception $e) {
+            error_log("❌ ERRO em executeSapApiQuery: " . $e->getMessage());
+            error_log("❌ Arquivo: " . $e->getFile() . ":" . $e->getLine());
+            error_log("❌ Stack trace: " . substr($e->getTraceAsString(), 0, 500));
+            
+            // Limpar cache em caso de erro para evitar retornar erro em cache
+            if (isset($cacheKey)) {
+                $cacheService->forget($cacheKey);
+            }
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'connection_type' => 'sap_api',
+                'sql' => $sql
+            ];
+        }
+    }
+
+    private function buildCacheKey(string $sql, ?string $namespace): string
+    {
+        $prefix = $namespace ? preg_replace('/[^a-z0-9_\-]/i', '_', $namespace) : 'generic';
+        return $prefix . '_' . hash('sha256', $sql);
+    }
+
+    private function getCacheService(): ReportCacheService
+    {
+        if ($this->cacheService === null) {
+            $this->cacheService = new ReportCacheService();
+        }
+
+        return $this->cacheService;
+    }
+
+    private function getSapApiService(): SapReportApiService
+    {
+        if ($this->sapApiService === null) {
+            $this->sapApiService = new SapReportApiService();
+        }
+
+        return $this->sapApiService;
     }
 
     private function buildSelectFields(array $fields, array $groupby): string
@@ -508,9 +617,10 @@ class DynamicQueryBuilderService
             $value = mb_convert_encoding($value, 'UTF-8', $encoding);
         }
 
-        if (!mb_check_encoding($value, 'UTF-8')) {
-            $value = utf8_encode($value);
-        }
+            if (!mb_check_encoding($value, 'UTF-8')) {
+                // utf8_encode está deprecated, usar mb_convert_encoding como alternativa
+                $value = mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1');
+            }
 
         return $value;
     }

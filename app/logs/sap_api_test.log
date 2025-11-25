@@ -1,0 +1,4 @@
+[25-Nov-2025 18:08:47 UTC] 🔍 Query SAP detectada → Usando conexão sap_b1
+[25-Nov-2025 18:08:48 UTC] ❌ Erro SAP API: API SAP retornou HTTP 400
+[25-Nov-2025 18:09:21 UTC] 🔍 Query SAP detectada → Usando conexão sap_b1
+[25-Nov-2025 18:09:21 UTC] ❌ Erro SAP API: API SAP retornou HTTP 400

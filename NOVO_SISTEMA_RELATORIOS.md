@@ -36,18 +36,20 @@ Resultado: SELECT name, email FROM adms_users
 
 ---
 
-## 🔷 **MODO 2: SQL PERSONALIZADO (Local + SAP B1)**
+## 🔷 **MODO 2: SQL PERSONALIZADO (Local + SAP via API)**
 
-### **✅ Para SAP B1: Use este modo!**
+### **✅ Para SAP: Use este modo! (Sempre via API)**
 
 **Como usar:**
 1. Selecionar aba: **"SQL Personalizado"**
 2. Escrever SQL livre no campo
 3. **Sistema detecta automaticamente:**
-   - Se tem OCRD, OINV, OITM, etc → **SAP B1** 🔷
-   - Se não → **Local** ✅
+   - Se tem OCRD, OINV, OITM, etc → **SAP API** 🔷 (via API HTTP)
+   - Se não → **Local** ✅ (MySQL direto)
 4. Visualizar prévia
 5. Salvar
+
+**⚠️ IMPORTANTE:** Todas as queries SAP são executadas via API HTTP, não há mais conexão direta com o banco.
 
 **Exemplos SAP B1:**
 ```sql
@@ -95,10 +97,12 @@ O sistema **detecta automaticamente** qual banco usar:
 
 | SQL contém | Executa em |
 |------------|------------|
-| `OCRD`, `OINV`, `ORDR`, `OITM`, `OITW`, `OPCH`, `OPOR` | **SAP B1 HANA** 🔷 |
+| `OCRD`, `OINV`, `ORDR`, `OITM`, `OITW`, `OPCH`, `OPOR` | **SAP API** 🔷 (via HTTP) |
 | Outras tabelas (`adms_*`, `crm_*`, etc) | **Local (MySQL)** ✅ |
 
 **Você não precisa configurar nada!** O sistema decide sozinho! 🎯
+
+**⚠️ IMPORTANTE:** Todas as queries SAP são executadas via API HTTP (`SAP_REPORT_API_URL`), não há mais conexão direta ODBC/HANA.
 
 ---
 
@@ -171,16 +175,18 @@ O sistema lista automaticamente:
 
 ---
 
-## 🔷 **PARA SAP B1:**
+## 🔷 **PARA SAP:**
 
 ### **Use SQL Personalizado:**
 ```sql
 SELECT * FROM OITM
 ```
 
-### **Sistema detecta e executa no SAP B1 HANA automaticamente!**
+### **Sistema detecta e executa via API SAP automaticamente!**
 
-**Tabelas SAP B1 mais usadas:**
+**⚠️ IMPORTANTE:** Todas as queries SAP são executadas via API HTTP configurada em `SAP_REPORT_API_URL`.
+
+**Tabelas SAP mais usadas:**
 - OCRD - Clientes/Fornecedores
 - OITM - Itens
 - OINV - Notas Fiscais Saída

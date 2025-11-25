@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\reports;
 
 use App\adms\Models\Repository\DynamicReportsRepository;
+use App\adms\Models\Services\DynamicQueryBuilderService;
 
 class SaveDynamicReport
 {
@@ -27,7 +28,7 @@ class SaveDynamicReport
         if ($queryMode === 'custom_sql') {
             // Modo SQL Personalizado
             $data['custom_sql'] = $_POST['custom_sql'] ?? '';
-            $data['data_source'] = null;
+            $data['data_source'] = DynamicQueryBuilderService::hasSapSignature($data['custom_sql']) ? 'sap_b1' : 'sql_local';
             $data['fields'] = [];
             $data['filters'] = [];
             $data['groupby'] = [];

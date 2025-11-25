@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\reports;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
 use App\adms\Views\Services\LoadViewService;
@@ -13,12 +14,24 @@ class ViewDynamicReport
 
     public function index(?string $id = null): void
     {
+        // Sem limite de memória para relatórios grandes (todas as vendas, etc)
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', '600'); // 10 minutos
+        
         if (empty($id)) {
             $_SESSION['error'] = 'ID do relatório não fornecido';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
             exit;
         }
         
+        $forceRefresh = !empty($_GET['refresh']);
+        
+        // Paginação
+        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], [10, 25, 50, 100, 500]) 
+            ? (int)$_GET['per_page'] 
+            : 25;
+
         $repo = new DynamicReportsRepository();
         $this->data['report'] = $repo->getById((int)$id);
         
@@ -28,12 +41,44 @@ class ViewDynamicReport
             exit;
         }
         
+        $this->data['report']['cache_namespace'] = 'report_' . $id;
+        $this->data['report']['force_refresh'] = $forceRefresh;
+        $this->data['report']['page'] = $page;
+        $this->data['report']['per_page'] = $perPage;
+
         $queryBuilder = new DynamicQueryBuilderService();
         $this->data['result'] = $queryBuilder->executeReport($this->data['report']);
+        $this->data['force_refresh'] = $forceRefresh;
+        
+        // Gerar paginação se houver dados
+        if ($this->data['result']['success'] && !empty($this->data['result']['data'])) {
+            $totalRows = $this->data['result']['total_rows'] ?? count($this->data['result']['data']);
+            $filters = ['per_page' => $perPage];
+            if ($forceRefresh) {
+                $filters['refresh'] = '1';
+            }
+            $pagination = PaginationService::generatePagination(
+                $totalRows,
+                $perPage,
+                $page,
+                'view-dynamic-report/' . $id,
+                $filters
+            );
+            $this->data['pagination'] = $pagination;
+        }
         
         if ($this->data['result']['success']) {
-            $repo->logExecution((int)$id, $_SESSION['user_id'] ?? 0,
-                $this->data['result']['execution_time'], $this->data['result']['rows_count']);
+            // Garantir que execution_time seja sempre float, mesmo se null ou não existir
+            $executionTime = isset($this->data['result']['execution_time']) && $this->data['result']['execution_time'] !== null
+                ? (float)$this->data['result']['execution_time']
+                : 0.0;
+            
+            // Garantir que rows_count seja sempre int
+            $rowsCount = isset($this->data['result']['rows_count']) && $this->data['result']['rows_count'] !== null
+                ? (int)$this->data['result']['rows_count']
+                : (int)(count($this->data['result']['data'] ?? []));
+            
+            $repo->logExecution((int)$id, $_SESSION['user_id'] ?? 0, $executionTime, $rowsCount);
         }
         
         $pageElements = [

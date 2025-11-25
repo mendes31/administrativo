@@ -1,6 +1,14 @@
 <?php
+use App\adms\Helpers\CSRFHelper;
+
 $report = $this->data['report'] ?? null;
 $availableTables = $this->data['availableTables'] ?? [];
+$isSapScope = (!empty($_GET['source']) && $_GET['source'] === 'sap');
+$defaultQueryMode = $report['query_mode'] ?? 'builder';
+$shouldOpenSqlTab = $isSapScope || $defaultQueryMode === 'custom_sql';
+
+// Gerar token CSRF para o formulário de relatórios
+$csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
 ?>
 
 <div class="container-fluid">
@@ -30,7 +38,7 @@ $availableTables = $this->data['availableTables'] ?? [];
 
             <form id="reportBuilderForm" method="POST" action="<?= $_ENV['URL_ADM'] ?>save-dynamic-report">
                 <input type="hidden" name="id" value="<?= $report['id'] ?? '' ?>">
-                <input type="hidden" name="query_mode" id="queryMode" value="builder">
+                <input type="hidden" name="query_mode" id="queryMode" value="<?= htmlspecialchars($defaultQueryMode) ?>">
                 
                 <!-- Informações Básicas (sempre visível) -->
                 <div class="row mb-4">
@@ -294,6 +302,9 @@ $availableTables = $this->data['availableTables'] ?? [];
                         <button type="button" class="btn btn-info btn-lg" id="previewBtn">
                             <i class="fas fa-eye"></i> Visualizar Prévia em Tempo Real
                         </button>
+                        <button type="button" class="btn btn-warning btn-lg" id="refreshPreviewBtn">
+                            <i class="fas fa-sync"></i> Atualizar Consulta (ignorar cache)
+                        </button>
                         <button type="submit" class="btn btn-success btn-lg">
                             <i class="fas fa-save"></i> Salvar Relatório
                         </button>
@@ -319,6 +330,7 @@ $availableTables = $this->data['availableTables'] ?? [];
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+const shouldOpenSqlTab = <?= $shouldOpenSqlTab ? 'true' : 'false' ?>;
 let reportState = {
     dataSource: '<?= $report['data_source'] ?? '' ?>',
     availableFields: {},
@@ -327,7 +339,7 @@ let reportState = {
     orderBy: [],
     groupBy: [],
     connectionType: 'local',
-    queryMode: 'builder'
+    queryMode: '<?= $defaultQueryMode ?>'
 };
 
 let sqlEditor = null;
@@ -469,6 +481,15 @@ SELECT * FROM OITM
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOM carregado!');
+
+    if (shouldOpenSqlTab) {
+        setTimeout(() => {
+            const sqlTabBtn = document.getElementById('sql-tab');
+            if (sqlTabBtn) {
+                sqlTabBtn.click();
+            }
+        }, 250);
+    }
     
     // Busca de tabelas
     document.getElementById('tableSearch').addEventListener('input', function(e) {
@@ -709,7 +730,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Prévia
-    document.getElementById('previewBtn').addEventListener('click', showPreview);
+    document.getElementById('previewBtn').addEventListener('click', () => showPreview(false));
+    document.getElementById('refreshPreviewBtn').addEventListener('click', () => showPreview(true));
     
     // Submit
     document.getElementById('reportBuilderForm').addEventListener('submit', onFormSubmit);
@@ -929,17 +951,17 @@ function removeGroupBy(index) {
     updateGroupByDisplay();
 }
 
-async function showPreview() {
+async function showPreview(forceRefresh = false) {
     const activeTab = document.querySelector('.tab-pane.active').id;
     
     if (activeTab === 'sql-mode') {
-        await showPreviewSQL();
+        await showPreviewSQL(forceRefresh);
     } else {
-        await showPreviewBuilder();
+        await showPreviewBuilder(forceRefresh);
     }
 }
 
-async function showPreviewBuilder() {
+async function showPreviewBuilder(forceRefresh = false) {
     const dataSource = reportState.dataSource;
     
     if (!dataSource) {
@@ -964,6 +986,8 @@ async function showPreviewBuilder() {
     formData.append('orderby', JSON.stringify(reportState.orderBy || []));
     formData.append('visualization_type', document.getElementById('visualizationType').value);
     formData.append('query_mode', 'builder');
+    formData.append('force_refresh', forceRefresh ? '1' : '0');
+    formData.append('csrf_token', '<?= $csrfToken ?>');
     
     console.log('📊 Executando (Builder):', {
         dataSource,
@@ -988,7 +1012,7 @@ async function showPreviewBuilder() {
     }
 }
 
-async function showPreviewSQL() {
+async function showPreviewSQL(forceRefresh = false) {
     // Pegar o valor do Monaco Editor
     const sql = sqlEditor ? sqlEditor.getValue().trim() : document.getElementById('customSql').value.trim();
     
@@ -1010,8 +1034,11 @@ async function showPreviewSQL() {
     formData.append('custom_sql', sql);
     formData.append('query_mode', 'custom_sql');
     formData.append('visualization_type', document.querySelector('[name="visualization_type_sql"]').value);
+    formData.append('force_refresh', forceRefresh ? '1' : '0');
+    formData.append('csrf_token', '<?= $csrfToken ?>');
     
     console.log('📝 Executando SQL:', sql);
+    console.log('📝 CSRF Token:', '<?= $csrfToken ?>');
     
     try {
         const response = await fetch('<?= $_ENV['URL_ADM'] ?>execute-dynamic-report', {method: 'POST', body: formData});
@@ -1048,12 +1075,19 @@ function renderPreview(result) {
         renderChart(result.data, visualizationType);
     }
     
+    const connectionLabels = {
+        local: 'Banco Local',
+        sap_b1: 'SAP B1 HANA',
+        sap_api: 'SAP API'
+    };
+    const connectionInfo = connectionLabels[result.connection_type] || (result.connection_type || 'Desconhecido');
+    
     // Mostrar informações e avisos
     let infoHtml = `
         <div class="alert alert-info mt-3">
             <i class="fas fa-info-circle"></i> 
             ${result.rows_count} registro(s) | ${result.execution_time}s | 
-            Conexão: ${result.connection_type === 'sap_b1' ? 'SAP B1 HANA' : 'Local'}
+            Conexão: ${connectionInfo}
             ${result.sql ? '<br><small><code>' + result.sql + '</code></small>' : ''}
         </div>
     `;
@@ -1064,6 +1098,18 @@ function renderPreview(result) {
             <div class="alert alert-warning mt-2">
                 <i class="fas fa-exclamation-triangle"></i> 
                 <strong>Atenção:</strong> ${result.warning}
+            </div>
+        `;
+    }
+    
+    if (result.cache) {
+        const cacheDate = new Date((result.cache.stored_at || 0) * 1000);
+        const cacheTs = cacheDate.getTime();
+        const cacheDateLabel = Number.isNaN(cacheTs) ? '-' : cacheDate.toLocaleString('pt-BR');
+        const cacheLabel = result.cache.from_cache ? 'Dados vindos do cache' : 'Consulta atualizada agora';
+        infoHtml += `
+            <div class="alert alert-secondary mt-2">
+                <i class="fas fa-database"></i> ${cacheLabel} em ${cacheDateLabel}
             </div>
         `;
     }

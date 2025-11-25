@@ -1,6 +1,12 @@
 <?php
 $report = $this->data['report'] ?? null;
 $result = $this->data['result'] ?? null;
+$connectionLabels = [
+    'local' => 'Banco Local',
+    'sap_b1' => 'SAP B1 HANA',
+    'sap_api' => 'SAP API'
+];
+$connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($result['connection_type'] ?? 'Desconhecido');
 ?>
 
 <div class="container-fluid">
@@ -19,6 +25,11 @@ $result = $this->data['result'] ?? null;
                     <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>
+                    <?php if (!empty($report['id'])): ?>
+                        <a href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $report['id'] ?>?refresh=1" class="btn btn-warning">
+                            <i class="fas fa-sync"></i> Atualizar consulta
+                        </a>
+                    <?php endif; ?>
                     <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard/<?= $report['id'] ?>" class="btn btn-success">
                         <i class="fas fa-chart-bar"></i> Criar Dashboard
                     </a>
@@ -87,8 +98,8 @@ $result = $this->data['result'] ?? null;
                 <div class="card-body">
                     <?php if (!$result['success']): ?>
                         <div class="alert alert-danger">
-                            <strong>Erro ao executar relatório:</strong><br>
-                            <?= htmlspecialchars($result['error']) ?>
+                            <strong><i class="fas fa-exclamation-triangle"></i> Erro ao executar relatório:</strong><br>
+                            <div style="white-space: pre-wrap; margin-top: 10px;"><?= htmlspecialchars($result['error']) ?></div>
                         </div>
                     <?php elseif (empty($result['data'])): ?>
                         <div class="alert alert-warning">
@@ -98,8 +109,32 @@ $result = $this->data['result'] ?? null;
                         <!-- Renderizar dados -->
                         <?php if ($report['visualization_type'] === 'table'): ?>
                             <?php
-                            $headers = array_keys($result['data'][0]);
+                            $headers = !empty($result['data']) ? array_keys($result['data'][0]) : [];
+                            $totalRows = $result['total_rows'] ?? count($result['data'] ?? []);
+                            $currentPage = $this->data['pagination']['current_page'] ?? 1;
+                            $perPage = isset($this->data['pagination']['per_page']) ? (int)$this->data['pagination']['per_page'] : 25;
                             ?>
+                            
+                            <!-- Informações de paginação -->
+                            <?php if (isset($this->data['pagination'])): ?>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="text-secondary">
+                                        Mostrando <?= $this->data['pagination']['first_item'] ?> até <?= $this->data['pagination']['last_item'] ?> 
+                                        de <?= number_format($this->data['pagination']['total'], 0, ',', '.') ?> registro(s)
+                                    </div>
+                                    <div>
+                                        <label class="me-2">Registros por página:</label>
+                                        <select id="perPageSelect" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="changePerPage(this.value)">
+                                            <option value="10" <?= $perPage == 10 ? 'selected' : '' ?>>10</option>
+                                            <option value="25" <?= $perPage == 25 ? 'selected' : '' ?>>25</option>
+                                            <option value="50" <?= $perPage == 50 ? 'selected' : '' ?>>50</option>
+                                            <option value="100" <?= $perPage == 100 ? 'selected' : '' ?>>100</option>
+                                            <option value="500" <?= $perPage == 500 ? 'selected' : '' ?>>500</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered table-hover">
                                     <thead class="table-dark">
@@ -113,13 +148,50 @@ $result = $this->data['result'] ?? null;
                                         <?php foreach ($result['data'] as $row): ?>
                                             <tr>
                                                 <?php foreach ($headers as $header): ?>
-                                                    <td><?= htmlspecialchars($row[$header] ?? '') ?></td>
+                                                    <td><?php
+                                                        $value = $row[$header] ?? '';
+                                                        if (is_array($value) || is_object($value)) {
+                                                            // Converter array/objeto para JSON formatado
+                                                            $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+                                                            // Limitar tamanho para exibição
+                                                            if (strlen($json) > 200) {
+                                                                $json = substr($json, 0, 200) . '...';
+                                                            }
+                                                            echo '<pre style="margin:0;font-size:0.85em;white-space:pre-wrap;word-break:break-all;">' . htmlspecialchars($json) . '</pre>';
+                                                        } elseif ($value === null) {
+                                                            echo '<span class="text-muted">NULL</span>';
+                                                        } else {
+                                                            echo htmlspecialchars((string)$value);
+                                                        }
+                                                    ?></td>
                                                 <?php endforeach; ?>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            <!-- Paginação -->
+                            <?php if (isset($this->data['pagination'])): ?>
+                                <?php if ($this->data['pagination']['last_page'] > 1): ?>
+                                    <div class="d-flex justify-content-center mt-3">
+                                        <?= $this->data['pagination']['html'] ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="text-center text-muted mt-2 small">
+                                        <i class="fas fa-info-circle"></i> Exibindo todos os <?= number_format($this->data['pagination']['total'], 0, ',', '.') ?> registro(s)
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <script>
+                            function changePerPage(value) {
+                                const url = new URL(window.location.href);
+                                url.searchParams.set('per_page', value);
+                                url.searchParams.set('page', '1'); // Resetar para primeira página
+                                window.location.href = url.toString();
+                            }
+                            </script>
                         <?php else: ?>
                             <!-- Gráfico -->
                             <canvas id="reportChart" style="max-height: 500px;"></canvas>
@@ -256,8 +328,15 @@ $result = $this->data['result'] ?? null;
                             <i class="fas fa-info-circle"></i> 
                             <?= $result['rows_count'] ?> registro(s) | 
                             Executado em <?= $result['execution_time'] ?>s |
-                            Conexão: <?= $result['connection_type'] === 'sap_b1' ? 'SAP B1 HANA' : 'Local' ?>
+                            Conexão: <?= $connectionLabel ?>
                         </div>
+                        <?php if (!empty($result['cache'])): ?>
+                            <div class="alert alert-secondary mt-2">
+                                <i class="fas fa-database"></i>
+                                <?= !empty($result['cache']['from_cache']) ? 'Dados vindos do cache' : 'Consulta atualizada agora' ?>
+                                em <?= !empty($result['cache']['stored_at']) ? date('d/m/Y H:i', $result['cache']['stored_at']) : '-' ?>
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

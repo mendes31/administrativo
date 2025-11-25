@@ -687,6 +687,25 @@ $menus = [
             ],
         ]
     ],
+    [
+        'id' => 'relatorios-sap',
+        'icon' => 'fa-solid fa-database',
+        'label' => 'Relatórios SAP',
+        'submenu' => [
+            [
+                'label' => 'Relatórios SAP (API)',
+                'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports?source=sap',
+                'permission' => 'ListDynamicReports',
+                'icon' => 'fa-solid fa-server'
+            ],
+            [
+                'label' => 'Criar Relatório SAP',
+                'url' => $_ENV['URL_ADM'] . 'dynamic-report-builder?source=sap',
+                'permission' => 'DynamicReportBuilder',
+                'icon' => 'fa-solid fa-code'
+            ],
+        ]
+    ],
     
     [
         'id' => 'logout',
