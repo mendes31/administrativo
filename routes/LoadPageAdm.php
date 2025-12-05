@@ -123,13 +123,17 @@ class LoadPageAdm
         "WhatsAppConfig", "CrmSendWhatsApp",
         "SapApiConfig", "SaveSapApiConfig", "TestSapApiConfig",
         // Relatórios Dinâmicos
-        "ListDynamicReports", "DynamicReportBuilder", "ViewDynamicReport", "SaveDynamicReport", "ExecuteDynamicReport",
+        "ListDynamicReports", "ListDynamicReportsSap",
+        "DynamicReportBuilder", "DynamicReportBuilderLocal", "DynamicReportBuilderSap",
+        "ViewDynamicReport", "SaveDynamicReport", "ExecuteDynamicReport",
         "DeleteDynamicReport", "ExportDynamicReportExcel", "ExportDynamicReportPdf", "ExportDynamicReportCsv",
+        // Dashboards - fontes de dados
+        "DashboardDataSources",
         // Dashboards de KPI
         "ListKpiDashboards", "ViewKpiDashboard", "CreateKpiDashboard", "UpdateKpiDashboard", "DeleteKpiDashboard", "GetKpiWidgetData",
         // Dashboards Dinâmicos (Power BI-like)
         "ListDashboards", "CreateDashboard", "ViewDashboard", "EditDashboard", "DeleteDashboard", "DuplicateDashboard",
-        "ExecuteDashboard", "GetFilterOptions",
+        "ExecuteDashboard", "GetFilterOptions", "UploadSpreadsheet", "GetSpreadsheetFields",
         // Dashboard de Vendas SAP B1
         "SalesDashboard", "SalesDashboardData"
     ];

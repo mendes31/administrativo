@@ -160,7 +160,12 @@ class UpdateUser
 
         // Instanciar Repository para editar o usuário
         $form = $this->data['form'];
-        $form['data_nascimento'] = $_POST['data_nascimento'] ?? null;
+        $form['data_nascimento'] = !empty($_POST['data_nascimento']) ? $_POST['data_nascimento'] : null;
+        $form['data_admissao'] = !empty($_POST['data_admissao']) ? $_POST['data_admissao'] : null;
+        // Se data_desligamento estiver vazia, definir como null (permite limpar o campo)
+        $form['data_desligamento'] = !empty($_POST['data_desligamento']) ? $_POST['data_desligamento'] : null;
+        // Se data_desligamento for null, motivo também deve ser null
+        $form['motivo_desligamento'] = (!empty($form['data_desligamento']) && !empty($_POST['motivo_desligamento'])) ? $_POST['motivo_desligamento'] : null;
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK && !empty($form['id'])) {
             $uploadDir = 'public/adms/uploads/users/' . $form['id'] . '/';
             if (!is_dir($uploadDir)) {

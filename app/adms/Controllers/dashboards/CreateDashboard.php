@@ -5,6 +5,7 @@ namespace App\adms\Controllers\dashboards;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\DashboardsRepository;
 use App\adms\Models\Repository\DynamicReportsRepository;
+use App\adms\Models\Repository\SpreadsheetsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class CreateDashboard
@@ -13,6 +14,10 @@ class CreateDashboard
 
     public function index(?string $param = null): void
     {
+        // Ao entrar em qualquer página de Dashboard, limpar overrides de outros menus
+        if (isset($_SESSION['menu_override'])) {
+            unset($_SESSION['menu_override']);
+        }
         // Verificar se foi passado ID do relatório
         $reportId = $param ? (int)$param : ($_GET['report_id'] ?? null);
         
@@ -37,9 +42,14 @@ class CreateDashboard
         $reportsRepo = $reportsRepo ?? new DynamicReportsRepository();
         $this->data['reports'] = $reportsRepo->getUserReports($_SESSION['user_id'] ?? 0, true);
         
+        // Listar todas as planilhas disponíveis
+        $spreadsheetsRepo = new SpreadsheetsRepository();
+        $this->data['spreadsheets'] = $spreadsheetsRepo->getUserSpreadsheets($_SESSION['user_id'] ?? 0, true);
+        
         $pageElements = [
             'title_head' => 'Criar Dashboard',
-            'menu' => 'CreateDashboard',
+            // Mantém o menu principal de Dashboards em destaque
+            'menu' => 'ListDashboards',
             'buttonPermission' => []
         ];
         
@@ -56,6 +66,8 @@ class CreateDashboard
             'name' => $_POST['name'] ?? '',
             'description' => $_POST['description'] ?? null,
             'dynamic_report_id' => (int)($_POST['dynamic_report_id'] ?? 0),
+            'spreadsheet_id' => (int)($_POST['spreadsheet_id'] ?? 0),
+            'data_source_type' => $_POST['data_source_type'] ?? 'report',
             'created_by' => $_SESSION['user_id'] ?? 0,
             'is_public' => isset($_POST['is_public']),
             'category' => $_POST['category'] ?? null,
@@ -74,9 +86,22 @@ class CreateDashboard
         $data['filters_config'] = is_array($data['filters_config']) ? $data['filters_config'] : [];
         $data['relationships'] = is_array($data['relationships']) ? $data['relationships'] : [];
         
-        if (empty($data['name']) || empty($data['dynamic_report_id'])) {
-            $_SESSION['error'] = 'Nome e Relatório são obrigatórios!';
-            header('Location: ' . $_SERVER['HTTP_REFERER'] ?? $_ENV['URL_ADM'] . 'create-dashboard');
+        // Validar fonte de dados
+        if (empty($data['name'])) {
+            $_SESSION['error'] = 'Nome do dashboard é obrigatório!';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? $_ENV['URL_ADM'] . 'create-dashboard'));
+            exit;
+        }
+        
+        if ($data['data_source_type'] === 'spreadsheet' && empty($data['spreadsheet_id'])) {
+            $_SESSION['error'] = 'Selecione uma planilha como fonte de dados!';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? $_ENV['URL_ADM'] . 'create-dashboard'));
+            exit;
+        }
+        
+        if ($data['data_source_type'] === 'report' && empty($data['dynamic_report_id'])) {
+            $_SESSION['error'] = 'Selecione um relatório como fonte de dados!';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? $_ENV['URL_ADM'] . 'create-dashboard'));
             exit;
         }
         

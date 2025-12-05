@@ -12,6 +12,10 @@ class ViewDashboard
 
     public function index(?string $id = null): void
     {
+        // Ao entrar em qualquer página de Dashboard, limpar overrides de outros menus
+        if (isset($_SESSION['menu_override'])) {
+            unset($_SESSION['menu_override']);
+        }
         if (!$id) {
             $_SESSION['error'] = 'Dashboard não especificado!';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dashboards');
@@ -43,7 +47,8 @@ class ViewDashboard
         
         $pageElements = [
             'title_head' => $this->data['dashboard']['name'],
-            'menu' => 'ViewDashboard',
+            // Mantém o menu principal de Dashboards em destaque
+            'menu' => 'ListDashboards',
             'buttonPermission' => ['ListDashboards', 'CreateDashboard']
         ];
         

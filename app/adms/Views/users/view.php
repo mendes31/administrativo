@@ -206,6 +206,24 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
                     <dt class="col-sm-3">Modificar Senha no Próximo Logon: </dt>
                     <dd class="col-sm-9"><?php echo $modificar_senha_proximo_logon; ?></dd>
+
+                    <?php if (!empty($this->data['user']['data_admissao'])): ?>
+                        <dt class="col-sm-3">Data de Admissão: </dt>
+                        <dd class="col-sm-9"><?php echo date('d/m/Y', strtotime($this->data['user']['data_admissao'])); ?></dd>
+                    <?php endif; ?>
+
+                    <?php if (!empty($this->data['user']['data_desligamento'])): ?>
+                        <dt class="col-sm-3">Data de Desligamento: </dt>
+                        <dd class="col-sm-9"><?php echo date('d/m/Y', strtotime($this->data['user']['data_desligamento'])); ?></dd>
+                    <?php endif; ?>
+
+                    <?php if (!empty($this->data['totalTenure'])): ?>
+                        <dt class="col-sm-3">Tempo Total de Casa: </dt>
+                        <dd class="col-sm-9">
+                            <strong><?php echo htmlspecialchars($this->data['totalTenure']['formatted']); ?></strong>
+                            <small class="text-muted">(<?php echo $this->data['totalTenure']['total_periodos']; ?> período(s))</small>
+                        </dd>
+                    <?php endif; ?>
                 </dl>
 
 
@@ -218,6 +236,78 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
         </div>
 
     </div>
+
+    <?php if (!empty($this->data['employmentHistory'])): ?>
+        <div class="card mb-4 border-light shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Histórico de Admissões e Desligamentos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Data de Admissão</th>
+                                <th>Data de Desligamento</th>
+                                <th>Motivo do Desligamento</th>
+                                <th>Duração</th>
+                                <th>Observações</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($this->data['employmentHistory'] as $period): ?>
+                                <tr class="<?php echo empty($period['data_desligamento']) ? 'table-success' : ''; ?>">
+                                    <td>
+                                        <span class="badge bg-<?php echo $period['tipo_periodo'] === 'Recontratação' ? 'info' : 'primary'; ?>">
+                                            <?php echo htmlspecialchars($period['tipo_periodo']); ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo date('d/m/Y', strtotime($period['data_admissao'])); ?></td>
+                                    <td>
+                                        <?php 
+                                        if (!empty($period['data_desligamento'])) {
+                                            echo date('d/m/Y', strtotime($period['data_desligamento']));
+                                        } else {
+                                            echo '<span class="badge bg-success">Ativo</span>';
+                                        }
+                                        ?>
+                                    </td>
+                                    <td><?php echo !empty($period['motivo_desligamento']) ? htmlspecialchars($period['motivo_desligamento']) : '-'; ?></td>
+                                    <td>
+                                        <?php
+                                        $admissao = new \DateTime($period['data_admissao']);
+                                        $desligamento = !empty($period['data_desligamento']) 
+                                            ? new \DateTime($period['data_desligamento']) 
+                                            : new \DateTime();
+                                        $diff = $admissao->diff($desligamento);
+                                        echo $diff->y > 0 
+                                            ? "{$diff->y} ano(s), {$diff->m} mês(es)"
+                                            : "{$diff->m} mês(es), {$diff->d} dia(s)";
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            <?php echo !empty($period['observacoes']) ? htmlspecialchars($period['observacoes']) : '-'; ?>
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if (in_array('UpdateUser', $this->data['buttonPermission'] ?? [])) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-employment-history/<?= $period['id'] ?>" 
+                                               class="btn btn-sm btn-warning" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        <?php } ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- <div class="card mb-4 border-light shadow">
         <div class="card-header d-flex flex-column flex-sm-row gap-2">

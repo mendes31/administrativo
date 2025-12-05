@@ -34,13 +34,46 @@ class LoadPageAdmAccessLevel
         $this->urlController = $urlController;
         $this->urlParameter = $urlParameter;
 
+        // Rotas técnicas internas (AJAX) que ainda não estão mapeadas em pages_routes,
+        // mas precisam funcionar normalmente e responder em JSON.
+        $internalAjaxControllers = ['UploadSpreadsheet', 'GetSpreadsheetFields'];
+        if (in_array($this->urlController, $internalAjaxControllers, true)) {
+            $this->classLoad = "\\App\\adms\\Controllers\\dashboards\\{$this->urlController}";
+
+            if (class_exists($this->classLoad)) {
+                $this->loadMetodo();
+                return;
+            }
+        }
+
         $accessLevelPage = new PagesRoutesRepository();
         $this->page = $accessLevelPage->getPage($this->urlController);
 
         if (($this->page && $this->page['public_page'] == 1) or ($this->page && $this->verifyLogin())) {
             $this->checkControllersExists();
         } else {
-            GenerateLog::generateLog("error", "Controller não encontrada.", ['pagina' => $this->urlController, 'parametro' => $this->urlParameter]);
+            GenerateLog::generateLog("error", "Controller não encontrada ou acesso negado.", [
+                'pagina' => $this->urlController,
+                'parametro' => $this->urlParameter
+            ]);
+
+            $isAjax = (
+                !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+            ) || (
+                isset($_SERVER['HTTP_ACCEPT']) &&
+                str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+            );
+
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Você não tem permissão para acessar este recurso ou a rota não foi encontrada.'
+                ]);
+                exit;
+            }
+
             die("Erro 003: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
         }
     }
@@ -93,6 +126,18 @@ class LoadPageAdmAccessLevel
         // Instanciar a classe da página que deve ser carregada
         $classLoad = new $this->classLoad();
 
+        // Detectar se é requisição AJAX/JSON
+        $isAjax = (
+            !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+        ) || (
+            isset($_SERVER['HTTP_ACCEPT']) &&
+            str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+        );
+
+        // Controllers internas de AJAX que não devem receber parâmetros de rota
+        $internalAjaxControllers = ['UploadSpreadsheet', 'GetSpreadsheetFields'];
+
         // Verificar se o método "index" existe na classe
         if (method_exists($classLoad, "index")) {
             GenerateLog::generateLog("info", "Página acessada.", [
@@ -100,7 +145,55 @@ class LoadPageAdmAccessLevel
                 'parametro' => $this->urlParameter,
                 'action_user_id' => $_SESSION['user_id'] ?? ''
             ]);
-            $classLoad->{"index"}($this->urlParameter);
+
+            try {
+                if (in_array($this->urlController, $internalAjaxControllers, true)) {
+                    // UploadSpreadsheet não precisa de parâmetro, mas GetSpreadsheetFields precisa do ID
+                    if ($this->urlController === 'UploadSpreadsheet') {
+                        $classLoad->{"index"}();
+                    } else {
+                        // GetSpreadsheetFields precisa do ID da planilha
+                        // Se urlParameter estiver vazio, tentar extrair da URL
+                        $param = $this->urlParameter;
+                        
+                        // Debug
+                        error_log("[LoadPageAdmAccessLevel] Controller: {$this->urlController}");
+                        error_log("[LoadPageAdmAccessLevel] urlParameter original: " . var_export($this->urlParameter, true));
+                        error_log("[LoadPageAdmAccessLevel] REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'N/A'));
+                        
+                        if (empty($param) && !empty($_SERVER['REQUEST_URI'])) {
+                            // Extrair o ID da URL: get-spreadsheet-fields/123 ou get-spreadsheet-fields-123
+                            $uri = $_SERVER['REQUEST_URI'];
+                            if (preg_match('/get-spreadsheet-fields[\/\-](\d+)/', $uri, $matches)) {
+                                $param = $matches[1];
+                                error_log("[LoadPageAdmAccessLevel] ID extraído da URI: {$param}");
+                            }
+                        }
+                        
+                        error_log("[LoadPageAdmAccessLevel] Parâmetro final passado para controller: " . var_export($param, true));
+                        $classLoad->{"index"}($param);
+                    }
+                } else {
+                    $classLoad->{"index"}($this->urlParameter);
+                }
+            } catch (\Throwable $e) {
+                GenerateLog::generateLog("error", "Erro ao executar controller.", [
+                    'pagina' => $this->urlController,
+                    'parametro' => $this->urlParameter,
+                    'message' => $e->getMessage()
+                ]);
+
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode([
+                        'success' => false,
+                        'error' => $e->getMessage()
+                    ]);
+                    exit;
+                }
+
+                die("Erro 004: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
+            }
         } else {
             GenerateLog::generateLog("error", "Método não encontrado.", ['pagina' => $this->urlController, 'parametro' => $this->urlParameter]);
             die("Erro 004: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");

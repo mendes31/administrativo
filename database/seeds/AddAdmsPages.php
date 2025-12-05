@@ -4,6 +4,17 @@ declare(strict_types=1);
 
 use Phinx\Seed\AbstractSeed;
 
+/**
+ * Seed de páginas do administrativo.
+ *
+ * As anotações @method abaixo informam ao Intelephense (e outras ferramentas)
+ * que esses métodos existem na classe pai AbstractSeed, eliminando os
+ * avisos de "Undefined method" em tempo de análise estática.
+ *
+ * @method void execute(string $sql)
+ * @method array|false fetchRow(string $sql)
+ * @method \Phinx\Db\Table table(string $tableName)
+ */
 class AddAdmsPages extends AbstractSeed
 {
     /**
@@ -544,8 +555,10 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Enviar WhatsApp CRM', 'controller' => 'CrmSendWhatsApp', 'controller_url' => 'crm-send-whatsapp', 'directory' => 'crm', 'obs' => 'Enviar mensagem WhatsApp do CRM.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             
             // ===== GRUPO 35: RELATÓRIOS DINÂMICOS =====
-            ['name'=> 'Listar Relatórios Dinâmicos', 'controller' => 'ListDynamicReports', 'controller_url' => 'list-dynamic-reports', 'directory' => 'reports', 'obs' => 'Página para listar relatórios dinâmicos criados pelo usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
-            ['name'=> 'Construtor de Relatórios', 'controller' => 'DynamicReportBuilder', 'controller_url' => 'dynamic-report-builder', 'directory' => 'reports', 'obs' => 'Interface visual para criar relatórios personalizados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Listar Relatórios Dinâmicos (Locais)', 'controller' => 'ListDynamicReports', 'controller_url' => 'list-dynamic-reports', 'directory' => 'reports', 'obs' => 'Página para listar relatórios dinâmicos locais criados pelo usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Listar Relatórios Dinâmicos SAP (API)', 'controller' => 'ListDynamicReportsSap', 'controller_url' => 'list-dynamic-reports-sap', 'directory' => 'reports', 'obs' => 'Página para listar relatórios dinâmicos SAP (API) criados pelo usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Construtor de Relatórios Locais', 'controller' => 'DynamicReportBuilderLocal', 'controller_url' => 'dynamic-report-builder-local', 'directory' => 'reports', 'obs' => 'Interface visual para criar relatórios locais.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Construtor de Relatórios SAP (API)', 'controller' => 'DynamicReportBuilderSap', 'controller_url' => 'dynamic-report-builder-sap', 'directory' => 'reports', 'obs' => 'Interface visual para criar relatórios SAP via API.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Visualizar Relatório Dinâmico', 'controller' => 'ViewDynamicReport', 'controller_url' => 'view-dynamic-report', 'directory' => 'reports', 'obs' => 'Página para visualizar e executar relatório dinâmico.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Salvar Relatório Dinâmico', 'controller' => 'SaveDynamicReport', 'controller_url' => 'save-dynamic-report', 'directory' => 'reports', 'obs' => 'Endpoint para salvar/atualizar relatório dinâmico.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Executar Relatório Dinâmico', 'controller' => 'ExecuteDynamicReport', 'controller_url' => 'execute-dynamic-report', 'directory' => 'reports', 'obs' => 'API AJAX para executar relatório em tempo real.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
@@ -564,7 +577,68 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Visualizar Dashboard', 'controller' => 'ViewDashboard', 'controller_url' => 'view-dashboard', 'directory' => 'dashboards', 'obs' => 'Visualizar dashboard com filtros dinâmicos e KPIs.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Deletar Dashboard', 'controller' => 'DeleteDashboard', 'controller_url' => 'delete-dashboard', 'directory' => 'dashboards', 'obs' => 'Deletar dashboard personalizado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
             ['name'=> 'Executar Dashboard', 'controller' => 'ExecuteDashboard', 'controller_url' => 'execute-dashboard', 'directory' => 'dashboards', 'obs' => 'API para executar dashboard com filtros e retornar KPIs.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Fontes de Dados do Dashboard', 'controller' => 'DashboardDataSources', 'controller_url' => 'dashboard-data-sources', 'directory' => 'dashboards', 'obs' => 'Lista os relatórios (fontes de dados) vinculados a um dashboard.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Upload de Planilha', 'controller' => 'UploadSpreadsheet', 'controller_url' => 'upload-spreadsheet', 'directory' => 'dashboards', 'obs' => 'API para fazer upload de planilhas (Excel/CSV) para uso em dashboards.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+            ['name'=> 'Obter Campos de Planilha', 'controller' => 'GetSpreadsheetFields', 'controller_url' => 'get-spreadsheet-fields', 'directory' => 'dashboards', 'obs' => 'API para obter campos/colunas de uma planilha para uso em dashboards.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
+
+            // ===== GRUPO 36: GESTÃO DE PESSOAS =====
+            // Gestão de Desempenho
+            ['name'=> 'Listar Avaliações de Desempenho', 'controller' => 'ListPerformanceReviews', 'controller_url' => 'list-performance-reviews', 'directory' => 'performance', 'obs' => 'Página para listar avaliações de desempenho (90°, 180°, 360°).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Criar Avaliação de Desempenho', 'controller' => 'CreatePerformanceReview', 'controller_url' => 'create-performance-review', 'directory' => 'performance', 'obs' => 'Página com o formulário para criar nova avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Avaliação de Desempenho', 'controller' => 'ViewPerformanceReview', 'controller_url' => 'view-performance-review', 'directory' => 'performance', 'obs' => 'Página para visualizar detalhes da avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Avaliação de Desempenho', 'controller' => 'UpdatePerformanceReview', 'controller_url' => 'update-performance-review', 'directory' => 'performance', 'obs' => 'Página com o formulário para editar avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Apagar Avaliação de Desempenho', 'controller' => 'DeletePerformanceReview', 'controller_url' => 'delete-performance-review', 'directory' => 'performance', 'obs' => 'Página para apagar avaliação de desempenho do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Listar Competências', 'controller' => 'ListCompetencies', 'controller_url' => 'list-competencies', 'directory' => 'performance', 'obs' => 'Página para listar competências técnicas e comportamentais.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Cadastrar Competência', 'controller' => 'CreateCompetency', 'controller_url' => 'create-competency', 'directory' => 'performance', 'obs' => 'Página com o formulário para cadastrar nova competência.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Competência', 'controller' => 'ViewCompetency', 'controller_url' => 'view-competency', 'directory' => 'performance', 'obs' => 'Página para visualizar detalhes da competência.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Competência', 'controller' => 'UpdateCompetency', 'controller_url' => 'update-competency', 'directory' => 'performance', 'obs' => 'Página com o formulário para editar competência.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Apagar Competência', 'controller' => 'DeleteCompetency', 'controller_url' => 'delete-competency', 'directory' => 'performance', 'obs' => 'Página para apagar competência do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Listar Metas de Desempenho', 'controller' => 'ListPerformanceGoals', 'controller_url' => 'list-performance-goals', 'directory' => 'performance', 'obs' => 'Página para listar metas de desempenho (OKRs).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Criar Meta de Desempenho', 'controller' => 'CreatePerformanceGoal', 'controller_url' => 'create-performance-goal', 'directory' => 'performance', 'obs' => 'Página com o formulário para criar nova meta de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Meta de Desempenho', 'controller' => 'ViewPerformanceGoal', 'controller_url' => 'view-performance-goal', 'directory' => 'performance', 'obs' => 'Página para visualizar detalhes da meta de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Meta de Desempenho', 'controller' => 'UpdatePerformanceGoal', 'controller_url' => 'update-performance-goal', 'directory' => 'performance', 'obs' => 'Página com o formulário para editar meta de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Apagar Meta de Desempenho', 'controller' => 'DeletePerformanceGoal', 'controller_url' => 'delete-performance-goal', 'directory' => 'performance', 'obs' => 'Página para apagar meta de desempenho do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Listar Feedbacks de Desempenho', 'controller' => 'ListPerformanceFeedbacks', 'controller_url' => 'list-performance-feedbacks', 'directory' => 'performance', 'obs' => 'Página para listar feedbacks de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Criar Feedback de Desempenho', 'controller' => 'CreatePerformanceFeedback', 'controller_url' => 'create-performance-feedback', 'directory' => 'performance', 'obs' => 'Página com o formulário para criar novo feedback de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Feedback de Desempenho', 'controller' => 'ViewPerformanceFeedback', 'controller_url' => 'view-performance-feedback', 'directory' => 'performance', 'obs' => 'Página para visualizar detalhes do feedback de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Feedback de Desempenho', 'controller' => 'UpdatePerformanceFeedback', 'controller_url' => 'update-performance-feedback', 'directory' => 'performance', 'obs' => 'Página com o formulário para editar feedback de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Apagar Feedback de Desempenho', 'controller' => 'DeletePerformanceFeedback', 'controller_url' => 'delete-performance-feedback', 'directory' => 'performance', 'obs' => 'Página para apagar feedback de desempenho do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Matriz de Competências', 'controller' => 'CompetencyMatrix', 'controller_url' => 'competency-matrix', 'directory' => 'performance', 'obs' => 'Página para gerenciar matriz de competências por cargo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Matriz 9BOX', 'controller' => 'NineBoxMatrix', 'controller_url' => 'nine-box-matrix', 'directory' => 'performance', 'obs' => 'Matriz 9BOX para análise de potencial e desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Dashboard de Desempenho', 'controller' => 'PerformanceDashboard', 'controller_url' => 'performance-dashboard', 'directory' => 'performance', 'obs' => 'Dashboard com indicadores e gráficos de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            // Portal do Colaborador
+            ['name'=> 'Portal do Colaborador', 'controller' => 'EmployeePortal', 'controller_url' => 'employee-portal', 'directory' => 'portal', 'obs' => 'Dashboard do colaborador com acesso a funcionalidades de autoatendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Minhas Solicitações', 'controller' => 'ListEmployeeRequests', 'controller_url' => 'list-employee-requests', 'directory' => 'portal', 'obs' => 'Página para o colaborador listar suas solicitações (férias, afastamentos, etc).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Criar Solicitação', 'controller' => 'CreateEmployeeRequest', 'controller_url' => 'create-employee-request', 'directory' => 'portal', 'obs' => 'Página com o formulário para criar nova solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Solicitação', 'controller' => 'ViewEmployeeRequest', 'controller_url' => 'view-employee-request', 'directory' => 'portal', 'obs' => 'Página para visualizar detalhes da solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Solicitação', 'controller' => 'UpdateEmployeeRequest', 'controller_url' => 'update-employee-request', 'directory' => 'portal', 'obs' => 'Página para editar solicitação (apenas se não houver aprovações).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Aprovar Solicitação (Gestor)', 'controller' => 'ApproveEmployeeRequestManager', 'controller_url' => 'approve-employee-request-manager', 'directory' => 'portal', 'obs' => 'Endpoint para gestor aprovar/rejeitar solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Aprovar Solicitação (RH)', 'controller' => 'ApproveEmployeeRequestHR', 'controller_url' => 'approve-employee-request-hr', 'directory' => 'portal', 'obs' => 'Endpoint para RH aprovar/rejeitar solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Aprovações Pendentes', 'controller' => 'PendingApprovals', 'controller_url' => 'pending-approvals', 'directory' => 'portal', 'obs' => 'Página para listar solicitações pendentes de aprovação (gestor ou RH).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Listar Tipos de Solicitação', 'controller' => 'ListRequestTypes', 'controller_url' => 'list-request-types', 'directory' => 'portal', 'obs' => 'Página para listar e gerenciar tipos de solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Criar Tipo de Solicitação', 'controller' => 'CreateRequestType', 'controller_url' => 'create-request-type', 'directory' => 'portal', 'obs' => 'Página com o formulário para criar novo tipo de solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Tipo de Solicitação', 'controller' => 'UpdateRequestType', 'controller_url' => 'update-request-type', 'directory' => 'portal', 'obs' => 'Página com o formulário para editar tipo de solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Apagar Tipo de Solicitação', 'controller' => 'DeleteRequestType', 'controller_url' => 'delete-request-type', 'directory' => 'portal', 'obs' => 'Página para apagar tipo de solicitação do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Meus Chamados', 'controller' => 'ListEmployeeTickets', 'controller_url' => 'list-employee-tickets', 'directory' => 'portal', 'obs' => 'Página para o colaborador listar seus chamados/tickets.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Criar Chamado', 'controller' => 'CreateEmployeeTicket', 'controller_url' => 'create-employee-ticket', 'directory' => 'portal', 'obs' => 'Página com o formulário para criar novo chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Chamado', 'controller' => 'ViewEmployeeTicket', 'controller_url' => 'view-employee-ticket', 'directory' => 'portal', 'obs' => 'Página para visualizar detalhes do chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            // Histórico de Emprego
+            ['name'=> 'Editar Histórico de Emprego', 'controller' => 'UpdateEmploymentHistory', 'controller_url' => 'update-employment-history', 'directory' => 'users', 'obs' => 'Página para editar histórico de admissões e desligamentos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            // People Analytics
+            ['name'=> 'People Analytics', 'controller' => 'PeopleAnalytics', 'controller_url' => 'people-analytics', 'directory' => 'analytics', 'obs' => 'Dashboard de People Analytics com KPIs e indicadores de RH.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Relatórios de RH', 'controller' => 'PeopleReports', 'controller_url' => 'people-reports', 'directory' => 'analytics', 'obs' => 'Relatórios avançados de gestão de pessoas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            // Exportação Matriz 9BOX
+            ['name'=> 'Exportar Matriz 9BOX PDF', 'controller' => 'ExportNineBoxMatrixPdf', 'controller_url' => 'export-nine-box-matrix-pdf', 'directory' => 'performance', 'obs' => 'Exportar Matriz 9BOX para PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Exportar Matriz 9BOX Excel', 'controller' => 'ExportNineBoxMatrixExcel', 'controller_url' => 'export-nine-box-matrix-excel', 'directory' => 'performance', 'obs' => 'Exportar Matriz 9BOX para Excel.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
         ];
+
+        // Buscar ID real do grupo "Gestão de Pessoas" pelo nome (pode ter ID diferente de 36)
+        // O auto-increment do MySQL pode pular IDs se houver exclusões ou inserções manuais
+        $gestaoPessoasGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Gestão de Pessoas'");
+        if (!$gestaoPessoasGroup) {
+            throw new \Exception("ERRO: O grupo 'Gestão de Pessoas' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $gestaoPessoasGroupId = (int)$gestaoPessoasGroup['id'];
 
         // Percorrer o array com dados que devem ser validados antes de cadastrar
         foreach ($pages as $page) {
@@ -574,6 +648,12 @@ class AddAdmsPages extends AbstractSeed
 
             // Se o registro não existir, insere os dados na variável $data para em seguida cadastrar na tabela
             if (!$existingRecord) {
+                // Se for grupo 36 (esperado), usar o ID real encontrado no banco
+                $groupId = $page['adms_groups_page_id'];
+                if ($groupId == 36) {
+                    $groupId = $gestaoPessoasGroupId;
+                }
+                
                 // Criar o array com os dados da página
                 $data[] = [
                     'name' => $page['name'],
@@ -584,7 +664,7 @@ class AddAdmsPages extends AbstractSeed
                     'public_page' => $page['public_page'],
                     'page_status' => $page['page_status'],
                     'adms_packages_page_id' => $page['adms_packages_page_id'],
-                    'adms_groups_page_id' => $page['adms_groups_page_id'],
+                    'adms_groups_page_id' => $groupId,
                     'created_at' => date("Y-m-d H:i:s"),
                     'updated_at' => date("Y-m-d H:i:s")
                 ];
@@ -597,4 +677,5 @@ class AddAdmsPages extends AbstractSeed
             $adms_pages->insert($data)->save();
         }
     }
+
 }

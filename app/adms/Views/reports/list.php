@@ -2,6 +2,9 @@
 $categories = $this->data['categories'] ?? [];
 $reports = $this->data['reports'] ?? [];
 $pageTitle = $this->data['page_title'] ?? 'Meus Relatórios';
+$isSapScope = $this->data['is_sap_scope'] ?? false;
+// Define URLs exclusivas para criação conforme o tipo de relatório
+$createUrl = $_ENV['URL_ADM'] . ($isSapScope ? 'dynamic-report-builder-sap' : 'dynamic-report-builder-local');
 ?>
 
 <div class="container-fluid">
@@ -12,7 +15,7 @@ $pageTitle = $this->data['page_title'] ?? 'Meus Relatórios';
                     <i class="fas fa-chart-line"></i> <?= htmlspecialchars($pageTitle) ?>
                 </h1>
                 <?php if (in_array('DynamicReportBuilder', $this->data['buttonPermission'] ?? [])): ?>
-                    <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder" class="btn btn-primary">
+                    <a href="<?= $createUrl ?>" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Criar Novo Relatório
                     </a>
                 <?php endif; ?>
@@ -29,7 +32,7 @@ $pageTitle = $this->data['page_title'] ?? 'Meus Relatórios';
                         <h5 class="text-muted">Nenhum relatório encontrado</h5>
                         <p class="text-muted">Comece criando seu primeiro relatório dinâmico!</p>
                         <?php if (in_array('DynamicReportBuilder', $this->data['buttonPermission'] ?? [])): ?>
-                            <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder" class="btn btn-primary mt-3">
+                            <a href="<?= $createUrl ?>" class="btn btn-primary mt-3">
                                 <i class="fas fa-plus"></i> Criar Meu Primeiro Relatório
                             </a>
                         <?php endif; ?>

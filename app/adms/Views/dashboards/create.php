@@ -1,6 +1,7 @@
 <?php
 $report = $this->data['report'] ?? null;
 $reports = $this->data['reports'] ?? [];
+$spreadsheets = $this->data['spreadsheets'] ?? [];
 ?>
 
 <div class="container-fluid px-4">
@@ -19,50 +20,156 @@ $reports = $this->data['reports'] ?? [];
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>create-dashboard" id="dashboardForm">
-        <!-- ETAPA 1: Seleção de Relatórios -->
+    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>create-dashboard" id="dashboardForm" enctype="multipart/form-data">
+        <!-- ETAPA 1: Seleção de Fonte de Dados -->
         <div class="card shadow-sm mb-4" id="step1">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
                     <span class="badge bg-light text-primary me-2">1</span>
-                    <i class="fas fa-file-alt"></i> Selecionar Relatórios Base
+                    <i class="fas fa-database"></i> Selecionar Fonte de Dados
                 </h5>
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> 
-                    <strong>Primeiro passo:</strong> Selecione um ou mais relatórios que deseja usar neste dashboard.
-                    Os campos desses relatórios estarão disponíveis para criar KPIs e gráficos.
+                    <strong>Primeiro passo:</strong> Escolha a fonte de dados para o dashboard. Você pode usar relatórios existentes ou fazer upload de uma planilha (Excel/CSV).
                 </div>
                 
-                <div class="row g-3">
-                    <?php foreach ($reports as $r): ?>
-                        <div class="col-md-4">
-                            <div class="card border-secondary h-100 report-card">
-                                <div class="card-body">
-                                    <div class="form-check">
-                                        <input class="form-check-input report-checkbox" 
-                                               type="checkbox" 
-                                               name="selected_reports[]" 
-                                               value="<?= $r['id'] ?>"
-                                               id="report_<?= $r['id'] ?>"
-                                               data-sql="<?= htmlspecialchars($r['custom_sql'] ?? '') ?>"
-                                               <?= $report && $r['id'] == $report['id'] ? 'checked' : '' ?>>
-                                        <label class="form-check-label fw-bold" for="report_<?= $r['id'] ?>">
-                                            <i class="fas fa-file-alt text-primary"></i>
-                                            <?= htmlspecialchars($r['name']) ?>
-                                        </label>
+                <!-- Tabs para escolher tipo de fonte -->
+                <ul class="nav nav-tabs mb-4" id="dataSourceTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-pane" type="button" role="tab">
+                            <i class="fas fa-file-alt"></i> Relatórios
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="spreadsheets-tab" data-bs-toggle="tab" data-bs-target="#spreadsheets-pane" type="button" role="tab">
+                            <i class="fas fa-file-excel"></i> Planilhas
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="dataSourceTabContent">
+                    <!-- Tab Relatórios -->
+                    <div class="tab-pane fade show active" id="reports-pane" role="tabpanel">
+                        <input type="hidden" name="data_source_type" id="dataSourceType" value="report">
+                        <div class="row g-3">
+                            <?php if (empty($reports)): ?>
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        Nenhum relatório disponível. <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder-local">Crie um relatório</a> primeiro.
                                     </div>
-                                    <?php if ($r['category']): ?>
-                                        <span class="badge bg-secondary mt-2"><?= htmlspecialchars($r['category']) ?></span>
-                                    <?php endif; ?>
-                                    <?php if ($r['description']): ?>
-                                        <p class="small text-muted mt-2 mb-0"><?= htmlspecialchars(substr($r['description'], 0, 100)) ?></p>
-                                    <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($reports as $r): ?>
+                                    <div class="col-md-4">
+                                        <div class="card border-secondary h-100 report-card">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input report-checkbox" 
+                                                           type="radio" 
+                                                           name="dynamic_report_id" 
+                                                           value="<?= $r['id'] ?>"
+                                                           id="report_<?= $r['id'] ?>"
+                                                           data-sql="<?= htmlspecialchars($r['custom_sql'] ?? '') ?>"
+                                                           <?= $report && $r['id'] == $report['id'] ? 'checked' : '' ?>>
+                                                    <label class="form-check-label fw-bold" for="report_<?= $r['id'] ?>">
+                                                        <i class="fas fa-file-alt text-primary"></i>
+                                                        <?= htmlspecialchars($r['name']) ?>
+                                                    </label>
+                                                </div>
+                                                <?php if ($r['category']): ?>
+                                                    <span class="badge bg-secondary mt-2"><?= htmlspecialchars($r['category']) ?></span>
+                                                <?php endif; ?>
+                                                <?php if ($r['description']): ?>
+                                                    <p class="small text-muted mt-2 mb-0"><?= htmlspecialchars(substr($r['description'], 0, 100)) ?></p>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Planilhas -->
+                    <div class="tab-pane fade" id="spreadsheets-pane" role="tabpanel">
+                        <input type="hidden" name="data_source_type" id="dataSourceTypeSpreadsheet" value="spreadsheet">
+                        
+                        <!-- Upload de nova planilha -->
+                        <div class="card border-info mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-upload"></i> Fazer Upload de Nova Planilha</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Nome da Planilha *</label>
+                                        <input type="text" class="form-control" id="spreadsheetName" placeholder="Ex: Vendas Janeiro 2025">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Arquivo (Excel/CSV) *</label>
+                                        <input type="file" class="form-control" id="spreadsheetFile" accept=".xlsx,.xls,.csv">
+                                        <small class="text-muted">Formatos aceitos: .xlsx, .xls, .csv (máx. 50MB)</small>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <button type="button" class="btn btn-info" id="btnUploadSpreadsheet">
+                                            <i class="fas fa-upload"></i> Fazer Upload
+                                        </button>
+                                        <div id="uploadProgress" class="mt-2" style="display: none;">
+                                            <div class="progress">
+                                                <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                                            </div>
+                                        </div>
+                                        <div id="uploadResult" class="mt-2"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                        
+                        <!-- Lista de planilhas existentes -->
+                        <h6 class="mb-3"><i class="fas fa-list"></i> Planilhas Disponíveis</h6>
+                        <div class="row g-3" id="spreadsheetsList">
+                            <?php if (empty($spreadsheets)): ?>
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        Nenhuma planilha disponível. Faça upload de uma planilha acima.
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($spreadsheets as $s): ?>
+                                    <div class="col-md-4">
+                                        <div class="card border-success h-100 spreadsheet-card">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input spreadsheet-checkbox" 
+                                                           type="radio" 
+                                                           name="spreadsheet_id" 
+                                                           value="<?= $s['id'] ?>"
+                                                           id="spreadsheet_<?= $s['id'] ?>">
+                                                    <label class="form-check-label fw-bold" for="spreadsheet_<?= $s['id'] ?>">
+                                                        <i class="fas fa-file-excel text-success"></i>
+                                                        <?= htmlspecialchars($s['name']) ?>
+                                                    </label>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-table"></i> <?= $s['total_rows'] ?> linhas, <?= $s['total_columns'] ?> colunas<br>
+                                                        <i class="fas fa-file"></i> <?= htmlspecialchars($s['file_name']) ?>
+                                                    </small>
+                                                </div>
+                                                <?php if ($s['category']): ?>
+                                                    <span class="badge bg-secondary mt-2"><?= htmlspecialchars($s['category']) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="mt-4 text-center">
@@ -755,19 +862,40 @@ if (relationshipsList) {
 
 // Controle de Etapas
 document.getElementById('btnNextStep')?.addEventListener('click', function() {
-    const checked = document.querySelectorAll('.report-checkbox:checked');
+    // Verificar qual tab está ativa
+    const activeTab = document.querySelector('#dataSourceTabs .nav-link.active');
+    const isSpreadsheetTab = activeTab && activeTab.id === 'spreadsheets-tab';
     
-    if (checked.length === 0) {
-        alert('❌ Selecione pelo menos 1 relatório!');
-        return;
+    if (isSpreadsheetTab) {
+        // Validar planilha selecionada
+        const checkedSpreadsheet = document.querySelector('.spreadsheet-checkbox:checked');
+        if (!checkedSpreadsheet) {
+            alert('❌ Selecione uma planilha!');
+            return;
+        }
+        
+        // Para planilhas, vamos carregar os campos depois
+        selectedReports = [{
+            id: checkedSpreadsheet.value,
+            name: checkedSpreadsheet.closest('.card-body').querySelector('label').textContent.trim(),
+            type: 'spreadsheet'
+        }];
+    } else {
+        // Validar relatório selecionado
+        const checked = document.querySelectorAll('.report-checkbox:checked');
+        if (checked.length === 0) {
+            alert('❌ Selecione pelo menos 1 relatório!');
+            return;
+        }
+        
+        // Salvar relatórios selecionados
+        selectedReports = Array.from(checked).map(cb => ({
+            id: cb.value,
+            name: cb.closest('.card-body').querySelector('label').textContent.trim(),
+            sql: cb.dataset.sql,
+            type: 'report'
+        }));
     }
-    
-    // Salvar relatórios selecionados
-    selectedReports = Array.from(checked).map(cb => ({
-        id: cb.value,
-        name: cb.closest('.card-body').querySelector('label').textContent.trim(),
-        sql: cb.dataset.sql
-    }));
 
     relationships = [];
     relationshipPositions = {};
@@ -779,8 +907,20 @@ document.getElementById('btnNextStep')?.addEventListener('click', function() {
     // Definir o primeiro como primário
     document.getElementById('primaryReportId').value = selectedReports[0].id;
     
-    // Carregar campos dos relatórios selecionados
-    loadFieldsFromReports();
+    // Carregar campos dos relatórios selecionados ou planilha
+    if (selectedReports[0]?.type === 'spreadsheet') {
+        const spreadsheetId = selectedReports[0].id;
+        console.log('📊 Carregando campos da planilha ID:', spreadsheetId);
+        if (spreadsheetId) {
+            loadFieldsFromSpreadsheet(spreadsheetId);
+        } else {
+            console.error('❌ ID da planilha não encontrado em selectedReports[0]');
+            alert('Erro: ID da planilha não encontrado. Por favor, selecione uma planilha novamente.');
+            return;
+        }
+    } else {
+        loadFieldsFromReports();
+    }
     
     // Trocar etapa
     document.getElementById('step1').style.display = 'none';
@@ -1313,11 +1453,20 @@ function loadKpiFields() {
     fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
     
     const reportData = availableFields[reportId];
-    if (reportData && reportData.fields) {
-        reportData.fields.forEach(field => {
+    if (reportData) {
+        // Suportar tanto formato de relatório (array de strings) quanto planilha (objeto com fields)
+        let fields = [];
+        if (Array.isArray(reportData)) {
+            fields = reportData;
+        } else if (reportData.fields) {
+            fields = reportData.fields;
+        }
+        
+        fields.forEach(field => {
+            const fieldName = typeof field === 'string' ? field : field.name;
             const opt = document.createElement('option');
-            opt.value = field;
-            opt.textContent = field;
+            opt.value = fieldName;
+            opt.textContent = fieldName;
             fieldSelect.appendChild(opt);
         });
     }
@@ -1337,11 +1486,20 @@ function loadFilterFields() {
     fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
     
     const reportData = availableFields[reportId];
-    if (reportData && reportData.fields) {
-        reportData.fields.forEach(field => {
+    if (reportData) {
+        // Suportar tanto formato de relatório (array de strings) quanto planilha (objeto com fields)
+        let fields = [];
+        if (Array.isArray(reportData)) {
+            fields = reportData;
+        } else if (reportData.fields) {
+            fields = reportData.fields;
+        }
+        
+        fields.forEach(field => {
+            const fieldName = typeof field === 'string' ? field : field.name;
             const opt = document.createElement('option');
-            opt.value = field;
-            opt.textContent = field;
+            opt.value = fieldName;
+            opt.textContent = fieldName;
             fieldSelect.appendChild(opt);
         });
     }
@@ -1361,11 +1519,22 @@ function loadChartGroupByFields() {
     fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
     
     const reportData = availableFields[reportId];
-    if (reportData && reportData.fields) {
-        reportData.fields.forEach(field => {
+    if (reportData) {
+        // Suportar tanto formato de relatório (array de strings) quanto planilha (objeto com fields)
+        let fields = [];
+        if (Array.isArray(reportData)) {
+            // Formato antigo: array direto de strings
+            fields = reportData;
+        } else if (reportData.fields) {
+            // Formato novo: objeto com propriedade fields
+            fields = reportData.fields;
+        }
+        
+        fields.forEach(field => {
+            const fieldName = typeof field === 'string' ? field : field.name;
             const opt = document.createElement('option');
-            opt.value = field;
-            opt.textContent = field;
+            opt.value = fieldName;
+            opt.textContent = fieldName;
             fieldSelect.appendChild(opt);
         });
     }
@@ -1385,11 +1554,20 @@ function loadChartValueFields() {
     fieldSelect.innerHTML = '<option value="">-- Escolha o campo --</option>';
     
     const reportData = availableFields[reportId];
-    if (reportData && reportData.fields) {
-        reportData.fields.forEach(field => {
+    if (reportData) {
+        // Suportar tanto formato de relatório (array de strings) quanto planilha (objeto com fields)
+        let fields = [];
+        if (Array.isArray(reportData)) {
+            fields = reportData;
+        } else if (reportData.fields) {
+            fields = reportData.fields;
+        }
+        
+        fields.forEach(field => {
+            const fieldName = typeof field === 'string' ? field : field.name;
             const opt = document.createElement('option');
-            opt.value = field;
-            opt.textContent = field;
+            opt.value = fieldName;
+            opt.textContent = fieldName;
             fieldSelect.appendChild(opt);
         });
     }
@@ -1737,7 +1915,17 @@ function fillRelationshipFields(type) {
         return;
     }
 
-    availableFields[reportId].forEach(fieldName => {
+    const reportData = availableFields[reportId];
+    // Suportar tanto formato de relatório (array de strings) quanto planilha (objeto com fields)
+    let fields = [];
+    if (Array.isArray(reportData)) {
+        fields = reportData;
+    } else if (reportData.fields) {
+        fields = reportData.fields;
+    }
+    
+    fields.forEach(field => {
+        const fieldName = typeof field === 'string' ? field : field.name;
         const option = document.createElement('option');
         option.value = fieldName;
         option.textContent = fieldName;
@@ -2567,6 +2755,294 @@ function resetRelationshipForm() {
         addButton.textContent = 'Criar Relacionamento';
     }
 }
+// ========== FUNÇÕES DE PLANILHAS ==========
+
+// Upload de planilha (com barra de progresso percentual)
+document.getElementById('btnUploadSpreadsheet')?.addEventListener('click', function() {
+    const fileInput = document.getElementById('spreadsheetFile');
+    const nameInput = document.getElementById('spreadsheetName');
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const resultDiv = document.getElementById('uploadResult');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('❌ Selecione um arquivo!');
+        return;
+    }
+    
+    if (!nameInput.value.trim()) {
+        alert('❌ Informe o nome da planilha!');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('spreadsheet', fileInput.files[0]);
+    formData.append('name', nameInput.value.trim());
+    formData.append('header_row', 1);
+    formData.append('data_start_row', 2);
+    
+    progressDiv.style.display = 'block';
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+    }
+    resultDiv.innerHTML = '';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '<?= $_ENV['URL_ADM'] ?>upload-spreadsheet', true);
+
+    // Atualizar percentual de upload
+    xhr.upload.onprogress = function(event) {
+        if (!progressBar) return;
+        if (event.lengthComputable) {
+            // Mantém o progresso visual em até 95% enquanto o servidor processa
+            let percent = Math.round((event.loaded / event.total) * 100);
+            percent = Math.min(percent, 95);
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+        } else {
+            // Caso o navegador não informe o total, apenas anima a barra
+            progressBar.style.width = '50%';
+            progressBar.textContent = 'Enviando...';
+        }
+    };
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== XMLHttpRequest.DONE) {
+            return;
+        }
+
+        if (progressBar) {
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+        }
+        progressDiv.style.display = 'none';
+
+        try {
+            const result = JSON.parse(xhr.responseText || '{}');
+
+            if (result.success) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> Planilha enviada com sucesso! 
+                        <strong>${result.data.total_rows}</strong> linhas, <strong>${result.data.total_columns}</strong> colunas.
+                    </div>
+                `;
+                
+                // Adicionar à lista de planilhas
+                addSpreadsheetToList(result.data);
+                
+                // Limpar formulário
+                fileInput.value = '';
+                nameInput.value = '';
+            } else {
+                const errorMsg = result.error || 'Erro desconhecido ao processar a planilha.';
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> ${errorMsg}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            // Quando a resposta não for um JSON válido, exibir trecho bruto para diagnóstico
+            const raw = (xhr.responseText || '').toString().slice(0, 300);
+            console.error('Erro ao interpretar JSON do upload de planilha. Resposta bruta:', xhr.responseText);
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao fazer upload: ${error.message}<br>
+                    <small class="text-muted">Detalhes técnicos (início da resposta):<br><code>${raw.replace(/</g, '&lt;')}</code></small>
+                </div>
+            `;
+        }
+    };
+
+    xhr.onerror = function() {
+        progressDiv.style.display = 'none';
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> Erro de comunicação com o servidor durante o upload.
+            </div>
+        `;
+    };
+
+    xhr.send(formData);
+});
+
+// Adicionar planilha à lista
+function addSpreadsheetToList(spreadsheet) {
+    const list = document.getElementById('spreadsheetsList');
+    
+    // Remover mensagem de "nenhuma planilha"
+    const emptyMsg = list.querySelector('.alert-warning');
+    if (emptyMsg) {
+        emptyMsg.remove();
+    }
+    
+    const col = document.createElement('div');
+    col.className = 'col-md-4';
+    col.innerHTML = `
+        <div class="card border-success h-100 spreadsheet-card">
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input spreadsheet-checkbox" 
+                           type="radio" 
+                           name="spreadsheet_id" 
+                           value="${spreadsheet.id}"
+                           id="spreadsheet_${spreadsheet.id}">
+                    <label class="form-check-label fw-bold" for="spreadsheet_${spreadsheet.id}">
+                        <i class="fas fa-file-excel text-success"></i>
+                        ${spreadsheet.name}
+                    </label>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-table"></i> ${spreadsheet.total_rows} linhas, ${spreadsheet.total_columns} colunas<br>
+                        <i class="fas fa-file"></i> ${spreadsheet.file_name}
+                    </small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    list.appendChild(col);
+}
+
+// Funções auxiliares para ícones e cores de campos
+function getFieldIcon(type) {
+    const icons = {
+        'number': 'hashtag',
+        'date': 'calendar',
+        'text': 'font',
+        'currency': 'dollar-sign',
+        'percent': 'percent'
+    };
+    return icons[type] || 'tag';
+}
+
+function getFieldColor(type) {
+    const colors = {
+        'number': 'info',
+        'date': 'warning',
+        'text': 'secondary',
+        'currency': 'success',
+        'percent': 'primary'
+    };
+    return colors[type] || 'secondary';
+}
+
+// Carregar campos de planilha
+async function loadFieldsFromSpreadsheet(spreadsheetId) {
+    // Validar se o ID foi fornecido
+    if (!spreadsheetId || spreadsheetId === 'undefined' || spreadsheetId === 'null') {
+        console.error('❌ ID da planilha não especificado:', spreadsheetId);
+        const panel = document.getElementById('fieldsPanel');
+        panel.innerHTML = '<div class="alert alert-danger">Erro: ID da planilha não especificado</div>';
+        return;
+    }
+    
+    const panel = document.getElementById('fieldsPanel');
+    panel.innerHTML = '<div class="p-3 text-center"><div class="spinner-border spinner-border-sm"></div> Carregando campos da planilha...</div>';
+    
+    try {
+        const url = `<?= $_ENV['URL_ADM'] ?>get-spreadsheet-fields/${spreadsheetId}`;
+        console.log('📡 Fazendo requisição para:', url);
+        console.log('📊 ID da planilha:', spreadsheetId);
+        
+        const response = await fetch(url);
+        console.log('📥 Resposta recebida:', response.status, response.statusText);
+        
+        const result = await response.json();
+        console.log('📦 Resultado JSON:', result);
+        
+        if (result.success && result.fields) {
+            // Armazenar campos da planilha no mesmo formato que relatórios
+            // Para compatibilidade, armazenar tanto como array de objetos quanto como array de strings
+            availableFields[spreadsheetId] = {
+                fields: result.fields.map(f => typeof f === 'string' ? f : f.name), // Array de strings para compatibilidade
+                fieldsData: result.fields, // Array completo com objetos (name, type, index)
+                name: result.name || 'Planilha',
+                type: 'spreadsheet'
+            };
+            
+            let html = `
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#fields_${spreadsheetId}">
+                            <i class="fas fa-file-excel text-success me-2"></i>
+                            <strong>${result.name || 'Planilha'}</strong>
+                            <span class="badge bg-success ms-2">${result.fields.length}</span>
+                        </button>
+                    </h2>
+                    <div id="fields_${spreadsheetId}" class="accordion-collapse collapse show">
+                        <div class="accordion-body p-0">
+                            <div class="list-group list-group-flush">
+            `;
+            
+            result.fields.forEach(field => {
+                html += `
+                    <div class="list-group-item field-item" draggable="true" 
+                         data-field="${field.name}" 
+                         data-type="${field.type}"
+                         data-source="${spreadsheetId}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-${getFieldIcon(field.type)} text-${getFieldColor(field.type)} me-2"></i>
+                                <strong>${field.name}</strong>
+                                <span class="badge bg-secondary ms-2">${field.type}</span>
+                            </div>
+                            <i class="fas fa-grip-vertical text-muted"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            panel.innerHTML = html;
+            updateFieldsPanel();
+        } else {
+            panel.innerHTML = '<div class="alert alert-danger">Erro ao carregar campos da planilha</div>';
+        }
+    } catch (error) {
+        panel.innerHTML = `<div class="alert alert-danger">Erro: ${error.message}</div>`;
+    }
+}
+
+// Atualizar data_source_type quando trocar de tab
+document.querySelectorAll('#dataSourceTabs button').forEach(button => {
+    button.addEventListener('click', function() {
+        const isSpreadsheet = this.id === 'spreadsheets-tab';
+        document.getElementById('dataSourceType').value = isSpreadsheet ? 'spreadsheet' : 'report';
+        if (isSpreadsheet) {
+            document.getElementById('dataSourceTypeSpreadsheet').value = 'spreadsheet';
+        }
+    });
+});
+
+// Event listener para quando uma planilha é selecionada
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar listener para todos os checkboxes de planilha
+    document.querySelectorAll('.spreadsheet-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                const spreadsheetId = this.value;
+                console.log('📊 Planilha selecionada:', spreadsheetId);
+                // Se já estiver na etapa 2, carregar os campos imediatamente
+                const step2 = document.getElementById('step2');
+                if (step2 && step2.style.display !== 'none') {
+                    loadFieldsFromSpreadsheet(spreadsheetId);
+                }
+            }
+        });
+    });
+});
+
 </script>
 
 <style>

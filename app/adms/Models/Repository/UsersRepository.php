@@ -78,13 +78,24 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.status = :status';
             $params[':status'] = $filtros['status'];
         }
-        if ($filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
+        if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
             $where[] = 'usr.bloqueado = :bloqueado';
             $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
         }
         
+        // Filtro de desligado (baseado em data_desligamento)
+        if (isset($filtros['desligado']) && $filtros['desligado'] !== '' && $filtros['desligado'] !== null) {
+            if ($filtros['desligado'] == '1' || $filtros['desligado'] === 1) {
+                // Filtrar apenas desligados (com data_desligamento)
+                $where[] = 'usr.data_desligamento IS NOT NULL';
+            } else {
+                // Filtrar apenas não desligados (sem data_desligamento)
+                $where[] = 'usr.data_desligamento IS NULL';
+            }
+        }
+        
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, dep.name name_dep, pos.name name_pos
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
                 INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
                 INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
@@ -205,9 +216,20 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.status = :status';
             $params[':status'] = $filtros['status'];
         }
-        if ($filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
+        if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
             $where[] = 'usr.bloqueado = :bloqueado';
             $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+        }
+        
+        // Filtro de desligado (baseado em data_desligamento)
+        if (isset($filtros['desligado']) && $filtros['desligado'] !== '' && $filtros['desligado'] !== null) {
+            if ($filtros['desligado'] == '1' || $filtros['desligado'] === 1) {
+                // Filtrar apenas desligados (com data_desligamento)
+                $where[] = 'usr.data_desligamento IS NOT NULL';
+            } else {
+                // Filtrar apenas não desligados (sem data_desligamento)
+                $where[] = 'usr.data_desligamento IS NULL';
+            }
         }
         
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -266,7 +288,10 @@ class UsersRepository extends DbConnection
                     t0.cpf,
                     t0.celular,
                     t0.image, 
-                    t0.data_nascimento, 
+                    t0.data_nascimento,
+                    t0.data_admissao,
+                    t0.data_desligamento,
+                    t0.motivo_desligamento,
                     t0.user_department_id, 
                     t0.user_position_id,
                     t0.immediate_supervisor_id,
@@ -390,6 +415,101 @@ class UsersRepository extends DbConnection
             // Captura os dados antigos antes da alteração
             $dadosAntes = $this->getUser($data['id']);
             
+            // Gerenciar histórico de admissões/desligamentos
+            $historyRepo = new \App\adms\Models\Repository\EmploymentHistoryRepository();
+            
+            // CASO 1: DESLIGAMENTO - Se data_desligamento foi preenchida e não havia antes
+            if (!empty($data['data_desligamento']) && empty($dadosAntes['data_desligamento'])) {
+                // Verificar se existe período ativo no histórico
+                $periodoAtual = $historyRepo->getCurrentPeriod($data['id']);
+                
+                if ($periodoAtual) {
+                    // Atualizar período existente com data de desligamento
+                    $historyRepo->updateTermination(
+                        $data['id'],
+                        $data['data_desligamento'],
+                        $data['motivo_desligamento'] ?? null
+                    );
+                } else {
+                    // Criar novo registro histórico (caso não exista)
+                    $historyRepo->create([
+                        'adms_user_id' => $data['id'],
+                        'data_admissao' => $dadosAntes['data_admissao'] ?? $data['data_admissao'] ?? date('Y-m-d'),
+                        'data_desligamento' => $data['data_desligamento'],
+                        'motivo_desligamento' => $data['motivo_desligamento'] ?? null,
+                        'tipo_periodo' => 'Admissão',
+                        'observacoes' => 'Desligamento registrado'
+                    ]);
+                }
+                error_log("DESLIGAMENTO registrado no histórico para usuário {$data['id']}");
+            }
+            
+            // CASO 2: RECONTRATAÇÃO - Se data_desligamento foi removida e havia data antes
+            if (empty($data['data_desligamento']) && !empty($dadosAntes['data_desligamento'])) {
+                // É uma recontratação - criar novo período no histórico
+                // Manter os campos atuais (data_admissao nova, sem desligamento)
+                $data['motivo_desligamento'] = null; // Limpar motivo apenas do registro atual
+                
+                // Criar novo registro histórico para a recontratação
+                $historyRepo->create([
+                    'adms_user_id' => $data['id'],
+                    'data_admissao' => $data['data_admissao'] ?? date('Y-m-d'),
+                    'data_desligamento' => null, // Ainda ativo
+                    'motivo_desligamento' => null,
+                    'tipo_periodo' => 'Recontratação',
+                    'observacoes' => 'Colaborador recontratado'
+                ]);
+                
+                // Se status não foi definido, ativar automaticamente
+                if (!isset($data['status'])) {
+                    $data['status'] = 'Ativo';
+                }
+                error_log("RECONTRATAÇÃO registrada no histórico para usuário {$data['id']}");
+            }
+            
+            // CASO 3: NOVA ADMISSÃO - Se data_admissao foi alterada e é posterior à data de desligamento anterior
+            if (!empty($data['data_admissao']) && !empty($dadosAntes['data_desligamento'])) {
+                $novaAdmissao = new \DateTime($data['data_admissao']);
+                $desligamentoAnterior = new \DateTime($dadosAntes['data_desligamento']);
+                if ($novaAdmissao > $desligamentoAnterior) {
+                    // Nova admissão é posterior ao desligamento - é recontratação
+                    // Criar novo período no histórico
+                    $historyRepo->create([
+                        'adms_user_id' => $data['id'],
+                        'data_admissao' => $data['data_admissao'],
+                        'data_desligamento' => null, // Ainda ativo
+                        'motivo_desligamento' => null,
+                        'tipo_periodo' => 'Recontratação',
+                        'observacoes' => 'Colaborador recontratado - nova admissão posterior ao desligamento'
+                    ]);
+                    
+                    // Limpar desligamento do registro atual
+                    $data['data_desligamento'] = null;
+                    $data['motivo_desligamento'] = null;
+                    if (!isset($data['status'])) {
+                        $data['status'] = 'Ativo';
+                    }
+                    error_log("RECONTRATAÇÃO detectada para usuário {$data['id']} - nova admissão posterior ao desligamento");
+                }
+            }
+            
+            // CASO 4: PRIMEIRA ADMISSÃO - Se não há histórico e data_admissao foi preenchida
+            if (!empty($data['data_admissao']) && empty($dadosAntes['data_admissao'])) {
+                $historico = $historyRepo->getByUserId($data['id']);
+                if (empty($historico)) {
+                    // Primeira admissão - criar registro histórico
+                    $historyRepo->create([
+                        'adms_user_id' => $data['id'],
+                        'data_admissao' => $data['data_admissao'],
+                        'data_desligamento' => null,
+                        'motivo_desligamento' => null,
+                        'tipo_periodo' => 'Admissão',
+                        'observacoes' => 'Primeira admissão do colaborador'
+                    ]);
+                    error_log("PRIMEIRA ADMISSÃO registrada no histórico para usuário {$data['id']}");
+                }
+            }
+            
             // HIERARQUIA: Se usuário está sendo inativado E tem subordinados, promovê-los automaticamente
             if (isset($data['status']) && $data['status'] == 0 && $dadosAntes['status'] == 1) {
                 // Usuário está sendo inativado
@@ -460,6 +580,13 @@ class UsersRepository extends DbConnection
             if (!empty($data['data_nascimento'])) {
                 $sql .= ', data_nascimento = :data_nascimento';
             }
+            // Sempre incluir campos de admissão/desligamento (podem ser null para limpar)
+            if (isset($data['data_admissao'])) {
+                $sql .= ', data_admissao = :data_admissao';
+            }
+            // Sempre incluir data_desligamento e motivo_desligamento para permitir limpar valores
+            $sql .= ', data_desligamento = :data_desligamento';
+            $sql .= ', motivo_desligamento = :motivo_desligamento';
             if (isset($data['bloqueado']) && $data['bloqueado'] === 'Não' && isset($dadosAntes['bloqueado']) && $dadosAntes['bloqueado'] === 'Sim') {
                 $sql .= ', tentativas_login = 0, data_bloqueio_temporario = NULL';
             }
@@ -492,6 +619,12 @@ class UsersRepository extends DbConnection
             if (!empty($data['data_nascimento'])) {
                 $stmt->bindValue(':data_nascimento', $data['data_nascimento'], PDO::PARAM_STR);
             }
+            if (isset($data['data_admissao'])) {
+                $stmt->bindValue(':data_admissao', !empty($data['data_admissao']) ? $data['data_admissao'] : null, PDO::PARAM_STR);
+            }
+            // Sempre bindar data_desligamento e motivo_desligamento (podem ser null)
+            $stmt->bindValue(':data_desligamento', !empty($data['data_desligamento']) ? $data['data_desligamento'] : null, PDO::PARAM_STR);
+            $stmt->bindValue(':motivo_desligamento', !empty($data['motivo_desligamento']) ? $data['motivo_desligamento'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
             if (!empty($data['password'])) {
                 $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
@@ -1106,6 +1239,24 @@ class UsersRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
         return (int) $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    }
+
+    /**
+     * Buscar todos os subordinados de um gestor
+     */
+    public function getSubordinates(int $supervisorId): array
+    {
+        $sql = "SELECT id, name, email, status 
+                FROM adms_users 
+                WHERE immediate_supervisor_id = :supervisor_id 
+                AND status = 'Ativo'
+                ORDER BY name ASC";
+        
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':supervisor_id', $supervisorId, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

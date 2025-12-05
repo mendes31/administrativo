@@ -65,8 +65,9 @@ class ExecuteDynamicReport
             $reportId = $_POST['report_id'] ?? null;
             $queryMode = $_POST['query_mode'] ?? 'builder';
             $forceRefresh = !empty($_POST['force_refresh']);
+            $incremental = !empty($_POST['incremental']);
             
-            error_log("📊 ExecuteDynamicReport - report_id: {$reportId}, query_mode: {$queryMode}, force_refresh: " . ($forceRefresh ? 'true' : 'false'));
+            error_log("📊 ExecuteDynamicReport - report_id: {$reportId}, query_mode: {$queryMode}, force_refresh: " . ($forceRefresh ? 'true' : 'false') . ", incremental: " . ($incremental ? 'true' : 'false'));
             
             // Validar CSRF token apenas para salvamento (não para previews)
             // Previews podem ser chamados múltiplas vezes e o token seria invalidado
@@ -107,7 +108,8 @@ class ExecuteDynamicReport
                         'query_mode' => 'custom_sql',
                         'visualization_type' => $_POST['visualization_type'] ?? 'table',
                         'cache_namespace' => $cacheNamespace,
-                        'force_refresh' => $forceRefresh
+                        'force_refresh' => $forceRefresh,
+                        'incremental' => $incremental
                     ];
                     
                     error_log("📝 SQL no report: " . substr($report['custom_sql'] ?? '', 0, 200));
@@ -122,7 +124,8 @@ class ExecuteDynamicReport
                         'query_mode' => 'builder',
                         'visualization_type' => $_POST['visualization_type'] ?? 'table',
                         'cache_namespace' => $cacheNamespace,
-                        'force_refresh' => $forceRefresh
+                        'force_refresh' => $forceRefresh,
+                        'incremental' => $incremental
                     ];
                     error_log("🔨 Builder - data_source: " . ($report['data_source'] ?? 'vazio'));
                 }

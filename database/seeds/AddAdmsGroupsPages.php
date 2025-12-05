@@ -55,6 +55,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Estoque', 'obs' => 'Módulo de estoque'], // Nº 33
             ['name' => 'CRM', 'obs' => 'Gestão de Relacionamento com Clientes'], // Nº 34
             ['name' => 'Relatórios Dinâmicos', 'obs' => 'Construtor de relatórios e dashboards personalizados'], // Nº 35
+            ['name' => 'Gestão de Pessoas', 'obs' => 'Módulo completo de Gestão de Pessoas (RH)'], // Nº 36
         ];
 
         foreach ($grupos as $grupo) {

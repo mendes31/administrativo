@@ -8,13 +8,22 @@ use App\adms\Views\Services\LoadViewService;
 
 class DynamicReportBuilder
 {
-    private array $data = [];
+    /**
+     * Dados compartilhados com as views.
+     * 
+     * Usado também pelas classes filhas (`DynamicReportBuilderLocal`, `DynamicReportBuilderSap`),
+     * por isso a visibilidade precisa ser `protected` em vez de `private`.
+     */
+    protected array $data = [];
 
     public function index(): void
     {
         $repo = new DynamicReportsRepository();
         $this->data['availableTables'] = $repo->getAvailableTables();
-        $sapScope = (!empty($_GET['source']) && $_GET['source'] === 'sap');
+        // Prioriza flag recebida via controller específico; mantém fallback por query string
+        $sapScope = isset($this->data['is_sap_scope'])
+            ? (bool)$this->data['is_sap_scope']
+            : (!empty($_GET['source']) && $_GET['source'] === 'sap');
         
         if (!empty($_GET['id'])) {
             $reportId = (int)$_GET['id'];
@@ -28,8 +37,9 @@ class DynamicReportBuilder
         }
         
         $pageElements = [
-            'title_head' => $sapScope ? 'Construtor de Relatórios SAP' : 'Construtor de Relatórios',
-            'menu' => $sapScope ? 'relatorios-sap' : 'relatorios',
+            'title_head' => $sapScope ? 'Construtor de Relatórios SAP (API)' : 'Construtor de Relatórios Locais',
+            // Mantém o mesmo submenu ativo das listas correspondentes (usa o nome da controller/permission)
+            'menu' => $sapScope ? 'ListDynamicReportsSap' : 'ListDynamicReports',
             'buttonPermission' => []
         ];
         

@@ -12,16 +12,22 @@ class PagesRoutesRepository extends DbConnection
     {
         
         // QUERY para recuperar o registro do banco de dados sobre a página
+        // Busca primeiro pelo campo 'controller' (nome da classe), depois pelo 'controller_url' (slug)
         $sql = 'SELECT ap.id AS id_ap, ap.directory, ap.public_page, app.name AS name_app
                 FROM adms_pages AS ap
                 INNER JOIN adms_packages_pages AS app ON app.id=ap.adms_packages_page_id
-                WHERE ap.controller = :controller
+                WHERE (ap.controller = :controller OR ap.controller_url = :controller_url)
                 AND ap.page_status = 1
                 LIMIT 1';
 
         // Preparar a QUERY
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':controller', $controller, PDO::PARAM_STR);
+        
+        // Converter controller de PascalCase para slug (kebab-case) para buscar pelo controller_url
+        // Ex: UpdateEmploymentHistory -> update-employment-history
+        $controllerUrl = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $controller));
+        $stmt->bindValue(':controller_url', $controllerUrl, PDO::PARAM_STR);
 
         // Executar a QUERY
         $stmt->execute();

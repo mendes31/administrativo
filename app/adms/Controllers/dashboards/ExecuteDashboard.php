@@ -3,7 +3,9 @@
 namespace App\adms\Controllers\dashboards;
 
 use App\adms\Models\Repository\DashboardsRepository;
+use App\adms\Models\Repository\SpreadsheetsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
+use App\adms\Models\Services\SpreadsheetService;
 
 /**
  * API para executar dashboard com filtros
@@ -42,6 +44,9 @@ class ExecuteDashboard
                 throw new \Exception('Dashboard não encontrado');
             }
             
+            // Verificar tipo de fonte de dados
+            $dataSourceType = $dashboard['data_source_type'] ?? 'report';
+            
             if (!$fullRefresh) {
                 $cached = $this->loadCache($dashboardId, $normalizedFilters);
                 if ($cached !== null) {
@@ -53,28 +58,39 @@ class ExecuteDashboard
                 }
             }
             
-            $sqlParts = $this->buildSqlWithRelationships($dashboard['reports'] ?? [], $dashboard['relationships'] ?? []);
-            $filterClauses = $this->buildFilterClauses(
-                $filters,
-                $dashboard['filters_config'] ?? [],
-                $sqlParts['alias_map'],
-                $sqlParts['primary_report_id']
-            );
-            $sql = $this->assembleSql($sqlParts, $filterClauses);
+            // Processar dados baseado no tipo de fonte
+            if ($dataSourceType === 'spreadsheet' && !empty($dashboard['spreadsheet_id'])) {
+                $result = $this->processSpreadsheetData($dashboard, $filters, $fullRefresh);
+            } else {
+                // Processar como relatório (código existente)
+                $sqlParts = $this->buildSqlWithRelationships($dashboard['reports'] ?? [], $dashboard['relationships'] ?? []);
+                $filterClauses = $this->buildFilterClauses(
+                    $filters,
+                    $dashboard['filters_config'] ?? [],
+                    $sqlParts['alias_map'],
+                    $sqlParts['primary_report_id']
+                );
+                $sql = $this->assembleSql($sqlParts, $filterClauses);
 
-            $queryBuilder = new DynamicQueryBuilderService();
-            $result = $queryBuilder->executeReport([
-                'custom_sql' => $sql,
-                'query_mode' => 'custom_sql',
-                'disable_auto_limit' => $fullRefresh
-            ]);
+                $queryBuilder = new DynamicQueryBuilderService();
+                $result = $queryBuilder->executeReport([
+                    'custom_sql' => $sql,
+                    'query_mode' => 'custom_sql',
+                    'disable_auto_limit' => $fullRefresh
+                ]);
+            }
             
             if ($result['success']) {
-                $result['relationships_applied'] = $sqlParts['applied_relationships'];
-                if (!empty($sqlParts['pending_relationships'])) {
-                    $result['relationships_pending'] = $sqlParts['pending_relationships'];
+                if ($dataSourceType === 'report') {
+                    $result['relationships_applied'] = $sqlParts['applied_relationships'] ?? [];
+                    if (!empty($sqlParts['pending_relationships'])) {
+                        $result['relationships_pending'] = $sqlParts['pending_relationships'];
+                    }
+                    $result['filters_applied'] = $filterClauses ?? [];
+                } else {
+                    $result['relationships_applied'] = [];
+                    $result['filters_applied'] = [];
                 }
-                $result['filters_applied'] = $filterClauses;
                 
                 // Calcular medidas antes dos KPIs
                 $measures = $dashboard['measures_config'] ?? [];
@@ -104,6 +120,94 @@ class ExecuteDashboard
         }
         
         exit;
+    }
+    
+    /**
+     * Processa dados de planilha
+     */
+    private function processSpreadsheetData(array $dashboard, array $filters, bool $fullRefresh): array
+    {
+        $spreadsheetRepo = new SpreadsheetsRepository();
+        $spreadsheetService = new SpreadsheetService();
+        
+        $spreadsheet = $spreadsheetRepo->getById((int)$dashboard['spreadsheet_id']);
+        
+        if (!$spreadsheet) {
+            throw new \Exception('Planilha não encontrada');
+        }
+        
+        // Ler dados da planilha
+        $result = $spreadsheetService->readSpreadsheet(
+            $spreadsheet['file_path'],
+            $spreadsheet['file_type'],
+            $spreadsheet['header_row'],
+            $spreadsheet['data_start_row'],
+            $spreadsheet['sheet_name']
+        );
+        
+        $data = $result['data'];
+        
+        // Aplicar filtros se houver
+        if (!empty($filters) && !empty($dashboard['filters_config'])) {
+            $data = $this->applySpreadsheetFilters($data, $filters, $dashboard['filters_config']);
+        }
+        
+        return [
+            'success' => true,
+            'data' => $data,
+            'rows_count' => count($data),
+            'execution_time' => 0.1,
+            'columns' => $result['headers'],
+            'from_cache' => false
+        ];
+    }
+    
+    /**
+     * Aplica filtros em dados de planilha
+     */
+    private function applySpreadsheetFilters(array $data, array $filters, array $filtersConfig): array
+    {
+        foreach ($filters as $filterKey => $filterValue) {
+            if (empty($filterValue) || $filterValue === 'all') {
+                continue;
+            }
+            
+            // Encontrar configuração do filtro
+            $filterConfig = null;
+            foreach ($filtersConfig as $config) {
+                if ($config['key'] === $filterKey) {
+                    $filterConfig = $config;
+                    break;
+                }
+            }
+            
+            if (!$filterConfig) {
+                continue;
+            }
+            
+            $field = $filterConfig['field'];
+            $type = $filterConfig['type'] ?? 'text';
+            
+            // Aplicar filtro
+            $data = array_filter($data, function($row) use ($field, $filterValue, $type) {
+                $value = $row[$field] ?? null;
+                
+                if ($value === null) {
+                    return false;
+                }
+                
+                switch ($type) {
+                    case 'number':
+                        return (float)$value == (float)$filterValue;
+                    case 'date':
+                        return date('Y-m-d', strtotime($value)) === date('Y-m-d', strtotime($filterValue));
+                    default:
+                        return stripos((string)$value, (string)$filterValue) !== false;
+                }
+            });
+        }
+        
+        return array_values($data);
     }
     
     private function buildSqlWithRelationships(array $reports, array $relationships): array

@@ -25,6 +25,7 @@ class ViewDynamicReport
         }
         
         $forceRefresh = !empty($_GET['refresh']);
+        $incremental = !empty($_GET['incremental']) && $_GET['incremental'] === '1';
         
         // Paginação
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -43,6 +44,7 @@ class ViewDynamicReport
         
         $this->data['report']['cache_namespace'] = 'report_' . $id;
         $this->data['report']['force_refresh'] = $forceRefresh;
+        $this->data['report']['incremental'] = $incremental;
         $this->data['report']['page'] = $page;
         $this->data['report']['per_page'] = $perPage;
 
@@ -56,6 +58,9 @@ class ViewDynamicReport
             $filters = ['per_page' => $perPage];
             if ($forceRefresh) {
                 $filters['refresh'] = '1';
+            }
+            if ($incremental) {
+                $filters['incremental'] = '1';
             }
             $pagination = PaginationService::generatePagination(
                 $totalRows,
@@ -81,9 +86,12 @@ class ViewDynamicReport
             $repo->logExecution((int)$id, $_SESSION['user_id'] ?? 0, $executionTime, $rowsCount);
         }
         
+        // Se vier de um dashboard, manter menu de Dashboards em destaque
+        $fromDashboard = !empty($_GET['dashboard_id']);
+
         $pageElements = [
             'title_head' => $this->data['report']['name'],
-            'menu' => 'relatorios',
+            'menu' => $fromDashboard ? 'ListDashboards' : 'relatorios',
             'buttonPermission' => []
         ];
         

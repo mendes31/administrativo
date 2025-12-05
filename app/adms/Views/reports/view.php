@@ -26,9 +26,25 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>
                     <?php if (!empty($report['id'])): ?>
-                        <a href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $report['id'] ?>?refresh=1" class="btn btn-warning">
-                            <i class="fas fa-sync"></i> Atualizar consulta
-                        </a>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-sync"></i> Atualizar consulta
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $report['id'] ?>?refresh=1">
+                                        <i class="fas fa-sync-alt"></i> Atualização Completa
+                                        <small class="d-block text-muted">Busca todos os dados novamente</small>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $report['id'] ?>?refresh=1&incremental=1">
+                                        <i class="fas fa-plus-circle"></i> Busca Incremental
+                                        <small class="d-block text-muted">Busca apenas novos registros (mais rápido)</small>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     <?php endif; ?>
                     <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard/<?= $report['id'] ?>" class="btn btn-success">
                         <i class="fas fa-chart-bar"></i> Criar Dashboard

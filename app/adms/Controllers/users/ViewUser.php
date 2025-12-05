@@ -5,6 +5,7 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\EmploymentHistoryRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\UsersDepartmentsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -89,6 +90,11 @@ class ViewUser
         // Instanciar o Repository para recuperar os departamentos do usuário
         $viewDepartment = new UsersRepository();
         $this->data['userDepartment'] = $viewDepartment->getUserDepartments((int) $id);
+
+        // Buscar histórico de admissões/desligamentos
+        $historyRepo = new EmploymentHistoryRepository();
+        $this->data['employmentHistory'] = $historyRepo->getByUserId((int) $id);
+        $this->data['totalTenure'] = $historyRepo->calculateTotalTenure((int) $id);
 
         // Chamar o método para salvar o log
         GenerateLog::generateLog("error", "Usuário não encontrado.", ['id' => (int) $id]);

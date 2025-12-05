@@ -26,8 +26,8 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                     <i class="fas fa-copy"></i> Duplicar
                 </button>
             <?php endif; ?>
-            <a href="<?= $_ENV['URL_ADM'] ?>view-dynamic-report/<?= $dashboard['dynamic_report_id'] ?>" class="btn btn-info">
-                <i class="fas fa-file-alt"></i> Ver Relatório Original
+            <a href="<?= $_ENV['URL_ADM'] ?>dashboard-data-sources/<?= $dashboard['id'] ?>" class="btn btn-info">
+                <i class="fas fa-database"></i> Fontes de Dados
             </a>
             <a href="<?= $_ENV['URL_ADM'] ?>list-dashboards" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Voltar

@@ -3,7 +3,8 @@ use App\adms\Helpers\CSRFHelper;
 
 $report = $this->data['report'] ?? null;
 $availableTables = $this->data['availableTables'] ?? [];
-$isSapScope = (!empty($_GET['source']) && $_GET['source'] === 'sap');
+// Prioriza flag enviada pelo controller; mantém fallback pela query string
+$isSapScope = $this->data['is_sap_scope'] ?? (!empty($_GET['source']) && $_GET['source'] === 'sap');
 $defaultQueryMode = $report['query_mode'] ?? 'builder';
 $shouldOpenSqlTab = $isSapScope || $defaultQueryMode === 'custom_sql';
 
@@ -302,9 +303,25 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                         <button type="button" class="btn btn-info btn-lg" id="previewBtn">
                             <i class="fas fa-eye"></i> Visualizar Prévia em Tempo Real
                         </button>
-                        <button type="button" class="btn btn-warning btn-lg" id="refreshPreviewBtn">
-                            <i class="fas fa-sync"></i> Atualizar Consulta (ignorar cache)
-                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-warning btn-lg dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="refreshPreviewBtn">
+                                <i class="fas fa-sync"></i> Atualizar Consulta
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="#" id="refreshFullBtn">
+                                        <i class="fas fa-sync-alt"></i> Atualização Completa
+                                        <small class="d-block text-muted">Busca todos os dados novamente</small>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#" id="refreshIncrementalBtn">
+                                        <i class="fas fa-plus-circle"></i> Busca Incremental
+                                        <small class="d-block text-muted">Busca apenas novos registros (mais rápido)</small>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                         <button type="submit" class="btn btn-success btn-lg">
                             <i class="fas fa-save"></i> Salvar Relatório
                         </button>
@@ -731,7 +748,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Prévia
     document.getElementById('previewBtn').addEventListener('click', () => showPreview(false));
-    document.getElementById('refreshPreviewBtn').addEventListener('click', () => showPreview(true));
+    // Botões de atualização
+    document.getElementById('refreshFullBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        showPreview(true, false); // forceRefresh = true, incremental = false
+    });
+    
+    document.getElementById('refreshIncrementalBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        showPreview(true, true); // forceRefresh = true, incremental = true
+    });
     
     // Submit
     document.getElementById('reportBuilderForm').addEventListener('submit', onFormSubmit);
@@ -951,17 +977,17 @@ function removeGroupBy(index) {
     updateGroupByDisplay();
 }
 
-async function showPreview(forceRefresh = false) {
+async function showPreview(forceRefresh = false, incremental = false) {
     const activeTab = document.querySelector('.tab-pane.active').id;
     
     if (activeTab === 'sql-mode') {
-        await showPreviewSQL(forceRefresh);
+        await showPreviewSQL(forceRefresh, incremental);
     } else {
-        await showPreviewBuilder(forceRefresh);
+        await showPreviewBuilder(forceRefresh, incremental);
     }
 }
 
-async function showPreviewBuilder(forceRefresh = false) {
+async function showPreviewBuilder(forceRefresh = false, incremental = false) {
     const dataSource = reportState.dataSource;
     
     if (!dataSource) {
@@ -987,6 +1013,7 @@ async function showPreviewBuilder(forceRefresh = false) {
     formData.append('visualization_type', document.getElementById('visualizationType').value);
     formData.append('query_mode', 'builder');
     formData.append('force_refresh', forceRefresh ? '1' : '0');
+    formData.append('incremental', incremental ? '1' : '0');
     formData.append('csrf_token', '<?= $csrfToken ?>');
     
     console.log('📊 Executando (Builder):', {
@@ -994,7 +1021,9 @@ async function showPreviewBuilder(forceRefresh = false) {
         fields: reportState.selectedFields,
         filters: reportState.filters,
         groupBy: reportState.groupBy,
-        orderBy: reportState.orderBy
+        orderBy: reportState.orderBy,
+        forceRefresh,
+        incremental
     });
     
     try {
@@ -1012,7 +1041,7 @@ async function showPreviewBuilder(forceRefresh = false) {
     }
 }
 
-async function showPreviewSQL(forceRefresh = false) {
+async function showPreviewSQL(forceRefresh = false, incremental = false) {
     // Pegar o valor do Monaco Editor
     const sql = sqlEditor ? sqlEditor.getValue().trim() : document.getElementById('customSql').value.trim();
     
@@ -1022,12 +1051,64 @@ async function showPreviewSQL(forceRefresh = false) {
     }
     
     document.getElementById('previewCard').style.display = 'block';
+    const startTime = Date.now();
+    let progressInterval;
+    
+    const updateProgress = () => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+        const progressEl = document.getElementById('previewProgress');
+        if (progressEl) {
+            progressEl.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3 mb-1"><strong>Executando SQL personalizado...</strong></p>
+                    <p class="text-muted small mb-2">Tempo decorrido: <strong>${timeStr}</strong></p>
+                    <div class="progress mt-2" style="height: 8px; max-width: 400px; margin: 0 auto;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                             role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <p class="text-muted small mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        ${forceRefresh 
+                            ? (incremental 
+                                ? 'Buscando apenas novos registros da API SAP (modo incremental)...' 
+                                : 'Buscando dados atualizados da API SAP...') 
+                            : 'Verificando cache primeiro...'}
+                    </p>
+                    ${elapsed > 10 && !incremental ? '<p class="text-warning small mt-2"><i class="fas fa-exclamation-triangle"></i> Consulta demorando mais que o esperado. Considere usar busca incremental.</p>' : ''}
+                </div>
+            `;
+        }
+    };
+    
     document.getElementById('previewContent').innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary"></div>
-            <p class="mt-2">Executando SQL personalizado...</p>
+        <div id="previewProgress" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3 mb-1"><strong>Executando SQL personalizado...</strong></p>
+            <p class="text-muted small mb-2">Iniciando consulta...</p>
+            <div class="progress mt-2" style="height: 8px; max-width: 400px; margin: 0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                     role="progressbar" style="width: 100%"></div>
+            </div>
+            <p class="text-muted small mt-3">
+                <i class="fas fa-info-circle"></i> 
+                ${forceRefresh 
+                    ? (incremental 
+                        ? 'Buscando apenas novos registros da API SAP (modo incremental)...' 
+                        : 'Buscando dados atualizados da API SAP...') 
+                    : 'Verificando cache primeiro...'}
+            </p>
         </div>
     `;
+    
+    progressInterval = setInterval(updateProgress, 500);
     
     const formData = new FormData();
     formData.append('report_id', 'preview');
@@ -1035,14 +1116,18 @@ async function showPreviewSQL(forceRefresh = false) {
     formData.append('query_mode', 'custom_sql');
     formData.append('visualization_type', document.querySelector('[name="visualization_type_sql"]').value);
     formData.append('force_refresh', forceRefresh ? '1' : '0');
+    formData.append('incremental', incremental ? '1' : '0');
     formData.append('csrf_token', '<?= $csrfToken ?>');
     
     console.log('📝 Executando SQL:', sql);
+    console.log('📝 Force Refresh:', forceRefresh);
+    console.log('📝 Incremental:', incremental);
     console.log('📝 CSRF Token:', '<?= $csrfToken ?>');
     
     try {
         const response = await fetch('<?= $_ENV['URL_ADM'] ?>execute-dynamic-report', {method: 'POST', body: formData});
         const result = await response.json();
+        clearInterval(progressInterval);
         console.log('✅ Resultado:', result);
         
         if (result.success) {
@@ -1051,6 +1136,7 @@ async function showPreviewSQL(forceRefresh = false) {
             showError(result.error, result.sql);
         }
     } catch (error) {
+        clearInterval(progressInterval);
         showError(error.message);
     }
 }

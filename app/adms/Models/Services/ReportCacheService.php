@@ -39,14 +39,29 @@ class ReportCacheService
         return $payload;
     }
 
-    public function put(string $key, array $data): void
+    public function put(string $key, array $data): bool
     {
         $payload = [
             'stored_at' => time(),
             'data' => $data
         ];
 
-        file_put_contents($this->filePath($key), json_encode($payload, JSON_UNESCAPED_UNICODE));
+        $file = $this->filePath($key);
+        $result = file_put_contents($file, json_encode($payload, JSON_UNESCAPED_UNICODE));
+        
+        if ($result === false) {
+            error_log("❌ ERRO ao salvar cache: {$file}");
+            return false;
+        }
+        
+        // Verificar se o arquivo foi criado e tem conteúdo
+        if (file_exists($file) && filesize($file) > 0) {
+            error_log("✅ Cache salvo com sucesso: {$file} (" . filesize($file) . " bytes)");
+            return true;
+        }
+        
+        error_log("⚠️ Cache pode não ter sido salvo corretamente: {$file}");
+        return false;
     }
 
     public function forget(string $key): void

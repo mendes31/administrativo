@@ -498,6 +498,109 @@ $menus = [
         ]
     ],
     [
+        'id' => 'gestao_pessoas',
+        'icon' => 'fa-solid fa-users-gear',
+        'label' => 'Gestão de Pessoas',
+        'submenu' => [
+            [
+                'label' => 'Portal do Colaborador',
+                'url' => $_ENV['URL_ADM'] . 'employee-portal',
+                'permission' => 'EmployeePortal',
+                'icon' => 'fas fa-user-circle'
+            ],
+            [
+                'label' => 'Desempenho',
+                'icon' => 'fa-solid fa-chart-line',
+                'submenu' => [
+                    [
+                        'label' => 'Avaliações de Desempenho',
+                        'url' => $_ENV['URL_ADM'] . 'list-performance-reviews',
+                        'permission' => 'ListPerformanceReviews'
+                    ],
+                    [
+                        'label' => 'Metas (OKRs)',
+                        'url' => $_ENV['URL_ADM'] . 'list-performance-goals',
+                        'permission' => 'ListPerformanceGoals'
+                    ],
+                    [
+                        'label' => 'Feedbacks',
+                        'url' => $_ENV['URL_ADM'] . 'list-performance-feedbacks',
+                        'permission' => 'ListPerformanceFeedbacks'
+                    ],
+                    [
+                        'label' => 'Competências',
+                        'url' => $_ENV['URL_ADM'] . 'list-competencies',
+                        'permission' => 'ListCompetencies'
+                    ],
+                    [
+                        'label' => 'Matriz de Competências',
+                        'url' => $_ENV['URL_ADM'] . 'competency-matrix',
+                        'permission' => 'CompetencyMatrix'
+                    ],
+                    [
+                        'label' => 'Matriz 9BOX',
+                        'url' => $_ENV['URL_ADM'] . 'nine-box-matrix',
+                        'permission' => 'NineBoxMatrix'
+                    ],
+                    [
+                        'label' => 'Dashboard de Desempenho',
+                        'url' => $_ENV['URL_ADM'] . 'performance-dashboard',
+                        'permission' => 'PerformanceDashboard'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Solicitações',
+                'icon' => 'fa-solid fa-file-alt',
+                'submenu' => [
+                    [
+                        'label' => 'Minhas Solicitações',
+                        'url' => $_ENV['URL_ADM'] . 'list-employee-requests',
+                        'permission' => 'ListEmployeeRequests'
+                    ],
+                    [
+                        'label' => 'Aprovações Pendentes',
+                        'url' => $_ENV['URL_ADM'] . 'pending-approvals',
+                        'permission' => 'PendingApprovals',
+                        'badge' => true // Mostrar badge com contagem
+                    ],
+                    [
+                        'label' => 'Tipos de Solicitação',
+                        'url' => $_ENV['URL_ADM'] . 'list-request-types',
+                        'permission' => 'ListRequestTypes'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Chamados',
+                'icon' => 'fa-solid fa-ticket-alt',
+                'submenu' => [
+                    [
+                        'label' => 'Meus Chamados',
+                        'url' => $_ENV['URL_ADM'] . 'list-employee-tickets',
+                        'permission' => 'ListEmployeeTickets'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'People Analytics',
+                'icon' => 'fa-solid fa-chart-bar',
+                'submenu' => [
+                    [
+                        'label' => 'Dashboard Analytics',
+                        'url' => $_ENV['URL_ADM'] . 'people-analytics',
+                        'permission' => 'PeopleAnalytics'
+                    ],
+                    [
+                        'label' => 'Relatórios de RH',
+                        'url' => $_ENV['URL_ADM'] . 'people-reports',
+                        'permission' => 'PeopleReports'
+                    ],
+                ]
+            ],
+        ]
+    ],
+    [
         'id' => 'lgpd',
         'icon' => 'fa-solid fa-shield-halved',
         'label' => 'LGPD',
@@ -668,41 +771,22 @@ $menus = [
         'label' => 'Relatórios',
         'submenu' => [
             [
-                'label' => 'Meus Dashboards',
-                'url' => $_ENV['URL_ADM'] . 'list-dashboards',
-                'permission' => 'ListDashboards',
-                'icon' => 'fa-solid fa-chart-pie'
-            ],
-            [
-                'label' => 'Meus Relatórios',
+                'label' => 'Relatórios Locais',
                 'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports',
                 'permission' => 'ListDynamicReports',
                 'icon' => 'fa-solid fa-list'
             ],
             [
-                'label' => 'Criar Relatório',
-                'url' => $_ENV['URL_ADM'] . 'dynamic-report-builder',
-                'permission' => 'DynamicReportBuilder',
-                'icon' => 'fa-solid fa-plus-circle'
-            ],
-        ]
-    ],
-    [
-        'id' => 'relatorios-sap',
-        'icon' => 'fa-solid fa-database',
-        'label' => 'Relatórios SAP',
-        'submenu' => [
-            [
                 'label' => 'Relatórios SAP (API)',
-                'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports?source=sap',
-                'permission' => 'ListDynamicReports',
-                'icon' => 'fa-solid fa-server'
+                'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports-sap',
+                'permission' => 'ListDynamicReportsSap',
+                'icon' => 'fa-solid fa-database'
             ],
             [
-                'label' => 'Criar Relatório SAP',
-                'url' => $_ENV['URL_ADM'] . 'dynamic-report-builder?source=sap',
-                'permission' => 'DynamicReportBuilder',
-                'icon' => 'fa-solid fa-code'
+                'label' => 'Dashboards',
+                'url' => $_ENV['URL_ADM'] . 'list-dashboards',
+                'permission' => 'ListDashboards',
+                'icon' => 'fa-solid fa-chart-pie'
             ],
         ]
     ],

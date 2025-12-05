@@ -16,9 +16,12 @@ class DashboardsRepository extends DbConnection
                     d.*,
                     r.name as report_name,
                     r.category as report_category,
+                    s.name as spreadsheet_name,
+                    s.category as spreadsheet_category,
                     u.name as creator_name
                 FROM adms_dashboards d
-                INNER JOIN adms_dynamic_reports r ON d.dynamic_report_id = r.id
+                LEFT JOIN adms_dynamic_reports r ON d.dynamic_report_id = r.id
+                LEFT JOIN adms_spreadsheets s ON d.spreadsheet_id = s.id
                 INNER JOIN adms_users u ON d.created_by = u.id
                 WHERE d.status = 1
                 AND (d.created_by = :user_id" . ($includePublic ? " OR d.is_public = 1" : "") . ")
@@ -252,16 +255,18 @@ class DashboardsRepository extends DbConnection
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_dashboards 
-                (name, description, dynamic_report_id, created_by, is_public, category, 
+                (name, description, dynamic_report_id, spreadsheet_id, data_source_type, created_by, is_public, category, 
                  measures_config, kpis_config, charts_config, filters_config, layout, created_at)
                 VALUES 
-                (:name, :description, :report_id, :created_by, :is_public, :category,
+                (:name, :description, :report_id, :spreadsheet_id, :data_source_type, :created_by, :is_public, :category,
                  :measures_config, :kpis_config, :charts_config, :filters_config, :layout, NOW())";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':name', $data['name']);
         $stmt->bindValue(':description', $data['description'] ?? null);
-        $stmt->bindValue(':report_id', $data['dynamic_report_id'], PDO::PARAM_INT);
+        $stmt->bindValue(':report_id', !empty($data['dynamic_report_id']) ? $data['dynamic_report_id'] : null, PDO::PARAM_INT);
+        $stmt->bindValue(':spreadsheet_id', !empty($data['spreadsheet_id']) ? $data['spreadsheet_id'] : null, PDO::PARAM_INT);
+        $stmt->bindValue(':data_source_type', $data['data_source_type'] ?? 'report');
         $stmt->bindValue(':created_by', $data['created_by'], PDO::PARAM_INT);
         $stmt->bindValue(':is_public', $data['is_public'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':category', $data['category'] ?? null);

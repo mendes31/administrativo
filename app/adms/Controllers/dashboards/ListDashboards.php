@@ -13,6 +13,10 @@ class ListDashboards
     public function index(): void
     {
         $userId = $_SESSION['user_id'] ?? 0;
+        // Ao entrar na área de Dashboards, remover qualquer override anterior de menu
+        if (isset($_SESSION['menu_override'])) {
+            unset($_SESSION['menu_override']);
+        }
         
         $repo = new DashboardsRepository();
         $this->data['dashboards'] = $repo->getUserDashboards($userId, true);

@@ -94,6 +94,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label for="desligado" class="form-label mb-1">Desligado</label>
+                    <select name="desligado" id="desligado" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="1" <?= ($this->data['filtros']['desligado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
+                        <option value="0" <?= ($this->data['filtros']['desligado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label for="per_page" class="form-label mb-1">Mostrar</label>
                     <div class="d-flex align-items-center">
                         <select name="per_page" id="per_page" class="form-select form-select-sm me-2" onchange="this.form.submit()">
@@ -118,22 +126,32 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                     <table class="table table-striped table-hover table-users-desktop">
                         <thead>
                             <tr>
-                                <th scope="col" style="width: 5%;">ID</th>
-                                <th scope="col" style="width: 20%;">Nome</th>
-                                <th scope="col" style="width: 18%;" class="d-none d-md-table-cell">E-mail</th>
-                                <th scope="col" style="width: 12%;" class="d-none d-md-table-cell">Usuário</th>
-                                <th scope="col" style="width: 15%;" class="d-none d-md-table-cell">Departamento</th>
-                                <th scope="col" style="width: 15%;" class="d-none d-md-table-cell">Cargo</th>
-                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Status</th>
-                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Bloqueado</th>
-                                <th scope="col" style="width: 20%;" class="text-center">Ações</th>
+                                <th scope="col" style="width: 4%;">ID</th>
+                                <th scope="col" style="width: 18%;">Nome</th>
+                                <th scope="col" style="width: 16%;" class="d-none d-md-table-cell">E-mail</th>
+                                <th scope="col" style="width: 10%;" class="d-none d-md-table-cell">Usuário</th>
+                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Departamento</th>
+                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Cargo</th>
+                                <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Status</th>
+                                <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Bloqueado</th>
+                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Desligado</th>
+                                <th scope="col" style="width: 10%;" class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($this->data['users'] as $user) { extract($user); ?>
-                                <tr>
+                            <?php foreach ($this->data['users'] as $user) { extract($user); 
+                                $dataDesligamento = $data_desligamento ?? '';
+                                $isDesligado = !empty($dataDesligamento);
+                                $desligadoClass = $isDesligado ? 'table-danger' : '';
+                            ?>
+                                <tr class="<?= $desligadoClass ?>">
                                     <th class="text-center"><?= $id; ?></th>
-                                    <td class="text-truncate" title="<?= htmlspecialchars($name); ?>"><?= $name; ?></td>
+                                    <td class="text-truncate" title="<?= htmlspecialchars($name); ?>">
+                                        <?= $name; ?>
+                                        <?php if ($isDesligado): ?>
+                                            <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
@@ -143,6 +161,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                     </td>
                                     <td class="d-none d-md-table-cell text-center">
                                         <span class="badge <?= $bloqueado === 'Sim' ? 'bg-danger' : 'bg-success'; ?>"><?= $bloqueado ?></span>
+                                    </td>
+                                    <td class="d-none d-md-table-cell text-center">
+                                        <?php if ($isDesligado): ?>
+                                            <span class="badge bg-danger" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>">
+                                                <i class="fas fa-user-slash me-1"></i>Sim
+                                            </span>
+                                            <br><small class="text-muted"><?= date('d/m/Y', strtotime($dataDesligamento)) ?></small>
+                                        <?php else: ?>
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-user-check me-1"></i>Não
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group btn-group-sm" role="group">
@@ -170,14 +200,27 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                 </div>
                 <!-- CARDS MOBILE -->
                 <div class="d-block d-md-none list-mobile">
-                    <?php foreach ($this->data['users'] as $i => $user) { extract($user); ?>
-                        <div class="card mb-3 shadow-sm">
+                    <?php foreach ($this->data['users'] as $i => $user) { extract($user); 
+                        $dataDesligamento = $data_desligamento ?? '';
+                        $isDesligado = !empty($dataDesligamento);
+                    ?>
+                        <div class="card mb-3 shadow-sm <?= $isDesligado ? 'border-danger' : '' ?>">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h5 class="card-title mb-1"><b><?= $name ?></b></h5>
+                                        <h5 class="card-title mb-1">
+                                            <b><?= $name ?></b>
+                                            <?php if ($isDesligado): ?>
+                                                <span class="badge bg-danger ms-2">
+                                                    <i class="fas fa-user-slash me-1"></i>Desligado
+                                                </span>
+                                            <?php endif; ?>
+                                        </h5>
                                         <div class="mb-1"><b>Status:</b> <?= $status ?></div>
                                         <div class="mb-1"><b>E-mail:</b> <?= $email ?></div>
+                                        <?php if ($isDesligado): ?>
+                                            <div class="mb-1"><b>Data de Desligamento:</b> <span class="text-danger"><?= date('d/m/Y', strtotime($dataDesligamento)) ?></span></div>
+                                        <?php endif; ?>
                                     </div>
                                     <button class="btn btn-outline-primary btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#cardUserDetails<?= $i ?>" aria-expanded="false" aria-controls="cardUserDetails<?= $i ?>">Ver mais</button>
                                 </div>

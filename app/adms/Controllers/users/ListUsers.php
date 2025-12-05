@@ -63,12 +63,13 @@ class ListUsers
             'cargo_id' => $_GET['cargo_id'] ?? $_SESSION['filtros_list_users']['cargo_id'] ?? '',
             'status' => $_GET['status'] ?? $_SESSION['filtros_list_users']['status'] ?? '',
             'bloqueado' => $_GET['bloqueado'] ?? $_SESSION['filtros_list_users']['bloqueado'] ?? '',
+            'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
         ];
         
         // Salvar filtros na sessão (apenas se vierem via GET)
         if (isset($_GET['nome']) || isset($_GET['email']) || isset($_GET['usuario']) || 
             isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || 
-            isset($_GET['status']) || isset($_GET['bloqueado'])) {
+            isset($_GET['status']) || isset($_GET['bloqueado']) || isset($_GET['desligado'])) {
             $_SESSION['filtros_list_users'] = $filtros;
         }
         

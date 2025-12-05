@@ -172,9 +172,27 @@ use App\adms\Helpers\ImageHelper;
                         <div class="mt-2 text-muted">Sem imagem</div>
                     <?php endif; ?>
                 </div> -->
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="data_admissao" class="form-label">Data de Admissão</label>
+                    <input type="date" name="data_admissao" class="form-control" id="data_admissao" value="<?php echo $this->data['form']['data_admissao'] ?? ''; ?>">
+                    <div class="form-text">Data em que o colaborador foi admitido na empresa</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="data_desligamento" class="form-label">Data de Desligamento</label>
+                    <input type="date" name="data_desligamento" class="form-control" id="data_desligamento" value="<?php echo $this->data['form']['data_desligamento'] ?? ''; ?>">
+                    <div class="form-text">Deixe em branco se o colaborador ainda está ativo</div>
+                </div>
+
+                <div class="col-md-12" id="motivo_desligamento_container" style="display: <?php echo !empty($this->data['form']['data_desligamento']) ? 'block' : 'none'; ?>;">
+                    <label for="motivo_desligamento" class="form-label">Motivo do Desligamento</label>
+                    <input type="text" name="motivo_desligamento" class="form-control" id="motivo_desligamento" placeholder="Ex: Pedido de demissão, Demissão sem justa causa, Aposentadoria, etc." value="<?php echo $this->data['form']['motivo_desligamento'] ?? ''; ?>" maxlength="255">
+                    <div class="form-text">Informe o motivo do desligamento (opcional)</div>
                 </div>
 
                 <div class="col-md-3">
@@ -226,6 +244,64 @@ document.getElementById('cpf').addEventListener('input', function(e) {
         value = value.replace(/(\d{3})(\d)/, '$1.$2');
         value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
         e.target.value = value;
+    }
+});
+
+// Mostrar/ocultar campo de motivo de desligamento e lógica de recontratação
+document.addEventListener('DOMContentLoaded', function() {
+    const dataDesligamentoInput = document.getElementById('data_desligamento');
+    const motivoContainer = document.getElementById('motivo_desligamento_container');
+    const motivoInput = document.getElementById('motivo_desligamento');
+    const dataAdmissaoInput = document.getElementById('data_admissao');
+    const statusCheckbox = document.getElementById('status');
+    
+    if (dataDesligamentoInput && motivoContainer) {
+        // Verificar estado inicial
+        if (dataDesligamentoInput.value) {
+            motivoContainer.style.display = 'block';
+        }
+        
+        // Evento de mudança na data de desligamento
+        dataDesligamentoInput.addEventListener('change', function(e) {
+            if (e.target.value) {
+                // Data de desligamento preenchida - mostrar campo motivo
+                motivoContainer.style.display = 'block';
+            } else {
+                // Data de desligamento removida - ocultar e limpar motivo (recontratação)
+                motivoContainer.style.display = 'none';
+                if (motivoInput) {
+                    motivoInput.value = '';
+                }
+                
+                // Se havia data de desligamento antes, é uma recontratação
+                // Ativar status automaticamente
+                if (statusCheckbox && !statusCheckbox.checked) {
+                    if (confirm('Este colaborador está sendo recontratado? O status será alterado para Ativo.')) {
+                        statusCheckbox.checked = true;
+                    }
+                }
+            }
+        });
+    }
+    
+    // Lógica de recontratação: quando data de admissão é alterada e há data de desligamento
+    if (dataAdmissaoInput && dataDesligamentoInput) {
+        dataAdmissaoInput.addEventListener('change', function(e) {
+            // Se há data de desligamento e a nova data de admissão é posterior, pode ser recontratação
+            if (dataDesligamentoInput.value && e.target.value) {
+                const dataAdmissao = new Date(e.target.value);
+                const dataDesligamento = new Date(dataDesligamentoInput.value);
+                
+                if (dataAdmissao > dataDesligamento) {
+                    if (confirm('A data de admissão é posterior à data de desligamento. Deseja limpar a data de desligamento (recontratação)?')) {
+                        dataDesligamentoInput.value = '';
+                        if (motivoContainer) motivoContainer.style.display = 'none';
+                        if (motivoInput) motivoInput.value = '';
+                        if (statusCheckbox) statusCheckbox.checked = true;
+                    }
+                }
+            }
+        });
     }
 });
 

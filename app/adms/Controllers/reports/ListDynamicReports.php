@@ -15,21 +15,31 @@ class ListDynamicReports
     {
         $repo = new DynamicReportsRepository();
         $userId = $_SESSION['user_id'] ?? 0;
-        $sapOnly = (($_GET['source'] ?? '') === 'sap');
+        // Esta classe passa a representar APENAS os relatórios locais
+        $sapOnly = false;
+
+        // Garante que o menu \"Relatórios Locais\" fique em destaque
+        $_SESSION['menu_override'] = 'ListDynamicReports';
         
+        // Recupera todos os relatórios do usuário
         $this->data['reports'] = $repo->getUserReports($userId);
 
+        // Marca quais relatórios são SAP
         foreach ($this->data['reports'] as &$report) {
             $report['is_sap'] = $this->isSapReport($report);
         }
         unset($report);
 
-        if ($sapOnly) {
-            $this->data['reports'] = array_values(array_filter(
-                $this->data['reports'],
-                fn($report) => !empty($report['is_sap'])
-            ));
-        }
+        // Se for tela SAP, mantém somente SAP.
+        // Se for tela Local, remove os SAP (apenas locais).
+        $this->data['reports'] = array_values(array_filter(
+            $this->data['reports'],
+            function ($report) use ($sapOnly) {
+                return $sapOnly
+                    ? !empty($report['is_sap'])      // apenas SAP na tela SAP
+                    : empty($report['is_sap']);       // apenas locais na tela Local
+            }
+        ));
         
         $this->data['categories'] = [];
         foreach ($this->data['reports'] as $report) {
@@ -37,14 +47,14 @@ class ListDynamicReports
             $this->data['categories'][$category][] = $report;
         }
         
-        $title = $sapOnly ? 'Relatórios SAP' : 'Meus Relatórios';
-        $menuId = $sapOnly ? 'relatorios-sap' : 'relatorios';
+        $title = 'Relatórios Locais';
         $this->data['page_title'] = $title;
-        $this->data['sap_filter'] = $sapOnly;
+        $this->data['is_sap_scope'] = false;
 
         $pageElements = [
             'title_head' => $title,
-            'menu' => $menuId,
+            // Mantém submenu \"Relatórios Locais\" em destaque (usa o nome da controller/permission)
+            'menu' => 'ListDynamicReports',
             'buttonPermission' => ['DynamicReportBuilder']
         ];
         

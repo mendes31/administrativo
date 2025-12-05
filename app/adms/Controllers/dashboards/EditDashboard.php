@@ -22,6 +22,10 @@ class EditDashboard
 
     public function index(?string $id = null): void
     {
+        // Ao entrar em qualquer página de Dashboard, limpar overrides de outros menus
+        if (isset($_SESSION['menu_override'])) {
+            unset($_SESSION['menu_override']);
+        }
         // Se for POST, processar atualização
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->update();
@@ -72,7 +76,8 @@ class EditDashboard
         
         $pageElements = [
             'title_head' => 'Editar Dashboard',
-            'menu' => 'EditDashboard',
+            // Mantém o menu principal de Dashboards em destaque
+            'menu' => 'ListDashboards',
             'buttonPermission' => ['ListDashboards', 'ViewDashboard']
         ];
         

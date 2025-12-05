@@ -22,21 +22,30 @@ $dashboards = $this->data['dashboards'] ?? [];
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-list"></i> Dashboards Disponíveis</h5>
-            <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="btn btn-light btn-sm">
-                <i class="fas fa-plus"></i> Criar a partir de Relatório
-            </a>
+            <div class="btn-group">
+                <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard" class="btn btn-light btn-sm">
+                    <i class="fas fa-plus-circle"></i> Criar Dashboard
+                </a>
+                <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-plus"></i> Criar a partir de Relatório
+                </a>
+            </div>
         </div>
         <div class="card-body">
             <?php if (empty($dashboards)): ?>
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> 
                     Nenhum dashboard encontrado. 
-                    <a href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports" class="alert-link">Crie um relatório primeiro</a> 
-                    e depois clique em "Criar Dashboard" para transformá-lo em um dashboard interativo com KPIs e gráficos.
+                    Você pode <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard" class="alert-link">criar um dashboard em branco</a>
+                    e depois escolher se quer usar relatórios ou planilhas como fonte de dados.
                 </div>
             <?php else: ?>
                 <div class="row g-3">
                     <?php foreach ($dashboards as $dashboard): ?>
+                        <?php
+                            $dataSourceType = $dashboard['data_source_type'] ?? 'report';
+                            $isSpreadsheet = $dataSourceType === 'spreadsheet';
+                        ?>
                         <div class="col-md-6 col-lg-4">
                             <div class="card h-100 border-<?= $dashboard['is_public'] ? 'success' : 'primary' ?> shadow-sm">
                                 <div class="card-header bg-<?= $dashboard['is_public'] ? 'success' : 'primary' ?> text-white">
@@ -57,8 +66,13 @@ $dashboards = $this->data['dashboards'] ?? [];
                                     
                                     <div class="mb-2">
                                         <small class="text-muted">
-                                            <i class="fas fa-file-alt"></i> 
-                                            Relatório: <strong><?= htmlspecialchars($dashboard['report_name']) ?></strong>
+                                            <?php if ($isSpreadsheet): ?>
+                                                <i class="fas fa-file-excel"></i>
+                                                Fonte: <strong><?= htmlspecialchars($dashboard['spreadsheet_name'] ?? 'Planilha') ?></strong>
+                                            <?php else: ?>
+                                                <i class="fas fa-file-alt"></i> 
+                                                Relatório: <strong><?= htmlspecialchars($dashboard['report_name'] ?? 'Não definido') ?></strong>
+                                            <?php endif; ?>
                                         </small>
                                     </div>
                                     

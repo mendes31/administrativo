@@ -72,11 +72,15 @@ class SapReportApiService
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
+                'Accept-Encoding: gzip, deflate', // Solicitar compressão
                 'ngrok-skip-browser-warning: true', // Header para ngrok-free
                 'User-Agent: PHP-SAP-Report-Client/1.0'
             ],
+            CURLOPT_ENCODING => '', // Aceitar qualquer encoding (gzip, deflate)
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 3
+            CURLOPT_MAXREDIRS => 3,
+            CURLOPT_CONNECTTIMEOUT => 10, // Timeout de conexão mais curto
+            CURLOPT_BUFFERSIZE => 16384 // Buffer maior para melhor performance
         ]);
 
         $response = curl_exec($ch);
