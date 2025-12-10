@@ -601,6 +601,73 @@ $menus = [
         ]
     ],
     [
+        'id' => 'reserva_salas',
+        'icon' => 'fa-solid fa-door-open',
+        'label' => 'Reserva de Salas',
+        'submenu' => [
+            [
+                'label' => 'Calendário',
+                'url' => $_ENV['URL_ADM'] . 'room-calendar',
+                'permission' => 'RoomCalendar',
+                'icon' => 'fas fa-calendar'
+            ],
+            [
+                'label' => 'Salas',
+                'icon' => 'fa-solid fa-door-open',
+                'submenu' => [
+                    [
+                        'label' => 'Listar Salas',
+                        'url' => $_ENV['URL_ADM'] . 'list-meeting-rooms',
+                        'permission' => 'ListMeetingRooms'
+                    ],
+                    [
+                        'label' => 'Criar Sala',
+                        'url' => $_ENV['URL_ADM'] . 'create-meeting-room',
+                        'permission' => 'CreateMeetingRoom'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Reservas',
+                'icon' => 'fa-solid fa-calendar-check',
+                'submenu' => [
+                    [
+                        'label' => 'Todas as Reservas',
+                        'url' => $_ENV['URL_ADM'] . 'list-bookings',
+                        'permission' => 'ListBookings'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Tipos de Solicitação',
+                'icon' => 'fa-solid fa-list',
+                'submenu' => [
+                    [
+                        'label' => 'Listar Tipos',
+                        'url' => $_ENV['URL_ADM'] . 'list-request-types',
+                        'permission' => 'ListRequestTypes'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Administrativo',
+                'icon' => 'fa-solid fa-cog',
+                'submenu' => [
+                    [
+                        'label' => 'Dashboard',
+                        'url' => $_ENV['URL_ADM'] . 'admin-booking-dashboard',
+                        'permission' => 'AdminBookingDashboard'
+                    ],
+                    [
+                        'label' => 'Relatórios',
+                        'url' => $_ENV['URL_ADM'] . 'booking-reports',
+                        'permission' => 'BookingReports'
+                    ],
+                ]
+            ],
+        ]
+    ],
+    [
         'id' => 'lgpd',
         'icon' => 'fa-solid fa-shield-halved',
         'label' => 'LGPD',

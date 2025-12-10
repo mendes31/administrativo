@@ -587,6 +587,7 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Criar Avaliação de Desempenho', 'controller' => 'CreatePerformanceReview', 'controller_url' => 'create-performance-review', 'directory' => 'performance', 'obs' => 'Página com o formulário para criar nova avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Visualizar Avaliação de Desempenho', 'controller' => 'ViewPerformanceReview', 'controller_url' => 'view-performance-review', 'directory' => 'performance', 'obs' => 'Página para visualizar detalhes da avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Editar Avaliação de Desempenho', 'controller' => 'UpdatePerformanceReview', 'controller_url' => 'update-performance-review', 'directory' => 'performance', 'obs' => 'Página com o formulário para editar avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Registrar Resultados da Avaliação', 'controller' => 'RecordReviewResults', 'controller_url' => 'record-review-results', 'directory' => 'performance', 'obs' => 'Página para registrar competências, metas e notas de uma avaliação de desempenho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Apagar Avaliação de Desempenho', 'controller' => 'DeletePerformanceReview', 'controller_url' => 'delete-performance-review', 'directory' => 'performance', 'obs' => 'Página para apagar avaliação de desempenho do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Listar Competências', 'controller' => 'ListCompetencies', 'controller_url' => 'list-competencies', 'directory' => 'performance', 'obs' => 'Página para listar competências técnicas e comportamentais.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Cadastrar Competência', 'controller' => 'CreateCompetency', 'controller_url' => 'create-competency', 'directory' => 'performance', 'obs' => 'Página com o formulário para cadastrar nova competência.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
@@ -629,16 +630,52 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Relatórios de RH', 'controller' => 'PeopleReports', 'controller_url' => 'people-reports', 'directory' => 'analytics', 'obs' => 'Relatórios avançados de gestão de pessoas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             // Exportação Matriz 9BOX
             ['name'=> 'Exportar Matriz 9BOX PDF', 'controller' => 'ExportNineBoxMatrixPdf', 'controller_url' => 'export-nine-box-matrix-pdf', 'directory' => 'performance', 'obs' => 'Exportar Matriz 9BOX para PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Exportar Análise Completa PDF', 'controller' => 'ExportAnalysisPdf', 'controller_url' => 'export-analysis-pdf', 'directory' => 'Services', 'obs' => 'Exportar análise completa do projeto para PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
+            ['name'=> 'Informações Exportação Análise', 'controller' => 'ExportAnalysisInfo', 'controller_url' => 'export-analysis-info', 'directory' => 'Services', 'obs' => 'Página com informações sobre a exportação da análise completa.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
             ['name'=> 'Exportar Matriz 9BOX Excel', 'controller' => 'ExportNineBoxMatrixExcel', 'controller_url' => 'export-nine-box-matrix-excel', 'directory' => 'performance', 'obs' => 'Exportar Matriz 9BOX para Excel.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+
+            // ===== GRUPO 37: RESERVA DE SALAS =====
+            // Salas de Reunião
+            ['name'=> 'Listar Salas de Reunião', 'controller' => 'ListMeetingRooms', 'controller_url' => 'list-meeting-rooms', 'directory' => 'rooms', 'obs' => 'Página para listar salas de reunião.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Criar Sala de Reunião', 'controller' => 'CreateMeetingRoom', 'controller_url' => 'create-meeting-room', 'directory' => 'rooms', 'obs' => 'Página com o formulário para criar nova sala de reunião.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Visualizar Sala de Reunião', 'controller' => 'ViewMeetingRoom', 'controller_url' => 'view-meeting-room', 'directory' => 'rooms', 'obs' => 'Página para visualizar detalhes da sala de reunião.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Editar Sala de Reunião', 'controller' => 'UpdateMeetingRoom', 'controller_url' => 'update-meeting-room', 'directory' => 'rooms', 'obs' => 'Página com o formulário para editar sala de reunião.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Apagar Sala de Reunião', 'controller' => 'DeleteMeetingRoom', 'controller_url' => 'delete-meeting-room', 'directory' => 'rooms', 'obs' => 'Página para apagar sala de reunião do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            // Calendário e Reservas
+            ['name'=> 'Calendário de Reservas', 'controller' => 'RoomCalendar', 'controller_url' => 'room-calendar', 'directory' => 'rooms', 'obs' => 'Calendário interativo para visualizar e criar reservas de salas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Reservar Sala', 'controller' => 'BookRoom', 'controller_url' => 'book-room', 'directory' => 'rooms', 'obs' => 'Calendário visual para reservar uma sala específica com horários disponíveis e ocupados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Criar Reserva de Sala', 'controller' => 'CreateBooking', 'controller_url' => 'create-booking', 'directory' => 'rooms', 'obs' => 'Página com o formulário para criar nova reserva de sala.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Visualizar Reserva de Sala', 'controller' => 'ViewBooking', 'controller_url' => 'view-booking', 'directory' => 'rooms', 'obs' => 'Página para visualizar detalhes da reserva de sala.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Editar Reserva de Sala', 'controller' => 'UpdateBooking', 'controller_url' => 'update-booking', 'directory' => 'rooms', 'obs' => 'Página com o formulário para editar reserva de sala.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Cancelar Reserva de Sala', 'controller' => 'CancelBooking', 'controller_url' => 'cancel-booking', 'directory' => 'rooms', 'obs' => 'Página para cancelar reserva de sala.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            // Lista de Espera
+            ['name'=> 'Lista de Espera', 'controller' => 'BookingWaitlist', 'controller_url' => 'booking-waitlist', 'directory' => 'rooms', 'obs' => 'Página para gerenciar lista de espera de reservas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Entrar na Lista de Espera', 'controller' => 'JoinWaitlist', 'controller_url' => 'join-waitlist', 'directory' => 'rooms', 'obs' => 'Endpoint para entrar na lista de espera de uma sala.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Confirmar Vaga Liberada', 'controller' => 'ConfirmWaitlistBooking', 'controller_url' => 'confirm-waitlist-booking', 'directory' => 'rooms', 'obs' => 'Endpoint para confirmar reserva quando vaga é liberada da lista de espera.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            // Tipos de Solicitações
+            ['name'=> 'Listar Tipos de Solicitação', 'controller' => 'ListRequestTypes', 'controller_url' => 'list-request-types', 'directory' => 'rooms', 'obs' => 'Página para listar tipos de solicitações adicionais (lanches, equipamentos, etc).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Criar Tipo de Solicitação', 'controller' => 'CreateRequestType', 'controller_url' => 'create-request-type', 'directory' => 'rooms', 'obs' => 'Página com o formulário para criar novo tipo de solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Editar Tipo de Solicitação', 'controller' => 'UpdateRequestType', 'controller_url' => 'update-request-type', 'directory' => 'rooms', 'obs' => 'Página com o formulário para editar tipo de solicitação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Apagar Tipo de Solicitação', 'controller' => 'DeleteRequestType', 'controller_url' => 'delete-request-type', 'directory' => 'rooms', 'obs' => 'Página para apagar tipo de solicitação do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            // Administrativo
+            ['name'=> 'Dashboard de Reservas', 'controller' => 'AdminBookingDashboard', 'controller_url' => 'admin-booking-dashboard', 'directory' => 'rooms', 'obs' => 'Dashboard administrativo com estatísticas e relatórios de reservas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Todas as Reservas', 'controller' => 'AdminBookings', 'controller_url' => 'admin-bookings', 'directory' => 'rooms', 'obs' => 'Página administrativa para visualizar todas as reservas do sistema.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+            ['name'=> 'Relatórios de Reservas', 'controller' => 'BookingReports', 'controller_url' => 'booking-reports', 'directory' => 'rooms', 'obs' => 'Relatórios e análises de uso das salas de reunião.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
         ];
 
-        // Buscar ID real do grupo "Gestão de Pessoas" pelo nome (pode ter ID diferente de 36)
+        // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
         // O auto-increment do MySQL pode pular IDs se houver exclusões ou inserções manuais
         $gestaoPessoasGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Gestão de Pessoas'");
         if (!$gestaoPessoasGroup) {
             throw new \Exception("ERRO: O grupo 'Gestão de Pessoas' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
         }
         $gestaoPessoasGroupId = (int)$gestaoPessoasGroup['id'];
+
+        $reservaSalasGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Reserva de Salas'");
+        if (!$reservaSalasGroup) {
+            throw new \Exception("ERRO: O grupo 'Reserva de Salas' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $reservaSalasGroupId = (int)$reservaSalasGroup['id'];
 
         // Percorrer o array com dados que devem ser validados antes de cadastrar
         foreach ($pages as $page) {
@@ -648,10 +685,12 @@ class AddAdmsPages extends AbstractSeed
 
             // Se o registro não existir, insere os dados na variável $data para em seguida cadastrar na tabela
             if (!$existingRecord) {
-                // Se for grupo 36 (esperado), usar o ID real encontrado no banco
+                // Se for grupo 36 ou 37 (esperado), usar o ID real encontrado no banco
                 $groupId = $page['adms_groups_page_id'];
                 if ($groupId == 36) {
                     $groupId = $gestaoPessoasGroupId;
+                } elseif ($groupId == 37) {
+                    $groupId = $reservaSalasGroupId;
                 }
                 
                 // Criar o array com os dados da página

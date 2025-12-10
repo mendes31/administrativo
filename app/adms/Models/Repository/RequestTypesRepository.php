@@ -6,7 +6,7 @@ use App\adms\Models\Services\DbConnection;
 use PDO;
 
 /**
- * Repository para gerenciar tipos de solicitação
+ * Repository para gerenciar tipos de solicitações
  */
 class RequestTypesRepository extends DbConnection
 {
@@ -15,9 +15,12 @@ class RequestTypesRepository extends DbConnection
      */
     public function getAllActive(): array
     {
-        $sql = "SELECT * FROM adms_request_types 
-                WHERE status = 1 
-                ORDER BY sort_order ASC, name ASC";
+        $sql = "SELECT rt.*, 
+                       u.name as default_responsible_name
+                FROM adms_request_types rt
+                LEFT JOIN adms_users u ON rt.default_responsible_user_id = u.id
+                WHERE (rt.status = 1 OR rt.is_active = 1)
+                ORDER BY rt.name ASC";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
@@ -30,7 +33,11 @@ class RequestTypesRepository extends DbConnection
      */
     public function getByCode(string $code): ?array
     {
-        $sql = "SELECT * FROM adms_request_types WHERE code = :code AND status = 1 LIMIT 1";
+        $sql = "SELECT rt.*, 
+                       u.name as default_responsible_name
+                FROM adms_request_types rt
+                LEFT JOIN adms_users u ON rt.default_responsible_user_id = u.id
+                WHERE rt.code = :code";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':code', $code);
@@ -44,7 +51,11 @@ class RequestTypesRepository extends DbConnection
      */
     public function getById(int $id): ?array
     {
-        $sql = "SELECT * FROM adms_request_types WHERE id = :id LIMIT 1";
+        $sql = "SELECT rt.*, 
+                       u.name as default_responsible_name
+                FROM adms_request_types rt
+                LEFT JOIN adms_users u ON rt.default_responsible_user_id = u.id
+                WHERE rt.id = :id";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -54,43 +65,25 @@ class RequestTypesRepository extends DbConnection
     }
 
     /**
-     * Listar todos (incluindo inativos)
-     */
-    public function getAll(): array
-    {
-        $sql = "SELECT * FROM adms_request_types 
-                ORDER BY sort_order ASC, name ASC";
-        
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
      * Criar tipo
      */
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_request_types 
-                (code, name, description, requires_manager_approval, requires_dates, 
-                 requires_days, requires_amount, icon, color, status, sort_order)
+                (code, name, description, requires_responsible, default_responsible_user_id, 
+                 requires_quantity, is_active)
                 VALUES 
-                (:code, :name, :description, :requires_manager_approval, :requires_dates,
-                 :requires_days, :requires_amount, :icon, :color, :status, :sort_order)";
+                (:code, :name, :description, :requires_responsible, :default_responsible_user_id,
+                 :requires_quantity, :is_active)";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':code', $data['code']);
         $stmt->bindValue(':name', $data['name']);
         $stmt->bindValue(':description', $data['description'] ?? null);
-        $stmt->bindValue(':requires_manager_approval', isset($data['requires_manager_approval']) ? ($data['requires_manager_approval'] ? 1 : 0) : 1, PDO::PARAM_INT);
-        $stmt->bindValue(':requires_dates', isset($data['requires_dates']) ? ($data['requires_dates'] ? 1 : 0) : 0, PDO::PARAM_INT);
-        $stmt->bindValue(':requires_days', isset($data['requires_days']) ? ($data['requires_days'] ? 1 : 0) : 0, PDO::PARAM_INT);
-        $stmt->bindValue(':requires_amount', isset($data['requires_amount']) ? ($data['requires_amount'] ? 1 : 0) : 0, PDO::PARAM_INT);
-        $stmt->bindValue(':icon', $data['icon'] ?? null);
-        $stmt->bindValue(':color', $data['color'] ?? 'primary');
-        $stmt->bindValue(':status', isset($data['status']) ? ($data['status'] ? 1 : 0) : 1, PDO::PARAM_INT);
-        $stmt->bindValue(':sort_order', $data['sort_order'] ?? 0, PDO::PARAM_INT);
+        $stmt->bindValue(':requires_responsible', $data['requires_responsible'] ?? true, PDO::PARAM_BOOL);
+        $stmt->bindValue(':default_responsible_user_id', $data['default_responsible_user_id'] ?? null, PDO::PARAM_INT);
+        $stmt->bindValue(':requires_quantity', $data['requires_quantity'] ?? false, PDO::PARAM_BOOL);
+        $stmt->bindValue(':is_active', $data['is_active'] ?? true, PDO::PARAM_BOOL);
         
         $stmt->execute();
         
@@ -102,40 +95,35 @@ class RequestTypesRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
-        $fields = [];
-        $values = [];
+        $allowedFields = [
+            'code', 'name', 'description', 'requires_responsible', 'default_responsible_user_id',
+            'requires_quantity', 'is_active'
+        ];
         
-        $allowedFields = ['name', 'description', 'requires_manager_approval', 'requires_dates',
-                         'requires_days', 'requires_amount', 'icon', 'color', 'status', 'sort_order'];
+        $updates = [];
+        $params = [':id' => $id];
         
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {
-                $fields[] = "{$field} = :{$field}";
-                if (in_array($field, ['requires_manager_approval', 'requires_dates', 'requires_days', 'requires_amount', 'status'])) {
-                    $values[":{$field}"] = $data[$field] ? 1 : 0;
-                } else {
-                    $values[":{$field}"] = $data[$field];
-                }
+                $updates[] = "$field = :$field";
+                $params[":$field"] = $data[$field];
             }
         }
         
-        if (empty($fields)) {
+        if (empty($updates)) {
             return false;
         }
         
-        $values[':id'] = $id;
-        $fields[] = "updated_at = NOW()";
+        $updates[] = "updated_at = NOW()";
         
-        $sql = "UPDATE adms_request_types SET " . implode(', ', $fields) . " WHERE id = :id";
+        $sql = "UPDATE adms_request_types 
+                SET " . implode(', ', $updates) . "
+                WHERE id = :id";
+        
         $stmt = $this->getConnection()->prepare($sql);
         
-        foreach ($values as $key => $value) {
-            $type = PDO::PARAM_STR;
-            if ($key === ':id' || $key === ':sort_order' || 
-                in_array($key, [':requires_manager_approval', ':requires_dates', ':requires_days', ':requires_amount', ':status'])) {
-                $type = PDO::PARAM_INT;
-            }
-            $stmt->bindValue($key, $value, $type);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
         }
         
         return $stmt->execute();
@@ -146,10 +134,22 @@ class RequestTypesRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        // Verificar se está em uso
+        $checkSql = "SELECT COUNT(*) as total FROM adms_booking_additional_requests WHERE request_type = (SELECT code FROM adms_request_types WHERE id = :id)";
+        $checkStmt = $this->getConnection()->prepare($checkSql);
+        $checkStmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $checkStmt->execute();
+        $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ((int)($result['total'] ?? 0) > 0) {
+            return false; // Não pode deletar se está em uso
+        }
+        
         $sql = "DELETE FROM adms_request_types WHERE id = :id";
+        
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        
         return $stmt->execute();
     }
 }
-

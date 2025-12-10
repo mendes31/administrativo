@@ -62,6 +62,7 @@ class ViewPerformanceReview
             'buttonPermission' => [
                 'ListPerformanceReviews',
                 'UpdatePerformanceReview',
+                'RecordReviewResults',
                 'DeletePerformanceReview',
             ],
         ];

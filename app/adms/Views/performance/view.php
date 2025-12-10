@@ -19,6 +19,12 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2">
             <span><i class="fas fa-clipboard-check me-2"></i>Avaliação #<?= $this->data['review']['id'] ?></span>
             <span class="ms-auto">
+                <?php if (in_array('RecordReviewResults', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>record-review-results/<?= $this->data['review']['id'] ?>" 
+                       class="btn btn-sm btn-success">
+                        <i class="fas fa-clipboard-list me-1"></i>Registrar Resultados
+                    </a>
+                <?php } ?>
                 <?php if (in_array('UpdatePerformanceReview', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>update-performance-review/<?= $this->data['review']['id'] ?>" 
                        class="btn btn-sm btn-warning">

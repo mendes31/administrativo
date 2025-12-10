@@ -40,7 +40,9 @@ class PerformanceCompetenciesRepository extends DbConnection
      */
     public function getByReviewId(int $reviewId): array
     {
-        $sql = "SELECT pc.*, c.name as competency_name, c.competency_type, c.description
+        $sql = "SELECT pc.*, c.name as competency_name, c.competency_type, c.description,
+                       c.level_1_description, c.level_2_description, c.level_3_description,
+                       c.level_4_description, c.level_5_description
                 FROM adms_performance_competencies pc
                 INNER JOIN adms_competencies c ON pc.competency_id = c.id
                 WHERE pc.performance_review_id = :review_id
