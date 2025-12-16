@@ -131,3 +131,4 @@ Testa a detecção de campo incremental e geração de query.
 Com essas informações, podemos identificar exatamente onde está o problema!
 
 
+

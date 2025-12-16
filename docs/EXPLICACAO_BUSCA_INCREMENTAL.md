@@ -124,3 +124,4 @@ Após a busca incremental:
 4. **Para forçar atualização completa**, use "Atualização Completa" ao invés de "Busca Incremental"
 
 
+

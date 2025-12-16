@@ -289,3 +289,4 @@ if (trim($sqlOtimizada) === trim($queryBanco)) {
 echo "</pre>";
 
 
+

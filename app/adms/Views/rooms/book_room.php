@@ -209,12 +209,13 @@ foreach ($bookings as $date => $dateBookings) {
                             foreach ($dayBookings as $booking) {
                                 if ($previewCount >= 3) break; // Mostrar apenas 3 reservas
                                 $startTime = date('H:i', strtotime($booking['start_datetime']));
+                                $endTime = date('H:i', strtotime($booking['end_datetime']));
                                 $title = htmlspecialchars($booking['title']);
                                 $userName = htmlspecialchars($booking['user_name'] ?? '');
                                 $shortTitle = strlen($title) > 20 ? substr($title, 0, 17) . '...' : $title;
                                 $shortUser = strlen($userName) > 15 ? substr($userName, 0, 12) . '...' : $userName;
-                                echo '<div class="booking-preview-item" title="' . htmlspecialchars($booking['title']) . ' - ' . $userName . '">';
-                                echo '<span class="booking-time">' . $startTime . '</span> ';
+                                echo '<div class="booking-preview-item" title="' . $startTime . ' - ' . $endTime . ' ' . htmlspecialchars($booking['title']) . ' - ' . $userName . '">';
+                                echo '<span class="booking-time">' . $startTime . ' - ' . $endTime . '</span> ';
                                 echo '<span class="booking-title">' . $shortTitle . '</span>';
                                 if (!empty($userName)) {
                                     echo '<span class="booking-user"> - ' . $shortUser . '</span>';

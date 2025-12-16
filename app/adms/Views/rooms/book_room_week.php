@@ -127,12 +127,12 @@ $today = date('Y-m-d');
 }
 
 .time-slot-week {
-    background: #f8f9fa;
     padding: 0.5rem;
     font-size: 0.75rem;
     font-weight: 600;
     text-align: right;
     border-right: 2px solid #dee2e6;
+    border-bottom: 1px solid #d1d5db;
     height: 50px;
     display: flex;
     align-items: center;
@@ -140,6 +140,22 @@ $today = date('Y-m-d');
     position: sticky;
     left: 0;
     z-index: 5;
+}
+
+/* Tons alternados na coluna de horários */
+.time-slot-week:nth-child(even) {
+    background: #f1f3f5;
+    border-bottom: 1px solid #d1d5db;
+}
+
+.time-slot-week:nth-child(odd) {
+    background: #ffffff;
+    border-bottom: 1px solid #d1d5db;
+}
+
+/* Linha mais destacada a cada hora (a cada 2 slots) */
+.time-slot-week:nth-child(2n) {
+    border-bottom: 2px solid #94a3b8;
 }
 
 .week-day-column-week {
@@ -177,45 +193,81 @@ $today = date('Y-m-d');
 }
 
 .week-time-slot {
-    background: white;
     min-height: 50px;
-    border-bottom: 1px solid #e9ecef;
+    height: 50px;
+    border-bottom: 1px solid #d1d5db;
+    border-right: 1px solid #e9ecef;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
     padding: 0.25rem;
 }
 
+/* Tons alternados para melhor identificação dos horários */
+/* O primeiro filho é o cabeçalho, então os slots começam do segundo filho */
+.week-day-column-week .week-time-slot:nth-child(2n+2) {
+    /* Slots ímpares (08:00, 09:00, 10:00...) - primeiro slot de cada hora */
+    background: #ffffff;
+    border-bottom: 1px solid #d1d5db;
+}
+
+.week-day-column-week .week-time-slot:nth-child(2n+3) {
+    /* Slots pares (08:30, 09:30, 10:30...) - segundo slot de cada hora */
+    background: #f8f9fa;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+/* Linha mais destacada a cada hora (a cada 2 slots) */
+/* Os slots pares (2n+3) marcam o fim de cada hora */
+.week-day-column-week .week-time-slot:nth-child(2n+3) {
+    border-bottom: 2px solid #94a3b8;
+}
+
 .week-time-slot:hover {
-    background: #f0f7ff;
+    background: #f0f7ff !important;
     z-index: 5;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: inset 0 0 0 1px #3b82f6;
 }
 
 .week-time-slot.available {
-    background: #d4edda;
+    background: #d4edda !important;
     border-left: 3px solid #28a745;
 }
 
+.week-time-slot.available:nth-child(2n+3) {
+    /* Slots pares disponíveis */
+    background: #c3e6cb !important;
+}
+
 .week-time-slot.available:hover {
-    background: #c3e6cb;
+    background: #b8e0c4 !important;
     border-left-color: #218838;
 }
 
 .week-time-slot.booked {
-    background: #f8d7da;
+    background: #f8d7da !important;
     border-left: 3px solid #dc3545;
     cursor: pointer;
 }
 
+.week-time-slot.booked:nth-child(2n+3) {
+    /* Slots pares ocupados */
+    background: #f5c6cb !important;
+}
+
 .week-time-slot.booked:hover {
-    background: #f5c6cb;
+    background: #f1b0b7 !important;
 }
 
 .week-time-slot.past {
-    background: #e9ecef;
+    background: #e9ecef !important;
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.week-time-slot.past:nth-child(2n+3) {
+    /* Slots pares no passado */
+    background: #dee2e6 !important;
 }
 
 .week-booking-block {
