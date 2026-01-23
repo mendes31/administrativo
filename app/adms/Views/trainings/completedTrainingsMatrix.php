@@ -269,6 +269,7 @@ thead th {
                     <th class="aproveitamento-col" style="color: #ffffff !important;">Aproveitamento</th>
                     <th class="tipo-col" style="color: #ffffff !important;">Tipo do Treinamento</th>
                     <th class="observacoes-col"><?= sort_link('observacoes', 'Observações', $sort, $order, $params) ?></th>
+                    <th class="acoes-col" style="color: #ffffff !important; width: 80px;">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -340,10 +341,17 @@ thead th {
                                 <?php endif; ?>
                             </td>
                             <td><?= htmlspecialchars($item['observacoes'] ?? '-') ?></td>
+                            <td>
+                                <?php if (!empty($item['application_id']) && in_array('EditCompletedTraining', $this->data['buttonPermission'] ?? [])): ?>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="openEditModal(<?= $item['application_id'] ?>)" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="11" class="text-center text-muted">Nenhum treinamento realizado encontrado.</td></tr>
+                    <tr><td colspan="12" class="text-center text-muted">Nenhum treinamento realizado encontrado.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -575,4 +583,153 @@ thead th {
             <?php endif; ?>
         </div>
     </nav>
-</div> 
+</div>
+
+<!-- Modal de Edição -->
+<div class="modal fade" id="editTrainingModal" tabindex="-1" aria-labelledby="editTrainingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTrainingModalLabel">Editar Treinamento Realizado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="editTrainingForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_application_id" name="application_id">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_data_realizacao" class="form-label">Data de Realização *</label>
+                            <input type="date" class="form-control" id="edit_data_realizacao" name="data_realizacao" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_data_avaliacao" class="form-label">Data de Avaliação</label>
+                            <input type="date" class="form-control" id="edit_data_avaliacao" name="data_avaliacao">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_nota" class="form-label">Nota</label>
+                            <input type="number" class="form-control" id="edit_nota" name="nota" step="0.01" min="0" max="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_instrutor_nome" class="form-label">Nome do Instrutor</label>
+                            <input type="text" class="form-control" id="edit_instrutor_nome" name="instrutor_nome">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="edit_observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="edit_observacoes" name="observacoes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Atenção:</strong> Para salvar as alterações, é necessário informar uma justificativa e confirmar com sua senha.
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="edit_justificativa" class="form-label">Justificativa *</label>
+                            <textarea class="form-control" id="edit_justificativa" name="justificativa" rows="3" required placeholder="Informe o motivo da alteração"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="edit_password" class="form-label">Senha de Confirmação *</label>
+                            <input type="password" class="form-control" id="edit_password" name="password" required placeholder="Digite sua senha para confirmar a alteração">
+                        </div>
+                    </div>
+                    
+                    <div id="edit_error_message" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEditModal(applicationId) {
+    // Limpar formulário
+    document.getElementById('editTrainingForm').reset();
+    document.getElementById('edit_error_message').classList.add('d-none');
+    document.getElementById('edit_application_id').value = applicationId;
+    
+    // Carregar dados do registro
+    fetch('<?= $_ENV['URL_ADM'] ?>completed-trainings-matrix/get-application?id=' + applicationId)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro HTTP: ' + response.status);
+            }
+            return response.text();
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                if (data.success) {
+                    const app = data.application;
+                    document.getElementById('edit_data_realizacao').value = app.data_realizacao || '';
+                    document.getElementById('edit_data_avaliacao').value = app.data_avaliacao || '';
+                    document.getElementById('edit_nota').value = app.nota || '';
+                    document.getElementById('edit_instrutor_nome').value = app.instrutor_nome || '';
+                    document.getElementById('edit_observacoes').value = app.observacoes || '';
+                    
+                    // Abrir modal
+                    const modal = new bootstrap.Modal(document.getElementById('editTrainingModal'));
+                    modal.show();
+                } else {
+                    alert('Erro ao carregar dados do treinamento: ' + (data.message || 'Erro desconhecido'));
+                }
+            } catch (e) {
+                console.error('Erro ao parsear JSON:', e);
+                console.error('Resposta recebida:', text);
+                alert('Erro ao processar resposta do servidor. Verifique o console para mais detalhes.');
+            }
+        })
+        .catch(error => {
+            console.error('Erro na requisição:', error);
+            alert('Erro ao carregar dados do treinamento: ' + error.message);
+        });
+}
+
+// Submeter formulário
+document.getElementById('editTrainingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const errorDiv = document.getElementById('edit_error_message');
+    errorDiv.classList.add('d-none');
+    
+    fetch('<?= $_ENV['URL_ADM'] ?>completed-trainings-matrix/update-application', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Fechar modal e recarregar página
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editTrainingModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            // Mostrar erro
+            errorDiv.textContent = data.message || 'Erro ao salvar alterações';
+            errorDiv.classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        errorDiv.textContent = 'Erro ao processar requisição';
+        errorDiv.classList.remove('d-none');
+    });
+});
+</script> 

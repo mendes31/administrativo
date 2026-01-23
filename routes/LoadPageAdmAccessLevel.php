@@ -3,6 +3,7 @@
 namespace Routes;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\SlugController;
 use App\adms\Models\Repository\PagesRoutesRepository;
 
 class LoadPageAdmAccessLevel
@@ -138,11 +139,26 @@ class LoadPageAdmAccessLevel
         // Controllers internas de AJAX que não devem receber parâmetros de rota
         $internalAjaxControllers = ['UploadSpreadsheet', 'GetSpreadsheetFields'];
 
-        // Verificar se o método "index" existe na classe
-        if (method_exists($classLoad, "index")) {
+        // Determinar qual método chamar
+        $metodo = 'index';
+        $parametro = $this->urlParameter;
+        
+        // Se urlParameter não for vazio e não for numérico, pode ser um nome de método
+        if (!empty($this->urlParameter) && !is_numeric($this->urlParameter)) {
+            // Converter kebab-case para camelCase (ex: get-application -> getApplication)
+            $metodoCamelCase = lcfirst(SlugController::slugController($this->urlParameter));
+            if (method_exists($classLoad, $metodoCamelCase)) {
+                $metodo = $metodoCamelCase;
+                $parametro = null; // Se for um método, não passar como parâmetro
+            }
+        }
+        
+        // Verificar se o método existe na classe
+        if (method_exists($classLoad, $metodo)) {
             GenerateLog::generateLog("info", "Página acessada.", [
                 'pagina' => $this->urlController,
                 'parametro' => $this->urlParameter,
+                'metodo' => $metodo,
                 'action_user_id' => $_SESSION['user_id'] ?? ''
             ]);
 
@@ -174,7 +190,12 @@ class LoadPageAdmAccessLevel
                         $classLoad->{"index"}($param);
                     }
                 } else {
-                    $classLoad->{"index"}($this->urlParameter);
+                    // Se o método for diferente de index, chamar sem parâmetro (ou com parâmetro se necessário)
+                    if ($metodo === 'index') {
+                        $classLoad->{$metodo}($parametro);
+                    } else {
+                        $classLoad->{$metodo}();
+                    }
                 }
             } catch (\Throwable $e) {
                 GenerateLog::generateLog("error", "Erro ao executar controller.", [

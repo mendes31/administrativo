@@ -295,6 +295,18 @@ class TrainingsRepository extends DbConnection
             $where[] = 't.reciclagem_periodo = :reciclagem';
             $params[':reciclagem'] = (int)$filters['reciclagem'];
         }
+        if (!empty($filters['area_responsavel_id'])) {
+            $where[] = 't.area_responsavel_id = :area_responsavel_id';
+            $params[':area_responsavel_id'] = (int)$filters['area_responsavel_id'];
+        }
+        if (!empty($filters['area_elaborador_id'])) {
+            $where[] = 't.area_elaborador_id = :area_elaborador_id';
+            $params[':area_elaborador_id'] = (int)$filters['area_elaborador_id'];
+        }
+        if (!empty($filters['tipo_obrigatoriedade'])) {
+            $where[] = 't.tipo_obrigatoriedade = :tipo_obrigatoriedade';
+            $params[':tipo_obrigatoriedade'] = $filters['tipo_obrigatoriedade'];
+        }
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $sql = 'SELECT COUNT(*) as total FROM adms_trainings t
                 LEFT JOIN adms_users u ON u.id = t.instructor_user_id

@@ -1280,6 +1280,7 @@ class TrainingUsersRepository extends DbConnection
     public function getCompletedTrainingsMatrixPaginated(array $filters = [], int $page = 1, int $perPage = 20): array
     {
         $sql = 'SELECT 
+                    ta.id as application_id,
                     u.id as user_id,
                     u.name as user_name,
                     t.id as training_id,

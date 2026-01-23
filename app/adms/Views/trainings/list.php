@@ -16,6 +16,17 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-graduation-cap me-2"></i>Listar Treinamentos</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
+                <?php
+                // Construir URL de exportação preservando filtros
+                $exportParams = $_GET;
+                unset($exportParams['page'], $exportParams['per_page'], $exportParams['limpar'], $exportParams['export']);
+                $exportParams['export'] = 'excel';
+                $exportUrlExcel = '?' . http_build_query($exportParams);
+                $exportParams['export'] = 'pdf';
+                $exportUrlPdf = '?' . http_build_query($exportParams);
+                ?>
+                <a href="<?= $exportUrlExcel ?>" class="btn btn-success btn-sm mb-1"><i class="fas fa-file-excel me-1"></i>Exportar Excel</a>
+                <a href="<?= $exportUrlPdf ?>" class="btn btn-danger btn-sm mb-1"><i class="fas fa-file-pdf me-1"></i>Exportar PDF</a>
                 <?php if (in_array('CreateTraining', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>create-training" class="btn btn-success btn-sm mb-1 btn-min-width-90"><i class="fa-solid fa-plus"></i> Cadastrar</a>
                 <?php } ?>

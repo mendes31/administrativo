@@ -412,8 +412,14 @@ class LoadPageAdm
 
         // Padrão: /Controller/Metodo
         $metodo = 'index';
-        if (!empty($this->urlParameter) && method_exists($classLoad, $this->urlParameter)) {
-            $metodo = $this->urlParameter;
+        if (!empty($this->urlParameter)) {
+            // Converter kebab-case para camelCase (ex: get-application -> getApplication)
+            $metodoCamelCase = lcfirst(SlugController::slugController($this->urlParameter));
+            if (method_exists($classLoad, $metodoCamelCase)) {
+                $metodo = $metodoCamelCase;
+            } elseif (method_exists($classLoad, $this->urlParameter)) {
+                $metodo = $this->urlParameter;
+            }
         }
 
         if (method_exists($classLoad, $metodo)) {
