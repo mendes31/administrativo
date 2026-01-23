@@ -10,6 +10,16 @@ logs/*
 # # Exceto o arquivo .empty
 !logs/.empty
 
+# Cache e arquivos gerados
+storage/cache/
+app/storage/cache/
+app/storage/logs/
+storage/logs/
+
+# Relatórios temporários
+*.json
+
+# Ambiente
 .env
 
 # Ignorar todos os arquivos abaixo
@@ -27,3 +37,6 @@ app/adms/Controllers/serveFile/debug_path_service.txt
 app/adms/Controllers/serveFile/log_servefile.txt
 app/logs/filtro_global_debug.log
 app/logs/session_debug2.log
+
+
+
