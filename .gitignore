@@ -1,42 +1,28 @@
-# Arquivos e diretórios que não devem ser enviados para o GitHub
+# Dependências
 /vendor/
-
-# Scripts de desenvolvimento (opcional - remover se quiser versionar)
-# /scripts/
-
-# Ignorar todos os arquivos dentro do diretório logs
-logs/*
-
-# # Exceto o arquivo .empty
-!logs/.empty
-
-# Cache e arquivos gerados
-storage/cache/
-app/storage/cache/
-app/storage/logs/
-storage/logs/
-
-# Relatórios temporários
-*.json
 
 # Ambiente
 .env
 
-# Ignorar todos os arquivos abaixo
-caminho_do_log
-app/adms/Controllers/serveFile/debug_path_param.txt
-app/adms/Controllers/serveFile/debug_path_service.txt
-app/adms/Controllers/serveFile/log_servefile.txt
-app/logs/filtro_global_debug.log
-app/logs/force_password_change_debug.log
-app/logs/login_debug.log
-app/logs/session_debug.log
-app/logs/session_debug2.log
-app/adms/Controllers/serveFile/debug_path_param.txt
-app/adms/Controllers/serveFile/debug_path_service.txt
-app/adms/Controllers/serveFile/log_servefile.txt
-app/logs/filtro_global_debug.log
-app/logs/session_debug2.log
+# Cache e arquivos gerados
+storage/cache/
+app/storage/cache/
+storage/logs/
+app/storage/logs/
+
+# Logs da aplicação
+logs/
+app/logs/
+
+# Cache JSON (relatórios, previews, dashboards)
+storage/cache/**/*.json
+app/storage/cache/**/*.json
+
+# Arquivos temporários de debug
+app/adms/Controllers/serveFile/*.txt
+
+# Manter diretório logs vazio (opcional)
+!logs/.empty
 
 
 
