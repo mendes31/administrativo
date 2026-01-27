@@ -12,17 +12,42 @@ class ResetPasswordRepository extends DbConnection
 {
 
 
-    public function getUser(string $email)
+    public function getUser(string $identificador)
     {
-        // QUERY para recuperar o registro do baco de dados
-        $sql = "SELECT id, name, email, recover_password, validate_recover_password FROM adms_users WHERE email = :email";
+        // Permitir buscar por e-mail OU CPF
+        // Detectar se é e-mail (contém "@") ou CPF (apenas dígitos)
+        $identificador = trim($identificador);
 
+        $isEmail = str_contains($identificador, '@');
 
-        // Preparar a QUERY
-        $stmt = $this->getConnection()->prepare($sql);
+        if ($isEmail) {
+            $sql = "SELECT id, name, email, cpf, celular, recover_password, validate_recover_password 
+                    FROM adms_users 
+                    WHERE email = :valor 
+                    LIMIT 1";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindParam(':valor', $identificador, PDO::PARAM_STR);
+        } else {
+            // Tratar como CPF: remover máscara e, se tiver 11 dígitos, formatar como 000.000.000-00
+            $digits = preg_replace('/\D/', '', $identificador);
 
-        // Substituir os links da QUERY pelo valor
-        $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+            if (strlen($digits) === 11) {
+                $cpfFormatado = substr($digits, 0, 3) . '.' .
+                    substr($digits, 3, 3) . '.' .
+                    substr($digits, 6, 3) . '-' .
+                    substr($digits, 9, 2);
+            } else {
+                // Formato inválido de CPF - forçar busca impossível para retornar vazio
+                $cpfFormatado = '__CPF_INVALIDO__';
+            }
+
+            $sql = "SELECT id, name, email, cpf, celular, recover_password, validate_recover_password 
+                    FROM adms_users 
+                    WHERE cpf = :valor 
+                    LIMIT 1";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindParam(':valor', $cpfFormatado, PDO::PARAM_STR);
+        }
 
         // Executar a QUERY
         $stmt->execute();

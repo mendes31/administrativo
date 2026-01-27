@@ -24,31 +24,39 @@ class ValidationEmailService
         // Instanciar a classe validar formulário
         $validator = new Validator();
 
-        // Criar o validador com os dados e regras fornecidas
+        // Regra básica: campo obrigatório
+        // A regra de formato (e-mail ou CPF) será validada manualmente abaixo
         $validation = $validator->make($data, [
-            'email' => 'required|email',            
+            'email' => 'required',
         ]);
 
         // Definir as mensagens de erro personalizadas
         $validation->setMessages([
-            'email:required'               => 'O campo email é obrigatório.',
-            'email:email'                  => 'O campo email deve ser um email válido.',
+            'email:required' => 'O campo e-mail ou CPF é obrigatório.',
         ]);
 
 
         // Validar os dados
         $validation->validate();
 
-        // Retornar erros se houver
-        if($validation->fails()){
-
-            // Recuperar os erros
+        // Retornar erros se houver (obrigatoriedade)
+        if ($validation->fails()) {
             $arrayErrors = $validation->errors();
+            foreach ($arrayErrors->firstOfAll() as $key => $message) {
+                $errors[$key] = $message;
+            }
+        } else {
+            // Validação adicional: aceitar E-MAIL ou CPF
+            $valor = trim($data['email'] ?? '');
 
-            // Percorrer o arraqy de erros
-            // firstOfAll - obter a primeira mensagem de erro para cada campo invalido.
-            foreach($arrayErrors->firstOfAll() as $key => $message){
-                $errors[$key] =  $message;
+            $isEmailValido = filter_var($valor, FILTER_VALIDATE_EMAIL) !== false;
+
+            // CPF no formato 000.000.000-00 ou somente dígitos (11)
+            $soDigitos = preg_replace('/\D/', '', $valor);
+            $isCpfFormatoValido = (bool) preg_match('/^\d{11}$/', $soDigitos);
+
+            if (!$isEmailValido && !$isCpfFormatoValido) {
+                $errors['email'] = 'Informe um e-mail válido ou CPF no formato 000.000.000-00.';
             }
         }
 

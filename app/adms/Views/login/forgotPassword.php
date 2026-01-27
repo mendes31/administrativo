@@ -22,9 +22,38 @@ use App\adms\Helpers\CSRFHelper;
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_forgot_password'); ?>">
 
                 <div class="form-floating mb-3">
-                    <input type="email" name="email" class="form-control" id="email"
-                        placeholder="Digite o e-mail cadastrado" value="<?php echo $this->data['form']['email'] ?? ''; ?>">
-                    <label for="email">E-mail</label>
+                    <input type="text" name="email" class="form-control" id="email"
+                        placeholder="Informe o e-mail ou CPF cadastrado"
+                        value="<?php echo htmlspecialchars($this->data['form']['email'] ?? ''); ?>">
+                    <label for="email">E-mail ou CPF</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Como deseja receber o link de recuperação?</label>
+                    <?php
+                        $deliveryMethod = $this->data['form']['delivery_method'] ?? 'email';
+                    ?>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="delivery_method" id="delivery_email"
+                            value="email" <?php echo $deliveryMethod === 'email' ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="delivery_email">
+                            Receber por <strong>e-mail</strong>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="delivery_method" id="delivery_whatsapp"
+                            value="whatsapp" <?php echo $deliveryMethod === 'whatsapp' ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="delivery_whatsapp">
+                            Receber por <strong>WhatsApp</strong> (usará o celular cadastrado)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="delivery_method" id="delivery_both"
+                            value="both" <?php echo $deliveryMethod === 'both' ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="delivery_both">
+                            Receber em <strong>e-mail e WhatsApp</strong>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between mt-4 mb-0">

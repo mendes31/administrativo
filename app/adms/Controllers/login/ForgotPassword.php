@@ -25,7 +25,12 @@ class ForgotPassword
         // $sendEmail->sendEmail('rafael.oliveira@tiaraju.com.br', 'Rafael', 'Recuperar senha', 'Abaixo segue o link para recuperação de sua senha, o mesmo irá expirar em 60 minutos!</b>', 'Abaixo segue o link para recuperação de sua senha, o mesmo irá expirar em 60 minutos!');
 
         // Receber os dados do formulário
-        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
+        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT) ?? [];
+
+        // Definir método de entrega padrão (email) se não vier do formulário
+        if (empty($this->data['form']['delivery_method'])) {
+            $this->data['form']['delivery_method'] = 'email';
+        }
 
         // Verificar se o token CSRF é valido
         if (isset($this->data['form']['csrf_token']) and CSRFHelper::validateCSRFToken('form_forgot_password', $this->data['form']['csrf_token'])) {
@@ -81,6 +86,10 @@ class ForgotPassword
 
             return;
         }
+
+        // Garantir que o e-mail usado internamente seja o do cadastro,
+        // mesmo que o usuário tenha informado CPF no formulário
+        $this->data['form']['email'] = $this->data['user']['email'] ?? $this->data['form']['email'];
 
         // Instaciar o serviço para recuperar a senha
         $recoverPassword = new RecoverPassword();
