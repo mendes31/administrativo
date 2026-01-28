@@ -63,6 +63,11 @@ class PageLayoutService
             'LgpdBasesLegaisDelete',
             'LgpdBasesLegaisEdit',
             'LgpdBasesLegaisView',
+            'LgpdTermos',
+            'LgpdTermosCreate',
+            'LgpdTermosDelete',
+            'LgpdTermosEdit',
+            'LgpdTermosView',
             'LgpdCategoriasTitulares',
             'LgpdCategoriasTitularesCreate',
             'LgpdCategoriasTitularesDelete',
@@ -401,8 +406,12 @@ class PageLayoutService
         $userAccessLevelsArray = $userAccessLevelsArray ? $userAccessLevelsArray : [];
         if (in_array(1, $userAccessLevelsArray, true)) {
             // Super Administrador tem acesso a todos os botões solicitados
-            $buttonPermission = new ButtonPermissionUserRepository();
-            $data['buttonPermission'] = $buttonPermission->buttonPermission($data['buttonPermission'] ?? []);
+            // Garantir que o array de buttonPermission seja retornado completo (não vazio)
+            if (empty($data['buttonPermission'] ?? [])) {
+                // Se não foi passado nenhum botão, retornar array vazio
+                $data['buttonPermission'] = [];
+            }
+            // Se foi passado, manter o array original (já contém todos os botões solicitados)
             return array_merge($data, ['menuPermission' => $menu]);
         }
 

@@ -200,7 +200,7 @@ use App\adms\Helpers\CSRFHelper;
                                         <?php endif; ?>
                                         
                                         <?php if ($consentimento['status'] === 'Ativo' && in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos/revogar/<?php echo $consentimento['id']; ?>" 
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-revogar/<?php echo $consentimento['id']; ?>" 
                                                class="btn btn-danger btn-sm me-1 mb-1" title="Revogar"
                                                onclick="return confirm('Tem certeza que deseja revogar este consentimento?')">
                                                 <i class="fas fa-ban"></i> Revogar
@@ -275,7 +275,7 @@ use App\adms\Helpers\CSRFHelper;
                                             <?php endif; ?>
                                             
                                             <?php if ($consentimento['status'] === 'Ativo' && in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos/revogar/<?php echo $consentimento['id']; ?>" 
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-revogar/<?php echo $consentimento['id']; ?>" 
                                                    class="btn btn-danger btn-sm mb-1"
                                                    onclick="return confirm('Tem certeza que deseja revogar este consentimento?')">
                                                     <i class="fas fa-ban"></i>

@@ -718,6 +718,11 @@ $menus = [
                 'permission' => 'LgpdBasesLegais'
             ],
             [
+                'label' => 'Termos LGPD',
+                'url' => $_ENV['URL_ADM'] . 'lgpd-termos',
+                'permission' => 'LgpdTermos'
+            ],
+            [
                 'label' => 'Tipos de Dados',
                 'url' => $_ENV['URL_ADM'] . 'lgpd-tipos-dados',
                 'permission' => 'LgpdTiposDados'

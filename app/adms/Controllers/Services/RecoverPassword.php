@@ -37,12 +37,19 @@ class RecoverPassword
         $name = explode(" ", $data['user']['name']);
         $firstName = $name[0];
 
-        // Garantir que a URL tenha protocolo (http/https) e não tenha barra duplicada
-        $baseUrl = rtrim($_ENV['URL_ADM'], '/');
-        if (!str_starts_with($baseUrl, 'http://') && !str_starts_with($baseUrl, 'https://')) {
-            $baseUrl = 'https://' . ltrim($baseUrl, '/');
-        }
-        $url = $baseUrl . '/reset-password/' . $data['key'];
+        // Usar URL_ADM diretamente do .env (local ou produção)
+        // Remover espaços em branco que podem vir do .env (ex: "URL_ADM= http://...")
+        $baseUrl = trim($_ENV['URL_ADM'] ?? '');
+        $baseUrl = rtrim($baseUrl, '/');
+
+        // Incluir o identificador (e-mail ou CPF) na URL apenas para pré-preencher o formulário.
+        // A validação de segurança continua baseada na chave e na validade.
+        // Preferir o valor informado originalmente na tela (identifier = e-mail ou CPF);
+        // se vazio, usar o e-mail atual do cadastro.
+        $identifier = $data['form']['identifier'] ?? ($data['form']['email'] ?? ($data['user']['email'] ?? ''));
+        $queryEmail = $identifier ? ('?email=' . urlencode($identifier)) : '';
+
+        $url = $baseUrl . '/reset-password/' . $data['key'] . $queryEmail;
 
         // Método de entrega: email, whatsapp ou both
         $deliveryMethod = $data['form']['delivery_method'] ?? 'email';
@@ -82,13 +89,16 @@ class RecoverPassword
             $phone = $data['user']['celular'] ?? '';
 
             if (!empty($phone)) {
+                // Formatar mensagem para WhatsApp com link em linha separada
+                // O WhatsApp reconhece links quando estão em linha própria e começam com http:// ou https://
                 $mensagem = "Prezado {$firstName},\n\n";
                 $mensagem .= "Você solicitou a alteração de sua senha.\n\n";
-                $mensagem .= "Para continuar, acesse o link abaixo (ou copie e cole no navegador):\n";
+                $mensagem .= "Para continuar, acesse o link abaixo:\n\n";
+                // Link em linha própria para garantir que seja reconhecido como clicável
                 $mensagem .= "{$url}\n\n";
-                $mensagem .= "Por questões de segurança, esse link é válido somente até as {$formattedTime} do dia {$formattedDate}. ";
+                $mensagem .= "Por questões de segurança, esse link é válido somente até as {$formattedTime} do dia {$formattedDate}.\n";
                 $mensagem .= "Caso esse prazo esteja expirado, será necessário solicitar outro link.\n\n";
-                $mensagem .= "Se você não solicitou essa alteração, nenhuma ação é necessária. Sua senha permanecerá a mesma até que você solicite um novo link.\n";
+                $mensagem .= "Se você não solicitou essa alteração, nenhuma ação é necessária. Sua senha permanecerá a mesma até que você solicite um novo link.";
 
                 $resultWhats = SendWhatsAppService::sendMessage($phone, $mensagem);
                 $sentWhatsApp = $resultWhats['success'] ?? false;

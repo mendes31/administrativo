@@ -87,7 +87,22 @@ class ForgotPassword
             return;
         }
 
-        // Garantir que o e-mail usado internamente seja o do cadastro,
+        // Se o usuário não possui e-mail cadastrado, não permitir envio por e-mail
+        // (somente WhatsApp) para evitar tentar enviar para um endereço vazio.
+        if (empty($this->data['user']['email']) 
+            && in_array($this->data['form']['delivery_method'] ?? 'email', ['email', 'both'], true)) {
+
+            $_SESSION['error'] = "Usuário não possui e-mail cadastrado. Selecione a opção de receber o link por WhatsApp.";
+            $this->viewForgotPassword();
+            return;
+        }
+
+        // Guardar o identificador informado (e-mail ou CPF)
+        $originalIdentifier = $this->data['form']['email'];
+        // Deixar explícito no array qual foi o identificador usado (e-mail ou CPF)
+        $this->data['form']['identifier'] = $originalIdentifier;
+
+        // Garantir que o e-mail usado internamente para envio seja o do cadastro,
         // mesmo que o usuário tenha informado CPF no formulário
         $this->data['form']['email'] = $this->data['user']['email'] ?? $this->data['form']['email'];
 
@@ -95,14 +110,17 @@ class ForgotPassword
         $recoverPassword = new RecoverPassword();
         $resultRecoverPassword = $recoverPassword->recoverPassword($this->data);
 
-        // Verificar se enviou o email com sucesso  
+        // Verificar se enviou o email/WhatsApp com sucesso  
         if(!$resultRecoverPassword){
 
             // Chamar o método para salvar o log
             GenerateLog::generateLog("error", "Email com instruções para recuperar a senha não enviado.", ['email' => (string) $this->data['form']['email']]);
 
+            // Restaurar o valor informado originalmente (e-mail ou CPF) no formulário
+            $this->data['form']['email'] = $originalIdentifier;
+
             // Criar a mensagem de erro 
-            $_SESSION['error'] = "Email com instruções para recuperar a senha não enviado, tente novamente ou entre em contato com o e-mail {$_ENV['EMAIL_ADM']}.";
+            $_SESSION['error'] = "Email com instruções para recuperar a senha não enviado, tente novamente ou entre em contato com o departamento de TI do Grupo Tiaraju pelos canais disponíveis.";
 
             // Chamar o método carregar a view
             $this->viewForgotPassword();

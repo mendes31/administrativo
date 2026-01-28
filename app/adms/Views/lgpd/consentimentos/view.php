@@ -39,7 +39,7 @@ use App\adms\Helpers\CSRFHelper;
                     <?php endif; ?>
                     
                     <?php if ($this->data['consentimento']['status'] === 'Ativo' && in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                        <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos/revogar/<?php echo $this->data['consentimento']['id']; ?>" 
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-revogar/<?php echo $this->data['consentimento']['id']; ?>" 
                            class="btn btn-danger btn-sm"
                            onclick="return confirm('Tem certeza que deseja revogar este consentimento?')">
                             <i class="fas fa-ban"></i> Revogar

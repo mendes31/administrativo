@@ -24,9 +24,9 @@ use App\adms\Helpers\CSRFHelper;
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_reset_password'); ?>">
 
                 <div class="form-floating mb-3">
-                    <input type="email" name="email" class="form-control" id="email"
-                        placeholder="Melhor e-mail" value="<?php echo $this->data['form']['email'] ?? ''; ?>">
-                    <label for="email">E-mail</label>
+                    <input type="text" name="email" class="form-control" id="email"
+                        placeholder="E-mail ou CPF do usuário" value="<?php echo $this->data['form']['email'] ?? ''; ?>" readonly>
+                    <label for="email">E-mail ou CPF</label>
                 </div>
 
                 <div class="form-floating mb-3">

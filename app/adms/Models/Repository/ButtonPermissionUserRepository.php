@@ -36,12 +36,9 @@ class ButtonPermissionUserRepository extends DbConnection
 
         // Se for super admin (nível 1)
         if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
-            $placeholders = implode(', ', array_fill(0, count($button), '?'));
-            $sql = "SELECT controller FROM adms_pages WHERE controller IN ($placeholders) AND page_status = 1";
-            $stmt = $this->getConnection()->prepare($sql);
-            $stmt->execute($button);
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result ? array_column($result, 'controller') : [];
+            // Super Admin tem acesso a todos os botões solicitados
+            // Retorna todos os botões sem verificar permissões no banco
+            return $button;
         }
 
         // Regra normal para outros usuários

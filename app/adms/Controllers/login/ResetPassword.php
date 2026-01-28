@@ -15,8 +15,14 @@ class ResetPassword
 
     public function index(string|null $recoverPassword): void
     {
-        // Receber os dados do formulário
-        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
+        // Receber os dados do formulário (POST)
+        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT) ?? [];
+
+        // Quando acessar via link (GET), pré-preencher o e-mail a partir da URL
+        // Ex.: reset-password/{key}?email=usuario@dominio.com
+        if (empty($this->data['form']['email']) && isset($_GET['email'])) {
+            $this->data['form']['email'] = $_GET['email'];
+        }
 
         // Receber o código recuperar a senha
         $this->data['form']['recover_password'] = (string) $recoverPassword;
@@ -58,7 +64,8 @@ class ResetPassword
 
         // Instanciar o Repository para recuperar o registro do banco de dados
         $viewUser = new ResetPasswordRepository();
-        $this->data['user'] = $viewUser->getUser((string) $this->data['form']['email']);
+        // Identificador pode ser e-mail ou CPF
+        $this->data['user'] = $viewUser->getUser((string) ($this->data['form']['email'] ?? ''));
 
 
         // Verificar se existe o registro no banco de dados
@@ -104,7 +111,9 @@ class ResetPassword
         }
 
         // Instanciar Repository para resetar a senha
+        // Passar o ID do usuário para o Repository atualizar pelo ID (não depende de e-mail)
         $userUpdate = new ResetPasswordRepository();
+        $this->data['form']['user_id'] = $this->data['user']['id'];
         $result = $userUpdate->updatePassword($this->data['form']);
 
         // Acessa o IF se o repository retornou TRUE

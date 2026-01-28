@@ -59,11 +59,27 @@ class LgpdConsentimentos
     /**
      * Método para revogar consentimento.
      *
-     * @param int $id ID do consentimento
+     * Importante: por padrão o roteador chama métodos adicionais SEM parâmetro,
+     * então o ID é extraído da própria URL (ex.: lgpd-consentimentos/revogar/8).
+     *
      * @return void
      */
-    public function revogar(int $id): void
+    public function revogar(): void
     {
+        $id = null;
+
+        // Tentar extrair o ID da URL: lgpd-consentimentos/revogar/8
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        if (!empty($requestUri) && preg_match('~/lgpd-consentimentos/revogar/(\d+)~', $requestUri, $matches)) {
+            $id = (int)$matches[1];
+        }
+
+        if (empty($id)) {
+            $_SESSION['error'] = "ID do consentimento inválido para revogação.";
+            header("Location: " . $_ENV['URL_ADM'] . "lgpd-consentimentos");
+            exit;
+        }
+
         $consentimento = $this->consentimentosRepo->getConsentimentoById($id);
         
         if (!$consentimento) {

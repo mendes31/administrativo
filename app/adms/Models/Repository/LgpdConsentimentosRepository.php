@@ -56,6 +56,7 @@ class LgpdConsentimentosRepository extends DbConnection
                         canal,
                         data_consentimento,
                         status,
+                        versao_termo,
                         created_at,
                         updated_at
                       FROM lgpd_consentimentos 
@@ -83,8 +84,8 @@ class LgpdConsentimentosRepository extends DbConnection
     {
         try {
             $query = "INSERT INTO lgpd_consentimentos 
-                      (titular_nome, titular_email, finalidade, canal, data_consentimento, status) 
-                      VALUES (:titular_nome, :titular_email, :finalidade, :canal, :data_consentimento, :status)";
+                      (titular_nome, titular_email, finalidade, canal, data_consentimento, status, versao_termo) 
+                      VALUES (:titular_nome, :titular_email, :finalidade, :canal, :data_consentimento, :status, :versao_termo)";
             
             $stmt = $this->getConnection()->prepare($query);
             
@@ -94,6 +95,8 @@ class LgpdConsentimentosRepository extends DbConnection
             $stmt->bindParam(':canal', $data['canal'], PDO::PARAM_STR);
             $stmt->bindParam(':data_consentimento', $data['data_consentimento'], PDO::PARAM_STR);
             $stmt->bindParam(':status', $data['status'], PDO::PARAM_STR);
+            $versao = $data['versao_termo'] ?? null;
+            $stmt->bindParam(':versao_termo', $versao, PDO::PARAM_STR);
             
             return $stmt->execute();
         } catch (Exception $e) {
@@ -119,6 +122,7 @@ class LgpdConsentimentosRepository extends DbConnection
                           canal = :canal,
                           data_consentimento = :data_consentimento,
                           status = :status,
+                          versao_termo = :versao_termo,
                           updated_at = NOW()
                       WHERE id = :id";
             
@@ -131,6 +135,8 @@ class LgpdConsentimentosRepository extends DbConnection
             $stmt->bindParam(':canal', $data['canal'], PDO::PARAM_STR);
             $stmt->bindParam(':data_consentimento', $data['data_consentimento'], PDO::PARAM_STR);
             $stmt->bindParam(':status', $data['status'], PDO::PARAM_STR);
+            $versao = $data['versao_termo'] ?? null;
+            $stmt->bindParam(':versao_termo', $versao, PDO::PARAM_STR);
             
             return $stmt->execute();
         } catch (Exception $e) {
@@ -172,14 +178,79 @@ class LgpdConsentimentosRepository extends DbConnection
             $query = "UPDATE lgpd_consentimentos 
                       SET status = 'Revogado', updated_at = NOW()
                       WHERE id = :id";
-            
-            $stmt = $this->getConnection()->prepare($query);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            
-            return $stmt->execute();
+
+            $conn = $this->getConnection();
+            $stmt = $conn->prepare($query);
+            $stmt->bindValue(':id', (int)$id, PDO::PARAM_INT);
+
+            $ok = $stmt->execute();
+
+            if (!$ok || $stmt->rowCount() === 0) {
+                error_log("LGPD: Nenhuma linha atualizada ao revogar consentimento. ID={$id}");
+            } else {
+                error_log("LGPD: Consentimento ID={$id} revogado com sucesso. Linhas afetadas=" . $stmt->rowCount());
+            }
+
+            return $ok && $stmt->rowCount() > 0;
         } catch (Exception $e) {
             error_log("Erro ao revogar consentimento: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Obtém o último consentimento ATIVO de um titular pelo e-mail,
+     * opcionalmente filtrando por canal.
+     *
+     * Esta consulta é usada no login para confirmar se já existe um
+     * consentimento válido para a versão atual do termo.
+     *
+     * @param string $email
+     * @param string|null $canal
+     * @return array|null
+     */
+    public function getUltimoConsentimentoAtivoPorEmail(string $email, ?string $canal = null): ?array
+    {
+        if (empty($email)) {
+            return null;
+        }
+
+        try {
+            $query = "SELECT 
+                          id,
+                          titular_nome,
+                          titular_email,
+                          finalidade,
+                          canal,
+                          data_consentimento,
+                          status,
+                          versao_termo,
+                          created_at,
+                          updated_at
+                      FROM lgpd_consentimentos
+                      WHERE titular_email = :email
+                        AND status = 'Ativo'";
+
+            if (!empty($canal)) {
+                $query .= " AND canal = :canal";
+            }
+
+            $query .= " ORDER BY data_consentimento DESC, id DESC
+                        LIMIT 1";
+
+            $stmt = $this->getConnection()->prepare($query);
+            $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+            if (!empty($canal)) {
+                $stmt->bindParam(':canal', $canal, PDO::PARAM_STR);
+            }
+
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result !== false ? $result : null;
+        } catch (Exception $e) {
+            error_log("Erro ao buscar último consentimento ativo por e-mail: " . $e->getMessage());
+            return null;
         }
     }
 

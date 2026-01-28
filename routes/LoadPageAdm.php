@@ -41,7 +41,7 @@ class LoadPageAdm
 
     /** @var array $listPgPublic Recebe a lista de paginas publicas */
     private array $listPgPublic = [
-        "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword"
+        "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin"
     ];
 
     private array $listPgPrivate = [
@@ -98,6 +98,7 @@ class LoadPageAdm
         "LgpdCategoriasTitulares", "LgpdCategoriasTitularesCreate", "LgpdCategoriasTitularesEdit", "LgpdCategoriasTitularesView", "LgpdCategoriasTitularesDelete",
         "LgpdFinalidades", "LgpdFinalidadesCreate", "LgpdFinalidadesEdit", "LgpdFinalidadesView", "LgpdFinalidadesDelete",
         "LgpdBasesLegais", "LgpdBasesLegaisCreate", "LgpdBasesLegaisEdit", "LgpdBasesLegaisView", "LgpdBasesLegaisDelete",
+        "LgpdTermos", "LgpdTermosCreate", "LgpdTermosEdit", "LgpdTermosView", "LgpdTermosDelete",
         "LgpdTiposDados", "LgpdTiposDadosCreate", "LgpdTiposDadosEdit", "LgpdTiposDadosView", "LgpdTiposDadosDelete",
         "LgpdClassificacoesDados", "LgpdClassificacoesDadosCreate", "LgpdClassificacoesDadosEdit", "LgpdClassificacoesDadosView", "LgpdClassificacoesDadosDelete",
         "LgpdInventory", "LgpdInventoryCreate", "LgpdInventoryEdit", "LgpdInventoryView", "LgpdInventoryDelete",
@@ -106,7 +107,7 @@ class LoadPageAdm
         "LgpdAipd", "LgpdAipdCreate", "LgpdAipdEdit", "LgpdAipdView", "LgpdAipdDelete", "LgpdAipdSuggest",
         "LgpdRipd", "LgpdRipdCreate", "LgpdRipdEdit", "LgpdRipdView", "LgpdRipdDelete", "LgpdRipdDashboard", "LgpdRipdExportPdf", "LgpdRipdExportPdfList", "LgpdRipdExportPdfView",
         "LgpdAipdTemplateSaude", "LgpdAipdTemplateFinanceiro", "LgpdAipdTemplateEcommerce", "LgpdAipdTemplateEducacao", "LgpdAipdTemplateRh", "LgpdAipdTemplateMarketing", "LgpdAipdTemplateTelecom", "LgpdAipdTemplateLogistica", "LgpdAipdTemplateJuridico",
-        "LgpdConsentimentos", "LgpdConsentimentosCreate", "LgpdConsentimentosEdit", "LgpdConsentimentosView", "LgpdConsentimentosDelete",
+        "LgpdConsentimentos", "LgpdConsentimentosCreate", "LgpdConsentimentosEdit", "LgpdConsentimentosView", "LgpdConsentimentosDelete", "LgpdConsentimentosRevogar",
         "LgpdConsentimentoColeta", "LgpdConsentimentoColetaProcessar", "LgpdConsentimentoEmail", "LgpdConsentimentoEmailProcessar",
         "LgpdTia", "LgpdTiaCreate", "LgpdTiaEdit", "LgpdTiaView", "LgpdTiaDelete", "LgpdTiaDashboard", "LgpdTiaTemplateFinanceiro", "LgpdTiaTemplateMarketing", "LgpdTiaTemplateRh", "LgpdTiaTemplateTi", "LgpdTiaTemplates", "LgpdTiaExportPdf", "LgpdTiaExportPdfList", "LgpdTiaExportPdfView",
         // CRM - Módulo de Gestão de Relacionamento com Clientes

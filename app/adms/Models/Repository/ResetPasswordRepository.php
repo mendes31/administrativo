@@ -62,11 +62,13 @@ class ResetPasswordRepository extends DbConnection
 
         try { // Permanece no try se não houver nenhum erro
 
-            // QUERY para atualizar o usuário
-            $sql = 'UPDATE adms_users SET recover_password = :recover_password, validate_recover_password = :validate_recover_password,  updated_at = :updated_at';
-
-            // Condição para indicar qual registro editar
-            $sql .= ' WHERE email = :email LIMIT 1';
+            // QUERY para atualizar o usuário (usar ID para suportar usuários sem e-mail)
+            $sql = 'UPDATE adms_users 
+                    SET recover_password = :recover_password, 
+                        validate_recover_password = :validate_recover_password,  
+                        updated_at = :updated_at
+                    WHERE id = :id 
+                    LIMIT 1';
 
             // Preparar a QUERY
             $stmt = $this->getConnection()->prepare($sql);
@@ -75,7 +77,7 @@ class ResetPasswordRepository extends DbConnection
             $stmt->bindValue(':recover_password', $data['recover_password'], PDO::PARAM_STR);
             $stmt->bindValue(':validate_recover_password', $data['validate_recover_password']);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
-            $stmt->bindValue(':email', $data['form']['email'], PDO::PARAM_STR);
+            $stmt->bindValue(':id', $data['user']['id'], PDO::PARAM_INT);
 
 
             // Retornar TRUE quando conseguir executar a QUERY SQL, não considerando se alterou dados do registro
@@ -84,7 +86,10 @@ class ResetPasswordRepository extends DbConnection
         } catch (Exception $e) { // Acessa o catch quando houver erro no try
 
             // Chamar o método para salvar o log
-            GenerateLog::generateLog("error", "Email para recuperar senha não encontrado.", ['email' => $data['email'], 'error' => $e->getMessage()]);
+            GenerateLog::generateLog("error", "Erro ao atualizar dados de recuperação de senha.", [
+                'user_id' => $data['user']['id'] ?? null,
+                'error' => $e->getMessage()
+            ]);
 
             return false;
         }
@@ -96,9 +101,13 @@ class ResetPasswordRepository extends DbConnection
         // Usar try e catch para gerenciar exceção/erro
         try {  // Permanece no try se não houver nenhum erro
 
-            // QUERY para atualizar usuário
-            // Condição para indicar qual registro editar
-            $sql = 'UPDATE adms_users SET password = :password, recover_password = NULL, validate_recover_password = NULL,  updated_at = :updated_at WHERE email = :email';
+            // QUERY para atualizar usuário (usar ID para suportar usuários sem e-mail)
+            $sql = 'UPDATE adms_users 
+                    SET password = :password, 
+                        recover_password = NULL, 
+                        validate_recover_password = NULL,  
+                        updated_at = :updated_at 
+                    WHERE id = :id';
 
             // Preparar a QUERY
             $stmt = $this->getConnection()->prepare($sql);
@@ -106,14 +115,17 @@ class ResetPasswordRepository extends DbConnection
             // Substituir os links da QUERY pelo valor
             $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
-            $stmt->bindValue(':email', $data['email'], PDO::PARAM_STR);
+            $stmt->bindValue(':id', $data['user_id'], PDO::PARAM_INT);
 
             // Retornar TRUE quando conseguir executar a QUERY SQL, não considerando se alterou dados do registro
             return $stmt->execute();
         } catch (Exception $e) { // Acessa o catch quando houver erro no try
 
             // Chamar o método para salvar o log
-            GenerateLog::generateLog("error", "Senha não editada.", ['email' => (string) $data['email'], 'error' => $e->getMessage()]);
+            GenerateLog::generateLog("error", "Senha não editada.", [
+                'user_id' => (int)($data['user_id'] ?? 0),
+                'error' => $e->getMessage()
+            ]);
 
             return false;
         }

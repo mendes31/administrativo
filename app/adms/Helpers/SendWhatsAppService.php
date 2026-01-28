@@ -76,6 +76,10 @@ class SendWhatsAppService
                 'text' => $message
             ];
 
+            // Log de debug da requisição
+            error_log('WhatsApp Evolution - URL: ' . $url);
+            error_log('WhatsApp Evolution - Payload: ' . json_encode($payload, JSON_UNESCAPED_UNICODE));
+
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
@@ -85,9 +89,20 @@ class SendWhatsAppService
                 'apikey: ' . $config['api_key']
             ]);
 
+            // Flag opcional para ignorar SSL em ambiente controlado (ex: desenvolvimento com ngrok)
+            // Configure no .env: WHATSAPP_IGNORE_SSL=true  (ou false em produção)
+            $ignoreSsl = filter_var($_ENV['WHATSAPP_IGNORE_SSL'] ?? false, FILTER_VALIDATE_BOOL);
+            if ($ignoreSsl && str_starts_with($config['api_url'], 'https://')) {
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            }
+
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+
+            error_log('WhatsApp Evolution - HTTP Code: ' . $httpCode);
+            error_log('WhatsApp Evolution - Response: ' . $response);
 
             if ($httpCode >= 200 && $httpCode < 300) {
                 $data = json_decode($response, true);

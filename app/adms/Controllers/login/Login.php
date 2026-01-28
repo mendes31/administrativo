@@ -9,6 +9,7 @@ use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\LogAcessosRepository;
 use App\adms\Controllers\Services\RequestHelper;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Repository\LgpdTermosRepository;
 
 /**
  * Controller login
@@ -173,7 +174,7 @@ class Login
                 header("Location: {$_ENV['URL_ADM']}force-password-change");
                 exit;
             }
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Redirecionando para dashboard\n", FILE_APPEND);
+            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Login OK - verificando consentimento LGPD\n", FILE_APPEND);
             $logAcessosRepo = new LogAcessosRepository();
             $ip = RequestHelper::getClientIp();
             $userAgent = RequestHelper::getUserAgent();
@@ -206,7 +207,48 @@ class Login
             $_SESSION['session_id'] = session_id();
             $sessionRepo->saveSession((int)$result['id'], session_id());
             file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] SALVOU SESSION NO BANCO: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION) . "\n", FILE_APPEND);
-            
+
+            // Verificar consentimento LGPD antes de liberar acesso
+            // Regra: olhar SEMPRE para a tabela de consentimentos (histórico),
+            // e não depender dos campos auxiliares em adms_users.
+            $lgpdTermosRepo = new LgpdTermosRepository();
+            $termoLogin = $lgpdTermosRepo->getTermoAtivoPorTipo('login');
+            $consentVersionAtual = $termoLogin['versao'] ?? ($_ENV['LGPD_CONSENT_VERSION'] ?? '1.0');
+
+            $temConsentimentoValido = false;
+            $emailLogin = $result['email'] ?? '';
+
+            if (!empty($emailLogin)) {
+                $consentRepo = new \App\adms\Models\Repository\LgpdConsentimentosRepository();
+                // Busca o último consentimento ATIVO para este usuário (canal sistema_login)
+                $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
+
+                // Log detalhado para depuração
+                file_put_contents(
+                    __DIR__ . '/../../../logs/login_debug.log',
+                    date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD - email=' . $emailLogin .
+                    ' | versao_atual=' . $consentVersionAtual .
+                    ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
+                    FILE_APPEND
+                );
+
+                if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
+                    $temConsentimentoValido = true;
+                }
+            } else {
+                file_put_contents(
+                    __DIR__ . '/../../../logs/login_debug.log',
+                    date('Y-m-d H:i:s') . " - Usuario sem e-mail definido ao verificar consentimento LGPD (id={$result['id']})" . PHP_EOL,
+                    FILE_APPEND
+                );
+            }
+
+            if (!$temConsentimentoValido) {
+                file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Consentimento LGPD pendente/versão diferente - redirecionando para lgpd-consentimento-login\n", FILE_APPEND);
+                header("Location: {$_ENV['URL_ADM']}lgpd-consentimento-login");
+                exit;
+            }
+
             // Redirecionar para URL salva ou dashboard padrão
             $redirectUrl = $this->getRedirectUrlAfterLogin();
             header("Location: " . $redirectUrl);

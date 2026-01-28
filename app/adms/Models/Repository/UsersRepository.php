@@ -1278,6 +1278,41 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Atualiza rapidamente os campos de consentimento LGPD do usuário.
+     *
+     * Esta operação é usada principalmente no fluxo de login, quando
+     * já existe um consentimento válido na tabela lgpd_consentimentos
+     * e queremos apenas sincronizar os flags em adms_users.
+     *
+     * @param int $userId
+     * @param string $versaoTermo
+     * @return bool
+     */
+    public function atualizarConsentimentoLgpd(int $userId, string $versaoTermo): bool
+    {
+        try {
+            $sql = 'UPDATE adms_users 
+                       SET lgpd_consent_given   = 1,
+                           lgpd_consent_date    = NOW(),
+                           lgpd_consent_version = :versao
+                     WHERE id = :id';
+
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':versao', $versaoTermo, PDO::PARAM_STR);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao atualizar consentimento LGPD do usuário.', [
+                'user_id' => $userId,
+                'versao_termo' => $versaoTermo,
+                'exception' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Atualizar o perfil do usuário (dados pessoais).
      *
      * Este método atualiza as informações pessoais do usuário, incluindo nome, email, data de nascimento e imagem.
