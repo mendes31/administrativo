@@ -42,6 +42,26 @@ class RecoverPassword
         $baseUrl = trim($_ENV['URL_ADM'] ?? '');
         $baseUrl = rtrim($baseUrl, '/');
 
+        // Garantir que a URL tenha protocolo (http:// ou https://)
+        // WhatsApp e navegadores móveis precisam do protocolo para reconhecer como link clicável
+        if (!empty($baseUrl) && !preg_match('/^https?:\/\//i', $baseUrl)) {
+            // Se não tem protocolo, adicionar https:// (padrão para produção)
+            $baseUrl = 'https://' . ltrim($baseUrl, '/');
+        }
+
+        // CORREÇÃO: Verificar e corrigir domínio incorreto
+        // Se a URL contém "raju.kinghost.net" (domínio incorreto), substituir pelo correto
+        if (strpos($baseUrl, 'raju.kinghost.net') !== false) {
+            $baseUrl = str_replace('raju.kinghost.net', 'www.administrativotiaraju.kinghost.net', $baseUrl);
+            error_log("RecoverPassword - Domínio corrigido de 'raju.kinghost.net' para 'www.administrativotiaraju.kinghost.net'");
+        }
+
+        // Garantir que a URL termine com /administrativo/ para funcionar corretamente
+        if (!empty($baseUrl) && strpos($baseUrl, '/administrativo') === false) {
+            // Se não tem /administrativo, adicionar
+            $baseUrl = rtrim($baseUrl, '/') . '/administrativo';
+        }
+
         // Incluir o identificador (e-mail ou CPF) na URL apenas para pré-preencher o formulário.
         // A validação de segurança continua baseada na chave e na validade.
         // Preferir o valor informado originalmente na tela (identifier = e-mail ou CPF);
@@ -49,7 +69,11 @@ class RecoverPassword
         $identifier = $data['form']['identifier'] ?? ($data['form']['email'] ?? ($data['user']['email'] ?? ''));
         $queryEmail = $identifier ? ('?email=' . urlencode($identifier)) : '';
 
+        // Construir URL completa garantindo formato correto
         $url = $baseUrl . '/reset-password/' . $data['key'] . $queryEmail;
+        
+        // Log para debug (remover em produção se necessário)
+        error_log("RecoverPassword - URL gerada: " . $url);
 
         // Método de entrega: email, whatsapp ou both
         $deliveryMethod = $data['form']['delivery_method'] ?? 'email';
@@ -91,14 +115,20 @@ class RecoverPassword
             if (!empty($phone)) {
                 // Formatar mensagem para WhatsApp com link em linha separada
                 // O WhatsApp reconhece links quando estão em linha própria e começam com http:// ou https://
+                // IMPORTANTE: Garantir que a URL tenha protocolo completo para funcionar em dispositivos móveis
                 $mensagem = "Prezado {$firstName},\n\n";
                 $mensagem .= "Você solicitou a alteração de sua senha.\n\n";
                 $mensagem .= "Para continuar, acesse o link abaixo:\n\n";
-                // Link em linha própria para garantir que seja reconhecido como clicável
-                $mensagem .= "{$url}\n\n";
+                // Link em linha própria com protocolo completo para garantir que seja reconhecido como clicável
+                // Adicionar espaço antes e depois para melhor reconhecimento
+                $mensagem .= "👉 {$url}\n\n";
                 $mensagem .= "Por questões de segurança, esse link é válido somente até as {$formattedTime} do dia {$formattedDate}.\n";
                 $mensagem .= "Caso esse prazo esteja expirado, será necessário solicitar outro link.\n\n";
                 $mensagem .= "Se você não solicitou essa alteração, nenhuma ação é necessária. Sua senha permanecerá a mesma até que você solicite um novo link.";
+
+                // Log da URL que será enviada
+                error_log("RecoverPassword WhatsApp - URL a ser enviada: " . $url);
+                error_log("RecoverPassword WhatsApp - URL tem protocolo: " . (preg_match('/^https?:\/\//i', $url) ? 'SIM' : 'NÃO'));
 
                 $resultWhats = SendWhatsAppService::sendMessage($phone, $mensagem);
                 $sentWhatsApp = $resultWhats['success'] ?? false;
