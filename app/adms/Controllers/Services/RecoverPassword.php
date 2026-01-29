@@ -60,20 +60,20 @@ class RecoverPassword
             
             // Extrair partes da URL usando parse_url para ser mais preciso
             $urlParts = parse_url($baseUrl);
-            // FORÇAR HTTPS em produção (mobile bloqueia HTTP)
-            $protocolo = 'https://';
+            // USAR o protocolo do .env (não forçar HTTPS - pode causar problemas se não houver certificado válido)
+            $protocolo = isset($urlParts['scheme']) ? $urlParts['scheme'] . '://' : 'http://';
             $host = $urlParts['host'] ?? '';
             $path = $urlParts['path'] ?? '/administrativo';
             
             // Se não conseguiu extrair com parse_url, tentar regex
             if (empty($host)) {
-                // FORÇAR HTTPS em produção (mobile bloqueia HTTP)
-                $protocolo = 'https://';
-                // Extrair o resto da URL (sem protocolo)
-                if (preg_match('/^https?:\/\/(.+)$/i', $baseUrl, $matches)) {
-                    $resto = $matches[1];
+                // Extrair protocolo do .env (não forçar)
+                if (preg_match('/^(https?:\/\/)/i', $baseUrl, $matches)) {
+                    $protocolo = $matches[1];
+                    $resto = substr($baseUrl, strlen($protocolo));
                 } else {
                     $resto = $baseUrl;
+                    $protocolo = 'http://'; // Padrão HTTP se não especificado
                 }
                 
                 // Extrair host e path
@@ -123,22 +123,19 @@ class RecoverPassword
                 $path = '/administrativo';
             }
             
-            // Reconstruir URL completa
+            // Reconstruir URL completa (usando protocolo do .env, não forçar HTTPS)
             $baseUrl = $protocolo . $host . $path;
         }
 
         // Garantir que a URL tenha protocolo (http:// ou https://)
         // WhatsApp e navegadores móveis precisam do protocolo para reconhecer como link clicável
         if (!empty($baseUrl) && !preg_match('/^https?:\/\//i', $baseUrl)) {
-            // Se não tem protocolo, adicionar http:// para local, https:// para produção
-            $protocolo = $isLocal ? 'http://' : 'https://';
+            // Se não tem protocolo, adicionar http:// para local, http:// para produção (não forçar HTTPS)
+            $protocolo = 'http://';
             $baseUrl = $protocolo . ltrim($baseUrl, '/');
             error_log("RecoverPassword - Protocolo adicionado: {$protocolo}");
-        } elseif (!$isLocal && preg_match('/^http:\/\//i', $baseUrl)) {
-            // FORÇAR HTTPS em produção mesmo se .env tiver HTTP (mobile bloqueia HTTP)
-            $baseUrl = preg_replace('/^http:\/\//i', 'https://', $baseUrl);
-            error_log("RecoverPassword - Protocolo HTTP convertido para HTTPS (produção)");
         }
+        // REMOVIDO: Não forçar conversão HTTP para HTTPS (pode causar problemas se não houver certificado válido)
 
         // Garantir que a URL termine com /administrativo/ para funcionar corretamente (apenas se não for local)
         if (!$isLocal && !empty($baseUrl) && stripos($baseUrl, '/administrativo') === false) {
