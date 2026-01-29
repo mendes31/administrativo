@@ -29,13 +29,41 @@ class SaveWhatsAppConfig
             exit;
         }
 
+        // Validação de campos obrigatórios
+        $apiUrl = trim($_POST['api_url'] ?? '');
+        $apiKey = trim($_POST['api_key'] ?? '');
+        $instanceName = trim($_POST['instance_name'] ?? '');
+        $apiProvider = $_POST['api_provider'] ?? 'Evolution';
+
+        if (empty($apiUrl)) {
+            $_SESSION['msg'] = 'URL da API é obrigatória.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
+            exit;
+        }
+
+        if (empty($apiKey)) {
+            $_SESSION['msg'] = 'API Key é obrigatória.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
+            exit;
+        }
+
+        // Para Evolution API, instance_name é obrigatório
+        if ($apiProvider === 'Evolution' && empty($instanceName)) {
+            $_SESSION['msg'] = 'Nome da Instância é obrigatório para Evolution API.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
+            exit;
+        }
+
         $repo = new AdmsWhatsAppConfigRepository();
         $config = [
-            'api_provider' => $_POST['api_provider'] ?? 'Evolution',
-            'api_url' => trim($_POST['api_url'] ?? ''),
-            'api_key' => trim($_POST['api_key'] ?? ''),
+            'api_provider' => $apiProvider,
+            'api_url' => $apiUrl,
+            'api_key' => $apiKey,
             'api_token' => trim($_POST['api_token'] ?? ''),
-            'instance_name' => trim($_POST['instance_name'] ?? ''),
+            'instance_name' => $instanceName,
             'phone_number' => trim($_POST['phone_number'] ?? ''),
             'webhook_url' => trim($_POST['webhook_url'] ?? ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
@@ -51,7 +79,7 @@ class SaveWhatsAppConfig
             $_SESSION['msg_type'] = 'danger';
         }
 
-        header('Location: ' . $_ENV['URL_ADM'] . 'whatsapp-config');
+        header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
         exit;
     }
 }

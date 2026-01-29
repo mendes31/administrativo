@@ -128,7 +128,7 @@ class WhatsAppConfig
             $_SESSION['msg_type'] = 'danger';
         }
 
-        header('Location: ' . $_ENV['URL_ADM'] . 'whatsapp-config');
+        header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
         exit;
     }
 
@@ -158,7 +158,7 @@ class WhatsAppConfig
             $_SESSION['msg_type'] = 'danger';
         }
 
-        header('Location: ' . $_ENV['URL_ADM'] . 'whatsapp-config');
+        header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
         exit;
     }
 }

@@ -16,11 +16,22 @@ class TestWhatsAppConfig
             exit;
         }
 
-        $testNumber = $_POST['test_number'] ?? '';
+        $testNumber = trim($_POST['test_number'] ?? '');
         
         if (empty($testNumber)) {
             $_SESSION['msg'] = 'Número de teste não informado.';
             $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
+            exit;
+        }
+
+        // Verificar se há configuração ativa
+        $repo = new \App\adms\Models\Repository\AdmsWhatsAppConfigRepository();
+        $config = $repo->getConfig();
+        
+        if (empty($config) || !$config['is_active']) {
+            $_SESSION['msg'] = 'WhatsApp não está configurado ou está desativado. Configure primeiro antes de testar.';
+            $_SESSION['msg_type'] = 'warning';
             header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
             exit;
         }
@@ -40,7 +51,7 @@ class TestWhatsAppConfig
             $_SESSION['msg_type'] = 'danger';
         }
 
-        header('Location: ' . $_ENV['URL_ADM'] . 'whatsapp-config');
+        header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
         exit;
     }
 }
