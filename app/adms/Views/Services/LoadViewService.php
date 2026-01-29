@@ -39,17 +39,8 @@ class LoadViewService
      */
     public function loadView(): void
     {
-        //Definir o caminho da VIEW usando caminho absoluto
-        // __DIR__ = app/adms/Views/Services
-        // Subir 3 níveis para chegar na raiz do projeto
-        $basePath = realpath(__DIR__ . '/../../../');
-        
-        // Se realpath falhar, usar caminho relativo como fallback
-        if ($basePath === false) {
-            $basePath = dirname(dirname(dirname(__DIR__)));
-        }
-        
-        $this->view = $basePath . '/app/' . $this->nameView . '.php';
+        //Definir o caminho da VIEW
+        $this->view = './app/' . $this->nameView . '.php';
 
         // Verificar se o arquivo existe
         if (file_exists($this->view)) {
@@ -58,18 +49,8 @@ class LoadViewService
             if (is_dir($logDir) && is_writable($logDir)) {
                 @file_put_contents($logDir . '/filtro_global_debug.log', date('Y-m-d H:i:s') . ' - main.php executado em ' . ($_SERVER['REQUEST_URI'] ?? '') . ' user_id=' . ($_SESSION['user_id'] ?? 'null') . ' session_id=' . ($_SESSION['session_id'] ?? 'null') . PHP_EOL, FILE_APPEND);
             }
-            // Usar caminho absoluto para o layout também
-            $layoutPath = $basePath . '/app/adms/Views/layouts/main.php';
-            if (file_exists($layoutPath)) {
-                include $layoutPath;
-            } else {
-                error_log("Erro LoadViewService: Layout não encontrado: " . $layoutPath);
-                die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
-            }
+            include './app/adms/Views/layouts/main.php';
         } else {
-            error_log("Erro LoadViewService: Arquivo não encontrado: " . $this->view);
-            error_log("BasePath: " . $basePath);
-            error_log("NameView: " . $this->nameView);
             die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
         }
     }
@@ -86,17 +67,14 @@ class LoadViewService
      */
     public function loadViewLogin(): void
     {
-        //Definir o caminho da VIEW usando caminho absoluto
-        $basePath = realpath(__DIR__ . '/../../../');
-        $this->view = $basePath . '/app/' . $this->nameView . '.php';
+        //Definir o caminho da VIEW
+        $this->view = './app/' . $this->nameView . '.php';
 
         // Verificar se o arquivo existe
         if (file_exists($this->view)) {
-            // Incluir o layout principal usando caminho absoluto
-            $layoutPath = $basePath . '/app/adms/Views/layouts/login.php';
-            include $layoutPath;
+            // Incluir o layout principal
+            include './app/adms/Views/layouts/login.php';
         } else {
-            error_log("Erro LoadViewService: Arquivo não encontrado: " . $this->view);
             die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
         }
     }
