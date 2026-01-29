@@ -8,13 +8,13 @@
   Header always set Access-Control-Allow-Origin "*"
 </IfModule>
 
-# Forçar HTTPS em produção (descomentar se necessário)
-# <IfModule mod_rewrite.c>
-#   RewriteEngine On
-#   RewriteCond %{HTTPS} off
-#   RewriteCond %{HTTP_HOST} ^(www\.)?administrativotiaraju\.kinghost\.net [NC]
-#   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# </IfModule>
+# Forçar HTTPS em produção (necessário para mobile funcionar)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP_HOST} ^(www\.)?administrativotiaraju\.kinghost\.net [NC]
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
 
 # Ensure proper MIME types
 AddType text/css .css

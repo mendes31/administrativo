@@ -60,19 +60,20 @@ class RecoverPassword
             
             // Extrair partes da URL usando parse_url para ser mais preciso
             $urlParts = parse_url($baseUrl);
-            $protocolo = isset($urlParts['scheme']) ? $urlParts['scheme'] . '://' : 'https://';
+            // FORÇAR HTTPS em produção (mobile bloqueia HTTP)
+            $protocolo = 'https://';
             $host = $urlParts['host'] ?? '';
             $path = $urlParts['path'] ?? '/administrativo';
             
             // Se não conseguiu extrair com parse_url, tentar regex
             if (empty($host)) {
-                // Extrair protocolo
-                if (preg_match('/^(https?:\/\/)/i', $baseUrl, $matches)) {
-                    $protocolo = $matches[1];
-                    $resto = substr($baseUrl, strlen($protocolo));
+                // FORÇAR HTTPS em produção (mobile bloqueia HTTP)
+                $protocolo = 'https://';
+                // Extrair o resto da URL (sem protocolo)
+                if (preg_match('/^https?:\/\/(.+)$/i', $baseUrl, $matches)) {
+                    $resto = $matches[1];
                 } else {
                     $resto = $baseUrl;
-                    $protocolo = 'https://';
                 }
                 
                 // Extrair host e path
@@ -133,6 +134,10 @@ class RecoverPassword
             $protocolo = $isLocal ? 'http://' : 'https://';
             $baseUrl = $protocolo . ltrim($baseUrl, '/');
             error_log("RecoverPassword - Protocolo adicionado: {$protocolo}");
+        } elseif (!$isLocal && preg_match('/^http:\/\//i', $baseUrl)) {
+            // FORÇAR HTTPS em produção mesmo se .env tiver HTTP (mobile bloqueia HTTP)
+            $baseUrl = preg_replace('/^http:\/\//i', 'https://', $baseUrl);
+            error_log("RecoverPassword - Protocolo HTTP convertido para HTTPS (produção)");
         }
 
         // Garantir que a URL termine com /administrativo/ para funcionar corretamente (apenas se não for local)
