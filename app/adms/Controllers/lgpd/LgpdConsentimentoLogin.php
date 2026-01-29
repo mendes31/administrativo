@@ -21,6 +21,21 @@ class LgpdConsentimentoLogin
     private const DEFAULT_VERSION = '1.0';
 
     /**
+     * Verificar se existe termo ativo no sistema.
+     */
+    private function hasActiveTerm(): bool
+    {
+        $repo = new LgpdTermosRepository();
+        $termo = $repo->getTermoAtivoPorTipo('login');
+        
+        if (!$termo) {
+            $termo = $repo->getLastActiveTerm();
+        }
+        
+        return !empty($termo);
+    }
+
+    /**
      * Obter termo vigente para login (se existir na tabela lgpd_termos).
      */
     private function getLoginTermo(): array
@@ -56,9 +71,30 @@ class LgpdConsentimentoLogin
             exit;
         }
 
+        // Verificar se é usuário manager - se for, redirecionar para dashboard
+        $userId = (int)$_SESSION['user_id'];
+        $repoConsent = new LgpdConsentimentosRepository();
+        $conn = $repoConsent->getConnection();
+        $stmt = $conn->prepare('SELECT username FROM adms_users WHERE id = :id');
+        $stmt->bindValue(':id', $userId, \PDO::PARAM_INT);
+        $stmt->execute();
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if ($user && isset($user['username']) && strtolower($user['username']) === 'manager') {
+            header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
+            exit;
+        }
+
         $this->data['title_head'] = 'Uso de Dados Pessoais - LGPD';
 
         $termo = $this->getLoginTermo();
+        
+        // Se não houver termo ativo, redirecionar para dashboard
+        if (empty($termo['conteudo']) && !$this->hasActiveTerm()) {
+            header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
+            exit;
+        }
+        
         $this->data['term_version'] = $termo['versao'] ?? self::DEFAULT_VERSION;
         // Garantir que o conteúdo seja passado corretamente (pode estar em 'conteudo' ou vazio)
         $this->data['term_content'] = !empty($termo['conteudo']) ? $termo['conteudo'] : null;

@@ -209,44 +209,75 @@ class Login
             file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] SALVOU SESSION NO BANCO: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION) . "\n", FILE_APPEND);
 
             // Verificar consentimento LGPD antes de liberar acesso
-            // Regra: olhar SEMPRE para a tabela de consentimentos (histórico),
-            // e não depender dos campos auxiliares em adms_users.
-            $lgpdTermosRepo = new LgpdTermosRepository();
-            $termoLogin = $lgpdTermosRepo->getTermoAtivoPorTipo('login');
-            $consentVersionAtual = $termoLogin['versao'] ?? ($_ENV['LGPD_CONSENT_VERSION'] ?? '1.0');
-
-            $temConsentimentoValido = false;
-            $emailLogin = $result['email'] ?? '';
-
-            if (!empty($emailLogin)) {
-                $consentRepo = new \App\adms\Models\Repository\LgpdConsentimentosRepository();
-                // Busca o último consentimento ATIVO para este usuário (canal sistema_login)
-                $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
-
-                // Log detalhado para depuração
-                file_put_contents(
-                    __DIR__ . '/../../../logs/login_debug.log',
-                    date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD - email=' . $emailLogin .
-                    ' | versao_atual=' . $consentVersionAtual .
-                    ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
+            // Exceções:
+            // 1. Usuário "manager" não precisa de consentimento
+            // 2. Se não houver termos cadastrados ou ativos, não solicitar consentimento
+            
+            $username = $result['username'] ?? '';
+            $isManager = (strtolower($username) === 'manager');
+            
+            // Se for manager, pular verificação de consentimento
+            if ($isManager) {
+                file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
+                    date('Y-m-d H:i:s') . " - Usuario manager detectado - pulando verificação de consentimento LGPD\n", 
                     FILE_APPEND
                 );
-
-                if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
-                    $temConsentimentoValido = true;
-                }
             } else {
-                file_put_contents(
-                    __DIR__ . '/../../../logs/login_debug.log',
-                    date('Y-m-d H:i:s') . " - Usuario sem e-mail definido ao verificar consentimento LGPD (id={$result['id']})" . PHP_EOL,
-                    FILE_APPEND
-                );
-            }
+                // Verificar se existe termo ativo antes de solicitar consentimento
+                $lgpdTermosRepo = new LgpdTermosRepository();
+                $termoLogin = $lgpdTermosRepo->getTermoAtivoPorTipo('login');
+                
+                // Se não encontrar termo do tipo login, tentar último termo ativo como fallback
+                if (!$termoLogin) {
+                    $termoLogin = $lgpdTermosRepo->getLastActiveTerm();
+                }
+                
+                // Se não houver termo ativo, não solicitar consentimento
+                if (!$termoLogin) {
+                    file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
+                        date('Y-m-d H:i:s') . " - Nenhum termo LGPD ativo encontrado - não solicitando consentimento\n", 
+                        FILE_APPEND
+                    );
+                } else {
+                    // Há termo ativo, verificar consentimento
+                    $consentVersionAtual = $termoLogin['versao'] ?? ($_ENV['LGPD_CONSENT_VERSION'] ?? '1.0');
+                    $temConsentimentoValido = false;
+                    $emailLogin = $result['email'] ?? '';
 
-            if (!$temConsentimentoValido) {
-                file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Consentimento LGPD pendente/versão diferente - redirecionando para lgpd-consentimento-login\n", FILE_APPEND);
-                header("Location: {$_ENV['URL_ADM']}lgpd-consentimento-login");
-                exit;
+                    if (!empty($emailLogin)) {
+                        $consentRepo = new \App\adms\Models\Repository\LgpdConsentimentosRepository();
+                        // Busca o último consentimento ATIVO para este usuário (canal sistema_login)
+                        $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
+
+                        // Log detalhado para depuração
+                        file_put_contents(
+                            __DIR__ . '/../../../logs/login_debug.log',
+                            date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD - email=' . $emailLogin .
+                            ' | versao_atual=' . $consentVersionAtual .
+                            ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
+                            FILE_APPEND
+                        );
+
+                        if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
+                            $temConsentimentoValido = true;
+                        }
+                    } else {
+                        file_put_contents(
+                            __DIR__ . '/../../../logs/login_debug.log',
+                            date('Y-m-d H:i:s') . " - Usuario sem e-mail definido ao verificar consentimento LGPD (id={$result['id']})" . PHP_EOL,
+                            FILE_APPEND
+                        );
+                    }
+
+                    if (!$temConsentimentoValido) {
+                        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
+                            date('Y-m-d H:i:s') . " - Consentimento LGPD pendente/versão diferente - redirecionando para lgpd-consentimento-login\n", 
+                            FILE_APPEND
+                        );
+                        header("Location: {$_ENV['URL_ADM']}lgpd-consentimento-login");
+                        exit;
+                    }
+                }
             }
 
             // Redirecionar para URL salva ou dashboard padrão

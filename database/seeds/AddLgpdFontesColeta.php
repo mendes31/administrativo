@@ -6,7 +6,7 @@ class AddLgpdFontesColeta extends AbstractSeed
 {
     public function run(): void
     {
-        $data = [
+        $fontes = [
             [
                 'nome' => 'Formulário Online',
                 'descricao' => 'Formulários preenchidos no site da empresa',
@@ -59,6 +59,25 @@ class AddLgpdFontesColeta extends AbstractSeed
             ]
         ];
 
-        $this->table('lgpd_fontes_coleta')->insert($data)->save();
+        // Montar apenas as fontes que ainda não existem, para evitar duplicação
+        $data = [];
+
+        foreach ($fontes as $fonte) {
+            $existing = $this->query(
+                'SELECT id FROM lgpd_fontes_coleta WHERE nome = :nome',
+                ['nome' => $fonte['nome']]
+            )->fetch();
+
+            if (!$existing) {
+                $data[] = $fonte;
+            }
+        }
+
+        if (!empty($data)) {
+            $this->table('lgpd_fontes_coleta')->insert($data)->save();
+            echo '✅ Seed de Fontes de Coleta LGPD executado com sucesso. ' . count($data) . " fonte(s) adicionada(s).\n";
+        } else {
+            echo "ℹ️ Seed de Fontes de Coleta LGPD: todas as fontes já existem no banco de dados.\n";
+        }
     }
 } 
