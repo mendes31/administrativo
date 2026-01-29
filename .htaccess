@@ -32,12 +32,23 @@ RewriteCond %{REQUEST_URI} !^/administrativo/public/
 # Permitir acesso direto à pasta scripts (apenas para diagnóstico - REMOVER EM PRODUÇÃO)
 RewriteCond %{REQUEST_URI} !^/administrativo/scripts/.*\.php$
 
+# Regra especial para URL raiz (/administrativo/ ou /administrativo)
+# Com RewriteBase /administrativo/, quando a URL é exatamente /administrativo/ ou /administrativo,
+# o padrão fica vazio (^$). Esta regra captura isso e redireciona para dashboard.
+RewriteCond %{REQUEST_URI} ^/administrativo/?$
+RewriteRule ^$ index.php?url=dashboard [QSA,L]
+
 # Redirecionar o resto para index.php, preservando subdiretórios e pontos
+# O padrão ^(.+)$ requer pelo menos 1 caractere, então não captura a URL raiz (que já foi tratada acima)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/administrativo/public/
+RewriteCond %{REQUEST_URI} !^/administrativo/scripts/.*\.php$
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
 # Quando houver o erro 403 redirecionar o usuário 
-#ErrorDocument 403 http://localhost/administrativo/error403
-ErrorDocument 403 http://www.administrativotiaraju.kinghost.net/administrativo/error403
+# Usar caminho relativo para funcionar com HTTP e HTTPS
+ErrorDocument 403 /administrativo/error403
 
 # Bloquear a opção listar os arquivos do diretório
 Options -Indexes
