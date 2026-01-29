@@ -44,7 +44,7 @@ try {
                     <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Dados de Conexão</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>save-whatsapp-config">
+                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>save-whats-app-config">
                         
                         <!-- Campo oculto para o token CSRF -->
                         <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
@@ -144,7 +144,7 @@ try {
                     <h6 class="mb-0"><i class="fas fa-vial me-2"></i>Testar Configuração</h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>test-whatsapp-config">
+                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>test-whats-app-config">
                         <div class="mb-3">
                             <label class="form-label">Número de Teste</label>
                             <input type="text" name="test_number" class="form-control" required

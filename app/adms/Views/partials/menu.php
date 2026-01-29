@@ -45,7 +45,7 @@ $menus = [
                         ],
                         [
                             'label' => 'Configuração de WhatsApp',
-                            'url' => $_ENV['URL_ADM'] . 'whatsapp-config',
+                            'url' => $_ENV['URL_ADM'] . 'whats-app-config',
                             'permission' => 'WhatsAppConfig',
                             'icon' => 'fab fa-whatsapp'
                         ],

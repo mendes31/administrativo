@@ -13,7 +13,7 @@ class SaveWhatsAppConfig
     public function index(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ' . $_ENV['URL_ADM'] . 'whatsapp-config');
+            header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
             exit;
         }
 
@@ -25,7 +25,7 @@ class SaveWhatsAppConfig
             error_log("❌ CSRF Token inválido!");
             $_SESSION['msg'] = 'Token de segurança inválido. Tente novamente.';
             $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'whatsapp-config');
+            header('Location: ' . $_ENV['URL_ADM'] . 'whats-app-config');
             exit;
         }
 
