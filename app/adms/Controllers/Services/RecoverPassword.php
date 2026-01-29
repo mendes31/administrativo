@@ -42,25 +42,108 @@ class RecoverPassword
         $baseUrl = trim($_ENV['URL_ADM'] ?? '');
         $baseUrl = rtrim($baseUrl, '/');
 
+        // Log da URL original para diagnóstico
+        error_log("RecoverPassword - URL_ADM original: " . ($_ENV['URL_ADM'] ?? 'NULL'));
+
+        // Detectar se é ambiente local (localhost, 127.0.0.1, etc.)
+        $isLocal = (
+            stripos($baseUrl, 'localhost') !== false ||
+            stripos($baseUrl, '127.0.0.1') !== false ||
+            stripos($baseUrl, '::1') !== false ||
+            preg_match('/^https?:\/\/192\.168\./', $baseUrl) ||
+            preg_match('/^https?:\/\/10\./', $baseUrl)
+        );
+
+        // CORREÇÃO CRÍTICA: Forçar domínio correto APENAS em produção
+        if (!$isLocal) {
+            $dominioCorreto = 'www.administrativotiaraju.kinghost.net';
+            
+            // Extrair partes da URL usando parse_url para ser mais preciso
+            $urlParts = parse_url($baseUrl);
+            $protocolo = isset($urlParts['scheme']) ? $urlParts['scheme'] . '://' : 'https://';
+            $host = $urlParts['host'] ?? '';
+            $path = $urlParts['path'] ?? '/administrativo';
+            
+            // Se não conseguiu extrair com parse_url, tentar regex
+            if (empty($host)) {
+                // Extrair protocolo
+                if (preg_match('/^(https?:\/\/)/i', $baseUrl, $matches)) {
+                    $protocolo = $matches[1];
+                    $resto = substr($baseUrl, strlen($protocolo));
+                } else {
+                    $resto = $baseUrl;
+                    $protocolo = 'https://';
+                }
+                
+                // Extrair host e path
+                if (preg_match('/^([^\/]+)(\/.*)?$/', $resto, $matches)) {
+                    $host = $matches[1];
+                    $path = $matches[2] ?? '/administrativo';
+                }
+            }
+            
+            // Verificar se o domínio já está correto
+            if (stripos($host, $dominioCorreto) !== false) {
+                // Já está correto, apenas garantir formato
+                error_log("RecoverPassword - Domínio já está correto: {$host}");
+            } else {
+                // Lista de domínios incorretos
+                $dominiosIncorretos = [
+                    'raju.kinghost.net',
+                    'www.raju.kinghost.net',
+                    'administrativotiaraju.kinghost.net',
+                ];
+                
+                // Verificar se o host atual está na lista de incorretos
+                $precisaCorrigir = false;
+                foreach ($dominiosIncorretos as $incorreto) {
+                    if (stripos($host, $incorreto) !== false) {
+                        $precisaCorrigir = true;
+                        error_log("RecoverPassword - Domínio incorreto detectado: {$host}");
+                        break;
+                    }
+                }
+                
+                // Se contém kinghost.net mas não é o correto, também precisa corrigir
+                if (!$precisaCorrigir && stripos($host, 'kinghost.net') !== false && stripos($host, $dominioCorreto) === false) {
+                    $precisaCorrigir = true;
+                    error_log("RecoverPassword - Domínio kinghost.net detectado mas incorreto: {$host}");
+                }
+                
+                // Corrigir o domínio
+                if ($precisaCorrigir) {
+                    $host = $dominioCorreto;
+                    error_log("RecoverPassword - Domínio corrigido para: {$dominioCorreto}");
+                }
+            }
+            
+            // Garantir que o path contenha /administrativo
+            if (stripos($path, '/administrativo') === false) {
+                $path = '/administrativo';
+            }
+            
+            // Reconstruir URL completa
+            $baseUrl = $protocolo . $host . $path;
+        }
+
         // Garantir que a URL tenha protocolo (http:// ou https://)
         // WhatsApp e navegadores móveis precisam do protocolo para reconhecer como link clicável
         if (!empty($baseUrl) && !preg_match('/^https?:\/\//i', $baseUrl)) {
-            // Se não tem protocolo, adicionar https:// (padrão para produção)
-            $baseUrl = 'https://' . ltrim($baseUrl, '/');
+            // Se não tem protocolo, adicionar http:// para local, https:// para produção
+            $protocolo = $isLocal ? 'http://' : 'https://';
+            $baseUrl = $protocolo . ltrim($baseUrl, '/');
+            error_log("RecoverPassword - Protocolo adicionado: {$protocolo}");
         }
 
-        // CORREÇÃO: Verificar e corrigir domínio incorreto
-        // Se a URL contém "raju.kinghost.net" (domínio incorreto), substituir pelo correto
-        if (strpos($baseUrl, 'raju.kinghost.net') !== false) {
-            $baseUrl = str_replace('raju.kinghost.net', 'www.administrativotiaraju.kinghost.net', $baseUrl);
-            error_log("RecoverPassword - Domínio corrigido de 'raju.kinghost.net' para 'www.administrativotiaraju.kinghost.net'");
-        }
-
-        // Garantir que a URL termine com /administrativo/ para funcionar corretamente
-        if (!empty($baseUrl) && strpos($baseUrl, '/administrativo') === false) {
+        // Garantir que a URL termine com /administrativo/ para funcionar corretamente (apenas se não for local)
+        if (!$isLocal && !empty($baseUrl) && stripos($baseUrl, '/administrativo') === false) {
             // Se não tem /administrativo, adicionar
             $baseUrl = rtrim($baseUrl, '/') . '/administrativo';
+            error_log("RecoverPassword - Caminho /administrativo adicionado");
         }
+
+        // Log da URL final para diagnóstico
+        error_log("RecoverPassword - URL final gerada: " . $baseUrl);
 
         // Incluir o identificador (e-mail ou CPF) na URL apenas para pré-preencher o formulário.
         // A validação de segurança continua baseada na chave e na validade.
