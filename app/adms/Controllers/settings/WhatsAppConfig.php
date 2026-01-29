@@ -18,19 +18,67 @@ class WhatsAppConfig
 {
     public function index(): void
     {
-        $repo = new AdmsWhatsAppConfigRepository();
-        $data = [
-            'title_head' => 'Configuração de WhatsApp',
-            'menu' => 'whatsapp-config',
-            'buttonPermission' => ['WhatsAppConfig'],
-            'whatsapp_config' => $repo->getConfig(),
-        ];
+        // Log em arquivo para diagnóstico (funciona em produção)
+        $logFile = __DIR__ . '/../../../logs/whatsapp_config_debug.log';
+        $log = function($message) use ($logFile) {
+            @file_put_contents($logFile, date('Y-m-d H:i:s') . ' - ' . $message . PHP_EOL, FILE_APPEND);
+            error_log($message); // Também loga no error_log padrão
+        };
         
-        $pageLayout = new PageLayoutService();
-        $data = array_merge($data, $pageLayout->configurePageElements($data));
+        $log("=== WHATSAPP CONFIG INDEX INICIO ===");
+        $log("Session user_id: " . ($_SESSION['user_id'] ?? 'não definido'));
+        $log("REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'não definido'));
         
-        $loadView = new LoadViewService('adms/Views/settings/whatsappConfig', $data);
-        $loadView->loadView();
+        try {
+            $repo = new AdmsWhatsAppConfigRepository();
+            $log("Repository instanciado com sucesso");
+            
+            // Tentar buscar configuração com tratamento de erro
+            $whatsappConfig = [];
+            try {
+                $whatsappConfig = $repo->getConfig();
+                $log("Config buscada: " . json_encode($whatsappConfig));
+            } catch (\Exception $e) {
+                $log("Erro ao buscar config WhatsApp: " . $e->getMessage());
+                $log("Stack trace: " . $e->getTraceAsString());
+                // Se a tabela não existir, continuar com array vazio
+                $whatsappConfig = [];
+            }
+            
+            $data = [
+                'title_head' => 'Configuração de WhatsApp',
+                'menu' => 'whatsapp-config',
+                'buttonPermission' => ['WhatsAppConfig'],
+                'whatsapp_config' => $whatsappConfig,
+            ];
+            
+            $log("Dados preparados, chamando PageLayoutService");
+            
+            $pageLayout = new PageLayoutService();
+            $data = array_merge($data, $pageLayout->configurePageElements($data));
+            
+            $log("PageLayoutService executado, chamando LoadViewService");
+            $log("View path: adms/Views/settings/whatsappConfig");
+            
+            $loadView = new LoadViewService('adms/Views/settings/whatsappConfig', $data);
+            $loadView->loadView();
+            
+            $log("=== WHATSAPP CONFIG INDEX SUCESSO ===");
+        } catch (\Throwable $e) {
+            // Log do erro completo
+            $log("=== ERRO FATAL em WhatsAppConfig::index() ===");
+            $log("Mensagem: " . $e->getMessage());
+            $log("Arquivo: " . $e->getFile() . ":" . $e->getLine());
+            $log("Stack Trace: " . $e->getTraceAsString());
+            
+            // Mostrar erro amigável
+            $_SESSION['msg'] = 'Erro ao carregar página de configuração WhatsApp. Erro: ' . $e->getMessage();
+            $_SESSION['msg_type'] = 'danger';
+            
+            // Tentar redirecionar para dashboard
+            header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
+            exit;
+        }
     }
 
     public function save(): void

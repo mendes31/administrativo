@@ -18,11 +18,17 @@ class AdmsWhatsAppConfigRepository extends DbConnection
      */
     public function getConfig(): array
     {
-        $sql = 'SELECT * FROM adms_whatsapp_config WHERE is_active = 1 ORDER BY id DESC LIMIT 1';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute();
-        $config = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $config ?: [];
+        try {
+            $sql = 'SELECT * FROM adms_whatsapp_config WHERE is_active = 1 ORDER BY id DESC LIMIT 1';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute();
+            $config = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $config ?: [];
+        } catch (\Exception $e) {
+            error_log("Erro ao buscar config WhatsApp: " . $e->getMessage());
+            // Se a tabela não existir, retornar array vazio
+            return [];
+        }
     }
 
     /**

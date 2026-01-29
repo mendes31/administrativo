@@ -2,13 +2,29 @@
 
 use App\adms\Helpers\CSRFHelper;
 
-$config = $this->data['whatsapp_config'] ?? [];
-$csrf_token = CSRFHelper::generateCSRFToken('form_whatsapp_config');
+// Tratamento de erro para evitar página em branco
+try {
+    $config = $this->data['whatsapp_config'] ?? [];
+    $csrf_token = CSRFHelper::generateCSRFToken('form_whatsapp_config');
+} catch (\Throwable $e) {
+    error_log("Erro na view whatsappConfig: " . $e->getMessage());
+    $config = [];
+    $csrf_token = '';
+}
 ?>
 
 <div class="container-fluid px-4">
     
-    <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php 
+    // Usar caminho absoluto para evitar problemas em produção
+    $alertsPath = realpath(__DIR__ . '/../partials/alerts.php');
+    if ($alertsPath) {
+        include $alertsPath;
+    } else {
+        // Fallback para caminho relativo se realpath falhar
+        include __DIR__ . '/../partials/alerts.php';
+    }
+    ?>
     
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3">
