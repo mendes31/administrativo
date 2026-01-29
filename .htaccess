@@ -33,15 +33,14 @@ RewriteCond %{REQUEST_URI} !^/administrativo/public/
 RewriteCond %{REQUEST_URI} !^/administrativo/scripts/.*\.php$
 
 # Se a URL estiver vazia (apenas /administrativo/), redirecionar para dashboard (ou login se não logado)
-RewriteRule ^$ index.php?url=dashboard [L]
+#RewriteRule ^$ index.php?url=dashboard [L]
 
 # Redirecionar o resto para index.php, preservando subdiretórios e pontos
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
 # Quando houver o erro 403 redirecionar o usuário 
 #ErrorDocument 403 http://localhost/administrativo/error403
-# Usar caminho relativo para funcionar com HTTP e HTTPS
-ErrorDocument 403 /administrativo/error403
+ErrorDocument 403 http://www.administrativotiaraju.kinghost.net/administrativo/error403
 
 # Bloquear a opção listar os arquivos do diretório
 Options -Indexes

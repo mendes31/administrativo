@@ -144,8 +144,10 @@ class RecoverPassword
             error_log("RecoverPassword - Caminho /administrativo adicionado");
         }
 
-        // Log da URL final para diagnóstico
+        // Log da URL final para diagnóstico (com detalhes)
+        error_log("RecoverPassword - URL_ADM do .env: " . ($_ENV['URL_ADM'] ?? 'NULL'));
         error_log("RecoverPassword - URL final gerada: " . $baseUrl);
+        error_log("RecoverPassword - Protocolo usado: " . (preg_match('/^(https?):\/\//i', $baseUrl, $m) ? $m[1] : 'NENHUM'));
 
         // Incluir o identificador (e-mail ou CPF) na URL apenas para pré-preencher o formulário.
         // A validação de segurança continua baseada na chave e na validade.
