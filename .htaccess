@@ -4,8 +4,6 @@
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set X-XSS-Protection "1; mode=block"
   Header always set Referrer-Policy "no-referrer-when-downgrade"
-  # Permitir acesso de dispositivos móveis (não bloquear User-Agent mobile)
-  Header always set Access-Control-Allow-Origin "*"
 </IfModule>
 
 # Ensure proper MIME types
@@ -24,14 +22,6 @@ AddType application/javascript .js
 RewriteEngine On
 RewriteBase /administrativo/
 
-# Forçar HTTPS em produção (necessário para mobile funcionar)
-# IMPORTANTE: Esta regra deve vir DEPOIS do RewriteEngine On
-<IfModule mod_rewrite.c>
-  RewriteCond %{HTTPS} off
-  RewriteCond %{HTTP_HOST} ^(www\.)?administrativotiaraju\.kinghost\.net [NC]
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-</IfModule>
-
 # Não reescrever se for arquivo ou diretório físico
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -47,8 +37,7 @@ RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 
 # Quando houver o erro 403 redirecionar o usuário 
 #ErrorDocument 403 http://localhost/administrativo/error403
-# Usar caminho relativo para evitar problemas de redirecionamento
-ErrorDocument 403 /administrativo/error403
+ErrorDocument 403 http://www.administrativotiaraju.kinghost.net/administrativo/error403
 
 # Bloquear a opção listar os arquivos do diretório
 Options -Indexes
