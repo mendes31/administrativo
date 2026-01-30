@@ -120,7 +120,10 @@ class CreateUser
         $form['modificar_senha_proximo_logon'] = isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] === 'Sim' ? 'Sim' : 'Não';
 
         // Salvar data de nascimento
-        $form['data_nascimento'] = $_POST['data_nascimento'] ?? null;
+        $form['data_nascimento'] = !empty($_POST['data_nascimento']) ? $_POST['data_nascimento'] : null;
+        
+        // Salvar data de admissão
+        $form['data_admissao'] = !empty($_POST['data_admissao']) ? $_POST['data_admissao'] : null;
 
         // Processar upload da imagem
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {

@@ -44,17 +44,17 @@ use App\adms\Helpers\CSRFHelper;
                 <!-- Campo oculto para o token CSRF para proteger o formulário contra ataques de falsificação de solicitação entre sites -->
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_create_user'); ?>">
 
-                <div class="col-md-12">
+                <div class="col-md-4">
                     <label for="name" class="form-label">Nome</label>
                     <input type="text" name="name" class="form-control" id="name" placeholder="Nome completo" value="<?php echo $this->data['form']['name'] ?? ''; ?>">
                 </div>
 
-                <div class="col-md-12">
+                <div class="col-md-4">
                     <label for="email" class="form-label">Email</label>
                     <input type="email" name="email" class="form-control" id="email" placeholder="Digite o seu melhor email" value="<?php echo $this->data['form']['email'] ?? ''; ?>">
                 </div>
 
-                <div class="col-md-12">
+                <div class="col-md-4">
                     <label for="username" class="form-label">Usuário</label>
                     <input type="text" name="username" class="form-control" id="username" placeholder="Digite um usuário disponível" value="<?php echo $this->data['form']['username'] ?? ''; ?>">
                 </div>
@@ -171,9 +171,14 @@ use App\adms\Helpers\CSRFHelper;
                     <input type="file" name="image" class="form-control" id="image" accept="image/*">
                     <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamanho máximo: 2MB.</small>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
+                </div>
+                <div class="col-md-4">
+                    <label for="data_admissao" class="form-label">Data de Admissão</label>
+                    <input type="date" name="data_admissao" class="form-control" id="data_admissao" value="<?php echo $this->data['form']['data_admissao'] ?? ''; ?>">
+                    <div class="form-text">Data em que o colaborador foi admitido na empresa</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Status</label><br>

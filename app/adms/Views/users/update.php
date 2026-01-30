@@ -50,17 +50,17 @@ use App\adms\Helpers\ImageHelper;
 
                 <input type="hidden" name="id" id="id" value="<?php echo $this->data['form']['id'] ?? ''; ?>">
 
-                <div class="col-4">
+                <div class="col-md-4">
                     <label for="name" class="form-label">Nome</label>
                     <input type="text" name="name" class="form-control" id="name" placeholder="Nome completo" value="<?php echo $this->data['form']['name'] ?? ''; ?>">
                 </div>
 
-                <div class="col-4">
+                <div class="col-md-4">
                     <label for="email" class="form-label">E-mail</label>
                     <input type="email" name="email" class="form-control" id="email" placeholder="Melhor e-mail" value="<?php echo $this->data['form']['email'] ?? ''; ?>">
                 </div>
 
-                <div class="col-4">
+                <div class="col-md-4">
                     <label for="username" class="form-label">Usuário</label>
                     <input type="text" name="username" class="form-control" id="username" placeholder="Nome de usuário" value="<?php echo $this->data['form']['username'] ?? ''; ?>">
                 </div>
@@ -155,7 +155,7 @@ use App\adms\Helpers\ImageHelper;
                     <input type="number" name="tentativas_login" class="form-control" id="tentativas_login" value="<?php echo $this->data['form']['tentativas_login'] ?? '0'; ?>" readonly>
                 </div>
 
-                <!-- <div class="col-md-6">
+                <div class="col-md-6">
                     <label for="image" class="form-label">Imagem do Usuário</label>
                     <input type="file" name="image" class="form-control" id="image" accept="image/*">
                     <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamanho máximo: 2MB.</small>
@@ -171,7 +171,7 @@ use App\adms\Helpers\ImageHelper;
                     <?php else: ?>
                         <div class="mt-2 text-muted">Sem imagem</div>
                     <?php endif; ?>
-                </div> -->
+                </div>
                 <div class="col-md-4">
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
