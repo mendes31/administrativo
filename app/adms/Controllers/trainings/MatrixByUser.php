@@ -94,22 +94,18 @@ class MatrixByUser
             $matrixByUser = array_slice($matrixByUser, $offset, $perPage);
         } else {
             // Comportamento padrão (apenas obrigatórios por cargo)
-            $matrixByUser = $this->trainingUsersRepo->getMandatoryMatrixByUser($filters, $perPage, $offset);
-            if (!is_array($matrixByUser)) {
+            // OTIMIZADO: Usa contagem eficiente (COUNT no SQL) em vez de buscar 1.000.000 registros
+            $result = $this->trainingUsersRepo->getMandatoryMatrixByUser($filters, $perPage, $offset, true);
+            if (is_array($result) && isset($result['data']) && isset($result['total'])) {
+                $matrixByUser = $result['data'];
+                $total = $result['total'];
+            } else {
                 $matrixByUser = [];
+                $total = 0;
             }
-            $total = count($this->trainingUsersRepo->getMandatoryMatrixByUser($filters, 1000000, 0));
         }
-
-        // Filtrar por código (parcial) se informado
-        if (!empty($filters['codigo'])) {
-            $codigoFiltro = trim((string)$filters['codigo']);
-            $matrixByUser = array_values(array_filter($matrixByUser, function($row) use ($codigoFiltro) {
-                $codigo = $row['codigo'] ?? $row['training_code'] ?? '';
-                return stripos((string)$codigo, $codigoFiltro) !== false;
-            }));
-            $total = count($matrixByUser);
-        }
+        
+        // NOTA: Filtro de código já é aplicado no SQL (não precisa filtrar em PHP novamente)
 
         // Exportação - Buscar todos os dados sem paginação
         if (isset($_GET['export']) && in_array($_GET['export'], ['excel', 'pdf'])) {
@@ -117,10 +113,20 @@ class MatrixByUser
             if (!empty($filters['treinamento'])) {
                 $exportData = $this->trainingUsersRepo->getAllVinculadosPorTreinamento($filters['treinamento']);
             } else {
-                $exportData = $this->trainingUsersRepo->getMandatoryMatrixByUser($filters, 1000000, 0);
-                if (!is_array($exportData)) {
-                    $exportData = [];
-                }
+                // OTIMIZADO: Buscar em lotes para exportação (mais eficiente que 1.000.000)
+                // Buscar em lotes de 10.000 até obter todos
+                $exportData = [];
+                $batchSize = 10000;
+                $batchOffset = 0;
+                do {
+                    $batch = $this->trainingUsersRepo->getMandatoryMatrixByUser($filters, $batchSize, $batchOffset, false);
+                    if (!empty($batch)) {
+                        $exportData = array_merge($exportData, $batch);
+                        $batchOffset += $batchSize;
+                    } else {
+                        break;
+                    }
+                } while (count($batch) === $batchSize);
             }
             
             if ($_GET['export'] === 'excel') {

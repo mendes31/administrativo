@@ -909,9 +909,17 @@ class TrainingUsersRepository extends DbConnection
 
     /**
      * Retorna todos os vínculos obrigatórios de treinamentos por colaborador, ordenados por nome
+     * OTIMIZADO: Resolve N+1 e adiciona contagem eficiente
+     * 
+     * @param array $filters Filtros de busca
+     * @param int $limit Limite de registros
+     * @param int $offset Offset para paginação
+     * @param bool $returnTotal Se true, retorna array com 'data' e 'total'
+     * @return array Dados ou array com 'data' e 'total' se $returnTotal = true
      */
-    public function getMandatoryMatrixByUser(array $filters = [], int $limit = 10, int $offset = 0): array
+    public function getMandatoryMatrixByUser(array $filters = [], int $limit = 10, int $offset = 0, bool $returnTotal = false): array
     {
+        // Construir query base
         $sql = 'SELECT 
                 u.id as user_id,
                 u.name as user_name,
@@ -928,16 +936,52 @@ class TrainingUsersRepository extends DbConnection
                 tu.status,
                 tu.tipo_vinculo,
                 tu.created_at as vinculo_created_at,
-                tu.data_limite_primeiro_treinamento
+                tu.data_limite_primeiro_treinamento,
+                -- Última aplicação (otimização N+1)
+                ta_last.data_realizacao,
+                ta_last.nota,
+                ta_last.observacoes,
+                ta_last.instrutor_nome,
+                ta_last.instrutor_email,
+                ta_last.aplicado_por,
+                ta_last.id as application_id
             FROM adms_training_users tu
             INNER JOIN adms_users u ON u.id = tu.adms_user_id
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
             INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
             LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
+            -- LEFT JOIN para última aplicação (subquery otimizada - resolve N+1)
+            LEFT JOIN (
+                SELECT 
+                    ta1.adms_user_id,
+                    ta1.adms_training_id,
+                    ta1.data_realizacao,
+                    ta1.nota,
+                    ta1.observacoes,
+                    ta1.instrutor_nome,
+                    ta1.instrutor_email,
+                    ta1.aplicado_por,
+                    ta1.id,
+                    ta1.created_at
+                FROM adms_training_applications ta1
+                INNER JOIN (
+                    SELECT 
+                        adms_user_id,
+                        adms_training_id,
+                        MAX(created_at) as max_created_at
+                    FROM adms_training_applications
+                    GROUP BY adms_user_id, adms_training_id
+                ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                    AND ta1.adms_training_id = ta2.adms_training_id 
+                    AND ta1.created_at = ta2.max_created_at
+            ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                AND ta_last.adms_training_id = tu.adms_training_id
+                AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)
             WHERE t.ativo = 1';
         $params = [];
-        // Apenas aplica filtros se eles forem explicitamente passados
+        
+        // Aplicar filtros
         if (!empty($filters['colaborador'])) {
             $sql .= ' AND u.id = ?';
             $params[] = $filters['colaborador'];
@@ -962,32 +1006,38 @@ class TrainingUsersRepository extends DbConnection
             $sql .= ' AND t.codigo LIKE ?';
             $params[] = '%' . $filters['codigo'] . '%';
         }
+        
+        // Contar total antes de aplicar LIMIT (se necessário)
+        $total = 0;
+        if ($returnTotal) {
+            $countSql = 'SELECT COUNT(*) as total FROM (' . $sql . ') as count_query';
+            $countStmt = $this->getConnection()->prepare($countSql);
+            $countStmt->execute($params);
+            $total = (int)$countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+        }
+        
+        // Aplicar ordenação e paginação
         $sql .= ' ORDER BY u.name ASC, t.nome ASC';
         $sql .= ' LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
+        
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $results = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
-        // Buscar dados da última aplicação para cada vínculo
-        $appRepo = new \App\adms\Models\Repository\TrainingApplicationsRepository();
+        // Calcular status dinâmico para cada resultado
         foreach ($results as &$result) {
-            $history = $appRepo->getHistoryAfter(
-                $result['user_id'],
-                $result['training_id'],
-                $result['vinculo_created_at']
-            );
-            $lastApplication = $history[0] ?? null;
-            $result['data_realizacao'] = $lastApplication['data_realizacao'] ?? null;
-            $result['data_agendada'] = $lastApplication['data_agendada'] ?? null;
-            $result['nota'] = $lastApplication['nota'] ?? null;
-            $result['observacoes'] = $lastApplication['observacoes'] ?? null;
-            $result['instrutor_nome'] = $lastApplication['instrutor_nome'] ?? null;
-            $result['instrutor_email'] = $lastApplication['instrutor_email'] ?? null;
-            $result['aplicado_por'] = $lastApplication['aplicado_por'] ?? null;
-            $result['application_id'] = $lastApplication['id'] ?? null;
             $result['status_dinamico'] = $this->calculateStatus($result);
         }
         unset($result);
+        
+        // Retornar com total se solicitado
+        if ($returnTotal) {
+            return [
+                'data' => $results,
+                'total' => $total
+            ];
+        }
+        
         return $results;
     }
 
