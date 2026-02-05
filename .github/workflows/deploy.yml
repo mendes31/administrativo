@@ -15,35 +15,6 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # Preparar pasta administrativo no servidor (se necessário)
-      - name: Preparar Pasta Administrativo no Servidor
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-        run: |
-          echo "🔧 Verificando e preparando pasta administrativo no servidor..."
-          
-          if ! command -v lftp &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y lftp
-          fi
-          
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set net:timeout 30
-          
-          # Entrar na pasta administrativo (ou criar se não existir)
-          cd administrativo
-          mkdir -p app
-          mkdir -p public
-          mkdir -p routes
-          mkdir -p logs
-          
-          echo "✅ Pasta administrativo verificada/preparada!"
-          quit
-          EOF
-
       # Estratégia 1: Deploy incremental inteligente com verificação
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -58,7 +29,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000  # 5 minutos (padrão que funcionava)
@@ -88,7 +59,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -118,7 +89,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -148,7 +119,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -178,7 +149,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -206,7 +177,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Controllers/logs/
-          server-dir: ./administrativo/app/adms/Controllers/logs/
+          server-dir: ./app/adms/Controllers/logs/
           dangerous-clean-slate: true
           log-level: verbose
           exclude: |
@@ -219,7 +190,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Views/logs/
-          server-dir: ./administrativo/app/adms/Views/logs/
+          server-dir: ./app/adms/Views/logs/
           dangerous-clean-slate: true
           log-level: verbose
           exclude: |
@@ -245,7 +216,6 @@ jobs:
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
 
-          cd administrativo
           mkdir -p app/adms/Controllers/logs
           mkdir -p app/adms/Views/logs
 
@@ -297,10 +267,6 @@ jobs:
           echo "   --verbose: Mostra detalhes de cada arquivo"
           echo "   --no-perms: Não perde tempo com permissões"
           echo ""
-          
-          # Entrar na pasta administrativo (ou criar se não existir)
-          cd administrativo
-          mkdir -p .
           
           mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
@@ -371,7 +337,6 @@ jobs:
           set net:timeout 30
           
           echo "🔄 Conectando ao servidor..."
-          cd administrativo
           
           echo "📁 Criando pasta logs..."
           mkdir -p logs
@@ -410,7 +375,7 @@ jobs:
           echo ""
           echo "📋 Próximos passos no servidor:"
           echo "1. Acesse via SSH ou painel KingHost"
-          echo "2. Execute: cd administrativo"
+          echo "2. Execute: cd /files (ou caminho correto da raiz do projeto)"
           echo "3. Execute: composer install --no-dev --optimize-autoloader"
           echo "4. Configure .env com URL_ADM correta"
           echo "5. Execute: php scripts/generate-htaccess.php"
