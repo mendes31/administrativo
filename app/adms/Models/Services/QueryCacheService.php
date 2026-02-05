@@ -75,9 +75,42 @@ class QueryCacheService
         ];
 
         $file = $this->filePath($key);
-        $result = file_put_contents($file, json_encode($payload, JSON_UNESCAPED_UNICODE));
         
-        return $result !== false;
+        // Verificar se a pasta existe e é gravável
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, 0775, true)) {
+                error_log("❌ ERRO: Não foi possível criar a pasta de cache: {$dir}");
+                return false;
+            }
+        }
+        
+        if (!is_writable($dir)) {
+            error_log("❌ ERRO: Pasta de cache não é gravável: {$dir}");
+            return false;
+        }
+        
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            error_log("❌ ERRO: Falha ao codificar JSON para cache: " . json_last_error_msg());
+            return false;
+        }
+        
+        $result = @file_put_contents($file, $json);
+        
+        if ($result === false) {
+            $error = error_get_last();
+            error_log("❌ ERRO ao salvar cache: {$file} - " . ($error['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        
+        // Verificar se o arquivo foi realmente criado
+        if (!file_exists($file)) {
+            error_log("❌ ERRO: Arquivo de cache não foi criado: {$file}");
+            return false;
+        }
+        
+        return true;
     }
 
     /**
