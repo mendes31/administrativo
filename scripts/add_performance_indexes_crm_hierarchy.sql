@@ -4,8 +4,10 @@
 -- Execute este script para melhorar o desempenho das queries
 -- ============================================================
 
--- IMPORTANTE: Se algum índice já existir, você pode ignorar o erro
--- ou removê-lo manualmente antes de executar
+-- IMPORTANTE: 
+-- 1. Se algum índice já existir, você verá um erro - pode ignorar e continuar
+-- 2. Este script NÃO usa IF NOT EXISTS (compatível com MySQL 5.5+)
+-- 3. Execute um comando por vez se preferir verificar erros individuais
 
 -- ============================================================
 -- ÍNDICES PARA CRM
@@ -13,41 +15,41 @@
 
 -- Índices para crm_partners
 -- Melhora filtros por responsável e JOINs
-CREATE INDEX IF NOT EXISTS `idx_crm_partners_responsible_user` 
+CREATE INDEX `idx_crm_partners_responsible_user` 
 ON `crm_partners` (`responsible_user_id`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_partners_status` 
+CREATE INDEX `idx_crm_partners_status` 
 ON `crm_partners` (`status`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_partners_department` 
+CREATE INDEX `idx_crm_partners_department` 
 ON `crm_partners` (`department_id`);
 
 -- Índices para crm_partner_tags
 -- Melhora JOINs e busca de tags por parceiro
-CREATE INDEX IF NOT EXISTS `idx_crm_partner_tags_partner` 
+CREATE INDEX `idx_crm_partner_tags_partner` 
 ON `crm_partner_tags` (`partner_id`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_partner_tags_tag` 
+CREATE INDEX `idx_crm_partner_tags_tag` 
 ON `crm_partner_tags` (`tag_id`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_partner_tags_composite` 
+CREATE INDEX `idx_crm_partner_tags_composite` 
 ON `crm_partner_tags` (`partner_id`, `tag_id`);
 
 -- Índices para crm_opportunities
 -- Melhora filtros por etapa e responsável
-CREATE INDEX IF NOT EXISTS `idx_crm_opportunities_stage` 
+CREATE INDEX `idx_crm_opportunities_stage` 
 ON `crm_opportunities` (`stage_id`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_opportunities_responsible` 
+CREATE INDEX `idx_crm_opportunities_responsible` 
 ON `crm_opportunities` (`responsible_user_id`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_opportunities_status` 
+CREATE INDEX `idx_crm_opportunities_status` 
 ON `crm_opportunities` (`status`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_opportunities_stage_status` 
+CREATE INDEX `idx_crm_opportunities_stage_status` 
 ON `crm_opportunities` (`stage_id`, `status`);
 
-CREATE INDEX IF NOT EXISTS `idx_crm_opportunities_partner` 
+CREATE INDEX `idx_crm_opportunities_partner` 
 ON `crm_opportunities` (`partner_id`);
 
 -- ============================================================
@@ -56,12 +58,12 @@ ON `crm_opportunities` (`partner_id`);
 
 -- Índice crítico para hierarquia (immediate_supervisor_id)
 -- Melhora drasticamente queries de organograma e hierarquia
-CREATE INDEX IF NOT EXISTS `idx_users_immediate_supervisor` 
+CREATE INDEX `idx_users_immediate_supervisor` 
 ON `adms_users` (`immediate_supervisor_id`);
 
 -- Índice composto para status + supervisor
 -- Melhora filtros combinados
-CREATE INDEX IF NOT EXISTS `idx_users_status_supervisor` 
+CREATE INDEX `idx_users_status_supervisor` 
 ON `adms_users` (`status`, `immediate_supervisor_id`);
 
 -- ============================================================
