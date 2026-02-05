@@ -1,0 +1,32 @@
+# Informações do projeto
+APP_NAME=Tiaraju
+APP_VERSION=1.0.0
+APP_TIMEZONE=America/Sao_Paulo
+APP_LOCALE=pt-BR
+APP_LOGS=Sim
+APP_ENV=production
+WHATSAPP_IGNORE_SSL=false
+
+# URL do projeto (AJUSTE PARA O NOVO DOMÍNIO)
+URL_ADM=https://tiaraju.com.br/administrativo/
+
+# E-mail do administrador
+EMAIL_ADM=raffaell_mendez@hotmail.com
+EMAIL_TI=chamados@tiaraju.com.br
+NAME_EMAIL_TI=Suporte-Tiaraju
+
+# Credenciais do banco de dados
+DB_HOST=mysql.administrativotiaraju.kinghost.net
+DB_NAME=administrativo
+DB_USER=administrativo
+DB_PASS=Laboratorio2025
+DB_PORT=3306
+
+# Credenciais do servidor de email
+MAIL_HOST=smtp.gmail.com
+MAIL_USERNAME=sistema.tiaraju@gmail.com
+MAIL_PASSWORD=sistemassi31*
+MAIL_PORT=587
+MAIL_ENCRYPTI=TLS
+
+
