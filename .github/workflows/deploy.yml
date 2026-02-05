@@ -32,7 +32,7 @@ jobs:
           server-dir: ./administrativo/
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 300000  # 5 minutos
+          timeout: 300000  # 5 minutos (padrão que funcionava)
           exclude: |
             .git/
             .git/**
@@ -231,12 +231,13 @@ jobs:
           EOF
 
       # Estratégia 2: Fallback lftp com verificação incremental
+      # Executa SEMPRE que as 5 tentativas falharem (ou se deploy5 não existir)
       - name: Install lftp (Fallback Inteligente)
-        if: failure() && steps.deploy5.outcome == 'failure'
+        if: always() && (steps.deploy5.outcome == 'failure' || steps.deploy5.outcome == 'skipped')
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via lftp (Fallback Incremental)
-        if: failure() && steps.deploy5.outcome == 'failure'
+        if: always() && (steps.deploy5.outcome == 'failure' || steps.deploy5.outcome == 'skipped')
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -268,6 +269,10 @@ jobs:
           echo "   --no-perms: Não perde tempo com permissões"
           echo ""
           
+          # Entrar na pasta administrativo (ou criar se não existir)
+          cd administrativo
+          mkdir -p .
+          
           mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
@@ -277,7 +282,9 @@ jobs:
             --exclude-glob vendor/** \
             --exclude-glob node_modules/** \
             --exclude-glob .vscode/** \
-            ./ administrativo
+            --exclude-glob .DS_Store \
+            --exclude-glob LICENSE.txt \
+            ./ .
           
           echo ""
           echo "✅ Deploy lftp incremental concluído!"
