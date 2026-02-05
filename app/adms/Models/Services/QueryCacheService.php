@@ -15,12 +15,27 @@ class QueryCacheService
 
     public function __construct(?string $cacheDir = null, int $defaultTtl = 300)
     {
-        $baseDir = $cacheDir ?? __DIR__ . '/../../../storage/cache/queries';
+        if ($cacheDir === null) {
+            // Usar caminho absoluto baseado na raiz do projeto
+            // __DIR__ = app/adms/Models/Services
+            // Queremos: raiz_do_projeto/storage/cache/queries
+            $projectRoot = dirname(__DIR__, 4); // Sobe 4 níveis: Services -> Models -> adms -> app -> raiz
+            $baseDir = $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'queries';
+        } else {
+            $baseDir = $cacheDir;
+        }
+        
         $this->cacheDir = rtrim($baseDir, '/\\');
         $this->defaultTtl = $defaultTtl;
 
         if (!is_dir($this->cacheDir)) {
             mkdir($this->cacheDir, 0775, true);
+        }
+        
+        // Normalizar para caminho absoluto
+        $realPath = realpath($this->cacheDir);
+        if ($realPath !== false) {
+            $this->cacheDir = $realPath;
         }
     }
 
