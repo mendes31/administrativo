@@ -92,15 +92,9 @@ class ListTrainings
         }
 
         $repo = new TrainingsRepository();
+        // OTIMIZADO: getAllTrainings já retorna colaboradores_vinculados e cargos_vinculados
+        // Não precisa mais fazer queries adicionais (N+1 resolvido)
         $this->data['trainings'] = $repo->getAllTrainings((int)$page, (int)$this->limitResult, $filters);
-        // Adicionar total de colaboradores vinculados em cada treinamento
-        foreach ($this->data['trainings'] as &$training) {
-            $training['colaboradores_vinculados'] = $repo->getTotalColaboradoresVinculados($training['id']);
-            // Log temporário para depuração
-            error_log('Treinamento ID ' . $training['id'] . ' - Colaboradores vinculados: ' . $training['colaboradores_vinculados']);
-            $training['cargos_vinculados'] = $repo->getLinkedPositionsCount($training['id']);
-        }
-        unset($training);
         $totalTrainings = $repo->getTotalTrainings($filters);
         $pagination = PaginationService::generatePagination(
             (int) $totalTrainings,
@@ -149,14 +143,9 @@ class ListTrainings
     {
         $repo = new TrainingsRepository();
         // Buscar todos os treinamentos sem paginação para exportação
+        // OTIMIZADO: getAllTrainings já retorna colaboradores_vinculados e cargos_vinculados
+        // Não precisa mais fazer queries adicionais (N+1 resolvido)
         $trainings = $repo->getAllTrainings(1, 999999, $filters);
-        
-        // Adicionar dados adicionais
-        foreach ($trainings as &$training) {
-            $training['colaboradores_vinculados'] = $repo->getTotalColaboradoresVinculados($training['id']);
-            $training['cargos_vinculados'] = $repo->getLinkedPositionsCount($training['id']);
-        }
-        unset($training);
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -246,14 +235,9 @@ class ListTrainings
     {
         $repo = new TrainingsRepository();
         // Buscar todos os treinamentos sem paginação para exportação
+        // OTIMIZADO: getAllTrainings já retorna colaboradores_vinculados e cargos_vinculados
+        // Não precisa mais fazer queries adicionais (N+1 resolvido)
         $trainings = $repo->getAllTrainings(1, 999999, $filters);
-        
-        // Adicionar dados adicionais
-        foreach ($trainings as &$training) {
-            $training['colaboradores_vinculados'] = $repo->getTotalColaboradoresVinculados($training['id']);
-            $training['cargos_vinculados'] = $repo->getLinkedPositionsCount($training['id']);
-        }
-        unset($training);
 
         // Montar HTML da tabela
         $html = '<div style="margin: 20px; font-family: Arial, sans-serif;">';

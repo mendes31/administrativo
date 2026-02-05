@@ -198,6 +198,10 @@ class PositionsRepository extends DbConnection
                     $oldData,
                     $data
                 );
+                
+                // Invalidar cache de getAllPositionsSelect
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('positions_select_all');
             }
 
             return $result;
@@ -249,6 +253,11 @@ class PositionsRepository extends DbConnection
                         []
                     );
                 }
+                
+                // Invalidar cache de getAllPositionsSelect
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('positions_select_all');
+                
                 return true;
             } else {
                 // Gerar log de erro
@@ -266,20 +275,28 @@ class PositionsRepository extends DbConnection
 
     public function getAllPositionsSelect(): array
     {
-        // QUERY para recuperar os registros do banco de dados
+        // Cache para queries frequentes (TTL: 5 minutos)
+        $cacheService = new \App\adms\Models\Services\QueryCacheService(null, 300);
+        $cacheKey = 'positions_select_all';
+        
+        // Tentar obter do cache
+        $cached = $cacheService->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+        
+        // Se não estiver em cache, buscar do banco
         $sql = 'SELECT id, name 
                 FROM adms_positions                
                 ORDER BY name ASC';
-
-        // Preparar a QUERY
         $stmt = $this->getConnection()->prepare($sql);
-
-
-        // Executar a QUERY
         $stmt->execute();
-
-        // Ler os registros e retornar
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Armazenar no cache
+        $cacheService->put($cacheKey, $result);
+        
+        return $result;
     }
 
     public function getPositionsByUser(int $userId): array

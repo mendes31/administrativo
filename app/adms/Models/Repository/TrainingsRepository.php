@@ -51,7 +51,30 @@ class TrainingsRepository extends DbConnection
             $params[':tipo_obrigatoriedade'] = $filters['tipo_obrigatoriedade'];
         }
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $sql = 'SELECT t.*, u.name as user_name, dep_resp.name as area_responsavel_nome, dep_elab.name as area_elaborador_nome FROM adms_trainings t
+        // OTIMIZADO: Incluir contagens de colaboradores e cargos vinculados em uma única query (resolve N+1)
+        $sql = 'SELECT 
+                t.*, 
+                u.name as user_name, 
+                dep_resp.name as area_responsavel_nome, 
+                dep_elab.name as area_elaborador_nome,
+                -- Contagem de colaboradores vinculados (otimização N+1)
+                (SELECT COUNT(DISTINCT u2.id)
+                 FROM adms_users u2
+                 INNER JOIN adms_training_users tu2 ON tu2.adms_user_id = u2.id
+                 LEFT JOIN adms_training_positions tp2 ON tp2.adms_training_id = tu2.adms_training_id 
+                     AND tp2.adms_position_id = u2.user_position_id 
+                     AND tp2.obrigatorio = 1
+                 WHERE tu2.adms_training_id = t.id
+                   AND u2.status = "Ativo"
+                   AND (tu2.tipo_vinculo = "individual" OR tp2.id IS NOT NULL)
+                ) as colaboradores_vinculados,
+                -- Contagem de cargos vinculados (otimização N+1)
+                (SELECT COUNT(*)
+                 FROM adms_training_positions tp3
+                 WHERE tp3.adms_training_id = t.id
+                   AND tp3.obrigatorio = 1
+                ) as cargos_vinculados
+                FROM adms_trainings t
                 LEFT JOIN adms_users u ON u.id = t.instructor_user_id
                 LEFT JOIN adms_departments dep_resp ON dep_resp.id = t.area_responsavel_id
                 LEFT JOIN adms_departments dep_elab ON dep_elab.id = t.area_elaborador_id
@@ -64,7 +87,16 @@ class TrainingsRepository extends DbConnection
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Converter contagens para inteiros
+        foreach ($results as &$result) {
+            $result['colaboradores_vinculados'] = (int)($result['colaboradores_vinculados'] ?? 0);
+            $result['cargos_vinculados'] = (int)($result['cargos_vinculados'] ?? 0);
+        }
+        unset($result);
+        
+        return $results;
     }
 
     public function getTraining(int|string $id): array|bool
@@ -132,6 +164,10 @@ class TrainingsRepository extends DbConnection
                     [],
                     $dadosDepois
                 );
+                
+                // Invalidar cache de getAllTrainingsSelect
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('trainings_select_all');
             }
             return $novoId;
         } catch (Exception $e) {
@@ -203,6 +239,10 @@ class TrainingsRepository extends DbConnection
                     $dadosAntes ?: [],
                     $dadosDepois
                 );
+                
+                // Invalidar cache de getAllTrainingsSelect
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('trainings_select_all');
             }
             return $result;
         } catch (Exception $e) {
@@ -236,6 +276,10 @@ class TrainingsRepository extends DbConnection
                     $dadosAntes ?: [],
                     []
                 );
+                
+                // Invalidar cache de getAllTrainingsSelect
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('trainings_select_all');
             }
             return $result;
         } catch (Exception $e) {
@@ -258,10 +302,26 @@ class TrainingsRepository extends DbConnection
 
     public function getAllTrainingsSelect(): array
     {
+        // Cache para queries frequentes (TTL: 5 minutos)
+        $cacheService = new \App\adms\Models\Services\QueryCacheService(null, 300);
+        $cacheKey = 'trainings_select_all';
+        
+        // Tentar obter do cache
+        $cached = $cacheService->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+        
+        // Se não estiver em cache, buscar do banco
         $sql = 'SELECT id, nome as name FROM adms_trainings ORDER BY nome ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Armazenar no cache
+        $cacheService->put($cacheKey, $result);
+        
+        return $result;
     }
 
     /**

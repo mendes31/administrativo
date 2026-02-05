@@ -90,15 +90,7 @@ class CompletedTrainingsMatrix
         $matrixData = $this->trainingUsersRepo->getCompletedTrainingsMatrixPaginated($filters, $page, $perPage);
         $matrix = $matrixData['data'];
         $total = $matrixData['total'];
-        // Filtro por código (parcial) em nível de aplicação caso o repositório não trate
-        if (!empty($filters['codigo'])) {
-            $codigoFiltro = trim((string)$filters['codigo']);
-            $matrix = array_values(array_filter($matrix, function($row) use ($codigoFiltro) {
-                $codigo = $row['training_code'] ?? $row['codigo'] ?? '';
-                return stripos((string)$codigo, $codigoFiltro) !== false;
-            }));
-            $total = count($matrix);
-        }
+        // NOTA: Filtro de código já é aplicado no SQL (não precisa filtrar em PHP novamente)
         $summary = $this->trainingUsersRepo->getCompletedTrainingsSummary($filters);
         // Exportação
         if (isset($_GET['export']) && $_GET['export'] === 'excel') {
