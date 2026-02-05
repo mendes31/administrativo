@@ -121,6 +121,131 @@ class CrmOpportunitiesRepository extends DbConnection
     }
 
     /**
+     * Buscar todas as oportunidades agrupadas por etapa (otimização para Kanban)
+     * 
+     * @param array $filters Filtros adicionais
+     * @return array Array associativo: stage_id => [opportunities]
+     */
+    public function getAllOpportunitiesByStages(array $filters = []): array
+    {
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
+        $sql = 'SELECT 
+                    o.id,
+                    o.code,
+                    o.title,
+                    o.value,
+                    o.probability,
+                    o.expected_close_date,
+                    o.next_action,
+                    o.stage_entered_at,
+                    o.stage_id,
+                    p.name as partner_name,
+                    p.segment,
+                    u.name as responsible_name,
+                    DATEDIFF(NOW(), o.stage_entered_at) as days_in_stage
+                FROM crm_opportunities o
+                INNER JOIN crm_partners p ON o.partner_id = p.id
+                INNER JOIN adms_users u ON o.responsible_user_id = u.id
+                WHERE o.status = ?';
+
+        $params = ['Aberta'];
+
+        // Filtro por responsável (usuário específico)
+        if (!empty($filters['responsible_user_id'])) {
+            $sql .= ' AND o.responsible_user_id = ?';
+            $params[] = $filters['responsible_user_id'];
+        }
+        // Filtro por array de IDs permitidos (hierarquia)
+        elseif ($usePositional) {
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND o.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+        }
+
+        // Filtro por busca
+        if (!empty($filters['search'])) {
+            $sql .= ' AND (o.title LIKE ? OR p.name LIKE ?)';
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+        }
+
+        $sql .= ' ORDER BY o.stage_id ASC, o.value DESC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute(array_values($params));
+
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Agrupar por stage_id
+        $opportunitiesByStage = [];
+        foreach ($results as $row) {
+            $stageId = (int)$row['stage_id'];
+            if (!isset($opportunitiesByStage[$stageId])) {
+                $opportunitiesByStage[$stageId] = [];
+            }
+            $opportunitiesByStage[$stageId][] = $row;
+        }
+
+        return $opportunitiesByStage;
+    }
+
+    /**
+     * Buscar valores totais agrupados por etapa (otimização para Kanban)
+     * 
+     * @param array $filters Filtros adicionais
+     * @return array Array associativo: stage_id => total_value
+     */
+    public function getTotalValuesByStages(array $filters = []): array
+    {
+        // Detectar se vai usar array de IDs
+        $usePositional = !empty($filters['allowed_user_ids']) && is_array($filters['allowed_user_ids']);
+        
+        $sql = 'SELECT 
+                    o.stage_id,
+                    SUM(o.value) as total_value,
+                    COUNT(o.id) as count
+                FROM crm_opportunities o
+                WHERE o.status = ?';
+
+        $params = ['Aberta'];
+
+        // Filtro por responsável (usuário específico)
+        if (!empty($filters['responsible_user_id'])) {
+            $sql .= ' AND o.responsible_user_id = ?';
+            $params[] = $filters['responsible_user_id'];
+        }
+        // Filtro por array de IDs permitidos (hierarquia)
+        elseif ($usePositional) {
+            $placeholders = implode(',', array_fill(0, count($filters['allowed_user_ids']), '?'));
+            $sql .= " AND o.responsible_user_id IN ($placeholders)";
+            
+            foreach ($filters['allowed_user_ids'] as $userId) {
+                $params[] = (int)$userId;
+            }
+        }
+
+        $sql .= ' GROUP BY o.stage_id';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute(array_values($params));
+
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Converter para array associativo
+        $valuesByStage = [];
+        foreach ($results as $row) {
+            $valuesByStage[(int)$row['stage_id']] = (float)$row['total_value'];
+        }
+
+        return $valuesByStage;
+    }
+
+    /**
      * Buscar valor total do pipeline
      *
      * @param array $filters Filtros adicionais

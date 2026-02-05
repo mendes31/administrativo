@@ -44,23 +44,14 @@ class OrganizationChart
         }
         unset($user);
         
-        // Separar usuários com e sem supervisor
+        // OTIMIZADO: Separar usuários usando contagem de subordinados (já calculada no SQL)
         $usersWithSupervisor = [];
         $orphans = []; // Sem supervisor e sem subordinados
         
         foreach ($allUsers as $user) {
+            $hasSubordinates = (int)($user['direct_subordinates_count'] ?? 0) > 0;
+            
             if ($user['immediate_supervisor_id'] === null || $user['immediate_supervisor_id'] === '') {
-                // Verificar se tem subordinados
-                $hasSubordinates = false;
-                foreach ($allUsers as $otherUser) {
-                    if (isset($otherUser['immediate_supervisor_id']) && 
-                        $otherUser['immediate_supervisor_id'] !== null && 
-                        (int)$otherUser['immediate_supervisor_id'] === (int)$user['id']) {
-                        $hasSubordinates = true;
-                        break;
-                    }
-                }
-                
                 if (!$hasSubordinates) {
                     $orphans[] = $user;
                 } else {
@@ -100,14 +91,10 @@ class OrganizationChart
             ];
         }
         
-        // Estatísticas
-        $this->data['stats'] = [
-            'total_users' => count($allUsers),
-            'total_managers' => $this->countManagers($allUsers),
-            'total_levels' => $this->countLevels($allUsers),
-            'largest_team' => $this->getLargestTeam($allUsers),
-            'orphans_count' => count($orphans)
-        ];
+        // Estatísticas (OTIMIZADO: usar método do repository)
+        $stats = $usersRepo->getHierarchyStats();
+        $stats['total_levels'] = $this->countLevels($allUsers); // Ainda precisa ser calculado em PHP
+        $this->data['stats'] = $stats;
         
         // Filtro por departamento (opcional)
         $filters = [
@@ -172,21 +159,14 @@ class OrganizationChart
     
     /**
      * Contar quantos gerentes (usuários com subordinados)
+     * OTIMIZADO: Usa contagem já calculada no SQL
      */
     private function countManagers(array $users): int
     {
         $managers = 0;
         
         foreach ($users as $user) {
-            $hasSubordinates = false;
-            foreach ($users as $potentialSubordinate) {
-                if ($potentialSubordinate['immediate_supervisor_id'] == $user['id']) {
-                    $hasSubordinates = true;
-                    break;
-                }
-            }
-            
-            if ($hasSubordinates) {
+            if ((int)($user['direct_subordinates_count'] ?? 0) > 0) {
                 $managers++;
             }
         }
@@ -228,14 +208,14 @@ class OrganizationChart
     
     /**
      * Obter maior equipe (gerente com mais subordinados diretos)
+     * OTIMIZADO: Usa contagem já calculada no SQL
      */
     private function getLargestTeam(array $users): array
     {
         $largest = ['manager' => null, 'count' => 0];
         
         foreach ($users as $user) {
-            $subordinates = array_filter($users, fn($u) => $u['immediate_supervisor_id'] == $user['id']);
-            $count = count($subordinates);
+            $count = (int)($user['direct_subordinates_count'] ?? 0);
             
             if ($count > $largest['count']) {
                 $largest = [

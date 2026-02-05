@@ -62,12 +62,18 @@ class CrmKanbanPipeline
         // Buscar TODAS as etapas ativas (incluindo finais: Ganho e Perdido)
         $this->data['stages'] = $stagesRepo->getActiveStages();
 
-        // Buscar oportunidades por etapa
+        // OTIMIZADO: Buscar todas as oportunidades e valores de uma vez (resolve N+1)
+        $allOpportunities = $opportunitiesRepo->getAllOpportunitiesByStages($filters);
+        $allValues = $opportunitiesRepo->getTotalValuesByStages($filters);
+
+        // Associar oportunidades e valores às etapas
         foreach ($this->data['stages'] as &$stage) {
-            $stage['opportunities'] = $opportunitiesRepo->getOpportunitiesByStage($stage['id'], $filters);
-            $stage['total_value'] = $opportunitiesRepo->getTotalValueByStage($stage['id'], $filters);
+            $stageId = (int)$stage['id'];
+            $stage['opportunities'] = $allOpportunities[$stageId] ?? [];
+            $stage['total_value'] = $allValues[$stageId] ?? 0.0;
             $stage['count'] = count($stage['opportunities']);
         }
+        unset($stage);
 
         // Valor total do pipeline
         $this->data['total_pipeline_value'] = $opportunitiesRepo->getTotalPipelineValue($filters);

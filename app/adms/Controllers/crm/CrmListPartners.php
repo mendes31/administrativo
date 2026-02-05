@@ -73,12 +73,18 @@ class CrmListPartners
         $totalPartners = $partnersRepo->getAmountPartners($filters);
         $this->data['partners'] = $partnersRepo->getAllPartners((int)$page, (int)$this->limitResult, $filters);
         
-        // Carregar tags de cada parceiro
+        // OTIMIZADO: Buscar todas as tags de uma vez (resolve N+1)
         $tagsRepo = new CrmTagsRepository();
-        foreach ($this->data['partners'] as &$partner) {
-            $partner['tags'] = $tagsRepo->getPartnerTags($partner['id']);
+        if (!empty($this->data['partners'])) {
+            $partnerIds = array_column($this->data['partners'], 'id');
+            $allTags = $tagsRepo->getPartnersTags($partnerIds);
+            
+            // Associar tags aos parceiros
+            foreach ($this->data['partners'] as &$partner) {
+                $partner['tags'] = $allTags[$partner['id']] ?? [];
+            }
+            unset($partner);
         }
-        unset($partner); // Limpar referência
         
         // Paginação
         $pagination = PaginationService::generatePagination(

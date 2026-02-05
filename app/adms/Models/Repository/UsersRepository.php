@@ -1166,6 +1166,7 @@ class UsersRepository extends DbConnection
 
     /**
      * Obter todos os usuários para organograma
+     * OTIMIZADO: Inclui contagem de subordinados diretos via subquery
      */
     public function getAllUsersForChart(): array
     {
@@ -1179,7 +1180,13 @@ class UsersRepository extends DbConnection
                     u.immediate_supervisor_id,
                     u.status,
                     d.name as department_name,
-                    p.name as position_name
+                    p.name as position_name,
+                    -- Contagem de subordinados diretos (otimização O(n²))
+                    (SELECT COUNT(*) 
+                     FROM adms_users u2 
+                     WHERE u2.immediate_supervisor_id = u.id 
+                     AND u2.status = 1
+                    ) as direct_subordinates_count
                 FROM adms_users u
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
                 INNER JOIN adms_positions p ON u.user_position_id = p.id
@@ -1190,6 +1197,86 @@ class UsersRepository extends DbConnection
         $stmt->execute();
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Obter estatísticas de hierarquia (otimização para organograma)
+     * 
+     * @return array Estatísticas agregadas
+     */
+    public function getHierarchyStats(): array
+    {
+        $sql = 'SELECT 
+                    -- Total de usuários
+                    COUNT(*) as total_users,
+                    -- Total de gerentes (usuários com subordinados)
+                    COUNT(DISTINCT u1.id) as total_managers,
+                    -- Maior equipe (gerente com mais subordinados)
+                    (SELECT u3.name 
+                     FROM adms_users u3
+                     WHERE u3.status = 1
+                     AND EXISTS (
+                         SELECT 1 FROM adms_users u4 
+                         WHERE u4.immediate_supervisor_id = u3.id 
+                         AND u4.status = 1
+                     )
+                     ORDER BY (
+                         SELECT COUNT(*) 
+                         FROM adms_users u5 
+                         WHERE u5.immediate_supervisor_id = u3.id 
+                         AND u5.status = 1
+                     ) DESC
+                     LIMIT 1
+                    ) as largest_team_manager,
+                    (SELECT COUNT(*) 
+                     FROM adms_users u6
+                     WHERE u6.status = 1
+                     AND u6.immediate_supervisor_id = (
+                         SELECT u7.id 
+                         FROM adms_users u7
+                         WHERE u7.status = 1
+                         AND EXISTS (
+                             SELECT 1 FROM adms_users u8 
+                             WHERE u8.immediate_supervisor_id = u7.id 
+                             AND u8.status = 1
+                         )
+                         ORDER BY (
+                             SELECT COUNT(*) 
+                             FROM adms_users u9 
+                             WHERE u9.immediate_supervisor_id = u7.id 
+                             AND u9.status = 1
+                         ) DESC
+                         LIMIT 1
+                     )
+                    ) as largest_team_count,
+                    -- Usuários órfãos (sem supervisor e sem subordinados)
+                    COUNT(CASE 
+                        WHEN u1.immediate_supervisor_id IS NULL 
+                        AND NOT EXISTS (
+                            SELECT 1 FROM adms_users u10 
+                            WHERE u10.immediate_supervisor_id = u1.id 
+                            AND u10.status = 1
+                        )
+                        THEN 1 
+                    END) as orphans_count
+                FROM adms_users u1
+                WHERE u1.status = 1';
+        
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Calcular níveis hierárquicos (mais complexo, fazer em PHP após otimizar)
+        return [
+            'total_users' => (int)($result['total_users'] ?? 0),
+            'total_managers' => (int)($result['total_managers'] ?? 0),
+            'largest_team' => [
+                'manager' => $result['largest_team_manager'] ?? null,
+                'count' => (int)($result['largest_team_count'] ?? 0)
+            ],
+            'orphans_count' => (int)($result['orphans_count'] ?? 0)
+        ];
     }
     
     public function getUserDepartments(int $id): array|bool

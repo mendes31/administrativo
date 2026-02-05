@@ -18,15 +18,32 @@ class CrmTagsRepository extends DbConnection
 {
     /**
      * Buscar todas as tags
+     * OTIMIZADO: Cache implementado (TTL: 5 minutos)
      */
     public function getAllTags(): array
     {
+        // Cache para queries frequentes (TTL: 5 minutos)
+        $cacheService = new \App\adms\Models\Services\QueryCacheService(null, 300);
+        $cacheKey = 'crm_tags_all';
+        
+        // Tentar obter do cache
+        $cached = $cacheService->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+        
+        // Se não estiver em cache, buscar do banco
         $sql = 'SELECT * FROM crm_tags ORDER BY name ASC';
 
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Armazenar no cache
+        $cacheService->put($cacheKey, $result);
+        
+        return $result;
     }
 
     /**
@@ -45,7 +62,15 @@ class CrmTagsRepository extends DbConnection
 
             $stmt->execute();
 
-            return $this->getConnection()->lastInsertId();
+            $tagId = $this->getConnection()->lastInsertId();
+            
+            // Invalidar cache de getAllTags
+            if ($tagId) {
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('crm_tags_all');
+            }
+            
+            return $tagId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Tag não cadastrada.", [
                 'error' => $e->getMessage()
@@ -98,6 +123,57 @@ class CrmTagsRepository extends DbConnection
     }
 
     /**
+     * Buscar tags de múltiplos parceiros de uma vez (otimização N+1)
+     * 
+     * @param array $partnerIds Array de IDs de parceiros
+     * @return array Array associativo: partner_id => [tags]
+     */
+    public function getPartnersTags(array $partnerIds): array
+    {
+        if (empty($partnerIds)) {
+            return [];
+        }
+
+        // Criar placeholders para IN clause
+        $placeholders = implode(',', array_fill(0, count($partnerIds), '?'));
+        
+        $sql = 'SELECT 
+                    pt.partner_id,
+                    t.id,
+                    t.name,
+                    t.color,
+                    t.description,
+                    t.created_at
+                FROM crm_tags t
+                INNER JOIN crm_partner_tags pt ON t.id = pt.tag_id
+                WHERE pt.partner_id IN (' . $placeholders . ')
+                ORDER BY pt.partner_id ASC, t.name ASC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($partnerIds);
+
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Agrupar tags por partner_id
+        $tagsByPartner = [];
+        foreach ($results as $row) {
+            $partnerId = (int)$row['partner_id'];
+            if (!isset($tagsByPartner[$partnerId])) {
+                $tagsByPartner[$partnerId] = [];
+            }
+            $tagsByPartner[$partnerId][] = [
+                'id' => (int)$row['id'],
+                'name' => $row['name'],
+                'color' => $row['color'],
+                'description' => $row['description'],
+                'created_at' => $row['created_at']
+            ];
+        }
+
+        return $tagsByPartner;
+    }
+
+    /**
      * Buscar tag por ID
      */
     public function getTagById(int $id): array|bool
@@ -140,6 +216,10 @@ class CrmTagsRepository extends DbConnection
                     $oldData,
                     $data
                 );
+                
+                // Invalidar cache de getAllTags
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('crm_tags_all');
             }
 
             return $result;
@@ -174,6 +254,10 @@ class CrmTagsRepository extends DbConnection
                     $tag,
                     []
                 );
+                
+                // Invalidar cache de getAllTags
+                $cacheService = new \App\adms\Models\Services\QueryCacheService();
+                $cacheService->forget('crm_tags_all');
             }
 
             return $result;
