@@ -75,11 +75,24 @@ class ListTrainingStatus
         }
 
         $statusFiltro = $filters['status'] ?? '';
-
+        
+        // Paginação
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = $paginationSettings['per_page'] ?? 50; // Usar configuração responsiva
+        
+        // Buscar dados com paginação (OTIMIZADO - resolve N+1 e adiciona paginação)
+        $matrixResult = $trainingUsersRepo->getTrainingStatusByUser($filters, $page, $perPage);
+        
         // Dados para a view
         $this->data = [
             'filters' => $filters,
-            'matrix' => $trainingUsersRepo->getTrainingStatusByUser($filters),
+            'matrix' => $matrixResult['data'],
+            'pagination' => [
+                'total' => $matrixResult['total'],
+                'total_pages' => $matrixResult['total_pages'],
+                'current_page' => $matrixResult['current_page'],
+                'per_page' => $matrixResult['per_page'],
+            ],
             'summary' => $trainingUsersRepo->getSummaryAll(),
             'expiring' => $trainingUsersRepo->getExpiringTrainings(30),
             'listDepartments' => $departmentsRepo->getAllDepartmentsSelect(),
@@ -87,42 +100,16 @@ class ListTrainingStatus
             'listTrainings' => $trainingsRepo->getAllTrainingsSelect(),
             'listUsers' => $usersRepo->getAllUsersSelect(),
         ];
-
-        // Filtragem de status no backend
-        $matrix = $trainingUsersRepo->getTrainingStatusByUser($filters);
-        if ($statusFiltro === '') {
-            // Todos exceto concluído
-            $matrix = array_filter($matrix, function($row) {
-                $status = $row['status_dinamico'] ?? $row['status'] ?? '';
-                return $status !== 'concluido';
-            });
-        } elseif ($statusFiltro === 'concluido') {
-            $matrix = array_filter($matrix, function($row) {
-                $status = $row['status_dinamico'] ?? $row['status'] ?? '';
-                return $status === 'concluido';
-            });
-        } elseif ($statusFiltro) {
-            $matrix = array_filter($matrix, function($row) use ($statusFiltro) {
-                $status = $row['status_dinamico'] ?? $row['status'] ?? '';
-                return $status === $statusFiltro;
-            });
-        }
-        $this->data['matrix'] = $matrix;
-        // Contagem dinâmica dos status para os cards
+        // Contagem dinâmica dos status para os cards (usar summary otimizado)
+        $summary = $trainingUsersRepo->getSummaryAll();
         $statusCounts = [
-            'dentro_do_prazo' => 0,
-            'proximo_vencimento' => 0,
-            'vencido' => 0,
-            'agendado' => 0,
-            'concluido' => 0,
+            'dentro_do_prazo' => $summary['dentro_do_prazo'] ?? 0,
+            'proximo_vencimento' => $summary['proximo_vencimento'] ?? 0,
+            'vencido' => $summary['vencido'] ?? 0,
+            'agendado' => $summary['agendado'] ?? 0,
+            'concluido' => $summary['concluido'] ?? 0,
+            'todos' => $summary['todos'] ?? 0,
         ];
-        foreach ($matrix as $row) {
-            $status = $row['status_dinamico'] ?? $row['status'] ?? '';
-            if (isset($statusCounts[$status])) {
-                $statusCounts[$status]++;
-            }
-        }
-        $statusCounts['todos'] = $statusCounts['dentro_do_prazo'] + $statusCounts['proximo_vencimento'] + $statusCounts['vencido'] + $statusCounts['agendado'];
         $this->data['statusCounts'] = $statusCounts;
 
         // Elementos de página

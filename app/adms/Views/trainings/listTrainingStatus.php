@@ -461,6 +461,80 @@ thead th {
                     </div>
                 <?php endforeach; ?>
             </div>
+            
+            <!-- Paginação -->
+            <?php 
+            $pagination = $this->data['pagination'] ?? null;
+            if ($pagination && $pagination['total_pages'] > 1): 
+                $currentPage = $pagination['current_page'];
+                $totalPages = $pagination['total_pages'];
+                $filters = $this->data['filters'] ?? [];
+                $queryString = http_build_query(array_filter($filters));
+            ?>
+            <nav aria-label="Paginação de treinamentos" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Botão Anterior -->
+                    <?php if ($currentPage > 1): ?>
+                        <li class="page-item">
+                            <a class="page-link" href="?<?= $queryString ? ($queryString . '&') : '' ?>page=<?= $currentPage - 1 ?>">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                    <?php else: ?>
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="fas fa-chevron-left"></i> Anterior</span>
+                        </li>
+                    <?php endif; ?>
+                    
+                    <!-- Páginas -->
+                    <?php
+                    $start = max(1, $currentPage - 2);
+                    $end = min($totalPages, $currentPage + 2);
+                    
+                    if ($start > 1): ?>
+                        <li class="page-item">
+                            <a class="page-link" href="?<?= $queryString ? ($queryString . '&') : '' ?>page=1">1</a>
+                        </li>
+                        <?php if ($start > 2): ?>
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    
+                    <?php for ($i = $start; $i <= $end; $i++): ?>
+                        <li class="page-item <?= $i === $currentPage ? 'active' : '' ?>">
+                            <a class="page-link" href="?<?= $queryString ? ($queryString . '&') : '' ?>page=<?= $i ?>"><?= $i ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    
+                    <?php if ($end < $totalPages): ?>
+                        <?php if ($end < $totalPages - 1): ?>
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        <?php endif; ?>
+                        <li class="page-item">
+                            <a class="page-link" href="?<?= $queryString ? ($queryString . '&') : '' ?>page=<?= $totalPages ?>"><?= $totalPages ?></a>
+                        </li>
+                    <?php endif; ?>
+                    
+                    <!-- Botão Próximo -->
+                    <?php if ($currentPage < $totalPages): ?>
+                        <li class="page-item">
+                            <a class="page-link" href="?<?= $queryString ? ($queryString . '&') : '' ?>page=<?= $currentPage + 1 ?>">
+                                Próximo <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    <?php else: ?>
+                        <li class="page-item disabled">
+                            <span class="page-link">Próximo <i class="fas fa-chevron-right"></i></span>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+                <div class="text-center text-muted mt-2">
+                    Mostrando <?= min(($currentPage - 1) * $pagination['per_page'] + 1, $pagination['total']) ?> 
+                    a <?= min($currentPage * $pagination['per_page'], $pagination['total']) ?> 
+                    de <?= number_format($pagination['total']) ?> registros
+                </div>
+            </nav>
+            <?php endif; ?>
         </div>
     </div>
 </div>

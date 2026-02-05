@@ -176,10 +176,22 @@ class TrainingUsersRepository extends DbConnection
         }
     }
 
-    public function getTrainingStatusByUser(array $filters = []): array
+    /**
+     * Retorna vínculos de treinamentos com paginação e otimização N+1
+     * 
+     * @param array $filters Filtros de busca
+     * @param int $page Número da página (começa em 1)
+     * @param int $perPage Registros por página
+     * @return array ['data' => [], 'total' => 0, 'total_pages' => 0]
+     */
+    public function getTrainingStatusByUser(array $filters = [], int $page = 1, int $perPage = 50): array
     {
+        // Calcular offset
+        $offset = max(0, ($page - 1) * $perPage);
+        
         // Busca todos os vínculos de treinamentos dos usuários
         // IMPORTANTE: Filtra apenas usuários ATIVOS e treinamentos ATIVOS
+        // OTIMIZAÇÃO: Usa LEFT JOIN para buscar última aplicação em uma única query (resolve N+1)
         $sql = 'SELECT 
                 u.id as user_id, 
                 u.name as user_name, 
@@ -197,16 +209,60 @@ class TrainingUsersRepository extends DbConnection
                 tu.created_at as vinculo_created_at,
                 tu.data_limite_primeiro_treinamento,
                 tu.data_agendada,
-                tp.tipo_treinamento
+                tp.tipo_treinamento,
+                -- Última aplicação (otimização N+1)
+                ta_last.data_realizacao,
+                ta_last.nota,
+                ta_last.observacoes,
+                ta_last.instrutor_nome,
+                ta_last.instrutor_email,
+                ta_last.aplicado_por,
+                ta_last.id as application_id
             FROM adms_training_users tu
             INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = "Ativo"
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
             LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
             INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
-            WHERE 1=1 and tu.status != "concluido"';
+            -- LEFT JOIN para última aplicação (subquery otimizada)
+            LEFT JOIN (
+                SELECT 
+                    ta1.adms_user_id,
+                    ta1.adms_training_id,
+                    ta1.data_realizacao,
+                    ta1.nota,
+                    ta1.observacoes,
+                    ta1.instrutor_nome,
+                    ta1.instrutor_email,
+                    ta1.aplicado_por,
+                    ta1.id,
+                    ta1.created_at
+                FROM adms_training_applications ta1
+                INNER JOIN (
+                    SELECT 
+                        adms_user_id,
+                        adms_training_id,
+                        MAX(created_at) as max_created_at
+                    FROM adms_training_applications
+                    GROUP BY adms_user_id, adms_training_id
+                ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                    AND ta1.adms_training_id = ta2.adms_training_id 
+                    AND ta1.created_at = ta2.max_created_at
+            ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                AND ta_last.adms_training_id = tu.adms_training_id
+                AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)
+            WHERE 1=1';
         
         $params = [];
+        
+        // Filtro de status (aplicado no SQL quando possível)
+        if (!empty($filters['status']) && $filters['status'] !== '') {
+            // Status será filtrado após calcular status_dinamico
+        } else {
+            // Por padrão, excluir concluídos
+            $sql .= ' AND tu.status != "concluido"';
+        }
+        
         if (!empty($filters['colaborador'])) {
             $sql .= ' AND u.id = ?';
             $params[] = $filters['colaborador'];
@@ -236,33 +292,22 @@ class TrainingUsersRepository extends DbConnection
             $params[] = '%' . $filters['codigo'] . '%';
         }
         
+        // Contar total antes de aplicar LIMIT
+        $countSql = 'SELECT COUNT(*) as total FROM (' . $sql . ') as count_query';
+        $countStmt = $this->getConnection()->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+        
+        // Aplicar paginação
         $sql .= ' ORDER BY u.name ASC, t.nome ASC';
+        $sql .= ' LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Buscar dados da última aplicação para cada vínculo
-        $appRepo = new \App\adms\Models\Repository\TrainingApplicationsRepository();
+        // Calcular status dinâmico para cada resultado
         foreach ($results as &$result) {
-            // Buscar última aplicação após o vínculo
-            $history = $appRepo->getHistoryAfter(
-                $result['user_id'], 
-                $result['training_id'], 
-                $result['vinculo_created_at']
-            );
-            $lastApplication = $history[0] ?? null;
-            // Adicionar dados da aplicação apenas para histórico, não sobrescrever data_agendada do vínculo
-            $result['data_realizacao'] = $lastApplication['data_realizacao'] ?? null;
-            $result['nota'] = $lastApplication['nota'] ?? null;
-            $result['observacoes'] = $lastApplication['observacoes'] ?? null;
-            $result['instrutor_nome'] = $lastApplication['instrutor_nome'] ?? null;
-            $result['instrutor_email'] = $lastApplication['instrutor_email'] ?? null;
-            $result['aplicado_por'] = $lastApplication['aplicado_por'] ?? null;
-            $result['application_id'] = $lastApplication['id'] ?? null;
-            // NÃO sobrescrever data_agendada do vínculo:
-            // $result['data_agendada'] = $lastApplication['data_agendada'] ?? null;
-            // Calcular status dinâmico com base apenas nos campos do vínculo
             $result['status_dinamico'] = $this->calculateStatus([
                 'data_limite_primeiro_treinamento' => $result['data_limite_primeiro_treinamento'],
                 'data_realizacao' => null, // não considerar realização na matriz de obrigatoriedade
@@ -271,8 +316,35 @@ class TrainingUsersRepository extends DbConnection
                 'tipo_vinculo' => $result['tipo_vinculo'] ?? 'individual',
             ]);
         }
+        unset($result);
         
-        return $results;
+        // Filtrar por status dinâmico se necessário (após calcular)
+        if (!empty($filters['status']) && $filters['status'] !== '') {
+            $results = array_filter($results, function($row) use ($filters) {
+                $status = $row['status_dinamico'] ?? $row['status'] ?? '';
+                return $status === $filters['status'];
+            });
+            // Recalcular total após filtro
+            $total = count($results);
+        }
+        
+        return [
+            'data' => array_values($results), // Reindexar array após filter
+            'total' => $total,
+            'total_pages' => ceil($total / $perPage),
+            'current_page' => $page,
+            'per_page' => $perPage
+        ];
+    }
+    
+    /**
+     * Método legado mantido para compatibilidade
+     * @deprecated Use getTrainingStatusByUser com paginação
+     */
+    public function getTrainingStatusByUserLegacy(array $filters = []): array
+    {
+        $result = $this->getTrainingStatusByUser($filters, 1, 10000);
+        return $result['data'];
     }
 
     /**
