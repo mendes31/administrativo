@@ -29,12 +29,27 @@ echo "\n2. Tentando salvar cache de teste...\n";
 $saved = $cacheService->put($testKey, $testData);
 echo "   💾 Resultado: " . ($saved ? "✅ SUCESSO" : "❌ FALHOU") . "\n";
 
-// Verificar se o arquivo foi criado
-$testFile = $cacheDir . '/' . $testKey . '.json';
+// Verificar se o arquivo foi criado (usar o mesmo método do QueryCacheService)
+$reflection = new ReflectionClass($cacheService);
+$filePathMethod = $reflection->getMethod('filePath');
+$filePathMethod->setAccessible(true);
+$testFile = $filePathMethod->invoke($cacheService, $testKey);
+echo "   📄 Caminho completo: {$testFile}\n";
 echo "   📄 Arquivo criado? " . (file_exists($testFile) ? "✅ SIM" : "❌ NÃO") . "\n";
 if (file_exists($testFile)) {
     echo "   📄 Tamanho: " . filesize($testFile) . " bytes\n";
     echo "   📄 Conteúdo: " . file_get_contents($testFile) . "\n";
+} else {
+    // Listar todos os arquivos na pasta para ver o que foi criado
+    echo "   🔍 Listando todos os arquivos na pasta:\n";
+    $files = glob($cacheDir . '/*');
+    if (empty($files)) {
+        echo "      📂 Pasta vazia\n";
+    } else {
+        foreach ($files as $file) {
+            echo "      📄 " . basename($file) . " (" . filesize($file) . " bytes)\n";
+        }
+    }
 }
 
 // Tentar ler o cache
@@ -54,11 +69,14 @@ try {
     echo "   ✅ Método executado com sucesso\n";
     echo "   📊 Registros retornados: " . count($result) . "\n";
     
-    // Verificar se o cache foi criado
-    $cacheFile = $cacheDir . '/trainings_select_all.json';
+    // Verificar se o cache foi criado (usar o método correto)
+    $cacheFile = $cacheService->getFilePath('trainings_select_all');
+    echo "   📄 Caminho do cache: {$cacheFile}\n";
     echo "   📄 Cache criado? " . (file_exists($cacheFile) ? "✅ SIM" : "❌ NÃO") . "\n";
     if (file_exists($cacheFile)) {
         echo "   📄 Tamanho: " . filesize($cacheFile) . " bytes\n";
+    } else {
+        echo "   ⚠️ Arquivo não encontrado no caminho esperado\n";
     }
 } catch (Exception $e) {
     echo "   ❌ ERRO: " . $e->getMessage() . "\n";

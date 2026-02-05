@@ -191,5 +191,16 @@ class QueryCacheService
     {
         return file_exists($this->filePath($key));
     }
+
+    /**
+     * Obtém o caminho completo do arquivo de cache (para debug)
+     * 
+     * @param string $key Chave do cache
+     * @return string Caminho completo do arquivo
+     */
+    public function getFilePath(string $key): string
+    {
+        return $this->filePath($key);
+    }
 }
 
