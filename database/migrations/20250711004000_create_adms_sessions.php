@@ -18,7 +18,10 @@ final class CreateAdmsSessions extends AbstractMigration
                 ->addColumn('session_id', 'string', ['limit' => 255, 'null' => false, 'comment' => 'ID da sessão'])
                 ->addColumn('created_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])
                 ->addIndex(['user_id'])
-                ->addIndex(['session_id'], ['unique' => true])
+                // NOTA: Índice único não é criado aqui porque a coluna 'session_id' é VARCHAR(255) 
+                // com utf8mb4, o que resulta em 1020 bytes (255 * 4), excedendo o limite 
+                // de 767 bytes do MySQL para índices. A validação de unicidade é feita na aplicação PHP.
+                ->addIndex(['session_id'], ['unique' => false, 'name' => 'idx_session_id']) // Índice não-único para performance
                 ->create();
         }
     }
