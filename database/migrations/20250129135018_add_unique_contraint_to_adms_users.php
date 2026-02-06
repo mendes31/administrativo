@@ -19,16 +19,38 @@ final class AddUniqueContraintToAdmsUsers extends AbstractMigration
     {
         // Acessar o IF quando a tabela existe no banco de dados
         if ($this->hasTable('adms_users')) {
-
-            // Alterar a tabela para adicionar índices únicos
+            // NOTA: Índices únicos não são criados aqui porque as colunas email e username
+            // são VARCHAR(255) com utf8mb4, o que resulta em 1020 bytes (255 * 4),
+            // excedendo o limite de 767 bytes do MySQL para índices.
+            // A validação de unicidade é feita na aplicação PHP.
+            
+            // Criar índices não-únicos para melhorar performance de buscas
             $table = $this->table('adms_users');
-
-            // Adicionar indices únicos às colunas email e username
-            // 'name' => 'idx_unique_email' - nomear o indice único
-
-            $table->addIndex(['email'], ['unique' => true, 'name' => 'idx_unique_email'])
-                ->addIndex(['username'], ['unique' => true, 'name' => 'idx_unique_username'])
-                ->update();
+            
+            // Verificar se os índices já existem antes de criar
+            $indexes = $this->query("SHOW INDEX FROM adms_users")->fetchAll();
+            $hasEmailIndex = false;
+            $hasUsernameIndex = false;
+            
+            foreach ($indexes as $index) {
+                if ($index['Key_name'] === 'idx_email' || strpos($index['Key_name'], 'email') !== false) {
+                    $hasEmailIndex = true;
+                }
+                if ($index['Key_name'] === 'idx_username' || strpos($index['Key_name'], 'username') !== false) {
+                    $hasUsernameIndex = true;
+                }
+            }
+            
+            // Adicionar índices não-únicos apenas se não existirem
+            if (!$hasEmailIndex) {
+                $table->addIndex(['email'], ['unique' => false, 'name' => 'idx_email'])
+                    ->update();
+            }
+            
+            if (!$hasUsernameIndex) {
+                $table->addIndex(['username'], ['unique' => false, 'name' => 'idx_username'])
+                    ->update();
+            }
         }
     }
     /**
@@ -43,14 +65,21 @@ final class AddUniqueContraintToAdmsUsers extends AbstractMigration
     {
         // Acessa o IF quando a tabela existe no banco de dados
         if ($this->hasTable('adms_users')) {
-
-            // Indicar a tabela para remover os indices punicos das colunas email e username
+            // Indicar a tabela para remover os índices das colunas email e username
             $table = $this->table('adms_users');
 
-            // Remover os indices unicos
-            $table->removeIndexByName('idx_unique_email')
-                ->removeIndexByName('idx_unique_username')
-                ->update();
+            // Remover os índices (se existirem)
+            try {
+                $table->removeIndexByName('idx_email')->update();
+            } catch (\Exception $e) {
+                // Ignorar se não existir
+            }
+            
+            try {
+                $table->removeIndexByName('idx_username')->update();
+            } catch (\Exception $e) {
+                // Ignorar se não existir
+            }
         }
     }
 }
