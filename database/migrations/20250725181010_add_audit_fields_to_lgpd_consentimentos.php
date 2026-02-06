@@ -5,6 +5,11 @@ class AddAuditFieldsToLgpdConsentimentos extends AbstractMigration
 {
     public function up()
     {
+        // A tabela lgpd_consentimentos já foi criada na migration anterior (20250725181000)
+        if (!$this->hasTable('lgpd_consentimentos')) {
+            return; // Segurança: se a tabela não existir, pular
+        }
+        
         $table = $this->table('lgpd_consentimentos');
         
         // Campos de auditoria técnica (ALTA PRIORIDADE)
@@ -46,6 +51,11 @@ class AddAuditFieldsToLgpdConsentimentos extends AbstractMigration
 
     public function down()
     {
+        // Verificar se a tabela existe antes de tentar remover colunas
+        if (!$this->hasTable('lgpd_consentimentos')) {
+            return; // Tabela não existe, nada a fazer
+        }
+        
         $table = $this->table('lgpd_consentimentos');
         
         if ($table->hasColumn('ip_address')) {
