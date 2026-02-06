@@ -96,6 +96,27 @@ class LgpdTermosRepository extends DbConnection
         }
     }
 
+    /**
+     * Buscar todos os termos ativos (para select em formulários).
+     */
+    public function getAllActiveTerms(): array
+    {
+        try {
+            $sql = "SELECT id, versao, titulo, tipo
+                    FROM lgpd_termos
+                    WHERE status = 'Ativo'
+                      AND data_inicio_vigencia <= NOW()
+                      AND (data_fim_vigencia IS NULL OR data_fim_vigencia >= NOW())
+                    ORDER BY titulo ASC";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Erro ao buscar todos os termos LGPD ativos: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public function create(array $data): bool
     {
         $sql = "INSERT INTO lgpd_termos 

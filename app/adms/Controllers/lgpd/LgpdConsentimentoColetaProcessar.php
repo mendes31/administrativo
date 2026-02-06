@@ -31,7 +31,7 @@ class LgpdConsentimentoColetaProcessar {
         
         // Salvar consentimento
         try {
-            $sucesso = $this->consentimentosRepo->create([
+            $consentId = $this->consentimentosRepo->create([
                 'titular_nome' => $dados['nome'],
                 'titular_email' => $dados['email'],
                 'finalidade' => $dados['finalidade'],
@@ -44,7 +44,7 @@ class LgpdConsentimentoColetaProcessar {
                 'termos_uso_aceitos' => $dados['termos_aceitos'] ?? false
             ]);
             
-            if ($sucesso) {
+            if ($consentId !== false && $consentId > 0) {
                 $_SESSION['sucesso'] = 'Consentimento registrado com sucesso! Obrigado por autorizar o tratamento de seus dados.';
             } else {
                 $_SESSION['erro'] = 'Erro ao registrar consentimento. Tente novamente.';

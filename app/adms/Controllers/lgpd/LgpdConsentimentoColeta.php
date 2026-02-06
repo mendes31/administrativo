@@ -85,7 +85,7 @@ class LgpdConsentimentoColeta {
         
         // Salvar consentimento
         try {
-            $sucesso = $this->consentimentosRepo->create([
+            $consentId = $this->consentimentosRepo->create([
                 'titular_nome' => $dados['nome'],
                 'titular_email' => $dados['email'],
                 'finalidade' => $dados['finalidade'],
@@ -98,7 +98,7 @@ class LgpdConsentimentoColeta {
                 'termos_uso_aceitos' => $dados['termos_aceitos'] ?? false
             ]);
             
-            if ($sucesso) {
+            if ($consentId !== false && $consentId > 0) {
                 $this->retornarSucesso('Consentimento registrado com sucesso!');
             } else {
                 $this->retornarErro('Erro ao registrar consentimento');
@@ -139,7 +139,7 @@ class LgpdConsentimentoColeta {
         
         // Salvar consentimento
         try {
-            $sucesso = $this->consentimentosRepo->create([
+            $consentId = $this->consentimentosRepo->create([
                 'titular_nome' => $dados['nome'],
                 'titular_email' => $dados['email'],
                 'finalidade' => $dados['finalidade'],
@@ -152,7 +152,7 @@ class LgpdConsentimentoColeta {
                 'termos_uso_aceitos' => $dados['termos_aceitos'] ?? false
             ]);
             
-            if ($sucesso) {
+            if ($consentId !== false && $consentId > 0) {
                 echo json_encode(['sucesso' => true, 'mensagem' => 'Consentimento registrado']);
             } else {
                 http_response_code(500);

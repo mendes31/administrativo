@@ -33,7 +33,15 @@ use App\adms\Helpers\CSRFHelper;
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <form action="" method="POST" class="row g-3">
+            <div class="alert alert-info">
+                <strong>Importante:</strong> Esta tela é usada para registrar consentimentos de <b>titulares externos</b>
+                (clientes, leads, fornecedores, parceiros etc.) que <b>não acessam o sistema</b>.
+                <br>
+                Os consentimentos de <b>usuários internos do sistema</b> são coletados automaticamente no primeiro login
+                e já ficam vinculados ao usuário — não é necessário cadastrá-los manualmente aqui.
+            </div>
+
+            <form action="" method="POST" class="row g-3" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_consentimento'); ?>">
 
                 <!-- Informações do Titular -->
@@ -54,6 +62,9 @@ use App\adms\Helpers\CSRFHelper;
                                            name="titular_nome" 
                                            value="<?php echo htmlspecialchars($this->data['form']['titular_nome'] ?? ''); ?>"
                                            required>
+                                    <div class="form-text">
+                                        Utilize o nome completo do titular (cliente, fornecedor, parceiro, lead, etc.).
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="titular_email" class="form-label">
@@ -64,6 +75,10 @@ use App\adms\Helpers\CSRFHelper;
                                            id="titular_email" 
                                            name="titular_email" 
                                            value="<?php echo htmlspecialchars($this->data['form']['titular_email'] ?? ''); ?>">
+                                    <div class="form-text">
+                                        Opcional. Caso não possua e-mail, você poderá identificar o titular por outros
+                                        dados em relatórios (ex.: nome, CPF, código interno, etc.).
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -107,6 +122,28 @@ use App\adms\Helpers\CSRFHelper;
                                     </select>
                                 </div>
                             </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label for="lgpd_termo_id" class="form-label">
+                                        Termo vinculado (opcional)
+                                    </label>
+                                    <select class="form-select" id="lgpd_termo_id" name="lgpd_termo_id">
+                                        <option value="">Selecione um termo (opcional)</option>
+                                        <?php if (!empty($this->data['termos'])): ?>
+                                            <?php foreach ($this->data['termos'] as $termo): ?>
+                                                <option value="<?php echo (int)$termo['id']; ?>"
+                                                    <?php echo (isset($this->data['form']['lgpd_termo_id']) && (int)$this->data['form']['lgpd_termo_id'] === (int)$termo['id']) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($termo['titulo'] . ' (versão ' . $termo['versao'] . ', tipo ' . $termo['tipo'] . ')'); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                    <div class="form-text">
+                                        Opcional. Use para indicar qual termo LGPD (documento) este consentimento está associado.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -148,7 +185,31 @@ use App\adms\Helpers\CSRFHelper;
 
                 <!-- Botões -->
                 <div class="col-12">
-                    <div class="d-flex justify-content-between">
+                    <div class="card border-dark">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-paperclip"></i>
+                                Documentos de Suporte (opcional)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted mb-2">
+                                Anexe documentos relacionados ao consentimento, como termos assinados em papel,
+                                contratos, scans de assinaturas, etc. Formatos permitidos: PDF, JPG, PNG.
+                            </p>
+                            <input type="file"
+                                   class="form-control"
+                                   id="anexos"
+                                   name="anexos[]"
+                                   multiple
+                                   accept=".pdf,.jpg,.jpeg,.png">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="col-12">
+                    <div class="d-flex justify-content-between mt-3">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Voltar
                         </a>

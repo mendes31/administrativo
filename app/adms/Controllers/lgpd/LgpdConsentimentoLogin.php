@@ -157,8 +157,12 @@ class LgpdConsentimentoLogin
         $stmtUser->execute();
         $user = $stmtUser->fetch(\PDO::FETCH_ASSOC) ?: ['name' => 'Usuário', 'email' => null];
 
-        // Registrar consentimento em lgpd_consentimentos (reutiliza o mesmo repositório)
-        $repoConsent->create([
+        // Coletar dados de auditoria
+        $auditHelper = new \App\adms\Helpers\LgpdAuditHelper();
+        $auditData = $auditHelper::collectTechnicalData();
+        
+        // Preparar dados do consentimento
+        $consentData = [
             'titular_nome' => $user['name'] ?? 'Usuário',
             'titular_email' => $user['email'] ?? null,
             'finalidade' => 'Uso do Sistema Administrativo Tiaraju, auditoria de acessos e registros de atividades.',
@@ -166,7 +170,19 @@ class LgpdConsentimentoLogin
             'data_consentimento' => date('Y-m-d H:i:s'),
             'status' => 'Ativo',
             'versao_termo' => $versao,
-        ]);
+            'lgpd_termo_id' => $termo['id'] ?? null,
+            'created_by_user_id' => $userId,
+            'adms_user_id' => $userId,
+        ];
+        
+        // Adicionar dados de auditoria
+        $consentData = array_merge($consentData, $auditData);
+        
+        // Gerar hash de integridade
+        $consentData['consent_hash'] = $auditHelper::generateConsentHash($consentData);
+        
+        // Registrar consentimento em lgpd_consentimentos (reutiliza o mesmo repositório)
+        $repoConsent->create($consentData);
 
         $_SESSION['success'] = 'Consentimento registrado com sucesso. Obrigado!';
         header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');

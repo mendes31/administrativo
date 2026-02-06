@@ -244,29 +244,26 @@ class Login
                     $temConsentimentoValido = false;
                     $emailLogin = $result['email'] ?? '';
 
-                    if (!empty($emailLogin)) {
-                        $consentRepo = new \App\adms\Models\Repository\LgpdConsentimentosRepository();
-                        // Busca o último consentimento ATIVO para este usuário (canal sistema_login)
+                    $consentRepo = new \App\adms\Models\Repository\LgpdConsentimentosRepository();
+                    // Preferencial: buscar pelo ID do usuário (adms_user_id)
+                    $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorUsuario((int)$result['id'], 'sistema_login');
+
+                    // Fallback para bases antigas: buscar por e-mail se não encontrar por usuário
+                    if (!$ultimoConsent && !empty($emailLogin)) {
                         $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
+                    }
 
-                        // Log detalhado para depuração
-                        file_put_contents(
-                            __DIR__ . '/../../../logs/login_debug.log',
-                            date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD - email=' . $emailLogin .
-                            ' | versao_atual=' . $consentVersionAtual .
-                            ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
-                            FILE_APPEND
-                        );
+                    // Log detalhado para depuração
+                    file_put_contents(
+                        __DIR__ . '/../../../logs/login_debug.log',
+                        date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD - email=' . $emailLogin .
+                        ' | versao_atual=' . $consentVersionAtual .
+                        ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
+                        FILE_APPEND
+                    );
 
-                        if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
-                            $temConsentimentoValido = true;
-                        }
-                    } else {
-                        file_put_contents(
-                            __DIR__ . '/../../../logs/login_debug.log',
-                            date('Y-m-d H:i:s') . " - Usuario sem e-mail definido ao verificar consentimento LGPD (id={$result['id']})" . PHP_EOL,
-                            FILE_APPEND
-                        );
+                    if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
+                        $temConsentimentoValido = true;
                     }
 
                     if (!$temConsentimentoValido) {

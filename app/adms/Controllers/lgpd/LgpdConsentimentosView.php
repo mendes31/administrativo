@@ -4,6 +4,7 @@ namespace App\adms\Controllers\lgpd;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdConsentimentosRepository;
+use App\adms\Models\Repository\LgpdConsentimentoArquivosRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -19,9 +20,13 @@ class LgpdConsentimentosView
     /** @var LgpdConsentimentosRepository $consentimentosRepo */
     private LgpdConsentimentosRepository $consentimentosRepo;
 
+    /** @var LgpdConsentimentoArquivosRepository */
+    private LgpdConsentimentoArquivosRepository $arquivosRepo;
+
     public function __construct()
     {
         $this->consentimentosRepo = new LgpdConsentimentosRepository();
+        $this->arquivosRepo = new LgpdConsentimentoArquivosRepository();
     }
 
     /**
@@ -40,11 +45,32 @@ class LgpdConsentimentosView
             exit;
         }
 
+        // Carregar anexos vinculados
+        $this->data['anexos'] = $this->arquivosRepo->getByConsentimentoId($id);
+
+        // Carregar informações do termo vinculado (se houver)
+        if (!empty($this->data['consentimento']['lgpd_termo_id'])) {
+            $termosRepo = new \App\adms\Models\Repository\LgpdTermosRepository();
+            $termo = $termosRepo->getById((int)$this->data['consentimento']['lgpd_termo_id']);
+            $this->data['termo_vinculado'] = $termo;
+        } else {
+            $this->data['termo_vinculado'] = null;
+        }
+
+        // Carregar informações do usuário vinculado (se houver)
+        if (!empty($this->data['consentimento']['adms_user_id'])) {
+            $usersRepo = new \App\adms\Models\Repository\UsersRepository();
+            $user = $usersRepo->getUser((int)$this->data['consentimento']['adms_user_id']);
+            $this->data['usuario_vinculado'] = is_array($user) ? $user : null;
+        } else {
+            $this->data['usuario_vinculado'] = null;
+        }
+
         // Configurar elementos da página
         $pageElements = [
             'title_head' => 'Visualizar Consentimento',
             'menu' => 'lgpd-consentimentos',
-            'buttonPermission' => ['ViewLgpdConsentimentos'],
+            'buttonPermission' => ['ViewLgpdConsentimentos', 'EditLgpdConsentimentos', 'DeleteLgpdConsentimentos'],
         ];
         
         $pageLayoutService = new PageLayoutService();

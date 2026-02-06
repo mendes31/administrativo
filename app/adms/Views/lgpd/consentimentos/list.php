@@ -128,18 +128,18 @@ use App\adms\Helpers\CSRFHelper;
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
             <div class="table-responsive d-none d-md-block">
-                <table class="table table-striped table-hover" id="tabela">
+                <table class="table table-striped table-hover" id="tabela" style="table-layout: fixed; width: 100%;">
                     <thead>
                         <tr>
-                            <th scope="col">ID</th>
-                            <th scope="col">Titular</th>
-                            <th scope="col">E-mail</th>
-                            <th scope="col">Finalidade</th>
-                            <th scope="col">Canal</th>
-                            <th scope="col">Data Consentimento</th>
-                            <th scope="col">Status</th>
-                            <th scope="col" class="d-none d-lg-table-cell">Criado em</th>
-                            <th scope="col" class="text-center">Ações</th>
+                            <th scope="col" style="width: 5%;">ID</th>
+                            <th scope="col" style="width: 12%;">Titular</th>
+                            <th scope="col" style="width: 12%;">E-mail</th>
+                            <th scope="col" style="width: 20%;">Finalidade</th>
+                            <th scope="col" style="width: 8%;">Canal</th>
+                            <th scope="col" style="width: 8%;">Data</th>
+                            <th scope="col" style="width: 8%;">Status</th>
+                            <th scope="col" class="d-none d-lg-table-cell" style="width: 10%;">Criado em</th>
+                            <th scope="col" class="text-center" style="width: 17%;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -150,16 +150,26 @@ use App\adms\Helpers\CSRFHelper;
                                         <span class="badge bg-primary"><?php echo $consentimento['id']; ?></span>
                                     </td>
                                     <td>
-                                        <div class="fw-bold"><?php echo htmlspecialchars($consentimento['titular_nome']); ?></div>
+                                        <div class="fw-bold text-break" style="word-wrap: break-word; overflow-wrap: break-word;">
+                                            <?php echo htmlspecialchars($consentimento['titular_nome']); ?>
+                                        </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($consentimento['titular_email']); ?></td>
-                                    <td><?php echo htmlspecialchars($consentimento['finalidade']); ?></td>
                                     <td>
-                                        <span class="badge bg-info">
+                                        <div class="text-break" style="word-wrap: break-word; overflow-wrap: break-word; font-size: 0.9em;">
+                                            <?php echo htmlspecialchars($consentimento['titular_email']); ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-break" style="word-wrap: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.4; font-size: 0.85em;">
+                                            <?php echo htmlspecialchars($consentimento['finalidade']); ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info" style="white-space: nowrap;">
                                             <?php echo htmlspecialchars($consentimento['canal']); ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="white-space: nowrap; font-size: 0.9em;">
                                         <?php 
                                         $data = new DateTime($consentimento['data_consentimento']);
                                         echo $data->format('d/m/Y');
@@ -178,42 +188,48 @@ use App\adms\Helpers\CSRFHelper;
                                             <?php echo $consentimento['status']; ?>
                                         </span>
                                     </td>
-                                    <td class="d-none d-lg-table-cell">
+                                    <td class="d-none d-lg-table-cell" style="white-space: nowrap; font-size: 0.85em;">
                                         <?php 
                                         $data = new DateTime($consentimento['created_at']);
                                         echo $data->format('d/m/Y H:i');
                                         ?>
                                     </td>
                                     <td class="text-center">
-                                        <?php if (in_array('ViewLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-view/<?php echo $consentimento['id']; ?>" 
-                                               class="btn btn-primary btn-sm me-1 mb-1" title="Visualizar">
-                                                <i class="fas fa-eye"></i> Visualizar
-                                            </a>
-                                        <?php endif; ?>
-                                        
-                                        <?php if (in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-edit/<?php echo $consentimento['id']; ?>" 
-                                               class="btn btn-warning btn-sm me-1 mb-1" title="Editar">
-                                                <i class="fas fa-edit"></i> Editar
-                                            </a>
-                                        <?php endif; ?>
-                                        
-                                        <?php if ($consentimento['status'] === 'Ativo' && in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-revogar/<?php echo $consentimento['id']; ?>" 
-                                               class="btn btn-danger btn-sm me-1 mb-1" title="Revogar"
-                                               onclick="return confirm('Tem certeza que deseja revogar este consentimento?')">
-                                                <i class="fas fa-ban"></i> Revogar
-                                            </a>
-                                        <?php endif; ?>
-                                        
-                                        <?php if (in_array('DeleteLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-delete/<?php echo $consentimento['id']; ?>" 
-                                               class="btn btn-danger btn-sm me-1 mb-1" title="Excluir"
-                                               onclick="return confirm('Tem certeza que deseja excluir este consentimento?')">
-                                                <i class="fas fa-trash"></i> Excluir
-                                            </a>
-                                        <?php endif; ?>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <?php if (in_array('ViewLgpdConsentimentos', $this->data['buttonPermission'])): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-view/<?php echo $consentimento['id']; ?>" 
+                                                   class="btn btn-primary" title="Visualizar" style="padding: 0.2rem 0.4rem; font-size: 0.75rem;">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <?php if (in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-edit/<?php echo $consentimento['id']; ?>" 
+                                                   class="btn btn-warning" title="Editar" style="padding: 0.2rem 0.4rem; font-size: 0.75rem;">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($consentimento['status'] === 'Ativo' && in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
+                                                <button type="button"
+                                                        class="btn btn-danger"
+                                                        title="Revogar"
+                                                        onclick="openRevokeConsentModal(<?php echo (int)$consentimento['id']; ?>)"
+                                                        style="padding: 0.2rem 0.4rem; font-size: 0.75rem;">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            
+                                            <?php if (in_array('DeleteLgpdConsentimentos', $this->data['buttonPermission'])): ?>
+                                                <button type="button"
+                                                        class="btn btn-danger"
+                                                        title="Excluir"
+                                                        onclick="openDeleteConsentModal(<?php echo (int)$consentimento['id']; ?>)"
+                                                        style="padding: 0.2rem 0.4rem; font-size: 0.75rem;">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -275,19 +291,19 @@ use App\adms\Helpers\CSRFHelper;
                                             <?php endif; ?>
                                             
                                             <?php if ($consentimento['status'] === 'Ativo' && in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-revogar/<?php echo $consentimento['id']; ?>" 
-                                                   class="btn btn-danger btn-sm mb-1"
-                                                   onclick="return confirm('Tem certeza que deseja revogar este consentimento?')">
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm mb-1"
+                                                        onclick="openRevokeConsentModal(<?php echo (int)$consentimento['id']; ?>)">
                                                     <i class="fas fa-ban"></i>
-                                                </a>
+                                                </button>
                                             <?php endif; ?>
                                             
                                             <?php if (in_array('DeleteLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-delete/<?php echo $consentimento['id']; ?>" 
-                                                   class="btn btn-danger btn-sm mb-1"
-                                                   onclick="return confirm('Tem certeza que deseja excluir este consentimento?')">
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm mb-1"
+                                                        onclick="openDeleteConsentModal(<?php echo (int)$consentimento['id']; ?>)">
                                                     <i class="fas fa-trash"></i>
-                                                </a>
+                                                </button>
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -305,5 +321,218 @@ use App\adms\Helpers\CSRFHelper;
         </div>
     </div>
 </div>
+
+<!-- Modal de Revogação de Consentimento -->
+<div class="modal fade" id="revokeConsentModal" tabindex="-1" aria-labelledby="revokeConsentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="revokeConsentForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="revokeConsentModalLabel">
+                        <i class="fas fa-ban text-danger"></i> Revogar Consentimento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="consent_id" id="revoke_consent_id">
+
+                    <div class="alert alert-warning">
+                        <strong>Atenção:</strong> Para revogar o consentimento é necessário informar uma justificativa
+                        e confirmar com sua senha. Esta ação será registrada para fins de auditoria LGPD.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="revoke_motivo" class="form-label">Justificativa / Motivo da Revogação *</label>
+                        <textarea class="form-control" id="revoke_motivo" name="motivo" rows="3" required
+                                  placeholder="Descreva o motivo da revogação do consentimento"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="revoke_password" class="form-label">Senha de Confirmação *</label>
+                        <input type="password" class="form-control" id="revoke_password" name="password" required
+                               placeholder="Digite sua senha para confirmar a revogação">
+                    </div>
+
+                    <div id="revoke_error_message" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Revogação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openRevokeConsentModal(consentId) {
+    const form = document.getElementById('revokeConsentForm');
+    form.reset();
+    document.getElementById('revoke_error_message').classList.add('d-none');
+    document.getElementById('revoke_consent_id').value = consentId;
+
+    const modal = new bootstrap.Modal(document.getElementById('revokeConsentModal'));
+    modal.show();
+}
+
+document.getElementById('revokeConsentForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const consentId = document.getElementById('revoke_consent_id').value;
+    const formData = new FormData(this);
+    const errorDiv = document.getElementById('revoke_error_message');
+    errorDiv.classList.add('d-none');
+
+    fetch('<?= $_ENV['URL_ADM'] ?>lgpd-consentimentos-revogar/' + consentId, {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modalEl = document.getElementById('revokeConsentModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                window.location.reload();
+            } else {
+                errorDiv.textContent = data.message || 'Erro ao revogar consentimento.';
+                errorDiv.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Erro na revogação:', error);
+            errorDiv.textContent = 'Erro ao processar a requisição.';
+            errorDiv.classList.remove('d-none');
+        });
+});
+
+// Modal de Exclusão de Consentimento
+function openDeleteConsentModal(consentId) {
+    const form = document.getElementById('deleteConsentForm');
+    form.reset();
+    document.getElementById('delete_error_message').classList.add('d-none');
+    document.getElementById('delete_consent_id').value = consentId;
+
+    const modal = new bootstrap.Modal(document.getElementById('deleteConsentModal'));
+    modal.show();
+}
+
+if (!document.getElementById('deleteConsentModal')) {
+    // Cria o modal de exclusão dinamicamente apenas uma vez
+    const modalHtml = `
+<div class="modal fade" id="deleteConsentModal" tabindex="-1" aria-labelledby="deleteConsentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="deleteConsentForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConsentModalLabel">
+                        <i class="fas fa-trash-alt text-danger"></i> Excluir Consentimento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="consent_id" id="delete_consent_id">
+
+                    <div class="alert alert-warning">
+                        <strong>Atenção:</strong> Esta ação irá remover definitivamente o registro de consentimento.
+                        Informe um motivo e confirme com sua senha. A exclusão será registrada para fins de auditoria.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="delete_motivo" class="form-label">Justificativa / Motivo da Exclusão *</label>
+                        <textarea class="form-control" id="delete_motivo" name="motivo" rows="3" required
+                                  placeholder="Descreva o motivo da exclusão do consentimento"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="delete_password" class="form-label">Senha de Confirmação *</label>
+                        <input type="password" class="form-control" id="delete_password" name="password" required
+                               placeholder="Digite sua senha para confirmar a exclusão">
+                    </div>
+
+                    <div id="delete_error_message" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.getElementById('deleteConsentForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const consentId = document.getElementById('delete_consent_id').value;
+        const formData = new FormData(this);
+        const errorDiv = document.getElementById('delete_error_message');
+        errorDiv.classList.add('d-none');
+
+        fetch('<?= $_ENV['URL_ADM'] ?>lgpd-consentimentos-delete/' + consentId, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modalEl = document.getElementById('deleteConsentModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+                    window.location.reload();
+                } else {
+                    errorDiv.textContent = data.message || 'Erro ao excluir consentimento.';
+                    errorDiv.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Erro na exclusão:', error);
+                errorDiv.textContent = 'Erro ao processar a requisição.';
+                errorDiv.classList.remove('d-none');
+            });
+    });
+}
+</script>
+
+<style>
+/* Estilos para evitar rolagem horizontal na tabela */
+#tabela {
+    table-layout: fixed;
+    width: 100%;
+    word-wrap: break-word;
+}
+
+#tabela td, #tabela th {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#tabela .text-break {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Garantir que a tabela não ultrapasse o container */
+.table-responsive {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* Ajustar botões de ação para ficarem horizontais e menores */
+#tabela .btn-group {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    justify-content: center;
+}
+
+#tabela .btn-group .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+    min-width: 32px;
+}
+</style>
 
 <!-- Tabela padrão do sistema - sem DataTables -->

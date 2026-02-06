@@ -25,16 +25,24 @@ use App\adms\Helpers\CSRFHelper;
 
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-handshake"></i>
-                Editar Consentimento #<?php echo $this->data['consentimento']['id']; ?>
-            </h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-handshake"></i>
+                    Editar Consentimento #<?php echo $this->data['consentimento']['id']; ?>
+                </h5>
+                <div>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-list"></i> Listar
+                    </a>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <form action="" method="POST" class="row g-3">
+            <form action="" method="POST" enctype="multipart/form-data" class="row g-3">
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_consentimento'); ?>">
+                <input type="hidden" name="versao_termo" value="<?php echo htmlspecialchars($this->data['form']['versao_termo'] ?? ''); ?>">
 
                 <!-- Informações do Titular -->
                 <div class="col-12">
@@ -78,7 +86,7 @@ use App\adms\Helpers\CSRFHelper;
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-8">
+                                <div class="col-md-12 mb-3">
                                     <label for="finalidade" class="form-label">
                                         Finalidade do Consentimento <span class="text-danger">*</span>
                                     </label>
@@ -91,7 +99,9 @@ use App\adms\Helpers\CSRFHelper;
                                         Descreva claramente para que finalidade o consentimento está sendo solicitado.
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
                                     <label for="canal" class="form-label">
                                         Canal de Coleta
                                     </label>
@@ -103,8 +113,26 @@ use App\adms\Helpers\CSRFHelper;
                                         <option value="Telefone" <?php echo (isset($this->data['form']['canal']) && $this->data['form']['canal'] === 'Telefone') ? 'selected' : ''; ?>>Telefone</option>
                                         <option value="Presencial" <?php echo (isset($this->data['form']['canal']) && $this->data['form']['canal'] === 'Presencial') ? 'selected' : ''; ?>>Presencial</option>
                                         <option value="E-mail" <?php echo (isset($this->data['form']['canal']) && $this->data['form']['canal'] === 'E-mail') ? 'selected' : ''; ?>>E-mail</option>
+                                        <option value="sistema_login" <?php echo (isset($this->data['form']['canal']) && $this->data['form']['canal'] === 'sistema_login') ? 'selected' : ''; ?>>Sistema Login</option>
                                         <option value="Outro" <?php echo (isset($this->data['form']['canal']) && $this->data['form']['canal'] === 'Outro') ? 'selected' : ''; ?>>Outro</option>
                                     </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lgpd_termo_id" class="form-label">
+                                        Termo vinculado (Opcional)
+                                    </label>
+                                    <select class="form-select" id="lgpd_termo_id" name="lgpd_termo_id">
+                                        <option value="">Nenhum termo vinculado</option>
+                                        <?php foreach ($this->data['termos_ativos'] as $termo): ?>
+                                            <option value="<?= $termo['id'] ?>"
+                                                <?= (isset($this->data['form']['lgpd_termo_id']) && $this->data['form']['lgpd_termo_id'] == $termo['id']) ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($termo['titulo']) ?> (Versão: <?= htmlspecialchars($termo['versao']) ?> - Tipo: <?= htmlspecialchars($termo['tipo']) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="form-text">
+                                        Selecione o termo LGPD ao qual este consentimento está associado.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -146,6 +174,151 @@ use App\adms\Helpers\CSRFHelper;
                     </div>
                 </div>
 
+                <!-- Usuário Vinculado (se houver) -->
+                <?php if (!empty($this->data['usuario_vinculado'])): ?>
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user-check"></i>
+                                Usuário do Sistema Vinculado
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nome:</strong><br>
+                                    <?= htmlspecialchars($this->data['usuario_vinculado']['name'] ?? 'N/A'); ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>E-mail:</strong><br>
+                                    <?= htmlspecialchars($this->data['usuario_vinculado']['email'] ?? 'N/A'); ?>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    Este consentimento está vinculado a um usuário interno do sistema.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Documentos Anexos -->
+                <div class="col-12">
+                    <div class="card border-dark">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-paperclip"></i>
+                                Documentos Anexos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Anexos Existentes -->
+                            <?php 
+                            // Verificar se anexos estão sendo carregados
+                            $anexosExistentes = $this->data['anexos'] ?? [];
+                            if (!empty($anexosExistentes) && is_array($anexosExistentes) && count($anexosExistentes) > 0): 
+                            ?>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Anexos Existentes:</strong></label>
+                                    <div class="list-group">
+                                        <?php foreach ($anexosExistentes as $anexo): ?>
+                                            <?php
+                                            // Determinar o ícone baseado na extensão do arquivo ou mime_type
+                                            $nomeArquivo = strtolower($anexo['nome_original'] ?? '');
+                                            $mimeType = strtolower($anexo['mime_type'] ?? '');
+                                            $extensao = pathinfo($nomeArquivo, PATHINFO_EXTENSION);
+                                            
+                                            $iconeClasse = 'fa-file';
+                                            $iconeCor = 'text-secondary';
+                                            
+                                            // Verificar por extensão primeiro
+                                            if (in_array($extensao, ['pdf'])) {
+                                                $iconeClasse = 'fa-file-pdf';
+                                                $iconeCor = 'text-danger';
+                                            } elseif (in_array($extensao, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'])) {
+                                                $iconeClasse = 'fa-file-image';
+                                                $iconeCor = 'text-info';
+                                            } elseif (in_array($extensao, ['doc', 'docx'])) {
+                                                $iconeClasse = 'fa-file-word';
+                                                $iconeCor = 'text-primary';
+                                            } elseif (in_array($extensao, ['xls', 'xlsx'])) {
+                                                $iconeClasse = 'fa-file-excel';
+                                                $iconeCor = 'text-success';
+                                            } elseif (in_array($extensao, ['zip', 'rar', '7z'])) {
+                                                $iconeClasse = 'fa-file-archive';
+                                                $iconeCor = 'text-warning';
+                                            } elseif (strpos($mimeType, 'pdf') !== false) {
+                                                $iconeClasse = 'fa-file-pdf';
+                                                $iconeCor = 'text-danger';
+                                            } elseif (strpos($mimeType, 'image') !== false) {
+                                                $iconeClasse = 'fa-file-image';
+                                                $iconeCor = 'text-info';
+                                            }
+                                            ?>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="form-check me-3">
+                                                        <input class="form-check-input" 
+                                                               type="checkbox" 
+                                                               name="remover_anexos[]" 
+                                                               value="<?= $anexo['id'] ?>" 
+                                                               id="remover_anexo_<?= $anexo['id'] ?>">
+                                                        <label class="form-check-label" for="remover_anexo_<?= $anexo['id'] ?>">
+                                                            Remover
+                                                        </label>
+                                                    </div>
+                                                    <div>
+                                                        <i class="fas <?= $iconeClasse ?> <?= $iconeCor ?> me-2"></i>
+                                                        <strong><?= htmlspecialchars($anexo['nome_original']); ?></strong>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <?php
+                                                            $tamanhoKB = round(($anexo['tamanho_bytes'] ?? 0) / 1024, 2);
+                                                            echo $tamanhoKB . ' KB';
+                                                            ?>
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <a href="<?= $_ENV['URL_ADM'] . $anexo['arquivo_path']; ?>" 
+                                                   target="_blank" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt"></i> Abrir
+                                                </a>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <!-- Campo para Adicionar Novos Anexos -->
+                            <div class="mb-3">
+                                <label for="anexos" class="form-label">
+                                    <strong>Adicionar Novos Documentos (Opcional)</strong>
+                                </label>
+                                <input type="file" 
+                                       class="form-control" 
+                                       id="anexos" 
+                                       name="anexos[]" 
+                                       multiple 
+                                       accept=".pdf,.jpg,.jpeg,.png">
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i>
+                                    Você pode selecionar múltiplos arquivos. Formatos aceitos: PDF, JPG, JPEG, PNG.
+                                    <?php if (!empty($anexosExistentes) && is_array($anexosExistentes) && count($anexosExistentes) > 0): ?>
+                                        <br>
+                                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Marque os anexos existentes que deseja remover antes de salvar.
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Informações de Auditoria -->
                 <div class="col-12">
                     <div class="card border-secondary">
@@ -154,24 +327,42 @@ use App\adms\Helpers\CSRFHelper;
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <strong>Data de Criação:</strong><br>
                                     <?php 
-                                    $dataCriacao = new DateTime($this->data['consentimento']['created_at']);
-                                    echo $dataCriacao->format('d/m/Y H:i');
+                                    try {
+                                        if (!empty($this->data['consentimento']['created_at'])) {
+                                            $dataCriacao = new \DateTime($this->data['consentimento']['created_at']);
+                                            echo $dataCriacao->format('d/m/Y H:i');
+                                        } else {
+                                            echo '<span class="text-muted">N/A</span>';
+                                        }
+                                    } catch (\Exception $e) {
+                                        echo '<span class="text-muted">N/A</span>';
+                                    }
                                     ?>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <strong>Última Atualização:</strong><br>
                                     <?php 
                                     if (!empty($this->data['consentimento']['updated_at'])) {
-                                        $dataAtualizacao = new DateTime($this->data['consentimento']['updated_at']);
-                                        echo $dataAtualizacao->format('d/m/Y H:i');
+                                        try {
+                                            $dataAtualizacao = new \DateTime($this->data['consentimento']['updated_at']);
+                                            echo $dataAtualizacao->format('d/m/Y H:i');
+                                        } catch (\Exception $e) {
+                                            echo '<span class="text-muted">N/A</span>';
+                                        }
                                     } else {
                                         echo '<span class="text-muted">Não atualizado</span>';
                                     }
                                     ?>
                                 </div>
+                                <?php if (!empty($this->data['consentimento']['versao_termo'])): ?>
+                                <div class="col-md-4">
+                                    <strong>Versão do Termo:</strong><br>
+                                    <?= htmlspecialchars($this->data['consentimento']['versao_termo']); ?>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -184,7 +375,7 @@ use App\adms\Helpers\CSRFHelper;
                             <i class="fas fa-arrow-left"></i> Voltar
                         </a>
                         <div>
-                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos/view/<?php echo $this->data['consentimento']['id']; ?>" 
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-view/<?php echo $this->data['consentimento']['id']; ?>" 
                                class="btn btn-info">
                                 <i class="fas fa-eye"></i> Visualizar
                             </a>

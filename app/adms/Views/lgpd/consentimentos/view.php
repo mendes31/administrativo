@@ -32,7 +32,7 @@ use App\adms\Helpers\CSRFHelper;
                 </h5>
                 <div>
                     <?php if (in_array('EditLgpdConsentimentos', $this->data['buttonPermission'])): ?>
-                        <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos/edit/<?php echo $this->data['consentimento']['id']; ?>" 
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-consentimentos-edit/<?php echo $this->data['consentimento']['id']; ?>" 
                            class="btn btn-warning btn-sm">
                             <i class="fas fa-edit"></i> Editar
                         </a>
@@ -144,10 +144,68 @@ use App\adms\Helpers\CSRFHelper;
                                     <?php endif; ?>
                                 </div>
                             </div>
+                            <?php if (!empty($this->data['termo_vinculado'])): ?>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <strong>Termo Vinculado:</strong><br>
+                                    <span class="badge bg-primary">
+                                        <?= htmlspecialchars($this->data['termo_vinculado']['titulo'] ?? 'N/A'); ?>
+                                        (Versão: <?= htmlspecialchars($this->data['termo_vinculado']['versao'] ?? 'N/A'); ?> - 
+                                        Tipo: <?= htmlspecialchars($this->data['termo_vinculado']['tipo'] ?? 'N/A'); ?>)
+                                    </span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($this->data['consentimento']['versao_termo'])): ?>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <strong>Versão do Termo no Consentimento:</strong><br>
+                                    <?= htmlspecialchars($this->data['consentimento']['versao_termo']); ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Usuário Vinculado (se houver) -->
+            <?php if (!empty($this->data['usuario_vinculado'])): ?>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user-check"></i>
+                                Usuário do Sistema Vinculado
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nome:</strong><br>
+                                    <?= htmlspecialchars($this->data['usuario_vinculado']['name'] ?? 'N/A'); ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>E-mail:</strong><br>
+                                    <a href="mailto:<?= htmlspecialchars($this->data['usuario_vinculado']['email'] ?? ''); ?>">
+                                        <?= htmlspecialchars($this->data['usuario_vinculado']['email'] ?? 'N/A'); ?>
+                                    </a>
+                                </div>
+                            </div>
+                            <?php if (!empty($this->data['usuario_vinculado']['username'])): ?>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Username:</strong><br>
+                                    <?= htmlspecialchars($this->data['usuario_vinculado']['username']); ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Datas -->
             <div class="row mb-4">
@@ -191,6 +249,141 @@ use App\adms\Helpers\CSRFHelper;
                     </div>
                 </div>
             </div>
+
+            <!-- Documentos Anexos -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-dark">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-paperclip"></i>
+                                Documentos Anexos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <?php 
+                            // Verificar se anexos estão sendo carregados
+                            $anexosExistentes = $this->data['anexos'] ?? [];
+                            if (!empty($anexosExistentes) && is_array($anexosExistentes) && count($anexosExistentes) > 0): 
+                            ?>
+                                <div class="list-group">
+                                    <?php foreach ($anexosExistentes as $anexo): ?>
+                                        <?php
+                                        // Determinar o ícone baseado na extensão do arquivo ou mime_type
+                                        $nomeArquivo = strtolower($anexo['nome_original'] ?? '');
+                                        $mimeType = strtolower($anexo['mime_type'] ?? '');
+                                        $extensao = pathinfo($nomeArquivo, PATHINFO_EXTENSION);
+                                        
+                                        $iconeClasse = 'fa-file';
+                                        $iconeCor = 'text-secondary';
+                                        
+                                        // Verificar por extensão primeiro
+                                        if (in_array($extensao, ['pdf'])) {
+                                            $iconeClasse = 'fa-file-pdf';
+                                            $iconeCor = 'text-danger';
+                                        } elseif (in_array($extensao, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'])) {
+                                            $iconeClasse = 'fa-file-image';
+                                            $iconeCor = 'text-info';
+                                        } elseif (in_array($extensao, ['doc', 'docx'])) {
+                                            $iconeClasse = 'fa-file-word';
+                                            $iconeCor = 'text-primary';
+                                        } elseif (in_array($extensao, ['xls', 'xlsx'])) {
+                                            $iconeClasse = 'fa-file-excel';
+                                            $iconeCor = 'text-success';
+                                        } elseif (in_array($extensao, ['zip', 'rar', '7z'])) {
+                                            $iconeClasse = 'fa-file-archive';
+                                            $iconeCor = 'text-warning';
+                                        } elseif (strpos($mimeType, 'pdf') !== false) {
+                                            $iconeClasse = 'fa-file-pdf';
+                                            $iconeCor = 'text-danger';
+                                        } elseif (strpos($mimeType, 'image') !== false) {
+                                            $iconeClasse = 'fa-file-image';
+                                            $iconeCor = 'text-info';
+                                        }
+                                        ?>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="fas <?= $iconeClasse ?> <?= $iconeCor ?> me-2"></i>
+                                                <strong><?= htmlspecialchars($anexo['nome_original']); ?></strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <?php
+                                                    $tamanhoKB = round(($anexo['tamanho_bytes'] ?? 0) / 1024, 2);
+                                                    echo $tamanhoKB . ' KB';
+                                                    ?>
+                                                    <?php if (!empty($anexo['created_at'])): ?>
+                                                        - Enviado em <?= date('d/m/Y H:i', strtotime($anexo['created_at'])); ?>
+                                                    <?php endif; ?>
+                                                </small>
+                                            </div>
+                                            <a href="<?= $_ENV['URL_ADM'] . $anexo['arquivo_path']; ?>" 
+                                               target="_blank" 
+                                               class="btn btn-sm btn-outline-primary"
+                                               download="<?= htmlspecialchars($anexo['nome_original']); ?>">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-info-circle"></i>
+                                    Nenhum documento anexado.
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações de Auditoria -->
+            <?php if (!empty($this->data['consentimento']['ip_address']) || 
+                       !empty($this->data['consentimento']['user_agent']) || 
+                       !empty($this->data['consentimento']['revoked_at'])): ?>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-shield-alt"></i>
+                                Informações de Auditoria
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <?php if (!empty($this->data['consentimento']['ip_address'])): ?>
+                                <div class="col-md-6 mb-2">
+                                    <strong>IP de Origem:</strong><br>
+                                    <code><?= htmlspecialchars($this->data['consentimento']['ip_address']); ?></code>
+                                </div>
+                                <?php endif; ?>
+                                <?php if (!empty($this->data['consentimento']['user_agent'])): ?>
+                                <div class="col-md-6 mb-2">
+                                    <strong>User Agent:</strong><br>
+                                    <small class="text-muted"><?= htmlspecialchars($this->data['consentimento']['user_agent']); ?></small>
+                                </div>
+                                <?php endif; ?>
+                                <?php if (!empty($this->data['consentimento']['revoked_at'])): ?>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Data de Revogação:</strong><br>
+                                    <?php 
+                                    $dataRevogacao = new DateTime($this->data['consentimento']['revoked_at']);
+                                    echo $dataRevogacao->format('d/m/Y H:i');
+                                    ?>
+                                </div>
+                                <?php endif; ?>
+                                <?php if (!empty($this->data['consentimento']['revocation_reason'])): ?>
+                                <div class="col-md-12 mb-2">
+                                    <strong>Motivo da Revogação:</strong><br>
+                                    <?= nl2br(htmlspecialchars($this->data['consentimento']['revocation_reason'])); ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Informações Adicionais -->
             <div class="row">
