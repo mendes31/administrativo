@@ -42,22 +42,45 @@ final class AddEmploymentDatesToAdmsUsers extends AbstractMigration
         if ($this->hasTable('adms_users')) {
             $table = $this->table('adms_users');
             
+            // Verificar se os índices existem antes de tentar removê-los
             try {
-                $table->removeIndexByName('idx_adms_users_data_admissao');
+                $indexes = $this->query("SHOW INDEX FROM adms_users")->fetchAll();
+                $hasIdxAdmissao = false;
+                $hasIdxDesligamento = false;
+                
+                foreach ($indexes as $index) {
+                    if ($index['Key_name'] === 'idx_adms_users_data_admissao') {
+                        $hasIdxAdmissao = true;
+                    }
+                    if ($index['Key_name'] === 'idx_adms_users_data_desligamento') {
+                        $hasIdxDesligamento = true;
+                    }
+                }
+                
+                if ($hasIdxAdmissao) {
+                    $table->removeIndexByName('idx_adms_users_data_admissao');
+                }
+                
+                if ($hasIdxDesligamento) {
+                    $table->removeIndexByName('idx_adms_users_data_desligamento');
+                }
             } catch (\Exception $e) {
-                // Índice não existe, continuar
+                // Se der erro, continuar sem remover índices
+                error_log("Erro ao verificar/remover índices: " . $e->getMessage());
             }
             
-            try {
-                $table->removeIndexByName('idx_adms_users_data_desligamento');
-            } catch (\Exception $e) {
-                // Índice não existe, continuar
+            // Remover colunas apenas se existirem
+            if ($table->hasColumn('motivo_desligamento')) {
+                $table->removeColumn('motivo_desligamento');
+            }
+            if ($table->hasColumn('data_desligamento')) {
+                $table->removeColumn('data_desligamento');
+            }
+            if ($table->hasColumn('data_admissao')) {
+                $table->removeColumn('data_admissao');
             }
             
-            $table->removeColumn('motivo_desligamento')
-                ->removeColumn('data_desligamento')
-                ->removeColumn('data_admissao')
-                ->update();
+            $table->update();
         }
     }
 }
