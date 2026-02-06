@@ -26,7 +26,10 @@ final class AdmsCollaborator extends AbstractMigration
                     'null' => false,
                     'comment' => 'E-mail do colaborador',
                 ])
-                ->addIndex(['email'], ['unique' => true])
+                // NOTA: Índice único não é criado aqui porque a coluna 'email' é VARCHAR(255) 
+                // com utf8mb4, o que resulta em 1020 bytes (255 * 4), excedendo o limite 
+                // de 767 bytes do MySQL para índices. A validação de unicidade é feita na aplicação PHP.
+                ->addIndex(['email'], ['unique' => false, 'name' => 'idx_email']) // Índice não-único para performance
                 ->addColumn('col_id_position', 'integer', [
                     'null' => false,
                     'signed' => false,
