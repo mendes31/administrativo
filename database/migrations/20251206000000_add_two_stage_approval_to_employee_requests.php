@@ -99,57 +99,8 @@ final class AddTwoStageApprovalToEmployeeRequests extends AbstractMigration
             $table->addIndex(['hr_approved_by'], ['name' => 'idx_hr_approved_by'])->update();
         }
         
-        // Adicionar foreign keys apenas se não existirem
-        try {
-            $constraints = $this->query("
-                SELECT CONSTRAINT_NAME 
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-                WHERE TABLE_SCHEMA = DATABASE() 
-                AND TABLE_NAME = 'adms_employee_requests'
-                AND CONSTRAINT_NAME IN ('fk_manager_approved_by', 'fk_hr_approved_by')
-            ")->fetchAll();
-            
-            $hasManagerFk = false;
-            $hasHrFk = false;
-            
-            foreach ($constraints as $constraint) {
-                if ($constraint['CONSTRAINT_NAME'] === 'fk_manager_approved_by') {
-                    $hasManagerFk = true;
-                }
-                if ($constraint['CONSTRAINT_NAME'] === 'fk_hr_approved_by') {
-                    $hasHrFk = true;
-                }
-            }
-            
-            if (!$hasManagerFk) {
-                $table->addForeignKey('manager_approved_by', 'adms_users', 'id', [
-                    'delete' => 'SET_NULL',
-                    'update' => 'NO_ACTION',
-                    'constraint' => 'fk_manager_approved_by'
-                ])->update();
-            }
-            
-            if (!$hasHrFk) {
-                $table->addForeignKey('hr_approved_by', 'adms_users', 'id', [
-                    'delete' => 'SET_NULL',
-                    'update' => 'NO_ACTION',
-                    'constraint' => 'fk_hr_approved_by'
-                ])->update();
-            }
-        } catch (\Exception $e) {
-            // Se der erro, tentar adicionar mesmo assim
-            $table->addForeignKey('manager_approved_by', 'adms_users', 'id', [
-                'delete' => 'SET_NULL',
-                'update' => 'NO_ACTION',
-                'constraint' => 'fk_manager_approved_by'
-            ])->update();
-            
-            $table->addForeignKey('hr_approved_by', 'adms_users', 'id', [
-                'delete' => 'SET_NULL',
-                'update' => 'NO_ACTION',
-                'constraint' => 'fk_hr_approved_by'
-            ])->update();
-        }
+        // Foreign keys serão adicionadas depois se necessário
+        // Não adicionar aqui para evitar erros quando a tabela referenciada não existe ou tem estrutura incompatível
     }
     
     public function down(): void
