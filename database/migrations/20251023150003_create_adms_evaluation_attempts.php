@@ -48,9 +48,9 @@ final class CreateAdmsEvaluationAttempts extends AbstractMigration
                     'null' => false,
                     'comment' => 'Percentual de acerto (0 a 100)'
                 ])
-                ->addColumn('respostas', 'json', [
+                ->addColumn('respostas', 'text', [
                     'null' => false,
-                    'comment' => 'JSON com todas as respostas desta tentativa'
+                    'comment' => 'JSON com todas as respostas desta tentativa (armazenado como TEXT para compatibilidade com MySQL < 5.7.8)'
                 ])
                 ->addColumn('data_inicio', 'datetime', [
                     'default' => 'CURRENT_TIMESTAMP',
