@@ -30,7 +30,8 @@ final class AdmsFrequency extends AbstractMigration
                 ->addColumn('days', 'integer', ['null' => false])                   //nº de dias
                 ->addColumn('created_at', 'timestamp')                                          //data da criação do registro
                 ->addColumn('updated_at', 'timestamp', ['null' => true, 'default' => null])     //data da atualização do registro
-                ->addIndex(['name'], ['unique' => true, 'name' => 'idx_unique_name'])           // Adiciona índice único com o nome específico
+                // NOTA: Índice único não é criado aqui. A validação de unicidade é feita na aplicação PHP.
+                ->addIndex(['name'], ['unique' => false, 'name' => 'idx_name']) // Índice não-único para performance
 
                 ->create();
         }

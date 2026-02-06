@@ -30,8 +30,11 @@ final class AdmsAccountsPlan extends AbstractMigration
                 ->addColumn('account', 'string', ['limit' => 50, 'null' => true])               //nº da conta do plano de contas
                 ->addColumn('created_at', 'timestamp')                                          //data da criação do registro
                 ->addColumn('updated_at', 'timestamp', ['null' => true, 'default' => null])     //data da atualização do registro
-                ->addIndex(['name'], ['unique' => true, 'name' => 'idx_unique_name'])           //Adiciona índice único com o nome específico
-                ->addIndex(['account'], ['unique' => true, 'name' => 'idx_unique_account'])     //Adiciona índice único com nº da conta específico                
+                // NOTA: Índices únicos não são criados aqui porque:
+                // - 'name' é VARCHAR(255) com utf8mb4 = 1020 bytes > 767 bytes (limite MySQL)
+                // - A validação de unicidade é feita na aplicação PHP.
+                ->addIndex(['name'], ['unique' => false, 'name' => 'idx_name']) // Índice não-único para performance
+                ->addIndex(['account'], ['unique' => false, 'name' => 'idx_account']) // Índice não-único para performance
 
                 ->create();
         }

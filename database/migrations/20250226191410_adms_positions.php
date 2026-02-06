@@ -30,7 +30,10 @@ final class AdmsPositions extends AbstractMigration
             $table->addColumn('name', 'string', ['null' => false, 'limit' => 255])
                     ->addColumn('created_at', 'timestamp')
                     ->addColumn('updated_at', 'timestamp')
-                    ->addIndex(['name'], ['unique' => true, 'name' => 'idx_unique_name']) // Adiciona índice único com o nome específico
+                    // NOTA: Índice único não é criado aqui porque a coluna 'name' é VARCHAR(255) 
+                    // com utf8mb4, o que resulta em 1020 bytes (255 * 4), excedendo o limite 
+                    // de 767 bytes do MySQL para índices. A validação de unicidade é feita na aplicação PHP.
+                    ->addIndex(['name'], ['unique' => false, 'name' => 'idx_name']) // Índice não-único para performance
                     ->create();
             
             // Garantir charset UTF-8 na tabela
