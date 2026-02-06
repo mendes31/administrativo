@@ -15,10 +15,19 @@ final class CreateAdmsStrategicPlanObservations extends AbstractMigration
                 ->addColumn('user_id', 'integer', ['null' => false, 'signed' => false])
                 ->addColumn('observation', 'text', ['null' => false])
                 ->addColumn('created_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP'])
-                ->addForeignKey('strategic_plan_id', 'adms_strategic_plans', 'id', ['delete' => 'CASCADE', 'update' => 'CASCADE'])
-                ->addForeignKey('user_id', 'adms_users', 'id', ['delete' => 'CASCADE', 'update' => 'CASCADE'])
+                // Foreign keys serão adicionadas depois que as tabelas referenciadas existirem
+                // ->addForeignKey('strategic_plan_id', 'adms_strategic_plans', 'id', ['delete' => 'CASCADE', 'update' => 'CASCADE'])
+                // ->addForeignKey('user_id', 'adms_users', 'id', ['delete' => 'CASCADE', 'update' => 'CASCADE'])
                 ->addIndex(['strategic_plan_id', 'created_at'])
                 ->create();
+        }
+        
+        // Adicionar foreign keys se as tabelas referenciadas já existirem
+        if ($this->hasTable('adms_strategic_plans') && $this->hasTable('adms_users')) {
+            $this->table('adms_strategic_plan_observations')
+                ->addForeignKey('strategic_plan_id', 'adms_strategic_plans', 'id', ['delete' => 'CASCADE', 'update' => 'CASCADE'])
+                ->addForeignKey('user_id', 'adms_users', 'id', ['delete' => 'CASCADE', 'update' => 'CASCADE'])
+                ->update();
         }
     }
 
