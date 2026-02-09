@@ -81,9 +81,10 @@ class CompletedTrainingsMatrix
 
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
         
-        // Usar configuração responsiva para per_page
-        if (isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $paginationSettings['options'])) {
-            $perPage = (int)$_GET['per_page'];
+        // Usar configuração responsiva para per_page (padrão unificado: 10, 20, 50, 100)
+        $allowedPerPage = [10, 20, 50, 100];
+        if (isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $allowedPerPage, true)) {
+            $perPage = (int) $_GET['per_page'];
         } else {
             $perPage = $paginationSettings['per_page'];
         }

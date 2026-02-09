@@ -33,9 +33,10 @@ class ListTrainings
             exit;
         }
 
-        // Tratar per_page com base na resolução
-        if (isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $paginationSettings['options'])) {
-            $this->limitResult = (int)$_GET['per_page'];
+        // Tratar per_page com base na resolução, seguindo padrão de list-training-status
+        $allowedPerPage = [10, 20, 50, 100];
+        if (isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $allowedPerPage, true)) {
+            $this->limitResult = (int) $_GET['per_page'];
         } else {
             $this->limitResult = $paginationSettings['per_page'];
         }

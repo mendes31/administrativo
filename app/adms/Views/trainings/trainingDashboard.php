@@ -1,67 +1,100 @@
 <?php
+// Ajustar chaves para o formato usado pelo controller (camelCase)
 $config = $this->data['dashboard'] ?? [];
-$statusCounts = $config['status_counts'] ?? [];
-$monthly = $config['monthly_realizations'] ?? [];
-$topUsers = $config['top_pending_users'] ?? [];
-$topTrainings = $config['top_critical_trainings'] ?? [];
+$statusCounts = $config['statusCounts'] ?? [];
+$monthly = $config['monthlyRealizations'] ?? [];
+$topUsers = $config['topPendingUsers'] ?? [];
+$topTrainings = $config['topCriticalTrainings'] ?? [];
 ?>
 <div class="container-fluid">
-    <div class="row mb-4">
+    <div class="row mb-3">
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-primary text-white mb-4">
+            <div class="card bg-primary text-white mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0"><?= number_format(($statusCounts['em_dia'] ?? 0) + ($statusCounts['concluido'] ?? 0)) ?></h4>
-                            <div>Em dia / Concluídos</div>
+                            <h5 class="mb-0"><?= number_format(($statusCounts['em_dia'] ?? 0)) ?></h5>
+                            <div>Dentro do Prazo (A fazer)</div>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-check-circle fa-2x"></i>
+                            <i class="fas fa-check-circle fa-lg"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-white mb-4">
+            <div class="card bg-warning text-white mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0"><?= number_format($statusCounts['proximo_vencimento'] ?? 0) ?></h4>
+                            <h5 class="mb-0"><?= number_format($statusCounts['proximo_vencimento'] ?? 0) ?></h5>
                             <div>Próx. do Vencimento</div>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            <i class="fas fa-exclamation-triangle fa-lg"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-danger text-white mb-4">
+            <div class="card bg-danger text-white mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0"><?= number_format($statusCounts['vencido'] ?? 0) ?></h4>
+                            <h5 class="mb-0"><?= number_format($statusCounts['vencido'] ?? 0) ?></h5>
                             <div>Vencidos</div>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-times-circle fa-2x"></i>
+                            <i class="fas fa-times-circle fa-lg"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-secondary text-white mb-4">
+            <div class="card bg-secondary text-white mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0"><?= number_format($statusCounts['pendente'] ?? 0) ?></h4>
+                            <h5 class="mb-0"><?= number_format($statusCounts['agendado'] ?? 0) ?></h5>
+                            <div>Agendados</div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-0"><?= number_format($statusCounts['concluido'] ?? 0) ?></h5>
+                            <div>Concluídos</div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-double fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-dark text-white mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-0"><?= number_format($statusCounts['pendente'] ?? 0) ?></h5>
                             <div>Pendentes</div>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-clock fa-2x"></i>
+                            <i class="fas fa-clock fa-lg"></i>
                         </div>
                     </div>
                 </div>
@@ -123,15 +156,22 @@ $topTrainings = $config['top_critical_trainings'] ?? [];
 <script>
     // Gráfico de status
     const statusData = {
-        labels: ['Em dia/Concluído', 'Próx. do Vencimento', 'Vencido', 'Pendente'],
+        labels: [
+            'Dentro do Prazo (A fazer)',
+            'Próx. do Vencimento',
+            'Vencido',
+            'Agendado',
+            'Concluído'
+        ],
         datasets: [{
             data: [
-                <?= ($statusCounts['em_dia'] ?? 0) + ($statusCounts['concluido'] ?? 0) ?>,
+                <?= $statusCounts['em_dia'] ?? 0 ?>,
                 <?= $statusCounts['proximo_vencimento'] ?? 0 ?>,
                 <?= $statusCounts['vencido'] ?? 0 ?>,
-                <?= $statusCounts['pendente'] ?? 0 ?>
+                <?= $statusCounts['agendado'] ?? 0 ?>,
+                <?= $statusCounts['concluido'] ?? 0 ?>
             ],
-            backgroundColor: ['#0d6efd', '#ffc107', '#dc3545', '#6c757d'],
+            backgroundColor: ['#198754', '#ffc107', '#dc3545', '#0d6efd', '#6c757d'],
         }]
     };
     new Chart(document.getElementById('statusChart'), {

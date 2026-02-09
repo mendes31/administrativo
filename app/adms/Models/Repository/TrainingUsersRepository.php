@@ -1165,10 +1165,13 @@ class TrainingUsersRepository extends DbConnection
             'em_dia' => 0,
             'proximo_vencimento' => 0,
             'vencido' => 0,
-            'concluido' => 0
+            'agendado' => 0,
+            'concluido' => 0,
         ];
         foreach ($result as $row) {
-            $counts[$row['status']] = (int)$row['count'];
+            if (isset($counts[$row['status']])) {
+                $counts[$row['status']] = (int) $row['count'];
+            }
         }
         return $counts;
     }
