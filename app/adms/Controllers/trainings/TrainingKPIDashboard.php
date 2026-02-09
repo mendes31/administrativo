@@ -221,11 +221,13 @@ class TrainingKpiDashboard
         $stmtActive = $pdo->prepare($sqlActive);
         $stmtActive->execute();
         $activeStats = $stmtActive->fetchAll(\PDO::FETCH_ASSOC);
+        error_log("getDepartmentStatistics: activeStats (primeiros 2) - " . json_encode(array_slice($activeStats, 0, 2)));
         
         // Executar query de concluídos
         $stmtConc = $pdo->prepare($sqlConcluidos);
         $stmtConc->execute();
         $concluidosStats = $stmtConc->fetchAll(\PDO::FETCH_ASSOC);
+        error_log("getDepartmentStatistics: concluidosStats (primeiros 2) - " . json_encode(array_slice($concluidosStats, 0, 2)));
         
         // Criar mapa de concluídos por departamento
         $concluidosMap = [];
