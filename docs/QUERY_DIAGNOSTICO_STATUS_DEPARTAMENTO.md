@@ -1,8 +1,8 @@
 # Query de Diagnóstico - Status por Departamento
 
-## Query para verificar status no banco agrupado por departamento
+## Query Principal: Status agrupado por departamento
 
-Esta query mostra exatamente quais status existem no banco de dados, agrupados por departamento:
+Esta é a query que você pediu - mostra os status no banco agrupados por departamento:
 
 ```sql
 SELECT 
