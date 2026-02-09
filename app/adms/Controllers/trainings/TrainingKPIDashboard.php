@@ -92,31 +92,67 @@ class TrainingKpiDashboard
 
     private function getDashboardData(): array
     {
-        return [
-            // Estatísticas gerais
+        // Sempre garantir que os dados básicos sejam carregados primeiro
+        $data = [
+            // Estatísticas gerais (sempre carregar)
             'summary' => $this->trainingUsersRepo->getSummaryAll(),
             
-            // Dados para gráficos
+            // Dados para gráficos (sempre carregar)
             'statusCounts' => $this->trainingUsersRepo->getStatusCounts(),
             'monthlyRealizations' => $this->trainingUsersRepo->getMonthlyRealizations(),
-            'topPendingUsers' => $this->trainingUsersRepo->getTopPendingUsers(),
-            'topCriticalTrainings' => $this->trainingUsersRepo->getTopCriticalTrainings(),
-            
-            // Treinamentos próximos do vencimento
-            'expiring' => $this->trainingUsersRepo->getExpiringTrainings(30),
-            
-            // Estatísticas por departamento
-            'departmentStats' => $this->getDepartmentStatistics(),
-            
-            // Estatísticas por cargo
-            'positionStats' => $this->getPositionStatistics(),
-            
-            // Últimas aplicações
-            'recentApplications' => $this->applicationsRepo->getRecentApplications(10),
-            
-            // Treinamentos mais aplicados
-            'mostAppliedTrainings' => $this->getMostAppliedTrainings(),
         ];
+        
+        // Carregar dados secundários com tratamento de erro individual
+        try {
+            $data['topPendingUsers'] = $this->trainingUsersRepo->getTopPendingUsers();
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar topPendingUsers: " . $e->getMessage());
+            $data['topPendingUsers'] = [];
+        }
+        
+        try {
+            $data['topCriticalTrainings'] = $this->trainingUsersRepo->getTopCriticalTrainings();
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar topCriticalTrainings: " . $e->getMessage());
+            $data['topCriticalTrainings'] = [];
+        }
+        
+        try {
+            $data['expiring'] = $this->trainingUsersRepo->getExpiringTrainings(30);
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar expiring: " . $e->getMessage());
+            $data['expiring'] = [];
+        }
+        
+        try {
+            $data['departmentStats'] = $this->getDepartmentStatistics();
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar departmentStats: " . $e->getMessage());
+            $data['departmentStats'] = [];
+        }
+        
+        try {
+            $data['positionStats'] = $this->getPositionStatistics();
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar positionStats: " . $e->getMessage());
+            $data['positionStats'] = [];
+        }
+        
+        try {
+            $data['recentApplications'] = $this->applicationsRepo->getRecentApplications(10);
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar recentApplications: " . $e->getMessage());
+            $data['recentApplications'] = [];
+        }
+        
+        try {
+            $data['mostAppliedTrainings'] = $this->getMostAppliedTrainings();
+        } catch (\Exception $e) {
+            error_log("Erro ao carregar mostAppliedTrainings: " . $e->getMessage());
+            $data['mostAppliedTrainings'] = [];
+        }
+        
+        return $data;
     }
 
     private function getDepartmentStatistics(): array

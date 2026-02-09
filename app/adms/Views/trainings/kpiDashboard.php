@@ -27,6 +27,19 @@ use App\adms\Models\Repository\TrainingUsersRepository;
         $summary      = $repo->getSummaryAll();
         $statusCounts = $repo->getStatusCounts();
         $monthly      = $repo->getMonthlyRealizations();
+        
+        // Atualizar o array $dashboard para que os gráficos recebam os dados
+        $dashboard['summary'] = $summary;
+        $dashboard['statusCounts'] = $statusCounts;
+        $dashboard['monthlyRealizations'] = $monthly;
+        
+        // Carregar também os outros dados que podem estar faltando
+        if (empty($dashboard['topPendingUsers'])) {
+            $dashboard['topPendingUsers'] = $repo->getTopPendingUsers();
+        }
+        if (empty($dashboard['topCriticalTrainings'])) {
+            $dashboard['topCriticalTrainings'] = $repo->getTopCriticalTrainings();
+        }
     }
     ?>
 
@@ -404,91 +417,108 @@ use App\adms\Models\Repository\TrainingUsersRepository;
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Dados para os gráficos
-    const statusData = <?= json_encode($dashboard['statusCounts'] ?? []) ?>;
-    const monthlyData = <?= json_encode($dashboard['monthlyRealizations'] ?? []) ?>;
+    // Dados para os gráficos (garantir que sempre tenham dados)
+    const statusData = <?= json_encode($statusCounts ?? []) ?>;
+    const monthlyData = <?= json_encode($monthly ?? []) ?>;
+    
+    // Debug: verificar se os dados estão chegando
+    console.log('Status Data:', statusData);
+    console.log('Monthly Data:', monthlyData);
 
     // Gráfico de Status (Pizza)
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    new Chart(statusCtx, {
-        type: 'pie',
-        data: {
-            labels: [
-                'Dentro do Prazo (A fazer)',
-                'Próx. do Vencimento',
-                'Vencido',
-                'Agendado',
-                'Concluído'
-            ],
-            datasets: [{
-                data: [
-                    statusData.em_dia || 0,
-                    statusData.proximo_vencimento || 0,
-                    statusData.vencido || 0,
-                    statusData.agendado || 0,
-                    statusData.concluido || 0
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        const statusChart = new Chart(statusCtx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: [
+                    'Dentro do Prazo (A fazer)',
+                    'Próx. do Vencimento',
+                    'Vencido',
+                    'Agendado',
+                    'Concluído'
                 ],
-                backgroundColor: [
-                    '#198754', // em dia
-                    '#ffc107', // próximo vencimento
-                    '#dc3545', // vencido
-                    '#0d6efd', // agendado
-                    '#6c757d'  // concluído
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.0,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-    // Gráfico de Realizações Mensais (Barras)
-    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-    const months = Object.keys(monthlyData);
-    const values = Object.values(monthlyData);
-    
-    new Chart(monthlyCtx, {
-        type: 'bar',
-        data: {
-            labels: months.map(month => {
-                const [year, monthNum] = month.split('-');
-                const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                                  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-                return `${monthNames[parseInt(monthNum) - 1]}/${year.slice(2)}`;
-            }),
-            datasets: [{
-                label: 'Realizações',
-                data: values,
-                backgroundColor: '#007bff',
-                borderColor: '#0056b3',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.0,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
+                datasets: [{
+                    data: [
+                        statusData.em_dia || 0,
+                        statusData.proximo_vencimento || 0,
+                        statusData.vencido || 0,
+                        statusData.agendado || 0,
+                        statusData.concluido || 0
+                    ],
+                    backgroundColor: [
+                        '#198754', // em dia
+                        '#ffc107', // próximo vencimento
+                        '#dc3545', // vencido
+                        '#0d6efd', // agendado
+                        '#6c757d'  // concluído
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.0,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
                     }
                 }
+            }
+        });
+    } else {
+        console.error('Elemento statusChart não encontrado!');
+    }
+
+    // Gráfico de Realizações Mensais (Barras)
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (monthlyCtx) {
+        const months = Object.keys(monthlyData || {});
+        const values = Object.values(monthlyData || {});
+        
+        // Se não houver dados, criar um array vazio para evitar erro
+        if (months.length === 0) {
+            console.warn('Nenhum dado mensal encontrado para o gráfico');
+        }
+        
+        const monthlyChart = new Chart(monthlyCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: months.length > 0 ? months.map(month => {
+                    const [year, monthNum] = month.split('-');
+                    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                    return `${monthNames[parseInt(monthNum) - 1]}/${year.slice(2)}`;
+                }) : ['Sem dados'],
+                datasets: [{
+                    label: 'Realizações',
+                    data: values.length > 0 ? values : [0],
+                    backgroundColor: '#007bff',
+                    borderColor: '#0056b3',
+                    borderWidth: 1
+                }]
             },
-            plugins: {
-                legend: {
-                    display: false
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.0,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
                 }
             }
-        }
-    });
+        });
+    } else {
+        console.error('Elemento monthlyChart não encontrado!');
+    }
 });
 </script> 

@@ -1172,8 +1172,8 @@ class TrainingUsersRepository extends DbConnection
             $status = $row['status'];
             $count  = (int) $row['count'];
 
-            // Agrupar "dentro_do_prazo" dentro de "em_dia" para manter coerência com os cards
-            if ($status === 'dentro_do_prazo') {
+            // Agrupar "dentro_do_prazo" e "em_dia" dentro de "em_dia" para manter coerência com os cards
+            if ($status === 'dentro_do_prazo' || $status === 'em_dia') {
                 $counts['em_dia'] += $count;
                 continue;
             }
