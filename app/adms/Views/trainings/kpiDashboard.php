@@ -1,5 +1,6 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Models\Repository\TrainingUsersRepository;
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -16,6 +17,18 @@ use App\adms\Helpers\FormatHelper;
     <?php $dashboard = $this->data['dashboard'] ?? []; ?>
     <?php $summary = $dashboard['summary'] ?? []; ?>
     <?php $statusCounts = $dashboard['statusCounts'] ?? []; ?>
+    <?php $monthly = $dashboard['monthlyRealizations'] ?? []; ?>
+
+    <?php
+    // Fallback de segurança: se por algum motivo o controller não
+    // tiver preenchido o array $dashboard, buscar direto do repositório.
+    if (empty($summary) || empty($statusCounts)) {
+        $repo = new TrainingUsersRepository();
+        $summary      = $repo->getSummaryAll();
+        $statusCounts = $repo->getStatusCounts();
+        $monthly      = $repo->getMonthlyRealizations();
+    }
+    ?>
 
     <!-- Cards de Resumo (alinhados com Status de Treinamentos por Colaborador) -->
     <div class="row mb-3">
