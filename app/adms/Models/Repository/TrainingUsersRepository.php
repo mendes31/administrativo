@@ -726,6 +726,14 @@ class TrainingUsersRepository extends DbConnection
         // Garante que os status dinâmicos estejam atualizados antes de sumarizar
         $this->updateDynamicStatuses();
 
+        // Regras:
+        // - Todos: contar TODOS os registros cadastrados em adms_training_users (independente do status)
+        // - Dentro do Prazo: status em_dia ou dentro_do_prazo
+        // - Próximo do Vencimento: status proximo_vencimento
+        // - Vencido: status vencido
+        // - Agendado: status agendado
+        // - Concluído: status concluido
+
         $sql = 'SELECT 
                     COUNT(DISTINCT tu.adms_user_id) as total_users,
                     COUNT(*) as total_entries,
@@ -734,7 +742,7 @@ class TrainingUsersRepository extends DbConnection
                     SUM(CASE WHEN tu.status = "vencido" THEN 1 ELSE 0 END) as vencido_count,
                     SUM(CASE WHEN tu.status = "agendado" THEN 1 ELSE 0 END) as agendado_count,
                     SUM(CASE WHEN tu.status = "proximo_vencimento" THEN 1 ELSE 0 END) as proximo_vencimento_count,
-                    SUM(CASE WHEN tu.status = "em_dia" THEN 1 ELSE 0 END) as em_dia_count
+                    SUM(CASE WHEN tu.status IN ("em_dia","dentro_do_prazo") THEN 1 ELSE 0 END) as em_dia_count
                 FROM adms_training_users tu';
 
         $stmt = $this->getConnection()->prepare($sql);
@@ -762,8 +770,8 @@ class TrainingUsersRepository extends DbConnection
             'em_dia'              => $emDia,
 
             // Aliases para compatibilidade com os cards da tela list-training-status
-            // 'Todos' deve considerar quantidade de colaboradores (distintos), não de vínculos
-            'todos'               => $totalUsers,
+            // 'Todos' deve considerar TODOS os vínculos cadastrados, independente do status
+            'todos'               => $totalEntries,
             'concluido'           => $concluidos,
             'pendente'            => $pendentes,
             'vencido'             => $vencidos,
