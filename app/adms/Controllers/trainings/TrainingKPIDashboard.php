@@ -157,16 +157,39 @@ class TrainingKpiDashboard
 
     private function getDepartmentStatistics(): array
     {
+        // Alinhar com a lógica dos cards: incluir todos os registros não-órfãos
+        // Para status dinâmicos (exceto concluído): apenas usuários/treinamentos ativos
+        // Para concluídos: todos os não-órfãos
         $sql = "SELECT 
                     d.id as department_id,
                     d.name as department_name,
+                    -- Total: todos os registros não-órfãos
                     COUNT(tu.id) as total_vinculos,
+                    -- Concluídos: todos os não-órfãos (mesmo inativos)
                     SUM(CASE WHEN tu.status = 'concluido' THEN 1 ELSE 0 END) as concluidos,
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
-                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
-                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos
+                    -- Dentro do Prazo: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as em_dia,
+                    -- Próximo Vencimento: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as pendentes,
+                    -- Vencidos: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status = 'vencido' 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as vencidos,
+                    -- Agendados: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status = 'agendado' 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as agendados
                 FROM adms_training_users tu
                 INNER JOIN adms_users u ON u.id = tu.adms_user_id
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
                 GROUP BY d.id, d.name
                 ORDER BY total_vinculos DESC";
@@ -178,15 +201,35 @@ class TrainingKpiDashboard
 
     private function getPositionStatistics(): array
     {
+        // Alinhar com a lógica dos cards e departamentos
         $sql = "SELECT 
                     p.name as position_name,
                     COUNT(tu.id) as total_vinculos,
+                    -- Concluídos: todos os não-órfãos
                     SUM(CASE WHEN tu.status = 'concluido' THEN 1 ELSE 0 END) as concluidos,
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
-                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
-                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos
+                    -- Dentro do Prazo: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as em_dia,
+                    -- Próximo Vencimento: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as pendentes,
+                    -- Vencidos: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status = 'vencido' 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as vencidos,
+                    -- Agendados: apenas usuários/treinamentos ativos
+                    SUM(CASE WHEN tu.status = 'agendado' 
+                             AND u.status = 'Ativo' 
+                             AND t.ativo = 1 
+                        THEN 1 ELSE 0 END) as agendados
                 FROM adms_training_users tu
                 INNER JOIN adms_users u ON u.id = tu.adms_user_id
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
                 INNER JOIN adms_positions p ON u.user_position_id = p.id
                 GROUP BY p.id, p.name
                 ORDER BY total_vinculos DESC
