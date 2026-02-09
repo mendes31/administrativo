@@ -364,10 +364,44 @@ class TrainingKpiDashboard
             }
         }
         
-        // Ordenar por total
+        // Buscar todos os departamentos para garantir que apareçam na lista
+        $sqlAllDepts = "SELECT id, name FROM adms_departments ORDER BY name";
+        $stmtAllDepts = $pdo->prepare($sqlAllDepts);
+        $stmtAllDepts->execute();
+        $allDepts = $stmtAllDepts->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Criar mapa de departamentos existentes no resultado
+        $existingDeptIds = [];
+        foreach ($result as $row) {
+            $existingDeptIds[$row['department_id']] = true;
+        }
+        
+        // Adicionar departamentos que não têm registros
+        foreach ($allDepts as $dept) {
+            $deptId = $dept['id'];
+            if (!isset($existingDeptIds[$deptId])) {
+                $result[] = [
+                    'department_id' => $deptId,
+                    'department_name' => $dept['name'],
+                    'total_vinculos' => 0,
+                    'concluidos' => 0,
+                    'em_dia' => 0,
+                    'pendentes' => 0,
+                    'vencidos' => 0,
+                    'agendados' => 0,
+                ];
+            }
+        }
+        
+        // Ordenar por total (departamentos com mais registros primeiro)
         usort($result, function($a, $b) {
             return $b['total_vinculos'] - $a['total_vinculos'];
         });
+        
+        // Debug: log dos primeiros resultados
+        if (!empty($result)) {
+            error_log("getDepartmentStatistics: Primeiro departamento - " . json_encode($result[0]));
+        }
         
         return $result;
     }
