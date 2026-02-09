@@ -547,14 +547,35 @@ class TrainingUsersRepository extends DbConnection
     public function updateDynamicStatuses(): int
     {
         // Seleciona todos os vínculos com informações do treinamento,
-        // incluindo prazo_treinamento para cálculo de \"próximo do vencimento\".
+        // incluindo prazo_treinamento para cálculo de "próximo do vencimento"
+        // e data_realizacao da última aplicação para verificar se está concluído
         $sql = 'SELECT 
                     tu.*,
                     t.reciclagem,
                     t.reciclagem_periodo,
-                    t.prazo_treinamento
+                    t.prazo_treinamento,
+                    ta_last.data_realizacao as data_realizacao_ultima
                 FROM adms_training_users tu
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id';
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+                LEFT JOIN (
+                    SELECT 
+                        ta1.adms_user_id,
+                        ta1.adms_training_id,
+                        ta1.data_realizacao
+                    FROM adms_training_applications ta1
+                    INNER JOIN (
+                        SELECT 
+                            adms_user_id,
+                            adms_training_id,
+                            MAX(created_at) as max_created_at
+                        FROM adms_training_applications
+                        GROUP BY adms_user_id, adms_training_id
+                    ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                        AND ta1.adms_training_id = ta2.adms_training_id 
+                        AND ta1.created_at = ta2.max_created_at
+                ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                    AND ta_last.adms_training_id = tu.adms_training_id
+                    AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)';
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
@@ -562,6 +583,9 @@ class TrainingUsersRepository extends DbConnection
         
         $updated = 0;
         foreach ($trainings as $training) {
+            // Usar data_realizacao da última aplicação se disponível, senão usar da tu
+            $training['data_realizacao'] = $training['data_realizacao_ultima'] ?? $training['data_realizacao'] ?? null;
+            
             $newStatus = $this->calculateStatus($training);
             if ($newStatus !== ($training['status'] ?? 'pendente')) {
                 $this->updateStatus($training['adms_user_id'], $training['adms_training_id'], $newStatus);
