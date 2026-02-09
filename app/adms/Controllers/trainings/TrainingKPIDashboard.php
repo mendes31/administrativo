@@ -132,8 +132,20 @@ class TrainingKpiDashboard
         
         try {
             $data['departmentStats'] = $this->getDepartmentStatistics();
+            // Debug: log do primeiro departamento para verificar se os dados estão corretos
+            if (!empty($data['departmentStats'])) {
+                $firstDept = $data['departmentStats'][0];
+                error_log("TrainingKpiDashboard: Primeiro departamento passado para view - " . json_encode([
+                    'department' => $firstDept['department_name'] ?? 'N/A',
+                    'em_dia' => $firstDept['em_dia'] ?? 0,
+                    'pendentes' => $firstDept['pendentes'] ?? 0,
+                    'vencidos' => $firstDept['vencidos'] ?? 0,
+                    'agendados' => $firstDept['agendados'] ?? 0,
+                ]));
+            }
         } catch (\Exception $e) {
             error_log("Erro ao carregar departmentStats: " . $e->getMessage());
+            error_log("Trace: " . $e->getTraceAsString());
             $data['departmentStats'] = [];
         }
         
