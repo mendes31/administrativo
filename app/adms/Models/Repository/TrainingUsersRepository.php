@@ -1190,7 +1190,13 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getMonthlyRealizations(): array
     {
-        $sql = "SELECT DATE_FORMAT(data_realizacao, '%Y-%m') as mes, COUNT(*) as total FROM adms_training_applications WHERE data_realizacao IS NOT NULL AND data_realizacao >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) GROUP BY mes ORDER BY mes ASC";
+        // Primeiro, tentar buscar de adms_training_applications
+        $sql = "SELECT DATE_FORMAT(data_realizacao, '%Y-%m') as mes, COUNT(*) as total 
+                FROM adms_training_applications 
+                WHERE data_realizacao IS NOT NULL 
+                  AND data_realizacao >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) 
+                GROUP BY mes 
+                ORDER BY mes ASC";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1198,6 +1204,25 @@ class TrainingUsersRepository extends DbConnection
         foreach ($result as $row) {
             $data[$row['mes']] = (int)$row['total'];
         }
+        
+        // Se não houver dados em applications, usar adms_training_users com status concluido
+        // usando updated_at como data de conclusão aproximada
+        if (empty($data)) {
+            $sql = "SELECT DATE_FORMAT(updated_at, '%Y-%m') as mes, COUNT(*) as total 
+                    FROM adms_training_users 
+                    WHERE status = 'concluido' 
+                      AND updated_at IS NOT NULL
+                      AND updated_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) 
+                    GROUP BY mes 
+                    ORDER BY mes ASC";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($result as $row) {
+                $data[$row['mes']] = (int)$row['total'];
+            }
+        }
+        
         return $data;
     }
 

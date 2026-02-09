@@ -458,6 +458,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function initializeCharts() {
+        // Verificar se Chart.js está disponível
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js não está disponível!');
+            return;
+        }
+        
+        console.log('Chart.js carregado, inicializando gráficos...');
+        
         // Dados para os gráficos (garantir que sempre tenham dados)
         const statusData = <?= json_encode($statusCounts ?? []) ?>;
         const monthlyData = <?= json_encode($monthly ?? []) ?>;
@@ -476,10 +484,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('monthlyData inválido ou vazio:', monthlyData);
         }
 
-    // Gráfico de Status (Pizza)
-    const statusCtx = document.getElementById('statusChart');
-    if (statusCtx) {
-        const statusChart = new Chart(statusCtx.getContext('2d'), {
+        // Gráfico de Status (Pizza)
+        const statusCtx = document.getElementById('statusChart');
+        if (statusCtx) {
+            try {
+                const statusChart = new Chart(statusCtx.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: [
@@ -516,23 +525,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-        });
-    } else {
-        console.error('Elemento statusChart não encontrado!');
-    }
-
-    // Gráfico de Realizações Mensais (Barras)
-    const monthlyCtx = document.getElementById('monthlyChart');
-    if (monthlyCtx) {
-        const months = Object.keys(monthlyData || {});
-        const values = Object.values(monthlyData || {});
-        
-        // Se não houver dados, criar um array vazio para evitar erro
-        if (months.length === 0) {
-            console.warn('Nenhum dado mensal encontrado para o gráfico');
+                });
+                console.log('Gráfico de Status criado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao criar gráfico de Status:', error);
+            }
+        } else {
+            console.error('Elemento statusChart não encontrado!');
         }
-        
-        const monthlyChart = new Chart(monthlyCtx.getContext('2d'), {
+
+        // Gráfico de Realizações Mensais (Barras)
+        const monthlyCtx = document.getElementById('monthlyChart');
+        if (monthlyCtx) {
+            try {
+                const months = Object.keys(monthlyData || {});
+                const values = Object.values(monthlyData || {});
+                
+                // Se não houver dados, criar um array vazio para evitar erro
+                if (months.length === 0) {
+                    console.warn('Nenhum dado mensal encontrado para o gráfico');
+                }
+                
+                const monthlyChart = new Chart(monthlyCtx.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: months.length > 0 ? months.map(month => {
@@ -567,10 +581,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-        });
-    } else {
-        console.error('Elemento monthlyChart não encontrado!');
-    }
+                });
+                console.log('Gráfico Mensal criado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao criar gráfico Mensal:', error);
+            }
+        } else {
+            console.error('Elemento monthlyChart não encontrado!');
+        }
     }
     
     // Iniciar verificação do Chart.js

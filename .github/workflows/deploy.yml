@@ -15,6 +15,27 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      # Diagnóstico: Verificar se os secrets estão configurados
+      - name: Verificar Secrets FTP
+        run: |
+          echo "🔍 === VERIFICAÇÃO DE SECRETS ==="
+          if [ -z "${{ secrets.FTP_SERVER_PROD }}" ]; then
+            echo "❌ ERRO: FTP_SERVER_PROD não está configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.FTP_USER_PROD }}" ]; then
+            echo "❌ ERRO: FTP_USER_PROD não está configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.FTP_PASS_PROD }}" ]; then
+            echo "❌ ERRO: FTP_PASS_PROD não está configurado!"
+            exit 1
+          fi
+          echo "✅ Todos os secrets estão configurados"
+          echo "📋 Servidor: ${{ secrets.FTP_SERVER_PROD }}"
+          echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
+          echo "📋 Senha: [OCULTA]"
+
       # Estratégia 1: Deploy incremental inteligente com verificação
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
