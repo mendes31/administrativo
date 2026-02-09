@@ -730,34 +730,113 @@ class TrainingUsersRepository extends DbConnection
         // - Agendado: status agendado
         // - Concluído: status concluido
 
-        $sql = 'SELECT 
-                    COUNT(DISTINCT tu.adms_user_id) as total_users,
-                    COUNT(*) as total_entries,
-                    SUM(CASE WHEN tu.status = "pendente" THEN 1 ELSE 0 END) as pendente_count,
-                    SUM(CASE WHEN tu.status = "concluido" THEN 1 ELSE 0 END) as concluido_count,
-                    SUM(CASE WHEN tu.status = "vencido" THEN 1 ELSE 0 END) as vencido_count,
-                    SUM(CASE WHEN tu.status = "agendado" THEN 1 ELSE 0 END) as agendado_count,
-                    SUM(CASE WHEN tu.status = "proximo_vencimento" THEN 1 ELSE 0 END) as proximo_vencimento_count,
-                    SUM(CASE WHEN tu.status IN ("em_dia","dentro_do_prazo") THEN 1 ELSE 0 END) as em_dia_count
-                FROM adms_training_users tu';
+        // $sql = 'SELECT 
+        //             COUNT(DISTINCT tu.adms_user_id) as total_users,
+        //             COUNT(*) as total_entries,
+        //             SUM(CASE WHEN tu.status = "pendente" THEN 1 ELSE 0 END) as pendente_count,
+        //             SUM(CASE WHEN tu.status = "concluido" THEN 1 ELSE 0 END) as concluido_count,
+        //             SUM(CASE WHEN tu.status = "vencido" THEN 1 ELSE 0 END) as vencido_count,
+        //             SUM(CASE WHEN tu.status = "agendado" THEN 1 ELSE 0 END) as agendado_count,
+        //             SUM(CASE WHEN tu.status = "proximo_vencimento" THEN 1 ELSE 0 END) as proximo_vencimento_count,
+        //             SUM(CASE WHEN tu.status IN ("em_dia","dentro_do_prazo") THEN 1 ELSE 0 END) as em_dia_count
+        //         FROM adms_training_users tu';
 
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute();
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        // $stmt = $this->getConnection()->prepare($sql);
+        // $stmt->execute();
+        // $row = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 
-        $totalUsers            = (int)($row['total_users'] ?? 0);
-        $totalEntries          = (int)($row['total_entries'] ?? 0);
-        $concluidos            = (int)($row['concluido_count'] ?? 0);
-        $pendentes             = (int)($row['pendente_count'] ?? 0);
-        $vencidos              = (int)($row['vencido_count'] ?? 0);
-        $agendados             = (int)($row['agendado_count'] ?? 0);
-        $proximoVencimento     = (int)($row['proximo_vencimento_count'] ?? 0);
-        $emDia                 = (int)($row['em_dia_count'] ?? 0);
+        // $totalUsers            = (int)($row['total_users'] ?? 0);
+        // $totalEntries          = (int)($row['total_entries'] ?? 0);
+        // $concluidos            = (int)($row['concluido_count'] ?? 0);
+        // $pendentes             = (int)($row['pendente_count'] ?? 0);
+        // $vencidos              = (int)($row['vencido_count'] ?? 0);
+        // $agendados             = (int)($row['agendado_count'] ?? 0);
+        // $proximoVencimento     = (int)($row['proximo_vencimento_count'] ?? 0);
+        // $emDia                 = (int)($row['em_dia_count'] ?? 0);
 
-        // Estrutura completa, mantendo chaves antigas e adicionando aliases
+        // // Estrutura completa, mantendo chaves antigas e adicionando aliases
+        // return [
+        //     // Estrutura original usada em outros pontos
+        //     'total'               => $totalEntries,
+        //     'concluidos'          => $concluidos,
+        //     'pendentes'           => $pendentes,
+        //     'vencidos'            => $vencidos,
+        //     'agendados'           => $agendados,
+        //     'proximo_vencimento'  => $proximoVencimento,
+        //     'em_dia'              => $emDia,
+
+        //     // Aliases para compatibilidade com os cards da tela list-training-status
+        //     // 'Todos' deve considerar TODOS os vínculos cadastrados, independente do status
+        //     'todos'               => $totalEntries,
+        //     'concluido'           => $concluidos,
+        //     'pendente'            => $pendentes,
+        //     'vencido'             => $vencidos,
+        //     'agendado'            => $agendados,
+        //     'dentro_do_prazo'     => $emDia,
+
+        //     // Extras para depuração/uso futuro
+        //     'total_users'         => $totalUsers,
+        //     'total_entries'       => $totalEntries,
+        // ];
+
+        $pdo = $this->getConnection();
+
+        // 1) Contagens para status dinâmicos (exceto concluído) seguindo a regra da listagem
+        $sqlActive = '
+            SELECT 
+                COUNT(DISTINCT tu.adms_user_id) as total_users,
+                COUNT(*) as total_entries,
+                SUM(CASE WHEN tu.status = "pendente" THEN 1 ELSE 0 END) as pendente_count,
+                SUM(CASE WHEN tu.status = "vencido" THEN 1 ELSE 0 END) as vencido_count,
+                SUM(CASE WHEN tu.status = "agendado" THEN 1 ELSE 0 END) as agendado_count,
+                SUM(CASE WHEN tu.status = "proximo_vencimento" THEN 1 ELSE 0 END) as proximo_vencimento_count,
+                SUM(CASE WHEN tu.status IN ("em_dia","dentro_do_prazo") THEN 1 ELSE 0 END) as em_dia_count
+            FROM adms_training_users tu
+            INNER JOIN adms_users u 
+                ON u.id = tu.adms_user_id 
+               AND u.status = "Ativo"
+            INNER JOIN adms_trainings t 
+                ON t.id = tu.adms_training_id 
+               AND t.ativo = 1
+        ';
+
+        $stmtActive = $pdo->prepare($sqlActive);
+        $stmtActive->execute();
+        $rowActive = $stmtActive->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+        $totalUsers        = (int)($rowActive['total_users'] ?? 0);
+        $totalEntriesBase  = (int)($rowActive['total_entries'] ?? 0);
+        $pendentes         = (int)($rowActive['pendente_count'] ?? 0);
+        $vencidos          = (int)($rowActive['vencido_count'] ?? 0);
+        $agendados         = (int)($rowActive['agendado_count'] ?? 0);
+        $proximoVencimento = (int)($rowActive['proximo_vencimento_count'] ?? 0);
+        $emDia             = (int)($rowActive['em_dia_count'] ?? 0);
+
+        // 2) Contagem de concluídos (todos os usuários/treinamentos existentes, mesmo inativos),
+        //    ainda exigindo que NÃO sejam órfãos.
+        $sqlConcluidos = '
+            SELECT 
+                COUNT(*) as concluido_count
+            FROM adms_training_users tu
+            LEFT JOIN adms_users u ON u.id = tu.adms_user_id
+            LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
+            WHERE tu.status = "concluido"
+              AND u.id IS NOT NULL
+              AND t.id IS NOT NULL
+        ';
+
+        $stmtConc = $pdo->prepare($sqlConcluidos);
+        $stmtConc->execute();
+        $rowConc = $stmtConc->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+        $concluidos = (int)($rowConc['concluido_count'] ?? 0);
+
+        // 3) Total dos cards (Todos) = soma dos demais cards
+        $todos = $emDia + $proximoVencimento + $vencidos + $agendados + $concluidos;
+
         return [
-            // Estrutura original usada em outros pontos
-            'total'               => $totalEntries,
+            // Estrutura geral
+            'total'               => $todos,
             'concluidos'          => $concluidos,
             'pendentes'           => $pendentes,
             'vencidos'            => $vencidos,
@@ -765,18 +844,18 @@ class TrainingUsersRepository extends DbConnection
             'proximo_vencimento'  => $proximoVencimento,
             'em_dia'              => $emDia,
 
-            // Aliases para compatibilidade com os cards da tela list-training-status
-            // 'Todos' deve considerar TODOS os vínculos cadastrados, independente do status
-            'todos'               => $totalEntries,
+            // Aliases para os cards
+            'todos'               => $todos,
             'concluido'           => $concluidos,
             'pendente'            => $pendentes,
             'vencido'             => $vencidos,
             'agendado'            => $agendados,
             'dentro_do_prazo'     => $emDia,
 
-            // Extras para depuração/uso futuro
+            // Extras para referência/depuração
             'total_users'         => $totalUsers,
-            'total_entries'       => $totalEntries,
+            'total_entries'       => $todos,
+            'total_entries_base'  => $totalEntriesBase,
         ];
     }
 
