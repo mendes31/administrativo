@@ -223,6 +223,15 @@ class TrainingKpiDashboard
         $stmtActive = $pdo->prepare($sqlActive);
         $stmtActive->execute();
         $activeStats = $stmtActive->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Debug detalhado: verificar tipos e valores
+        if (!empty($activeStats)) {
+            $firstRow = $activeStats[0];
+            error_log("getDepartmentStatistics: Primeira linha raw - " . json_encode($firstRow));
+            error_log("getDepartmentStatistics: Tipos - em_dia: " . gettype($firstRow['em_dia']) . ", valor: " . var_export($firstRow['em_dia'], true));
+            error_log("getDepartmentStatistics: Tipos - pendentes: " . gettype($firstRow['pendentes']) . ", valor: " . var_export($firstRow['pendentes'], true));
+            error_log("getDepartmentStatistics: Tipos - vencidos: " . gettype($firstRow['vencidos']) . ", valor: " . var_export($firstRow['vencidos'], true));
+        }
         error_log("getDepartmentStatistics: activeStats (primeiros 2) - " . json_encode(array_slice($activeStats, 0, 2)));
         
         // Executar query de concluídos
