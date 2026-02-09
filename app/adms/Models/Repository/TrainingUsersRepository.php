@@ -1162,15 +1162,24 @@ class TrainingUsersRepository extends DbConnection
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $counts = [
             'pendente' => 0,
-            'em_dia' => 0,
+            'em_dia' => 0,               // inclui em_dia + dentro_do_prazo
             'proximo_vencimento' => 0,
             'vencido' => 0,
             'agendado' => 0,
             'concluido' => 0,
         ];
         foreach ($result as $row) {
-            if (isset($counts[$row['status']])) {
-                $counts[$row['status']] = (int) $row['count'];
+            $status = $row['status'];
+            $count  = (int) $row['count'];
+
+            // Agrupar "dentro_do_prazo" dentro de "em_dia" para manter coerência com os cards
+            if ($status === 'dentro_do_prazo') {
+                $counts['em_dia'] += $count;
+                continue;
+            }
+
+            if (isset($counts[$status])) {
+                $counts[$status] += $count;
             }
         }
         return $counts;
