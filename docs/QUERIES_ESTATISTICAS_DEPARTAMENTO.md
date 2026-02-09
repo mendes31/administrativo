@@ -1,19 +1,18 @@
 # Queries SQL - Estatísticas por Departamento
 
-## Query 1: Buscar dados para cálculo dinâmico de status
+## Query 1: Status dinâmicos por departamento (busca diretamente de tu.status)
 
-Esta query busca todos os registros de treinamentos de usuários ativos e treinamentos ativos, com suas informações necessárias para calcular o status dinamicamente.
+Esta query busca os status diretamente da coluna `tu.status` no banco de dados, agrupando por departamento. Usa a mesma lógica de `getSummaryAll()`.
 
 ```sql
 SELECT 
     d.id as department_id,
     d.name as department_name,
-    tu.id as training_user_id,
-    tu.data_limite_primeiro_treinamento,
-    tu.data_agendada,
-    tu.tipo_vinculo,
-    t.prazo_treinamento,
-    ta_last.data_realizacao
+    COUNT(*) as total_entries,
+    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
+    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
+    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
+    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
 FROM adms_training_users tu
 INNER JOIN adms_users u 
     ON u.id = tu.adms_user_id 
@@ -22,35 +21,15 @@ INNER JOIN adms_trainings t
     ON t.id = tu.adms_training_id 
    AND t.ativo = 1
 INNER JOIN adms_departments d ON u.user_department_id = d.id
-LEFT JOIN (
-    SELECT 
-        ta1.adms_user_id,
-        ta1.adms_training_id,
-        ta1.data_realizacao,
-        ta1.created_at
-    FROM adms_training_applications ta1
-    INNER JOIN (
-        SELECT 
-            adms_user_id,
-            adms_training_id,
-            MAX(created_at) as max_created_at
-        FROM adms_training_applications
-        GROUP BY adms_user_id, adms_training_id
-    ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
-        AND ta1.adms_training_id = ta2.adms_training_id 
-        AND ta1.created_at = ta2.max_created_at
-) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
-    AND ta_last.adms_training_id = tu.adms_training_id
-    AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)
-WHERE ta_last.data_realizacao IS NULL
+GROUP BY d.id, d.name
 ```
 
 **Filtros aplicados:**
 - `u.status = 'Ativo'` - Apenas usuários ativos
 - `t.ativo = 1` - Apenas treinamentos ativos
-- Busca última aplicação para verificar se está concluído
+- Conta diretamente de `tu.status` (não calcula dinamicamente)
 
-**Problema identificado:** Esta query pode estar excluindo registros que deveriam ser contados se o status no banco (`tu.status`) estiver desatualizado.
+**Observação:** Esta query busca os status diretamente da coluna `tu.status` no banco de dados, seguindo a mesma lógica de `getSummaryAll()`.
 
 ## Query 2: Contar concluídos por departamento
 
