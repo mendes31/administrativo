@@ -10,6 +10,7 @@ use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\TrainingStatusUpdaterService;
 
 class TrainingKpiDashboard
 {
@@ -33,6 +34,11 @@ class TrainingKpiDashboard
     public function index(): void
     {
         try {
+            // Atualizar status dinâmicos automaticamente (se necessário)
+            // Executa apenas se passou mais de 15 minutos desde a última atualização
+            // Isso garante que os dados estejam sempre atualizados sem sobrecarregar o servidor
+            TrainingStatusUpdaterService::ensureUpdated();
+            
             $data = [
                 'title_head' => 'Dashboard de KPIs - Treinamentos',
                 'menu' => 'training-kpi-dashboard',

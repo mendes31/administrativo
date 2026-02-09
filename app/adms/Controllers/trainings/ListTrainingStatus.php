@@ -10,6 +10,7 @@ use App\adms\Models\Repository\TrainingUsersRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\ScreenResolutionHelper;
+use App\adms\Models\Services\TrainingStatusUpdaterService;
 
 class ListTrainingStatus
 {
@@ -17,6 +18,10 @@ class ListTrainingStatus
 
     public function index(): void
     {
+        // Atualizar status dinâmicos automaticamente (se necessário)
+        // Executa apenas se passou mais de 15 minutos desde a última atualização
+        TrainingStatusUpdaterService::ensureUpdated();
+        
         // Obter configurações responsivas
         $resolution = ScreenResolutionHelper::getScreenResolution();
         $responsiveClasses = ScreenResolutionHelper::getResponsiveClasses($resolution['category']);
