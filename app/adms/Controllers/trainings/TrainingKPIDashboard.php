@@ -175,22 +175,22 @@ class TrainingKpiDashboard
 
     private function getDepartmentStatistics(): array
     {
-        // Usar mesma lógica de getSummaryAll(): buscar diretamente de tu.status
-        // Para status dinâmicos (exceto concluído): apenas usuários/treinamentos ativos
-        // Para concluídos: todos os não-órfãos
-        
+        // Versão simplificada e alinhada exatamente com a regra de negócio:
+        // - Tudo vem DIRETAMENTE de tu.status
+        // - Um único SELECT já traz: total, concluídos, em_dia, pendentes, vencidos, agendados
+        // - Sem cálculos dinâmicos em PHP
+
         $pdo = $this->trainingUsersRepo->getConnection();
-        
-        // Query para status dinâmicos (apenas ativos) - busca DIRETAMENTE de tu.status no banco
-        // Não calcula dinamicamente, apenas conta os status que já estão salvos no banco
-        $sqlActive = "SELECT 
-                    d.id as department_id,
-                    d.name as department_name,
-                    COUNT(*) as total_entries,
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
-                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
-                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
-                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
+
+        $sql = "SELECT 
+                    d.id   AS department_id,
+                    d.name AS department_name,
+                    COUNT(*) AS total_vinculos,
+                    SUM(CASE WHEN tu.status = 'concluido' THEN 1 ELSE 0 END) AS concluidos,
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) AS em_dia,
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) AS pendentes,
+                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) AS vencidos,
+                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) AS agendados
                 FROM adms_training_users tu
                 INNER JOIN adms_users u 
                     ON u.id = tu.adms_user_id 
@@ -198,138 +198,64 @@ class TrainingKpiDashboard
                 INNER JOIN adms_trainings t 
                     ON t.id = tu.adms_training_id 
                    AND t.ativo = 1
-                INNER JOIN adms_departments d ON u.user_department_id = d.id
+                INNER JOIN adms_departments d 
+                    ON u.user_department_id = d.id
                 GROUP BY d.id, d.name";
-        
-        // Query para concluídos (todos os não-órfãos) - mesma lógica de getSummaryAll()
-        $sqlConcluidos = "SELECT 
-                    d.id as department_id,
-                    COUNT(*) as concluidos
-                FROM adms_training_users tu
-                LEFT JOIN adms_users u ON u.id = tu.adms_user_id
-                LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
-                LEFT JOIN adms_departments d ON u.user_department_id = d.id
-                WHERE tu.status = 'concluido'
-                  AND u.id IS NOT NULL
-                  AND t.id IS NOT NULL
-                  AND d.id IS NOT NULL
-                GROUP BY d.id";
-        
-        // Executar query de status dinâmicos
-        $stmtActive = $pdo->prepare($sqlActive);
-        $stmtActive->execute();
-        $activeStats = $stmtActive->fetchAll(\PDO::FETCH_ASSOC);
-        
-        // Executar query de concluídos
-        $stmtConc = $pdo->prepare($sqlConcluidos);
-        $stmtConc->execute();
-        $concluidosStats = $stmtConc->fetchAll(\PDO::FETCH_ASSOC);
-        
-        // Criar mapa de concluídos por departamento
-        $concluidosMap = [];
-        foreach ($concluidosStats as $row) {
-            $concluidosMap[$row['department_id']] = (int)($row['concluidos'] ?? 0);
-        }
-        
-        // Combinar resultados
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
         $result = [];
-        foreach ($activeStats as $row) {
-            $deptId = $row['department_id'];
-            $totalDinamicos = (int)($row['total_entries'] ?? 0);
-            $concluidos = $concluidosMap[$deptId] ?? 0;
-            $emDia = (int)($row['em_dia'] ?? 0);
-            $pendentes = (int)($row['pendentes'] ?? 0);
-            $vencidos = (int)($row['vencidos'] ?? 0);
-            $agendados = (int)($row['agendados'] ?? 0);
-            
+        foreach ($rows as $row) {
             $result[] = [
-                'department_id' => $deptId,
+                'department_id'   => (int) $row['department_id'],
                 'department_name' => $row['department_name'],
-                'total_vinculos' => $totalDinamicos + $concluidos,
-                'concluidos' => $concluidos,
-                'em_dia' => $emDia,
-                'pendentes' => $pendentes,
-                'vencidos' => $vencidos,
-                'agendados' => $agendados,
+                'total_vinculos'  => (int) ($row['total_vinculos'] ?? 0),
+                'concluidos'      => (int) ($row['concluidos'] ?? 0),
+                'em_dia'          => (int) ($row['em_dia'] ?? 0),
+                'pendentes'       => (int) ($row['pendentes'] ?? 0),
+                'vencidos'        => (int) ($row['vencidos'] ?? 0),
+                'agendados'       => (int) ($row['agendados'] ?? 0),
             ];
-            
-            // Debug: log do primeiro departamento após combinação
-            if (count($result) === 1) {
-                error_log("getDepartmentStatistics: Primeiro departamento após combinação - " . json_encode([
-                    'department' => $row['department_name'],
-                    'total_vinculos' => $totalDinamicos + $concluidos,
-                    'em_dia' => $emDia,
-                    'pendentes' => $pendentes,
-                    'vencidos' => $vencidos,
-                    'agendados' => $agendados,
-                ]));
-            }
         }
-        
-        // Adicionar departamentos que só têm concluídos
-        foreach ($concluidosMap as $deptId => $concluidos) {
-            $found = false;
-            foreach ($result as $row) {
-                if ($row['department_id'] == $deptId) {
-                    $found = true;
-                    break;
-                }
-            }
-            if (!$found) {
-                // Buscar nome do departamento
-                $stmtDept = $pdo->prepare("SELECT name FROM adms_departments WHERE id = ?");
-                $stmtDept->execute([$deptId]);
-                $deptName = $stmtDept->fetchColumn();
-                if ($deptName) {
-                    $result[] = [
-                        'department_id' => $deptId,
-                        'department_name' => $deptName,
-                        'total_vinculos' => $concluidos,
-                        'concluidos' => $concluidos,
-                        'em_dia' => 0,
-                        'pendentes' => 0,
-                        'vencidos' => 0,
-                        'agendados' => 0,
-                    ];
-                }
-            }
-        }
-        
-        // Buscar todos os departamentos para garantir que apareçam na lista
+
+        // Buscar todos os departamentos para garantir que apareçam na lista,
+        // mesmo que algum não tenha nenhum vínculo ativo.
         $sqlAllDepts = "SELECT id, name FROM adms_departments ORDER BY name";
         $stmtAllDepts = $pdo->prepare($sqlAllDepts);
         $stmtAllDepts->execute();
         $allDepts = $stmtAllDepts->fetchAll(\PDO::FETCH_ASSOC);
-        
-        // Criar mapa de departamentos existentes no resultado
-        $existingDeptIds = [];
+
+        // Mapear os já existentes
+        $byId = [];
         foreach ($result as $row) {
-            $existingDeptIds[$row['department_id']] = true;
+            $byId[$row['department_id']] = $row;
         }
-        
-        // Adicionar departamentos que não têm registros
+
+        // Garantir presença de todos os departamentos
         foreach ($allDepts as $dept) {
-            $deptId = $dept['id'];
-            if (!isset($existingDeptIds[$deptId])) {
-                $result[] = [
-                    'department_id' => $deptId,
+            $deptId = (int) $dept['id'];
+            if (!isset($byId[$deptId])) {
+                $byId[$deptId] = [
+                    'department_id'   => $deptId,
                     'department_name' => $dept['name'],
-                    'total_vinculos' => 0,
-                    'concluidos' => 0,
-                    'em_dia' => 0,
-                    'pendentes' => 0,
-                    'vencidos' => 0,
-                    'agendados' => 0,
+                    'total_vinculos'  => 0,
+                    'concluidos'      => 0,
+                    'em_dia'          => 0,
+                    'pendentes'       => 0,
+                    'vencidos'        => 0,
+                    'agendados'       => 0,
                 ];
             }
         }
-        
-        // Ordenar por total (departamentos com mais registros primeiro)
-        usort($result, function($a, $b) {
-            return $b['total_vinculos'] - $a['total_vinculos'];
+
+        // Ordenar por total_vinculos (decrescente)
+        usort($byId, function(array $a, array $b) {
+            return $b['total_vinculos'] <=> $a['total_vinculos'];
         });
-        
-        return $result;
+
+        return array_values($byId);
     }
 
     private function getPositionStatistics(): array
