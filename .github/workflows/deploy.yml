@@ -15,7 +15,6 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
         with:
-          retries: 3
           fetch-depth: 1
 
       # Diagnóstico: Verificar se os secrets estão configurados
