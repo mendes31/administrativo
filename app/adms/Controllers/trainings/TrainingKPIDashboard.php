@@ -252,10 +252,13 @@ class TrainingKpiDashboard
             $deptId = $row['department_id'];
             $totalDinamicos = (int)($row['total_entries'] ?? 0);
             $concluidos = $concluidosMap[$deptId] ?? 0;
-            $emDia = (int)($row['em_dia'] ?? 0);
-            $pendentes = (int)($row['pendentes'] ?? 0);
-            $vencidos = (int)($row['vencidos'] ?? 0);
-            $agendados = (int)($row['agendados'] ?? 0);
+            
+            // Converter valores SUM do MySQL (podem vir como strings)
+            // Usar função auxiliar para garantir conversão correta
+            $emDia = $this->convertSumValue($row['em_dia'] ?? 0);
+            $pendentes = $this->convertSumValue($row['pendentes'] ?? 0);
+            $vencidos = $this->convertSumValue($row['vencidos'] ?? 0);
+            $agendados = $this->convertSumValue($row['agendados'] ?? 0);
             
             // Debug: log do primeiro departamento após combinação
             if (count($result) === 0) {
