@@ -741,6 +741,7 @@ class TrainingUsersRepository extends DbConnection
         $stmt->execute();
         $row = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 
+        $totalUsers            = (int)($row['total_users'] ?? 0);
         $totalEntries          = (int)($row['total_entries'] ?? 0);
         $concluidos            = (int)($row['concluido_count'] ?? 0);
         $pendentes             = (int)($row['pendente_count'] ?? 0);
@@ -761,12 +762,17 @@ class TrainingUsersRepository extends DbConnection
             'em_dia'              => $emDia,
 
             // Aliases para compatibilidade com os cards da tela list-training-status
-            'todos'               => $totalEntries,
+            // 'Todos' deve considerar quantidade de colaboradores (distintos), não de vínculos
+            'todos'               => $totalUsers,
             'concluido'           => $concluidos,
             'pendente'            => $pendentes,
             'vencido'             => $vencidos,
             'agendado'            => $agendados,
             'dentro_do_prazo'     => $emDia,
+
+            // Extras para depuração/uso futuro
+            'total_users'         => $totalUsers,
+            'total_entries'       => $totalEntries,
         ];
     }
 
