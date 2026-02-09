@@ -221,6 +221,24 @@ thead th {
                 </table>
             </div>
 
+            <!-- Paginação Desktop -->
+            <?php if (!empty($this->data['pagination']['total'])): ?>
+                <div class="w-100 mt-2 d-none d-md-flex justify-content-between align-items-center">
+                    <div class="text-secondary small">
+                        <?php
+                        $pagination = $this->data['pagination'];
+                        $firstItem = $pagination['first_item'] ?? 0;
+                        $lastItem  = $pagination['last_item'] ?? 0;
+                        $total     = $pagination['total'] ?? 0;
+                        ?>
+                        Mostrando <?= $firstItem ?> até <?= $lastItem ?> de <?= $total ?> registro(s)
+                    </div>
+                    <div>
+                        <?= $this->data['pagination']['html'] ?? '' ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- CARDS MOBILE -->
             <div class="d-block d-md-none">
                 <?php if (!empty($this->data['matrixByUser'])): ?>
