@@ -146,7 +146,8 @@ class TrainingKpiDashboard
                     p.name as position_name,
                     COUNT(tu.id) as total_vinculos,
                     SUM(CASE WHEN tu.status = 'concluido' THEN 1 ELSE 0 END) as concluidos,
-                    SUM(CASE WHEN tu.status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
                     SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos
                 FROM adms_training_users tu
                 INNER JOIN adms_users u ON u.id = tu.adms_user_id

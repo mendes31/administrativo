@@ -1206,7 +1206,17 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getTopPendingUsers(): array
     {
-        $sql = "SELECT u.id as user_id, u.name, COUNT(*) as pendentes FROM adms_training_users tu INNER JOIN adms_users u ON u.id = tu.adms_user_id WHERE tu.status = 'pendente' GROUP BY u.id ORDER BY pendentes DESC, u.name ASC LIMIT 5";
+        // Pendências: treinamentos dentro do prazo, próximos do vencimento ou vencidos (exclui concluídos e agendados)
+        $sql = "SELECT 
+                    u.id as user_id, 
+                    u.name, 
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) as pendentes 
+                FROM adms_training_users tu 
+                INNER JOIN adms_users u ON u.id = tu.adms_user_id 
+                GROUP BY u.id, u.name 
+                HAVING pendentes > 0
+                ORDER BY pendentes DESC, u.name ASC 
+                LIMIT 5";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1222,14 +1232,16 @@ class TrainingUsersRepository extends DbConnection
         $sql = "SELECT 
                     t.id as training_id, 
                     t.nome as training_name, 
-                    SUM(CASE WHEN tu.status = 'pendente' THEN 1 ELSE 0 END) as pendentes, 
+                    -- Pendentes: dentro do prazo + próximo do vencimento
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento') THEN 1 ELSE 0 END) as pendentes, 
+                    -- Vencidos
                     SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos 
                 FROM adms_training_users tu 
                 INNER JOIN adms_trainings t ON t.id = tu.adms_training_id 
-                GROUP BY t.id 
+                GROUP BY t.id, t.nome
+                HAVING (pendentes + vencidos) > 0
                 ORDER BY 
-                    (SUM(CASE WHEN tu.status = 'pendente' THEN 1 ELSE 0 END) + 
-                     SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END)) DESC, 
+                    (pendentes + vencidos) DESC, 
                     t.nome ASC 
                 LIMIT 5";
         $stmt = $this->getConnection()->prepare($sql);
