@@ -41,31 +41,17 @@ FROM adms_training_users tu
 LEFT JOIN adms_users u ON u.id = tu.adms_user_id
 LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
 LEFT JOIN adms_departments d ON u.user_department_id = d.id
-LEFT JOIN (
-    SELECT 
-        ta1.adms_user_id,
-        ta1.adms_training_id,
-        ta1.data_realizacao,
-        ta1.created_at
-    FROM adms_training_applications ta1
-    INNER JOIN (
-        SELECT 
-            adms_user_id,
-            adms_training_id,
-            MAX(created_at) as max_created_at
-        FROM adms_training_applications
-        GROUP BY adms_user_id, adms_training_id
-    ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
-        AND ta1.adms_training_id = ta2.adms_training_id 
-        AND ta1.created_at = ta2.max_created_at
-) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
-    AND ta_last.adms_training_id = tu.adms_training_id
-WHERE ta_last.data_realizacao IS NOT NULL
+WHERE tu.status = 'concluido'
   AND u.id IS NOT NULL
   AND t.id IS NOT NULL
   AND d.id IS NOT NULL
 GROUP BY d.id
 ```
+
+**Observações:**
+- Usa `LEFT JOIN` para incluir todos os registros não-órfãos
+- Filtra apenas registros com `tu.status = 'concluido'` (busca diretamente do banco)
+- Agrupa por departamento
 
 ## Query 3: Buscar todos os departamentos
 
@@ -93,8 +79,7 @@ INNER JOIN adms_trainings t
    AND t.ativo = 1
 ```
 
-**Diferença crítica:** 
-- `getSummaryAll()` conta de `tu.status` (pode estar desatualizado)
-- `getDepartmentStatistics()` calcula dinamicamente baseado em datas
-
-**Solução:** Devemos usar a mesma abordagem de `getSummaryAll()` mas com agrupamento por departamento, OU garantir que `tu.status` esteja sempre atualizado executando `updateDynamicStatuses()` antes.
+**Observação:** 
+- `getSummaryAll()` e `getDepartmentStatistics()` agora usam a mesma abordagem: contam diretamente de `tu.status`
+- A única diferença é que `getDepartmentStatistics()` agrupa por departamento
+- Para garantir que os status estejam atualizados, execute `updateDynamicStatuses()` periodicamente
