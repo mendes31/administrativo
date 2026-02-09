@@ -65,10 +65,10 @@ use App\adms\Helpers\FormatHelper;
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Pendentes
+                                Pendentes (Próx. Vencimento)
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= number_format($summary['pendentes'] ?? 0) ?>
+                                <?= number_format($statusCounts['proximo_vencimento'] ?? 0) ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -250,7 +250,8 @@ use App\adms\Helpers\FormatHelper;
                                     <th class="col-nome">Departamento</th>
                                     <th>Total</th>
                                     <th>Concluídos</th>
-                                    <th>Pendentes</th>
+                                    <th>A Fazer (Dentro do Prazo)</th>
+                                    <th>Pendentes (Próx. Vencimento)</th>
                                     <th>Vencidos</th>
                                     <th>% Conclusão</th>
                                 </tr>
@@ -274,8 +275,13 @@ use App\adms\Helpers\FormatHelper;
                                                 </span>
                                             </td>
                                             <td>
+                                                <span class="badge bg-success">
+                                                    <?= $dept['em_dia'] ?? 0 ?>
+                                                </span>
+                                            </td>
+                                            <td>
                                                 <span class="badge bg-warning text-dark">
-                                                    <?= $dept['pendentes'] ?>
+                                                    <?= $dept['pendentes'] ?? 0 ?>
                                                 </span>
                                             </td>
                                             <td>
@@ -407,21 +413,27 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(statusCtx, {
         type: 'pie',
         data: {
-            labels: ['Concluído', 'Pendente', 'Vencido', 'Próximo Vencimento', 'Em Dia'],
+            labels: [
+                'Dentro do Prazo (A fazer)',
+                'Próx. do Vencimento',
+                'Vencido',
+                'Agendado',
+                'Concluído'
+            ],
             datasets: [{
                 data: [
-                    statusData.concluido || 0,
-                    statusData.pendente || 0,
-                    statusData.vencido || 0,
+                    statusData.em_dia || 0,
                     statusData.proximo_vencimento || 0,
-                    statusData.em_dia || 0
+                    statusData.vencido || 0,
+                    statusData.agendado || 0,
+                    statusData.concluido || 0
                 ],
                 backgroundColor: [
-                    '#28a745',
-                    '#ffc107',
-                    '#dc3545',
-                    '#fd7e14',
-                    '#17a2b8'
+                    '#198754', // em dia
+                    '#ffc107', // próximo vencimento
+                    '#dc3545', // vencido
+                    '#0d6efd', // agendado
+                    '#6c757d'  // concluído
                 ]
             }]
         },
