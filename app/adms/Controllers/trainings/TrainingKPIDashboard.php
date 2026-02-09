@@ -157,19 +157,19 @@ class TrainingKpiDashboard
 
     private function getDepartmentStatistics(): array
     {
-        // Alinhar com a lógica de getSummaryAll() e getTrainingStatusByUser()
+        // Buscar dados e calcular status dinamicamente (como getTrainingStatusByUser faz)
         // Para status dinâmicos (exceto concluído): apenas usuários/treinamentos ativos
         // Para concluídos: todos os não-órfãos
         
-        // Query para status dinâmicos (apenas ativos) - mesma lógica de getSummaryAll()
-        $sqlActive = "SELECT 
+        $sql = "SELECT 
                     d.id as department_id,
                     d.name as department_name,
-                    COUNT(*) as total_entries,
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
-                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
-                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
-                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
+                    tu.id as training_user_id,
+                    tu.data_limite_primeiro_treinamento,
+                    tu.data_agendada,
+                    tu.tipo_vinculo,
+                    t.prazo_treinamento,
+                    ta_last.data_realizacao
                 FROM adms_training_users tu
                 INNER JOIN adms_users u 
                     ON u.id = tu.adms_user_id 
@@ -178,9 +178,102 @@ class TrainingKpiDashboard
                     ON t.id = tu.adms_training_id 
                    AND t.ativo = 1
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
-                GROUP BY d.id, d.name";
+                LEFT JOIN (
+                    SELECT 
+                        ta1.adms_user_id,
+                        ta1.adms_training_id,
+                        ta1.data_realizacao
+                    FROM adms_training_applications ta1
+                    INNER JOIN (
+                        SELECT 
+                            adms_user_id,
+                            adms_training_id,
+                            MAX(created_at) as max_created_at
+                        FROM adms_training_applications
+                        GROUP BY adms_user_id, adms_training_id
+                    ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                        AND ta1.adms_training_id = ta2.adms_training_id 
+                        AND ta1.created_at = ta2.max_created_at
+                ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                    AND ta_last.adms_training_id = tu.adms_training_id
+                    AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)";
         
-        // Query para concluídos (todos os não-órfãos) - mesma lógica de getSummaryAll()
+        $pdo = $this->trainingUsersRepo->getConnection();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Agrupar por departamento e calcular status dinamicamente
+        $stats = [];
+        $hoje = date('Y-m-d');
+        
+        foreach ($rows as $row) {
+            $deptId = $row['department_id'];
+            $deptName = $row['department_name'];
+            
+            if (!isset($stats[$deptId])) {
+                $stats[$deptId] = [
+                    'department_id' => $deptId,
+                    'department_name' => $deptName,
+                    'em_dia' => 0,
+                    'pendentes' => 0,
+                    'vencidos' => 0,
+                    'agendados' => 0,
+                ];
+            }
+            
+            // Calcular status dinamicamente
+            $dataAgendada = $row['data_agendada'] ?? null;
+            $dataRealizacao = $row['data_realizacao'] ?? null;
+            $dataLimite = $row['data_limite_primeiro_treinamento'] ?? null;
+            $prazoTreinamento = $row['prazo_treinamento'] ?? null;
+            $tipoVinculo = $row['tipo_vinculo'] ?? 'individual';
+            
+            // 1. Se tem agendamento futuro
+            if ($dataAgendada && $dataAgendada > $hoje) {
+                $stats[$deptId]['agendados']++;
+                continue;
+            }
+            
+            // 2. Se realizou o treinamento (não contar aqui, será contado separadamente)
+            if ($dataRealizacao) {
+                continue;
+            }
+            
+            // 3. Se não realizou, analisar prazo
+            if ($dataLimite) {
+                $diasParaPrazo = (strtotime($dataLimite) - strtotime($hoje)) / (60 * 60 * 24);
+                $primeiroCiclo = ($tipoVinculo !== 'reciclagem');
+                
+                $isProximoVencimento = false;
+                if ($primeiroCiclo && $prazoTreinamento !== null) {
+                    if ($prazoTreinamento <= 30 && $diasParaPrazo <= 10 && $diasParaPrazo >= 0) {
+                        $isProximoVencimento = true;
+                    } elseif ($prazoTreinamento <= 45 && $diasParaPrazo <= 15 && $diasParaPrazo >= 0) {
+                        $isProximoVencimento = true;
+                    } elseif ($prazoTreinamento > 45 && $diasParaPrazo <= 30 && $diasParaPrazo >= 0) {
+                        $isProximoVencimento = true;
+                    }
+                } elseif (!$primeiroCiclo) {
+                    if ($diasParaPrazo <= 30 && $diasParaPrazo >= 0) {
+                        $isProximoVencimento = true;
+                    }
+                }
+                
+                if ($hoje > $dataLimite) {
+                    $stats[$deptId]['vencidos']++;
+                } elseif ($isProximoVencimento) {
+                    $stats[$deptId]['pendentes']++;
+                } else {
+                    $stats[$deptId]['em_dia']++;
+                }
+            } else {
+                // Sem data limite = dentro do prazo
+                $stats[$deptId]['em_dia']++;
+            }
+        }
+        
+        // Query para concluídos (todos os não-órfãos com data_realizacao)
         $sqlConcluidos = "SELECT 
                     d.id as department_id,
                     COUNT(*) as concluidos
@@ -188,20 +281,30 @@ class TrainingKpiDashboard
                 LEFT JOIN adms_users u ON u.id = tu.adms_user_id
                 LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
                 LEFT JOIN adms_departments d ON u.user_department_id = d.id
-                WHERE tu.status = 'concluido'
+                LEFT JOIN (
+                    SELECT 
+                        ta1.adms_user_id,
+                        ta1.adms_training_id,
+                        ta1.data_realizacao
+                    FROM adms_training_applications ta1
+                    INNER JOIN (
+                        SELECT 
+                            adms_user_id,
+                            adms_training_id,
+                            MAX(created_at) as max_created_at
+                        FROM adms_training_applications
+                        GROUP BY adms_user_id, adms_training_id
+                    ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                        AND ta1.adms_training_id = ta2.adms_training_id 
+                        AND ta1.created_at = ta2.max_created_at
+                ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                    AND ta_last.adms_training_id = tu.adms_training_id
+                WHERE ta_last.data_realizacao IS NOT NULL
                   AND u.id IS NOT NULL
                   AND t.id IS NOT NULL
                   AND d.id IS NOT NULL
                 GROUP BY d.id";
         
-        $pdo = $this->trainingUsersRepo->getConnection();
-        
-        // Executar query de status dinâmicos
-        $stmtActive = $pdo->prepare($sqlActive);
-        $stmtActive->execute();
-        $activeStats = $stmtActive->fetchAll(\PDO::FETCH_ASSOC);
-        
-        // Executar query de concluídos
         $stmtConc = $pdo->prepare($sqlConcluidos);
         $stmtConc->execute();
         $concluidosStats = $stmtConc->fetchAll(\PDO::FETCH_ASSOC);
@@ -214,19 +317,18 @@ class TrainingKpiDashboard
         
         // Combinar resultados
         $result = [];
-        foreach ($activeStats as $row) {
-            $deptId = $row['department_id'];
-            $totalDinamicos = (int)($row['total_entries'] ?? 0);
+        foreach ($stats as $deptId => $stat) {
             $concluidos = $concluidosMap[$deptId] ?? 0;
+            $totalDinamicos = $stat['em_dia'] + $stat['pendentes'] + $stat['vencidos'] + $stat['agendados'];
             $result[] = [
                 'department_id' => $deptId,
-                'department_name' => $row['department_name'],
+                'department_name' => $stat['department_name'],
                 'total_vinculos' => $totalDinamicos + $concluidos,
                 'concluidos' => $concluidos,
-                'em_dia' => (int)($row['em_dia'] ?? 0),
-                'pendentes' => (int)($row['pendentes'] ?? 0),
-                'vencidos' => (int)($row['vencidos'] ?? 0),
-                'agendados' => (int)($row['agendados'] ?? 0),
+                'em_dia' => $stat['em_dia'],
+                'pendentes' => $stat['pendentes'],
+                'vencidos' => $stat['vencidos'],
+                'agendados' => $stat['agendados'],
             ];
         }
         
