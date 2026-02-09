@@ -188,6 +188,8 @@ class TrainingUsersRepository extends DbConnection
     {
         // Calcular offset
         $offset = max(0, ($page - 1) * $perPage);
+
+        $applyStatusFilter = !empty($filters['status']) && $filters['status'] !== '';
         
         // Busca todos os vínculos de treinamentos dos usuários
         // IMPORTANTE: Filtra apenas usuários ATIVOS e treinamentos ATIVOS
@@ -255,11 +257,10 @@ class TrainingUsersRepository extends DbConnection
         
         $params = [];
         
-        // Filtro de status (aplicado no SQL quando possível)
-        if (!empty($filters['status']) && $filters['status'] !== '') {
-            // Status será filtrado após calcular status_dinamico
-        } else {
-            // Por padrão, excluir concluídos
+        // Filtro de status:
+        // - Quando há filtro de status, vamos filtrar DEPOIS de calcular o status dinâmico
+        // - Quando não há filtro, por padrão excluímos concluídos da listagem
+        if (!$applyStatusFilter) {
             $sql .= ' AND tu.status != "concluido"';
         }
         
@@ -292,15 +293,20 @@ class TrainingUsersRepository extends DbConnection
             $params[] = '%' . $filters['codigo'] . '%';
         }
         
-        // Contar total antes de aplicar LIMIT
+        // Contar total antes de aplicar LIMIT (base sem filtro de status dinâmico)
         $countSql = 'SELECT COUNT(*) as total FROM (' . $sql . ') as count_query';
         $countStmt = $this->getConnection()->prepare($countSql);
         $countStmt->execute($params);
         $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
         
-        // Aplicar paginação
+        // Aplicar ordenação
         $sql .= ' ORDER BY u.name ASC, t.nome ASC';
-        $sql .= ' LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
+
+        // Quando NÃO há filtro de status, aplicamos paginação diretamente no SQL
+        // Quando HÁ filtro de status, buscamos tudo e paginamos depois em memória
+        if (!$applyStatusFilter) {
+            $sql .= ' LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
+        }
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
@@ -310,7 +316,8 @@ class TrainingUsersRepository extends DbConnection
         foreach ($results as &$result) {
             $result['status_dinamico'] = $this->calculateStatus([
                 'data_limite_primeiro_treinamento' => $result['data_limite_primeiro_treinamento'],
-                'data_realizacao' => null, // não considerar realização na matriz de obrigatoriedade
+                // Para manter consistência com updateDynamicStatuses, considerar a última realização
+                'data_realizacao' => $result['data_realizacao'] ?? null,
                 'data_agendada' => $result['data_agendada'] ?? null,
                 'prazo_treinamento' => $result['prazo_treinamento'] ?? null,
                 'tipo_vinculo' => $result['tipo_vinculo'] ?? 'individual',
@@ -319,13 +326,16 @@ class TrainingUsersRepository extends DbConnection
         unset($result);
         
         // Filtrar por status dinâmico se necessário (após calcular)
-        if (!empty($filters['status']) && $filters['status'] !== '') {
+        if ($applyStatusFilter) {
             $results = array_filter($results, function($row) use ($filters) {
                 $status = $row['status_dinamico'] ?? $row['status'] ?? '';
                 return $status === $filters['status'];
             });
             // Recalcular total após filtro
             $total = count($results);
+
+            // Paginar em memória após o filtro
+            $results = array_slice(array_values($results), $offset, $perPage);
         }
         
         return [
