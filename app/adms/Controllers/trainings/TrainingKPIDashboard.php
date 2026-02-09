@@ -354,6 +354,26 @@ class TrainingKpiDashboard
         return array_values($byId);
     }
 
+    /**
+     * Converte valor SUM do MySQL para inteiro
+     * PDO pode retornar SUM como string, então precisamos garantir conversão correta
+     */
+    private function convertSumValue($value): int
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return 0;
+        }
+        // Se for string numérica, converter para int
+        if (is_string($value) && is_numeric($value)) {
+            return (int) $value;
+        }
+        // Se já for numérico, converter para int
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+        return 0;
+    }
+
     private function getPositionStatistics(): array
     {
         // Usar mesma lógica de getSummaryAll(): buscar diretamente de tu.status
