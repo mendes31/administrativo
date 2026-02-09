@@ -42,31 +42,31 @@ class TrainingKpiDashboard
             $pageLayout = new PageLayoutService();
             $data = array_merge($data, $pageLayout->configurePageElements($data));
             
-            // Carregar dados para os KPIs e gráficos
+            // Carregar dados para os KPIs e gráficos.
+            // Se alguma parte nova (Top 5, estatísticas por depto/cargo, etc.) falhar,
+            // voltamos para um estado "seguro" com os dados principais (summary, status, mensal).
             try {
                 $data['dashboard'] = $this->getDashboardData();
             } catch (\Exception $e) {
-                // Log do erro
-                error_log("Erro ao carregar dados do dashboard: " . $e->getMessage());
+                error_log("Erro ao carregar dados completos do dashboard: " . $e->getMessage());
                 error_log("Trace: " . $e->getTraceAsString());
-                
-                // Definir dados vazios para evitar erro fatal
+
+                // Fallback: manter o comportamento anterior, só com as informações principais
                 $data['dashboard'] = [
-                    'summary' => ['total' => 0, 'concluidos' => 0, 'pendentes' => 0, 'vencidos' => 0],
-                    'statusCounts' => [],
-                    'monthlyRealizations' => [],
-                    'topPendingUsers' => [],
-                    'topCriticalTrainings' => [],
-                    'expiring' => [],
-                    'departmentStats' => [],
-                    'positionStats' => [],
-                    'recentApplications' => [],
-                    'mostAppliedTrainings' => [],
+                    'summary'             => $this->trainingUsersRepo->getSummaryAll(),
+                    'statusCounts'        => $this->trainingUsersRepo->getStatusCounts(),
+                    'monthlyRealizations' => $this->trainingUsersRepo->getMonthlyRealizations(),
+                    'topPendingUsers'     => [],
+                    'topCriticalTrainings'=> [],
+                    'expiring'            => [],
+                    'departmentStats'     => [],
+                    'positionStats'       => [],
+                    'recentApplications'  => [],
+                    'mostAppliedTrainings'=> [],
                 ];
-                
-                // Adicionar mensagem de erro para debug (remover em produção se necessário)
+
                 if (ini_get('display_errors')) {
-                    $data['error_message'] = "Erro ao carregar dados: " . $e->getMessage();
+                    $data['error_message'] = "Erro ao carregar dados completos do dashboard: " . $e->getMessage();
                 }
             }
             
