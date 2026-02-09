@@ -261,14 +261,17 @@ class TrainingKpiDashboard
                 }
                 
                 if ($hoje > $dataLimite) {
+                    // Vencido
                     $stats[$deptId]['vencidos']++;
                 } elseif ($isProximoVencimento) {
+                    // Próximo vencimento
                     $stats[$deptId]['pendentes']++;
                 } else {
+                    // Dentro do prazo (A Fazer)
                     $stats[$deptId]['em_dia']++;
                 }
             } else {
-                // Sem data limite = dentro do prazo
+                // Sem data limite = dentro do prazo (A Fazer)
                 $stats[$deptId]['em_dia']++;
             }
         }
