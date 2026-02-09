@@ -169,7 +169,8 @@ class TrainingKpiDashboard
         
         $pdo = $this->trainingUsersRepo->getConnection();
         
-        // Query para status dinâmicos (apenas ativos) - mesma lógica de getSummaryAll()
+        // Query para status dinâmicos (apenas ativos) - busca diretamente de tu.status
+        // Inclui todos os registros, mesmo com status NULL ou outros valores
         $sqlActive = "SELECT 
                     d.id as department_id,
                     d.name as department_name,
@@ -186,6 +187,7 @@ class TrainingKpiDashboard
                     ON t.id = tu.adms_training_id 
                    AND t.ativo = 1
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE tu.status != 'concluido' OR tu.status IS NULL
                 GROUP BY d.id, d.name";
         
         // Query para concluídos (todos os não-órfãos) - mesma lógica de getSummaryAll()
