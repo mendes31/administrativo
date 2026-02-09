@@ -15,6 +15,7 @@ use App\adms\Helpers\FormatHelper;
 
     <?php $dashboard = $this->data['dashboard'] ?? []; ?>
     <?php $summary = $dashboard['summary'] ?? []; ?>
+    <?php $statusCounts = $dashboard['statusCounts'] ?? []; ?>
 
     <!-- Cards de Resumo -->
     <div class="row mb-4">
@@ -100,31 +101,31 @@ use App\adms\Helpers\FormatHelper;
     </div>
 
     <!-- Gráficos -->
-    <div class="row mb-4">
+    <div class="row mb-3">
         <!-- Gráfico de Status (Pizza) -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4 h-100">
+        <div class="col-xl-6 col-lg-6 mb-3">
+            <div class="card shadow mb-3 h-100">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-pie me-2"></i>Distribuição por Status
                     </h6>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 400px;">
-                    <canvas id="statusChart" style="max-width: 100%; height: auto;"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 260px;">
+                    <canvas id="statusChart" style="max-width: 100%; height: 220px;"></canvas>
                 </div>
             </div>
         </div>
 
         <!-- Gráfico de Realizações Mensais (Barras) -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4 h-100">
+        <div class="col-xl-6 col-lg-6 mb-3">
+            <div class="card shadow mb-3 h-100">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-bar me-2"></i>Realizações por Mês
                     </h6>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 400px;">
-                    <canvas id="monthlyChart" style="max-width: 100%; height: auto;"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 260px;">
+                    <canvas id="monthlyChart" style="max-width: 100%; height: 220px;"></canvas>
                 </div>
             </div>
         </div>
