@@ -17,84 +17,71 @@ use App\adms\Helpers\FormatHelper;
     <?php $summary = $dashboard['summary'] ?? []; ?>
     <?php $statusCounts = $dashboard['statusCounts'] ?? []; ?>
 
-    <!-- Cards de Resumo -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total de Vínculos
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= number_format($summary['total'] ?? 0) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-link fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+    <!-- Cards de Resumo (alinhados com Status de Treinamentos por Colaborador) -->
+    <div class="row mb-3">
+        <div class="col-md-2 mb-3">
+            <div class="card border-primary shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-primary mb-1">
+                        <i class="fas fa-users"></i>
+                        <?= number_format($summary['todos'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Todos</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Concluídos
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= number_format($summary['concluidos'] ?? 0) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+        <div class="col-md-2 mb-3">
+            <div class="card border-success shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-success mb-1">
+                        <i class="fas fa-check-circle"></i>
+                        <?= number_format($summary['dentro_do_prazo'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Dentro do Prazo</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Pendentes (Próx. Vencimento)
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= number_format($statusCounts['proximo_vencimento'] ?? 0) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+        <div class="col-md-2 mb-3">
+            <div class="card border-warning shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-warning mb-1">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <?= number_format($summary['proximo_vencimento'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Próximo do Vencimento</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Vencidos
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= number_format($summary['vencidos'] ?? 0) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+        <div class="col-md-2 mb-3">
+            <div class="card border-danger shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-danger mb-1">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <?= number_format($summary['vencido'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Vencido</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card border-info shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-info mb-1">
+                        <i class="fas fa-calendar-alt"></i>
+                        <?= number_format($summary['agendado'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Agendado</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card border-secondary shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-secondary mb-1">
+                        <i class="fas fa-check"></i>
+                        <?= number_format($summary['concluido'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Concluído</div>
                 </div>
             </div>
         </div>
@@ -110,8 +97,8 @@ use App\adms\Helpers\FormatHelper;
                         <i class="fas fa-chart-pie me-2"></i>Distribuição por Status
                     </h6>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 260px;">
-                    <canvas id="statusChart" style="max-width: 100%; height: 220px;"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                    <canvas id="statusChart" style="max-width: 100%; height: 200px;"></canvas>
                 </div>
             </div>
         </div>
@@ -124,8 +111,8 @@ use App\adms\Helpers\FormatHelper;
                         <i class="fas fa-chart-bar me-2"></i>Realizações por Mês
                     </h6>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 260px;">
-                    <canvas id="monthlyChart" style="max-width: 100%; height: 220px;"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                    <canvas id="monthlyChart" style="max-width: 100%; height: 200px;"></canvas>
                 </div>
             </div>
         </div>
@@ -440,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            aspectRatio: 1.2,
+            aspectRatio: 1.0,
             plugins: {
                 legend: {
                     position: 'bottom'
@@ -474,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            aspectRatio: 1.2,
+            aspectRatio: 1.0,
             scales: {
                 y: {
                     beginAtZero: true,
