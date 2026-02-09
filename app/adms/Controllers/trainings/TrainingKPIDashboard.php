@@ -237,16 +237,33 @@ class TrainingKpiDashboard
             $deptId = $row['department_id'];
             $totalDinamicos = (int)($row['total_entries'] ?? 0);
             $concluidos = $concluidosMap[$deptId] ?? 0;
+            $emDia = (int)($row['em_dia'] ?? 0);
+            $pendentes = (int)($row['pendentes'] ?? 0);
+            $vencidos = (int)($row['vencidos'] ?? 0);
+            $agendados = (int)($row['agendados'] ?? 0);
+            
             $result[] = [
                 'department_id' => $deptId,
                 'department_name' => $row['department_name'],
                 'total_vinculos' => $totalDinamicos + $concluidos,
                 'concluidos' => $concluidos,
-                'em_dia' => (int)($row['em_dia'] ?? 0),
-                'pendentes' => (int)($row['pendentes'] ?? 0),
-                'vencidos' => (int)($row['vencidos'] ?? 0),
-                'agendados' => (int)($row['agendados'] ?? 0),
+                'em_dia' => $emDia,
+                'pendentes' => $pendentes,
+                'vencidos' => $vencidos,
+                'agendados' => $agendados,
             ];
+            
+            // Debug: log do primeiro departamento após combinação
+            if (count($result) === 1) {
+                error_log("getDepartmentStatistics: Primeiro departamento após combinação - " . json_encode([
+                    'department' => $row['department_name'],
+                    'total_vinculos' => $totalDinamicos + $concluidos,
+                    'em_dia' => $emDia,
+                    'pendentes' => $pendentes,
+                    'vencidos' => $vencidos,
+                    'agendados' => $agendados,
+                ]));
+            }
         }
         
         // Adicionar departamentos que só têm concluídos
