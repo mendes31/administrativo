@@ -723,7 +723,9 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getSummaryAll(): array
     {
+        // Garante que os status dinâmicos estejam atualizados antes de sumarizar
         $this->updateDynamicStatuses();
+
         $sql = 'SELECT 
                     COUNT(DISTINCT tu.adms_user_id) as total_users,
                     COUNT(*) as total_entries,
@@ -734,17 +736,37 @@ class TrainingUsersRepository extends DbConnection
                     SUM(CASE WHEN tu.status = "proximo_vencimento" THEN 1 ELSE 0 END) as proximo_vencimento_count,
                     SUM(CASE WHEN tu.status = "em_dia" THEN 1 ELSE 0 END) as em_dia_count
                 FROM adms_training_users tu';
+
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
         $row = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+        $totalEntries          = (int)($row['total_entries'] ?? 0);
+        $concluidos            = (int)($row['concluido_count'] ?? 0);
+        $pendentes             = (int)($row['pendente_count'] ?? 0);
+        $vencidos              = (int)($row['vencido_count'] ?? 0);
+        $agendados             = (int)($row['agendado_count'] ?? 0);
+        $proximoVencimento     = (int)($row['proximo_vencimento_count'] ?? 0);
+        $emDia                 = (int)($row['em_dia_count'] ?? 0);
+
+        // Estrutura completa, mantendo chaves antigas e adicionando aliases
         return [
-            'total' => $row['total_entries'] ?? 0,
-            'concluidos' => $row['concluido_count'] ?? 0,
-            'pendentes' => $row['pendente_count'] ?? 0,
-            'vencidos' => $row['vencido_count'] ?? 0,
-            'agendados' => $row['agendado_count'] ?? 0,
-            'proximo_vencimento' => $row['proximo_vencimento_count'] ?? 0,
-            'em_dia' => $row['em_dia_count'] ?? 0,
+            // Estrutura original usada em outros pontos
+            'total'               => $totalEntries,
+            'concluidos'          => $concluidos,
+            'pendentes'           => $pendentes,
+            'vencidos'            => $vencidos,
+            'agendados'           => $agendados,
+            'proximo_vencimento'  => $proximoVencimento,
+            'em_dia'              => $emDia,
+
+            // Aliases para compatibilidade com os cards da tela list-training-status
+            'todos'               => $totalEntries,
+            'concluido'           => $concluidos,
+            'pendente'            => $pendentes,
+            'vencido'             => $vencidos,
+            'agendado'            => $agendados,
+            'dentro_do_prazo'     => $emDia,
         ];
     }
 
