@@ -78,7 +78,12 @@ class ListTrainingStatus
         
         // Paginação
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $perPage = $paginationSettings['per_page'] ?? 50; // Usar configuração responsiva
+        // Usar configuração responsiva + parâmetro per_page (10, 20, 50, 100)
+        if (isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $paginationSettings['options'] ?? [10, 20, 50, 100])) {
+            $perPage = (int) $_GET['per_page'];
+        } else {
+            $perPage = $paginationSettings['per_page'] ?? 50;
+        }
         
         // Buscar dados com paginação (OTIMIZADO - resolve N+1 e adiciona paginação)
         $matrixResult = $trainingUsersRepo->getTrainingStatusByUser($filters, $page, $perPage);

@@ -228,6 +228,21 @@ thead th {
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <label for="per_page" class="form-label mb-1">Mostrar</label>
+                    <div class="d-flex align-items-center">
+                        <?php
+                        $paginationSettings = $this->data['paginationSettings'] ?? ['options' => [10, 20, 50, 100], 'per_page' => 50];
+                        $perPageCurrent = $_GET['per_page'] ?? ($paginationSettings['per_page'] ?? 50);
+                        ?>
+                        <select name="per_page" id="per_page" class="form-select form-select-sm" style="min-width: 80px;" onchange="this.form.submit()">
+                            <?php foreach (($paginationSettings['options'] ?? [10, 20, 50, 100]) as $opt): ?>
+                                <option value="<?= $opt ?>" <?= (int)$perPageCurrent === (int)$opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="form-label mb-1 ms-1">registros</span>
+                    </div>
+                </div>
                 <!-- <div class="col-md-2">
                     <label for="performance" class="form-label">Aproveitamento</label>
                     <select name="performance" id="performance" class="form-select">
@@ -469,7 +484,15 @@ thead th {
                 $currentPage = $pagination['current_page'];
                 $totalPages = $pagination['total_pages'];
                 $filters = $this->data['filters'] ?? [];
-                $queryString = http_build_query(array_filter($filters));
+                // Preservar também o per_page na paginação
+                $perPageParam = isset($_GET['per_page']) ? (int)$_GET['per_page'] : null;
+                $queryParams = $filters;
+                if ($perPageParam) {
+                    $queryParams['per_page'] = $perPageParam;
+                }
+                $queryString = http_build_query(array_filter($queryParams, static function($value) {
+                    return $value !== null && $value !== '';
+                }));
             ?>
             <nav aria-label="Paginação de treinamentos" class="mt-4">
                 <ul class="pagination justify-content-center">
