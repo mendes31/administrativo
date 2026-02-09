@@ -414,16 +414,67 @@ use App\adms\Models\Repository\TrainingUsersRepository;
 </div>
 
 <!-- Scripts para os gráficos -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js com fallback -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" 
+        onerror="console.error('Erro ao carregar Chart.js do CDN'); loadChartJsFallback();"></script>
 <script>
+// Fallback para Chart.js se CDN falhar
+function loadChartJsFallback() {
+    console.warn('Tentando carregar Chart.js de fallback...');
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+    script.onerror = function() {
+        console.error('Erro ao carregar Chart.js do fallback também. Verifique sua conexão ou bloqueio de CDN.');
+        document.getElementById('statusChart').parentElement.innerHTML = '<div class="alert alert-warning">Erro ao carregar biblioteca de gráficos. Verifique se o CDN não está bloqueado.</div>';
+        document.getElementById('monthlyChart').parentElement.innerHTML = '<div class="alert alert-warning">Erro ao carregar biblioteca de gráficos. Verifique se o CDN não está bloqueado.</div>';
+    };
+    document.head.appendChild(script);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Dados para os gráficos (garantir que sempre tenham dados)
-    const statusData = <?= json_encode($statusCounts ?? []) ?>;
-    const monthlyData = <?= json_encode($monthly ?? []) ?>;
+    // Aguardar Chart.js carregar (com timeout)
+    let chartJsReady = false;
+    let attempts = 0;
+    const maxAttempts = 50; // 5 segundos
     
-    // Debug: verificar se os dados estão chegando
-    console.log('Status Data:', statusData);
-    console.log('Monthly Data:', monthlyData);
+    function checkChartJs() {
+        attempts++;
+        if (typeof Chart !== 'undefined') {
+            chartJsReady = true;
+            initializeCharts();
+        } else if (attempts < maxAttempts) {
+            setTimeout(checkChartJs, 100);
+        } else {
+            console.error('Chart.js não carregou após 5 segundos. Tentando fallback...');
+            loadChartJsFallback();
+            setTimeout(function() {
+                if (typeof Chart !== 'undefined') {
+                    initializeCharts();
+                } else {
+                    console.error('Chart.js não está disponível. Gráficos não serão renderizados.');
+                }
+            }, 1000);
+        }
+    }
+    
+    function initializeCharts() {
+        // Dados para os gráficos (garantir que sempre tenham dados)
+        const statusData = <?= json_encode($statusCounts ?? []) ?>;
+        const monthlyData = <?= json_encode($monthly ?? []) ?>;
+        
+        // Debug: verificar se os dados estão chegando
+        console.log('Status Data:', statusData);
+        console.log('Monthly Data:', monthlyData);
+        
+        // Verificar se os dados são válidos
+        if (!statusData || typeof statusData !== 'object') {
+            console.error('statusData inválido:', statusData);
+            return;
+        }
+        
+        if (!monthlyData || typeof monthlyData !== 'object') {
+            console.warn('monthlyData inválido ou vazio:', monthlyData);
+        }
 
     // Gráfico de Status (Pizza)
     const statusCtx = document.getElementById('statusChart');
@@ -520,5 +571,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('Elemento monthlyChart não encontrado!');
     }
+    }
+    
+    // Iniciar verificação do Chart.js
+    checkChartJs();
 });
 </script> 
