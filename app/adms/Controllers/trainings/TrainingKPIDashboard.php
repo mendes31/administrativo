@@ -160,84 +160,180 @@ class TrainingKpiDashboard
         // Alinhar com a lógica dos cards: incluir todos os registros não-órfãos
         // Para status dinâmicos (exceto concluído): apenas usuários/treinamentos ativos
         // Para concluídos: todos os não-órfãos
-        $sql = "SELECT 
+        
+        // Query para status dinâmicos (apenas ativos)
+        $sqlActive = "SELECT 
                     d.id as department_id,
                     d.name as department_name,
-                    -- Total: todos os registros não-órfãos
                     COUNT(tu.id) as total_vinculos,
-                    -- Concluídos: todos os não-órfãos (mesmo inativos)
-                    SUM(CASE WHEN tu.status = 'concluido' THEN 1 ELSE 0 END) as concluidos,
-                    -- Dentro do Prazo: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as em_dia,
-                    -- Próximo Vencimento: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status = 'proximo_vencimento' 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as pendentes,
-                    -- Vencidos: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status = 'vencido' 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as vencidos,
-                    -- Agendados: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status = 'agendado' 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as agendados
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
+                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
+                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
                 FROM adms_training_users tu
-                INNER JOIN adms_users u ON u.id = tu.adms_user_id
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
-                GROUP BY d.id, d.name
-                ORDER BY total_vinculos DESC";
+                GROUP BY d.id, d.name";
         
-        $stmt = $this->trainingUsersRepo->getConnection()->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // Query para concluídos (todos os não-órfãos)
+        $sqlConcluidos = "SELECT 
+                    d.id as department_id,
+                    COUNT(tu.id) as concluidos
+                FROM adms_training_users tu
+                LEFT JOIN adms_users u ON u.id = tu.adms_user_id
+                LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE tu.status = 'concluido'
+                  AND u.id IS NOT NULL
+                  AND t.id IS NOT NULL
+                  AND d.id IS NOT NULL
+                GROUP BY d.id";
+        
+        $pdo = $this->trainingUsersRepo->getConnection();
+        
+        // Executar query de status dinâmicos
+        $stmtActive = $pdo->prepare($sqlActive);
+        $stmtActive->execute();
+        $activeStats = $stmtActive->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Executar query de concluídos
+        $stmtConc = $pdo->prepare($sqlConcluidos);
+        $stmtConc->execute();
+        $concluidosStats = $stmtConc->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Criar mapa de concluídos por departamento
+        $concluidosMap = [];
+        foreach ($concluidosStats as $row) {
+            $concluidosMap[$row['department_id']] = (int)($row['concluidos'] ?? 0);
+        }
+        
+        // Combinar resultados
+        $result = [];
+        foreach ($activeStats as $row) {
+            $deptId = $row['department_id'];
+            $result[] = [
+                'department_id' => $deptId,
+                'department_name' => $row['department_name'],
+                'total_vinculos' => (int)($row['total_vinculos'] ?? 0) + ($concluidosMap[$deptId] ?? 0),
+                'concluidos' => $concluidosMap[$deptId] ?? 0,
+                'em_dia' => (int)($row['em_dia'] ?? 0),
+                'pendentes' => (int)($row['pendentes'] ?? 0),
+                'vencidos' => (int)($row['vencidos'] ?? 0),
+                'agendados' => (int)($row['agendados'] ?? 0),
+            ];
+        }
+        
+        // Adicionar departamentos que só têm concluídos
+        foreach ($concluidosMap as $deptId => $concluidos) {
+            $found = false;
+            foreach ($result as $row) {
+                if ($row['department_id'] == $deptId) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                // Buscar nome do departamento
+                $stmtDept = $pdo->prepare("SELECT name FROM adms_departments WHERE id = ?");
+                $stmtDept->execute([$deptId]);
+                $deptName = $stmtDept->fetchColumn();
+                if ($deptName) {
+                    $result[] = [
+                        'department_id' => $deptId,
+                        'department_name' => $deptName,
+                        'total_vinculos' => $concluidos,
+                        'concluidos' => $concluidos,
+                        'em_dia' => 0,
+                        'pendentes' => 0,
+                        'vencidos' => 0,
+                        'agendados' => 0,
+                    ];
+                }
+            }
+        }
+        
+        // Ordenar por total
+        usort($result, function($a, $b) {
+            return $b['total_vinculos'] - $a['total_vinculos'];
+        });
+        
+        return $result;
     }
 
     private function getPositionStatistics(): array
     {
         // Alinhar com a lógica dos cards e departamentos
-        $sql = "SELECT 
+        
+        // Query para status dinâmicos (apenas ativos)
+        $sqlActive = "SELECT 
+                    p.id as position_id,
                     p.name as position_name,
                     COUNT(tu.id) as total_vinculos,
-                    -- Concluídos: todos os não-órfãos
-                    SUM(CASE WHEN tu.status = 'concluido' THEN 1 ELSE 0 END) as concluidos,
-                    -- Dentro do Prazo: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as em_dia,
-                    -- Próximo Vencimento: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status = 'proximo_vencimento' 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as pendentes,
-                    -- Vencidos: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status = 'vencido' 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as vencidos,
-                    -- Agendados: apenas usuários/treinamentos ativos
-                    SUM(CASE WHEN tu.status = 'agendado' 
-                             AND u.status = 'Ativo' 
-                             AND t.ativo = 1 
-                        THEN 1 ELSE 0 END) as agendados
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
+                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
+                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
                 FROM adms_training_users tu
-                INNER JOIN adms_users u ON u.id = tu.adms_user_id
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
                 INNER JOIN adms_positions p ON u.user_position_id = p.id
-                GROUP BY p.id, p.name
-                ORDER BY total_vinculos DESC
-                LIMIT 10";
+                GROUP BY p.id, p.name";
         
-        $stmt = $this->trainingUsersRepo->getConnection()->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // Query para concluídos (todos os não-órfãos)
+        $sqlConcluidos = "SELECT 
+                    p.id as position_id,
+                    COUNT(tu.id) as concluidos
+                FROM adms_training_users tu
+                LEFT JOIN adms_users u ON u.id = tu.adms_user_id
+                LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
+                LEFT JOIN adms_positions p ON u.user_position_id = p.id
+                WHERE tu.status = 'concluido'
+                  AND u.id IS NOT NULL
+                  AND t.id IS NOT NULL
+                  AND p.id IS NOT NULL
+                GROUP BY p.id";
+        
+        $pdo = $this->trainingUsersRepo->getConnection();
+        
+        // Executar query de status dinâmicos
+        $stmtActive = $pdo->prepare($sqlActive);
+        $stmtActive->execute();
+        $activeStats = $stmtActive->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Executar query de concluídos
+        $stmtConc = $pdo->prepare($sqlConcluidos);
+        $stmtConc->execute();
+        $concluidosStats = $stmtConc->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Criar mapa de concluídos por cargo
+        $concluidosMap = [];
+        foreach ($concluidosStats as $row) {
+            $concluidosMap[$row['position_id']] = (int)($row['concluidos'] ?? 0);
+        }
+        
+        // Combinar resultados
+        $result = [];
+        foreach ($activeStats as $row) {
+            $posId = $row['position_id'];
+            $result[] = [
+                'position_id' => $posId,
+                'position_name' => $row['position_name'],
+                'total_vinculos' => (int)($row['total_vinculos'] ?? 0) + ($concluidosMap[$posId] ?? 0),
+                'concluidos' => $concluidosMap[$posId] ?? 0,
+                'em_dia' => (int)($row['em_dia'] ?? 0),
+                'pendentes' => (int)($row['pendentes'] ?? 0),
+                'vencidos' => (int)($row['vencidos'] ?? 0),
+                'agendados' => (int)($row['agendados'] ?? 0),
+            ];
+        }
+        
+        // Ordenar por total e limitar
+        usort($result, function($a, $b) {
+            return $b['total_vinculos'] - $a['total_vinculos'];
+        });
+        
+        return array_slice($result, 0, 10);
     }
 
     private function getMostAppliedTrainings(): array
