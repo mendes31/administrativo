@@ -157,29 +157,33 @@ class TrainingKpiDashboard
 
     private function getDepartmentStatistics(): array
     {
-        // Alinhar com a lógica dos cards: incluir todos os registros não-órfãos
+        // Alinhar com a lógica de getSummaryAll() e getTrainingStatusByUser()
         // Para status dinâmicos (exceto concluído): apenas usuários/treinamentos ativos
         // Para concluídos: todos os não-órfãos
         
-        // Query para status dinâmicos (apenas ativos)
+        // Query para status dinâmicos (apenas ativos) - mesma lógica de getSummaryAll()
         $sqlActive = "SELECT 
                     d.id as department_id,
                     d.name as department_name,
-                    COUNT(tu.id) as total_vinculos,
+                    COUNT(*) as total_entries,
                     SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
                     SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
                     SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
                     SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
                 FROM adms_training_users tu
-                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
+                INNER JOIN adms_users u 
+                    ON u.id = tu.adms_user_id 
+                   AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t 
+                    ON t.id = tu.adms_training_id 
+                   AND t.ativo = 1
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
                 GROUP BY d.id, d.name";
         
-        // Query para concluídos (todos os não-órfãos)
+        // Query para concluídos (todos os não-órfãos) - mesma lógica de getSummaryAll()
         $sqlConcluidos = "SELECT 
                     d.id as department_id,
-                    COUNT(tu.id) as concluidos
+                    COUNT(*) as concluidos
                 FROM adms_training_users tu
                 LEFT JOIN adms_users u ON u.id = tu.adms_user_id
                 LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
@@ -212,11 +216,13 @@ class TrainingKpiDashboard
         $result = [];
         foreach ($activeStats as $row) {
             $deptId = $row['department_id'];
+            $totalDinamicos = (int)($row['total_entries'] ?? 0);
+            $concluidos = $concluidosMap[$deptId] ?? 0;
             $result[] = [
                 'department_id' => $deptId,
                 'department_name' => $row['department_name'],
-                'total_vinculos' => (int)($row['total_vinculos'] ?? 0) + ($concluidosMap[$deptId] ?? 0),
-                'concluidos' => $concluidosMap[$deptId] ?? 0,
+                'total_vinculos' => $totalDinamicos + $concluidos,
+                'concluidos' => $concluidos,
                 'em_dia' => (int)($row['em_dia'] ?? 0),
                 'pendentes' => (int)($row['pendentes'] ?? 0),
                 'vencidos' => (int)($row['vencidos'] ?? 0),
@@ -263,27 +269,33 @@ class TrainingKpiDashboard
 
     private function getPositionStatistics(): array
     {
-        // Alinhar com a lógica dos cards e departamentos
+        // Alinhar com a lógica de getSummaryAll() e getTrainingStatusByUser()
+        // Para status dinâmicos (exceto concluído): apenas usuários/treinamentos ativos
+        // Para concluídos: todos os não-órfãos
         
-        // Query para status dinâmicos (apenas ativos)
+        // Query para status dinâmicos (apenas ativos) - mesma lógica de getSummaryAll()
         $sqlActive = "SELECT 
                     p.id as position_id,
                     p.name as position_name,
-                    COUNT(tu.id) as total_vinculos,
+                    COUNT(*) as total_entries,
                     SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) as em_dia,
                     SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) as pendentes,
                     SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos,
                     SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) as agendados
                 FROM adms_training_users tu
-                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
+                INNER JOIN adms_users u 
+                    ON u.id = tu.adms_user_id 
+                   AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t 
+                    ON t.id = tu.adms_training_id 
+                   AND t.ativo = 1
                 INNER JOIN adms_positions p ON u.user_position_id = p.id
                 GROUP BY p.id, p.name";
         
-        // Query para concluídos (todos os não-órfãos)
+        // Query para concluídos (todos os não-órfãos) - mesma lógica de getSummaryAll()
         $sqlConcluidos = "SELECT 
                     p.id as position_id,
-                    COUNT(tu.id) as concluidos
+                    COUNT(*) as concluidos
                 FROM adms_training_users tu
                 LEFT JOIN adms_users u ON u.id = tu.adms_user_id
                 LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
@@ -316,11 +328,13 @@ class TrainingKpiDashboard
         $result = [];
         foreach ($activeStats as $row) {
             $posId = $row['position_id'];
+            $totalDinamicos = (int)($row['total_entries'] ?? 0);
+            $concluidos = $concluidosMap[$posId] ?? 0;
             $result[] = [
                 'position_id' => $posId,
                 'position_name' => $row['position_name'],
-                'total_vinculos' => (int)($row['total_vinculos'] ?? 0) + ($concluidosMap[$posId] ?? 0),
-                'concluidos' => $concluidosMap[$posId] ?? 0,
+                'total_vinculos' => $totalDinamicos + $concluidos,
+                'concluidos' => $concluidos,
                 'em_dia' => (int)($row['em_dia'] ?? 0),
                 'pendentes' => (int)($row['pendentes'] ?? 0),
                 'vencidos' => (int)($row['vencidos'] ?? 0),
