@@ -123,8 +123,8 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                         <i class="fas fa-chart-pie me-2"></i>Distribuição por Status
                     </h6>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 220px;">
-                    <canvas id="statusChart" style="max-width: 100%; height: 200px;"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 150px;">
+                    <canvas id="statusChart" style="max-width: 100%; height: 140px;"></canvas>
                 </div>
             </div>
         </div>
@@ -137,8 +137,8 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                         <i class="fas fa-chart-bar me-2"></i>Realizações por Mês
                     </h6>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 220px;">
-                    <canvas id="monthlyChart" style="max-width: 100%; height: 200px;"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 150px;">
+                    <canvas id="monthlyChart" style="max-width: 100%; height: 140px;"></canvas>
                 </div>
             </div>
         </div>
@@ -495,42 +495,42 @@ document.addEventListener('DOMContentLoaded', function() {
         if (statusCtx) {
             try {
                 const statusChart = new Chart(statusCtx.getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: [
-                    'Dentro do Prazo (A fazer)',
-                    'Próx. do Vencimento',
-                    'Vencido',
-                    'Agendado',
-                    'Concluído'
-                ],
-                datasets: [{
-                    data: [
-                        statusData.em_dia || 0,
-                        statusData.proximo_vencimento || 0,
-                        statusData.vencido || 0,
-                        statusData.agendado || 0,
-                        statusData.concluido || 0
-                    ],
-                    backgroundColor: [
-                        '#198754', // em dia
-                        '#ffc107', // próximo vencimento
-                        '#dc3545', // vencido
-                        '#0d6efd', // agendado
-                        '#6c757d'  // concluído
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                aspectRatio: 1.0,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+                    type: 'pie',
+                    data: {
+                        labels: [
+                            'Dentro do Prazo (A fazer)',
+                            'Próx. do Vencimento',
+                            'Vencido',
+                            'Agendado',
+                            'Concluído'
+                        ],
+                        datasets: [{
+                            data: [
+                                statusData.em_dia || 0,
+                                statusData.proximo_vencimento || 0,
+                                statusData.vencido || 0,
+                                statusData.agendado || 0,
+                                statusData.concluido || 0
+                            ],
+                            backgroundColor: [
+                                '#198754', // em dia
+                                '#ffc107', // próximo vencimento
+                                '#dc3545', // vencido
+                                '#0d6efd', // agendado
+                                '#6c757d'  // concluído
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1.2,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
                     }
-                }
-            }
                 });
                 console.log('Gráfico de Status criado com sucesso!');
             } catch (error) {
@@ -553,40 +553,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const monthlyChart = new Chart(monthlyCtx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: months.length > 0 ? months.map(month => {
-                    const [year, monthNum] = month.split('-');
-                    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-                    return `${monthNames[parseInt(monthNum) - 1]}/${year.slice(2)}`;
-                }) : ['Sem dados'],
-                datasets: [{
-                    label: 'Realizações',
-                    data: values.length > 0 ? values : [0],
-                    backgroundColor: '#007bff',
-                    borderColor: '#0056b3',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                aspectRatio: 1.0,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
+                    type: 'bar',
+                    data: {
+                        labels: months.length > 0 ? months.map(month => {
+                            const [year, monthNum] = month.split('-');
+                            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                                              'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                            return `${monthNames[parseInt(monthNum) - 1]}/${year.slice(2)}`;
+                        }) : ['Sem dados'],
+                        datasets: [{
+                            label: 'Realizações',
+                            data: values.length > 0 ? values : [0],
+                            backgroundColor: '#007bff',
+                            borderColor: '#0056b3',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1.2,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
                 });
                 console.log('Gráfico Mensal criado com sucesso!');
             } catch (error) {
