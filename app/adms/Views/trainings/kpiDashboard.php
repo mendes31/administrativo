@@ -266,6 +266,7 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                                     <th>A Fazer (Dentro do Prazo)</th>
                                     <th>Pendentes (Próx. Vencimento)</th>
                                     <th>Vencidos</th>
+                                    <th>Agendados</th>
                                     <th>% Conclusão</th>
                                 </tr>
                             </thead>
@@ -283,7 +284,7 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                                             <td class="col-nome"><?= htmlspecialchars($dept['department_name']) ?></td>
                                             <td><?= $total ?></td>
                                             <td>
-                                                <span class="badge bg-success">
+                                                <span class="badge bg-secondary">
                                                     <?= $concluidos ?>
                                                 </span>
                                             </td>
@@ -299,12 +300,17 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                                             </td>
                                             <td>
                                                 <span class="badge bg-danger">
-                                                    <?= $dept['vencidos'] ?>
+                                                    <?= $dept['vencidos'] ?? 0 ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info text-dark">
+                                                    <?= $dept['agendados'] ?? 0 ?>
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="progress" style="height: 20px;">
-                                                    <div class="progress-bar bg-success" 
+                                                    <div class="progress-bar bg-secondary" 
                                                          role="progressbar" 
                                                          style="width: <?= $percentual ?>%"
                                                          aria-valuenow="<?= $percentual ?>" 
@@ -318,7 +324,7 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted">
+                                        <td colspan="8" class="text-center text-muted">
                                             Nenhuma estatística por departamento encontrada.
                                         </td>
                                     </tr>
@@ -381,11 +387,11 @@ use App\adms\Models\Repository\TrainingUsersRepository;
                                             </td>
                                             <td>
                                                 <?php if ($app['data_realizacao']): ?>
-                                                    <span class="badge bg-success">Realizado</span>
+                                                    <span class="badge bg-secondary">Realizado</span>
                                                 <?php elseif ($app['data_agendada']): ?>
-                                                    <span class="badge bg-warning text-dark">Agendado</span>
+                                                    <span class="badge bg-info text-dark">Agendado</span>
                                                 <?php else: ?>
-                                                    <span class="badge bg-secondary">Pendente</span>
+                                                    <span class="badge bg-warning text-dark">Pendente</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
