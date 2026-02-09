@@ -546,13 +546,15 @@ class TrainingUsersRepository extends DbConnection
      */
     public function updateDynamicStatuses(): int
     {
+        // Seleciona todos os vínculos com informações do treinamento,
+        // incluindo prazo_treinamento para cálculo de \"próximo do vencimento\".
         $sql = 'SELECT 
                     tu.*,
                     t.reciclagem,
-                    t.reciclagem_periodo
+                    t.reciclagem_periodo,
+                    t.prazo_treinamento
                 FROM adms_training_users tu
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
-                WHERE t.reciclagem = 1 AND t.reciclagem_periodo > 0';
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id';
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
