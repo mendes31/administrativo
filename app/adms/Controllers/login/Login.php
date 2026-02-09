@@ -10,6 +10,7 @@ use App\adms\Models\Repository\LogAcessosRepository;
 use App\adms\Controllers\Services\RequestHelper;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Repository\LgpdTermosRepository;
+use App\adms\Models\Services\TrainingStatusUpdaterService;
 
 /**
  * Controller login
@@ -207,6 +208,10 @@ class Login
             $_SESSION['session_id'] = session_id();
             $sessionRepo->saveSession((int)$result['id'], session_id());
             file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] SALVOU SESSION NO BANCO: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION) . "\n", FILE_APPEND);
+
+            // Atualizar status dinâmicos de treinamentos de forma controlada
+            // (apenas se necessário, para evitar impacto de desempenho)
+            \App\adms\Models\Services\TrainingStatusUpdaterService::ensureUpdated(false);
 
             // Verificar consentimento LGPD antes de liberar acesso
             // Exceções:

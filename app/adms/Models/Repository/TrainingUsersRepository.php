@@ -190,7 +190,7 @@ class TrainingUsersRepository extends DbConnection
         $offset = max(0, ($page - 1) * $perPage);
 
         $applyStatusFilter = !empty($filters['status']) && $filters['status'] !== '';
-        
+
         // Busca todos os vínculos de treinamentos dos usuários
         // IMPORTANTE: Filtra apenas usuários ATIVOS e treinamentos ATIVOS
         // OTIMIZAÇÃO: Usa LEFT JOIN para buscar última aplicação em uma única query (resolve N+1)
@@ -293,7 +293,7 @@ class TrainingUsersRepository extends DbConnection
             $params[] = '%' . $filters['codigo'] . '%';
         }
         
-        // Contar total antes de aplicar LIMIT (base sem filtro de status dinâmico)
+        // Contar total antes de aplicar LIMIT (base sem filtro de status)
         $countSql = 'SELECT COUNT(*) as total FROM (' . $sql . ') as count_query';
         $countStmt = $this->getConnection()->prepare($countSql);
         $countStmt->execute($params);
@@ -311,24 +311,11 @@ class TrainingUsersRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Calcular status dinâmico para cada resultado
-        foreach ($results as &$result) {
-            $result['status_dinamico'] = $this->calculateStatus([
-                'data_limite_primeiro_treinamento' => $result['data_limite_primeiro_treinamento'],
-                // Para manter consistência com updateDynamicStatuses, considerar a última realização
-                'data_realizacao' => $result['data_realizacao'] ?? null,
-                'data_agendada' => $result['data_agendada'] ?? null,
-                'prazo_treinamento' => $result['prazo_treinamento'] ?? null,
-                'tipo_vinculo' => $result['tipo_vinculo'] ?? 'individual',
-            ]);
-        }
-        unset($result);
-        
-        // Filtrar por status dinâmico se necessário (após calcular)
+
+        // Filtrar por status se necessário
         if ($applyStatusFilter) {
             $results = array_filter($results, function($row) use ($filters) {
-                $status = $row['status_dinamico'] ?? $row['status'] ?? '';
+                $status = $row['status'] ?? '';
                 return $status === $filters['status'];
             });
             // Recalcular total após filtro
@@ -733,9 +720,6 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getSummaryAll(): array
     {
-        // Garante que os status dinâmicos estejam atualizados antes de sumarizar
-        $this->updateDynamicStatuses();
-
         // Regras:
         // - Todos: contar TODOS os registros cadastrados em adms_training_users (independente do status)
         // - Dentro do Prazo: status em_dia ou dentro_do_prazo
@@ -796,7 +780,6 @@ class TrainingUsersRepository extends DbConnection
 
     public function getSummaryMandatory(): array
     {
-        $this->updateDynamicStatuses();
         $sql = 'SELECT 
                     COUNT(DISTINCT tu.adms_user_id) as total_users,
                     COUNT(*) as total_entries,
