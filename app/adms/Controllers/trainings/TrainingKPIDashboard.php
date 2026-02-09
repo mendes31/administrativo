@@ -182,7 +182,8 @@ class TrainingKpiDashboard
                     SELECT 
                         ta1.adms_user_id,
                         ta1.adms_training_id,
-                        ta1.data_realizacao
+                        ta1.data_realizacao,
+                        ta1.created_at
                     FROM adms_training_applications ta1
                     INNER JOIN (
                         SELECT 
@@ -196,7 +197,8 @@ class TrainingKpiDashboard
                         AND ta1.created_at = ta2.max_created_at
                 ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
                     AND ta_last.adms_training_id = tu.adms_training_id
-                    AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)";
+                    AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)
+                WHERE ta_last.data_realizacao IS NULL";
         
         $pdo = $this->trainingUsersRepo->getConnection();
         $stmt = $pdo->prepare($sql);
@@ -433,7 +435,8 @@ class TrainingKpiDashboard
                     SELECT 
                         ta1.adms_user_id,
                         ta1.adms_training_id,
-                        ta1.data_realizacao
+                        ta1.data_realizacao,
+                        ta1.created_at
                     FROM adms_training_applications ta1
                     INNER JOIN (
                         SELECT 
