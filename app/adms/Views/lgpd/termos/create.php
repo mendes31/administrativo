@@ -48,7 +48,7 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Conteúdo do Termo (HTML ou texto)</label>
-                                <textarea id="conteudo_termo" name="conteudo" rows="12" class="form-control" required><?= $this->data['formData']['conteudo'] ?? '' ?></textarea>
+                                <textarea id="conteudo_termo" name="conteudo" rows="12" class="form-control"><?= $this->data['formData']['conteudo'] ?? '' ?></textarea>
                                 <small class="text-muted">
                                     Você pode formatar o texto (títulos, listas, negrito, etc.).
                                 </small>
