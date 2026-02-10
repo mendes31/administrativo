@@ -117,7 +117,8 @@ class LgpdBasesLegaisEdit
         // Verificar o resultado da atualização
         if ($result) {
             $_SESSION['success'] = "Base Legal editada com sucesso!";
-            header("Location: {$_ENV['URL_ADM']}view-lgpd-bases-legais/{$this->data['form']['id']}");
+            // Redirecionar para a página de visualização correta
+            header("Location: {$_ENV['URL_ADM']}lgpd-bases-legais-view/{$this->data['form']['id']}");
         } else {
             $this->data['errors'][] = "Base Legal não editada!";
             $this->viewBaseLegal();
