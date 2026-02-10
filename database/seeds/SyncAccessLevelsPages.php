@@ -35,10 +35,11 @@ class SyncAccessLevelsPages extends AbstractSeed
                 $pageId = $page['id'];
                 
                 // Verificar se já existe a permissão para esta combinação
-                $existingPermission = $this->query(
-                    'SELECT id FROM adms_access_levels_pages WHERE adms_access_level_id = ? AND adms_page_id = ?',
-                    [$accessLevelId, $pageId]
-                )->fetch();
+                // IMPORTANTE: usar fetchRow/fetchAll sem parâmetros, pois AbstractSeed::query não suporta bind
+                $existingPermission = $this->fetchRow(
+                    'SELECT id FROM adms_access_levels_pages WHERE adms_access_level_id = ' .
+                    (int)$accessLevelId . ' AND adms_page_id = ' . (int)$pageId
+                );
                 
                 // Se não existir, adicionar ao array de dados
                 if (!$existingPermission) {
