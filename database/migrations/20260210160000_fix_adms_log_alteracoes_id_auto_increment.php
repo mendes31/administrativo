@@ -17,12 +17,6 @@ final class FixAdmsLogAlteracoesIdAutoIncrement extends AbstractMigration
                 'identity' => true, // equivale a AUTO_INCREMENT no MySQL
             ])
             ->save();
-
-        // Em alguns ambientes antigos o id pode não estar como chave primária;
-        // este trecho garante que a PK exista sobre o campo id.
-        if (!$table->hasPrimaryKey()) {
-            $table->addPrimaryKey('id')->save();
-        }
     }
 
     public function down(): void
