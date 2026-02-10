@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -168,7 +169,7 @@ class LgpdTermosRepository extends DbConnection
         }
     }
 
-    public function create(array $data): bool
+    public function create(array $data): bool|int
     {
         // Gerar identificador lógico do documento se não vier do formulário
         $documentoCodigo = $data['documento_codigo'] ?? null;
@@ -191,7 +192,37 @@ class LgpdTermosRepository extends DbConnection
         $stmt->bindValue(':data_fim_vigencia', $data['data_fim_vigencia'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if (!$ok) {
+            return false;
+        }
+
+        // Retornar ID e registrar log de alterações, se possível
+        try {
+            $id = (int)$this->getConnection()->lastInsertId();
+
+            // Se tivermos um usuário na sessão, registrar no Log de Modificações
+            if (!empty($_SESSION['user_id'])) {
+                $dadosDepois = $data;
+                $dadosDepois['id'] = $id;
+                $dadosDepois['documento_codigo'] = $documentoCodigo;
+
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_termos',
+                    $id,
+                    (int)$_SESSION['user_id'],
+                    'INSERT',
+                    [],
+                    $dadosDepois
+                );
+            }
+
+            return $id;
+        } catch (\Throwable $e) {
+            // Em último caso, apenas retorna true para manter compatibilidade
+            return true;
+        }
     }
 
     /**
@@ -275,6 +306,35 @@ class LgpdTermosRepository extends DbConnection
             }
             return null;
         }
+    }
+
+    /**
+     * Exclui definitivamente um termo LGPD, registrando log de alterações se possível.
+     */
+    public function delete(int $id): bool
+    {
+        $conn = $this->getConnection();
+
+        // Buscar registro antes da exclusão para log
+        $dadosAntes = $this->getById($id);
+
+        $stmt = $conn->prepare("DELETE FROM lgpd_termos WHERE id = :id");
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+        $ok = $stmt->execute();
+
+        if ($ok && $stmt->rowCount() > 0 && $dadosAntes && !empty($_SESSION['user_id'])) {
+            LogAlteracaoService::registrarAlteracao(
+                'lgpd_termos',
+                $id,
+                (int)$_SESSION['user_id'],
+                'DELETE',
+                $dadosAntes,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     /**

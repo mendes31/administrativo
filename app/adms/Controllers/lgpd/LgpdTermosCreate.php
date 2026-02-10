@@ -42,12 +42,12 @@ class LgpdTermosCreate
         }
 
         $repo = new LgpdTermosRepository();
-        $result = $repo->create($data);
+        $newId = $repo->create($data);
 
-        if ($result) {
+        if ($newId) {
             $_SESSION['msg'] = "Termo LGPD cadastrado com sucesso!";
             $_SESSION['msg_type'] = "success";
-            header("Location: " . $_ENV['URL_ADM'] . "lgpd-termos");
+            header("Location: " . $_ENV['URL_ADM'] . "lgpd-termos-view/" . (int)$newId);
             exit;
         }
 
