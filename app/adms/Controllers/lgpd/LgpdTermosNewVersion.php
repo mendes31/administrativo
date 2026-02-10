@@ -9,7 +9,7 @@ use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Views\Services\LoadViewService;
 
-class LgpdTermosEdit
+class LgpdTermosNewVersion
 {
     private array|string|null $data = null;
 
@@ -18,18 +18,21 @@ class LgpdTermosEdit
         $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
 
         if (isset($this->data['form']['csrf_token']) &&
-            CSRFHelper::validateCSRFToken('form_edit_lgpd_termo', $this->data['form']['csrf_token'])) {
-            $this->updateTermo();
+            CSRFHelper::validateCSRFToken('form_new_version_lgpd_termo', $this->data['form']['csrf_token'])) {
+            $this->createNewVersion();
         } else {
             $repo = new LgpdTermosRepository();
             $this->data['form'] = $repo->getById((int)$id);
 
             if (!$this->data['form']) {
-                GenerateLog::generateLog('error', 'Termo LGPD não encontrado', ['id' => (int)$id]);
+                GenerateLog::generateLog('error', 'Termo LGPD não encontrado para nova versão', ['id' => (int)$id]);
                 $_SESSION['error'] = "Termo LGPD não encontrado!";
                 header("Location: {$_ENV['URL_ADM']}lgpd-termos");
                 return;
             }
+
+            // Guardar a versão original para validar no submit
+            $this->data['form']['versao_original'] = $this->data['form']['versao'] ?? '';
 
             $this->viewForm();
         }
@@ -38,13 +41,13 @@ class LgpdTermosEdit
     private function viewForm(): void
     {
         $pageElements = [
-            'title_head' => 'Editar Termo LGPD',
+            'title_head' => 'Nova versão do Termo LGPD',
             'menu' => 'lgpd-termos',
-            'buttonPermission' => ['LgpdTermosEdit', 'LgpdTermosView'],
+            'buttonPermission' => ['LgpdTermosNewVersion', 'LgpdTermosView'],
         ];
 
-        // chave CSRF padrão para edição simples
-        $this->data['csrf_key'] = 'form_edit_lgpd_termo';
+        // informar à view qual chave de CSRF deve ser usada
+        $this->data['csrf_key'] = 'form_new_version_lgpd_termo';
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
@@ -53,7 +56,7 @@ class LgpdTermosEdit
         $loadView->loadView();
     }
 
-    private function updateTermo(): void
+    private function createNewVersion(): void
     {
         $data = $this->data['form'];
 
@@ -63,36 +66,40 @@ class LgpdTermosEdit
             return;
         }
 
-        $repo = new LgpdTermosRepository();
-        $id = (int)($data['id'] ?? 0);
-
-        // Buscar dados antes da alteração para log
-        $dadosAntes = $repo->getById($id) ?? [];
-
-        $result = $repo->update($id, $data);
-
-        if ($result) {
-            // Registrar log de alteração (edição sem versionamento)
-            $usuarioId = (int)($_SESSION['user_id'] ?? 0);
-            $dadosDepois = $repo->getById($id) ?? [];
-
-            if ($usuarioId > 0 && !empty($dadosDepois)) {
-                LogAlteracaoService::registrarAlteracao(
-                    'lgpd_termos',
-                    $id,
-                    $usuarioId,
-                    'UPDATE',
-                    $dadosAntes,
-                    $dadosDepois
-                );
-            }
-
-            $_SESSION['success'] = "Termo LGPD editado com sucesso!";
-            header("Location: {$_ENV['URL_ADM']}lgpd-termos-view/{$id}");
+        // Nova versão precisa ser diferente da versão atual
+        if (!empty($this->data['form']['versao_original']) &&
+            $data['versao'] === $this->data['form']['versao_original']) {
+            $this->data['errors'][] = "A nova versão deve ser diferente da versão atual ({$this->data['form']['versao_original']}).";
+            $this->viewForm();
             return;
         }
 
-        $this->data['errors'][] = "Erro: Termo não foi editado.";
+        $repo = new LgpdTermosRepository();
+        $idAnterior = (int)($data['id'] ?? 0);
+
+        $newId = $repo->createNewVersion($idAnterior, $data);
+
+        if ($newId) {
+            // Registrar log de inserção da nova versão
+            $usuarioId = (int)($_SESSION['user_id'] ?? 0);
+            if ($usuarioId > 0) {
+                $novoTermo = $repo->getById($newId) ?? [];
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_termos',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $novoTermo
+                );
+            }
+
+            $_SESSION['success'] = "Nova versão do termo LGPD criada com sucesso!";
+            header("Location: {$_ENV['URL_ADM']}lgpd-termos-view/{$newId}");
+            return;
+        }
+
+        $this->data['errors'][] = "Erro: Nova versão do termo não foi criada.";
         $this->viewForm();
     }
 }

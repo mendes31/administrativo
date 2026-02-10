@@ -103,8 +103,8 @@ if ($tipoOperacao === 'INSERT') {
             <h5 class="mt-4 mb-3">Campos Alterados</h5>
             <!-- Desktop: tabela -->
             <div class="d-none d-md-block log-desktop list-desktop">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover table-striped table-sm">
+                <div class="table-responsive log-table-wrapper">
+                    <table class="table table-bordered table-hover table-striped table-sm w-100 log-table">
                         <thead class="table-success">
                             <tr>
                                 <th class="text-start" style="width: 25%; padding-left: 15px;">Campo</th>
@@ -119,16 +119,16 @@ if ($tipoOperacao === 'INSERT') {
                                         <td class="fw-semibold text-primary text-start" style="padding-left: 15px;">
                                             <i class="fas fa-tag me-2"></i><?= htmlspecialchars($det['campo'] ?? '') ?>
                                         </td>
-                                        <td class="text-break text-start" style="padding-left: 15px;">
+                                        <td class="log-value-cell text-start">
                                             <?php if (!empty($det['valor_anterior'])): ?>
-                                                <span class="badge bg-secondary text-white"><?= htmlspecialchars($det['valor_anterior']) ?></span>
+                                                <pre class="log-pre log-pre-old"><?= htmlspecialchars($det['valor_anterior']) ?></pre>
                                             <?php else: ?>
                                                 <span class="text-muted fst-italic">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-break text-start" style="padding-left: 15px;">
+                                        <td class="log-value-cell text-start">
                                             <?php if (!empty($det['valor_novo'])): ?>
-                                                <span class="badge bg-success text-white"><?= htmlspecialchars($det['valor_novo']) ?></span>
+                                                <pre class="log-pre log-pre-new"><?= htmlspecialchars($det['valor_novo']) ?></pre>
                                             <?php else: ?>
                                                 <span class="text-muted fst-italic">-</span>
                                             <?php endif; ?>
@@ -266,6 +266,39 @@ if ($tipoOperacao === 'INSERT') {
     vertical-align: middle;
     padding: 12px 8px;
     text-align: left;
+}
+
+/* Quebra de linha inteligente para valores longos de log (HTML, JSON, etc.) */
+.log-table-wrapper {
+    overflow-x: visible;
+}
+
+.log-table {
+    table-layout: fixed;
+}
+
+.log-value-cell {
+    vertical-align: top;
+    max-width: 0;
+}
+
+.log-pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    font-family: monospace;
+    font-size: 0.85rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+    margin: 0;
+}
+
+.log-pre-old {
+    background-color: #6c757d1a;
+}
+
+.log-pre-new {
+    background-color: #28a7451a;
 }
 
 .table th {

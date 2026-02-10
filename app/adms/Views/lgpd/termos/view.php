@@ -8,8 +8,8 @@ use App\adms\Helpers\FormatHelper;
                 <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                     <h3 class="font-weight-light my-2 mb-0">Visualizar Termo LGPD</h3>
                     <div class="btn-group">
-                        <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-termos-edit/<?= $this->data['termo']['id'] ?>" class="btn btn-warning btn-sm">
-                            <i class="fas fa-edit me-1"></i>Editar
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-termos-new-version/<?= $this->data['termo']['id'] ?>" class="btn btn-warning btn-sm">
+                            <i class="fas fa-copy me-1"></i>Nova versão
                         </a>
                         <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-termos-delete?id=<?= $this->data['termo']['id'] ?>"
                            class="btn btn-danger btn-sm"
@@ -59,7 +59,7 @@ use App\adms\Helpers\FormatHelper;
 
                     <hr>
                     <h5>Conteúdo do Termo</h5>
-                    <div class="border rounded p-3" style="background-color: #f8f9fa; max-height: 500px; overflow-y: auto;">
+                    <div class="border rounded p-3 lgpd-term-content" style="background-color: #f8f9fa; max-height: 500px; overflow-y: auto; line-height: 1.3;">
                         <?php echo $this->data['termo']['conteudo']; ?>
                     </div>
                 </div>
@@ -71,4 +71,24 @@ use App\adms\Helpers\FormatHelper;
     </div>
 </div>
 
-
+<style>
+    /* Reaproveita a mesma tipografia usada no consentimento para a visualização do termo */
+    .lgpd-term-content p {
+        margin-bottom: 0.35rem;
+    }
+    .lgpd-term-content ul {
+        margin-left: 1.4rem;
+        margin-bottom: 0.35rem;
+    }
+    .lgpd-term-content li {
+        margin-bottom: 0.15rem;
+    }
+    .lgpd-term-content h1,
+    .lgpd-term-content h2,
+    .lgpd-term-content h3,
+    .lgpd-term-content h4 {
+        margin-top: 0.75rem;
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+    }
+</style>

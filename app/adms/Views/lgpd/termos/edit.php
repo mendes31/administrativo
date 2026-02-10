@@ -11,7 +11,8 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="card-body">
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
                     <form method="POST" action="">
-                        <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_edit_lgpd_termo'); ?>">
+                        <?php $csrfKey = $this->data['csrf_key'] ?? 'form_edit_lgpd_termo'; ?>
+                        <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken($csrfKey); ?>">
                         <input type="hidden" name="id" value="<?= htmlspecialchars($this->data['form']['id'] ?? '') ?>">
 
                         <div class="row g-3">
@@ -49,7 +50,10 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Conteúdo do Termo (HTML ou texto)</label>
-                                <textarea name="conteudo" rows="8" class="form-control" required><?= htmlspecialchars($this->data['form']['conteudo'] ?? '') ?></textarea>
+                                <textarea id="conteudo_termo" name="conteudo" rows="12" class="form-control" required><?= $this->data['form']['conteudo'] ?? '' ?></textarea>
+                                <small class="text-muted">
+                                    Você pode formatar o texto (títulos, listas, negrito, etc.).
+                                </small>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Status</label>
@@ -72,4 +76,16 @@ use App\adms\Helpers\CSRFHelper;
     </div>
 </div>
 
-
+<!-- Editor WYSIWYG para o conteúdo do termo -->
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+tinymce.init({
+    selector: '#conteudo_termo',
+    menubar: false,
+    plugins: 'lists link',
+    toolbar: 'undo redo | bold italic underline | bullist numlist | outdent indent | removeformat | link',
+    height: 400,
+    branding: false,
+    language: 'pt_BR'
+});
+</script>

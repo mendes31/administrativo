@@ -16,9 +16,19 @@ class LgpdTermos
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
 
+        $filters = [
+            'search' => trim($_GET['search'] ?? ''),
+            'tipo' => $_GET['tipo'] ?? '',
+            'status' => $_GET['status'] ?? '',
+        ];
+
         $repo = new LgpdTermosRepository();
-        $this->data['termos'] = $repo->getAll($page, $perPage);
-        $total = $repo->getAmount();
+        $this->data['termos'] = $repo->getAll($page, $perPage, $filters);
+        $total = $repo->getAmount($filters);
+
+        // enviar filtros para a view
+        $this->data['filters'] = $filters;
+        $this->data['per_page'] = $perPage;
 
         $pagination = PaginationService::generatePagination(
             $total,
@@ -26,7 +36,10 @@ class LgpdTermos
             $page,
             'lgpd-termos',
             array_filter([
-                'per_page' => $perPage
+                'per_page' => $perPage,
+                'search' => $filters['search'] ?? null,
+                'tipo' => $filters['tipo'] ?? null,
+                'status' => $filters['status'] ?? null,
             ])
         );
         $this->data['paginator'] = $pagination['html'];
@@ -34,7 +47,7 @@ class LgpdTermos
         $pageElements = [
             'title_head' => 'Termos LGPD',
             'menu' => 'lgpd-termos',
-            'buttonPermission' => ['LgpdTermos', 'LgpdTermosCreate', 'LgpdTermosEdit', 'LgpdTermosView', 'LgpdTermosDelete'],
+            'buttonPermission' => ['LgpdTermos', 'LgpdTermosCreate', 'LgpdTermosEdit', 'LgpdTermosNewVersion', 'LgpdTermosView', 'LgpdTermosDelete'],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

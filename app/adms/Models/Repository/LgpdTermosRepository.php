@@ -38,16 +38,42 @@ class LgpdTermosRepository extends DbConnection
     /**
      * Listar termos com paginação simples (para tela administrativa).
      */
-    public function getAll(int $page = 1, int $perPage = 10): array
+    public function getAll(int $page = 1, int $perPage = 10, array $filters = []): array
     {
         $offset = max(0, ($page - 1) * $perPage);
 
+        $where = [];
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $where[] = '(titulo LIKE :search OR versao LIKE :search)';
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['tipo'])) {
+            $where[] = 'tipo = :tipo';
+            $params[':tipo'] = $filters['tipo'];
+        }
+
+        if (!empty($filters['status'])) {
+            $where[] = 'status = :status';
+            $params[':status'] = $filters['status'];
+        }
+
+        $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
         $sql = "SELECT *
                 FROM lgpd_termos
+                {$whereSql}
                 ORDER BY created_at DESC
                 LIMIT :limit OFFSET :offset";
 
         $stmt = $this->getConnection()->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -55,10 +81,35 @@ class LgpdTermosRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getAmount(): int
+    public function getAmount(array $filters = []): int
     {
-        $sql = "SELECT COUNT(*) AS total FROM lgpd_termos";
+        $where = [];
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $where[] = '(titulo LIKE :search OR versao LIKE :search)';
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['tipo'])) {
+            $where[] = 'tipo = :tipo';
+            $params[':tipo'] = $filters['tipo'];
+        }
+
+        if (!empty($filters['status'])) {
+            $where[] = 'status = :status';
+            $params[':status'] = $filters['status'];
+        }
+
+        $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $sql = "SELECT COUNT(*) AS total FROM lgpd_termos {$whereSql}";
         $stmt = $this->getConnection()->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['total'] ?? 0);
@@ -119,21 +170,124 @@ class LgpdTermosRepository extends DbConnection
 
     public function create(array $data): bool
     {
+        // Gerar identificador lógico do documento se não vier do formulário
+        $documentoCodigo = $data['documento_codigo'] ?? null;
+        if (empty($documentoCodigo)) {
+            $documentoCodigo = $this->generateDocumentoCodigo($data['tipo'] ?? 'geral', $data['titulo'] ?? '');
+        }
+
         $sql = "INSERT INTO lgpd_termos 
-                    (versao, titulo, tipo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, created_at) 
+                    (versao, titulo, tipo, documento_codigo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, created_at) 
                 VALUES 
-                    (:versao, :titulo, :tipo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
+                    (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
 
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':versao', $data['versao'], PDO::PARAM_STR);
         $stmt->bindValue(':titulo', $data['titulo'], PDO::PARAM_STR);
         $stmt->bindValue(':tipo', $data['tipo'], PDO::PARAM_STR);
+        $stmt->bindValue(':documento_codigo', $documentoCodigo, PDO::PARAM_STR);
         $stmt->bindValue(':conteudo', $data['conteudo'], PDO::PARAM_STR);
         $stmt->bindValue(':data_inicio_vigencia', $data['data_inicio_vigencia'], PDO::PARAM_STR);
         $stmt->bindValue(':data_fim_vigencia', $data['data_fim_vigencia'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
 
         return $stmt->execute();
+    }
+
+    /**
+     * Cria uma nova versão de um termo existente.
+     * - Mantém tipo e documento_codigo
+     * - Atualiza data_fim_vigencia e status da versão anterior
+     * - Retorna o ID da nova versão ou null em caso de erro
+     */
+    public function createNewVersion(int $idAnterior, array $dataNova): ?int
+    {
+        try {
+            $conn = $this->getConnection();
+            $conn->beginTransaction();
+
+            // Buscar termo anterior
+            $sqlAnterior = "SELECT * FROM lgpd_termos WHERE id = :id";
+            $stmtAnt = $conn->prepare($sqlAnterior);
+            $stmtAnt->bindValue(':id', $idAnterior, PDO::PARAM_INT);
+            $stmtAnt->execute();
+            $termoAntigo = $stmtAnt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$termoAntigo) {
+                $conn->rollBack();
+                return null;
+            }
+
+            // Garantir que exista um documento_codigo para o termo
+            $documentoCodigo = $termoAntigo['documento_codigo'] ?? null;
+            if (empty($documentoCodigo)) {
+                $documentoCodigo = $this->generateDocumentoCodigo($termoAntigo['tipo'], $termoAntigo['titulo']);
+
+                $stmtUpdCodigo = $conn->prepare(
+                    "UPDATE lgpd_termos SET documento_codigo = :codigo WHERE id = :id"
+                );
+                $stmtUpdCodigo->bindValue(':codigo', $documentoCodigo, PDO::PARAM_STR);
+                $stmtUpdCodigo->bindValue(':id', $idAnterior, PDO::PARAM_INT);
+                $stmtUpdCodigo->execute();
+            }
+
+            // Fechar vigência da versão anterior
+            $dataFim = $dataNova['data_inicio_vigencia'] ?? date('Y-m-d H:i:s');
+            $stmtClose = $conn->prepare(
+                "UPDATE lgpd_termos 
+                 SET data_fim_vigencia = :data_fim, status = 'Inativo', updated_at = NOW()
+                 WHERE id = :id"
+            );
+            $stmtClose->bindValue(':data_fim', $dataFim, PDO::PARAM_STR);
+            $stmtClose->bindValue(':id', $idAnterior, PDO::PARAM_INT);
+            $stmtClose->execute();
+
+            // Inserir nova versão
+            $sqlInsert = "INSERT INTO lgpd_termos 
+                            (versao, titulo, tipo, documento_codigo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, created_at)
+                          VALUES
+                            (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
+
+            $stmtNew = $conn->prepare($sqlInsert);
+            $stmtNew->bindValue(':versao', $dataNova['versao'], PDO::PARAM_STR);
+            $stmtNew->bindValue(':titulo', $dataNova['titulo'], PDO::PARAM_STR);
+            $stmtNew->bindValue(':tipo', $termoAntigo['tipo'], PDO::PARAM_STR);
+            $stmtNew->bindValue(':documento_codigo', $documentoCodigo, PDO::PARAM_STR);
+            $stmtNew->bindValue(':conteudo', $dataNova['conteudo'], PDO::PARAM_STR);
+            $stmtNew->bindValue(':data_inicio_vigencia', $dataNova['data_inicio_vigencia'], PDO::PARAM_STR);
+            $stmtNew->bindValue(':data_fim_vigencia', $dataNova['data_fim_vigencia'] ?? null, PDO::PARAM_STR);
+            $stmtNew->bindValue(':status', $dataNova['status'] ?? 'Ativo', PDO::PARAM_STR);
+
+            if (!$stmtNew->execute()) {
+                $conn->rollBack();
+                return null;
+            }
+
+            $newId = (int)$conn->lastInsertId();
+            $conn->commit();
+
+            return $newId > 0 ? $newId : null;
+        } catch (Exception $e) {
+            error_log('Erro ao criar nova versão de termo LGPD: ' . $e->getMessage());
+            try {
+                $this->getConnection()->rollBack();
+            } catch (Exception $ignored) {
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Gera um identificador lógico de documento baseado em tipo e título.
+     * Ex.: tipo=login, título="Termo de Uso" => LOGIN_TERMO_DE_USO_abc123
+     */
+    private function generateDocumentoCodigo(string $tipo, string $titulo): string
+    {
+        $base = strtoupper($tipo . '_' . preg_replace('/[^a-z0-9]+/i', '_', $titulo));
+        $base = trim($base, '_');
+        // Sufixo para garantir unicidade mesmo com títulos repetidos
+        $sufixo = substr(sha1($base . microtime(true)), 0, 6);
+        return $base . '_' . $sufixo;
     }
 
     public function update(int $id, array $data): bool

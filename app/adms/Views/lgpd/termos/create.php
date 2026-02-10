@@ -48,7 +48,10 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Conteúdo do Termo (HTML ou texto)</label>
-                                <textarea name="conteudo" rows="8" class="form-control" required><?= htmlspecialchars($this->data['formData']['conteudo'] ?? '') ?></textarea>
+                                <textarea id="conteudo_termo" name="conteudo" rows="12" class="form-control" required><?= $this->data['formData']['conteudo'] ?? '' ?></textarea>
+                                <small class="text-muted">
+                                    Você pode formatar o texto (títulos, listas, negrito, etc.).
+                                </small>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Status</label>
@@ -71,4 +74,16 @@ use App\adms\Helpers\CSRFHelper;
     </div>
 </div>
 
-
+<!-- Editor WYSIWYG para o conteúdo do termo -->
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+tinymce.init({
+    selector: '#conteudo_termo',
+    menubar: false,
+    plugins: 'lists link',
+    toolbar: 'undo redo | bold italic underline | bullist numlist | outdent indent | removeformat | link',
+    height: 400,
+    branding: false,
+    language: 'pt_BR'
+});
+</script>
