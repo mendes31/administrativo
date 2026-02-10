@@ -16,10 +16,11 @@ class LogResumoService
      * Retorna um pequeno resumo de alterações para uma tabela/objeto.
      *
      * @param string $tabela   Nome da tabela no log (ex.: 'lgpd_bases_legais')
-     * @param int    $objetoId ID do registro na tabela
+     * @param int    $objetoId  ID do registro na tabela
+     * @param string|null $returnUrl URL para voltar ao cadastro (opcional)
      * @return array{has_logs:bool,count:int,list_url:string}
      */
-    public static function getResumo(string $tabela, int $objetoId): array
+    public static function getResumo(string $tabela, int $objetoId, ?string $returnUrl = null): array
     {
         $repo = new LogAlteracoesRepository();
 
@@ -33,6 +34,10 @@ class LogResumoService
         $listUrl = $_ENV['URL_ADM'] . 'list-log-alteracoes'
             . '?tabela=' . urlencode($tabela)
             . '&objeto_id=' . urlencode((string)$objetoId);
+
+        if ($returnUrl) {
+            $listUrl .= '&return_url=' . urlencode($returnUrl);
+        }
 
         return [
             'has_logs' => $hasLogs,

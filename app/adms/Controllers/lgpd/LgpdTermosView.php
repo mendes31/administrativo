@@ -32,7 +32,8 @@ class LgpdTermosView
         }
 
         // Resumo de alterações (para botão de Log de Alterações)
-        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_termos', (int)$id);
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-termos-view/' . (int)$id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_termos', (int)$id, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Termo LGPD',

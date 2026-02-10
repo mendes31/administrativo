@@ -62,7 +62,8 @@ class LgpdBasesLegaisView
         GenerateLog::generateLog("info", "Visualizada a Base Legal.", ['id' => (int) $id]);
 
         // Resumo de alterações para exibir botão de Log de Alterações
-        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_bases_legais', (int)$id);
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-bases-legais-view/' . (int)$id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_bases_legais', (int)$id, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

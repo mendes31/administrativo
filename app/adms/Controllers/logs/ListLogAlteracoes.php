@@ -30,8 +30,18 @@ class ListLogAlteracoes
         ];
         
         // Parâmetros de ordenação
-        $orderBy = $_GET['order_by'] ?? 'id';
+        $orderBy = $_GET['order_by'] ?? null;
         $orderDirection = $_GET['order_direction'] ?? 'DESC';
+
+        // Se veio filtrando por tabela + objeto_id e não foi especificada ordenação,
+        // ordenar por data_alteracao (do mais recente para o mais antigo)
+        if ($orderBy === null) {
+            if (!empty($filtros['tabela']) && !empty($filtros['objeto_id'])) {
+                $orderBy = 'data_alteracao';
+            } else {
+                $orderBy = 'id';
+            }
+        }
         
         // Validar parâmetros de ordenação
         $allowedOrderBy = ['id', 'tabela', 'objeto_id', 'usuario_nome', 'data_alteracao', 'tipo_operacao', 'ip', 'hostname'];
@@ -60,6 +70,7 @@ class ListLogAlteracoes
         $this->data['total_paginas'] = (int)ceil($this->data['total_registros'] / $perPage);
         $this->data['order_by'] = $orderBy;
         $this->data['order_direction'] = $orderDirection;
+        $this->data['return_url'] = $_GET['return_url'] ?? '';
         $pageElements = [
             'title_head' => 'Log de Modificações',
             'menu' => 'list-log-alteracoes',

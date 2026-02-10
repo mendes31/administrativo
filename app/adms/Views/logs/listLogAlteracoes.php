@@ -15,8 +15,14 @@ $queryString = http_build_query($getParams);
         </ol>
     </div>
     <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2">
+        <div class="card-header hstack gap-2 flex-wrap">
             <span>Listar</span>
+            <?php if (!empty($this->data['return_url'])): ?>
+                <a href="<?= htmlspecialchars($this->data['return_url']); ?>"
+                   class="btn btn-outline-secondary btn-sm ms-auto">
+                    <i class="fas fa-arrow-left me-1"></i> Voltar para o cadastro
+                </a>
+            <?php endif; ?>
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
