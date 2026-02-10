@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\logs;
 
 use App\adms\Models\Repository\LogAlteracoesRepository;
+use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 
@@ -71,6 +72,15 @@ class ListLogAlteracoes
         $this->data['order_by'] = $orderBy;
         $this->data['order_direction'] = $orderDirection;
         $this->data['return_url'] = $_GET['return_url'] ?? '';
+
+        // Quando filtrado por uma combinação específica de tabela + objeto_id,
+        // buscar também todos os detalhes de alterações desse registro
+        $this->data['detalhes_registro'] = [];
+        if (!empty($filtros['tabela']) && !empty($filtros['objeto_id']) && !empty($this->data['logs'])) {
+            $logIds = array_column($this->data['logs'], 'id');
+            $detRepo = new LogAlteracoesDetalhesRepository();
+            $this->data['detalhes_registro'] = $detRepo->getByLogIds($logIds);
+        }
         $pageElements = [
             'title_head' => 'Log de Modificações',
             'menu' => 'list-log-alteracoes',

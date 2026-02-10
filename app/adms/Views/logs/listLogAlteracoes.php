@@ -319,6 +319,88 @@ $queryString = http_build_query($getParams);
                 </div>
             </div>
 
+            <?php if (!empty($this->data['detalhes_registro'])): ?>
+                <?php
+                // Agrupar detalhes por instância (log_alteracao_id)
+                $grupos = [];
+                foreach ($this->data['detalhes_registro'] as $det) {
+                    $grupos[$det['log_alteracao_id']][] = $det;
+                }
+                ?>
+                <hr class="my-4">
+                <h5>Detalhes das modificações deste registro (agrupados por instância)</h5>
+
+                <div class="d-flex justify-content-end mb-2 flex-wrap gap-2">
+                    <a href="<?= $_ENV['URL_ADM'] . 'export-log-excel?' . $queryString . '&detalhes=1' ?>" class="btn btn-success btn-sm">
+                        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+                    </a>
+                    <a href="<?= $_ENV['URL_ADM'] . 'export-log-pdf?' . $queryString . '&detalhes=1' ?>" class="btn btn-danger btn-sm">
+                        <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
+                    </a>
+                </div>
+
+                <div class="table-responsive border rounded detalhes-log-wrapper" style="max-height: 420px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover table-striped table-sm">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th style="width: 4%;">#</th>
+                                <th style="width: 14%;">Data</th>
+                                <th style="width: 8%;">Tipo</th>
+                                <th style="width: 20%;">Campo modificado</th>
+                                <th style="width: 27%;">Valor anterior</th>
+                                <th style="width: 27%;">Novo valor</th>
+                                <th style="width: 12%;">Usuário</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $instancia = 1; ?>
+                            <?php foreach ($grupos as $logId => $detalhes): ?>
+                                <tr class="table-active">
+                                    <td colspan="7">
+                                        <strong>Instância <?= $instancia++; ?></strong>
+                                        &mdash; ID Log: <?= $logId; ?>
+                                    </td>
+                                </tr>
+                                <?php foreach ($detalhes as $det): ?>
+                                    <tr>
+                                        <td></td>
+                                        <td><?= date('d/m/Y H:i', strtotime($det['data_alteracao'])); ?></td>
+                                        <td>
+                                            <?php
+                                            $tipo = strtoupper($det['tipo_operacao'] ?? '');
+                                            $tipoClass = match($tipo) {
+                                                'INSERT' => 'badge bg-success',
+                                                'UPDATE' => 'badge bg-warning text-dark',
+                                                'DELETE' => 'badge bg-danger',
+                                                default => 'badge bg-secondary'
+                                            };
+                                            ?>
+                                            <span class="<?= $tipoClass ?>"><?= htmlspecialchars($tipo); ?></span>
+                                        </td>
+                                        <td><?= htmlspecialchars($det['campo'] ?? ''); ?></td>
+                                        <td>
+                                            <?php if (!empty($det['valor_anterior'])): ?>
+                                                <pre class="log-pre log-pre-old mb-0"><?= htmlspecialchars($det['valor_anterior']); ?></pre>
+                                            <?php else: ?>
+                                                <span class="text-muted fst-italic">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($det['valor_novo'])): ?>
+                                                <pre class="log-pre log-pre-new mb-0"><?= htmlspecialchars($det['valor_novo']); ?></pre>
+                                            <?php else: ?>
+                                                <span class="text-muted fst-italic">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= htmlspecialchars($det['usuario_nome'] ?? ''); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
             <!-- Cards Mobile -->
             <div class="d-block d-md-none log-mobile list-mobile">
                 <?php if (!empty($this->data['logs'])): ?>

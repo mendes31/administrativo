@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\logs;
 
 use App\adms\Models\Repository\LogAlteracoesRepository;
+use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -16,25 +17,63 @@ class ExportLogExcel
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        // Cabeçalhos
-        $headers = ['ID', 'Tabela', 'ID Objeto', 'Identificador', 'Usuário', 'Data/Hora', 'Tipo', 'IP', 'User Agent'];
-        $sheet->fromArray($headers, null, 'A1');
-        // Dados
-        $row = 2;
-        foreach ($logs as $log) {
-            $sheet->setCellValue('A' . $row, $log['id']);
-            $sheet->setCellValue('B' . $row, $log['tabela']);
-            $sheet->setCellValue('C' . $row, $log['objeto_id']);
-            $sheet->setCellValue('D' . $row, $log['identificador']);
-            $sheet->setCellValue('E' . $row, $log['usuario_nome'] ?: $log['usuario_id']);
-            $sheet->setCellValue('F' . $row, date('d/m/Y H:i:s', strtotime($log['data_alteracao'])));
-            $sheet->setCellValue('G' . $row, $log['tipo_operacao']);
-            $sheet->setCellValue('H' . $row, $log['ip']);
-            $sheet->setCellValue('I' . $row, $log['user_agent']);
-            $row++;
+
+        if (!empty($_GET['detalhes']) && !empty($filtros['tabela']) && !empty($filtros['objeto_id']) && !empty($logs)) {
+            // Exportar detalhes agrupados por instância
+            $logIds = array_column($logs, 'id');
+            $detRepo = new LogAlteracoesDetalhesRepository();
+            $detalhes = $detRepo->getByLogIds($logIds);
+
+            // Cabeçalhos
+            $headers = ['Instância', 'ID Log', 'Data', 'Tipo', 'Campo modificado', 'Valor anterior', 'Novo valor', 'Usuário'];
+            $sheet->fromArray($headers, null, 'A1');
+
+            // Agrupar por instância
+            $grupos = [];
+            foreach ($detalhes as $det) {
+                $grupos[$det['log_alteracao_id']][] = $det;
+            }
+
+            $row = 2;
+            $instancia = 1;
+            foreach ($grupos as $logId => $lista) {
+                foreach ($lista as $det) {
+                    $tipo = strtoupper($det['tipo_operacao'] ?? '');
+                    $sheet->setCellValue('A' . $row, $instancia);
+                    $sheet->setCellValue('B' . $row, $logId);
+                    $sheet->setCellValue('C' . $row, date('d/m/Y H:i:s', strtotime($det['data_alteracao'])));
+                    $sheet->setCellValue('D' . $row, $tipo);
+                    $sheet->setCellValue('E' . $row, $det['campo'] ?? '');
+                    $sheet->setCellValue('F' . $row, $det['valor_anterior'] ?? '');
+                    $sheet->setCellValue('G' . $row, $det['valor_novo'] ?? '');
+                    $sheet->setCellValue('H' . $row, $det['usuario_nome'] ?? '');
+                    $row++;
+                }
+                $instancia++;
+            }
+        } else {
+            // Export padrão de instâncias
+            // Cabeçalhos
+            $headers = ['ID', 'Tabela', 'ID Objeto', 'Identificador', 'Usuário', 'Data/Hora', 'Tipo', 'IP', 'User Agent'];
+            $sheet->fromArray($headers, null, 'A1');
+            // Dados
+            $row = 2;
+            foreach ($logs as $log) {
+                $sheet->setCellValue('A' . $row, $log['id']);
+                $sheet->setCellValue('B' . $row, $log['tabela']);
+                $sheet->setCellValue('C' . $row, $log['objeto_id']);
+                $sheet->setCellValue('D' . $row, $log['identificador']);
+                $sheet->setCellValue('E' . $row, $log['usuario_nome'] ?: $log['usuario_id']);
+                $sheet->setCellValue('F' . $row, date('d/m/Y H:i:s', strtotime($log['data_alteracao'])));
+                $sheet->setCellValue('G' . $row, $log['tipo_operacao']);
+                $sheet->setCellValue('H' . $row, $log['ip']);
+                $sheet->setCellValue('I' . $row, $log['user_agent']);
+                $row++;
+            }
         }
+
         // Ajustar largura das colunas
-        foreach (range('A', 'I') as $col) {
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         // Download
