@@ -253,6 +253,19 @@ class TrainingKpiDashboard
             $totalDinamicos = (int)($row['total_entries'] ?? 0);
             $concluidos = $concluidosMap[$deptId] ?? 0;
             
+            // Debug: log dos valores RAW antes da conversão
+            if (count($result) === 0) {
+                error_log("getDepartmentStatistics: Valores RAW do primeiro departamento - " . json_encode([
+                    'row_keys' => array_keys($row),
+                    'em_dia_raw' => $row['em_dia'] ?? 'NOT_SET',
+                    'em_dia_type' => isset($row['em_dia']) ? gettype($row['em_dia']) : 'NOT_SET',
+                    'pendentes_raw' => $row['pendentes'] ?? 'NOT_SET',
+                    'pendentes_type' => isset($row['pendentes']) ? gettype($row['pendentes']) : 'NOT_SET',
+                    'vencidos_raw' => $row['vencidos'] ?? 'NOT_SET',
+                    'vencidos_type' => isset($row['vencidos']) ? gettype($row['vencidos']) : 'NOT_SET',
+                ]));
+            }
+            
             // Converter valores SUM do MySQL (podem vir como strings do PDO)
             // O teste mostrou que (int) funciona perfeitamente para strings numéricas
             $emDia = isset($row['em_dia']) ? (int)$row['em_dia'] : 0;
