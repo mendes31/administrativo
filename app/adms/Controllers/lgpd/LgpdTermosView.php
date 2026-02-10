@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LgpdTermosRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class LgpdTermosView
@@ -29,6 +30,9 @@ class LgpdTermosView
             header("Location: {$_ENV['URL_ADM']}lgpd-termos");
             return;
         }
+
+        // Resumo de alterações (para botão de Log de Alterações)
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_termos', (int)$id);
 
         $pageElements = [
             'title_head' => 'Visualizar Termo LGPD',

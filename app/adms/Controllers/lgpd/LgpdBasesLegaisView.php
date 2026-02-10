@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LgpdBasesLegaisRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,9 @@ class LgpdBasesLegaisView
 
         // Registrar a visualização da Base Legal
         GenerateLog::generateLog("info", "Visualizada a Base Legal.", ['id' => (int) $id]);
+
+        // Resumo de alterações para exibir botão de Log de Alterações
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_bases_legais', (int)$id);
 
         // Definir o título da página
         // Ativar o item de menu
