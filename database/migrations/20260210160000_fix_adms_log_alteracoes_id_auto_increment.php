@@ -3,6 +3,12 @@ declare(strict_types=1);
 
 use Phinx\Migration\AbstractMigration;
 
+/**
+ * Migration utilitária para garantir que o campo id da tabela adms_log_alteracoes
+ * seja AUTO_INCREMENT em qualquer ambiente.
+ *
+ * @method \Phinx\Db\Table table(string $tableName, array $options = [])
+ */
 final class FixAdmsLogAlteracoesIdAutoIncrement extends AbstractMigration
 {
     public function up(): void
