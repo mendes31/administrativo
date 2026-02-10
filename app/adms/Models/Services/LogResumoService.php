@@ -41,5 +41,3 @@ class LogResumoService
         ];
     }
 }
-*** End Patch```} ***!
-
