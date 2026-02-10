@@ -23,9 +23,6 @@ class SyncAccessLevelsPages extends AbstractSeed
         // Recuperar todos os níveis de acesso
         $accessLevels = $this->query('SELECT id FROM adms_access_levels')->fetchAll();
         
-        // Array para armazenar os dados a serem inseridos
-        $data = [];
-        
         // Percorrer todos os níveis de acesso
         foreach ($accessLevels as $accessLevel) {
             $accessLevelId = $accessLevel['id'];
@@ -34,35 +31,25 @@ class SyncAccessLevelsPages extends AbstractSeed
             foreach ($pages as $page) {
                 $pageId = $page['id'];
                 
-                // Verificar se já existe a permissão para esta combinação
-                // IMPORTANTE: usar fetchRow/fetchAll sem parâmetros, pois AbstractSeed::query não suporta bind
-                $existingPermission = $this->fetchRow(
-                    'SELECT id FROM adms_access_levels_pages WHERE adms_access_level_id = ' .
-                    (int)$accessLevelId . ' AND adms_page_id = ' . (int)$pageId
+                // Inserir permissão de forma idempotente usando INSERT IGNORE para evitar erros de chave primária/única
+                $permission = $accessLevelId == 1 ? 1 : 0; // Super Admin tem permissão total
+                $createdAt  = date("Y-m-d H:i:s");
+
+                $sql = sprintf(
+                    "INSERT IGNORE INTO adms_access_levels_pages 
+                        (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     VALUES (%d, %d, %d, '%s', '%s')",
+                    $permission,
+                    (int)$accessLevelId,
+                    (int)$pageId,
+                    $createdAt,
+                    $createdAt
                 );
-                
-                // Se não existir, adicionar ao array de dados
-                if (!$existingPermission) {
-                    $data[] = [
-                        'permission' => $accessLevelId == 1 ? 1 : 0, // Super Admin tem permissão total
-                        'adms_access_level_id' => $accessLevelId,
-                        'adms_page_id' => $pageId,
-                        'created_at' => date("Y-m-d H:i:s"),
-                        'updated_at' => date("Y-m-d H:i:s")
-                    ];
-                }
+
+                $this->execute($sql);
             }
         }
-        
-        // Se houver dados para inserir
-        if (!empty($data)) {
-            $table = $this->table('adms_access_levels_pages');
-            $table->insert($data)->save();
-            
-            echo "✅ Sincronização automática concluída!\n";
-            echo "📋 " . count($data) . " permissões foram adicionadas.\n";
-        } else {
-            echo "ℹ️  Todas as permissões já estão sincronizadas.\n";
-        }
+
+        echo "✅ Sincronização automática concluída (INSERT IGNORE aplicado).\n";
     }
 } 
