@@ -6,16 +6,21 @@ use App\adms\Models\Repository\LgpdBasesLegaisRepository;
 
 class LgpdBasesLegaisDelete
 {
-    public function index(): void
+    public function index(int|string $id = null): void
     {
-        $id = $_GET['id'] ?? null;
-        
+        // ID pode vir da rota (parâmetro) ou por query string (?id=)
+        if (!$id) {
+            $id = $_GET['id'] ?? null;
+        }
+
         if (!$id || !is_numeric($id)) {
             $_SESSION['msg'] = "Erro: ID inválido!";
             $_SESSION['msg_type'] = "danger";
             header("Location: " . $_ENV['URL_ADM'] . "lgpd-bases-legais");
             exit;
         }
+
+        $id = (int)$id;
 
         $repository = new LgpdBasesLegaisRepository();
         $registro = $repository->getById($id);
