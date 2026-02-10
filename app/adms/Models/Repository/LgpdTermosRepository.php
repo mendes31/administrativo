@@ -375,14 +375,6 @@ class LgpdTermosRepository extends DbConnection
 
         return $stmt->execute();
     }
-
-    public function delete(int $id): bool
-    {
-        $sql = "DELETE FROM lgpd_termos WHERE id = :id";
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
 }
 
 
