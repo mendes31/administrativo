@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -117,8 +118,25 @@ class LgpdBasesLegaisRepository extends DbConnection
             $stmt->bindValue(':exemplo', $data['exemplo'] ?? null);
             $stmt->bindValue(':status', $data['status']);
             $stmt->execute();
-            
-            return $this->getConnection()->lastInsertId();
+
+            $id = (int)$this->getConnection()->lastInsertId();
+
+            // Registrar no Log de Modificações (Administração), se houver usuário logado
+            if ($id > 0 && !empty($_SESSION['user_id'])) {
+                $dadosDepois = $data;
+                $dadosDepois['id'] = $id;
+
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_bases_legais',
+                    $id,
+                    (int)$_SESSION['user_id'],
+                    'INSERT',
+                    [],
+                    $dadosDepois
+                );
+            }
+
+            return $id;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Base Legal não cadastrada.", ['base_legal' => $data['base_legal'], 'error' => $e->getMessage()]);
             return false;
@@ -134,15 +152,35 @@ class LgpdBasesLegaisRepository extends DbConnection
     public function update(array $data): bool
     {
         try {
+            $id = (int)$data['id'];
+
+            // Buscar dados antes da alteração para log
+            $dadosAntes = $this->getById($id);
+
             $sql = 'UPDATE lgpd_bases_legais SET base_legal = :base_legal, descricao = :descricao, exemplo = :exemplo, status = :status, updated_at = NOW() WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':base_legal', $data['base_legal']);
             $stmt->bindValue(':descricao', $data['descricao'] ?? null);
             $stmt->bindValue(':exemplo', $data['exemplo'] ?? null);
             $stmt->bindValue(':status', $data['status']);
-            $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
-            
-            return $stmt->execute();
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+            $ok = $stmt->execute();
+
+            if ($ok && $dadosAntes && !empty($_SESSION['user_id'])) {
+                $dadosDepois = $this->getById($id) ?: $data;
+
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_bases_legais',
+                    $id,
+                    (int)$_SESSION['user_id'],
+                    'UPDATE',
+                    $dadosAntes,
+                    $dadosDepois
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Base Legal não editada.", ['id' => $data['id'], 'error' => $e->getMessage()]);
             return false;
@@ -158,11 +196,29 @@ class LgpdBasesLegaisRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $id = (int)$id;
+
+            // Buscar dados antes da exclusão para log
+            $dadosAntes = $this->getById($id);
+
             $sql = 'DELETE FROM lgpd_bases_legais WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            
-            return $stmt->execute();
+
+            $ok = $stmt->execute();
+
+            if ($ok && $dadosAntes && !empty($_SESSION['user_id'])) {
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_bases_legais',
+                    $id,
+                    (int)$_SESSION['user_id'],
+                    'DELETE',
+                    $dadosAntes,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Base Legal não apagada.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;
