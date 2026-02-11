@@ -251,7 +251,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
             <main>
 
                 <?php
-
                 // Inclui o conteÃºdo principal da pÃ¡gina, que Ã© especificado pela propriedade $this->view. Este arquivo Ã© dinÃ¢mico e pode variar conforme a lÃ³gica do controlador ou o contexto da pÃ¡gina.
                 include $this->view;
 

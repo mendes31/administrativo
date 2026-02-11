@@ -603,9 +603,16 @@ $menus = [
                 'icon'  => 'fa-solid fa-address-card',
                 'submenu' => [
                     [
+                        'label' => 'Dashboard de Recrutamento',
+                        'url' => $_ENV['URL_ADM'] . 'rh-kpi-dashboard',
+                        'permission' => 'RhKpiDashboard',
+                        'icon' => 'fas fa-chart-pie'
+                    ],
+                    [
                         'label' => 'Currículos / Candidatos',
                         'url' => $_ENV['URL_ADM'] . 'rh-candidatos',
-                        'permission' => 'RhCandidatos'
+                        'permission' => 'RhCandidatos',
+                        'icon' => 'fas fa-user-tie'
                     ],
                 ]
             ],

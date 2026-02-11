@@ -138,7 +138,8 @@ class LoadPageAdm
         // Dashboard de Vendas SAP B1
         "SalesDashboard", "SalesDashboardData",
         // RH - Currículos / Candidatos
-        "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete"
+        "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete",
+        "RhKpiDashboard"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

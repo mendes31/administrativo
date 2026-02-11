@@ -373,6 +373,7 @@ class PageLayoutService
             'RhCandidatosView',
             'RhCandidatosEdit',
             'RhCandidatosDelete',
+            'RhKpiDashboard',
             // Reserva de Salas
             'ListMeetingRooms',
             'CreateMeetingRoom',

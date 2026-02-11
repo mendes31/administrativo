@@ -509,6 +509,69 @@ class RhCandidatosRepository extends DbConnection
             'total' => $total,
         ];
     }
-}
 
+    /**
+     * Estatísticas resumidas para o mini dashboard de Recrutamento / Currículos.
+     *
+     * - total_candidatos: todos os registros (inclui anonimizado)
+     * - por_status_processo: contagem por status_processo
+     * - por_origem: contagem por origem (e-mail, WhatsApp, formulário, manual, etc.)
+     * - lgpd_resumo: total por lgpd_status (Ativo, Vencido, Anonimizado)
+     */
+    public function getDashboardStats(): array
+    {
+        $pdo = $this->getConnection();
+
+        // Total geral de candidatos
+        $stmtTotal = $pdo->query('SELECT COUNT(*) AS total FROM rh_candidatos');
+        $rowTotal = $stmtTotal->fetch(PDO::FETCH_ASSOC) ?: ['total' => 0];
+        $totalCandidatos = (int)($rowTotal['total'] ?? 0);
+
+        // Contagem por status_processo
+        $sqlStatus = 'SELECT status_processo, COUNT(*) AS total 
+                      FROM rh_candidatos 
+                      GROUP BY status_processo
+                      ORDER BY status_processo';
+        $stmtStatus = $pdo->query($sqlStatus);
+        $statusRows = $stmtStatus->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $porStatus = [];
+        foreach ($statusRows as $row) {
+            $key = $row['status_processo'] ?? 'indefinido';
+            $porStatus[$key] = (int)($row['total'] ?? 0);
+        }
+
+        // Contagem por origem
+        $sqlOrigem = 'SELECT origem, COUNT(*) AS total 
+                      FROM rh_candidatos 
+                      GROUP BY origem
+                      ORDER BY origem';
+        $stmtOrigem = $pdo->query($sqlOrigem);
+        $origemRows = $stmtOrigem->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $porOrigem = [];
+        foreach ($origemRows as $row) {
+            $key = $row['origem'] ?? 'indefinido';
+            $porOrigem[$key] = (int)($row['total'] ?? 0);
+        }
+
+        // Resumo LGPD por lgpd_status
+        $sqlLgpd = "SELECT lgpd_status, COUNT(*) AS total 
+                    FROM rh_candidatos 
+                    GROUP BY lgpd_status
+                    ORDER BY lgpd_status";
+        $stmtLgpd = $pdo->query($sqlLgpd);
+        $lgpdRows = $stmtLgpd->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $lgpdResumo = [];
+        foreach ($lgpdRows as $row) {
+            $key = $row['lgpd_status'] ?? 'indefinido';
+            $lgpdResumo[$key] = (int)($row['total'] ?? 0);
+        }
+
+        return [
+            'total_candidatos'   => $totalCandidatos,
+            'por_status'         => $porStatus,
+            'por_origem'         => $porOrigem,
+            'lgpd_resumo'        => $lgpdResumo,
+        ];
+    }
+}
 
