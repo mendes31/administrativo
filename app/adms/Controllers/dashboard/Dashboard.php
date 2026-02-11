@@ -7,6 +7,7 @@ use App\adms\Models\Repository\MenuPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\CandidateRetentionService;
 
 class Dashboard
 {
@@ -15,6 +16,9 @@ class Dashboard
 
     public function index()
     {
+        // Atualizar retenção/anomização de currículos (LGPD) no primeiro acesso do dia
+        CandidateRetentionService::ensureUpdated();
+
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';
 
         // Definir o título da página

@@ -598,6 +598,17 @@ $menus = [
                     ],
                 ]
             ],
+            [
+                'label' => 'Recrutamento / Currículos',
+                'icon'  => 'fa-solid fa-address-card',
+                'submenu' => [
+                    [
+                        'label' => 'Currículos / Candidatos',
+                        'url' => $_ENV['URL_ADM'] . 'rh-candidatos',
+                        'permission' => 'RhCandidatos'
+                    ],
+                ]
+            ],
         ]
     ],
     [

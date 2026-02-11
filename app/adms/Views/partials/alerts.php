@@ -2,9 +2,17 @@
 
 // Exibe mensagens de sucesso e erro armazenadas na sessão.
 // Usar operador ternário para verificar se existe a mensagem de sucesso e erro
-echo isset($_SESSION['success']) ? "<div class='alert alert-success' role='alert'>{$_SESSION['success']}</div>" : "";
+if (!empty($_SESSION['success'])) {
+    echo "<div class='alert alert-success' role='alert'>{$_SESSION['success']}</div>";
+}
 
-echo isset($_SESSION['error']) ? "<div class='alert alert-danger' role='alert'>{$_SESSION['error']}</div>" : "";
+// Filtrar mensagens genéricas de roteador (Erro 004) para não poluir telas de negócio
+if (!empty($_SESSION['error'])) {
+    $errorMsg = (string) $_SESSION['error'];
+    if (stripos($errorMsg, 'Erro 004') === false) {
+        echo "<div class='alert alert-danger' role='alert'>{$errorMsg}</div>";
+    }
+}
 
 // Sistema unificado com msg e msg_type
 if (isset($_SESSION['msg']) && isset($_SESSION['msg_type'])) {

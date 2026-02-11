@@ -136,7 +136,9 @@ class LoadPageAdm
         "ListDashboards", "CreateDashboard", "ViewDashboard", "EditDashboard", "DeleteDashboard", "DuplicateDashboard",
         "ExecuteDashboard", "GetFilterOptions", "UploadSpreadsheet", "GetSpreadsheetFields",
         // Dashboard de Vendas SAP B1
-        "SalesDashboard", "SalesDashboardData"
+        "SalesDashboard", "SalesDashboardData",
+        // RH - Currículos / Candidatos
+        "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -175,7 +177,8 @@ class LoadPageAdm
         "lgpd",
         "crm",
         "reports",
-        "dashboards"
+        "dashboards",
+        "rh"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

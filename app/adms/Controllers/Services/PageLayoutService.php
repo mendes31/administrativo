@@ -367,6 +367,12 @@ class PageLayoutService
             // People Analytics
             'PeopleAnalytics',
             'PeopleReports',
+            // Recrutamento / Currículos
+            'RhCandidatos',
+            'RhCandidatosCreate',
+            'RhCandidatosView',
+            'RhCandidatosEdit',
+            'RhCandidatosDelete',
             // Reserva de Salas
             'ListMeetingRooms',
             'CreateMeetingRoom',

@@ -35,7 +35,25 @@ class FormatHelper
         if (empty($date) || $date === '0000-00-00' || $date === '0000-00-00 00:00:00') {
             return '-';
         }
-        $dt = new \DateTime($date);
-        return $dt->format($format);
+        try {
+            $dt = new \DateTime($date);
+            return $dt->format($format);
+        } catch (\Throwable $e) {
+            // Se não for uma data válida, retorna o valor original para facilitar diagnóstico
+            return (string) $date;
+        }
+    }
+
+    public static function formatDateTime(?string $dateTime, string $format = 'd/m/Y H:i:s'): string
+    {
+        if (empty($dateTime) || $dateTime === '0000-00-00' || $dateTime === '0000-00-00 00:00:00') {
+            return '-';
+        }
+        try {
+            $dt = new \DateTime($dateTime);
+            return $dt->format($format);
+        } catch (\Throwable $e) {
+            return (string) $dateTime;
+        }
     }
 } 
