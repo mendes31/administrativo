@@ -47,8 +47,21 @@ final class FixIdsPrimaryKeyAutoIncrement extends AbstractMigration
             ORDER BY c.TABLE_NAME
         ");
 
+        // Tabelas que não devem ser alteradas por esta migration
+        // (por exemplo, tabelas de vínculo/população automática onde o id
+        // não precisa ser AUTO_INCREMENT e já existe PK adequada).
+        $ignoreTables = [
+            'adms_access_levels_pages',
+        ];
+
         foreach ($rows as $row) {
             $tableName  = $row['TABLE_NAME'];
+
+            // Pular explicitamente tabelas da lista de exceções
+            if (in_array($tableName, $ignoreTables, true)) {
+                continue;
+            }
+
             $columnType = strtolower($row['COLUMN_TYPE'] ?? '');
             $isNullable = strtoupper($row['IS_NULLABLE'] ?? 'YES');
             $columnKey  = strtoupper($row['COLUMN_KEY'] ?? '');
