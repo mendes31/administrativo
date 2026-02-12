@@ -418,6 +418,27 @@ class RhVagasRepository extends DbConnection
     }
 
     /**
+     * Desvincula um candidato de uma vaga.
+     */
+    public function desvincularCandidato(int $vagaId, int $candidatoId): bool
+    {
+        try {
+            $pdo = $this->getConnection();
+            $stmt = $pdo->prepare('DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id');
+            $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+            $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao desvincular candidato da vaga.', [
+                'vaga_id'      => $vagaId,
+                'candidato_id' => $candidatoId,
+                'error'        => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Fecha uma vaga (atualiza status e data_fechamento).
      */
     public function fecharVaga(int $id, ?string $motivo = null): bool

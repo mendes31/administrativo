@@ -20,6 +20,9 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="fas fa-briefcase me-2"></i>Vaga #<?= (int)($this->data['vaga']['id'] ?? 0) ?></span>
             <div class="btn-group">
+                <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
+                    <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
+                </a>
                 <?php if (!empty($this->data['buttonPermission']['RhVagasEdit'])): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-edit/<?= (int)$this->data['vaga']['id'] ?>" class="btn btn-secondary btn-sm">
                         <i class="fas fa-edit me-1"></i>Editar
@@ -176,11 +179,9 @@ use App\adms\Helpers\FormatHelper;
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5>Candidatos Vinculados (<?= count($this->data['candidatos'] ?? []) ?>)</h5>
-                    <?php if (!empty($this->data['candidatos_disponiveis'])): ?>
-                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalVincularCandidato">
-                            <i class="fas fa-user-plus me-1"></i>Vincular Candidato
-                        </button>
-                    <?php endif; ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
+                    </a>
                 </div>
                 <?php if (empty($this->data['candidatos'])): ?>
                     <p class="text-muted">Nenhum candidato vinculado a esta vaga.</p>

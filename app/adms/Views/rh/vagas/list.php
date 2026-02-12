@@ -152,6 +152,10 @@ use App\adms\Helpers\FormatHelper;
                                                class="btn btn-info btn-sm" title="Visualizar">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= $vaga['id'] ?>" 
+                                               class="btn btn-success btn-sm" title="Vincular Candidatos">
+                                                <i class="fas fa-user-plus"></i>
+                                            </a>
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-edit/<?= $vaga['id'] ?>" 
                                                class="btn btn-warning btn-sm" title="Editar">
                                                 <i class="fas fa-edit"></i>

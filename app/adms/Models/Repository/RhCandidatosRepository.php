@@ -516,13 +516,33 @@ class RhCandidatosRepository extends DbConnection
             $where[] = 'status_processo = :status_processo';
             $params[':status_processo'] = $filters['status_processo'];
         }
+        if (!empty($filters['area_interesse'])) {
+            $where[] = 'area_interesse = :area_interesse';
+            $params[':area_interesse'] = $filters['area_interesse'];
+        }
+        if (!empty($filters['score_min'])) {
+            $where[] = 'score >= :score_min';
+            $params[':score_min'] = (int)$filters['score_min'];
+        }
+        if (!empty($filters['score_max'])) {
+            $where[] = 'score <= :score_max';
+            $params[':score_max'] = (int)$filters['score_max'];
+        }
+        if (!empty($filters['classificacao'])) {
+            $where[] = 'classificacao = :classificacao';
+            $params[':classificacao'] = $filters['classificacao'];
+        }
 
         $whereSql = implode(' AND ', $where);
 
         $sql = "SELECT * FROM rh_candidatos WHERE {$whereSql} ORDER BY data_cadastramento DESC, id DESC LIMIT :limit OFFSET :offset";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v, PDO::PARAM_STR);
+            $paramType = PDO::PARAM_STR;
+            if (strpos($k, 'score') !== false) {
+                $paramType = PDO::PARAM_INT;
+            }
+            $stmt->bindValue($k, $v, $paramType);
         }
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -532,7 +552,11 @@ class RhCandidatosRepository extends DbConnection
         $sqlCount = "SELECT COUNT(*) FROM rh_candidatos WHERE {$whereSql}";
         $stmtCount = $this->getConnection()->prepare($sqlCount);
         foreach ($params as $k => $v) {
-            $stmtCount->bindValue($k, $v, PDO::PARAM_STR);
+            $paramType = PDO::PARAM_STR;
+            if (strpos($k, 'score') !== false) {
+                $paramType = PDO::PARAM_INT;
+            }
+            $stmtCount->bindValue($k, $v, $paramType);
         }
         $stmtCount->execute();
         $total = (int)$stmtCount->fetchColumn();
