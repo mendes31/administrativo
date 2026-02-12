@@ -98,6 +98,33 @@ let formSubmitting = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== LOGIN SCRIPT INICIADO ===');
+
+    // Limpar qualquer estado residual de controle de sessão (SessionChecker) ao entrar na tela de login
+    try {
+        const sessionKeys = [
+            'current_tab_id',
+            'session_last_activity',
+            'session_last_check',
+            'session_warning_shown',
+            'session_blocked',
+            'session_save_shown',
+            'session_expired'
+        ];
+        sessionKeys.forEach((key) => {
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {}
+            try {
+                sessionStorage.removeItem(key);
+            } catch (e) {}
+        });
+
+        // Limpar cookie usado pelo SessionChecker (se existir)
+        document.cookie = 'current_tab_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        console.log('Estado de sessão (SessionChecker) limpo na tela de login.');
+    } catch (e) {
+        console.warn('Falha ao limpar estado de sessão na tela de login:', e);
+    }
     
     const form = document.getElementById('form-login');
     const submitBtn = document.getElementById('btn-acessar');
