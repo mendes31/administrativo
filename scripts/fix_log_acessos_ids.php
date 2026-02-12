@@ -18,13 +18,16 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Repository\LogAcessosRepository;
+use PDO;
 
 echo "=== Correção de IDs em adms_log_acessos ===\n";
 echo "Iniciando em: " . date('Y-m-d H:i:s') . "\n\n";
 
 try {
-    $conn = (new DbConnection())->getConnection();
+    $repo = new LogAcessosRepository();
+    /** @var PDO $conn */
+    $conn = $repo->getConnection();
     $conn->beginTransaction();
 
     echo "1) Criando tabela temporária adms_log_acessos_tmp...\n";
