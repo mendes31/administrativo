@@ -69,6 +69,21 @@ final class FixIdsPrimaryKeyAutoIncrement extends AbstractMigration
                 continue;
             }
 
+            // Verificar se existem IDs duplicados ou nulos.
+            // Se houver, não é seguro forçar PRIMARY KEY / AUTO_INCREMENT automaticamente.
+            $counts = $this->fetchRow(sprintf(
+                'SELECT COUNT(*) AS total, COUNT(DISTINCT id) AS distintos FROM `%s`',
+                $tableName
+            ));
+
+            $total     = isset($counts['total']) ? (int) $counts['total'] : 0;
+            $distincts = isset($counts['distintos']) ? (int) $counts['distintos'] : 0;
+
+            if ($total > 0 && $distincts !== $total) {
+                // Há IDs duplicados; deixar essa tabela para ajuste manual
+                continue;
+            }
+
             // Monta um ALTER TABLE direto, evitando dependência em versões específicas da API do Phinx.
             // Sempre força: INT(11) UNSIGNED NOT NULL AUTO_INCREMENT
             $alter = sprintf(
