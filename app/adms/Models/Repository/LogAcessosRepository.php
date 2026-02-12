@@ -55,11 +55,14 @@ class LogAcessosRepository extends DbConnection
             $params[':data_fim'] = $filtros['data_fim'] . ' 23:59:59';
         }
         
-        $sql = 'SELECT log.*, usr.name as usuario_nome, usr.email as usuario_email FROM adms_log_acessos log LEFT JOIN adms_users usr ON log.usuario_id = usr.id';
+        $sql = 'SELECT log.*, usr.name as usuario_nome, usr.email as usuario_email 
+                FROM adms_log_acessos log 
+                LEFT JOIN adms_users usr ON log.usuario_id = usr.id';
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY log.id DESC LIMIT :limit OFFSET :offset';
+        // Ordenação padrão: mais recentes primeiro (data_acesso DESC, depois id DESC)
+        $sql .= ' ORDER BY log.data_acesso DESC, log.id DESC LIMIT :limit OFFSET :offset';
         
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {

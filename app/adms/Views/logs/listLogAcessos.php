@@ -51,10 +51,10 @@ $queryString = http_build_query($getParams);
                     <div class="input-group input-group-sm mb-2">
                         <label for="per_page" class="input-group-text">Mostrar</label>
                         <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="this.form.page.value=1; this.form.submit();">
-                            <option value="10" <?= ($this->data['per_page'] ?? 10) == 10 ? 'selected' : '' ?>>10</option>
-                            <option value="20" <?= ($this->data['per_page'] ?? 10) == 20 ? 'selected' : '' ?>>20</option>
-                            <option value="50" <?= ($this->data['per_page'] ?? 10) == 50 ? 'selected' : '' ?>>50</option>
-                            <option value="100" <?= ($this->data['per_page'] ?? 10) == 100 ? 'selected' : '' ?>>100</option>
+                            <option value="10" <?= ($this->data['per_page'] ?? 50) == 10 ? 'selected' : '' ?>>10</option>
+                            <option value="20" <?= ($this->data['per_page'] ?? 50) == 20 ? 'selected' : '' ?>>20</option>
+                            <option value="50" <?= ($this->data['per_page'] ?? 50) == 50 ? 'selected' : '' ?>>50</option>
+                            <option value="100" <?= ($this->data['per_page'] ?? 50) == 100 ? 'selected' : '' ?>>100</option>
                         </select>
                         <span class="input-group-text">registros</span>
                     </div>

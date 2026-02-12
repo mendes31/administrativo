@@ -9,16 +9,24 @@ use App\adms\Views\Services\LoadViewService;
 class ListLogAcessos
 {
     private array|string|null $data = null;
-    private int $limitResult = 10;
+    private int $limitResult = 50;
 
     public function index(string|int $page = 1): void
     {
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int)$_GET['page'];
         }
-        if (isset($_GET['per_page']) && in_array((int)$_GET['per_page'], [10, 20, 50, 100])) {
-            $this->limitResult = (int)$_GET['per_page'];
+
+        // Validar per_page (itens por página)
+        $allowedPerPage = [10, 20, 50, 100];
+        $perPage = $this->limitResult;
+        if (isset($_GET['per_page']) && is_numeric($_GET['per_page'])) {
+            $candidate = (int)$_GET['per_page'];
+            if (in_array($candidate, $allowedPerPage, true)) {
+                $perPage = $candidate;
+            }
         }
+        $this->limitResult = $perPage;
         $filtros = [
             'usuario_nome' => $_GET['usuario_nome'] ?? '',
             'tipo_acesso' => $_GET['tipo_acesso'] ?? '',
@@ -26,8 +34,8 @@ class ListLogAcessos
             'data_inicio' => $_GET['data_inicio'] ?? '',
             'data_fim' => $_GET['data_fim'] ?? '',
         ];
-        $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
-        $paginaAtual = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+
+        $paginaAtual = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
         $repo = new LogAcessosRepository();
         $this->data['logs'] = $repo->getAll($paginaAtual, $perPage, $filtros);
         $this->data['per_page'] = $perPage;
