@@ -23,11 +23,19 @@ class SendWhatsAppService
      */
     public static function sendMessage(string $phoneNumber, string $message, array $options = []): array
     {
-        // Buscar configuração
-        $repo = new AdmsWhatsAppConfigRepository();
-        $config = $repo->getConfig();
+        try {
+            // Buscar configuração com proteção a erros de banco/migração
+            $repo = new AdmsWhatsAppConfigRepository();
+            $config = $repo->getConfig();
+        } catch (\Throwable $e) {
+            error_log('WhatsApp - Erro ao carregar configuração: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Erro ao carregar configuração de WhatsApp. Verifique as migrações e o banco de dados.'
+            ];
+        }
 
-        if (empty($config) || !$config['is_active']) {
+        if (empty($config) || !($config['is_active'] ?? 0)) {
             return [
                 'success' => false,
                 'error' => 'WhatsApp não configurado ou desativado'
@@ -55,12 +63,20 @@ class SendWhatsAppService
         error_log("WhatsApp - Número formatado: " . $phoneNumber . " (length: " . strlen($phoneNumber) . ")");
 
         // Escolher provedor
-        return match ($config['api_provider']) {
-            'Evolution' => self::sendViaEvolution($phoneNumber, $message, $config, $options),
-            'Twilio' => self::sendViaTwilio($phoneNumber, $message, $config, $options),
-            'Meta' => self::sendViaMeta($phoneNumber, $message, $config, $options),
-            default => ['success' => false, 'error' => 'Provedor desconhecido: ' . $config['api_provider']]
-        };
+        try {
+            return match ($config['api_provider']) {
+                'Evolution' => self::sendViaEvolution($phoneNumber, $message, $config, $options),
+                'Twilio'    => self::sendViaTwilio($phoneNumber, $message, $config, $options),
+                'Meta'      => self::sendViaMeta($phoneNumber, $message, $config, $options),
+                default     => ['success' => false, 'error' => 'Provedor desconhecido: ' . $config['api_provider']]
+            };
+        } catch (\Throwable $e) {
+            error_log('WhatsApp - Erro inesperado ao enviar mensagem: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error'   => 'Erro inesperado ao enviar mensagem WhatsApp: ' . $e->getMessage(),
+            ];
+        }
     }
 
     /**
@@ -89,6 +105,12 @@ class SendWhatsAppService
                 'apikey: ' . $config['api_key']
             ]);
 
+            // Timeouts seguros para não travar a aplicação
+            $connectTimeout = (int)($_ENV['WHATSAPP_CONNECT_TIMEOUT'] ?? 10);
+            $timeout        = (int)($_ENV['WHATSAPP_TIMEOUT'] ?? 20);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
             // Flag opcional para ignorar SSL em ambiente controlado (ex: desenvolvimento com ngrok)
             // Configure no .env: WHATSAPP_IGNORE_SSL=true  (ou false em produção)
             $ignoreSsl = filter_var($_ENV['WHATSAPP_IGNORE_SSL'] ?? false, FILTER_VALIDATE_BOOL);
@@ -99,6 +121,18 @@ class SendWhatsAppService
 
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if ($response === false) {
+                $error  = curl_error($ch);
+                $errno  = curl_errno($ch);
+                curl_close($ch);
+                error_log('WhatsApp Evolution - cURL error (' . $errno . '): ' . $error);
+                return [
+                    'success' => false,
+                    'error'   => 'Falha de conexão com a API WhatsApp (Evolution): ' . $error,
+                ];
+            }
+
             curl_close($ch);
 
             error_log('WhatsApp Evolution - HTTP Code: ' . $httpCode);
@@ -146,8 +180,25 @@ class SendWhatsAppService
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
             curl_setopt($ch, CURLOPT_USERPWD, $config['api_key'] . ':' . $config['api_token']);
 
+            $connectTimeout = (int)($_ENV['WHATSAPP_CONNECT_TIMEOUT'] ?? 10);
+            $timeout        = (int)($_ENV['WHATSAPP_TIMEOUT'] ?? 20);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if ($response === false) {
+                $error  = curl_error($ch);
+                $errno  = curl_errno($ch);
+                curl_close($ch);
+                error_log('WhatsApp Twilio - cURL error (' . $errno . '): ' . $error);
+                return [
+                    'success' => false,
+                    'error'   => 'Falha de conexão com a API WhatsApp (Twilio): ' . $error,
+                ];
+            }
+
             curl_close($ch);
 
             if ($httpCode >= 200 && $httpCode < 300) {
@@ -196,8 +247,25 @@ class SendWhatsAppService
                 'Authorization: Bearer ' . $config['api_token']
             ]);
 
+            $connectTimeout = (int)($_ENV['WHATSAPP_CONNECT_TIMEOUT'] ?? 10);
+            $timeout        = (int)($_ENV['WHATSAPP_TIMEOUT'] ?? 20);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if ($response === false) {
+                $error  = curl_error($ch);
+                $errno  = curl_errno($ch);
+                curl_close($ch);
+                error_log('WhatsApp Meta - cURL error (' . $errno . '): ' . $error);
+                return [
+                    'success' => false,
+                    'error'   => 'Falha de conexão com a API WhatsApp (Meta): ' . $error,
+                ];
+            }
+
             curl_close($ch);
 
             if ($httpCode >= 200 && $httpCode < 300) {
