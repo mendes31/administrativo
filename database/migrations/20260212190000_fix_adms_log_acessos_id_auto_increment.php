@@ -17,21 +17,17 @@ final class FixAdmsLogAcessosIdAutoIncrement extends AbstractMigration
             return;
         }
 
-        $table = $this->table('adms_log_acessos');
-
-        // Ajusta a coluna id para ser AUTO_INCREMENT (identity=true)
-        $table
-            ->changeColumn('id', 'integer', [
-                'signed'   => false,
-                'null'     => false,
-                'identity' => true, // AUTO_INCREMENT
-            ])
-            ->save();
-
-        // Garante que exista PRIMARY KEY em id
-        if (!$table->hasPrimaryKey()) {
-            $table->addPrimaryKey('id')->save();
-        }
+        // Usar SQL direto para evitar erro "only one auto column" e
+        // garantir que o id seja AUTO_INCREMENT + PRIMARY KEY em uma passada.
+        // 1) Remover PRIMARY KEY atual (se não for em id).
+        // 2) Ajustar coluna id para AUTO_INCREMENT NOT NULL.
+        // 3) Definir PRIMARY KEY (id).
+        $this->execute("
+            ALTER TABLE `adms_log_acessos`
+            DROP PRIMARY KEY,
+            MODIFY COLUMN `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            ADD PRIMARY KEY (`id`)
+        ");
     }
 
     public function down(): void
@@ -40,16 +36,11 @@ final class FixAdmsLogAcessosIdAutoIncrement extends AbstractMigration
             return;
         }
 
-        $table = $this->table('adms_log_acessos');
-
-        // Remove o AUTO_INCREMENT (mantém a coluna, mas sem identity)
-        $table
-            ->changeColumn('id', 'integer', [
-                'signed'   => false,
-                'null'     => false,
-                'identity' => false,
-            ])
-            ->save();
+        // Reverter: remove AUTO_INCREMENT de id (mantém NOT NULL e unsigned)
+        $this->execute("
+            ALTER TABLE `adms_log_acessos`
+            MODIFY COLUMN `id` INT UNSIGNED NOT NULL
+        ");
     }
 }
 
