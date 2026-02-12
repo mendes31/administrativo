@@ -7,18 +7,20 @@ $queryString = http_build_query($getParams);
 <style>
     /* Ajustes específicos para a tela de Log de Acessos */
     .log-table-wrapper {
-        overflow-x: auto;
+        /* evitar barra de rolagem horizontal na própria tabela */
+        overflow-x: visible;
     }
     #logTable th,
     #logTable td {
         vertical-align: middle;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     /* Colunas com textos longos (email, hostname, user agent) devem quebrar linha */
     .log-cell-long {
         white-space: normal;
         word-break: break-word;
         overflow-wrap: anywhere;
+        max-width: 260px;
     }
 </style>
 <div class="container-fluid px-4">
