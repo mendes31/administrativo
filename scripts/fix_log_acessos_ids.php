@@ -78,6 +78,10 @@ try {
 
     echo "4) Renomeando tabelas (backup da antiga)...\n";
 
+    // Garantir que o backup antigo não impeça uma nova correção
+    // (permite rodar o script mais de uma vez de forma idempotente)
+    $conn->exec('DROP TABLE IF EXISTS adms_log_acessos_old');
+
     // Renomear: original -> _old, tmp -> original
     $conn->exec('RENAME TABLE adms_log_acessos TO adms_log_acessos_old');
     $conn->exec('RENAME TABLE adms_log_acessos_tmp TO adms_log_acessos');
