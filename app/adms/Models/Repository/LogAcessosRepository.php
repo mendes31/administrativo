@@ -61,8 +61,9 @@ class LogAcessosRepository extends DbConnection
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        // Ordenação padrão: mais recentes primeiro (data_acesso DESC, depois id DESC)
-        $sql .= ' ORDER BY log.data_acesso DESC, log.id DESC LIMIT :limit OFFSET :offset';
+        // Ordenação padrão: mais recentes primeiro, usando o ID sequencial (DESC).
+        // Isso garante que, sem filtros, os IDs apareçam de forma contínua na listagem.
+        $sql .= ' ORDER BY log.id DESC LIMIT :limit OFFSET :offset';
         
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
