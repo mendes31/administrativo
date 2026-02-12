@@ -54,10 +54,10 @@ final class FixIdsPrimaryKeyAutoIncrement extends AbstractMigration
             $columnKey  = strtoupper($row['COLUMN_KEY'] ?? '');
             $extra      = strtolower($row['EXTRA'] ?? '');
 
-            $needsPrimaryKey   = ($columnKey !== 'PRI');
+            $needsPrimaryKey    = ($columnKey !== 'PRI');
             $needsAutoIncrement = (strpos($extra, 'auto_increment') === false);
-            $allowsNull        = ($isNullable === 'YES');
-            $isUnsigned        = str_contains($columnType, 'unsigned');
+            $allowsNull         = ($isNullable === 'YES');
+            $isUnsigned         = str_contains($columnType, 'unsigned');
 
             // Se não há nenhum problema detectado, pula
             if (!$needsPrimaryKey && !$needsAutoIncrement && !$allowsNull && $isUnsigned) {
@@ -69,30 +69,19 @@ final class FixIdsPrimaryKeyAutoIncrement extends AbstractMigration
                 continue;
             }
 
-            $table = $this->table($tableName);
+            // Monta um ALTER TABLE direto, evitando dependência em versões específicas da API do Phinx.
+            // Sempre força: INT(11) UNSIGNED NOT NULL AUTO_INCREMENT
+            $alter = sprintf(
+                'ALTER TABLE `%s` MODIFY `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT',
+                $tableName
+            );
 
-            if (!$table->hasColumn('id')) {
-                continue;
+            // Se não era PRIMARY KEY, adiciona a PK em id
+            if ($needsPrimaryKey) {
+                $alter .= ', ADD PRIMARY KEY (`id`)';
             }
 
-            // Montar opções da coluna: sempre unsigned, not null e, se necessário, AUTO_INCREMENT
-            $columnOptions = [
-                'signed'   => false,
-                'null'     => false,
-            ];
-
-            // Mesmo que já seja AUTO_INCREMENT, não há problema em reforçar a opção
-            $columnOptions['identity'] = true;
-
-            // Aplicar alteração da coluna
-            $table->changeColumn('id', 'integer', $columnOptions);
-
-            // Garantir PRIMARY KEY em "id"
-            if (!$table->hasPrimaryKey()) {
-                $table->addPrimaryKey('id');
-            }
-
-            $table->save();
+            $this->execute($alter);
         }
     }
 
