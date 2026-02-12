@@ -78,33 +78,33 @@ $queryString = http_build_query($getParams);
             </div>
             <!-- Tabela Desktop -->
             <div class="table-responsive d-none d-md-block log-desktop list-desktop">
-                <table id="logTable" class="table table-bordered table-hover table-striped table-sm">
+                <table id="logTable" class="table table-bordered table-hover table-striped table-sm w-100">
                     <thead class="table-success">
                         <tr>
-                            <th class="text-start" style="width: 4%; padding-left: 8px;">#</th>
-                            <th class="text-start" style="width: 15%; padding-left: 8px;">Usuário</th>
-                            <th class="text-start" style="width: 16%; padding-left: 8px;">Email</th>
-                            <th class="text-start" style="width: 8%; padding-left: 8px;">Tipo</th>
-                            <th class="text-start" style="width: 10%; padding-left: 8px;">IP</th>
-                            <th class="text-start" style="width: 13%; padding-left: 8px;">Hostname</th>
-                            <th class="text-start" style="width: 19%; padding-left: 8px;">User Agent</th>
-                            <th class="text-start" style="width: 15%; padding-left: 8px;">Data/Hora</th>
+                            <th class="text-start ps-2">#</th>
+                            <th class="text-start ps-2">Usuário</th>
+                            <th class="text-start ps-2">Email</th>
+                            <th class="text-start ps-2">Tipo</th>
+                            <th class="text-start ps-2">IP</th>
+                            <th class="text-start ps-2">Hostname</th>
+                            <th class="text-start ps-2">User Agent</th>
+                            <th class="text-start ps-2">Data/Hora</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($this->data['logs'])): ?>
                             <?php foreach ($this->data['logs'] as $log): ?>
                                 <tr class="access-row">
-                                    <td class="text-start fw-semibold text-primary" style="padding-left: 8px;">
+                                    <td class="text-start fw-semibold text-primary ps-2">
                                         <i class="fas fa-hashtag me-1"></i><?= $log['id'] ?>
                                     </td>
-                                    <td class="text-start" style="padding-left: 8px;">
+                                    <td class="text-start ps-2">
                                         <i class="fas fa-user text-success me-1"></i><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?>
                                     </td>
-                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                    <td class="text-start text-break ps-2">
                                         <i class="fas fa-envelope text-info me-1"></i><?= htmlspecialchars($log['usuario_email'] ?? '-') ?>
                                     </td>
-                                    <td class="text-start" style="padding-left: 8px;">
+                                    <td class="text-start ps-2">
                                         <?php
                                         $tipoClass = match($log['tipo_acesso']) {
                                             'LOGIN' => 'badge bg-success',
@@ -116,23 +116,23 @@ $queryString = http_build_query($getParams);
                                         ?>
                                         <span class="<?= $tipoClass ?>"><?= htmlspecialchars($log['tipo_acesso']) ?></span>
                                     </td>
-                                    <td class="text-start" style="padding-left: 8px;">
+                                    <td class="text-start ps-2">
                                         <i class="fas fa-globe text-danger me-1"></i><?= htmlspecialchars($log['ip']) ?>
                                     </td>
-                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                    <td class="text-start text-break ps-2">
                                         <i class="fas fa-server text-primary me-1"></i><?= htmlspecialchars($log['hostname'] ?? 'N/A') ?>
                                     </td>
-                                    <td class="text-start text-break" style="padding-left: 8px;">
+                                    <td class="text-start text-break ps-2">
                                         <i class="fas fa-desktop text-secondary me-1"></i><?= htmlspecialchars($log['user_agent']) ?>
                                     </td>
-                                    <td class="text-start" style="padding-left: 8px;">
+                                    <td class="text-start ps-2">
                                         <i class="fas fa-calendar-alt text-warning me-1"></i><?= date('d/m/Y H:i:s', strtotime($log['data_acesso'])) ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
+                                <td colspan="8" class="text-center text-muted py-4">
                                     <i class="fas fa-info-circle me-2"></i>Nenhum log encontrado.
                                 </td>
                             </tr>
