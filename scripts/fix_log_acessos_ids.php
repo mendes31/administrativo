@@ -44,6 +44,8 @@ try {
         ALTER TABLE adms_log_acessos_tmp
         MODIFY COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY
     ");
+    // Garantir que o AUTO_INCREMENT da tabela temporária comece em 1
+    $conn->exec("ALTER TABLE adms_log_acessos_tmp AUTO_INCREMENT = 1");
 
     echo "3) Copiando registros para a tabela temporária, gerando novos IDs sequenciais...\n";
 
