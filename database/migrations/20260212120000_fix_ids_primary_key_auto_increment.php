@@ -119,19 +119,146 @@ final class FixIdsPrimaryKeyAutoIncrement extends AbstractMigration
             // Log simples para identificar em qual tabela um eventual erro está ocorrendo.
             echo "Ajustando estrutura de ID na tabela {$tableName}...\n";
 
-            // Monta um ALTER TABLE direto, evitando dependência em versões específicas da API do Phinx.
-            // Sempre força: INT(11) UNSIGNED NOT NULL AUTO_INCREMENT
-            $alter = sprintf(
-                'ALTER TABLE `%s` MODIFY `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT',
-                $tableName
-            );
+            try {
+                // Verificar se há FKs que referenciam esta tabela (podem ter incompatibilidade de tipo)
+                $fksReferencing = $this->fetchAll(sprintf(
+                    "SELECT 
+                        CONSTRAINT_NAME,
+                        TABLE_NAME,
+                        COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                    WHERE 
+                        REFERENCED_TABLE_SCHEMA = '%s'
+                        AND REFERENCED_TABLE_NAME = '%s'
+                        AND REFERENCED_COLUMN_NAME = 'id'",
+                    $dbName,
+                    $tableName
+                ));
 
-            // Se não era PRIMARY KEY, adiciona a PK em id
-            if ($needsPrimaryKey) {
-                $alter .= ', ADD PRIMARY KEY (`id`)';
+                // Se há FKs, precisamos removê-las temporariamente, ajustar tipos, e recriá-las
+                $fksToRecreate = [];
+                if (!empty($fksReferencing)) {
+                    foreach ($fksReferencing as $fk) {
+                        $fkTable = $fk['TABLE_NAME'];
+                        $fkColumn = $fk['COLUMN_NAME'];
+                        $fkName = $fk['CONSTRAINT_NAME'];
+                        
+                        // Verificar tipo atual da coluna FK
+                        $fkColInfo = $this->fetchRow(sprintf(
+                            "SELECT COLUMN_TYPE, IS_NULLABLE
+                             FROM INFORMATION_SCHEMA.COLUMNS
+                             WHERE TABLE_SCHEMA = '%s'
+                               AND TABLE_NAME = '%s'
+                               AND COLUMN_NAME = '%s'",
+                            $dbName,
+                            $fkTable,
+                            $fkColumn
+                        ));
+                        
+                        if (empty($fkColInfo)) {
+                            // Coluna FK não encontrada, pular
+                            continue;
+                        }
+                        
+                        $fkType = strtolower($fkColInfo['COLUMN_TYPE'] ?? '');
+                        // Compatibilidade: str_contains() existe desde PHP 8.0, mas pode não estar disponível
+                        $needsFkUpdate = (strpos($fkType, 'unsigned') === false);
+                        
+                        if ($needsFkUpdate) {
+                            // Buscar detalhes completos da FK (ON DELETE, ON UPDATE)
+                            $fkDetails = $this->fetchRow(sprintf(
+                                "SELECT 
+                                    DELETE_RULE,
+                                    UPDATE_RULE
+                                FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+                                WHERE CONSTRAINT_SCHEMA = '%s'
+                                  AND CONSTRAINT_NAME = '%s'",
+                                $dbName,
+                                $fkName
+                            ));
+                            
+                            $fksToRecreate[] = [
+                                'name' => $fkName,
+                                'table' => $fkTable,
+                                'column' => $fkColumn,
+                                'delete_rule' => $fkDetails['DELETE_RULE'] ?? 'RESTRICT',
+                                'update_rule' => $fkDetails['UPDATE_RULE'] ?? 'CASCADE',
+                            ];
+                            
+                            // Remover FK temporariamente
+                            try {
+                                $this->execute(sprintf(
+                                    'ALTER TABLE `%s` DROP FOREIGN KEY `%s`',
+                                    $fkTable,
+                                    $fkName
+                                ));
+                            } catch (\Exception $e) {
+                                // FK pode não existir ou já ter sido removida, continuar
+                                echo "  Aviso: Não foi possível remover FK {$fkName} (pode já ter sido removida): {$e->getMessage()}\n";
+                                // Remover da lista de recriação
+                                array_pop($fksToRecreate);
+                                continue;
+                            }
+                            
+                            // Atualizar tipo da coluna FK para UNSIGNED também
+                            try {
+                                $this->execute(sprintf(
+                                    'ALTER TABLE `%s` MODIFY `%s` INT(11) UNSIGNED NOT NULL',
+                                    $fkTable,
+                                    $fkColumn
+                                ));
+                            } catch (\Exception $e) {
+                                echo "  Aviso: Não foi possível atualizar coluna FK {$fkColumn} em {$fkTable}: {$e->getMessage()}\n";
+                                // Remover da lista de recriação
+                                array_pop($fksToRecreate);
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                // Monta um ALTER TABLE direto, evitando dependência em versões específicas da API do Phinx.
+                // Sempre força: INT(11) UNSIGNED NOT NULL AUTO_INCREMENT
+                $alter = sprintf(
+                    'ALTER TABLE `%s` MODIFY `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT',
+                    $tableName
+                );
+
+                // Se não era PRIMARY KEY, adiciona a PK em id
+                if ($needsPrimaryKey) {
+                    $alter .= ', ADD PRIMARY KEY (`id`)';
+                }
+
+                $this->execute($alter);
+
+                // Recriar FKs removidas temporariamente
+                foreach ($fksToRecreate as $fk) {
+                    try {
+                        $this->execute(sprintf(
+                            'ALTER TABLE `%s` 
+                             ADD CONSTRAINT `%s` 
+                             FOREIGN KEY (`%s`) 
+                             REFERENCES `%s` (`id`) 
+                             ON DELETE %s 
+                             ON UPDATE %s',
+                            $fk['table'],
+                            $fk['name'],
+                            $fk['column'],
+                            $tableName,
+                            $fk['delete_rule'],
+                            $fk['update_rule']
+                        ));
+                    } catch (\Exception $e) {
+                        echo "  Erro ao recriar FK {$fk['name']} em {$fk['table']}: {$e->getMessage()}\n";
+                        // Continuar com outras FKs mesmo se uma falhar
+                    }
+                }
+            } catch (\Exception $e) {
+                // Se der erro em uma tabela específica, logar e continuar com as próximas
+                echo "  Erro ao ajustar tabela {$tableName}: {$e->getMessage()}\n";
+                echo "  Continuando com as próximas tabelas...\n";
+                // Não fazer throw para não parar a migration inteira
             }
-
-            $this->execute($alter);
         }
     }
 
