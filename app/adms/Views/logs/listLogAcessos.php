@@ -4,6 +4,23 @@ $getParams = $_GET;
 unset($getParams['url']);
 $queryString = http_build_query($getParams);
 ?>
+<style>
+    /* Ajustes específicos para a tela de Log de Acessos */
+    .log-table-wrapper {
+        overflow-x: auto;
+    }
+    #logTable th,
+    #logTable td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    /* Colunas com textos longos (email, hostname, user agent) devem quebrar linha */
+    .log-cell-long {
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+</style>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3">Log de Acessos</h2>
@@ -77,7 +94,7 @@ $queryString = http_build_query($getParams);
                 </div>
             </div>
             <!-- Tabela Desktop -->
-            <div class="table-responsive d-none d-md-block log-desktop list-desktop">
+            <div class="table-responsive d-none d-md-block log-desktop list-desktop log-table-wrapper">
                 <table id="logTable" class="table table-bordered table-hover table-striped table-sm w-100">
                     <thead class="table-success">
                         <tr>
@@ -101,7 +118,7 @@ $queryString = http_build_query($getParams);
                                     <td class="text-start ps-2">
                                         <i class="fas fa-user text-success me-1"></i><?= htmlspecialchars($log['usuario_nome'] ?? '-') ?>
                                     </td>
-                                    <td class="text-start text-break ps-2">
+                                    <td class="text-start text-break ps-2 log-cell-long">
                                         <i class="fas fa-envelope text-info me-1"></i><?= htmlspecialchars($log['usuario_email'] ?? '-') ?>
                                     </td>
                                     <td class="text-start ps-2">
@@ -119,10 +136,10 @@ $queryString = http_build_query($getParams);
                                     <td class="text-start ps-2">
                                         <i class="fas fa-globe text-danger me-1"></i><?= htmlspecialchars($log['ip']) ?>
                                     </td>
-                                    <td class="text-start text-break ps-2">
+                                    <td class="text-start text-break ps-2 log-cell-long">
                                         <i class="fas fa-server text-primary me-1"></i><?= htmlspecialchars($log['hostname'] ?? 'N/A') ?>
                                     </td>
-                                    <td class="text-start text-break ps-2">
+                                    <td class="text-start text-break ps-2 log-cell-long">
                                         <i class="fas fa-desktop text-secondary me-1"></i><?= htmlspecialchars($log['user_agent']) ?>
                                     </td>
                                     <td class="text-start ps-2">
