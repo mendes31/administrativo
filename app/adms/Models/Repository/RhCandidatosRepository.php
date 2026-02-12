@@ -46,15 +46,24 @@ class RhCandidatosRepository extends DbConnection
             $dataExpiracao = clone $dataCadastro;
             $dataExpiracao->modify('+' . $prazoMeses . ' months');
 
+            $areaInteresse = $data['area_interesse'] ?? null;
+            $graduacao = $data['graduacao'] ?? null;
+            $ultimaExperiencia = $data['ultima_experiencia'] ?? null;
+            $score = !empty($data['score']) ? max(0, min(100, (int)$data['score'])) : null;
+            $classificacao = $data['classificacao'] ?? null;
+            $classificacaoObservacoes = $data['classificacao_observacoes'] ?? null;
+
             $sql = 'INSERT INTO rh_candidatos 
-                        (nome, email, telefone, cidade, estado, origem, status_processo,
-                         data_cadastramento, data_ultimo_movimento, observacoes,
+                        (nome, email, telefone, cidade, estado, area_interesse, graduacao, ultima_experiencia,
+                         score, classificacao, classificacao_observacoes,
+                         origem, status_processo, data_cadastramento, data_ultimo_movimento, observacoes,
                          lgpd_termo_id, lgpd_consentimento_id, lgpd_status,
                          lgpd_data_consentimento, lgpd_data_expiracao, lgpd_motivo_anonimizacao,
                          created_at)
                     VALUES
-                        (:nome, :email, :telefone, :cidade, :estado, :origem, :status_processo,
-                         :data_cadastramento, NULL, :observacoes,
+                        (:nome, :email, :telefone, :cidade, :estado, :area_interesse, :graduacao, :ultima_experiencia,
+                         :score, :classificacao, :classificacao_observacoes,
+                         :origem, :status_processo, :data_cadastramento, NULL, :observacoes,
                          :lgpd_termo_id, :lgpd_consentimento_id, :lgpd_status,
                          :lgpd_data_consentimento, :lgpd_data_expiracao, NULL,
                          NOW())';
@@ -65,6 +74,12 @@ class RhCandidatosRepository extends DbConnection
             $stmt->bindValue(':telefone', $telefone, $telefone !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':cidade', $cidade, $cidade !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':estado', $estado, $estado !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':area_interesse', $areaInteresse, $areaInteresse !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':graduacao', $graduacao, $graduacao !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':ultima_experiencia', $ultimaExperiencia, $ultimaExperiencia !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':score', $score, $score !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $stmt->bindValue(':classificacao', $classificacao, $classificacao !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':classificacao_observacoes', $classificacaoObservacoes, $classificacaoObservacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':origem', $origem, PDO::PARAM_STR);
             $stmt->bindValue(':status_processo', $statusProcesso, PDO::PARAM_STR);
             $stmt->bindValue(':data_cadastramento', $dataCadastro->format('Y-m-d H:i:s'), PDO::PARAM_STR);
@@ -132,6 +147,12 @@ class RhCandidatosRepository extends DbConnection
             $telefone       = $data['telefone'] ?? $dadosAntes['telefone'];
             $cidade         = $data['cidade'] ?? $dadosAntes['cidade'];
             $estado         = $data['estado'] ?? $dadosAntes['estado'];
+            $areaInteresse  = $data['area_interesse'] ?? $dadosAntes['area_interesse'] ?? null;
+            $graduacao      = $data['graduacao'] ?? $dadosAntes['graduacao'] ?? null;
+            $ultimaExperiencia = $data['ultima_experiencia'] ?? $dadosAntes['ultima_experiencia'] ?? null;
+            $score = isset($data['score']) ? (($data['score'] !== '' && $data['score'] !== null) ? max(0, min(100, (int)$data['score'])) : null) : ($dadosAntes['score'] ?? null);
+            $classificacao = $data['classificacao'] ?? $dadosAntes['classificacao'] ?? null;
+            $classificacaoObservacoes = $data['classificacao_observacoes'] ?? $dadosAntes['classificacao_observacoes'] ?? null;
             $origem         = $data['origem'] ?? $dadosAntes['origem'];
             $statusProcesso = $data['status_processo'] ?? $dadosAntes['status_processo'];
             $observacoes    = $data['observacoes'] ?? $dadosAntes['observacoes'];
@@ -159,6 +180,12 @@ class RhCandidatosRepository extends DbConnection
                         telefone = :telefone,
                         cidade = :cidade,
                         estado = :estado,
+                        area_interesse = :area_interesse,
+                        graduacao = :graduacao,
+                        ultima_experiencia = :ultima_experiencia,
+                        score = :score,
+                        classificacao = :classificacao,
+                        classificacao_observacoes = :classificacao_observacoes,
                         origem = :origem,
                         status_processo = :status_processo,
                         observacoes = :observacoes,
@@ -172,6 +199,12 @@ class RhCandidatosRepository extends DbConnection
             $stmt->bindValue(':telefone', $telefone, $telefone !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':cidade', $cidade, $cidade !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':estado', $estado, $estado !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':area_interesse', $areaInteresse, $areaInteresse !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':graduacao', $graduacao, $graduacao !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':ultima_experiencia', $ultimaExperiencia, $ultimaExperiencia !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':score', $score, $score !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $stmt->bindValue(':classificacao', $classificacao, $classificacao !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':classificacao_observacoes', $classificacaoObservacoes, $classificacaoObservacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':origem', $origem, PDO::PARAM_STR);
             $stmt->bindValue(':status_processo', $statusProcesso, PDO::PARAM_STR);
             $stmt->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);

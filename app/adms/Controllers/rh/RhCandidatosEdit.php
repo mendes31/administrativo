@@ -72,8 +72,30 @@ class RhCandidatosEdit
         }
 
         $nome = trim($form['nome'] ?? '');
+        $areaInteresse = trim($form['area_interesse'] ?? '');
+        $graduacao = trim($form['graduacao'] ?? '');
+        $ultimaExperiencia = trim($form['ultima_experiencia'] ?? '');
+
         if ($nome === '') {
             $_SESSION['error'] = "Nome do candidato é obrigatório.";
+            $this->viewForm();
+            return;
+        }
+
+        if ($areaInteresse === '') {
+            $_SESSION['error'] = "Área de interesse é obrigatória.";
+            $this->viewForm();
+            return;
+        }
+
+        if ($graduacao === '') {
+            $_SESSION['error'] = "Graduação/Formação é obrigatória.";
+            $this->viewForm();
+            return;
+        }
+
+        if ($ultimaExperiencia === '') {
+            $_SESSION['error'] = "Última experiência profissional é obrigatória.";
             $this->viewForm();
             return;
         }

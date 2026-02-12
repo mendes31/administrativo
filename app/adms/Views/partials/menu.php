@@ -614,6 +614,12 @@ $menus = [
                         'permission' => 'RhCandidatos',
                         'icon' => 'fas fa-user-tie'
                     ],
+                    [
+                        'label' => 'Vagas de Emprego',
+                        'url' => $_ENV['URL_ADM'] . 'rh-vagas',
+                        'permission' => 'RhVagas',
+                        'icon' => 'fas fa-briefcase'
+                    ],
                 ]
             ],
         ]

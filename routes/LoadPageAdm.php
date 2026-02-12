@@ -139,6 +139,8 @@ class LoadPageAdm
         "SalesDashboard", "SalesDashboardData",
         // RH - Currículos / Candidatos
         "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete",
+        "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete",
+        "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
         "RhKpiDashboard"
     ];
 

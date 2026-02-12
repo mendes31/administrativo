@@ -34,6 +34,17 @@ class RhCandidatosView
         $this->data['candidato'] = $candidato;
         $this->data['anexos']    = $repo->getAnexosByCandidato((int)$id);
 
+        // Buscar vagas vinculadas ao candidato
+        $vagaRepo = new \App\adms\Models\Repository\RhVagasRepository();
+        $this->data['vagas'] = $vagaRepo->getVagasByCandidato((int)$id);
+        
+        // Buscar todas as vagas disponíveis para vincular (exceto as já vinculadas)
+        $vagasVinculadasIds = array_column($this->data['vagas'], 'rh_vaga_id');
+        $todasVagas = $vagaRepo->getAll([], 1, 1000);
+        $this->data['vagas_disponiveis'] = array_filter($todasVagas['data'] ?? [], function($v) use ($vagasVinculadasIds) {
+            return !in_array($v['id'], $vagasVinculadasIds, true);
+        });
+
         $returnUrl = $_ENV['URL_ADM'] . 'rh-candidatos-view/' . (int)$id;
         $this->data['log_resumo'] = LogResumoService::getResumo('rh_candidatos', (int)$id, $returnUrl);
 

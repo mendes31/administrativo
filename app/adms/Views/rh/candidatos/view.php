@@ -67,6 +67,33 @@ use App\adms\Helpers\FormatHelper;
                                 <?= htmlspecialchars($c['status_processo'] ?? '') ?>
                             </span>
                         </dd>
+
+                        <dt class="col-sm-4">Área de Interesse</dt>
+                        <dd class="col-sm-8">
+                            <?= htmlspecialchars($c['area_interesse'] ?? '-') ?>
+                        </dd>
+
+                        <?php if (!empty($c['score']) || !empty($c['classificacao'])): ?>
+                        <dt class="col-sm-4">Classificação</dt>
+                        <dd class="col-sm-8">
+                            <?php if (!empty($c['score'])): ?>
+                                <span class="badge <?php
+                                    $score = (int)$c['score'];
+                                    if ($score >= 80) echo 'bg-success';
+                                    elseif ($score >= 60) echo 'bg-info';
+                                    elseif ($score >= 40) echo 'bg-warning text-dark';
+                                    else echo 'bg-danger';
+                                ?>">
+                                    Score: <?= $score ?>/100
+                                </span>
+                            <?php endif; ?>
+                            <?php if (!empty($c['classificacao'])): ?>
+                                <span class="badge bg-primary ms-1">
+                                    <?= htmlspecialchars($c['classificacao']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </dd>
+                        <?php endif; ?>
                     </dl>
                 </div>
                 <div class="col-md-6">
@@ -97,6 +124,39 @@ use App\adms\Helpers\FormatHelper;
                 </div>
             </div>
 
+            <?php if (!empty($c['graduacao'])): ?>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <h5>Graduação / Formação</h5>
+                    <div class="border rounded p-3 bg-light">
+                        <?= nl2br(htmlspecialchars($c['graduacao'])) ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($c['ultima_experiencia'])): ?>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <h5>Última Experiência Profissional</h5>
+                    <div class="border rounded p-3 bg-light">
+                        <?= nl2br(htmlspecialchars($c['ultima_experiencia'])) ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($c['classificacao_observacoes'])): ?>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <h5>Observações sobre Classificação</h5>
+                    <div class="border rounded p-3 bg-info bg-opacity-10">
+                        <?= nl2br(htmlspecialchars($c['classificacao_observacoes'])) ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-12">
                     <h5>Observações</h5>
@@ -105,6 +165,66 @@ use App\adms\Helpers\FormatHelper;
                     </div>
                 </div>
             </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5>Vagas Vinculadas (<?= count($this->data['vagas'] ?? []) ?>)</h5>
+                        <?php if (!empty($this->data['vagas_disponiveis'])): ?>
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalVincularVaga">
+                                <i class="fas fa-link me-1"></i>Vincular em Vaga
+                            </button>
+                        <?php endif; ?>
+                    </div>
+            <?php if (!empty($this->data['vagas'])): ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Título da Vaga</th>
+                                        <th>Área</th>
+                                        <th>Cargo</th>
+                                        <th>Status</th>
+                                        <th>Data Candidatura</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($this->data['vagas'] as $vaga): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($vaga['vaga_titulo'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($vaga['area_nome'] ?? '-') ?></td>
+                                            <td><?= htmlspecialchars($vaga['cargo_nome'] ?? '-') ?></td>
+                                            <td>
+                                                <?php
+                                                $vagaStatusClass = match($vaga['status']) {
+                                                    'candidatado' => 'badge bg-info',
+                                                    'em_analise'  => 'badge bg-warning text-dark',
+                                                    'aprovado'    => 'badge bg-success',
+                                                    'reprovado'   => 'badge bg-danger',
+                                                    'desistiu'    => 'badge bg-secondary',
+                                                    default       => 'badge bg-secondary',
+                                                };
+                                                ?>
+                                                <span class="<?= $vagaStatusClass ?>">
+                                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $vaga['status'] ?? ''))) ?>
+                                                </span>
+                                            </td>
+                                            <td><?= FormatHelper::formatDateTime($vaga['data_candidatura'] ?? null) ?></td>
+                                            <td>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-view/<?= $vaga['rh_vaga_id'] ?>" 
+                                                   class="btn btn-sm btn-info" title="Ver vaga">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <?php if (!empty($this->data['anexos'])): ?>
                 <div class="row mt-3">
@@ -145,9 +265,101 @@ use App\adms\Helpers\FormatHelper;
                         </div>
                     </div>
                 </div>
+            <?php else: ?>
+                    <p class="text-muted">Nenhuma vaga vinculada ainda.</p>
+                <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Modal Vincular em Vaga -->
+            <?php if (!empty($this->data['vagas_disponiveis'])): ?>
+            <div class="modal fade" id="modalVincularVaga" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Vincular Candidato em Vaga</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="formVincularVaga">
+                            <div class="modal-body">
+                                <input type="hidden" name="candidato_id" value="<?= (int)($this->data['candidato']['id'] ?? 0) ?>">
+                                <div class="mb-3">
+                                    <label for="vaga_id" class="form-label">Selecione as Vagas *</label>
+                                    <select name="vaga_id[]" id="vaga_id" class="form-select" multiple size="8" required style="font-size: 0.9rem;">
+                                        <?php foreach ($this->data['vagas_disponiveis'] as $v): ?>
+                                            <option value="<?= $v['id'] ?>" title="<?= htmlspecialchars(($v['descricao'] ?? '') ? substr(strip_tags($v['descricao']), 0, 150) : '') ?>">
+                                                <?= htmlspecialchars($v['titulo']) ?>
+                                                <?php if (!empty($v['area_nome'])): ?>
+                                                    | Área: <?= htmlspecialchars($v['area_nome']) ?>
+                                                <?php endif; ?>
+                                                <?php if (!empty($v['cargo_nome'])): ?>
+                                                    | Cargo: <?= htmlspecialchars($v['cargo_nome']) ?>
+                                                <?php endif; ?>
+                                                | Tipo: <?= htmlspecialchars($v['tipo_contrato'] ?? 'CLT') ?>
+                                                | Status: <?= htmlspecialchars(ucfirst($v['status'] ?? 'aberta')) ?>
+                                                <?php if (!empty($v['quantidade_vagas'])): ?>
+                                                    | Vagas: <?= (int)$v['quantidade_vagas'] ?>
+                                                <?php endif; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-info-circle"></i> Segure Ctrl (ou Cmd no Mac) para selecionar múltiplas vagas. 
+                                        Informações: Título | Área | Cargo | Tipo Contrato | Status | Quantidade de Vagas
+                                    </small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="observacoes_vaga" class="form-label">Observações</label>
+                                    <textarea name="observacoes" id="observacoes_vaga" class="form-control" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-success">Vincular</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<script>
+// Vincular candidato em vaga (da tela do candidato)
+<?php if (!empty($this->data['vagas_disponiveis'])): ?>
+document.getElementById('formVincularVaga')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    // Garantir que vaga_id seja array
+    const vagaSelect = document.getElementById('vaga_id');
+    const vagasSelecionadas = Array.from(vagaSelect.selectedOptions).map(opt => opt.value);
+    formData.delete('vaga_id[]');
+    vagasSelecionadas.forEach(vagaId => {
+        formData.append('vaga_id[]', vagaId);
+    });
+    
+    fetch('<?php echo $_ENV['URL_ADM']; ?>rh-vincular-candidato-vaga', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao vincular em vaga.');
+    });
+});
+<?php endif; ?>
+</script>
 
 
