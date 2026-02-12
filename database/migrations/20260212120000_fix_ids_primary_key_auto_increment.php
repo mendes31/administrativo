@@ -84,6 +84,28 @@ final class FixIdsPrimaryKeyAutoIncrement extends AbstractMigration
                 continue;
             }
 
+            // Se já existe uma PRIMARY KEY que não é em "id", não vamos forçar troca de PK aqui.
+            $pkInfo = $this->fetchAll(sprintf(
+                'SHOW KEYS FROM `%s` WHERE Key_name = \'PRIMARY\'',
+                $tableName
+            ));
+            if (!empty($pkInfo)) {
+                $pkOnlyId = true;
+                foreach ($pkInfo as $pkRow) {
+                    if (strtolower($pkRow['Column_name'] ?? '') !== 'id') {
+                        $pkOnlyId = false;
+                        break;
+                    }
+                }
+                if (!$pkOnlyId && !$needsPrimaryKey) {
+                    // Já há uma PK em outra coluna e não precisamos criar PK em id: apenas seguimos sem alterar.
+                    continue;
+                }
+            }
+
+            // Log simples para identificar em qual tabela um eventual erro está ocorrendo.
+            echo "Ajustando estrutura de ID na tabela {$tableName}...\n";
+
             // Monta um ALTER TABLE direto, evitando dependência em versões específicas da API do Phinx.
             // Sempre força: INT(11) UNSIGNED NOT NULL AUTO_INCREMENT
             $alter = sprintf(
