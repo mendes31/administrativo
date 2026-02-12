@@ -470,7 +470,9 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Visualizar RIPD PDF', 'controller' => 'LgpdRipdExportPdfView', 'controller_url' => 'lgpd-ripd-export-pdf-view', 'directory' => 'lgpd', 'obs' => 'Visualização de relatório RIPD em formato PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 31],
         
             // ===== GRUPO 32: SESSÕES =====
-            ['name'=> 'Verificar Sessão', 'controller' => 'CheckSession', 'controller_url' => 'check-session', 'directory' => 'session', 'obs' => 'Endpoint AJAX para verificar se a sessão ainda é válida.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 32],
+            // Endpoints técnicos de sessão devem ser públicos (acessíveis por qualquer usuário logado ou tela),
+            // pois o controle de permissão já é feito internamente no próprio controller.
+            ['name'=> 'Verificar Sessão', 'controller' => 'CheckSession', 'controller_url' => 'check-session', 'directory' => 'session', 'obs' => 'Endpoint AJAX para verificar se a sessão ainda é válida.', 'public_page' => 1, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 32],
             ['name'=> 'Estender Sessão', 'controller' => 'ExtendSession', 'controller_url' => 'extend-session', 'directory' => 'session', 'obs' => 'Endpoint AJAX para estender a sessão do usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 32],
 
             // ===== GRUPO 33: ESTOQUE =====
