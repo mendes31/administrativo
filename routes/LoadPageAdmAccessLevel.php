@@ -50,12 +50,12 @@ class LoadPageAdmAccessLevel
         $accessLevelPage = new PagesRoutesRepository();
         $this->page = $accessLevelPage->getPage($this->urlController);
 
-        if (($this->page && $this->page['public_page'] == 1) or ($this->page && $this->verifyLogin())) {
-            $this->checkControllersExists();
-        } else {
-            GenerateLog::generateLog("error", "Controller não encontrada ou acesso negado.", [
-                'pagina' => $this->urlController,
-                'parametro' => $this->urlParameter
+        // 1) Página não encontrada no cadastro de rotas/páginas
+        if (!$this->page) {
+            GenerateLog::generateLog("error", "Página/rota não encontrada em pages_routes.", [
+                'pagina'   => $this->urlController,
+                'parametro'=> $this->urlParameter,
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
             ]);
 
             $isAjax = (
@@ -70,13 +70,70 @@ class LoadPageAdmAccessLevel
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Você não tem permissão para acessar este recurso ou a rota não foi encontrada.'
+                    'error'   => 'Rota não encontrada. Verifique o cadastro de páginas/rotas.'
                 ]);
                 exit;
             }
 
             die("Erro 003: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
         }
+
+        // 2) Página pública: não precisa verificar login/permissão
+        if ($this->page['public_page'] == 1) {
+            $this->checkControllersExists();
+            return;
+        }
+
+        // 3) Página restrita: precisa estar logado e ter permissão
+        if ($this->verifyLogin()) {
+            $this->checkControllersExists();
+            return;
+        }
+
+        // 4) Usuário não logado ou sem permissão:
+        //    - Se não estiver logado, redirecionar para login (evita Erro 003 após expiração de sessão)
+        //    - Se estiver logado mas sem permissão, registrar log e exibir mensagem apropriada
+
+        $estaLogado = !empty($_SESSION['user_id']);
+
+        if (!$estaLogado) {
+            // Sessão expirada ou usuário não autenticado
+            GenerateLog::generateLog("info", "Acesso a página restrita sem sessão válida. Redirecionando para login.", [
+                'pagina'      => $this->urlController,
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+            ]);
+
+            $_SESSION['error'] = "Sua sessão expirou ou você não está logado. Faça login novamente.";
+            header("Location: {$_ENV['URL_ADM']}login");
+            exit;
+        }
+
+        // Usuário logado, mas sem permissão para a página
+        GenerateLog::generateLog("error", "Acesso negado: usuário sem permissão para a página.", [
+            'pagina'      => $this->urlController,
+            'parametro'   => $this->urlParameter,
+            'user_id'     => $_SESSION['user_id'] ?? null,
+            'access_page' => $this->page['id_ap'] ?? null,
+        ]);
+
+        $isAjax = (
+            !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+        ) || (
+            isset($_SERVER['HTTP_ACCEPT']) &&
+            str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+        );
+
+        if ($isAjax) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Você não tem permissão para acessar este recurso.'
+            ]);
+            exit;
+        }
+
+        die("Erro 003: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
     }
 
     private function verifyLogin(): bool
