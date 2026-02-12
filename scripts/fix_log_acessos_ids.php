@@ -1,6 +1,6 @@
 <?php
 /**
- * Script CLI para corrigir os IDs da tabela adms_log_acessos.
+ * Script CLI para corrigir os IDs da tabela adms_log_acessos..
  *
  * Uso (no servidor):
  *   php scripts/fix_log_acessos_ids.php
