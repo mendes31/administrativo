@@ -19,7 +19,6 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\adms\Models\Repository\LogAcessosRepository;
-use PDO;
 
 echo "=== Correção de IDs em adms_log_acessos ===\n";
 echo "Iniciando em: " . date('Y-m-d H:i:s') . "\n\n";
@@ -39,11 +38,11 @@ try {
     // Ajustar estrutura da tabela temporária:
     // - id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY
     echo "2) Ajustando estrutura da tabela temporária (AUTO_INCREMENT em id)...\n";
+    // Em muitas instalações essa tabela de origem pode não ter PRIMARY KEY;
+    // por isso ajustamos a coluna id diretamente, já definindo PRIMARY KEY.
     $conn->exec("
         ALTER TABLE adms_log_acessos_tmp
-        DROP PRIMARY KEY,
-        MODIFY COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-        ADD PRIMARY KEY (id)
+        MODIFY COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY
     ");
 
     echo "3) Copiando registros para a tabela temporária, gerando novos IDs sequenciais...\n";
