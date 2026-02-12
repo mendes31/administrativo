@@ -171,11 +171,17 @@ class TrainingsRepository extends DbConnection
             }
             return $novoId;
         } catch (Exception $e) {
+            // Log detalhado para análise em produção
             GenerateLog::generateLog("error", "Treinamento não cadastrado.", [
-                'nome' => $data['nome'] ?? '',
+                'nome'   => $data['nome']   ?? '',
                 'codigo' => $data['codigo'] ?? '',
-                'error' => $e->getMessage()
+                'error'  => $e->getMessage(),
             ]);
+
+            // Expor mensagem técnica temporariamente para facilitar diagnóstico
+            // (pode ser simplificada depois que o problema for identificado)
+            $_SESSION['error'] = 'Erro ao cadastrar treinamento: ' . $e->getMessage();
+
             return false;
         }
     }
