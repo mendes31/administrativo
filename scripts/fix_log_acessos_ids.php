@@ -36,19 +36,13 @@ try {
     $conn->exec('CREATE TABLE adms_log_acessos_tmp LIKE adms_log_acessos');
 
     // Ajustar estrutura da tabela temporária:
-    // - Remover PRIMARY KEY existente (se houver)
-    // - Definir id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY
+    // - Garantir que a coluna id seja AUTO_INCREMENT
+    //   (a PK já vem copiada da tabela original pelo "CREATE TABLE ... LIKE")
     echo "2) Ajustando estrutura da tabela temporária (AUTO_INCREMENT em id)...\n";
-
-    try {
-        $conn->exec("ALTER TABLE adms_log_acessos_tmp DROP PRIMARY KEY");
-    } catch (\Throwable $e) {
-        // Se não existir PRIMARY KEY, ignorar o erro  (idempotência)
-    }
 
     $conn->exec("
         ALTER TABLE adms_log_acessos_tmp
-        MODIFY COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY
+        MODIFY COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT
     ");
 
     // Garantir que o AUTO_INCREMENT da tabela temporária comece em 1
