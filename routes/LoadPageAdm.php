@@ -138,10 +138,11 @@ class LoadPageAdm
         // Dashboard de Vendas SAP B1
         "SalesDashboard", "SalesDashboardData",
         // RH - Currículos / Candidatos
-        "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete",
-        "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete",
+        "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete", "RhCandidatosVagas",
+        "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete", "RhVagasPipeline",
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
-        "RhKpiDashboard"
+        "RhKpiDashboard",
+        "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -257,6 +258,19 @@ class LoadPageAdm
 
         // Verificar se a classe/controller existe
         if (!$this->checkControllersExists()) {
+            // Tratamento especial para endpoint AJAX de atualização de status de candidatura
+            if ($this->urlController === 'RhAtualizarStatusCandidatura') {
+                $ajaxClass = "\\App\\adms\\Controllers\\rh\\RhAtualizarStatusCandidatura";
+                if (class_exists($ajaxClass)) {
+                    $controller = new $ajaxClass();
+                    if (method_exists($controller, 'index')) {
+                        // Responde diretamente ao AJAX e encerra o fluxo normal
+                        $controller->index();
+                        exit;
+                    }
+                }
+            }
+
             // Fallback seguro para nomes de ação
             $actionNames = ['delete', 'update', 'create', 'view'];
             $routeParamLower = strtolower($routeParam);
@@ -286,8 +300,14 @@ class LoadPageAdm
                     exit;
                 }
             }
+
             // Se não for nome de ação, segue fluxo normal de erro
-            GenerateLog::generateLog("error", "Controller não encontrada.", ['pagina' => $this->urlController, 'parametro' => $this->urlParameter]);
+            GenerateLog::generateLog("error", "Controller não encontrada.", [
+                'pagina'    => $this->urlController,
+                'parametro' => $this->urlParameter,
+                'classLoad' => isset($this->classLoad) ? $this->classLoad : null,
+            ]);
+
             die("Erro 003: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
         }
 

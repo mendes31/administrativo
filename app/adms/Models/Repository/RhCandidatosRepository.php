@@ -26,7 +26,7 @@ class RhCandidatosRepository extends DbConnection
             $cidade          = $data['cidade'] ?? null;
             $estado          = $data['estado'] ?? null;
             $origem          = $data['origem'] ?? 'manual';
-            $statusProcesso  = $data['status_processo'] ?? 'recebido';
+            $statusProcesso  = $data['status_processo'] ?? 'candidatado';
             $observacoes     = $data['observacoes'] ?? null;
             $lgpdTermoId     = !empty($data['lgpd_termo_id']) ? (int)$data['lgpd_termo_id'] : null;
             $lgpdConsentId   = !empty($data['lgpd_consentimento_id']) ? (int)$data['lgpd_consentimento_id'] : null;
@@ -244,7 +244,8 @@ class RhCandidatosRepository extends DbConnection
      * Aplica a política de retenção/anonimização de currículos com base em:
      * - lgpd_status = 'Ativo'
      * - lgpd_data_expiracao <= hoje
-     * - status_processo IN ('recebido', 'reprovado', 'banco_talentos')
+     * - status_processo IN ('candidatado', 'reprovado', 'desistiu', 'aprovado', 'recebido', 'banco_talentos')
+     *   (inclui novos status do pipeline e legados para compatibilidade)
      *
      * Retorna um array com contadores para monitoramento.
      */
@@ -264,7 +265,7 @@ class RhCandidatosRepository extends DbConnection
                     WHERE lgpd_status = 'Ativo'
                       AND lgpd_data_expiracao IS NOT NULL
                       AND lgpd_data_expiracao <= CURDATE()
-                      AND status_processo IN ('recebido', 'reprovado', 'banco_talentos')";
+                      AND status_processo IN ('candidatado', 'reprovado', 'desistiu', 'aprovado', 'recebido', 'banco_talentos')";
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute();
@@ -387,22 +388,26 @@ class RhCandidatosRepository extends DbConnection
 
     /**
      * Resolve o contexto de retenção baseado no status_processo.
-     * - recebido / reprovado -> curriculo_nao_aproveitado
-     * - banco_talentos       -> banco_talentos
-     * - em_entrevista / contratado -> null (tratados fora da retenção de currículo)
+     * - candidatado / reprovado / desistiu / recebido (legado) -> curriculo_nao_aproveitado
+     * - aprovado / banco_talentos (legado) -> banco_talentos
+     * - em_entrevista / em_analise (legado) / contratado -> null (tratados fora da retenção de currículo)
      */
     private function resolveContextoRetencao(string $statusProcesso): ?string
     {
         $statusProcesso = strtolower($statusProcesso);
 
-        if (in_array($statusProcesso, ['recebido', 'reprovado'], true)) {
+        // Status que não foram aproveitados (curriculo_nao_aproveitado)
+        if (in_array($statusProcesso, ['candidatado', 'reprovado', 'desistiu', 'recebido'], true)) {
             return 'curriculo_nao_aproveitado';
         }
 
-        if ($statusProcesso === 'banco_talentos') {
+        // Status de banco de talentos (aprovado mas não contratado)
+        if (in_array($statusProcesso, ['aprovado', 'banco_talentos'], true)) {
             return 'banco_talentos';
         }
 
+        // Status em processo ou finais (não aplicam retenção automática)
+        // em_entrevista, em_analise (legado), contratado, anonimizado
         return null;
     }
 
@@ -535,7 +540,17 @@ class RhCandidatosRepository extends DbConnection
 
         $whereSql = implode(' AND ', $where);
 
-        $sql = "SELECT * FROM rh_candidatos WHERE {$whereSql} ORDER BY data_cadastramento DESC, id DESC LIMIT :limit OFFSET :offset";
+        // Contar quantas vagas cada candidato possui vinculadas
+        $sql = "SELECT c.*, 
+                       (
+                           SELECT COUNT(*) 
+                           FROM rh_candidatos_vagas cv 
+                           WHERE cv.rh_candidato_id = c.id
+                       ) AS total_vagas_vinculadas
+                FROM rh_candidatos c
+                WHERE {$whereSql}
+                ORDER BY c.data_cadastramento DESC, c.id DESC
+                LIMIT :limit OFFSET :offset";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
             $paramType = PDO::PARAM_STR;
@@ -565,6 +580,161 @@ class RhCandidatosRepository extends DbConnection
             'data'  => $data,
             'total' => $total,
         ];
+    }
+
+    /**
+     * Atualiza apenas o status_processo de um candidato, com log básico.
+     * Não recalcula LGPD nem outros campos – uso típico: reflexo do pipeline da vaga.
+     */
+    public function atualizarStatusProcessoSimples(int $id, string $novoStatus): bool
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $stmtOld = $pdo->prepare('SELECT id, status_processo FROM rh_candidatos WHERE id = :id');
+            $stmtOld->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmtOld->execute();
+            $antes = $stmtOld->fetch(PDO::FETCH_ASSOC);
+
+            if (!$antes) {
+                return false;
+            }
+
+            $statusAtual = $antes['status_processo'] ?? '';
+
+            // Não sobrescrever estados finais sensíveis via pipeline simples
+            if ($statusAtual === $novoStatus) {
+                return true;
+            }
+            if (in_array($statusAtual, ['contratado', 'anonimizado'], true)) {
+                // Mantém o estado atual; alterações desses estados devem ser manuais
+                return true;
+            }
+
+            $stmt = $pdo->prepare('UPDATE rh_candidatos SET status_processo = :status_processo, data_ultimo_movimento = NOW(), updated_at = NOW() WHERE id = :id');
+            $stmt->bindValue(':status_processo', $novoStatus, PDO::PARAM_STR);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $ok = $stmt->execute();
+
+            if ($ok && !empty($_SESSION['user_id'])) {
+                $depois = $antes;
+                $depois['status_processo'] = $novoStatus;
+                \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
+                    'rh_candidatos',
+                    $id,
+                    (int)$_SESSION['user_id'],
+                    'UPDATE',
+                    $antes,
+                    $depois
+                );
+            }
+
+            return $ok;
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao atualizar status_processo simples do candidato.', [
+                'id'     => $id,
+                'status' => $novoStatus,
+                'error'  => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Calcula o status_processo geral do candidato baseado em todos os seus vínculos com vagas.
+     * 
+     * Hierarquia de prioridade (maior para menor):
+     * 1. contratado / anonimizado (nunca sobrescreve)
+     * 2. aprovado (em qualquer vaga)
+     * 3. em_entrevista (se não tiver aprovado)
+     * 4. candidatado (se não tiver aprovado nem em_entrevista)
+     * 5. reprovado / desistiu (só se todos os vínculos estiverem assim)
+     * 
+     * @param int $candidatoId ID do candidato
+     * @return string|null Status calculado ou null se não houver vínculos
+     */
+    public function calcularStatusGeralPorVinculos(int $candidatoId): ?string
+    {
+        try {
+            $pdo = $this->getConnection();
+            
+            // Buscar status atual do candidato (para proteger contratado/anonimizado)
+            $stmtCand = $pdo->prepare('SELECT status_processo FROM rh_candidatos WHERE id = :id');
+            $stmtCand->bindValue(':id', $candidatoId, PDO::PARAM_INT);
+            $stmtCand->execute();
+            $candidato = $stmtCand->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$candidato) {
+                return null;
+            }
+            
+            $statusAtual = $candidato['status_processo'] ?? '';
+            
+            // Nunca sobrescrever estados finais sensíveis
+            if (in_array($statusAtual, ['contratado', 'anonimizado'], true)) {
+                return $statusAtual;
+            }
+            
+            // Buscar todos os vínculos ativos do candidato (apenas vagas abertas/pausadas)
+            $sql = 'SELECT cv.status, v.status AS vaga_status
+                    FROM rh_candidatos_vagas cv
+                    INNER JOIN rh_vagas v ON v.id = cv.rh_vaga_id
+                    WHERE cv.rh_candidato_id = :candidato_id
+                      AND v.status IN (\'aberta\', \'pausada\')
+                    ORDER BY cv.data_ultima_atualizacao DESC';
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+            $stmt->execute();
+            $vinculos = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            
+            if (empty($vinculos)) {
+                // Se não tem vínculos ativos, mantém o status atual (ou converte legado para novo)
+                if (in_array($statusAtual, ['candidatado', 'em_entrevista', 'aprovado', 'reprovado', 'desistiu', 'contratado', 'anonimizado'], true)) {
+                    return $statusAtual;
+                }
+                // Converte status legados para novos equivalentes
+                $mapeamentoLegado = [
+                    'recebido'      => 'candidatado',
+                    'em_analise' => 'em_entrevista',
+                    'banco_talentos'=> 'aprovado',
+                ];
+                return $mapeamentoLegado[$statusAtual] ?? 'candidatado';
+            }
+            
+            // Coletar todos os status dos vínculos
+            $statusVinculos = array_column($vinculos, 'status');
+            
+            // Aplicar hierarquia de prioridade
+            if (in_array('aprovado', $statusVinculos, true)) {
+                return 'aprovado';
+            }
+            if (in_array('em_entrevista', $statusVinculos, true)) {
+                return 'em_entrevista';
+            }
+            if (in_array('candidatado', $statusVinculos, true)) {
+                return 'candidatado';
+            }
+            // Se só tem reprovado/desistiu, retorna reprovado
+            if (in_array('reprovado', $statusVinculos, true) || in_array('desistiu', $statusVinculos, true)) {
+                return 'reprovado';
+            }
+            
+            // Fallback: converte legado ou usa candidatado
+            $mapeamentoLegado = [
+                'recebido'      => 'candidatado',
+                'em_analise'     => 'em_entrevista',
+                'banco_talentos'=> 'aprovado',
+            ];
+            return $mapeamentoLegado[$statusAtual] ?? ($statusAtual ?: 'candidatado');
+            
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao calcular status geral por vínculos.', [
+                'candidato_id' => $candidatoId,
+                'error'        => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**

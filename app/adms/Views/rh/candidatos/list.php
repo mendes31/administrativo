@@ -1,5 +1,8 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\CSRFHelper;
+
+$csrfTokenVinculoFromCandidato = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -63,12 +66,15 @@ use App\adms\Helpers\FormatHelper;
                     $statusAtual = $_GET['status_processo'] ?? '';
                     $statusLista = [
                         ''              => 'Todos',
-                        'recebido'      => 'Recebido',
-                        'em_entrevista' => 'Em entrevista',
+                        'candidatado'   => 'Candidatado',
+                        'em_entrevista' => 'Em Entrevista',
+                        'aprovado'      => 'Aprovado',
                         'reprovado'     => 'Reprovado',
-                        'banco_talentos'=> 'Banco de talentos',
+                        'desistiu'      => 'Desistiu',
                         'contratado'    => 'Contratado',
                         'anonimizado'   => 'Anonimizado',
+                        'recebido'      => 'Recebido',
+                        'banco_talentos'=> 'Banco de Talentos',
                     ];
                     ?>
                     <select name="status_processo" id="status_processo" class="form-select form-select-sm">
@@ -112,6 +118,7 @@ use App\adms\Helpers\FormatHelper;
                                     <th>Origem</th>
                                     <th>Status</th>
                                     <th>LGPD</th>
+                                    <th class="text-center">Vínculos</th>
                                     <th>Cadastrado em</th>
                                     <th>Ações</th>
                                 </tr>
@@ -177,7 +184,12 @@ use App\adms\Helpers\FormatHelper;
                                                 <?= htmlspecialchars($lgpdLabel ?? $lgpdStatus) ?>
                                             </span>
                                         </td>
-                                        <td><?= FormatHelper::formatDate($cand['data_cadastramento'] ?? '') ?></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">
+                                                <?= (int)($cand['total_vagas_vinculadas'] ?? 0) ?>
+                                            </span>
+                                        </td>
+                                        <td><?= FormatHelper::formatDateTime($cand['data_cadastramento'] ?? '') ?></td>
                                         <td>
                                             <div class="btn-group tabela-acoes" role="group">
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-view/<?= $cand['id'] ?>" class="btn btn-info btn-sm" title="Visualizar">
@@ -185,6 +197,11 @@ use App\adms\Helpers\FormatHelper;
                                                 </a>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-edit/<?= $cand['id'] ?>" class="btn btn-warning btn-sm" title="Editar">
                                                     <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-vagas/<?= $cand['id'] ?>"
+                                                   class="btn btn-outline-success btn-sm"
+                                                   title="Vincular a vagas">
+                                                    <i class="fas fa-link"></i>
                                                 </a>
                                                 <button type="button"
                                                         class="btn btn-danger btn-sm"

@@ -78,13 +78,16 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_candidato');
                     <div class="col-md-3 mb-2">
                         <label for="status_processo" class="form-label">Status do Processo</label>
                         <?php
-                        $statusAtual = $this->data['form']['status_processo'] ?? 'recebido';
+                        $statusAtual = $this->data['form']['status_processo'] ?? 'candidatado';
                         $statusLista = [
-                            'recebido'      => 'Recebido',
-                            'em_entrevista' => 'Em entrevista',
+                            'candidatado'   => 'Candidatado',
+                            'em_entrevista' => 'Em Entrevista',
+                            'aprovado'      => 'Aprovado',
                             'reprovado'     => 'Reprovado',
-                            'banco_talentos'=> 'Banco de talentos',
+                            'desistiu'      => 'Desistiu',
                             'contratado'    => 'Contratado',
+                            'recebido'      => 'Recebido',
+                            'banco_talentos'=> 'Banco de Talentos',
                         ];
                         ?>
                         <select name="form[status_processo]" id="status_processo" class="form-select">
@@ -94,6 +97,9 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_candidato');
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="form-text small">
+                            <strong>Significado:</strong> Candidatado = inscrito na vaga; Em Entrevista = em avaliação/entrevistas; Aprovado = aprovado no processo; Reprovado = não aprovado; Desistiu = candidato desistiu; Contratado = efetivado; Recebido = currículo recebido; Banco de Talentos = aprovado e disponível para outras vagas.
+                        </div>
                     </div>
                 </div>
 

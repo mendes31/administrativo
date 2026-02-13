@@ -620,6 +620,12 @@ $menus = [
                         'permission' => 'RhVagas',
                         'icon' => 'fas fa-briefcase'
                     ],
+                    [
+                        'label' => 'Entrevistas',
+                        'url' => $_ENV['URL_ADM'] . 'rh-entrevistas',
+                        'permission' => 'RhEntrevistas',
+                        'icon' => 'fas fa-calendar-alt'
+                    ],
                 ]
             ],
         ]

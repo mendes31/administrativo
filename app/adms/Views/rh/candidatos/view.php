@@ -198,12 +198,13 @@ use App\adms\Helpers\FormatHelper;
                                             <td>
                                                 <?php
                                                 $vagaStatusClass = match($vaga['status']) {
-                                                    'candidatado' => 'badge bg-info',
-                                                    'em_analise'  => 'badge bg-warning text-dark',
-                                                    'aprovado'    => 'badge bg-success',
-                                                    'reprovado'   => 'badge bg-danger',
-                                                    'desistiu'    => 'badge bg-secondary',
-                                                    default       => 'badge bg-secondary',
+                                                    'candidatado'   => 'badge bg-info',
+                                                    'em_entrevista' => 'badge bg-warning text-dark',
+                                                    'em_analise'   => 'badge bg-warning text-dark', // legado
+                                                    'aprovado'      => 'badge bg-success',
+                                                    'reprovado'     => 'badge bg-danger',
+                                                    'desistiu'      => 'badge bg-secondary',
+                                                    default         => 'badge bg-secondary',
                                                 };
                                                 ?>
                                                 <span class="<?= $vagaStatusClass ?>">
@@ -225,6 +226,62 @@ use App\adms\Helpers\FormatHelper;
                     </div>
                 </div>
             <?php endif; ?>
+
+            <!-- Histórico de Entrevistas -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-light shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Entrevistas (<?= count($this->data['entrevistas'] ?? []) ?>)</h5>
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-create?candidato_id=<?= (int)($this->data['candidato']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus me-1"></i>Agendar entrevista
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($this->data['entrevistas'])): ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Data/Hora</th>
+                                                <th>Tipo</th>
+                                                <th>Vaga</th>
+                                                <th>Entrevistador</th>
+                                                <th>Resultado</th>
+                                                <th class="text-center">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($this->data['entrevistas'] as $ent): ?>
+                                                <tr>
+                                                    <td><?= FormatHelper::formatDateTime($ent['data_hora'] ?? '') ?></td>
+                                                    <td><?= htmlspecialchars(ucfirst($ent['tipo'] ?? '-')) ?></td>
+                                                    <td><?= htmlspecialchars($ent['vaga_titulo'] ?? '-') ?></td>
+                                                    <td><?= htmlspecialchars($ent['entrevistador_nome'] ?? '-') ?></td>
+                                                    <td>
+                                                        <?php
+                                                        $res = $ent['resultado'] ?? '';
+                                                        $resClass = $res === 'aprovado' ? 'badge bg-success' : ($res === 'reprovado' ? 'badge bg-danger' : 'badge bg-warning text-dark');
+                                                        ?>
+                                                        <span class="<?= $resClass ?>"><?= $res ? htmlspecialchars(ucfirst($res)) : '-' ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-view/<?= (int)$ent['id'] ?>" class="btn btn-xs btn-info btn-sm" title="Ver">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-0">Nenhuma entrevista registrada. Use "Agendar entrevista" para cadastrar.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <?php if (!empty($this->data['anexos'])): ?>
                 <div class="row mt-3">

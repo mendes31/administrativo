@@ -48,7 +48,7 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
-        $statusValidos = ['candidatado', 'em_analise', 'aprovado', 'reprovado', 'desistiu'];
+        $statusValidos = ['candidatado', 'em_entrevista', 'aprovado', 'reprovado', 'desistiu'];
         if (!in_array($status, $statusValidos, true)) {
             echo json_encode(['success' => false, 'message' => 'Status inválido.']);
             exit;

@@ -381,6 +381,11 @@ class PageLayoutService
             'RhVincularCandidatoVaga',
             'RhAtualizarStatusCandidatura',
             'RhKpiDashboard',
+            'RhEntrevistas',
+            'RhEntrevistasCreate',
+            'RhEntrevistasView',
+            'RhEntrevistasEdit',
+            'RhEntrevistasDelete',
             // Reserva de Salas
             'ListMeetingRooms',
             'CreateMeetingRoom',

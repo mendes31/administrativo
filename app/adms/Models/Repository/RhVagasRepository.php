@@ -310,6 +310,15 @@ class RhVagasRepository extends DbConnection
         try {
             $pdo = $this->getConnection();
 
+            // Garantir que a vaga esteja em status que permita novos vínculos
+            $vaga = $this->getById($vagaId);
+            if (!$vaga) {
+                throw new Exception('Vaga não encontrada.');
+            }
+            if (in_array($vaga['status'] ?? '', ['fechada', 'cancelada'], true)) {
+                throw new Exception('Não é possível vincular candidatos a uma vaga fechada ou cancelada.');
+            }
+
             // Verificar se já existe vínculo
             $stmtCheck = $pdo->prepare('SELECT id FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id');
             $stmtCheck->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
@@ -349,6 +358,15 @@ class RhVagasRepository extends DbConnection
         try {
             $pdo = $this->getConnection();
 
+            // Bloquear movimentação de pipeline para vagas encerradas/canceladas
+            $vaga = $this->getById($vagaId);
+            if (!$vaga) {
+                throw new Exception('Vaga não encontrada.');
+            }
+            if (in_array($vaga['status'] ?? '', ['fechada', 'cancelada'], true)) {
+                throw new Exception('Não é possível alterar o status de candidaturas de uma vaga fechada ou cancelada.');
+            }
+
             $sql = 'UPDATE rh_candidatos_vagas
                     SET status = :status,
                         observacoes = :observacoes,
@@ -363,15 +381,34 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
             $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if (!$ok) {
+                $errorInfo = $stmt->errorInfo();
+                $msg = $errorInfo[2] ?? 'Erro desconhecido ao atualizar vínculo candidato-vaga.';
+                throw new Exception($msg);
+            }
+
+            // Se atualizou o vínculo, recalcular o status_processo geral do candidato
+            // baseado em todos os seus vínculos (considerando múltiplas vagas)
+            if ($ok) {
+                $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
+                $novoStatusProcesso = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
+                
+                if ($novoStatusProcesso) {
+                    $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatusProcesso);
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao atualizar status do vínculo.', [
-                'vaga_id'     => $vagaId,
+                'vaga_id'      => $vagaId,
                 'candidato_id' => $candidatoId,
-                'status'      => $status,
-                'error'       => $e->getMessage(),
+                'status'       => $status,
+                'error'        => $e->getMessage(),
             ]);
-            return false;
+            // Propagar a exceção para que o controller possa retornar a mensagem ao frontend
+            throw $e;
         }
     }
 

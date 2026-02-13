@@ -28,7 +28,7 @@ class ValidationRhCandidatoService
             'cidade'                  => 'nullable|max:120',
             'estado'                  => 'nullable|max:2',
             'origem'                  => 'required|in:email,whatsapp,form_trabalhe_conosco,manual,outro',
-            'status_processo'         => 'required|in:recebido,em_entrevista,reprovado,banco_talentos,contratado',
+            'status_processo'         => 'required|in:candidatado,em_entrevista,aprovado,reprovado,desistiu,contratado,anonimizado,recebido,em_analise,banco_talentos',
             'area_interesse'          => 'required|max:255',
             'graduacao'               => 'required|min:10',
             'ultima_experiencia'      => 'required|min:10',

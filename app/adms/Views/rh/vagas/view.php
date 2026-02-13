@@ -24,9 +24,14 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="fas fa-briefcase me-2"></i>Vaga #<?= (int)($this->data['vaga']['id'] ?? 0) ?></span>
             <div class="btn-group">
-                <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
-                    <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
-                </a>
+                <?php if (!empty($this->data['can_manage_pipeline'])): ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
+                    </a>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-pipeline/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-primary btn-sm">
+                        <i class="fas fa-project-diagram me-1"></i>Ver Pipeline (Kanban)
+                    </a>
+                <?php endif; ?>
                 <?php if (!empty($this->data['buttonPermission']['RhVagasEdit'])): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-edit/<?= (int)$this->data['vaga']['id'] ?>" class="btn btn-secondary btn-sm">
                         <i class="fas fa-edit me-1"></i>Editar
@@ -183,11 +188,6 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5>Candidatos Vinculados (<?= count($this->data['candidatos'] ?? []) ?>)</h5>
-                    <?php if (!empty($this->data['can_manage_pipeline'])): ?>
-                        <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
-                            <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
-                        </a>
-                    <?php endif; ?>
                 </div>
                 <?php if (empty($this->data['candidatos'])): ?>
                     <p class="text-muted">Nenhum candidato vinculado a esta vaga.</p>
@@ -217,7 +217,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                                         data-vaga-id="<?= (int)($this->data['vaga']['id'] ?? 0) ?>"
                                                         style="min-width: 140px;">
                                                     <option value="candidatado" <?= ($cand['status'] ?? '') === 'candidatado' ? 'selected' : '' ?>>Candidatado</option>
-                                                    <option value="em_analise" <?= ($cand['status'] ?? '') === 'em_analise' ? 'selected' : '' ?>>Em Análise</option>
+                                                    <option value="em_entrevista" <?= in_array($cand['status'] ?? '', ['em_entrevista', 'em_analise'], true) ? 'selected' : '' ?>>Em Entrevista</option>
                                                     <option value="aprovado" <?= ($cand['status'] ?? '') === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
                                                     <option value="reprovado" <?= ($cand['status'] ?? '') === 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
                                                     <option value="desistiu" <?= ($cand['status'] ?? '') === 'desistiu' ? 'selected' : '' ?>>Desistiu</option>

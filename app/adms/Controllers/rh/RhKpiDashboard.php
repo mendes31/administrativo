@@ -18,6 +18,18 @@ class RhKpiDashboard
             $repo = new RhCandidatosRepository();
             $stats = $repo->getDashboardStats();
             $this->data['stats'] = $stats;
+
+            // Indicadores de entrevistas (para Dashboard)
+            $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
+            $this->data['stats_entrevistas'] = $entrevistasRepo->getStatsForDashboard();
+
+            // Indicadores de vagas (total e abertas)
+            $vagasRepo = new \App\adms\Models\Repository\RhVagasRepository();
+            $vagasList = $vagasRepo->getAll([], 1, 1);
+            $vagasAll = $vagasRepo->getAll([], 1, 10000);
+            $this->data['total_vagas'] = $vagasAll['total'] ?? 0;
+            $vagasAbertas = array_filter($vagasAll['data'] ?? [], fn($v) => ($v['status'] ?? '') === 'aberta');
+            $this->data['vagas_abertas'] = count($vagasAbertas);
         } catch (\Throwable $e) {
             GenerateLog::generateLog('error', 'Erro ao carregar dashboard de recrutamento.', [
                 'error' => $e->getMessage(),

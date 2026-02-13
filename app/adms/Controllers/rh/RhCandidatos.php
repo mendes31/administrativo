@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\RhCandidatosRepository;
+use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PaginationService;
 
@@ -28,6 +29,11 @@ class RhCandidatos
         $result = $repo->getAll($filters, $page, $perPage);
         $this->data['candidatos'] = $result['data'] ?? [];
         $total = $result['total'] ?? 0;
+
+        // Vagas abertas para vinculação rápida a partir da lista de candidatos
+        $vagasRepo = new RhVagasRepository();
+        $vagasAbertas = $vagasRepo->getAll(['status' => 'aberta'], 1, 1000);
+        $this->data['vagas_abertas'] = $vagasAbertas['data'] ?? [];
 
         $pagination = PaginationService::generatePagination(
             $total,

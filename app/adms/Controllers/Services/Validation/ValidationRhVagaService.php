@@ -29,7 +29,9 @@ class ValidationRhVagaService
             'salario_min'           => 'nullable|numeric|min:0',
             'salario_max'           => 'nullable|numeric|min:0',
             'quantidade_vagas'      => 'nullable|integer|min:1',
-            'data_limite_inscricao' => 'nullable|date',
+            // O campo vem no formato HTML5 datetime-local (Y-m-d\TH:i) e é opcional.
+            // Validaremos esse formato manualmente abaixo, para evitar falsos negativos.
+            'data_limite_inscricao' => 'nullable',
             'status'                => 'required|in:aberta,pausada,fechada,cancelada',
             'responsavel_id'        => 'nullable|integer',
         ]);
@@ -46,7 +48,6 @@ class ValidationRhVagaService
             'salario_max:min'                => 'Salário máximo não pode ser negativo.',
             'quantidade_vagas:integer'       => 'Quantidade de vagas deve ser um número inteiro.',
             'quantidade_vagas:min'           => 'Quantidade de vagas deve ser pelo menos 1.',
-            'data_limite_inscricao:date'     => 'Data limite de inscrição inválida.',
             'status:required'                => 'Status da vaga é obrigatório.',
             'status:in'                      => 'Status da vaga inválido.',
         ]);
@@ -57,6 +58,16 @@ class ValidationRhVagaService
             $arrayErrors = $validation->errors();
             foreach ($arrayErrors->firstOfAll() as $key => $message) {
                 $errors[$key] = $message;
+            }
+        }
+
+        // Validação manual do formato de data_limite_inscricao (HTML datetime-local: Y-m-d\TH:i)
+        if (!empty($data['data_limite_inscricao'])) {
+            $raw = (string)$data['data_limite_inscricao'];
+            $dt = \DateTime::createFromFormat('Y-m-d\TH:i', $raw);
+            $errorsDate = \DateTime::getLastErrors();
+            if (!$dt || !empty($errorsDate['warning_count']) || !empty($errorsDate['error_count'])) {
+                $errors['data_limite_inscricao'] = 'Data limite de inscrição inválida.';
             }
         }
 

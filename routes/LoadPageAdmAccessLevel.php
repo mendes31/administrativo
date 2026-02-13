@@ -36,10 +36,14 @@ class LoadPageAdmAccessLevel
         $this->urlParameter = $urlParameter;
 
         // Rotas técnicas internas (AJAX) que ainda não estão mapeadas em pages_routes,
-        // mas precisam funcionar normalmente e responder em JSON.
-        $internalAjaxControllers = ['UploadSpreadsheet', 'GetSpreadsheetFields'];
-        if (in_array($this->urlController, $internalAjaxControllers, true)) {
-            $this->classLoad = "\\App\\adms\\Controllers\\dashboards\\{$this->urlController}";
+        // mas precisam funcionar normalmente e responder em JSON (ex.: Kanban RH, planilhas).
+        $internalAjaxMap = [
+            'UploadSpreadsheet'           => "\\App\\adms\\Controllers\\dashboards\\UploadSpreadsheet",
+            'GetSpreadsheetFields'        => "\\App\\adms\\Controllers\\dashboards\\GetSpreadsheetFields",
+            'RhAtualizarStatusCandidatura' => "\\App\\adms\\Controllers\\rh\\RhAtualizarStatusCandidatura",
+        ];
+        if (isset($internalAjaxMap[$this->urlController])) {
+            $this->classLoad = $internalAjaxMap[$this->urlController];
 
             if (class_exists($this->classLoad)) {
                 $this->loadMetodo();

@@ -5,6 +5,9 @@ $stats = $this->data['stats'] ?? [
     'por_origem'       => [],
     'lgpd_resumo'      => [],
 ];
+$statsEntrevistas = $this->data['stats_entrevistas'] ?? ['total_entrevistas' => 0, 'por_resultado' => [], 'por_tipo' => []];
+$totalVagas = (int)($this->data['total_vagas'] ?? 0);
+$vagasAbertas = (int)($this->data['vagas_abertas'] ?? 0);
 
 // Preparar dados para gráficos
 $statusLabels = [];
@@ -96,6 +99,56 @@ foreach ($stats['por_origem'] ?? [] as $origem => $total) {
                         <?= number_format($stats['por_status']['contratado'] ?? 0) ?>
                     </h4>
                     <div class="small text-muted">Contratados</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores Vagas e Entrevistas -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-secondary shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-secondary mb-1">
+                        <i class="fas fa-briefcase"></i>
+                        <?= number_format($totalVagas) ?>
+                    </h4>
+                    <div class="small text-muted">Total de Vagas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-success shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-success mb-1">
+                        <i class="fas fa-door-open"></i>
+                        <?= number_format($vagasAbertas) ?>
+                    </h4>
+                    <div class="small text-muted">Vagas Abertas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-info shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas" class="text-decoration-none text-info">
+                        <h4 class="text-info mb-1">
+                            <i class="fas fa-calendar-alt"></i>
+                            <?= number_format($statsEntrevistas['total_entrevistas'] ?? 0) ?>
+                        </h4>
+                    </a>
+                    <div class="small text-muted">Entrevistas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-warning shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <h4 class="text-warning mb-1">
+                        <i class="fas fa-hourglass-half"></i>
+                        <?= number_format($statsEntrevistas['por_resultado']['pendente'] ?? 0) ?>
+                    </h4>
+                    <div class="small text-muted">Entrevistas Pendentes</div>
                 </div>
             </div>
         </div>
