@@ -4,6 +4,8 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Controllers\Services\Validation\ValidationRhVagaService;
 use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -16,6 +18,14 @@ class RhVagasCreate
         $this->data['form'] = $_POST['form'] ?? [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Validação CSRF
+            $csrfToken = $_POST['csrf_token'] ?? '';
+            if (!CSRFHelper::validateCSRFToken('form_create_rh_vaga', $csrfToken)) {
+                $_SESSION['error'] = "Token de segurança inválido ou expirado. Recarregue a página e tente novamente.";
+                $this->viewForm();
+                return;
+            }
+
             $this->store();
             return;
         }
@@ -52,9 +62,11 @@ class RhVagasCreate
         $form = $_POST['form'] ?? [];
         $this->data['form'] = $form;
 
-        $titulo = trim($form['titulo'] ?? '');
-        if ($titulo === '') {
-            $_SESSION['error'] = "Título da vaga é obrigatório.";
+        // Validação de campos da vaga
+        $validator = new ValidationRhVagaService();
+        $errors = $validator->validate($form);
+        if (!empty($errors)) {
+            $_SESSION['errors'] = $errors;
             $this->viewForm();
             return;
         }

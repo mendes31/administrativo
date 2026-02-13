@@ -7,6 +7,8 @@ use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Services\RhPermissionService;
 
 class RhVagasCandidatos
 {
@@ -24,6 +26,21 @@ class RhVagasCandidatos
 
     private function saveVagaCandidatos(int $vagaId): void
     {
+        // Validação CSRF do formulário de vínculo em massa
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!CSRFHelper::validateCSRFToken('form_rh_vincular_candidato_vaga', $csrfToken)) {
+            $_SESSION['error'] = 'Token de segurança inválido ou expirado. Recarregue a página e tente novamente.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas-candidatos/' . $vagaId);
+            exit;
+        }
+
+        // Verificar permissão para gerenciar pipeline desta vaga
+        if (!RhPermissionService::canManagePipelineByVagaId($vagaId)) {
+            $_SESSION['error'] = 'Você não tem permissão para gerenciar candidatos desta vaga.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas-view/' . $vagaId);
+            exit;
+        }
+
         $candidatosIds = $_POST['candidato_id'] ?? [];
         $observacoes = trim($_POST['observacoes'] ?? '');
 

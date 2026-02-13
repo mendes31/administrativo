@@ -1,5 +1,9 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\CSRFHelper;
+
+$csrfTokenStatus = CSRFHelper::generateCSRFToken('form_rh_atualizar_status_candidatura');
+$csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -179,9 +183,11 @@ use App\adms\Helpers\FormatHelper;
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5>Candidatos Vinculados (<?= count($this->data['candidatos'] ?? []) ?>)</h5>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
-                        <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
-                    </a>
+                    <?php if (!empty($this->data['can_manage_pipeline'])): ?>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
+                            <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
+                        </a>
+                    <?php endif; ?>
                 </div>
                 <?php if (empty($this->data['candidatos'])): ?>
                     <p class="text-muted">Nenhum candidato vinculado a esta vaga.</p>
@@ -205,16 +211,22 @@ use App\adms\Helpers\FormatHelper;
                                         <td><?= htmlspecialchars($cand['candidato_email'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($cand['candidato_telefone'] ?? '') ?></td>
                                         <td>
-                                            <select class="form-select form-select-sm status-candidatura" 
-                                                    data-candidato-id="<?= $cand['rh_candidato_id'] ?>"
-                                                    data-vaga-id="<?= (int)($this->data['vaga']['id'] ?? 0) ?>"
-                                                    style="min-width: 140px;">
-                                                <option value="candidatado" <?= ($cand['status'] ?? '') === 'candidatado' ? 'selected' : '' ?>>Candidatado</option>
-                                                <option value="em_analise" <?= ($cand['status'] ?? '') === 'em_analise' ? 'selected' : '' ?>>Em Análise</option>
-                                                <option value="aprovado" <?= ($cand['status'] ?? '') === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
-                                                <option value="reprovado" <?= ($cand['status'] ?? '') === 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
-                                                <option value="desistiu" <?= ($cand['status'] ?? '') === 'desistiu' ? 'selected' : '' ?>>Desistiu</option>
-                                            </select>
+                                            <?php if (!empty($this->data['can_manage_pipeline'])): ?>
+                                                <select class="form-select form-select-sm status-candidatura" 
+                                                        data-candidato-id="<?= $cand['rh_candidato_id'] ?>"
+                                                        data-vaga-id="<?= (int)($this->data['vaga']['id'] ?? 0) ?>"
+                                                        style="min-width: 140px;">
+                                                    <option value="candidatado" <?= ($cand['status'] ?? '') === 'candidatado' ? 'selected' : '' ?>>Candidatado</option>
+                                                    <option value="em_analise" <?= ($cand['status'] ?? '') === 'em_analise' ? 'selected' : '' ?>>Em Análise</option>
+                                                    <option value="aprovado" <?= ($cand['status'] ?? '') === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
+                                                    <option value="reprovado" <?= ($cand['status'] ?? '') === 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
+                                                    <option value="desistiu" <?= ($cand['status'] ?? '') === 'desistiu' ? 'selected' : '' ?>>Desistiu</option>
+                                                </select>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary">
+                                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $cand['status'] ?? 'candidatado'))) ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td><?= FormatHelper::formatDateTime($cand['data_candidatura'] ?? null) ?></td>
                                         <td>
@@ -241,6 +253,7 @@ use App\adms\Helpers\FormatHelper;
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <form id="formVincularCandidato">
+                            <input type="hidden" name="csrf_token" value="<?= $csrfTokenVinculoAjax ?>">
                             <div class="modal-body">
                                 <input type="hidden" name="vaga_id" value="<?= (int)($this->data['vaga']['id'] ?? 0) ?>">
                                 <div class="mb-3">
@@ -346,6 +359,7 @@ document.querySelectorAll('.status-candidatura').forEach(function(select) {
         formData.append('vaga_id', vagaId);
         formData.append('status', novoStatus);
         formData.append('observacoes', 'Status alterado via pipeline');
+        formData.append('csrf_token', '<?= $csrfTokenStatus ?>');
         
         fetch('<?php echo $_ENV['URL_ADM']; ?>rh-atualizar-status-candidatura', {
             method: 'POST',

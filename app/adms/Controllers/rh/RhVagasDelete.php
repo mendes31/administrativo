@@ -7,6 +7,7 @@ use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\LogJustificativasRepository;
 use App\adms\Models\Services\SensitiveActionService;
+use App\adms\Models\Services\RhPermissionService;
 
 class RhVagasDelete
 {
@@ -23,6 +24,13 @@ class RhVagasDelete
         }
 
         $id = (int)$id;
+
+        // Verificar permissão para excluir a vaga
+        if (!RhPermissionService::canEditVagaById($id)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Você não tem permissão para excluir esta vaga.']);
+            exit;
+        }
 
         // Validação de senha + justificativa para exclusão (ação sensível)
         $motivo   = trim($_POST['motivo'] ?? '');

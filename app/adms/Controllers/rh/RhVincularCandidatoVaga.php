@@ -4,6 +4,8 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhVagasRepository;
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Services\RhPermissionService;
 
 /**
  * Controller para vincular candidato a uma vaga.
@@ -20,8 +22,34 @@ class RhVincularCandidatoVaga
             exit;
         }
 
-        $candidatosIds = $_POST['candidato_id'] ?? [];
+        // Validação CSRF para requisição AJAX
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!CSRFHelper::validateCSRFToken('form_rh_vincular_candidato_vaga', $csrfToken)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Token de segurança inválido ou expirado. Recarregue a página e tente novamente.',
+            ]);
+            exit;
+        }
+
         $vagasIds = $_POST['vaga_id'] ?? [];
+        if (!is_array($vagasIds)) {
+            $vagasIds = [$vagasIds];
+        }
+        $vagasIds = array_filter(array_map('intval', $vagasIds));
+
+        // Verificar permissão de pipeline para todas as vagas envolvidas
+        foreach ($vagasIds as $vagaIdPermissao) {
+            if (!RhPermissionService::canManagePipelineByVagaId($vagaIdPermissao)) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Você não tem permissão para gerenciar candidatos desta vaga.',
+                ]);
+                exit;
+            }
+        }
+
+        $candidatosIds = $_POST['candidato_id'] ?? [];
         $observacoes = trim($_POST['observacoes'] ?? '');
 
         // Garantir que sejam arrays

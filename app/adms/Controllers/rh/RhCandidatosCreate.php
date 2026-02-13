@@ -4,8 +4,10 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Controllers\Services\Validation\ValidationRhCandidatoService;
 
 class RhCandidatosCreate
 {
@@ -16,6 +18,14 @@ class RhCandidatosCreate
         $this->data['form'] = $_POST['form'] ?? [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Validação CSRF
+            $csrfToken = $_POST['csrf_token'] ?? '';
+            if (!CSRFHelper::validateCSRFToken('form_create_rh_candidato', $csrfToken)) {
+                $_SESSION['error'] = "Token de segurança inválido ou expirado. Recarregue a página e tente novamente.";
+                $this->viewForm();
+                return;
+            }
+
             $this->store();
             return;
         }
@@ -43,31 +53,11 @@ class RhCandidatosCreate
         $form = $_POST['form'] ?? [];
         $this->data['form'] = $form;
 
-        $nome = trim($form['nome'] ?? '');
-        $areaInteresse = trim($form['area_interesse'] ?? '');
-        $graduacao = trim($form['graduacao'] ?? '');
-        $ultimaExperiencia = trim($form['ultima_experiencia'] ?? '');
-
-        if ($nome === '') {
-            $_SESSION['error'] = "Nome do candidato é obrigatório.";
-            $this->viewForm();
-            return;
-        }
-
-        if ($areaInteresse === '') {
-            $_SESSION['error'] = "Área de interesse é obrigatória.";
-            $this->viewForm();
-            return;
-        }
-
-        if ($graduacao === '') {
-            $_SESSION['error'] = "Graduação/Formação é obrigatória.";
-            $this->viewForm();
-            return;
-        }
-
-        if ($ultimaExperiencia === '') {
-            $_SESSION['error'] = "Última experiência profissional é obrigatória.";
+        // Validação de campos do candidato
+        $validator = new ValidationRhCandidatoService();
+        $errors = $validator->validate($form);
+        if (!empty($errors)) {
+            $_SESSION['errors'] = $errors;
             $this->viewForm();
             return;
         }

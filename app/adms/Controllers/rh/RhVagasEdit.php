@@ -9,6 +9,8 @@ use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\LogJustificativasRepository;
 use App\adms\Models\Services\SensitiveActionService;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\RhPermissionService;
+use App\adms\Controllers\Services\Validation\ValidationRhVagaService;
 
 class RhVagasEdit
 {
@@ -36,6 +38,13 @@ class RhVagasEdit
             GenerateLog::generateLog('error', 'Vaga não encontrada para edição', ['id' => (int)$id]);
             $_SESSION['error'] = "Vaga não encontrada!";
             header("Location: {$_ENV['URL_ADM']}rh-vagas");
+            return;
+        }
+
+        // Verificar se usuário tem permissão para editar esta vaga
+        if (!RhPermissionService::canEditVaga($vaga)) {
+            $_SESSION['error'] = "Você não tem permissão para editar esta vaga.";
+            header("Location: {$_ENV['URL_ADM']}rh-vagas-view/{$vaga['id']}");
             return;
         }
 
@@ -79,9 +88,11 @@ class RhVagasEdit
             return;
         }
 
-        $titulo = trim($form['titulo'] ?? '');
-        if ($titulo === '') {
-            $_SESSION['error'] = "Título da vaga é obrigatório.";
+        // Validação de campos da vaga
+        $validator = new ValidationRhVagaService();
+        $errors = $validator->validate($form);
+        if (!empty($errors)) {
+            $_SESSION['errors'] = $errors;
             $this->viewForm();
             return;
         }

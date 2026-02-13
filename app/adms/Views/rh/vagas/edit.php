@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\CSRFHelper;
+$csrfToken = CSRFHelper::generateCSRFToken('form_edit_rh_vaga');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -23,6 +25,7 @@
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
             <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                 <input type="hidden" name="form[id]" value="<?= $this->data['form']['id'] ?? '' ?>">
                 
                 <div class="row mb-3">

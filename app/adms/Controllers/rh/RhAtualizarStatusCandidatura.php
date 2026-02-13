@@ -4,6 +4,8 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhVagasRepository;
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Services\RhPermissionService;
 
 /**
  * Controller para atualizar status de candidatura (pipeline).
@@ -20,6 +22,16 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
+        // Validação CSRF para atualização de status via AJAX
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!CSRFHelper::validateCSRFToken('form_rh_atualizar_status_candidatura', $csrfToken)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Token de segurança inválido ou expirado. Recarregue a página e tente novamente.',
+            ]);
+            exit;
+        }
+
         $candidatoId = (int)($_POST['candidato_id'] ?? 0);
         $vagaId = (int)($_POST['vaga_id'] ?? 0);
         $status = trim($_POST['status'] ?? '');
@@ -27,6 +39,12 @@ class RhAtualizarStatusCandidatura
 
         if ($candidatoId <= 0 || $vagaId <= 0 || $status === '') {
             echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não fornecidos.']);
+            exit;
+        }
+
+        // Verificar se usuário pode gerenciar o pipeline desta vaga
+        if (!RhPermissionService::canManagePipelineByVagaId($vagaId)) {
+            echo json_encode(['success' => false, 'message' => 'Você não tem permissão para alterar o status desta candidatura.']);
             exit;
         }
 

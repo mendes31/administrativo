@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\CSRFHelper;
+$csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_vaga');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -23,6 +25,7 @@
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
             <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                 <div class="row mb-3">
                     <div class="col-md-12 mb-2">
                         <label for="titulo" class="form-label">Título da Vaga *</label>

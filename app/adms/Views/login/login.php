@@ -142,6 +142,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('=== SESSÃO EXPIRADA DETECTADA ===');
 
         // Atualizar o token CSRF via AJAX para evitar erro de token inválido
+        // Desabilita o botão até o novo token ser aplicado
+        if (submitBtn) {
+            submitBtn.disabled = true;
+        }
         updateCSRFToken(submitBtn);
 
         // Destacar o botão quando a sessão expirou
@@ -543,10 +547,13 @@ function updateCSRFToken(submitBtn) {
                 console.log('Token CSRF atualizado com sucesso');
                 
                 // Atualizar texto do botão
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Acessar';
-                submitBtn.classList.remove('btn-warning');
-                submitBtn.classList.add('btn-primary');
-                submitBtn.style.animation = 'none';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Acessar';
+                    submitBtn.classList.remove('btn-warning');
+                    submitBtn.classList.add('btn-primary');
+                    submitBtn.style.animation = 'none';
+                }
                 
                 console.log('Token CSRF atualizado e botão restaurado');
             }
@@ -568,10 +575,13 @@ function showTokenError(submitBtn) {
     console.log('Mostrando erro de token sem recarregar página');
     
     // Atualizar botão para mostrar erro
-    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Erro no Token - Clique para Tentar';
-    submitBtn.classList.remove('btn-warning');
-    submitBtn.classList.add('btn-danger');
-    submitBtn.style.animation = 'none';
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Erro no Token - Clique para Tentar';
+        submitBtn.classList.remove('btn-warning');
+        submitBtn.classList.add('btn-danger');
+        submitBtn.style.animation = 'none';
+    }
     
     // Adicionar evento de clique para tentar novamente
     submitBtn.onclick = function() {

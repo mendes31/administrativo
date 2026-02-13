@@ -1,5 +1,8 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\CSRFHelper;
+
+$csrfTokenVinculo = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -121,6 +124,7 @@ use App\adms\Helpers\FormatHelper;
             </div>
 
             <form method="post" action="" id="formVincular">
+                <input type="hidden" name="csrf_token" value="<?= $csrfTokenVinculo ?>">
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover">
                         <thead class="table-dark">

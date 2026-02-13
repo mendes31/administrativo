@@ -7,6 +7,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\RhPermissionService;
 
 class RhVagasView
 {
@@ -33,6 +34,7 @@ class RhVagasView
 
         $this->data['vaga'] = $vaga;
         $this->data['candidatos'] = $repo->getCandidatosByVaga((int)$id);
+        $this->data['can_manage_pipeline'] = RhPermissionService::canManagePipeline($vaga);
         
         // Buscar todos os candidatos disponíveis para vincular (exceto os já vinculados)
         $candidatosVinculadosIds = array_column($this->data['candidatos'], 'rh_candidato_id');
