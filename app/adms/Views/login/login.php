@@ -1,6 +1,15 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+
+$rawMsg   = $_GET['msg']   ?? '';
+$rawError = $_GET['error'] ?? '';
+
+// Considera tanto msg quanto error com textos de sessão expirada
+$isSessionExpiredMsg = (
+    (!empty($rawMsg)   && (str_contains($rawMsg, 'Sessão expirada') || str_contains($rawMsg, 'Sua sessão expirou')))
+    || (!empty($rawError) && (str_contains($rawError, 'Sessão expirada') || str_contains($rawError, 'Sua sessão expirou')))
+);
 ?>
 
 <div class="col-lg-5">
@@ -67,8 +76,8 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>forgot-password" class="small text-decoration-none">Esqueceu a Senha?</a>
                     <!-- Botão para submeter o formulário -->
-                    <button type="submit" class="btn btn-primary btn-sm" id="btn-acessar">
-                        <i class="fas fa-sign-in-alt me-2"></i>Acessar
+                    <button type="submit" class="btn btn-primary btn-sm" id="btn-acessar" <?= $isSessionExpiredMsg ? 'disabled' : '' ?>>
+                        <i class="fas fa-sign-in-alt me-2"></i><?= $isSessionExpiredMsg ? 'Atualizando token...' : 'Acessar' ?>
                     </button>
                 </div>
                 
@@ -134,11 +143,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Verificar se há mensagem de sessão expirada
     const urlParams = new URLSearchParams(window.location.search);
-    const msg = urlParams.get('msg');
+    const msg   = urlParams.get('msg')   || '';
+    const error = urlParams.get('error') || '';
 
-    console.log('Mensagem da URL:', msg);
+    console.log('Mensagem da URL (msg):', msg);
+    console.log('Mensagem da URL (error):', error);
 
-    if (msg && msg.includes('Sessão expirada')) {
+    const hasSessionExpired =
+        (msg && (msg.includes('Sessão expirada') || msg.includes('Sua sessão expirou'))) ||
+        (error && (error.includes('Sessão expirada') || error.includes('Sua sessão expirou')));
+
+    if (hasSessionExpired) {
         console.log('=== SESSÃO EXPIRADA DETECTADA ===');
 
         // Atualizar o token CSRF via AJAX para evitar erro de token inválido
