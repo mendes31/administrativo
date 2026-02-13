@@ -397,6 +397,18 @@ class RhVagasRepository extends DbConnection
                 if ($novoStatusProcesso) {
                     $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatusProcesso);
                 }
+
+                // Ao mover para "Em Entrevista", criar registro de entrevista (padrão em ATS)
+                if ($status === 'em_entrevista') {
+                    $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
+                    $entrevistasRepo->criarAoMoverParaEmEntrevista($candidatoId, $vagaId);
+                }
+
+                // Ao mover para Aprovado/Reprovado no pipeline, refletir na entrevista
+                if (in_array($status, ['aprovado', 'reprovado'], true)) {
+                    $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
+                    $entrevistasRepo->atualizarResultadoPorCandidatoVaga($candidatoId, $vagaId, $status);
+                }
             }
 
             return $ok;

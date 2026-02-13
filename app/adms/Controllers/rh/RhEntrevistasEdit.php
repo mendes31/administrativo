@@ -58,7 +58,22 @@ class RhEntrevistasEdit
                 $this->viewForm($id);
                 return;
             }
+            // Ao agendar (preencher data/hora) com entrevista ainda pendente, mudar para "agendado"
+            $resultadoAtual = $entrevista['resultado'] ?? '';
+            $resultadoForm = trim($form['resultado'] ?? '');
+            if (($resultadoAtual === '' || $resultadoAtual === 'pendente') && $resultadoForm !== 'aprovado' && $resultadoForm !== 'reprovado') {
+                $form['resultado'] = 'agendado';
+            }
             if ($repo->update($id, $form)) {
+                // Refletir resultado da entrevista no pipeline (vínculo candidato-vaga)
+                $candidatoId = (int)($entrevista['rh_candidato_id'] ?? 0);
+                $vagaId = (int)($entrevista['rh_vaga_id'] ?? 0);
+                if ($candidatoId > 0 && $vagaId > 0 && in_array($resultadoForm, ['aprovado', 'reprovado'], true)) {
+                    if (\App\adms\Models\Services\RhPermissionService::canManagePipelineByVagaId($vagaId)) {
+                        $vagaRepo = new RhVagasRepository();
+                        $vagaRepo->atualizarStatusVinculo($vagaId, $candidatoId, $resultadoForm, null);
+                    }
+                }
                 $_SESSION['success'] = "Entrevista atualizada com sucesso!";
                 header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");
                 return;

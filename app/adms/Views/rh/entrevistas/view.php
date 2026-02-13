@@ -71,6 +71,7 @@ $e = $this->data['entrevista'] ?? [];
                     $resClass = match($res) {
                         'aprovado' => 'badge bg-success',
                         'reprovado' => 'badge bg-danger',
+                        'agendado' => 'badge bg-info',
                         'pendente' => 'badge bg-warning text-dark',
                         default => 'badge bg-secondary',
                     };

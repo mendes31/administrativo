@@ -17,9 +17,14 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-calendar-alt me-2"></i>Listar Entrevistas</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
-                <?php if (!empty($this->data['buttonPermission']['RhEntrevistasCreate'])): ?>
+                <?php
+                $bp = $this->data['buttonPermission'] ?? [];
+                $bp = is_array($bp) ? $bp : [];
+                $podeCadastrar = in_array('RhEntrevistasCreate', $bp, true) || in_array('RhEntrevistas', $bp, true);
+                if ($podeCadastrar):
+                ?>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-create" class="btn btn-success btn-sm mb-1 btn-min-width-90">
-                    <i class="fa-solid fa-plus"></i> Cadastrar
+                    <i class="fa-solid fa-plus"></i> Cadastrar nova entrevista
                 </a>
                 <?php endif; ?>
             </span>
@@ -54,6 +59,7 @@ use App\adms\Helpers\FormatHelper;
                     <select name="resultado" id="resultado" class="form-select form-select-sm">
                         <option value="">Todos</option>
                         <option value="pendente" <?= $resultadoAtual === 'pendente' ? 'selected' : '' ?>>Pendente</option>
+                        <option value="agendado" <?= $resultadoAtual === 'agendado' ? 'selected' : '' ?>>Agendado</option>
                         <option value="aprovado" <?= $resultadoAtual === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
                         <option value="reprovado" <?= $resultadoAtual === 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
                     </select>
@@ -124,6 +130,7 @@ use App\adms\Helpers\FormatHelper;
                                         $resClass = match($res) {
                                             'aprovado' => 'badge bg-success',
                                             'reprovado' => 'badge bg-danger',
+                                            'agendado' => 'badge bg-info',
                                             'pendente' => 'badge bg-warning text-dark',
                                             default => 'badge bg-secondary',
                                         };
@@ -131,18 +138,21 @@ use App\adms\Helpers\FormatHelper;
                                         <span class="<?= $resClass ?>"><?= $res ? htmlspecialchars(ucfirst($res)) : '-' ?></span>
                                     </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <?php if (!empty($this->data['buttonPermission']['RhEntrevistasView'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-view/<?= (int)$e['id'] ?>" class="btn btn-info btn-sm" title="Visualizar">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <?php if (in_array('RhEntrevistasView', $bp, true)): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-view/<?= (int)$e['id'] ?>" class="btn btn-info btn-sm" title="Ver detalhes">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php endif; ?>
-                                            <?php if (!empty($this->data['buttonPermission']['RhEntrevistasEdit'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-edit/<?= (int)$e['id'] ?>" class="btn btn-warning btn-sm" title="Editar">
-                                                <i class="fas fa-edit"></i>
+                                            <?php if (in_array('RhEntrevistasEdit', $bp, true)): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-edit/<?= (int)$e['id'] ?>" class="btn btn-primary btn-sm" title="Agendar (data, local, entrevistador)">
+                                                <i class="fas fa-calendar-check"></i>
+                                            </a>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-edit/<?= (int)$e['id'] ?>" class="btn btn-warning btn-sm" title="Executar / Registrar resultado e feedback">
+                                                <i class="fas fa-clipboard-check"></i>
                                             </a>
                                             <?php endif; ?>
-                                            <?php if (!empty($this->data['buttonPermission']['RhEntrevistasDelete'])): ?>
+                                            <?php if (in_array('RhEntrevistasDelete', $bp, true)): ?>
                                             <button type="button" class="btn btn-danger btn-sm" title="Excluir"
                                                     onclick="confirmarExclusao(<?= (int)$e['id'] ?>, '<?= htmlspecialchars(addslashes($e['candidato_nome'] ?? 'Entrevista')) ?>')">
                                                 <i class="fas fa-trash"></i>

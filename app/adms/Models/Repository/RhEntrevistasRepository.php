@@ -32,10 +32,14 @@ class RhEntrevistasRepository extends DbConnection
             $stmt->bindValue(':tipo', $data['tipo'] ?? 'presencial', PDO::PARAM_STR);
             $stmt->bindValue(':entrevistador_id', !empty($data['entrevistador_id']) ? (int)$data['entrevistador_id'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':data_hora', $data['data_hora'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
-            $stmt->bindValue(':local', $data['local'] ?? null, $data['local'] !== null && $data['local'] !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':observacoes', $data['observacoes'] ?? null, $data['observacoes'] !== null && $data['observacoes'] !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':resultado', $data['resultado'] ?? null, $data['resultado'] !== null && $data['resultado'] !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':feedback', $data['feedback'] ?? null, $data['feedback'] !== null && $data['feedback'] !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $local = $data['local'] ?? null;
+            $observacoes = $data['observacoes'] ?? null;
+            $resultado = $data['resultado'] ?? null;
+            $feedback = $data['feedback'] ?? null;
+            $stmt->bindValue(':local', $local, $local !== null && $local !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':observacoes', $observacoes, $observacoes !== null && $observacoes !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':resultado', $resultado, $resultado !== null && $resultado !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':feedback', $feedback, $feedback !== null && $feedback !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
             if (!$stmt->execute()) {
                 return false;
@@ -202,6 +206,72 @@ class RhEntrevistasRepository extends DbConnection
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         return ['data' => $data, 'total' => $total];
+    }
+
+    /**
+     * Verifica se já existe entrevista pendente para o par candidato+vaga (evita duplicar ao mover no pipeline).
+     */
+    public function existeEntrevistaPendenteParaVinculo(int $rhCandidatoId, int $rhVagaId): bool
+    {
+        $pdo = $this->getConnection();
+        $stmt = $pdo->prepare('SELECT 1 FROM rh_entrevistas
+                               WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id
+                               AND (resultado IS NULL OR resultado = \'pendente\')
+                               LIMIT 1');
+        $stmt->bindValue(':candidato_id', $rhCandidatoId, PDO::PARAM_INT);
+        $stmt->bindValue(':vaga_id', $rhVagaId, PDO::PARAM_INT);
+        $stmt->execute();
+        return (bool) $stmt->fetch();
+    }
+
+    /**
+     * Cria uma entrevista "em aberto" (pendente) ao mover candidato para Em Entrevista no pipeline.
+     * Usado por RhVagasRepository::atualizarStatusVinculo.
+     */
+    public function criarAoMoverParaEmEntrevista(int $rhCandidatoId, int $rhVagaId): ?int
+    {
+        if ($this->existeEntrevistaPendenteParaVinculo($rhCandidatoId, $rhVagaId)) {
+            return null;
+        }
+        $id = $this->create([
+            'rh_candidato_id' => $rhCandidatoId,
+            'rh_vaga_id'      => $rhVagaId,
+            'tipo'            => 'presencial',
+            'data_hora'       => date('Y-m-d H:i:s'),
+            'resultado'       => 'pendente',
+            'observacoes'     => 'Criada automaticamente ao mover para "Em Entrevista" no pipeline. Edite para agendar data e preencher detalhes.',
+        ]);
+        return is_int($id) ? $id : null;
+    }
+
+    /**
+     * Atualiza o resultado da(s) entrevista(s) do vínculo candidato-vaga.
+     * Usado quando o pipeline é movido para Aprovado/Reprovado (reflete na entrevista).
+     */
+    public function atualizarResultadoPorCandidatoVaga(int $rhCandidatoId, int $rhVagaId, string $resultado): bool
+    {
+        if (!in_array($resultado, ['aprovado', 'reprovado'], true)) {
+            return false;
+        }
+        try {
+            $pdo = $this->getConnection();
+            $sql = 'UPDATE rh_entrevistas
+                    SET resultado = :resultado, updated_at = NOW()
+                    WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id';
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':resultado', $resultado, PDO::PARAM_STR);
+            $stmt->bindValue(':candidato_id', $rhCandidatoId, PDO::PARAM_INT);
+            $stmt->bindValue(':vaga_id', $rhVagaId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao atualizar resultado da entrevista por vínculo.', [
+                'rh_candidato_id' => $rhCandidatoId,
+                'rh_vaga_id'      => $rhVagaId,
+                'resultado'       => $resultado,
+                'error'           => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**

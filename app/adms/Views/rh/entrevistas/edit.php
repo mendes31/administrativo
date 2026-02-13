@@ -76,8 +76,8 @@ if ($dataHora && strpos($dataHora, ' ') !== false) {
                     <div class="col-md-3 mb-2">
                         <label for="resultado" class="form-label">Resultado</label>
                         <select name="form[resultado]" id="resultado" class="form-select">
-                            <option value="">Pendente</option>
-                            <option value="pendente" <?= ($form['resultado'] ?? '') === 'pendente' ? 'selected' : '' ?>>Pendente</option>
+                            <option value="pendente" <?= in_array($form['resultado'] ?? '', ['', 'pendente']) ? 'selected' : '' ?>>Pendente</option>
+                            <option value="agendado" <?= ($form['resultado'] ?? '') === 'agendado' ? 'selected' : '' ?>>Agendado</option>
                             <option value="aprovado" <?= ($form['resultado'] ?? '') === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
                             <option value="reprovado" <?= ($form['resultado'] ?? '') === 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
                         </select>
