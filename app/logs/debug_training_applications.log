@@ -4563,3 +4563,97 @@ PARAMS: Array
 )
 
 Novo ID: 64
+
+==== NOVO INSERT ====
+2026-02-19 10:41:03
+Array
+(
+    [adms_user_id] => 2
+    [adms_training_id] => 29
+    [data_realizacao] => 2026-01-20
+    [data_avaliacao] => 2026-01-20
+    [data_agendada] => 
+    [nota] => 10
+    [observacoes] => 
+    [instrutor_nome] => Gracieli Pauli
+    [instrutor_email] => gracieli.pauli@tiaraju.com.br
+    [instructor_user_id] => 76
+    [real_instructor_nome] => Gracieli Pauli
+    [real_instructor_email] => gracieli.pauli@tiaraju.com.br
+    [aplicado_por] => 1
+    [status] => concluido
+)
+
+SQL: INSERT INTO adms_training_applications (
+                        adms_user_id, adms_training_id, data_realizacao, data_avaliacao, data_agendada, instrutor_nome, instrutor_email, instructor_user_id, real_instructor_nome, real_instructor_email, aplicado_por, nota, observacoes, status, created_at, updated_at
+                    ) VALUES (
+                        :adms_user_id, :adms_training_id, :data_realizacao, :data_avaliacao, :data_agendada, :instrutor_nome, :instrutor_email, :instructor_user_id, :real_instructor_nome, :real_instructor_email, :aplicado_por, :nota, :observacoes, :status, :created_at, NOW()
+                    )
+
+PARAMS: Array
+(
+    [:adms_user_id] => 2
+    [:adms_training_id] => 29
+    [:data_realizacao] => 2026-01-20
+    [:data_avaliacao] => 2026-01-20
+    [:data_agendada] => 
+    [:instrutor_nome] => Gracieli Pauli
+    [:instrutor_email] => gracieli.pauli@tiaraju.com.br
+    [:instructor_user_id] => 76
+    [:real_instructor_nome] => Gracieli Pauli
+    [:real_instructor_email] => gracieli.pauli@tiaraju.com.br
+    [:aplicado_por] => 1
+    [:nota] => 10
+    [:observacoes] => 
+    [:status] => concluido
+    [:created_at] => 2026-02-19 10:41:03
+)
+
+Novo ID: 667
+
+==== NOVO INSERT ====
+2026-02-19 11:14:53
+Array
+(
+    [adms_user_id] => 6
+    [adms_training_id] => 29
+    [data_realizacao] => 2026-01-20
+    [data_avaliacao] => 2026-01-20
+    [data_agendada] => 
+    [nota] => 10
+    [observacoes] => 
+    [instrutor_nome] => Gracieli Pauli
+    [instrutor_email] => gracieli.pauli@tiaraju.com.br
+    [instructor_user_id] => 76
+    [real_instructor_nome] => Gracieli Pauli
+    [real_instructor_email] => gracieli.pauli@tiaraju.com.br
+    [aplicado_por] => 1
+    [status] => concluido
+)
+
+SQL: INSERT INTO adms_training_applications (
+                        adms_user_id, adms_training_id, data_realizacao, data_avaliacao, data_agendada, instrutor_nome, instrutor_email, instructor_user_id, real_instructor_nome, real_instructor_email, aplicado_por, nota, observacoes, status, created_at, updated_at
+                    ) VALUES (
+                        :adms_user_id, :adms_training_id, :data_realizacao, :data_avaliacao, :data_agendada, :instrutor_nome, :instrutor_email, :instructor_user_id, :real_instructor_nome, :real_instructor_email, :aplicado_por, :nota, :observacoes, :status, :created_at, NOW()
+                    )
+
+PARAMS: Array
+(
+    [:adms_user_id] => 6
+    [:adms_training_id] => 29
+    [:data_realizacao] => 2026-01-20
+    [:data_avaliacao] => 2026-01-20
+    [:data_agendada] => 
+    [:instrutor_nome] => Gracieli Pauli
+    [:instrutor_email] => gracieli.pauli@tiaraju.com.br
+    [:instructor_user_id] => 76
+    [:real_instructor_nome] => Gracieli Pauli
+    [:real_instructor_email] => gracieli.pauli@tiaraju.com.br
+    [:aplicado_por] => 1
+    [:nota] => 10
+    [:observacoes] => 
+    [:status] => concluido
+    [:created_at] => 2026-02-19 11:14:53
+)
+
+Novo ID: 668

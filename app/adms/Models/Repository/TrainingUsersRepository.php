@@ -260,8 +260,11 @@ class TrainingUsersRepository extends DbConnection
         // Filtro de status:
         // - Quando há filtro de status, vamos filtrar DEPOIS de calcular o status dinâmico
         // - Quando não há filtro, por padrão excluímos concluídos da listagem
+        //   e também quaisquer vínculos que já tenham aplicação registrada
+        //   (para evitar mostrar como "Dentro do Prazo" algo que já foi realizado).
         if (!$applyStatusFilter) {
             $sql .= ' AND tu.status != "concluido"';
+            $sql .= ' AND ta_last.data_realizacao IS NULL';
         }
         
         if (!empty($filters['colaborador'])) {

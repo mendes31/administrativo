@@ -367,11 +367,16 @@ thead th {
                                 <!-- <td><?= htmlspecialchars($row['nota'] ?? '-') ?></td> -->
                                 <!-- <td class="<?= $performance['class'] ?>"><?= $performance['label'] ?></td> -->
                                 <td>
-                                    <?php if (!empty($row['data_limite_primeiro_treinamento'])): ?>
-                                        <?= (new DateTime($row['data_limite_primeiro_treinamento']))->format('d/m/Y') ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
+                                    <?php
+                                    // Para treinamentos concluídos, não faz sentido exibir prazo a cumprir
+                                    if ($status === 'concluido') {
+                                        echo '<span class="text-muted">-</span>';
+                                    } elseif (!empty($row['data_limite_primeiro_treinamento'])) {
+                                        echo (new DateTime($row['data_limite_primeiro_treinamento']))->format('d/m/Y');
+                                    } else {
+                                        echo '<span class="text-muted">-</span>';
+                                    }
+                                    ?>
                                 </td>
                                 <td>
                                     <?php
