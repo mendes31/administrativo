@@ -481,13 +481,15 @@ function savePermissions() {
     console.log('Total de toggles encontrados:', allToggles.length);
     
     const permissions = {};
+    function addPermission(pageId, isChecked) {
+        if (!pageId || parseInt(pageId, 10) <= 0) return; // evita envio de page_id 0 (causa Duplicate key no banco)
+        permissions[pageId] = isChecked ? 1 : 0;
+    }
     allToggles.forEach((toggle, index) => {
         const pageId = toggle.dataset.pageId;
-        const isChecked = toggle.checked;
-        
-        if (pageId) {
-            permissions[pageId] = isChecked ? 1 : 0;
-            console.log(`Página ${pageId}: ${isChecked ? '✅ Marcado (1)' : '❌ Desmarcado (0)'}`);
+        addPermission(pageId, toggle.checked);
+        if (pageId && parseInt(pageId, 10) > 0) {
+            console.log(`Página ${pageId}: ${toggle.checked ? '✅ Marcado (1)' : '❌ Desmarcado (0)'}`);
         }
     });
 
@@ -496,9 +498,7 @@ function savePermissions() {
         const backupToggles = form.querySelectorAll('.permission-toggle');
         backupToggles.forEach((toggle) => {
             const pageId = toggle.dataset.pageId;
-            if (pageId && !(pageId in permissions)) {
-                permissions[pageId] = toggle.checked ? 1 : 0;
-            }
+            if (pageId && !(pageId in permissions)) addPermission(pageId, toggle.checked);
         });
     }
     
@@ -519,8 +519,9 @@ function savePermissions() {
     formData.append('csrf_token', csrf_token);
     formData.append('adms_access_level_id', adms_access_level_id);
     
-    // Adicionar todas as permissões
+    // Adicionar todas as permissões (nunca enviar permissions[0] — evita erro Duplicate key no banco)
     Object.entries(permissions).forEach(([pageId, value]) => {
+        if (pageId === '0' || parseInt(pageId, 10) <= 0) return;
         const key = `permissions[${pageId}]`;
         formData.append(key, value);
         console.log(`Adicionado: ${key} = ${value}`);
@@ -562,11 +563,18 @@ function savePermissions() {
     .then(data => {
         console.log('Dados da resposta:', data);
         
+        // Atualizar token CSRF no formulário para permitir novo envio sem recarregar a página
+        if (data.csrf_token && form) {
+            const tokenInput = form.querySelector('input[name="csrf_token"]');
+            if (tokenInput) {
+                tokenInput.value = data.csrf_token;
+                console.log('Token CSRF atualizado no formulário');
+            }
+        }
+        
         if (data.success) {
             showSuccess('Permissões salvas com sucesso!');
             console.log('Recarregando página em 2 segundos...');
-            
-            // Recarregar a página após 2 segundos
             setTimeout(() => {
                 const timestamp = new Date().getTime();
                 const currentUrl = window.location.href.split('?')[0];

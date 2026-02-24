@@ -45,10 +45,10 @@ class ValidationAccessLevelPermissionService
             error_log('permissions NÃO existe nos dados');
         }
 
-        // Definir as regras de validação
+        // Definir as regras de validação (permissions pode ser array vazio)
         $validation = $validator->make($data, [
             'adms_access_level_id' => 'required|integer',
-            'permissions' => 'required|array', // Agora espera um array 'permissions'
+            'permissions' => 'required|array',
         ]);
 
         // Definir mensagens personalizadas
@@ -64,13 +64,10 @@ class ValidationAccessLevelPermissionService
 
         // Retornar erros se houver
         if ($validation->fails()) {
-            // Recuperar os erros 
+            // Recuperar os erros
             $arrayErrors = $validation->errors();
-            
             // Log de debug - verificar erros de validação
             error_log('Validação falhou. Erros: ' . json_encode($arrayErrors->firstOfAll()));
-
-            // Percorrer o array de erros e armazenar a primeira mensagem de erro para cada campo validado
             foreach ($arrayErrors->firstOfAll() as $key => $message) {
                 $errors[$key] = $message;
             }
