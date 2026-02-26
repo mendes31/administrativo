@@ -109,8 +109,27 @@ class ImportUsers
             return false;
         }
 
-        // Cabeçalhos esperados
-        $expected = ['name','email','username','cpf','celular','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'];
+        // Cabeçalhos esperados (template oficial gerado pelo sistema)
+        $expected = [
+            'name',
+            'email',
+            'username',
+            'cpf',
+            'celular',
+            'department_id',
+            'position_id',
+            'immediate_supervisor_id',
+            'password',
+            'status',
+            'bloqueado',
+            'tentativas_login',
+            'senha_nunca_expira',
+            'modificar_senha_proximo_logon',
+            'data_nascimento',
+            'data_admissao',
+            'data_desligamento',
+            'motivo_desligamento',
+        ];
         $map = [];
         foreach ($expected as $col) {
             $idx = array_search($col, $header, true);
@@ -200,7 +219,31 @@ class ImportUsers
                 }
             }
             
+            // Supervisor imediato (ID numérico opcional)
+            $immediateSupervisorId = 0;
+            if ($map['immediate_supervisor_id'] !== null) {
+                $immediateSupervisorId = (int)($row[$map['immediate_supervisor_id']] ?? 0);
+            }
             
+            // Datas de admissão e desligamento
+            $dataAdmissao = null;
+            if ($map['data_admissao'] !== null) {
+                $dataAdmissao = $toDate($row[$map['data_admissao']] ?? null);
+            }
+            $dataDesligamento = null;
+            if ($map['data_desligamento'] !== null) {
+                $dataDesligamento = $toDate($row[$map['data_desligamento']] ?? null);
+            }
+            
+            // Motivo de desligamento (opcional)
+            $motivoDesligamento = null;
+            if ($map['motivo_desligamento'] !== null) {
+                $motivoDesligamento = trim((string)($row[$map['motivo_desligamento']] ?? ''));
+                if ($motivoDesligamento === '') {
+                    $motivoDesligamento = null;
+                }
+            }
+
             $payload = [
                 'name' => $name,
                 'email' => $email,
@@ -209,6 +252,7 @@ class ImportUsers
                 'celular' => $celular !== '' ? $celular : null,
                 'user_department_id' => (int)($row[$map['department_id']] ?? 0),
                 'user_position_id' => (int)($row[$map['position_id']] ?? 0),
+                'immediate_supervisor_id' => $immediateSupervisorId > 0 ? $immediateSupervisorId : null,
                 'password' => (string)($row[$map['password']] ?? ''),
                 'status' => $status,
                 'bloqueado' => $toBoolLabel($row[$map['bloqueado']] ?? 'Não'),
@@ -216,6 +260,9 @@ class ImportUsers
                 'senha_nunca_expira' => $toBoolLabel($row[$map['senha_nunca_expira']] ?? 'Não'),
                 'modificar_senha_proximo_logon' => $toBoolLabel($row[$map['modificar_senha_proximo_logon']] ?? 'Não'),
                 'data_nascimento' => $toDate($row[$map['data_nascimento']] ?? null),
+                'data_admissao' => $dataAdmissao,
+                'data_desligamento' => $dataDesligamento,
+                'motivo_desligamento' => $motivoDesligamento,
                 'image' => null,
             ];
 
@@ -250,22 +297,58 @@ class ImportUsers
                     if ($payload['user_position_id'] <= 0) {
                         $payload['user_position_id'] = (int)($existing['user_position_id'] ?? 0);
                     }
+                    // Supervisor imediato: manter existente se CSV vier vazio/0
+                    if (empty($payload['immediate_supervisor_id']) && !empty($existing['immediate_supervisor_id'])) {
+                        $payload['immediate_supervisor_id'] = (int)$existing['immediate_supervisor_id'];
+                    }
                     if (empty($payload['status']) && !empty($existing['status'])) $payload['status'] = $existing['status'];
                     if (empty($payload['bloqueado']) && !empty($existing['bloqueado'])) $payload['bloqueado'] = $existing['bloqueado'];
                     if (empty($payload['senha_nunca_expira']) && !empty($existing['senha_nunca_expira'])) $payload['senha_nunca_expira'] = $existing['senha_nunca_expira'];
                     if (empty($payload['modificar_senha_proximo_logon']) && !empty($existing['modificar_senha_proximo_logon'])) $payload['modificar_senha_proximo_logon'] = $existing['modificar_senha_proximo_logon'];
                     if (empty($payload['data_nascimento']) && !empty($existing['data_nascimento'])) $payload['data_nascimento'] = $existing['data_nascimento'];
+
+                    // Datas de admissão/desligamento e motivo:
+                    // - Se CSV trouxer data_desligamento -> aplicar e inativar usuário
+                    // - Se vier vazia -> manter valor atual
+                    if ($payload['data_desligamento']) {
+                        // Para edição, data de desligamento preenchida significa desligar o colaborador
+                        $payload['status'] = 'Inativo';
+                    } else {
+                        // Manter desligamento/motivo existentes se CSV não trouxer nada
+                        $payload['data_desligamento'] = $existing['data_desligamento'] ?? null;
+                        if ($payload['motivo_desligamento'] === null && !empty($existing['motivo_desligamento'])) {
+                            $payload['motivo_desligamento'] = $existing['motivo_desligamento'];
+                        }
+                    }
+                    // Se CSV trouxer data_admissao vazia, manter a existente
+                    if (empty($payload['data_admissao']) && !empty($existing['data_admissao'])) {
+                        $payload['data_admissao'] = $existing['data_admissao'];
+                    }
                     // Verificar diferenças e só atualizar se houver
                     $keysToCompare = [
-                        'name','email','username','cpf','celular','user_department_id','user_position_id',
-                        'status','bloqueado','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'
+                        'name',
+                        'email',
+                        'username',
+                        'cpf',
+                        'celular',
+                        'user_department_id',
+                        'user_position_id',
+                        'immediate_supervisor_id',
+                        'status',
+                        'bloqueado',
+                        'senha_nunca_expira',
+                        'modificar_senha_proximo_logon',
+                        'data_nascimento',
+                        'data_admissao',
+                        'data_desligamento',
+                        'motivo_desligamento',
                     ];
                     $hasDiff = false;
                     $diffDetails = [];
                     foreach ($keysToCompare as $k) {
                         $newVal = $payload[$k] ?? null;
                         $oldVal = $existing[$k] ?? null;
-                        if (in_array($k, ['user_department_id','user_position_id'])) {
+                        if (in_array($k, ['user_department_id','user_position_id','immediate_supervisor_id'])) {
                             $newVal = (int)$newVal; $oldVal = (int)$oldVal;
                         } else {
                             $newVal = is_string($newVal) ? trim((string)$newVal) : $newVal;
@@ -294,6 +377,19 @@ class ImportUsers
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'erro', 'email'=>$payload['email'], 'msg'=>'Falha ao atualizar (verifique logs DEBUG updateUser)'];
                     }
                 } else {
+                    // Criação de novo usuário
+                    // Regra de negócio: novos usuários não devem ser criados já desligados
+                    if (!empty($payload['data_desligamento'])) {
+                        $this->data['report'][] = [
+                            'linha' => $rows,
+                            'acao'  => 'erro',
+                            'email' => $payload['email'],
+                            'msg'   => 'Para criação de usuário, data_desligamento deve ficar vazia.'
+                        ];
+                        $errors++;
+                        continue;
+                    }
+
                     if ($payload['password'] === '') {
                         // Gera senha temporária segura para novos usuários sem senha
                         $payload['password'] = bin2hex(random_bytes(6));
@@ -339,12 +435,82 @@ class ImportUsers
         
         $out = fopen('php://output', 'w');
         
-        // Cabeçalho com ; como separador
-        fputcsv($out, ['name','email','username','cpf','celular','department_id','position_id','password','status','bloqueado','tentativas_login','senha_nunca_expira','modificar_senha_proximo_logon','data_nascimento'], ';');
+        // Cabeçalho com ; como separador (mesmos campos usados em processCsv)
+        fputcsv(
+            $out,
+            [
+                'name',
+                'email',
+                'username',
+                'cpf',
+                'celular',
+                'department_id',
+                'position_id',
+                'immediate_supervisor_id',
+                'password',
+                'status',
+                'bloqueado',
+                'tentativas_login',
+                'senha_nunca_expira',
+                'modificar_senha_proximo_logon',
+                'data_nascimento',
+                'data_admissao',
+                'data_desligamento',
+                'motivo_desligamento',
+            ],
+            ';'
+        );
         
-        // Linha exemplo com acentos para testar
-        fputcsv($out, ['Maria Silva','maria@empresa.com','maria.silva','123.456.789-00','(11) 98765-4321',1,2,'SenhaForte123!','Ativo','Não',0,'Não','Não','20/08/1990'], ';');
-        fputcsv($out, ['João Santos','joao@empresa.com','joao.santos','987.654.321-00','(11) 91234-5678',2,1,'SenhaForte123!','Ativo','Não',0,'Não','Não','15/03/1985'], ';');
+        // Linhas exemplo com acentos para testar
+        // OBS: Para criação, data_desligamento e motivo_desligamento devem ficar vazios
+        fputcsv(
+            $out,
+            [
+                'Maria Silva',
+                'maria@empresa.com',
+                'maria.silva',
+                '123.456.789-00',
+                '(11) 98765-4321',
+                1,
+                2,
+                '', // immediate_supervisor_id
+                'SenhaForte123!',
+                'Ativo',
+                'Não',
+                0,
+                'Não',
+                'Não',
+                '20/08/1990',
+                '01/01/2020', // data_admissao
+                '',           // data_desligamento (vazio na criação)
+                '',           // motivo_desligamento
+            ],
+            ';'
+        );
+        fputcsv(
+            $out,
+            [
+                'João Santos',
+                'joao@empresa.com',
+                'joao.santos',
+                '987.654.321-00',
+                '(11) 91234-5678',
+                2,
+                1,
+                '', // immediate_supervisor_id
+                'SenhaForte123!',
+                'Ativo',
+                'Não',
+                0,
+                'Não',
+                'Não',
+                '15/03/1985',
+                '10/05/2018',
+                '',
+                '',
+            ],
+            ';'
+        );
         
         fclose($out);
         exit;
