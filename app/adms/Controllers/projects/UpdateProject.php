@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\projects\ProjProjectsRepository;
+use App\adms\Models\Repository\projects\ProjProjectStagesRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateProject
@@ -34,6 +35,10 @@ class UpdateProject
         if (empty($this->data['form'])) {
             $this->data['form'] = $project;
         }
+
+        // Carregar etapas existentes do projeto
+        $stagesRepo = new ProjProjectStagesRepository();
+        $this->data['stages'] = $stagesRepo->getByProject((int)$id);
 
         $this->view();
     }
@@ -96,6 +101,9 @@ class UpdateProject
         ]);
 
         if ($updated) {
+            // Salvar etapas do projeto (se vieram no formulário)
+            $this->saveProjectStages($id, $form);
+
             GenerateLog::generateLog('info', 'Projeto atualizado', ['id' => $id]);
             $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>Projeto atualizado com sucesso.</div>";
             header('Location: ' . $_ENV['URL_ADM'] . 'list-projects');
@@ -104,6 +112,64 @@ class UpdateProject
 
         $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao atualizar projeto.</div>";
         $this->view();
+    }
+
+    /**
+     * Monta as linhas de etapas a partir do formulário e persiste na base.
+     *
+     * Por enquanto lê apenas campos básicos; os nomes dos campos serão usados
+     * na etapa seguinte quando criarmos a aba visual de "Etapas".
+     */
+    private function saveProjectStages(int $projectId, array $form): void
+    {
+        // Se ainda não existem campos de etapas no formulário, não faz nada.
+        if (empty($form['stage_name'])) {
+            return;
+        }
+
+        $names      = $form['stage_name'];
+        $stageIds   = $form['stage_id'] ?? [];
+        $sequences  = $form['stage_sequence'] ?? [];
+        $starts     = $form['stage_start_date'] ?? [];
+        $expected   = $form['stage_expected_end_date'] ?? [];
+        $ends       = $form['stage_end_date'] ?? [];
+        $activities = $form['stage_activity'] ?? [];
+        $descs      = $form['stage_description'] ?? [];
+        $responsible = $form['stage_responsible_user_id'] ?? [];
+        $depends    = $form['stage_depends_on_stage_id'] ?? [];
+        $completed  = $form['stage_completed'] ?? [];
+
+        $lines = [];
+        foreach ($names as $idx => $name) {
+            $name = trim((string)$name);
+            if ($name === '') {
+                continue;
+            }
+
+            $lines[] = [
+                'stage_id'             => $stageIds[$idx] ?? null,
+                'name'                 => $name,
+                'sequence'             => $sequences[$idx] ?? ($idx + 1),
+                'start_date'           => $starts[$idx] ?? null,
+                'expected_end_date'    => $expected[$idx] ?? null,
+                'end_date'             => $ends[$idx] ?? null,
+                'activity'             => $activities[$idx] ?? null,
+                'description'          => $descs[$idx] ?? null,
+                'responsible_user_id'  => $responsible[$idx] ?? null,
+                'depends_on_stage_id'  => $depends[$idx] ?? null,
+                'completed'            => isset($completed[$idx]) ? 1 : 0,
+                'is_cost_stage'        => 0,
+                'status'               => 'NAO_INICIADO',
+                'percent_complete'     => 0,
+            ];
+        }
+
+        if (!$lines) {
+            return;
+        }
+
+        $stagesRepo = new ProjProjectStagesRepository();
+        $stagesRepo->replaceForProject($projectId, $lines);
     }
 }
 
