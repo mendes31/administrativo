@@ -29,7 +29,7 @@ class InvItemsRepository extends DbConnection
 		}
 		$whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
 
-		$sql = 'SELECT i.id, i.code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active,
+        $sql = 'SELECT i.id, i.code, i.erp_code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active,
 				u.name AS unit_name, c.name AS category_name,
 				COALESCE(SUM(b.qty), 0) AS total_qty
 			FROM inv_items i
@@ -80,7 +80,7 @@ class InvItemsRepository extends DbConnection
 
 	public function getOne(int $id): array|bool
 	{
-		$sql = 'SELECT i.*, u.name AS unit_name, c.name AS category_name
+        $sql = 'SELECT i.*, u.name AS unit_name, c.name AS category_name
 			FROM inv_items i
 			LEFT JOIN inv_units u ON u.id = i.inv_unit_id
 			LEFT JOIN inv_categories c ON c.id = i.inv_category_id
@@ -94,10 +94,11 @@ class InvItemsRepository extends DbConnection
 	public function create(array $data): int|bool
 	{
 		try {
-			$sql = 'INSERT INTO inv_items (code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, active, created_at)
-				VALUES (:code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :active, :created_at)';
+            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, active, created_at)
+                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :active, :created_at)';
 			$stmt = $this->getConnection()->prepare($sql);
-			$stmt->bindValue(':code', $data['code']);
+            $stmt->bindValue(':code', $data['code']);
+            $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
 			$stmt->bindValue(':description', $data['description']);
 			$stmt->bindValue(':inv_unit_id', (int)$data['inv_unit_id'], PDO::PARAM_INT);
 			$stmt->bindValue(':inv_category_id', !empty($data['inv_category_id']) ? (int)$data['inv_category_id'] : null, !empty($data['inv_category_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -119,11 +120,12 @@ class InvItemsRepository extends DbConnection
 	public function update(int $id, array $data): bool
 	{
 		try {
-			$sql = 'UPDATE inv_items SET code = :code, description = :description, inv_unit_id = :inv_unit_id, inv_category_id = :inv_category_id,
+            $sql = 'UPDATE inv_items SET code = :code, erp_code = :erp_code, description = :description, inv_unit_id = :inv_unit_id, inv_category_id = :inv_category_id,
 				admin_type = :admin_type, average_cost = :average_cost, last_cost = :last_cost, min_stock = :min_stock, max_stock = :max_stock,
 				active = :active, updated_at = :updated_at WHERE id = :id';
 			$stmt = $this->getConnection()->prepare($sql);
-			$stmt->bindValue(':code', $data['code']);
+            $stmt->bindValue(':code', $data['code']);
+            $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
 			$stmt->bindValue(':description', $data['description']);
 			$stmt->bindValue(':inv_unit_id', (int)$data['inv_unit_id'], PDO::PARAM_INT);
 			$stmt->bindValue(':inv_category_id', !empty($data['inv_category_id']) ? (int)$data['inv_category_id'] : null, !empty($data['inv_category_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL);

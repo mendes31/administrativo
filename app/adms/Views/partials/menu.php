@@ -280,6 +280,11 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-positions',
                         'permission' => 'ListInventoryPositions'
                     ],
+                    [
+                        'label' => 'Operações de Produção',
+                        'url' => $_ENV['URL_ADM'] . 'list-inventory-operations',
+                        'permission' => 'ListInventoryOperations'
+                    ],
                 ]
             ],
             [
@@ -495,6 +500,23 @@ $menus = [
                     ]
                 ]
             ]
+        ]
+    ],
+    [
+        'id' => 'gestao_projetos',
+        'icon' => 'fa-solid fa-diagram-project',
+        'label' => 'Gestão de Projetos',
+        'submenu' => [
+            [
+                'label' => 'Projetos',
+                'url' => $_ENV['URL_ADM'] . 'list-projects',
+                'permission' => 'ListProjects'
+            ],
+            [
+                'label' => 'Etapas',
+                'url' => $_ENV['URL_ADM'] . 'list-project-stages',
+                'permission' => 'ListProjectStages'
+            ],
         ]
     ],
     [

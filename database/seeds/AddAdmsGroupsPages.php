@@ -57,6 +57,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Relatórios Dinâmicos', 'obs' => 'Construtor de relatórios e dashboards personalizados'], // Nº 35
             ['name' => 'Gestão de Pessoas', 'obs' => 'Módulo completo de Gestão de Pessoas (RH)'], // Nº 36
             ['name' => 'Reserva de Salas', 'obs' => 'Módulo de agendamento e reserva de salas de reunião'], // Nº 37
+            ['name' => 'Gestão de Projetos', 'obs' => 'Módulo de gestão de projetos'], // Nº 38
         ];
 
         foreach ($grupos as $grupo) {

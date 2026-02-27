@@ -26,6 +26,7 @@
     <div class="row g-3 mb-3">
       <div class="col-12 col-md-4">
         <div class="d-flex flex-wrap gap-2"><span class="text-muted">Código</span><span class="fw-semibold"><?= htmlspecialchars($item['code'] ?? '') ?></span></div>
+        <div class="d-flex flex-wrap gap-2"><span class="text-muted">Código ERP</span><span class="fw-semibold"><?= htmlspecialchars($item['erp_code'] ?? '') ?></span></div>
         <div class="d-flex flex-wrap gap-2"><span class="text-muted">Unidade</span><span class="fw-semibold"><?= htmlspecialchars($item['unit_name'] ?? '') ?></span></div>
         <div class="d-flex flex-wrap gap-2"><span class="text-muted">Administração</span><span class="fw-semibold"><?= htmlspecialchars($item['admin_type'] ?? 'none') ?></span></div>
       </div>

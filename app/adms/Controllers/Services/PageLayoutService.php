@@ -154,6 +154,7 @@ class PageLayoutService
             'ListInventoryCategories',
             'ListInventoryStocks',
             'ListInventoryPositions',
+            'ListInventoryOperations',
             'UpdateInventoryUnit',
             'UpdateInventoryCategory',
             'UpdateInventoryStock',
@@ -257,6 +258,15 @@ class PageLayoutService
             // Notas
             'CrmCreateNote',
             'CrmDeleteNote',
+            // Gestão de Projetos
+            'ListProjects',
+            'CreateProject',
+            'UpdateProject',
+            'DeleteProject',
+            'ListProjectStages',
+            'CreateProjectStage',
+            'UpdateProjectStage',
+            'DeleteProjectStage',
             // Documentos
             'CrmUploadDocument',
             'CrmDownloadDocument',

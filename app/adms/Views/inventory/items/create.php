@@ -38,7 +38,12 @@ use App\adms\Helpers\CSRFHelper;
 					<input type="text" name="code" id="code" class="form-control" value="<?php echo $this->data['form']['code'] ?? ''; ?>">
 				</div>
 
-				<div class="col-12 col-md-9">
+				<div class="col-12 col-md-3">
+					<label for="erp_code" class="form-label">Código ERP</label>
+					<input type="text" name="erp_code" id="erp_code" class="form-control" value="<?php echo $this->data['form']['erp_code'] ?? ''; ?>" placeholder="Código do item no ERP (opcional)">
+				</div>
+
+				<div class="col-12 col-md-6">
 					<label for="description" class="form-label">Descrição</label>
 					<input type="text" name="description" id="description" class="form-control" value="<?php echo $this->data['form']['description'] ?? ''; ?>">
 				</div>
@@ -76,6 +81,16 @@ use App\adms\Helpers\CSRFHelper;
 				<div class="col-12 col-md-3">
 					<label for="max_stock" class="form-label">Estoque máximo</label>
 					<input type="number" step="0.0001" min="0" name="max_stock" id="max_stock" class="form-control" value="<?php echo $this->data['form']['max_stock'] ?? ''; ?>">
+				</div>
+
+				<div class="col-12 col-md-3">
+					<label for="average_cost" class="form-label">Custo médio (manual)</label>
+					<input type="number" step="0.000001" min="0" name="average_cost" id="average_cost" class="form-control" value="<?php echo $this->data['form']['average_cost'] ?? '0'; ?>">
+				</div>
+
+				<div class="col-12 col-md-3">
+					<label for="last_cost" class="form-label">Último custo</label>
+					<input type="number" step="0.000001" min="0" name="last_cost" id="last_cost" class="form-control" value="<?php echo $this->data['form']['last_cost'] ?? '0'; ?>">
 				</div>
 
 				<div class="col-12 col-md-3">

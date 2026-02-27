@@ -59,6 +59,7 @@ use App\adms\Helpers\CSRFHelper;
 						<tr>
 							<th>ID</th>
 							<th>Código</th>
+							<th>Código ERP</th>
 							<th>Descrição</th>
 							<th>Unidade</th>
 							<th>Categoria</th>
@@ -73,6 +74,7 @@ use App\adms\Helpers\CSRFHelper;
 							<tr>
 								<td><?php echo $item['id']; ?></td>
 								<td><?php echo htmlspecialchars($item['code']); ?></td>
+								<td><?php echo htmlspecialchars($item['erp_code'] ?? ''); ?></td>
 								<td><?php echo htmlspecialchars($item['description']); ?></td>
 								<td><?php echo htmlspecialchars($item['unit_name'] ?? ''); ?></td>
 								<td><?php echo htmlspecialchars($item['category_name'] ?? ''); ?></td>

@@ -81,6 +81,7 @@ class CreateInventoryItem
 
         $created = $repo->create([
             'code' => trim($form['code']),
+            'erp_code' => isset($form['erp_code']) ? trim((string)$form['erp_code']) : null,
             'description' => trim($form['description']),
             'inv_unit_id' => (int)$form['inv_unit_id'],
             'inv_category_id' => !empty($form['inv_category_id']) ? (int)$form['inv_category_id'] : null,
