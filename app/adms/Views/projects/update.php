@@ -205,19 +205,19 @@ use App\adms\Helpers\CSRFHelper;
                                     ?>
                                         <tr>
                                             <td>
-                                                <input type="date" name="stage_start_date[]" class="form-control form-control-sm"
+                                                <input type="date" name="stage_start_date[<?= $idx ?>]" class="form-control form-control-sm"
                                                        value="<?= htmlspecialchars((string)($s['start_date'] ?? '')) ?>">
                                             </td>
                                             <td>
-                                                <input type="date" name="stage_expected_end_date[]" class="form-control form-control-sm"
+                                                <input type="date" name="stage_expected_end_date[<?= $idx ?>]" class="form-control form-control-sm"
                                                        value="<?= htmlspecialchars((string)($s['expected_end_date'] ?? '')) ?>">
                                             </td>
                                             <td>
-                                                <input type="date" name="stage_end_date[]" class="form-control form-control-sm"
+                                                <input type="date" name="stage_end_date[<?= $idx ?>]" class="form-control form-control-sm"
                                                        value="<?= htmlspecialchars((string)($s['end_date'] ?? '')) ?>">
                                             </td>
                                             <td>
-                                                <select name="stage_id[]" class="form-select form-select-sm stage-catalog-select">
+                                                <select name="stage_id[<?= $idx ?>]" class="form-select form-select-sm stage-catalog-select">
                                                     <option value="">Selecione</option>
                                                     <?php foreach ($listStages as $opt): ?>
                                                         <?php $sel = ((string)($s['stage_id'] ?? '') === (string)$opt['id']) ? 'selected' : ''; ?>
@@ -226,19 +226,19 @@ use App\adms\Helpers\CSRFHelper;
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="text" name="stage_name[]" class="form-control form-control-sm stage-name-input"
+                                                <input type="text" name="stage_name[<?= $idx ?>]" class="form-control form-control-sm stage-name-input"
                                                        value="<?= htmlspecialchars((string)($s['name'] ?? '')) ?>" placeholder="Nome da etapa">
                                             </td>
                                             <td>
-                                                <input type="text" name="stage_activity[]" class="form-control form-control-sm"
+                                                <input type="text" name="stage_activity[<?= $idx ?>]" class="form-control form-control-sm"
                                                        value="<?= htmlspecialchars((string)($s['activity'] ?? '')) ?>">
                                             </td>
                                             <td>
-                                                <input type="text" name="stage_description[]" class="form-control form-control-sm"
+                                                <input type="text" name="stage_description[<?= $idx ?>]" class="form-control form-control-sm"
                                                        value="<?= htmlspecialchars((string)($s['description'] ?? '')) ?>">
                                             </td>
                                             <td>
-                                                <select name="stage_responsible_user_id[]" class="form-select form-select-sm">
+                                                <select name="stage_responsible_user_id[<?= $idx ?>]" class="form-select form-select-sm">
                                                     <option value="">Selecione</option>
                                                     <?php foreach ($listUsers as $u): ?>
                                                         <?php $sel = ((string)($s['responsible_user_id'] ?? '') === (string)$u['id']) ? 'selected' : ''; ?>
@@ -247,7 +247,7 @@ use App\adms\Helpers\CSRFHelper;
                                                 </select>
                                             </td>
                                             <td>
-                                                <select name="stage_depends_on_index[]" class="form-select form-select-sm stage-depends-select">
+                                                <select name="stage_depends_on_index[<?= $idx ?>]" class="form-select form-select-sm stage-depends-select">
                                                     <option value="">Nenhuma</option>
                                                     <?php for ($k = 0; $k < $stageCount; $k++): ?>
                                                         <?php if ($k === $idx) continue; ?>
@@ -259,7 +259,7 @@ use App\adms\Helpers\CSRFHelper;
                                             <td>
                                                 <div class="form-check form-check-sm">
                                                     <?php $checked = !empty($s['completed']); ?>
-                                                    <input type="checkbox" name="stage_completed[<?= $idx ?>]" value="1" class="form-check-input" <?= $checked ? 'checked' : '' ?>>
+                                                    <input type="checkbox" name="stage_completed[<?= $idx ?>]" value="1" class="form-check-input stage-completed-cb" <?= $checked ? 'checked' : '' ?>>
                                                 </div>
                                             </td>
                                             <td class="text-end">
@@ -309,6 +309,98 @@ function setProjectPartner(code, name) {
     if (document.getElementById('pn_name')) {
         document.getElementById('pn_name').value = name;
     }
+}
+
+// Etapas: preencher nome quando selecionar etapa do catálogo
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('stages-table')?.addEventListener('change', function(e) {
+        if (e.target.classList.contains('stage-catalog-select')) {
+            var opt = e.target.options[e.target.selectedIndex];
+            var nameInput = e.target.closest('tr').querySelector('.stage-name-input');
+            if (nameInput && opt && opt.value) {
+                var name = opt.getAttribute('data-name') || opt.textContent || '';
+                if (name) nameInput.value = name;
+            }
+        }
+    });
+});
+
+function removeStageRow(btn) {
+    var row = btn.closest('tr');
+    if (row) row.remove();
+    reindexStageRows();
+}
+
+function reindexStageRows() {
+    var tbody = document.querySelector('#stages-table tbody');
+    if (!tbody) return;
+    var rows = tbody.querySelectorAll('tr');
+    var n = rows.length;
+    rows.forEach(function(row, idx) {
+        row.querySelectorAll('input[name="stage_start_date[]"]').forEach(function(el) { el.name = 'stage_start_date[' + idx + ']'; });
+        row.querySelectorAll('input[name="stage_expected_end_date[]"]').forEach(function(el) { el.name = 'stage_expected_end_date[' + idx + ']'; });
+        row.querySelectorAll('input[name="stage_end_date[]"]').forEach(function(el) { el.name = 'stage_end_date[' + idx + ']'; });
+        row.querySelectorAll('select[name="stage_id[]"]').forEach(function(el) { el.name = 'stage_id[' + idx + ']'; });
+        row.querySelectorAll('input[name="stage_name[]"]').forEach(function(el) { el.name = 'stage_name[' + idx + ']'; });
+        row.querySelectorAll('input[name="stage_activity[]"]').forEach(function(el) { el.name = 'stage_activity[' + idx + ']'; });
+        row.querySelectorAll('input[name="stage_description[]"]').forEach(function(el) { el.name = 'stage_description[' + idx + ']'; });
+        row.querySelectorAll('select[name="stage_responsible_user_id[]"]').forEach(function(el) { el.name = 'stage_responsible_user_id[' + idx + ']'; });
+        row.querySelectorAll('select[name="stage_depends_on_index[]"]').forEach(function(el) { el.name = 'stage_depends_on_index[' + idx + ']'; });
+        var cb = row.querySelector('.stage-completed-cb');
+        if (cb) { cb.name = 'stage_completed[' + idx + ']'; }
+        // Atualizar options do select Dependência
+        var depSelect = row.querySelector('.stage-depends-select');
+        if (depSelect) {
+            var currentVal = depSelect.value;
+            depSelect.innerHTML = '<option value="">Nenhuma</option>';
+            for (var k = 0; k < n; k++) {
+                if (k === idx) continue;
+                var opt = document.createElement('option');
+                opt.value = k;
+                opt.textContent = 'Etapa ' + (k + 1);
+                if (String(k) === currentVal) opt.selected = true;
+                depSelect.appendChild(opt);
+            }
+        }
+    });
+}
+
+function addStageRow() {
+    var tbody = document.querySelector('#stages-table tbody');
+    if (!tbody) return;
+    var idx = tbody.querySelectorAll('tr').length;
+    var listStages = <?php echo json_encode($this->data['listStages'] ?? []); ?>;
+    var listUsers = <?php echo json_encode($this->data['listUsers'] ?? []); ?>;
+    var stagesOpts = '<option value="">Selecione</option>';
+    (listStages || []).forEach(function(s) {
+        var name = (s.name || '').replace(/"/g, '&quot;');
+        stagesOpts += '<option value="' + s.id + '" data-name="' + name + '">' + (s.name || '') + '</option>';
+    });
+    var usersOpts = '<option value="">Selecione</option>';
+    (listUsers || []).forEach(function(u) {
+        var label = (u.name + ' - ' + u.email).replace(/"/g, '&quot;');
+        usersOpts += '<option value="' + u.id + '">' + label + '</option>';
+    });
+    var depOpts = '<option value="">Nenhuma</option>';
+    for (var k = 0; k <= idx; k++) {
+        if (k === idx) continue;
+        depOpts += '<option value="' + k + '">Etapa ' + (k + 1) + '</option>';
+    }
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><input type="date" name="stage_start_date[' + idx + ']" class="form-control form-control-sm"></td>' +
+        '<td><input type="date" name="stage_expected_end_date[' + idx + ']" class="form-control form-control-sm"></td>' +
+        '<td><input type="date" name="stage_end_date[' + idx + ']" class="form-control form-control-sm"></td>' +
+        '<td><select name="stage_id[' + idx + ']" class="form-select form-select-sm stage-catalog-select">' + stagesOpts + '</select></td>' +
+        '<td><input type="text" name="stage_name[' + idx + ']" class="form-control form-control-sm stage-name-input" placeholder="Nome da etapa"></td>' +
+        '<td><input type="text" name="stage_activity[' + idx + ']" class="form-control form-control-sm"></td>' +
+        '<td><input type="text" name="stage_description[' + idx + ']" class="form-control form-control-sm"></td>' +
+        '<td><select name="stage_responsible_user_id[' + idx + ']" class="form-select form-select-sm">' + usersOpts + '</select></td>' +
+        '<td><select name="stage_depends_on_index[' + idx + ']" class="form-select form-select-sm stage-depends-select">' + depOpts + '</select></td>' +
+        '<td><div class="form-check form-check-sm"><input type="checkbox" name="stage_completed[' + idx + ']" value="1" class="form-check-input stage-completed-cb"></div></td>' +
+        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStageRow(this)">Remover</button></td>';
+    tbody.appendChild(tr);
+    reindexStageRows();
 }
 </script>
 
