@@ -8,6 +8,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\projects\ProjProjectsRepository;
 use App\adms\Models\Repository\projects\ProjProjectStagesRepository;
+use App\adms\Models\Repository\projects\ProjStagesRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateProject
@@ -36,9 +37,18 @@ class UpdateProject
             $this->data['form'] = $project;
         }
 
-        // Carregar etapas existentes do projeto
+        // Carregar etapas existentes do projeto (com depends_on_index para o formulário)
         $stagesRepo = new ProjProjectStagesRepository();
-        $this->data['stages'] = $stagesRepo->getByProject((int)$id);
+        $rawStages = $stagesRepo->getByProject((int)$id);
+        $idToIndex = [];
+        foreach ($rawStages as $i => $row) {
+            $idToIndex[(int)$row['id']] = $i;
+        }
+        foreach ($rawStages as $i => $row) {
+            $rawStages[$i]['depends_on_index'] = isset($row['depends_on_stage_id'], $idToIndex[(int)$row['depends_on_stage_id']])
+                ? (string)$idToIndex[(int)$row['depends_on_stage_id']] : '';
+        }
+        $this->data['stages'] = $rawStages;
 
         $this->view();
     }
@@ -47,6 +57,9 @@ class UpdateProject
     {
         $usersRepo = new UsersRepository();
         $this->data['listUsers'] = $usersRepo->getAllUsersForSelect();
+
+        $stagesCatalog = new ProjStagesRepository();
+        $this->data['listStages'] = $stagesCatalog->getAllForSelect();
 
         $pageElements = [
             'title_head' => 'Editar Projeto',
@@ -136,27 +149,36 @@ class UpdateProject
         $activities = $form['stage_activity'] ?? [];
         $descs      = $form['stage_description'] ?? [];
         $responsible = $form['stage_responsible_user_id'] ?? [];
-        $depends    = $form['stage_depends_on_stage_id'] ?? [];
+        $dependsIndex = $form['stage_depends_on_index'] ?? [];
         $completed  = $form['stage_completed'] ?? [];
+
+        $stageNamesById = $this->getStageNamesById(array_filter(array_map('intval', $stageIds)));
 
         $lines = [];
         foreach ($names as $idx => $name) {
             $name = trim((string)$name);
+            $stageId = !empty($stageIds[$idx]) ? (int)$stageIds[$idx] : null;
+            if ($name === '' && $stageId) {
+                $name = $stageNamesById[$stageId] ?? '';
+            }
             if ($name === '') {
                 continue;
             }
 
+            $depIdx = isset($dependsIndex[$idx]) && $dependsIndex[$idx] !== '' && $dependsIndex[$idx] !== null
+                ? (int)$dependsIndex[$idx] : null;
+
             $lines[] = [
-                'stage_id'             => $stageIds[$idx] ?? null,
+                'stage_id'             => $stageId,
                 'name'                 => $name,
-                'sequence'             => $sequences[$idx] ?? ($idx + 1),
-                'start_date'           => $starts[$idx] ?? null,
-                'expected_end_date'    => $expected[$idx] ?? null,
-                'end_date'             => $ends[$idx] ?? null,
-                'activity'             => $activities[$idx] ?? null,
-                'description'          => $descs[$idx] ?? null,
-                'responsible_user_id'  => $responsible[$idx] ?? null,
-                'depends_on_stage_id'  => $depends[$idx] ?? null,
+                'sequence'             => (int)($sequences[$idx] ?? ($idx + 1)),
+                'start_date'           => !empty($starts[$idx]) ? $starts[$idx] : null,
+                'expected_end_date'    => !empty($expected[$idx]) ? $expected[$idx] : null,
+                'end_date'             => !empty($ends[$idx]) ? $ends[$idx] : null,
+                'activity'             => isset($activities[$idx]) ? trim((string)$activities[$idx]) : null,
+                'description'          => isset($descs[$idx]) ? trim((string)$descs[$idx]) : null,
+                'responsible_user_id'  => !empty($responsible[$idx]) ? (int)$responsible[$idx] : null,
+                'depends_on_index'     => $depIdx,
                 'completed'            => isset($completed[$idx]) ? 1 : 0,
                 'is_cost_stage'        => 0,
                 'status'               => 'NAO_INICIADO',
@@ -170,6 +192,25 @@ class UpdateProject
 
         $stagesRepo = new ProjProjectStagesRepository();
         $stagesRepo->replaceForProject($projectId, $lines);
+    }
+
+    /**
+     * Retorna mapa id => name das etapas do catálogo para os IDs informados.
+     *
+     * @param int[] $ids
+     * @return array<int, string>
+     */
+    /**
+     * @param int[] $ids
+     * @return array<int, string>
+     */
+    private function getStageNamesById(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $repo = new ProjStagesRepository();
+        return $repo->getNamesByIds($ids);
     }
 }
 

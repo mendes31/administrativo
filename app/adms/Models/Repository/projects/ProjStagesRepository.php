@@ -167,5 +167,35 @@ class ProjStagesRepository extends DbConnection
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    /**
+     * Retorna mapa id => name para os IDs informados.
+     *
+     * @param int[] $ids
+     * @return array<int, string>
+     */
+    public function getNamesByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $ids = array_map('intval', array_filter($ids));
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT id, name FROM proj_stages WHERE id IN ($placeholders)";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach (array_values($ids) as $i => $id) {
+            $stmt->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int)$row['id']] = $row['name'] ?? '';
+        }
+        return $map;
+    }
 }
 

@@ -177,8 +177,102 @@ use App\adms\Helpers\CSRFHelper;
                     </div>
 
                     <div class="tab-pane fade" id="pane-etapas" role="tabpanel" aria-labelledby="tab-etapas">
-                        <!-- A aba visual de etapas será preenchida na próxima etapa -->
-                        <p class="text-muted">Configuração visual das etapas será adicionada aqui.</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle" id="stages-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Data Início</th>
+                                        <th>Previsão Término</th>
+                                        <th>Data Término</th>
+                                        <th>Etapa</th>
+                                        <th>Nome</th>
+                                        <th>Atividade</th>
+                                        <th>Descrição</th>
+                                        <th>Titular</th>
+                                        <th>Dependência</th>
+                                        <th>Concluído</th>
+                                        <th class="text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $listStages = $this->data['listStages'] ?? [];
+                                    $listUsers = $this->data['listUsers'] ?? [];
+                                    $stages = $this->data['stages'] ?? [];
+                                    $stageCount = count($stages);
+                                    foreach ($stages as $idx => $s):
+                                        $depIdx = $s['depends_on_index'] ?? '';
+                                    ?>
+                                        <tr>
+                                            <td>
+                                                <input type="date" name="stage_start_date[]" class="form-control form-control-sm"
+                                                       value="<?= htmlspecialchars((string)($s['start_date'] ?? '')) ?>">
+                                            </td>
+                                            <td>
+                                                <input type="date" name="stage_expected_end_date[]" class="form-control form-control-sm"
+                                                       value="<?= htmlspecialchars((string)($s['expected_end_date'] ?? '')) ?>">
+                                            </td>
+                                            <td>
+                                                <input type="date" name="stage_end_date[]" class="form-control form-control-sm"
+                                                       value="<?= htmlspecialchars((string)($s['end_date'] ?? '')) ?>">
+                                            </td>
+                                            <td>
+                                                <select name="stage_id[]" class="form-select form-select-sm stage-catalog-select">
+                                                    <option value="">Selecione</option>
+                                                    <?php foreach ($listStages as $opt): ?>
+                                                        <?php $sel = ((string)($s['stage_id'] ?? '') === (string)$opt['id']) ? 'selected' : ''; ?>
+                                                        <option value="<?= (int)$opt['id'] ?>" data-name="<?= htmlspecialchars($opt['name']) ?>" <?= $sel ?>><?= htmlspecialchars($opt['name']) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="stage_name[]" class="form-control form-control-sm stage-name-input"
+                                                       value="<?= htmlspecialchars((string)($s['name'] ?? '')) ?>" placeholder="Nome da etapa">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="stage_activity[]" class="form-control form-control-sm"
+                                                       value="<?= htmlspecialchars((string)($s['activity'] ?? '')) ?>">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="stage_description[]" class="form-control form-control-sm"
+                                                       value="<?= htmlspecialchars((string)($s['description'] ?? '')) ?>">
+                                            </td>
+                                            <td>
+                                                <select name="stage_responsible_user_id[]" class="form-select form-select-sm">
+                                                    <option value="">Selecione</option>
+                                                    <?php foreach ($listUsers as $u): ?>
+                                                        <?php $sel = ((string)($s['responsible_user_id'] ?? '') === (string)$u['id']) ? 'selected' : ''; ?>
+                                                        <option value="<?= (int)$u['id'] ?>" <?= $sel ?>><?= htmlspecialchars($u['name'] . ' - ' . $u['email']) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="stage_depends_on_index[]" class="form-select form-select-sm stage-depends-select">
+                                                    <option value="">Nenhuma</option>
+                                                    <?php for ($k = 0; $k < $stageCount; $k++): ?>
+                                                        <?php if ($k === $idx) continue; ?>
+                                                        <?php $sel = ($depIdx === (string)$k) ? 'selected' : ''; ?>
+                                                        <option value="<?= $k ?>" <?= $sel ?>>Etapa <?= $k + 1 ?></option>
+                                                    <?php endfor; ?>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-check-sm">
+                                                    <?php $checked = !empty($s['completed']); ?>
+                                                    <input type="checkbox" name="stage_completed[<?= $idx ?>]" value="1" class="form-check-input" <?= $checked ? 'checked' : '' ?>>
+                                                </div>
+                                            </td>
+                                            <td class="text-end">
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStageRow(this)">Remover</button>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addStageRow()">Adicionar etapa</button>
+                        </div>
                     </div>
                 </div>
 
