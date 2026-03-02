@@ -517,6 +517,11 @@ $menus = [
                 'url' => $_ENV['URL_ADM'] . 'list-project-stages',
                 'permission' => 'ListProjectStages'
             ],
+            [
+                'label' => 'Grupos de Etapas',
+                'url' => $_ENV['URL_ADM'] . 'list-stage-groups',
+                'permission' => 'ListStageGroups'
+            ],
         ]
     ],
     [

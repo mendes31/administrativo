@@ -9,6 +9,7 @@ use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\projects\ProjProjectsRepository;
 use App\adms\Models\Repository\projects\ProjProjectStagesRepository;
 use App\adms\Models\Repository\projects\ProjStagesRepository;
+use App\adms\Models\Repository\projects\ProjStageGroupsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateProject
@@ -19,8 +20,18 @@ class UpdateProject
     {
         $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
 
+        // Controlar qual aba deve permanecer ativa
+        $this->data['active_tab'] = $this->data['form']['active_tab']
+            ?? ($_GET['tab'] ?? 'dados-gerais');
+
         if (!empty($this->data['form']['csrf_token'])
             && CSRFHelper::validateCSRFToken('form_update_project', $this->data['form']['csrf_token'])) {
+            // Se o usuário clicou em "Carregar grupo de etapas", apenas aplica o template e não salva o projeto ainda
+            if (!empty($this->data['form']['apply_stage_group'])) {
+                $this->applyStageGroup((int)$id);
+                return;
+            }
+
             $this->update((int)$id);
             return;
         }
@@ -61,6 +72,10 @@ class UpdateProject
         $stagesCatalog = new ProjStagesRepository();
         $this->data['listStages'] = $stagesCatalog->getAllForSelect();
 
+        // Catálogo de grupos de etapas (para aplicar template de etapas no projeto)
+        $groupsRepo = new ProjStageGroupsRepository();
+        $this->data['listStageGroups'] = $groupsRepo->getAllForSelect();
+
         $pageElements = [
             'title_head' => 'Editar Projeto',
             'menu' => 'list-projects',
@@ -78,6 +93,9 @@ class UpdateProject
     {
         $form = $this->data['form'] ?? [];
         $errors = [];
+
+        // Garantir que a aba ativa seja preservada mesmo em erro
+        $this->data['active_tab'] = $form['active_tab'] ?? 'dados-gerais';
 
         if (empty($form['name'])) {
             $errors['name'] = 'Nome do projeto é obrigatório.';
@@ -119,7 +137,9 @@ class UpdateProject
 
             GenerateLog::generateLog('info', 'Projeto atualizado', ['id' => $id]);
             $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>Projeto atualizado com sucesso.</div>";
-            header('Location: ' . $_ENV['URL_ADM'] . 'list-projects');
+            // Permanecer na tela de edição do projeto na mesma aba
+            $tab = urlencode($form['active_tab'] ?? 'dados-gerais');
+            header('Location: ' . $_ENV['URL_ADM'] . 'update-project/' . $id . '?tab=' . $tab);
             return;
         }
 
@@ -151,6 +171,7 @@ class UpdateProject
         $responsible = $form['stage_responsible_user_id'] ?? [];
         $dependsIndex = $form['stage_depends_on_index'] ?? [];
         $completed  = $form['stage_completed'] ?? [];
+        $statuses   = $form['stage_status'] ?? [];
 
         $stageNamesById = $this->getStageNamesById(array_filter(array_map('intval', $stageIds)));
 
@@ -168,6 +189,21 @@ class UpdateProject
             $depIdx = isset($dependsIndex[$idx]) && $dependsIndex[$idx] !== '' && $dependsIndex[$idx] !== null
                 ? (int)$dependsIndex[$idx] : null;
 
+            // Status da etapa (work breakdown / tarefa)
+            $rawStatus = strtoupper(trim((string)($statuses[$idx] ?? 'NAO_INICIADO')));
+            $allowedStatuses = [
+                'NAO_INICIADO',
+                'EM_ANDAMENTO',
+                'EM_VALIDACAO',
+                'AGUARDANDO_APROVACAO',
+                'BLOQUEADO',
+                'CONCLUIDO',
+                'CANCELADO',
+            ];
+            if (!in_array($rawStatus, $allowedStatuses, true)) {
+                $rawStatus = 'NAO_INICIADO';
+            }
+
             $lines[] = [
                 'stage_id'             => $stageId,
                 'name'                 => $name,
@@ -181,7 +217,7 @@ class UpdateProject
                 'depends_on_index'     => $depIdx,
                 'completed'            => isset($completed[$idx]) ? 1 : 0,
                 'is_cost_stage'        => 0,
-                'status'               => 'NAO_INICIADO',
+                'status'               => $rawStatus,
                 'percent_complete'     => 0,
             ];
         }
@@ -211,6 +247,133 @@ class UpdateProject
         }
         $repo = new ProjStagesRepository();
         return $repo->getNamesByIds($ids);
+    }
+
+    /**
+     * Aplica um grupo de etapas padrão ao projeto (somente na memória, sem salvar).
+     *
+     * @param int $projectId
+     * @return void
+     */
+    private function applyStageGroup(int $projectId): void
+    {
+        $form = $this->data['form'] ?? [];
+
+        // Garante que o ID do projeto e a aba ativa estejam no form
+        if (empty($form['id'])) {
+            $form['id'] = $projectId;
+        }
+        $this->data['form'] = $form;
+        $this->data['active_tab'] = $form['active_tab'] ?? 'etapas';
+
+        $groupId = isset($form['stage_group_id']) ? (int)$form['stage_group_id'] : 0;
+        if ($groupId <= 0) {
+            $_SESSION['msg'] = "<div class='alert alert-warning' role='alert'>Selecione um grupo de etapas para aplicar.</div>";
+
+            // Recarrega as etapas atuais do projeto
+            $stagesRepo = new ProjProjectStagesRepository();
+            $rawStages = $stagesRepo->getByProject($projectId);
+            $idToIndex = [];
+            foreach ($rawStages as $i => $row) {
+                $idToIndex[(int)$row['id']] = $i;
+            }
+            foreach ($rawStages as $i => $row) {
+                $rawStages[$i]['depends_on_index'] = isset($row['depends_on_stage_id'], $idToIndex[(int)$row['depends_on_stage_id']])
+                    ? (string)$idToIndex[(int)$row['depends_on_stage_id']] : '';
+            }
+            $this->data['stages'] = $rawStages;
+
+            $this->view();
+            return;
+        }
+
+        // Busca etapas do grupo selecionado
+        $groupsRepo = new ProjStageGroupsRepository();
+        $items = $groupsRepo->getItemsByGroup($groupId);
+
+        if (empty($items)) {
+            $_SESSION['msg'] = "<div class='alert alert-warning' role='alert'>O grupo selecionado não possui etapas cadastradas.</div>";
+
+            $this->data['stages'] = [];
+            $this->view();
+            return;
+        }
+
+        // Monta estrutura de etapas em memória e linhas para persistir no projeto
+        $stages = [];
+        $linesForProject = [];
+        foreach ($items as $idx => $item) {
+            $sequence = (int)($item['sequence'] ?? ($idx + 1));
+            if ($sequence <= 0) {
+                $sequence = $idx + 1;
+            }
+
+            $stageId = (int)($item['stage_id'] ?? 0);
+            $name    = $item['stage_name'] ?? '';
+
+            $stages[] = [
+                'id'                  => null,
+                'project_id'          => $projectId,
+                'stage_id'            => $stageId,
+                'name'                => $name,
+                'activity'            => null,
+                'description'         => null,
+                'sequence'            => $sequence,
+                'is_cost_stage'       => !empty($item['is_cost_stage']) ? 1 : 0,
+                'status'              => 'NAO_INICIADO',
+                'percent_complete'    => 0,
+                'start_date'          => null,
+                'expected_end_date'   => null,
+                'end_date'            => null,
+                'completed'           => 0,
+                'responsible_user_id' => null,
+                'depends_on_stage_id' => null,
+                'depends_on_index'    => '',
+                'responsible_name'    => null,
+            ];
+
+            $linesForProject[] = [
+                'stage_id'            => $stageId,
+                'name'                => $name,
+                'sequence'            => $sequence,
+                'start_date'          => null,
+                'expected_end_date'   => null,
+                'end_date'            => null,
+                'activity'            => null,
+                'description'         => null,
+                'responsible_user_id' => null,
+                'depends_on_index'    => null,
+                'completed'           => 0,
+                'is_cost_stage'       => !empty($item['is_cost_stage']) ? 1 : 0,
+                'status'              => 'NAO_INICIADO',
+                'percent_complete'    => 0,
+            ];
+        }
+
+        // Persiste imediatamente as etapas do grupo no projeto,
+        // sobrescrevendo quaisquer etapas anteriores
+        $stagesRepo = new ProjProjectStagesRepository();
+        $stagesRepo->replaceForProject($projectId, $linesForProject);
+
+        // Recarrega as etapas salvas (para garantir consistência de IDs/dependências)
+        $rawStages = $stagesRepo->getByProject($projectId);
+        $idToIndex = [];
+        foreach ($rawStages as $i => $row) {
+            $idToIndex[(int)$row['id']] = $i;
+        }
+        foreach ($rawStages as $i => $row) {
+            $rawStages[$i]['depends_on_index'] = isset($row['depends_on_stage_id'], $idToIndex[(int)$row['depends_on_stage_id']])
+                ? (string)$idToIndex[(int)$row['depends_on_stage_id']] : '';
+        }
+
+        $this->data['stages'] = $rawStages;
+
+        $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>Etapas do projeto substituídas com sucesso a partir do grupo selecionado.</div>";
+
+        // Recarrega a tela mantendo a aba de etapas ativa
+        $tab = urlencode($form['active_tab'] ?? 'etapas');
+        header('Location: ' . $_ENV['URL_ADM'] . 'update-project/' . $projectId . '?tab=' . $tab);
+        return;
     }
 }
 

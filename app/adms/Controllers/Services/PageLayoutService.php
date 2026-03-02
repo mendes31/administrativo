@@ -267,6 +267,10 @@ class PageLayoutService
             'CreateProjectStage',
             'UpdateProjectStage',
             'DeleteProjectStage',
+            'ListStageGroups',
+            'CreateStageGroup',
+            'UpdateStageGroup',
+            'DeleteStageGroup',
             // Documentos
             'CrmUploadDocument',
             'CrmDownloadDocument',

@@ -142,7 +142,11 @@ class LoadPageAdm
         "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete", "RhVagasPipeline",
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
         "RhKpiDashboard",
-        "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete"
+        "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete",
+        // Gestão de Projetos
+        "ListProjects", "CreateProject", "UpdateProject", "DeleteProject",
+        // Gestão de Projetos - Grupos de Etapas
+        "ListStageGroups", "CreateStageGroup", "UpdateStageGroup", "DeleteStageGroup"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

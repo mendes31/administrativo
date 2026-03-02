@@ -38,25 +38,35 @@ use App\adms\Helpers\CSRFHelper;
 
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+            <?php $activeTab = $this->data['active_tab'] ?? ($_GET['tab'] ?? 'dados-gerais'); ?>
             <form action="" method="POST" class="row g-3">
 
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_project'); ?>">
+                <input type="hidden" name="active_tab" id="active_tab" value="<?php echo htmlspecialchars($activeTab); ?>">
+
+                <div class="col-12">
+                    <p class="fw-bold mb-2">
+                        Projeto:
+                        #<?php echo htmlspecialchars((string)($this->data['form']['id'] ?? '')); ?>
+                        - <?php echo htmlspecialchars($this->data['form']['name'] ?? ''); ?>
+                    </p>
+                </div>
 
                 <ul class="nav nav-tabs mb-3" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tab-dados-gerais" data-bs-toggle="tab" data-bs-target="#pane-dados-gerais" type="button" role="tab">
+                        <button class="nav-link <?php echo $activeTab === 'dados-gerais' ? 'active' : ''; ?>" id="tab-dados-gerais" data-bs-toggle="tab" data-bs-target="#pane-dados-gerais" type="button" role="tab">
                             Dados gerais
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-etapas" data-bs-toggle="tab" data-bs-target="#pane-etapas" type="button" role="tab">
+                        <button class="nav-link <?php echo $activeTab === 'etapas' ? 'active' : ''; ?>" id="tab-etapas" data-bs-toggle="tab" data-bs-target="#pane-etapas" type="button" role="tab">
                             Etapas
                         </button>
                     </li>
                 </ul>
 
                 <div class="tab-content">
-                    <div class="tab-pane fade show active" id="pane-dados-gerais" role="tabpanel" aria-labelledby="tab-dados-gerais">
+                    <div class="tab-pane fade <?php echo $activeTab === 'dados-gerais' ? 'show active' : ''; ?>" id="pane-dados-gerais" role="tabpanel" aria-labelledby="tab-dados-gerais">
                         <div class="row g-3">
                             <div class="col-12 col-md-3">
                                 <label for="type" class="form-label">Tipo</label>
@@ -176,22 +186,51 @@ use App\adms\Helpers\CSRFHelper;
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="pane-etapas" role="tabpanel" aria-labelledby="tab-etapas">
+                    <div class="tab-pane fade <?php echo $activeTab === 'etapas' ? 'show active' : ''; ?>" id="pane-etapas" role="tabpanel" aria-labelledby="tab-etapas">
+
+                        <div class="row mb-3">
+                            <div class="col-12 col-md-6">
+                                <label for="stage_group_id" class="form-label">Carregar etapas a partir do grupo</label>
+                                <div class="input-group input-group-sm">
+                                    <select name="stage_group_id" id="stage_group_id" class="form-select">
+                                        <option value="">Selecione um grupo</option>
+                                        <?php
+                                        $listStageGroups = $this->data['listStageGroups'] ?? [];
+                                        $selectedGroup = $this->data['form']['stage_group_id'] ?? '';
+                                        foreach ($listStageGroups as $g):
+                                            $sel = ((string)$selectedGroup === (string)$g['id']) ? 'selected' : '';
+                                            ?>
+                                            <option value="<?= (int)$g['id']; ?>" <?= $sel; ?>>
+                                                <?= htmlspecialchars($g['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="submit" name="apply_stage_group" value="1" class="btn btn-outline-primary">
+                                        Aplicar grupo
+                                    </button>
+                                </div>
+                                <small class="text-muted">
+                                    As etapas serão carregadas na tabela abaixo. Revise e clique em Salvar para aplicar ao projeto.
+                                </small>
+                            </div>
+                        </div>
+
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle" id="stages-table">
+                            <table class="table table-sm align-middle table-bordered" id="stages-table">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Data Início</th>
-                                        <th>Previsão Término</th>
-                                        <th>Data Término</th>
-                                        <th>Etapa</th>
-                                        <th>Nome</th>
-                                        <th>Atividade</th>
-                                        <th>Descrição</th>
-                                        <th>Titular</th>
-                                        <th>Dependência</th>
-                                        <th>Concluído</th>
-                                        <th class="text-end">Ações</th>
+                                        <th style="min-width: 120px; white-space: nowrap;">Data Início</th>
+                                        <th style="min-width: 140px; white-space: nowrap;">Previsão Término</th>
+                                        <th style="min-width: 120px; white-space: nowrap;">Data Término</th>
+                                        <th style="min-width: 220px;">Etapa</th>
+                                        <th style="min-width: 220px;">Nome</th>
+                                        <th style="min-width: 220px;">Atividade</th>
+                                        <th style="min-width: 260px;">Descrição</th>
+                                        <th style="min-width: 220px;">Titular</th>
+                                        <th style="min-width: 150px;">Dependência</th>
+                                        <th style="min-width: 170px;">Status</th>
+                                        <th style="width: 90px;">Concluído</th>
+                                        <th style="width: 110px;" class="text-end">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -199,9 +238,19 @@ use App\adms\Helpers\CSRFHelper;
                                     $listStages = $this->data['listStages'] ?? [];
                                     $listUsers = $this->data['listUsers'] ?? [];
                                     $stages = $this->data['stages'] ?? [];
+                                    $statusOptions = [
+                                        'NAO_INICIADO'         => 'Não Iniciado',
+                                        'EM_ANDAMENTO'         => 'Em Andamento',
+                                        'EM_VALIDACAO'         => 'Em Validação',
+                                        'AGUARDANDO_APROVACAO' => 'Aguardando Aprovação',
+                                        'BLOQUEADO'            => 'Bloqueado',
+                                        'CONCLUIDO'            => 'Concluído',
+                                        'CANCELADO'            => 'Cancelado',
+                                    ];
                                     $stageCount = count($stages);
                                     foreach ($stages as $idx => $s):
                                         $depIdx = $s['depends_on_index'] ?? '';
+                                        $currentStatus = strtoupper((string)($s['status'] ?? 'NAO_INICIADO'));
                                     ?>
                                         <tr>
                                             <td>
@@ -257,7 +306,16 @@ use App\adms\Helpers\CSRFHelper;
                                                 </select>
                                             </td>
                                             <td>
-                                                <div class="form-check form-check-sm">
+                                                <select name="stage_status[<?= $idx ?>]" class="form-select form-select-sm">
+                                                    <?php foreach ($statusOptions as $code => $label): ?>
+                                                        <option value="<?= $code; ?>" <?= $currentStatus === $code ? 'selected' : ''; ?>>
+                                                            <?= htmlspecialchars($label); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="form-check form-check-sm d-flex justify-content-center">
                                                     <?php $checked = !empty($s['completed']); ?>
                                                     <input type="checkbox" name="stage_completed[<?= $idx ?>]" value="1" class="form-check-input stage-completed-cb" <?= $checked ? 'checked' : '' ?>>
                                                 </div>
@@ -313,6 +371,7 @@ function setProjectPartner(code, name) {
 
 // Etapas: preencher nome quando selecionar etapa do catálogo
 document.addEventListener('DOMContentLoaded', function() {
+    // Preencher nome quando selecionar etapa do catálogo
     document.getElementById('stages-table')?.addEventListener('change', function(e) {
         if (e.target.classList.contains('stage-catalog-select')) {
             var opt = e.target.options[e.target.selectedIndex];
@@ -323,6 +382,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Controlar a aba ativa no hidden active_tab quando o usuário clica nas abas
+    var tabInput = document.getElementById('active_tab');
+    var tabDados = document.getElementById('tab-dados-gerais');
+    var tabEtapas = document.getElementById('tab-etapas');
+
+    if (tabDados && tabInput) {
+        tabDados.addEventListener('click', function () {
+            tabInput.value = 'dados-gerais';
+        });
+    }
+    if (tabEtapas && tabInput) {
+        tabEtapas.addEventListener('click', function () {
+            tabInput.value = 'etapas';
+        });
+    }
 });
 
 function removeStageRow(btn) {
@@ -346,6 +421,7 @@ function reindexStageRows() {
         row.querySelectorAll('input[name="stage_description[]"]').forEach(function(el) { el.name = 'stage_description[' + idx + ']'; });
         row.querySelectorAll('select[name="stage_responsible_user_id[]"]').forEach(function(el) { el.name = 'stage_responsible_user_id[' + idx + ']'; });
         row.querySelectorAll('select[name="stage_depends_on_index[]"]').forEach(function(el) { el.name = 'stage_depends_on_index[' + idx + ']'; });
+        row.querySelectorAll('select[name="stage_status[]"]').forEach(function(el) { el.name = 'stage_status[' + idx + ']'; });
         var cb = row.querySelector('.stage-completed-cb');
         if (cb) { cb.name = 'stage_completed[' + idx + ']'; }
         // Atualizar options do select Dependência
@@ -386,6 +462,21 @@ function addStageRow() {
         if (k === idx) continue;
         depOpts += '<option value="' + k + '">Etapa ' + (k + 1) + '</option>';
     }
+    var statusOptions = <?php echo json_encode($statusOptions ?? [
+        'NAO_INICIADO'         => 'Não Iniciado',
+        'EM_ANDAMENTO'         => 'Em Andamento',
+        'EM_VALIDACAO'         => 'Em Validação',
+        'AGUARDANDO_APROVACAO' => 'Aguardando Aprovação',
+        'BLOQUEADO'            => 'Bloqueado',
+        'CONCLUIDO'            => 'Concluído',
+        'CANCELADO'            => 'Cancelado',
+    ]); ?>;
+    var statusOpts = '';
+    Object.keys(statusOptions || {}).forEach(function (code) {
+        var label = statusOptions[code];
+        statusOpts += '<option value=\"' + code + '\">' + label + '</option>';
+    });
+
     var tr = document.createElement('tr');
     tr.innerHTML =
         '<td><input type="date" name="stage_start_date[' + idx + ']" class="form-control form-control-sm"></td>' +
@@ -397,7 +488,8 @@ function addStageRow() {
         '<td><input type="text" name="stage_description[' + idx + ']" class="form-control form-control-sm"></td>' +
         '<td><select name="stage_responsible_user_id[' + idx + ']" class="form-select form-select-sm">' + usersOpts + '</select></td>' +
         '<td><select name="stage_depends_on_index[' + idx + ']" class="form-select form-select-sm stage-depends-select">' + depOpts + '</select></td>' +
-        '<td><div class="form-check form-check-sm"><input type="checkbox" name="stage_completed[' + idx + ']" value="1" class="form-check-input stage-completed-cb"></div></td>' +
+        '<td><select name="stage_status[' + idx + ']" class="form-select form-select-sm">' + statusOpts + '</select></td>' +
+        '<td class="text-center"><div class="form-check form-check-sm d-flex justify-content-center"><input type="checkbox" name="stage_completed[' + idx + ']" value="1" class="form-check-input stage-completed-cb"></div></td>' +
         '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStageRow(this)">Remover</button></td>';
     tbody.appendChild(tr);
     reindexStageRows();
