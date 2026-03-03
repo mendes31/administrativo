@@ -38,7 +38,11 @@ use App\adms\Helpers\CSRFHelper;
 
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <?php $activeTab = $this->data['active_tab'] ?? ($_GET['tab'] ?? 'dados-gerais'); ?>
+            <?php
+            $activeTab = $this->data['active_tab'] ?? ($_GET['tab'] ?? 'dados-gerais');
+            $isProjectManager = $this->data['isProjectManager'] ?? true;
+            $currentUserId = (string)($_SESSION['user_id'] ?? '');
+            ?>
             <form action="" method="POST" class="row g-3">
 
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_project'); ?>">
@@ -188,6 +192,11 @@ use App\adms\Helpers\CSRFHelper;
 
                     <div class="tab-pane fade <?php echo $activeTab === 'etapas' ? 'show active' : ''; ?>" id="pane-etapas" role="tabpanel" aria-labelledby="tab-etapas">
 
+                        <?php if (!$isProjectManager): ?>
+                            <div class="alert alert-info mb-3">
+                                Você pode alterar apenas as etapas em que é o Titular. As demais são somente leitura.
+                            </div>
+                        <?php endif; ?>
                         <div class="row mb-3">
                             <div class="col-12 col-md-6">
                                 <label for="stage_group_id" class="form-label">Carregar etapas a partir do grupo</label>
@@ -251,22 +260,28 @@ use App\adms\Helpers\CSRFHelper;
                                     foreach ($stages as $idx => $s):
                                         $depIdx = $s['depends_on_index'] ?? '';
                                         $currentStatus = strtoupper((string)($s['status'] ?? 'NAO_INICIADO'));
+                                        $responsibleId = (string)($s['responsible_user_id'] ?? '');
+                                        $canEditRow = $isProjectManager || ($currentUserId !== '' && $currentUserId === $responsibleId);
                                     ?>
                                         <tr>
                                             <td>
                                                 <input type="date" name="stage_start_date[<?= $idx ?>]" class="form-control form-control-sm"
-                                                       value="<?= htmlspecialchars((string)($s['start_date'] ?? '')) ?>">
+                                                       value="<?= htmlspecialchars((string)($s['start_date'] ?? '')) ?>"
+                                                       <?php echo $canEditRow ? '' : 'readonly'; ?>>
                                             </td>
                                             <td>
                                                 <input type="date" name="stage_expected_end_date[<?= $idx ?>]" class="form-control form-control-sm"
-                                                       value="<?= htmlspecialchars((string)($s['expected_end_date'] ?? '')) ?>">
+                                                       value="<?= htmlspecialchars((string)($s['expected_end_date'] ?? '')) ?>"
+                                                       <?php echo $canEditRow ? '' : 'readonly'; ?>>
                                             </td>
                                             <td>
                                                 <input type="date" name="stage_end_date[<?= $idx ?>]" class="form-control form-control-sm"
-                                                       value="<?= htmlspecialchars((string)($s['end_date'] ?? '')) ?>">
+                                                       value="<?= htmlspecialchars((string)($s['end_date'] ?? '')) ?>"
+                                                       <?php echo $canEditRow ? '' : 'readonly'; ?>>
                                             </td>
                                             <td>
-                                                <select name="stage_id[<?= $idx ?>]" class="form-select form-select-sm stage-catalog-select">
+                                                <select name="stage_id[<?= $idx ?>]" class="form-select form-select-sm stage-catalog-select"
+                                                    <?php echo $canEditRow ? '' : 'disabled'; ?>>
                                                     <option value="">Selecione</option>
                                                     <?php foreach ($listStages as $opt): ?>
                                                         <?php $sel = ((string)($s['stage_id'] ?? '') === (string)$opt['id']) ? 'selected' : ''; ?>
@@ -274,20 +289,27 @@ use App\adms\Helpers\CSRFHelper;
                                                     <?php endforeach; ?>
                                                 </select>
                                             </td>
+                                            <?php if (!$canEditRow): ?>
+                                                <input type="hidden" name="stage_id[<?= $idx ?>]" value="<?= htmlspecialchars((string)($s['stage_id'] ?? '')); ?>">
+                                            <?php endif; ?>
                                             <td>
                                                 <input type="text" name="stage_name[<?= $idx ?>]" class="form-control form-control-sm stage-name-input"
-                                                       value="<?= htmlspecialchars((string)($s['name'] ?? '')) ?>" placeholder="Nome da etapa">
+                                                       value="<?= htmlspecialchars((string)($s['name'] ?? '')) ?>" placeholder="Nome da etapa"
+                                                       <?php echo $canEditRow ? '' : 'readonly'; ?>>
                                             </td>
                                             <td>
                                                 <input type="text" name="stage_activity[<?= $idx ?>]" class="form-control form-control-sm"
-                                                       value="<?= htmlspecialchars((string)($s['activity'] ?? '')) ?>">
+                                                       value="<?= htmlspecialchars((string)($s['activity'] ?? '')) ?>"
+                                                       <?php echo $canEditRow ? '' : 'readonly'; ?>>
                                             </td>
                                             <td>
                                                 <input type="text" name="stage_description[<?= $idx ?>]" class="form-control form-control-sm"
-                                                       value="<?= htmlspecialchars((string)($s['description'] ?? '')) ?>">
+                                                       value="<?= htmlspecialchars((string)($s['description'] ?? '')) ?>"
+                                                       <?php echo $canEditRow ? '' : 'readonly'; ?>>
                                             </td>
                                             <td>
-                                                <select name="stage_responsible_user_id[<?= $idx ?>]" class="form-select form-select-sm">
+                                                <select name="stage_responsible_user_id[<?= $idx ?>]" class="form-select form-select-sm"
+                                                    <?php echo $isProjectManager ? '' : 'disabled'; ?>>
                                                     <option value="">Selecione</option>
                                                     <?php foreach ($listUsers as $u): ?>
                                                         <?php $sel = ((string)($s['responsible_user_id'] ?? '') === (string)$u['id']) ? 'selected' : ''; ?>
@@ -295,8 +317,12 @@ use App\adms\Helpers\CSRFHelper;
                                                     <?php endforeach; ?>
                                                 </select>
                                             </td>
+                                            <?php if (!$isProjectManager): ?>
+                                                <input type="hidden" name="stage_responsible_user_id[<?= $idx ?>]" value="<?= htmlspecialchars((string)($s['responsible_user_id'] ?? '')); ?>">
+                                            <?php endif; ?>
                                             <td>
-                                                <select name="stage_depends_on_index[<?= $idx ?>]" class="form-select form-select-sm stage-depends-select">
+                                                <select name="stage_depends_on_index[<?= $idx ?>]" class="form-select form-select-sm stage-depends-select"
+                                                    <?php echo $canEditRow ? '' : 'disabled'; ?>>
                                                     <option value="">Nenhuma</option>
                                                     <?php for ($k = 0; $k < $stageCount; $k++): ?>
                                                         <?php if ($k === $idx) continue; ?>
@@ -305,8 +331,12 @@ use App\adms\Helpers\CSRFHelper;
                                                     <?php endfor; ?>
                                                 </select>
                                             </td>
+                                            <?php if (!$canEditRow): ?>
+                                                <input type="hidden" name="stage_depends_on_index[<?= $idx ?>]" value="<?= htmlspecialchars((string)$depIdx); ?>">
+                                            <?php endif; ?>
                                             <td>
-                                                <select name="stage_status[<?= $idx ?>]" class="form-select form-select-sm">
+                                                <select name="stage_status[<?= $idx ?>]" class="form-select form-select-sm"
+                                                    <?php echo $canEditRow ? '' : 'disabled'; ?>>
                                                     <?php foreach ($statusOptions as $code => $label): ?>
                                                         <option value="<?= $code; ?>" <?= $currentStatus === $code ? 'selected' : ''; ?>>
                                                             <?= htmlspecialchars($label); ?>
@@ -314,14 +344,23 @@ use App\adms\Helpers\CSRFHelper;
                                                     <?php endforeach; ?>
                                                 </select>
                                             </td>
+                                            <?php if (!$canEditRow): ?>
+                                                <input type="hidden" name="stage_status[<?= $idx ?>]" value="<?= htmlspecialchars($currentStatus); ?>">
+                                            <?php endif; ?>
                                             <td class="text-center">
                                                 <div class="form-check form-check-sm d-flex justify-content-center">
                                                     <?php $checked = !empty($s['completed']); ?>
-                                                    <input type="checkbox" name="stage_completed[<?= $idx ?>]" value="1" class="form-check-input stage-completed-cb" <?= $checked ? 'checked' : '' ?>>
+                                                    <input type="checkbox" name="stage_completed[<?= $idx ?>]" value="1" class="form-check-input stage-completed-cb"
+                                                           <?= $checked ? 'checked' : '' ?> <?= $canEditRow ? '' : 'disabled'; ?>>
                                                 </div>
+                                                <?php if (!$canEditRow && $checked): ?>
+                                                    <input type="hidden" name="stage_completed[<?= $idx ?>]" value="1">
+                                                <?php endif; ?>
                                             </td>
                                             <td class="text-end">
-                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStageRow(this)">Remover</button>
+                                                <?php if ($canEditRow): ?>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStageRow(this)">Remover</button>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -331,6 +370,7 @@ use App\adms\Helpers\CSRFHelper;
                         <div class="mt-2">
                             <button type="button" class="btn btn-sm btn-outline-primary" onclick="addStageRow()">Adicionar etapa</button>
                         </div>
+                        </fieldset>
                     </div>
                 </div>
 
@@ -410,6 +450,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     tabInput.value = 'etapas';
                 } else {
                     tabInput.value = 'dados-gerais';
+                }
+            }
+
+            // Usuário sem permissão não pode salvar alterações quando estiver na aba Etapas
+            if (!isProjectManager) {
+                var activeLink2 = document.querySelector('.nav-tabs .nav-link.active');
+                if (activeLink2 && activeLink2.id === 'tab-etapas') {
+                    alert('Você não tem permissão para alterar as etapas deste projeto. Vá para a aba "Dados gerais" para salvar outros dados.');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
                 }
             }
 

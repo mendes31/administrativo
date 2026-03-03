@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\projects\ProjProjectsRepository;
 use App\adms\Models\Repository\projects\ProjProjectStagesRepository;
 use App\adms\Models\Repository\projects\ProjStagesRepository;
@@ -45,6 +46,24 @@ class UpdateProject
             header('Location: ' . $_ENV['URL_ADM'] . 'list-projects');
             return;
         }
+
+        // Determinar se o usuário logado é gestor do projeto
+        $isProjectManager = false;
+        $currentUserId = (int)($_SESSION['user_id'] ?? 0);
+        if ($currentUserId > 0) {
+            // Super administrador (nível de acesso 1) sempre é gestor
+            $accessRepo = new UsersAccessLevelsRepository();
+            $levels = $accessRepo->getUserAccessLevelArray($currentUserId) ?: [];
+            if (in_array(1, $levels, true)) {
+                $isProjectManager = true;
+            }
+
+            // Dono do projeto também é gestor
+            if (!$isProjectManager && (int)($project['owner_user_id'] ?? 0) === $currentUserId) {
+                $isProjectManager = true;
+            }
+        }
+        $this->data['isProjectManager'] = $isProjectManager;
 
         if (empty($this->data['form'])) {
             $this->data['form'] = $project;
@@ -302,6 +321,20 @@ class UpdateProject
                 if ($nextBase instanceof \DateTimeImmutable) {
                     $currentStart = $calendar->nextWorkday($nextBase);
                 }
+            }
+        }
+        unset($line);
+
+        // Para etapas sem dependência e ainda sem Data Início,
+        // define a Data Início como a data em que a etapa foi adicionada (próximo dia útil "hoje").
+        $today = new \DateTimeImmutable();
+        while (!$calendar->isWorkday($today)) {
+            $today = $today->modify('+1 day');
+        }
+        foreach ($lines as &$line) {
+            $depIdxForStart = $line['depends_on_index'] ?? null;
+            if (empty($line['start_date']) && ($depIdxForStart === null || $depIdxForStart === '')) {
+                $line['start_date'] = $today->format('Y-m-d');
             }
         }
         unset($line);
