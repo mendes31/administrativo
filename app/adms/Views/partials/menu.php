@@ -38,6 +38,12 @@ $menus = [
                             'permission' => 'EmailConfig'
                         ],
                         [
+                            'label' => 'Calendário',
+                            'url' => $_ENV['URL_ADM'] . 'calendar-config',
+                            'permission' => 'CalendarConfig',
+                            'icon' => 'fa-solid fa-calendar-days'
+                        ],
+                        [
                             'label' => 'Configuração SAP API',
                             'url' => $_ENV['URL_ADM'] . 'sap-api-config',
                             'permission' => 'SapApiConfig',

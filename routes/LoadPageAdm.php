@@ -143,6 +143,7 @@ class LoadPageAdm
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
         "RhKpiDashboard",
         "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete",
+        "CalendarConfig",
         // Gestão de Projetos
         "ListProjects", "CreateProject", "UpdateProject", "DeleteProject",
         // Gestão de Projetos - Grupos de Etapas

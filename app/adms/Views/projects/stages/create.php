@@ -56,6 +56,13 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
 
                 <div class="col-12 col-md-3">
+                    <label for="estimated_workdays" class="form-label">Dias previstos (úteis)</label>
+                    <input type="number" name="estimated_workdays" id="estimated_workdays" class="form-control"
+                           min="0" step="1"
+                           value="<?php echo htmlspecialchars((string)($this->data['form']['estimated_workdays'] ?? '0')); ?>">
+                </div>
+
+                <div class="col-12 col-md-4">
                     <label class="form-label d-block">Opções</label>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="is_cost_stage" name="is_cost_stage"

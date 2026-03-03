@@ -369,7 +369,7 @@ function setProjectPartner(code, name) {
     }
 }
 
-// Etapas: preencher nome quando selecionar etapa do catálogo
+// Etapas: preencher nome quando selecionar etapa do catálogo e validar dependências no front-end
 document.addEventListener('DOMContentLoaded', function() {
     // Preencher nome quando selecionar etapa do catálogo
     document.getElementById('stages-table')?.addEventListener('change', function(e) {
@@ -398,7 +398,117 @@ document.addEventListener('DOMContentLoaded', function() {
             tabInput.value = 'etapas';
         });
     }
+
+    // Antes de enviar o formulário, validar dependências de etapas no front-end
+    var form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            // Mantém active_tab coerente com a aba selecionada
+            if (tabInput) {
+                var activeLink = document.querySelector('.nav-tabs .nav-link.active');
+                if (activeLink && activeLink.id === 'tab-etapas') {
+                    tabInput.value = 'etapas';
+                } else {
+                    tabInput.value = 'dados-gerais';
+                }
+            }
+
+            if (!validateStageDependenciesClient()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
 });
+
+function validateStageDependenciesClient() {
+    var table = document.getElementById('stages-table');
+    if (!table) return true;
+
+    var rows = table.querySelectorAll('tbody tr');
+    if (!rows.length) return true;
+
+    var statusByIndex = [];
+    var completedByIndex = [];
+
+    var allowedStatuses = [
+        'NAO_INICIADO',
+        'EM_ANDAMENTO',
+        'EM_VALIDACAO',
+        'AGUARDANDO_APROVACAO',
+        'BLOQUEADO',
+        'CONCLUIDO',
+        'CANCELADO'
+    ];
+    var statusAtivoOuFinal = [
+        'EM_ANDAMENTO',
+        'EM_VALIDACAO',
+        'AGUARDANDO_APROVACAO',
+        'BLOQUEADO',
+        'CONCLUIDO'
+    ];
+
+    // 1ª passada: coletar status e concluído por índice de linha
+    rows.forEach(function(row, idx) {
+        var nameInput = row.querySelector('input[name^="stage_name"]');
+        var stageSelect = row.querySelector('select[name^="stage_id"]');
+        var nameVal = nameInput ? nameInput.value.trim() : '';
+        var stageVal = stageSelect ? (stageSelect.value || '').trim() : '';
+
+        // linha vazia (sem nome e sem etapa) é ignorada
+        if (!nameVal && !stageVal) {
+            return;
+        }
+
+        var statusSelect = row.querySelector('select[name^="stage_status"]');
+        var status = statusSelect ? (statusSelect.value || 'NAO_INICIADO').toUpperCase() : 'NAO_INICIADO';
+        if (allowedStatuses.indexOf(status) === -1) {
+            status = 'NAO_INICIADO';
+        }
+        statusByIndex[idx] = status;
+
+        var cb = row.querySelector('.stage-completed-cb');
+        completedByIndex[idx] = cb && cb.checked ? 1 : 0;
+    });
+
+    if (!Object.keys(statusByIndex).length) {
+        return true;
+    }
+
+    // 2ª passada: validar dependências
+    var hasError = false;
+    rows.forEach(function(row, idx) {
+        if (typeof statusByIndex[idx] === 'undefined') {
+            return;
+        }
+
+        var depSelect = row.querySelector('select[name^="stage_depends_on_index"]');
+        if (!depSelect) return;
+        var depVal = depSelect.value;
+        if (depVal === '' || depVal === null) {
+            return; // sem dependência, etapa livre
+        }
+        var depIdx = parseInt(depVal, 10);
+        if (isNaN(depIdx) || typeof statusByIndex[depIdx] === 'undefined') {
+            return; // dependência inválida/fora da lista, não bloqueia
+        }
+
+        var depStatus = statusByIndex[depIdx] || 'NAO_INICIADO';
+        var myStatus  = statusByIndex[idx] || 'NAO_INICIADO';
+        var estaConcluida = !!completedByIndex[idx] || myStatus === 'CONCLUIDO';
+
+        if ((estaConcluida || statusAtivoOuFinal.indexOf(myStatus) !== -1) && depStatus !== 'CONCLUIDO') {
+            hasError = true;
+        }
+    });
+
+    if (hasError) {
+        alert('Existem etapas marcadas como concluídas ou em andamento com dependências não concluídas. Ajuste os status, o campo Concluído ou as dependências antes de salvar.');
+        return false;
+    }
+
+    return true;
+}
 
 function removeStageRow(btn) {
     var row = btn.closest('tr');

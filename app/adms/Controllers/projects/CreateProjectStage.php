@@ -51,7 +51,8 @@ class CreateProjectStage
 
         if ($errors) {
             $this->data['errors'] = $errors;
-            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Verifique os campos obrigatórios.</div>";
+            $_SESSION['msg'] = 'Verifique os campos obrigatórios.';
+            $_SESSION['msg_type'] = 'danger';
             $this->view();
             return;
         }
@@ -62,17 +63,22 @@ class CreateProjectStage
             'description' => $form['description'] ?? null,
             'sequence_default' => (int)($form['sequence_default'] ?? 1),
             'is_cost_stage' => !empty($form['is_cost_stage']) ? 1 : 0,
+            'estimated_workdays' => isset($form['estimated_workdays']) && $form['estimated_workdays'] !== ''
+                ? (int)$form['estimated_workdays']
+                : 0,
             'active' => !empty($form['active']) ? 1 : 0,
         ]);
 
         if ($createdId) {
             GenerateLog::generateLog('info', 'Etapa de projeto criada', ['id' => $createdId]);
-            $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>Etapa cadastrada com sucesso.</div>";
+            $_SESSION['msg'] = 'Etapa cadastrada com sucesso.';
+            $_SESSION['msg_type'] = 'success';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-project-stages');
             return;
         }
 
-        $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao cadastrar etapa.</div>";
+        $_SESSION['msg'] = 'Erro ao cadastrar etapa.';
+        $_SESSION['msg_type'] = 'danger';
         $this->view();
     }
 }

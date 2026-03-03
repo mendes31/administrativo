@@ -424,6 +424,7 @@ class PageLayoutService
             'BookingReports',
             // Histórico de Emprego
             'UpdateEmploymentHistory',
+            'CalendarConfig',
         ];
 
         // Verificar se o usuário está logado

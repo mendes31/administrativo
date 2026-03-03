@@ -31,7 +31,7 @@ class ProjStagesRepository extends DbConnection
 
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-        $sql = "SELECT s.id, s.name, s.description, s.sequence_default, s.is_cost_stage, s.active, s.created_at, s.updated_at
+        $sql = "SELECT s.id, s.name, s.description, s.sequence_default, s.is_cost_stage, s.estimated_workdays, s.active, s.created_at, s.updated_at
                 FROM proj_stages s
                 {$whereSql}
                 ORDER BY s.sequence_default ASC, s.name ASC
@@ -85,7 +85,7 @@ class ProjStagesRepository extends DbConnection
 
     public function getOne(int $id): array|bool
     {
-        $sql = "SELECT id, name, description, sequence_default, is_cost_stage, active
+        $sql = "SELECT id, name, description, sequence_default, is_cost_stage, estimated_workdays, active
                 FROM proj_stages
                 WHERE id = :id
                 LIMIT 1";
@@ -98,13 +98,14 @@ class ProjStagesRepository extends DbConnection
     public function create(array $data): int|bool
     {
         try {
-            $sql = "INSERT INTO proj_stages (name, description, sequence_default, is_cost_stage, active, created_at)
-                    VALUES (:name, :description, :sequence_default, :is_cost_stage, :active, :created_at)";
+            $sql = "INSERT INTO proj_stages (name, description, sequence_default, is_cost_stage, estimated_workdays, active, created_at)
+                    VALUES (:name, :description, :sequence_default, :is_cost_stage, :estimated_workdays, :active, :created_at)";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name']);
             $stmt->bindValue(':description', $data['description'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':sequence_default', (int)($data['sequence_default'] ?? 1), PDO::PARAM_INT);
             $stmt->bindValue(':is_cost_stage', isset($data['is_cost_stage']) ? (int)$data['is_cost_stage'] : 0, PDO::PARAM_INT);
+            $stmt->bindValue(':estimated_workdays', isset($data['estimated_workdays']) ? (int)$data['estimated_workdays'] : 0, PDO::PARAM_INT);
             $stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->execute();
@@ -124,6 +125,7 @@ class ProjStagesRepository extends DbConnection
                            description = :description,
                            sequence_default = :sequence_default,
                            is_cost_stage = :is_cost_stage,
+                           estimated_workdays = :estimated_workdays,
                            active = :active,
                            updated_at = :updated_at
                      WHERE id = :id";
@@ -133,6 +135,7 @@ class ProjStagesRepository extends DbConnection
             $stmt->bindValue(':description', $data['description'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':sequence_default', (int)($data['sequence_default'] ?? 1), PDO::PARAM_INT);
             $stmt->bindValue(':is_cost_stage', isset($data['is_cost_stage']) ? (int)$data['is_cost_stage'] : 0, PDO::PARAM_INT);
+            $stmt->bindValue(':estimated_workdays', isset($data['estimated_workdays']) ? (int)$data['estimated_workdays'] : 0, PDO::PARAM_INT);
             $stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 0, PDO::PARAM_INT);
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -159,7 +162,7 @@ class ProjStagesRepository extends DbConnection
 
     public function getAllForSelect(): array
     {
-        $sql = "SELECT id, name, is_cost_stage
+        $sql = "SELECT id, name, is_cost_stage, estimated_workdays
                 FROM proj_stages
                 WHERE active = 1
                 ORDER BY sequence_default ASC, name ASC";
@@ -194,6 +197,36 @@ class ProjStagesRepository extends DbConnection
         $map = [];
         foreach ($rows as $row) {
             $map[(int)$row['id']] = $row['name'] ?? '';
+        }
+        return $map;
+    }
+
+    /**
+     * Retorna mapa id => estimated_workdays para os IDs informados.
+     *
+     * @param int[] $ids
+     * @return array<int, int>
+     */
+    public function getEstimatedWorkdaysByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $ids = array_map('intval', array_filter($ids));
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT id, estimated_workdays FROM proj_stages WHERE id IN ($placeholders)";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach (array_values($ids) as $i => $id) {
+            $stmt->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int)$row['id']] = (int)($row['estimated_workdays'] ?? 0);
         }
         return $map;
     }
