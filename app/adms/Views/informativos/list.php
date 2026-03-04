@@ -3,6 +3,82 @@ use App\adms\Helpers\FormatHelper;
 use App\adms\Helpers\CSRFHelper;
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
 ?>
+
+<style>
+    /* Layout otimizado para evitar corte de informações na listagem de informativos (desktop) */
+    .table-informativos {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .table-informativos th,
+    .table-informativos td {
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        vertical-align: middle;
+    }
+
+    /* Larguras FIXAS em pixels para cada coluna (desktop) */
+    .table-informativos th.col-titulo,
+    .table-informativos td.col-titulo {
+        width: 240px;
+    }
+
+    .table-informativos th.col-categoria,
+    .table-informativos td.col-categoria {
+        width: 130px;
+    }
+
+    .table-informativos th.col-departamento,
+    .table-informativos td.col-departamento {
+        width: 150px;
+    }
+
+    .table-informativos th.col-resumo,
+    .table-informativos td.col-resumo {
+        width: 260px;
+        /* Forçar quebra mesmo para textos muito longos ou sem espaços */
+        white-space: normal !important;
+        word-break: break-all;
+        overflow-wrap: anywhere;
+    }
+
+    .table-informativos th.col-urgente,
+    .table-informativos td.col-urgente,
+    .table-informativos th.col-status,
+    .table-informativos td.col-status {
+        width: 80px;
+        text-align: center;
+    }
+
+    .table-informativos th.col-data,
+    .table-informativos td.col-data {
+        width: 120px;
+        text-align: center;
+    }
+
+    .table-informativos th.col-acoes,
+    .table-informativos td.col-acoes {
+        width: 100px;
+        text-align: center;
+    }
+
+    /* Limitar tamanho das badges para quebra de linha agradável */
+    .table-informativos .badge {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    /* Imagem e ícone de anexo em linha, porém sem forçar largura extra */
+    .table-informativos .informativo-media {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+    }
+</style>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3">Informativos da Empresa</h2>
@@ -28,100 +104,102 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
             
-            <!-- Filtros -->
-            <form method="GET" class="row g-2 mb-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="categoria_id" class="form-label mb-1">Categoria</label>
-                    <select name="categoria_id" id="categoria_id" class="form-select">
-                        <option value="">Todas</option>
-                        <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
-                            <option value="<?= (int)$categoria['id'] ?>" <?= (($this->data['filters']['categoria_id'] ?? '') == $categoria['id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($categoria['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="department_id" class="form-label mb-1">Departamento</label>
-                    <select name="department_id" id="department_id" class="form-select">
-                        <option value="">Todos</option>
-                        <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
-                            <option value="<?= (int)$dep['id'] ?>" <?= (($this->data['filters']['department_id'] ?? '') == $dep['id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($dep['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="data_inicio" class="form-label mb-1">Data Início</label>
-                    <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="<?= htmlspecialchars($this->data['filters']['data_inicio'] ?? '') ?>">
-                </div>
-                <div class="col-md-2">
-                    <label for="data_fim" class="form-label mb-1">Data Fim</label>
-                    <input type="date" name="data_fim" id="data_fim" class="form-control" value="<?= htmlspecialchars($this->data['filters']['data_fim'] ?? '') ?>">
-                </div>
-                <div class="col-md-1">
-                    <select name="urgente" class="form-select">
-                        <option value="">Urgente</option>
-                        <option value="1" <?= (($this->data['filters']['urgente'] ?? '') === '1') ? 'selected' : '' ?>>Sim</option>
-                        <option value="0" <?= (($this->data['filters']['urgente'] ?? '') === '0') ? 'selected' : '' ?>>Não</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <select name="ativo" class="form-select">
-                        <option value="">Status</option>
-                        <option value="1" <?= (($this->data['filters']['ativo'] ?? '') === '1') ? 'selected' : '' ?>>Ativo</option>
-                        <option value="0" <?= (($this->data['filters']['ativo'] ?? '') === '0') ? 'selected' : '' ?>>Inativo</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="busca" class="form-label mb-1">Buscar</label>
-                    <input type="text" name="busca" id="busca" class="form-control" placeholder="Título ou conteúdo" value="<?= htmlspecialchars($this->data['filters']['busca'] ?? '') ?>">
-                </div>
-                <div class="col-auto mb-2">
-                    <label for="per_page" class="form-label mb-1">Mostrar</label>
-                    <div class="d-flex align-items-center">
-                        <select name="per_page" id="per_page" class="form-select form-select-sm" style="min-width: 80px;" onchange="this.form.submit()">
-                            <?php foreach ([10, 20, 50, 100] as $opt): ?>
-                                <option value="<?= $opt ?>" <?= ($this->data['per_page'] ?? 10) == $opt ? 'selected' : '' ?>><?= $opt ?></option>
+            <!-- Filtros (somente para usuários com permissão de cadastrar/editar informativos) -->
+            <?php if (!empty($this->data['isEditor'])): ?>
+                <form method="GET" class="row g-2 mb-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="categoria_id" class="form-label mb-1">Categoria</label>
+                        <select name="categoria_id" id="categoria_id" class="form-select">
+                            <option value="">Todas</option>
+                            <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
+                                <option value="<?= (int)$categoria['id'] ?>" <?= (($this->data['filters']['categoria_id'] ?? '') == $categoria['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($categoria['name']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
-                        <span class="form-label mb-1 ms-1">registros</span>
                     </div>
-                </div>
-                <div class="col-md-2 filtros-btns-row w-100 mt-2">
-                    <button type="submit" class="btn btn-primary btn-sm btn-filtros-mobile">
-                        <i class="fa fa-search"></i> Filtrar
-                    </button>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos" class="btn btn-secondary btn-sm btn-filtros-mobile">
-                        <i class="fa fa-times"></i> Limpar Filtros
-                    </a>
-                </div>
-            </form>
+                    <div class="col-md-3">
+                        <label for="department_id" class="form-label mb-1">Departamento</label>
+                        <select name="department_id" id="department_id" class="form-select">
+                            <option value="">Todos</option>
+                            <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
+                                <option value="<?= (int)$dep['id'] ?>" <?= (($this->data['filters']['department_id'] ?? '') == $dep['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($dep['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="data_inicio" class="form-label mb-1">Data Início</label>
+                        <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="<?= htmlspecialchars($this->data['filters']['data_inicio'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="data_fim" class="form-label mb-1">Data Fim</label>
+                        <input type="date" name="data_fim" id="data_fim" class="form-control" value="<?= htmlspecialchars($this->data['filters']['data_fim'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-1">
+                        <select name="urgente" class="form-select">
+                            <option value="">Urgente</option>
+                            <option value="1" <?= (($this->data['filters']['urgente'] ?? '') === '1') ? 'selected' : '' ?>>Sim</option>
+                            <option value="0" <?= (($this->data['filters']['urgente'] ?? '') === '0') ? 'selected' : '' ?>>Não</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <select name="ativo" class="form-select">
+                            <option value="">Status</option>
+                            <option value="1" <?= (($this->data['filters']['ativo'] ?? '') === '1') ? 'selected' : '' ?>>Ativo</option>
+                            <option value="0" <?= (($this->data['filters']['ativo'] ?? '') === '0') ? 'selected' : '' ?>>Inativo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="busca" class="form-label mb-1">Buscar</label>
+                        <input type="text" name="busca" id="busca" class="form-control" placeholder="Título ou conteúdo" value="<?= htmlspecialchars($this->data['filters']['busca'] ?? '') ?>">
+                    </div>
+                    <div class="col-auto mb-2">
+                        <label for="per_page" class="form-label mb-1">Mostrar</label>
+                        <div class="d-flex align-items-center">
+                            <select name="per_page" id="per_page" class="form-select form-select-sm" style="min-width: 80px;" onchange="this.form.submit()">
+                                <?php foreach ([10, 20, 50, 100] as $opt): ?>
+                                    <option value="<?= $opt ?>" <?= ($this->data['per_page'] ?? 10) == $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="form-label mb-1 ms-1">registros</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2 filtros-btns-row w-100 mt-2">
+                        <button type="submit" class="btn btn-primary btn-sm btn-filtros-mobile">
+                            <i class="fa fa-search"></i> Filtrar
+                        </button>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos" class="btn btn-secondary btn-sm btn-filtros-mobile">
+                            <i class="fa fa-times"></i> Limpar Filtros
+                        </a>
+                    </div>
+                </form>
+            <?php endif; ?>
 
             <!-- Tabela Desktop -->
-            <div class="table-responsive d-none d-md-block list-desktop">
-                <table class="table table-bordered table-striped table-hover table-fixed">
+            <div class="d-none d-md-block list-desktop">
+                <table class="table table-bordered table-striped table-hover table-informativos">
                     <thead class="table-dark">
                         <tr>
-                            <th style="width: 26%;">Título</th>
-                            <th style="width: 12%;">Categoria</th>
-                            <th style="width: 12%;">Departamento</th>
-                            <th style="width: 18%;">Resumo</th>
-                            <th class="text-center" style="width: 8%;">Urgente</th>
-                            <th class="text-center" style="width: 8%;">Status</th>
-                            <th class="text-center" style="width: 8%;">Data</th>
-                            <th class="text-center" style="width: 10%;">Ações</th>
+                            <th class="col-titulo">Título</th>
+                            <th class="col-categoria">Categoria</th>
+                            <th class="col-departamento">Departamento</th>
+                            <th class="col-resumo">Resumo</th>
+                            <th class="text-center col-urgente">Urgente</th>
+                            <th class="text-center col-status">Status</th>
+                            <th class="text-center col-data">Data</th>
+                            <th class="text-center col-acoes">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($this->data['informativos'])): ?>
                             <?php foreach ($this->data['informativos'] as $informativo): ?>
                                 <tr>
-                                    <td>
+                                    <td class="col-titulo">
                                         <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
-                                            <div class="d-flex gap-2 mt-2">
+                                            <div class="informativo-media">
                                                 <?php if (!empty($informativo['imagem'])): ?>
                                                     <a href="#" onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>'); return false;">
                                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>" alt="Imagem" style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e9ecef; cursor: pointer;">
@@ -135,16 +213,19 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             </div>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="col-categoria">
                                         <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
                                     </td>
-                                    <td>
+                                    <td class="col-departamento">
                                         <span class="badge bg-secondary"><?php echo htmlspecialchars($informativo['department_name'] ?? ''); ?></span>
                                     </td>
-                                    <td>
-                                        <?php echo htmlspecialchars($informativo['resumo'] ?? substr(strip_tags($informativo['conteudo']), 0, 100) . '...'); ?>
+                                    <td class="col-resumo">
+                                        <?php
+                                        $textoResumo = $informativo['resumo'] ?? strip_tags($informativo['conteudo']);
+                                        echo htmlspecialchars($textoResumo);
+                                        ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center col-urgente">
                                         <?php if ($informativo['urgente']): ?>
                                             <span class="badge bg-danger">
                                                 <i class="fas fa-exclamation-triangle me-1"></i>Urgente
@@ -153,7 +234,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <span class="text-muted">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center col-status">
                                         <?php if ($informativo['ativo']): ?>
                                             <span class="badge bg-success">
                                                 <i class="fas fa-check me-1"></i>Ativo
@@ -164,7 +245,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center col-data">
                                         <div class="d-flex flex-column small">
                                             <span title="Publicado em"><?php echo date('d/m/Y H:i', strtotime($informativo['created_at'])); ?></span>
                                             <?php if (!empty($informativo['expire_at'])): ?>
@@ -172,7 +253,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center col-acoes">
                                         <div class="btn-group" role="group">
                                             <?php if (in_array('ViewInformativo', $this->data['buttonPermission'])): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>" class="btn btn-primary btn-sm" title="Visualizar">
@@ -265,7 +346,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             </small>
                                         </div>
                                         <div class="mb-2">
-                                            <small><?php echo htmlspecialchars($informativo['resumo'] ?? substr(strip_tags($informativo['conteudo']), 0, 100) . '...'); ?></small>
+                                            <?php
+                                            $textoResumoMobile = $informativo['resumo'] ?? strip_tags($informativo['conteudo']);
+                                            ?>
+                                            <small><?php echo htmlspecialchars($textoResumoMobile); ?></small>
                                         </div>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
                                             <div class="mb-2">

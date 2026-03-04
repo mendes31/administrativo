@@ -69,6 +69,7 @@ class ListInformativos
         $deptRepo = new DepartmentsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
         $this->data['filters'] = $filters;
+        $this->data['isEditor'] = $isEditor;
         
         $pageElements = [
             'title_head' => 'Listar Informativos',

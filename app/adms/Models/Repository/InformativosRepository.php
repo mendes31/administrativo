@@ -272,6 +272,46 @@ class InformativosRepository extends DbConnection
     }
     
     /**
+     * Atualiza o campo "ativo" com base em publish_at / expire_at.
+     *
+     * - Inativa informativos expirados (expire_at <= agora)
+     * - Ativa informativos publicados (publish_at <= agora) que ainda não expiraram
+     *
+     * Retorna array com contagem de registros afetados.
+     *
+     * @return array{inativados:int,ativados:int}
+     */
+    public function updateActiveFromSchedule(): array
+    {
+        $conn = $this->getConnection();
+
+        // Inativar informativos expirados
+        $sqlInativar = "UPDATE adms_informativos
+                        SET ativo = 0, updated_at = NOW()
+                        WHERE ativo = 1
+                          AND expire_at IS NOT NULL
+                          AND expire_at <= NOW()";
+        $stmtInativar = $conn->prepare($sqlInativar);
+        $stmtInativar->execute();
+        $inativados = (int) $stmtInativar->rowCount();
+
+        // Ativar informativos já publicados (que não expiraram)
+        $sqlAtivar = "UPDATE adms_informativos
+                      SET ativo = 1, updated_at = NOW()
+                      WHERE ativo = 0
+                        AND (publish_at IS NULL OR publish_at <= NOW())
+                        AND (expire_at IS NULL OR expire_at > NOW())";
+        $stmtAtivar = $conn->prepare($sqlAtivar);
+        $stmtAtivar->execute();
+        $ativados = (int) $stmtAtivar->rowCount();
+
+        return [
+            'inativados' => $inativados,
+            'ativados'   => $ativados,
+        ];
+    }
+    
+    /**
      * Criar novo informativo
      * @param array $data
      * @return int

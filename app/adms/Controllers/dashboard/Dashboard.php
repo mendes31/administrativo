@@ -8,6 +8,7 @@ use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
+use App\adms\Models\Services\InformativosStatusUpdaterService;
 
 class Dashboard
 {
@@ -18,6 +19,9 @@ class Dashboard
     {
         // Atualizar retenção/anomização de currículos (LGPD) no primeiro acesso do dia
         CandidateRetentionService::ensureUpdated();
+
+        // Atualizar status de informativos (publicação/expiração) no primeiro acesso (com janela de 10 minutos)
+        InformativosStatusUpdaterService::ensureUpdated();
 
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';
 
