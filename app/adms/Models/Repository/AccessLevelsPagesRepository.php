@@ -22,6 +22,33 @@ class AccessLevelsPagesRepository extends DbConnection
     /** Última mensagem de erro (para retorno ao controller em caso de falha) */
     private static ?string $lastErrorMessage = null;
 
+    /**
+     * Lista de controllers que representam permissões básicas
+     * que devem ser concedidas a TODOS os níveis de acesso
+     * logo na criação (além das páginas públicas).
+     *
+     * ATENÇÃO: os IDs das páginas podem variar entre ambientes,
+     * por isso usamos o campo `controller` de `adms_pages`.
+     *
+     * Dashboard            -> Dashboard
+     * Troca Obrigatória    -> ForcePasswordChange
+     * Perfil do Usuário    -> Profile
+     * Editar Senha Perfil  -> UpdatePassword
+     * Informativos (lista, ver, ciência, leitura)
+     *                      -> ListInformativos, ViewInformativo,
+     *                         AcknowledgeInformativo, ReadInformativo
+     */
+    private array $basicControllers = [
+        'Dashboard',
+        'ForcePasswordChange',
+        'Profile',
+        'UpdatePassword',
+        'ListInformativos',
+        'ViewInformativo',
+        'AcknowledgeInformativo',
+        'ReadInformativo',
+    ];
+
     public static function getLastErrorMessage(): ?string
     {
         return self::$lastErrorMessage;
@@ -146,6 +173,180 @@ class AccessLevelsPagesRepository extends DbConnection
 
             // Gerar log de erro
             GenerateLog::generateLog("error", "Páginas não cadastradas para o nível de acesso.", ['error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Inicializa automaticamente as permissões de um NOVO nível de acesso.
+     *
+     * - Garante que TODAS as páginas ativas existam em `adms_access_levels_pages`
+     *   para o nível informado.
+     * - Define permission = 1 para:
+     *     * páginas públicas (`public_page = 1`), e
+     *     * páginas cujos controllers estão em $basicControllers
+     * - Define permission = 0 para as demais páginas privadas.
+     *
+     * @param int $accessLevelId ID do nível de acesso recém-criado
+     * @return bool
+     */
+    public function initializeForNewAccessLevel(int $accessLevelId): bool
+    {
+        if ($accessLevelId <= 0) {
+            return false;
+        }
+
+        try {
+            $conn = $this->getConnection();
+            $conn->beginTransaction();
+
+            // Buscar todas as páginas ativas com seus metadados
+            $sqlPages = 'SELECT id, controller, public_page
+                         FROM adms_pages
+                         WHERE page_status = 1';
+            $stmtPages = $conn->prepare($sqlPages);
+            $stmtPages->execute();
+            $pages = $stmtPages->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            if (empty($pages)) {
+                $conn->commit();
+                return true;
+            }
+
+            $sqlInsert = 'INSERT IGNORE INTO adms_access_levels_pages
+                            (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                          VALUES (:permission, :level_id, :page_id, :created_at, :updated_at)';
+            $stmtInsert = $conn->prepare($sqlInsert);
+
+            $now = date('Y-m-d H:i:s');
+
+            foreach ($pages as $page) {
+                $pageId      = (int)($page['id'] ?? 0);
+                $controller  = $page['controller'] ?? '';
+                $publicPage  = (int)($page['public_page'] ?? 0);
+
+                if ($pageId <= 0) {
+                    continue;
+                }
+
+                $isBasic   = in_array($controller, $this->basicControllers, true);
+                $isPublic  = $publicPage === 1;
+                $permission = ($isPublic || $isBasic) ? 1 : 0;
+
+                $stmtInsert->bindValue(':permission', $permission, PDO::PARAM_INT);
+                $stmtInsert->bindValue(':level_id', $accessLevelId, PDO::PARAM_INT);
+                $stmtInsert->bindValue(':page_id', $pageId, PDO::PARAM_INT);
+                $stmtInsert->bindValue(':created_at', $now);
+                $stmtInsert->bindValue(':updated_at', $now);
+                $stmtInsert->execute();
+            }
+
+            $conn->commit();
+
+            GenerateLog::generateLog('info', 'Permissões padrão inicializadas para novo nível de acesso.', [
+                'adms_access_level_id' => $accessLevelId,
+            ]);
+
+            return true;
+        } catch (Exception $e) {
+            try {
+                $conn = $this->getConnection();
+                if (method_exists($conn, 'inTransaction') && $conn->inTransaction()) {
+                    $conn->rollBack();
+                }
+            } catch (\Throwable $rollbackEx) {
+                // silêncio em rollback
+            }
+
+            GenerateLog::generateLog('error', 'Falha ao inicializar permissões padrão para novo nível de acesso.', [
+                'adms_access_level_id' => $accessLevelId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Copia TODAS as permissões (0 e 1) de um nível de acesso origem
+     * para um nível de acesso destino, substituindo completamente
+     * as permissões anteriores do destino.
+     *
+     * @param int $sourceLevelId ID do nível de acesso origem
+     * @param int $targetLevelId ID do nível de acesso destino
+     * @return bool
+     */
+    public function copyAccessLevelPermissions(int $sourceLevelId, int $targetLevelId): bool
+    {
+        self::$lastErrorMessage = null;
+
+        if ($sourceLevelId <= 0 || $targetLevelId <= 0) {
+            self::$lastErrorMessage = 'Níveis de acesso origem/destino inválidos.';
+            return false;
+        }
+
+        // Nunca permitir copiar para ou a partir do Super Admin (ID 1)
+        if ($sourceLevelId === 1 || $targetLevelId === 1) {
+            self::$lastErrorMessage = 'Não é permitido copiar permissões envolvendo o Super Administrador.';
+            return false;
+        }
+
+        try {
+            $conn = $this->getConnection();
+            $conn->beginTransaction();
+
+            // Apagar todas as permissões atuais do nível destino
+            $sqlDelete = 'DELETE FROM adms_access_levels_pages
+                          WHERE adms_access_level_id = :target_id';
+            $stmtDelete = $conn->prepare($sqlDelete);
+            $stmtDelete->bindValue(':target_id', $targetLevelId, PDO::PARAM_INT);
+            $stmtDelete->execute();
+
+            // Copiar permissões da origem para o destino
+            $now     = date('Y-m-d H:i:s');
+            $sqlCopy = 'INSERT INTO adms_access_levels_pages
+                            (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                        SELECT 
+                            permission,
+                            :target_id AS adms_access_level_id,
+                            adms_page_id,
+                            :created_at AS created_at,
+                            :updated_at AS updated_at
+                        FROM adms_access_levels_pages
+                        WHERE adms_access_level_id = :source_id';
+
+            $stmtCopy = $conn->prepare($sqlCopy);
+            $stmtCopy->bindValue(':target_id', $targetLevelId, PDO::PARAM_INT);
+            $stmtCopy->bindValue(':source_id', $sourceLevelId, PDO::PARAM_INT);
+            $stmtCopy->bindValue(':created_at', $now);
+            $stmtCopy->bindValue(':updated_at', $now);
+            $stmtCopy->execute();
+
+            $conn->commit();
+
+            GenerateLog::generateLog('info', 'Permissões de nível de acesso copiadas.', [
+                'source_level' => $sourceLevelId,
+                'target_level' => $targetLevelId,
+            ]);
+
+            return true;
+        } catch (Exception $e) {
+            try {
+                $conn = $this->getConnection();
+                if (method_exists($conn, 'inTransaction') && $conn->inTransaction()) {
+                    $conn->rollBack();
+                }
+            } catch (\Throwable $rollbackEx) {
+                // silêncio
+            }
+
+            self::$lastErrorMessage = $e->getMessage();
+            GenerateLog::generateLog('error', 'Erro ao copiar permissões entre níveis de acesso.', [
+                'source_level' => $sourceLevelId,
+                'target_level' => $targetLevelId,
+                'error'        => $e->getMessage(),
+            ]);
 
             return false;
         }

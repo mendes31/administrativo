@@ -132,6 +132,25 @@ class AccessLevelsRepository extends DbConnection
             // Retornar o ID do nivel recém cadastrado
             $accessLevelId = $this->getConnection()->lastInsertId();
 
+            // Inicializar permissões padrão para o novo nível de acesso
+            if ($accessLevelId) {
+                try {
+                    $accessLevelsPagesRepo = new AccessLevelsPagesRepository();
+                    $accessLevelsPagesRepo->initializeForNewAccessLevel((int)$accessLevelId);
+                } catch (Exception $eInit) {
+                    // Não bloquear a criação do nível por falha na inicialização das permissões,
+                    // apenas registrar log para diagnóstico.
+                    GenerateLog::generateLog(
+                        "error",
+                        "Falha ao inicializar permissões padrão para novo nível de acesso.",
+                        [
+                            'access_level_id' => $accessLevelId,
+                            'error' => $eInit->getMessage(),
+                        ]
+                    );
+                }
+            }
+
             // Registrar log de alteração
             if ($accessLevelId) {
                 $usuarioId = $_SESSION['user_id'] ?? 1; // ID do usuário logado ou 1 como padrão

@@ -10,12 +10,56 @@ use App\adms\Models\Repository\TrainingsRepository;
 
 class TrainingMatrixService
 {
+    /** @var UsersRepository|null */
+    private ?UsersRepository $usersRepo = null;
+
+    /** @var TrainingPositionsRepository|null */
+    private ?TrainingPositionsRepository $trainingPositionsRepo = null;
+
+    /** @var TrainingUsersRepository|null */
+    private ?TrainingUsersRepository $trainingUsersRepo = null;
+
+    /** @var TrainingsRepository|null */
+    private ?TrainingsRepository $trainingsRepo = null;
+
+    private function getUsersRepo(): UsersRepository
+    {
+        if ($this->usersRepo === null) {
+            $this->usersRepo = new UsersRepository();
+        }
+        return $this->usersRepo;
+    }
+
+    private function getTrainingPositionsRepo(): TrainingPositionsRepository
+    {
+        if ($this->trainingPositionsRepo === null) {
+            $this->trainingPositionsRepo = new TrainingPositionsRepository();
+        }
+        return $this->trainingPositionsRepo;
+    }
+
+    private function getTrainingUsersRepo(): TrainingUsersRepository
+    {
+        if ($this->trainingUsersRepo === null) {
+            $this->trainingUsersRepo = new TrainingUsersRepository();
+        }
+        return $this->trainingUsersRepo;
+    }
+
+    private function getTrainingsRepo(): TrainingsRepository
+    {
+        if ($this->trainingsRepo === null) {
+            $this->trainingsRepo = new TrainingsRepository();
+        }
+        return $this->trainingsRepo;
+    }
+
     public function updateMatrixForUser(int $userId): void
     {
-        $usersRepo = new UsersRepository();
-        $trainingPositionsRepo = new TrainingPositionsRepository();
-        $trainingUsersRepo = new TrainingUsersRepository();
-        $trainingsRepo = new TrainingsRepository();
+        $usersRepo = $this->getUsersRepo();
+        $trainingPositionsRepo = $this->getTrainingPositionsRepo();
+        $trainingUsersRepo = $this->getTrainingUsersRepo();
+        $trainingsRepo = $this->getTrainingsRepo();
 
         $user = $usersRepo->getUser($userId);
         
@@ -45,7 +89,7 @@ class TrainingMatrixService
 
     public function updateMatrixForAllUsers(): void
     {
-        $usersRepo = new UsersRepository();
+        $usersRepo = $this->getUsersRepo();
         $users = $usersRepo->getAllUsers();
         foreach ($users as $user) {
             $this->updateMatrixForUser($user['id']);

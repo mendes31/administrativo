@@ -2,8 +2,9 @@
 
 use App\adms\Helpers\CSRFHelper;
 
-// Gera o token CSRF para proteger o formulário de deleção
-$csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
+// Gera tokens CSRF para proteger os formulários
+$csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_access_level');
+$csrf_token_copy   = CSRFHelper::generateCSRFToken('form_copy_access_level_permissions');
 
 ?>
 
@@ -68,6 +69,47 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
                 </div>
             </form>
 
+            <!-- Copiar permissões entre níveis -->
+            <div class="border rounded p-3 mb-3 bg-light">
+                <form id="formCopyPermissions" method="post" action="<?= $_ENV['URL_ADM']; ?>list-access-levels-permissions/0" class="row g-2 align-items-end">
+                    <div class="col-12 mb-1">
+                        <strong>Copiar permissões entre níveis</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="source_access_level_id" class="form-label mb-1">Copiar de</label>
+                        <select name="source_access_level_id" id="source_access_level_id" class="form-select form-select-sm">
+                            <option value="">Selecione o nível origem...</option>
+                            <?php foreach ($this->data['accessLevels'] as $level): ?>
+                                <?php if ((int)$level['id'] === 1) { continue; } // evita Super Admin como origem ?>
+                                <option value="<?= (int)$level['id']; ?>">
+                                    <?= (int)$level['id']; ?> - <?= htmlspecialchars($level['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="target_access_level_id" class="form-label mb-1">Copiar para</label>
+                        <select name="target_access_level_id" id="target_access_level_id" class="form-select form-select-sm">
+                            <option value="">Selecione o nível destino...</option>
+                            <?php foreach ($this->data['accessLevels'] as $level): ?>
+                                <?php if ((int)$level['id'] === 1) { continue; } // evita Super Admin como destino ?>
+                                <option value="<?= (int)$level['id']; ?>">
+                                    <?= (int)$level['id']; ?> - <?= htmlspecialchars($level['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex gap-2 align-items-end">
+                        <input type="hidden" name="mode" value="copy_permissions">
+                        <input type="hidden" name="csrf_token" value="<?= $csrf_token_copy; ?>">
+                        <button type="submit" class="btn btn-outline-primary btn-sm"
+                                onclick="return confirm('Tem certeza que deseja substituir TODAS as permissões do nível destino pelas permissões do nível origem selecionado?');">
+                            <i class="fa-solid fa-copy"></i> Copiar permissões
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             <?php
             // Verifica se há níveis de acesso no array
             if ($this->data['accessLevels'] ?? false) {
@@ -115,7 +157,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
 
                                             <form id="formDelete<?php echo $id; ?>" action="<?php echo $_ENV['URL_ADM']; ?>delete-access-level" method="POST" class="d-inline">
 
-                                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token_delete; ?>">
 
                                                 <input type="hidden" name="id" id="id" value="<?php echo $id ?? ''; ?>">
 
@@ -163,7 +205,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
                                     if (in_array('DeleteAccessLevel', $this->data['buttonPermission'])) {
                                     ?>
                                         <form id="formDeleteMobile<?= $id; ?>" action="<?= $_ENV['URL_ADM']; ?>delete-access-level" method="POST" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token_delete; ?>">
                                             <input type="hidden" name="id" id="id" value="<?= $id ?? ''; ?>">
                                             <input type="hidden" name="name" id="name" value="<?= $name ?? ''; ?>">
                                             <button type="submit" class="btn btn-danger btn-sm me-1 mb-1" onclick="confirmDeletion(event, <?= $id; ?>)"><i class="fa-regular fa-trash-can"></i> Apagar</button>
@@ -225,4 +267,23 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_access_level');
 
 <script type="text/javascript">
     // DataTables removido para padronização do sistema
+
+    // Ajusta a action do formulário de cópia para incluir o ID do nível destino na URL
+    (function() {
+        const formCopy = document.getElementById('formCopyPermissions');
+        if (!formCopy) return;
+
+        formCopy.addEventListener('submit', function (e) {
+            const targetSelect = document.getElementById('target_access_level_id');
+            if (!targetSelect || !targetSelect.value) {
+                e.preventDefault();
+                alert('Selecione o nível de acesso DESTINO antes de copiar as permissões.');
+                return false;
+            }
+
+            const baseUrl = '<?= $_ENV['URL_ADM']; ?>';
+            const targetId = targetSelect.value;
+            this.action = baseUrl + 'list-access-levels-permissions/' + encodeURIComponent(targetId);
+        });
+    })();
 </script>
