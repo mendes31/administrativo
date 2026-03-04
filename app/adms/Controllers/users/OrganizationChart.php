@@ -91,9 +91,10 @@ class OrganizationChart
             ];
         }
         
-        // Estatísticas (OTIMIZADO: usar método do repository)
+        // Estatísticas (apenas colaboradores ativos e não desligados)
         $stats = $usersRepo->getHierarchyStats();
-        $stats['total_levels'] = $this->countLevels($allUsers); // Ainda precisa ser calculado em PHP
+        // Níveis hierárquicos ainda são calculados em PHP a partir da árvore atual
+        $stats['total_levels'] = $this->countLevels($allUsers);
         $this->data['stats'] = $stats;
         
         // Filtro por departamento (opcional)

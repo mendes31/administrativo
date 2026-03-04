@@ -469,24 +469,19 @@
                 <div class="col-md-3">
                     <div class="stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
                         <div class="stat-value"><?= $this->data['stats']['total_managers'] ?></div>
-                        <div class="stat-label"><i class="fas fa-user-tie me-1"></i>Gerentes/Supervisores</div>
+                        <div class="stat-label"><i class="fas fa-user-tie me-1"></i>Gerentes / Supervisores</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);">
-                        <div class="stat-value"><?= $this->data['stats']['total_levels'] ?></div>
-                        <div class="stat-label"><i class="fas fa-layer-group me-1"></i>Níveis Hierárquicos</div>
+                        <div class="stat-value"><?= $this->data['stats']['total_coordinators'] ?? 0 ?></div>
+                        <div class="stat-label"><i class="fas fa-user-friends me-1"></i>Coordenadores</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
-                        <div class="stat-value"><?= $this->data['stats']['largest_team']['count'] ?></div>
-                        <div class="stat-label">
-                            <i class="fas fa-crown me-1"></i>Maior Equipe
-                            <?php if ($this->data['stats']['largest_team']['manager']): ?>
-                                <br><small><?= htmlspecialchars($this->data['stats']['largest_team']['manager']) ?></small>
-                            <?php endif; ?>
-                        </div>
+                        <div class="stat-value"><?= $this->data['stats']['total_levels'] ?></div>
+                        <div class="stat-label"><i class="fas fa-layer-group me-1"></i>Níveis Hierárquicos</div>
                     </div>
                 </div>
             </div>

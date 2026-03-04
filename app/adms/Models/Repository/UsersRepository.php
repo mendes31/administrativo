@@ -1139,117 +1139,127 @@ class UsersRepository extends DbConnection
 
     /**
      * Obter todos os usuários para organograma
-     * OTIMIZADO: Inclui contagem de subordinados diretos via subquery
+     *
+     * Considera apenas colaboradores ativos e não desligados.
+     * Inclui contagem de subordinados diretos via subquery.
      */
     public function getAllUsersForChart(): array
     {
-        $sql = 'SELECT 
-                    u.id,
-                    u.name,
-                    u.email,
-                    u.image,
-                    u.user_department_id,
-                    u.user_position_id,
-                    u.immediate_supervisor_id,
-                    u.status,
-                    d.name as department_name,
-                    p.name as position_name,
-                    -- Contagem de subordinados diretos (otimização O(n²))
-                    (SELECT COUNT(*) 
-                     FROM adms_users u2 
-                     WHERE u2.immediate_supervisor_id = u.id 
-                     AND u2.status = 1
-                    ) as direct_subordinates_count
-                FROM adms_users u
-                INNER JOIN adms_departments d ON u.user_department_id = d.id
-                INNER JOIN adms_positions p ON u.user_position_id = p.id
-                WHERE u.status = 1
-                ORDER BY u.name ASC';
-        
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $sql = 'SELECT 
+                        u.id,
+                        u.name,
+                        u.email,
+                        u.image,
+                        u.user_department_id,
+                        u.user_position_id,
+                        u.immediate_supervisor_id,
+                        u.status,
+                        u.data_desligamento,
+                        d.name AS department_name,
+                        p.name AS position_name,
+                        -- Contagem de subordinados diretos (apenas ativos e não desligados)
+                        (
+                            SELECT COUNT(*) 
+                            FROM adms_users u2 
+                            WHERE u2.immediate_supervisor_id = u.id 
+                              AND u2.status = :statusAtivo
+                              AND (u2.data_desligamento IS NULL 
+                                   OR u2.data_desligamento = "0000-00-00")
+                        ) AS direct_subordinates_count
+                    FROM adms_users u
+                    INNER JOIN adms_departments d ON u.user_department_id = d.id
+                    INNER JOIN adms_positions p ON u.user_position_id = p.id
+                    WHERE u.status = :statusAtivo
+                      AND (u.data_desligamento IS NULL 
+                           OR u.data_desligamento = "0000-00-00")
+                    ORDER BY u.name ASC';
+            
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':statusAtivo', 'Ativo', PDO::PARAM_STR);
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao buscar usuários para organograma.', [
+                'exception' => $e->getMessage(),
+            ]);
+            return [];
+        }
     }
 
     /**
-     * Obter estatísticas de hierarquia (otimização para organograma)
-     * 
+     * Obter estatísticas de hierarquia para o organograma.
+     *
+     * - total_users: total de colaboradores ativos (contrato não desligado)
+     * - total_managers: total de Gerentes/Supervisores (por cargo OU por ter subordinados)
+     * - total_coordinators: total de Coordenadores (por cargo)
+     *
      * @return array Estatísticas agregadas
      */
     public function getHierarchyStats(): array
     {
-        $sql = 'SELECT 
-                    -- Total de usuários
-                    COUNT(*) as total_users,
-                    -- Total de gerentes (usuários com subordinados)
-                    COUNT(DISTINCT u1.id) as total_managers,
-                    -- Maior equipe (gerente com mais subordinados)
-                    (SELECT u3.name 
-                     FROM adms_users u3
-                     WHERE u3.status = 1
-                     AND EXISTS (
-                         SELECT 1 FROM adms_users u4 
-                         WHERE u4.immediate_supervisor_id = u3.id 
-                         AND u4.status = 1
-                     )
-                     ORDER BY (
-                         SELECT COUNT(*) 
-                         FROM adms_users u5 
-                         WHERE u5.immediate_supervisor_id = u3.id 
-                         AND u5.status = 1
-                     ) DESC
-                     LIMIT 1
-                    ) as largest_team_manager,
-                    (SELECT COUNT(*) 
-                     FROM adms_users u6
-                     WHERE u6.status = 1
-                     AND u6.immediate_supervisor_id = (
-                         SELECT u7.id 
-                         FROM adms_users u7
-                         WHERE u7.status = 1
-                         AND EXISTS (
-                             SELECT 1 FROM adms_users u8 
-                             WHERE u8.immediate_supervisor_id = u7.id 
-                             AND u8.status = 1
-                         )
-                         ORDER BY (
-                             SELECT COUNT(*) 
-                             FROM adms_users u9 
-                             WHERE u9.immediate_supervisor_id = u7.id 
-                             AND u9.status = 1
-                         ) DESC
-                         LIMIT 1
-                     )
-                    ) as largest_team_count,
-                    -- Usuários órfãos (sem supervisor e sem subordinados)
-                    COUNT(CASE 
-                        WHEN u1.immediate_supervisor_id IS NULL 
-                        AND NOT EXISTS (
-                            SELECT 1 FROM adms_users u10 
-                            WHERE u10.immediate_supervisor_id = u1.id 
-                            AND u10.status = 1
-                        )
-                        THEN 1 
-                    END) as orphans_count
-                FROM adms_users u1
-                WHERE u1.status = 1';
-        
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute();
-        
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Calcular níveis hierárquicos (mais complexo, fazer em PHP após otimizar)
-        return [
-            'total_users' => (int)($result['total_users'] ?? 0),
-            'total_managers' => (int)($result['total_managers'] ?? 0),
-            'largest_team' => [
-                'manager' => $result['largest_team_manager'] ?? null,
-                'count' => (int)($result['largest_team_count'] ?? 0)
-            ],
-            'orphans_count' => (int)($result['orphans_count'] ?? 0)
-        ];
+        try {
+            $sql = 'SELECT 
+                        COUNT(*) AS total_users,
+                        SUM(
+                            CASE 
+                                WHEN 
+                                    EXISTS (
+                                        SELECT 1 
+                                        FROM adms_users s
+                                        WHERE s.immediate_supervisor_id = u.id
+                                          AND s.status = :statusAtivo
+                                          AND (s.data_desligamento IS NULL 
+                                               OR s.data_desligamento = "0000-00-00")
+                                    )
+                                    OR LOWER(p.name) LIKE :cargoGerente
+                                    OR LOWER(p.name) LIKE :cargoSupervisor
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS total_managers,
+                        SUM(
+                            CASE 
+                                WHEN LOWER(p.name) LIKE :cargoCoordenador
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS total_coordinators
+                    FROM adms_users u
+                    INNER JOIN adms_positions p ON u.user_position_id = p.id
+                    WHERE u.status = :statusAtivo
+                      AND (u.data_desligamento IS NULL 
+                           OR u.data_desligamento = "0000-00-00")';
+            
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':statusAtivo', 'Ativo', PDO::PARAM_STR);
+            $stmt->bindValue(':cargoGerente', '%gerente%', PDO::PARAM_STR);
+            $stmt->bindValue(':cargoSupervisor', '%supervisor%', PDO::PARAM_STR);
+            $stmt->bindValue(':cargoCoordenador', '%coordenador%', PDO::PARAM_STR);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            
+            return [
+                // Total de colaboradores ativos (não desligados)
+                'total_users' => (int)($result['total_users'] ?? 0),
+                // Indicador de Gerentes/Supervisores
+                'total_managers' => (int)($result['total_managers'] ?? 0),
+                // Indicador de Coordenadores
+                'total_coordinators' => (int)($result['total_coordinators'] ?? 0),
+            ];
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao calcular estatísticas de hierarquia para organograma.', [
+                'exception' => $e->getMessage(),
+            ]);
+            
+            return [
+                'total_users' => 0,
+                'total_managers' => 0,
+                'total_coordinators' => 0,
+            ];
+        }
     }
     
     public function getUserDepartments(int $id): array|bool
