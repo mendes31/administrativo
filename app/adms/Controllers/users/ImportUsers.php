@@ -267,8 +267,8 @@ class ImportUsers
             ];
 
             try {
-                // Upsert por email/username/CPF
-                $existing = $repo->getUserByEmailUsernameOrCpf($payload['email'], $payload['username'], $payload['cpf']);
+                // Upsert apenas por USERNAME (chave de identificação definida pelo negócio)
+                $existing = $repo->getUserByUsername($payload['username']);
                 if ($existing) {
                     $payload['id'] = (int)$existing['id'];
                     // Import não altera senha em usuários existentes (há fluxo próprio para senha)

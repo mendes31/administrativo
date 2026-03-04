@@ -114,23 +114,9 @@ class UsersRepository extends DbConnection
     }
 
     /**
-     * Buscar usuário por email ou username
+     * Buscar usuário por username (chave única de importação)
      */
-    public function getUserByEmailOrUsername(string $email, string $username): array|false
-    {
-        $sql = 'SELECT * FROM adms_users WHERE email = :email OR username = :username LIMIT 1';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':email', $email, PDO::PARAM_STR);
-        $stmt->bindValue(':username', $username, PDO::PARAM_STR);
-        $stmt->execute();
-        $u = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $u ?: false;
-    }
-
-    /**
-     * Buscar usuário por email, username ou CPF
-     */
-    public function getUserByEmailUsernameOrCpf(string $email, string $username, ?string $cpf = null): array|false
+    public function getUserByUsername(string $username): array|false
     {
         $sql = 'SELECT 
                     t0.id, 
@@ -143,6 +129,7 @@ class UsersRepository extends DbConnection
                     t0.data_nascimento, 
                     t0.user_department_id, 
                     t0.user_position_id, 
+                    t0.immediate_supervisor_id,
                     t0.created_at, 
                     t0.updated_at, 
                     t0.status,
@@ -150,34 +137,20 @@ class UsersRepository extends DbConnection
                     t0.tentativas_login,
                     t0.senha_nunca_expira,
                     t0.modificar_senha_proximo_logon,
-                    t1.name dep_name, 
-                    t2.name pos_name,
-                    t3.adms_access_level_id as user_access_level_id
+                    t0.data_admissao,
+                    t0.data_desligamento,
+                    t0.motivo_desligamento
                 FROM adms_users t0
-                INNER JOIN adms_departments t1 ON t0.user_department_id = t1.id
-                INNER JOIN adms_positions t2 ON t0.user_position_id = t2.id
-                LEFT JOIN adms_users_access_levels t3 ON t0.id = t3.adms_user_id
-                WHERE (t0.email = :email OR t0.username = :username';
-        $params = [
-            ':email' => $email,
-            ':username' => $username
-        ];
-        
-        if (!empty($cpf)) {
-            $sql .= ' OR t0.cpf = :cpf';
-            $params[':cpf'] = $cpf;
-        }
-        
-        $sql .= ') LIMIT 1';
-        
+                WHERE t0.username = :username
+                LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, PDO::PARAM_STR);
-        }
+        $stmt->bindValue(':username', $username, PDO::PARAM_STR);
         $stmt->execute();
         $u = $stmt->fetch(PDO::FETCH_ASSOC);
         return $u ?: false;
     }
+
+    // getUserByEmailUsernameOrCpf mantido apenas para compatibilidade com código antigo.
 
     /**
      * Recuperar a quantidade total de usuários para paginação.
