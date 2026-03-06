@@ -158,6 +158,31 @@ $informativo = $this->data['informativo'];
                                 </label>
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notificar" name="notificar"
+                                       <?= !empty($informativo['notificar']) ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="notificar">
+                                    Enviar notificação via WhatsApp
+                                </label>
+                            </div>
+                            <label class="form-label small mb-1">Departamentos a notificar (opcional)</label>
+                            <div class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
+                                <?php
+                                $notifyDeps = $this->data['notify_departments_ids'] ?? [];
+                                foreach (($this->data['departments'] ?? []) as $dep):
+                                    $checked = in_array((int)$dep['id'], $notifyDeps, true) ? 'checked' : '';
+                                ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notify_departments[]" value="<?= (int)$dep['id']; ?>" id="notify_dep_<?= (int)$dep['id']; ?>" <?= $checked; ?>>
+                                        <label class="form-check-label" for="notify_dep_<?= (int)$dep['id']; ?>"><?= htmlspecialchars($dep['name']); ?></label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="form-text small mt-1">
+                                Marque os setores que devem receber a notificação. Nenhum marcado = todos recebem.
+                            </div>
+                        </div>
                     </div>
                 </div>
                 

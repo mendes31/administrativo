@@ -144,7 +144,8 @@ class LgpdConsentimentoLogin
             'UPDATE adms_users 
              SET lgpd_consent_given = 1,
                  lgpd_consent_date = NOW(),
-                 lgpd_consent_version = :versao
+                 lgpd_consent_version = :versao,
+                 receber_notificacoes_whatsapp = 1
              WHERE id = :id'
         );
         $stmt->bindValue(':versao', $versao);

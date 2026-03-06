@@ -85,7 +85,7 @@ use App\adms\Helpers\CSRFHelper;
                                 </div>
                             </div>
                         </div>
-                        <div class="row g-3 mb-4">
+                        <div class="row g-3 mb-3">
                             <div class="col-auto">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="urgente" name="urgente">
@@ -109,6 +109,26 @@ use App\adms\Helpers\CSRFHelper;
                                         <i class="fas fa-check me-1"></i>Ativo
                                     </label>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notificar" name="notificar">
+                                <label class="form-check-label fw-semibold" for="notificar">
+                                    Enviar notificação via WhatsApp
+                                </label>
+                            </div>
+                            <label class="form-label small mb-1">Departamentos a notificar (opcional)</label>
+                            <div class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
+                                <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notify_departments[]" value="<?= (int)$dep['id']; ?>" id="notify_dep_<?= (int)$dep['id']; ?>">
+                                        <label class="form-check-label" for="notify_dep_<?= (int)$dep['id']; ?>"><?= htmlspecialchars($dep['name']); ?></label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="form-text small mt-1">
+                                Marque os setores que devem receber a notificação. Nenhum marcado = todos recebem.
                             </div>
                         </div>
                         <div class="d-flex gap-2 justify-content-end">

@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\WhatsappNotificationService;
 
 class CreateInformativo
 {
@@ -55,6 +56,8 @@ class CreateInformativo
         $urgente = isset($_POST['urgente']);
         $requiresAck = isset($_POST['requires_ack']);
         $ativo = isset($_POST['ativo']);
+        $notificar = isset($_POST['notificar']);
+        $notifyDepartments = $_POST['notify_departments'] ?? [];
 
         if (empty($titulo)) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O título é obrigatório!</div>';
@@ -133,6 +136,7 @@ class CreateInformativo
             'imagem' => $imagem,
             'anexo' => $anexo,
             'urgente' => $urgente,
+            'notificar' => $notificar,
             'requires_ack' => $requiresAck,
             'ativo' => $ativo,
             'publish_at' => $publishDt? $publishDt->format('Y-m-d H:i:s') : null,
@@ -146,6 +150,14 @@ class CreateInformativo
             $id = $repo->createInformativo($data);
             
             if ($id) {
+                // Atualizar departamentos alvo de notificação (se houver)
+                $repo->replaceNotifyDepartments((int)$id, $notifyDepartments);
+
+                // Notificar via WhatsApp se marcado para notificação e ativo
+                if ($notificar && $ativo) {
+                    WhatsappNotificationService::notificarInformativoUrgente((int)$id);
+                }
+
                 $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Informativo criado com sucesso!</div>';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
                 exit;

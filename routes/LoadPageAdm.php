@@ -93,6 +93,7 @@ class LoadPageAdm
         "ListStrategicIndicators", "CreateStrategicIndicator", "EditStrategicIndicator", "UpdateStrategicIndicator", "DeleteStrategicIndicator", "ViewStrategicIndicator",
         "ListBranches", "CreateBranch", "ViewBranch", "UpdateBranch", "DeleteBranch",
         "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "ServeFile", "RemoveInformativoImagem", "RemoveInformativoAnexo",
+        "ListNotifications",
         "LgpdDashboard",
         "LgpdRopa", "LgpdRopaCreate", "LgpdRopaEdit", "LgpdRopaView", "LgpdRopaDelete",
         "LgpdCategoriasTitulares", "LgpdCategoriasTitularesCreate", "LgpdCategoriasTitularesEdit", "LgpdCategoriasTitularesView", "LgpdCategoriasTitularesDelete",
@@ -190,7 +191,8 @@ class LoadPageAdm
         "dashboards",
         "rh",
         // Diretório para controllers de permissões (ListAccessLevelsPermissions, CopyAccessLevelPermissions, etc.)
-        "permission"
+        "permission",
+        "notifications"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

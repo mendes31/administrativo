@@ -270,6 +270,34 @@ class InformativosRepository extends DbConnection
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['total'] ?? 0);
     }
+
+    /**
+     * Lista informativos ativos não lidos pelo usuário (para notificações/sino).
+     * Considera janela de publicação (publish_at / expire_at).
+     *
+     * @param int $userId
+     * @param int $limit
+     * @return array<int, array>
+     */
+    public function getListNaoLidos(int $userId, int $limit = 15): array
+    {
+        $sql = 'SELECT i.id, i.titulo, i.resumo, i.urgente, i.created_at
+                FROM adms_informativos i
+                LEFT JOIN adms_informativos_reads r
+                  ON r.informativo_id = i.id AND r.user_id = :usr
+                WHERE i.ativo = 1
+                  AND (i.publish_at IS NULL OR i.publish_at <= NOW())
+                  AND (i.expire_at IS NULL OR i.expire_at > NOW())
+                  AND r.id IS NULL
+                ORDER BY i.urgente DESC, i.created_at DESC
+                LIMIT :limit';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $rows ?: [];
+    }
     
     /**
      * Atualiza o campo "ativo" com base em publish_at / expire_at.
@@ -310,6 +338,63 @@ class InformativosRepository extends DbConnection
             'ativados'   => $ativados,
         ];
     }
+
+    /**
+     * Substitui (replace) os departamentos alvo de notificação de um informativo.
+     * Se o array estiver vazio, entende-se que a notificação é para TODOS os departamentos.
+     *
+     * @param int   $informativoId
+     * @param int[] $departmentsIds
+     * @return void
+     */
+    public function replaceNotifyDepartments(int $informativoId, array $departmentsIds): void
+    {
+        $conn = $this->getConnection();
+        $conn->beginTransaction();
+        try {
+            $deleteSql = 'DELETE FROM adms_informativos_notify_departments WHERE informativo_id = :id';
+            $stmtDel = $conn->prepare($deleteSql);
+            $stmtDel->bindValue(':id', $informativoId, PDO::PARAM_INT);
+            $stmtDel->execute();
+
+            $departmentsIds = array_values(array_unique(array_filter($departmentsIds, fn($v) => is_numeric($v) && (int)$v > 0)));
+            if (!empty($departmentsIds)) {
+                $insertSql = 'INSERT INTO adms_informativos_notify_departments (informativo_id, department_id, created_at)
+                              VALUES (:informativo_id, :department_id, NOW())';
+                $stmtIns = $conn->prepare($insertSql);
+                foreach ($departmentsIds as $depId) {
+                    $stmtIns->bindValue(':informativo_id', $informativoId, PDO::PARAM_INT);
+                    $stmtIns->bindValue(':department_id', (int)$depId, PDO::PARAM_INT);
+                    $stmtIns->execute();
+                }
+            }
+
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            error_log('Erro ao atualizar departamentos de notificação do informativo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Retorna apenas os IDs de departamentos configurados para notificação
+     * de um determinado informativo.
+     *
+     * @param int $informativoId
+     * @return int[]
+     */
+    public function getNotifyDepartmentsIds(int $informativoId): array
+    {
+        $sql = 'SELECT department_id 
+                FROM adms_informativos_notify_departments
+                WHERE informativo_id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $informativoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        return array_map('intval', $rows ?: []);
+    }
     
     /**
      * Criar novo informativo
@@ -320,11 +405,11 @@ class InformativosRepository extends DbConnection
     {
         $sql = "INSERT INTO adms_informativos (
                     titulo, conteudo, resumo, categoria, categoria_id, department_id,
-                    imagem, anexo, urgente, requires_ack, ativo, publish_at, expire_at, usuario_id, created_at, updated_at
+                    imagem, anexo, urgente, notificar, requires_ack, ativo, publish_at, expire_at, usuario_id, created_at, updated_at
                 )
                 VALUES (
                     :titulo, :conteudo, :resumo, :categoria, :categoria_id, :department_id,
-                    :imagem, :anexo, :urgente, :requires_ack, :ativo, :publish_at, :expire_at, :usuario_id, NOW(), NOW()
+                    :imagem, :anexo, :urgente, :notificar, :requires_ack, :ativo, :publish_at, :expire_at, :usuario_id, NOW(), NOW()
                 )";
         
         $stmt = $this->getConnection()->prepare($sql);
@@ -337,6 +422,7 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':imagem', $data['imagem'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':anexo', $data['anexo'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':urgente', $data['urgente'] ?? false, PDO::PARAM_BOOL);
+        $stmt->bindValue(':notificar', $data['notificar'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':requires_ack', $data['requires_ack'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':ativo', $data['ativo'] ?? true, PDO::PARAM_BOOL);
         $stmt->bindValue(':publish_at', $data['publish_at'] ?? null, PDO::PARAM_STR);
@@ -359,7 +445,7 @@ class InformativosRepository extends DbConnection
         $sql = "UPDATE adms_informativos 
                 SET titulo = :titulo, conteudo = :conteudo, resumo = :resumo, categoria = :categoria,
                     categoria_id = :categoria_id, department_id = :department_id,
-                    imagem = :imagem, anexo = :anexo, urgente = :urgente, requires_ack = :requires_ack, ativo = :ativo,
+                    imagem = :imagem, anexo = :anexo, urgente = :urgente, notificar = :notificar, requires_ack = :requires_ack, ativo = :ativo,
                     publish_at = :publish_at, expire_at = :expire_at,
                     updated_at = NOW()
                 WHERE id = :id";
@@ -375,6 +461,7 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':imagem', $data['imagem'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':anexo', $data['anexo'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':urgente', $data['urgente'] ?? false, PDO::PARAM_BOOL);
+        $stmt->bindValue(':notificar', $data['notificar'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':requires_ack', $data['requires_ack'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':ativo', $data['ativo'] ?? true, PDO::PARAM_BOOL);
         $stmt->bindValue(':publish_at', $data['publish_at'] ?? null, PDO::PARAM_STR);

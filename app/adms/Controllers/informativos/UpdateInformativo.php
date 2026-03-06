@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\WhatsappNotificationService;
 
 class UpdateInformativo
 {
@@ -31,6 +32,8 @@ class UpdateInformativo
 
         $this->data['informativo'] = $informativo;
         $this->data['categorias'] = $repo->getCategorias();
+        // Departamentos alvo para notificação (para pré-selecionar no formulário)
+        $this->data['notify_departments_ids'] = $repo->getNotifyDepartmentsIds((int)$id);
         $deptRepo = new DepartmentsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
 
@@ -68,6 +71,8 @@ class UpdateInformativo
         $urgente = isset($_POST['urgente']) ? true : false;
         $requiresAck = isset($_POST['requires_ack']) ? true : false;
         $ativo = isset($_POST['ativo']) ? true : false;
+        $notificar = isset($_POST['notificar']) ? true : false;
+        $notifyDepartments = $_POST['notify_departments'] ?? [];
 
         if (empty($titulo)) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O título é obrigatório!</div>';
@@ -147,6 +152,7 @@ class UpdateInformativo
             'imagem' => $imagem,
             'anexo' => $anexo,
             'urgente' => $urgente,
+            'notificar' => $notificar,
             'requires_ack' => $requiresAck,
             'ativo' => $ativo,
             'publish_at' => $publishDt ? $publishDt->format('Y-m-d H:i:s') : null,
@@ -159,6 +165,14 @@ class UpdateInformativo
             $success = $repo->updateInformativo($id, $data);
             
             if ($success) {
+                // Atualizar departamentos alvo de notificação
+                $repo->replaceNotifyDepartments($id, $notifyDepartments);
+
+                // Se estiver marcado para notificar e ativo, disparar notificação
+                if ($notificar && $ativo) {
+                    WhatsappNotificationService::notificarInformativoUrgente((int)$id);
+                }
+
                 $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Informativo atualizado com sucesso!</div>';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
                 exit;

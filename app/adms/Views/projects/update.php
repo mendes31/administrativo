@@ -67,6 +67,11 @@ use App\adms\Helpers\CSRFHelper;
                             Etapas
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link <?php echo $activeTab === 'comentarios' ? 'active' : ''; ?>" id="tab-comentarios" data-bs-toggle="tab" data-bs-target="#pane-comentarios" type="button" role="tab">
+                            Comentários
+                        </button>
+                    </li>
                 </ul>
 
                 <div class="tab-content">
@@ -316,6 +321,7 @@ use App\adms\Helpers\CSRFHelper;
                                                         <option value="<?= (int)$u['id'] ?>" <?= $sel ?>><?= htmlspecialchars($u['name'] . ' - ' . $u['email']) ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
+                                                <input type="hidden" name="stage_original_responsible_user_id[<?= $idx ?>]" value="<?= htmlspecialchars((string)($s['responsible_user_id'] ?? '')); ?>">
                                             </td>
                                             <?php if (!$isProjectManager): ?>
                                                 <input type="hidden" name="stage_responsible_user_id[<?= $idx ?>]" value="<?= htmlspecialchars((string)($s['responsible_user_id'] ?? '')); ?>">
@@ -372,6 +378,77 @@ use App\adms\Helpers\CSRFHelper;
                         </div>
                         </fieldset>
                     </div>
+
+                    <div class="tab-pane fade <?php echo $activeTab === 'comentarios' ? 'show active' : ''; ?>" id="pane-comentarios" role="tabpanel" aria-labelledby="tab-comentarios">
+                        <?php
+                        $projectComments = $this->data['projectComments'] ?? [];
+                        $commentStageFilter = $this->data['comment_stage_filter'] ?? '';
+                        $stagesForFilter = $this->data['stages'] ?? [];
+                        ?>
+                        <div class="row mb-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Filtrar por etapa</label>
+                                <select id="comment_stage_filter_select" class="form-select form-select-sm" onchange="applyCommentStageFilter(this.value)">
+                                    <option value="">Todos os comentários</option>
+                                    <?php foreach ($stagesForFilter as $st): ?>
+                                        <?php $sel = ((string)$commentStageFilter === (string)$st['id']) ? 'selected' : ''; ?>
+                                        <option value="<?= (int)$st['id']; ?>" <?= $sel ?>><?= htmlspecialchars($st['stage_name'] ?? $st['name'] ?? 'Etapa ' . $st['id']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <?php if (empty($projectComments)): ?>
+                                <p class="text-muted">Nenhum comentário ainda.</p>
+                            <?php else: ?>
+                                <ul class="list-group list-group-flush">
+                                    <?php foreach ($projectComments as $com): ?>
+                                        <li class="list-group-item d-flex flex-column">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <span class="fw-bold"><?= htmlspecialchars($com['user_name'] ?? 'Usuário'); ?></span>
+                                                <small class="text-muted"><?= date('d/m/Y H:i', strtotime($com['created_at'] ?? 'now')); ?></small>
+                                            </div>
+                                            <?php if (!empty($com['proj_project_stage_id'])): ?>
+                                                <small class="text-muted">Etapa: <?= htmlspecialchars($com['stage_name'] ?? ('#' . ($com['proj_project_stage_id'] ?? ''))); ?></small>
+                                            <?php else: ?>
+                                                <small class="text-muted">Projeto inteiro</small>
+                                            <?php endif; ?>
+                                            <p class="mb-1 mt-1"><?= nl2br(htmlspecialchars($com['body'] ?? '')); ?></p>
+                                            <?php if (!empty($com['mentions'])): ?>
+                                                <small class="text-muted">Mencionados: <?= implode(', ', array_map(function ($m) { return htmlspecialchars($m['user_name'] ?? ''); }, $com['mentions'])); ?></small>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+                        <hr>
+                        <h6 class="mb-2">Novo comentário</h6>
+                        <input type="hidden" name="csrf_token_comment" value="<?php echo CSRFHelper::generateCSRFToken('form_add_comment'); ?>">
+                        <div class="mb-2">
+                            <label for="comment_body" class="form-label">Comentário</label>
+                            <textarea name="comment_body" id="comment_body" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label for="comment_stage_id" class="form-label">Vincular à etapa (opcional)</label>
+                            <select name="comment_stage_id" id="comment_stage_id" class="form-select form-select-sm">
+                                <option value="">Projeto inteiro</option>
+                                <?php foreach ($stagesForFilter as $st): ?>
+                                    <option value="<?= (int)$st['id']; ?>"><?= htmlspecialchars($st['stage_name'] ?? $st['name'] ?? 'Etapa ' . $st['id']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Mencionar usuários</label>
+                            <select name="mention_user_ids[]" class="form-select" multiple size="3">
+                                <?php foreach (($this->data['listUsers'] ?? []) as $u): ?>
+                                    <option value="<?= (int)$u['id']; ?>"><?= htmlspecialchars($u['name'] . ' - ' . ($u['email'] ?? '')); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted">Segure Ctrl para selecionar vários.</small>
+                        </div>
+                        <button type="submit" name="add_comment" value="1" class="btn btn-primary btn-sm">Enviar comentário</button>
+                    </div>
                 </div>
 
                 <div class="col-12 mt-3">
@@ -409,6 +486,32 @@ function setProjectPartner(code, name) {
     }
 }
 
+// Dados para autocomplete de menção no comentário (@Nome do usuário)
+var commentMentionUsers = <?php
+$usersForMention = [];
+foreach (($this->data['listUsers'] ?? []) as $u) {
+    $usersForMention[] = [
+        'id' => (int)$u['id'],
+        'name' => $u['name'],
+        'email' => $u['email'] ?? '',
+    ];
+}
+echo json_encode($usersForMention);
+?>;
+var commentMentionBox = null;
+var commentMentionStartIndex = -1;
+
+function applyCommentStageFilter(value) {
+    var u = new URL(window.location.href);
+    u.searchParams.set('tab', 'comentarios');
+    if (value) {
+        u.searchParams.set('comment_stage_filter', value);
+    } else {
+        u.searchParams.delete('comment_stage_filter');
+    }
+    window.location = u.toString();
+}
+
 // Etapas: preencher nome quando selecionar etapa do catálogo e validar dependências no front-end
 document.addEventListener('DOMContentLoaded', function() {
     // Preencher nome quando selecionar etapa do catálogo
@@ -427,6 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var tabInput = document.getElementById('active_tab');
     var tabDados = document.getElementById('tab-dados-gerais');
     var tabEtapas = document.getElementById('tab-etapas');
+    var tabComentarios = document.getElementById('tab-comentarios');
 
     if (tabDados && tabInput) {
         tabDados.addEventListener('click', function () {
@@ -438,16 +542,41 @@ document.addEventListener('DOMContentLoaded', function() {
             tabInput.value = 'etapas';
         });
     }
+    if (tabComentarios && tabInput) {
+        tabComentarios.addEventListener('click', function () {
+            tabInput.value = 'comentarios';
+        });
+    }
+
+    // Autocomplete de menções no campo de comentário
+    var commentTextarea = document.getElementById('comment_body');
+    if (commentTextarea && Array.isArray(commentMentionUsers) && commentMentionUsers.length) {
+        commentTextarea.addEventListener('keyup', handleCommentMentionTyping);
+        commentTextarea.addEventListener('click', handleCommentMentionTyping);
+        commentTextarea.addEventListener('blur', function () {
+            // Pequeno delay para permitir clique na lista
+            setTimeout(closeCommentMentionBox, 200);
+        });
+    }
 
     // Antes de enviar o formulário, validar dependências de etapas no front-end
     var form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function (e) {
+            // Se clicou em "Enviar comentário", não validar etapas
+            var isCommentSubmit = e.submitter && e.submitter.name === 'add_comment';
+            if (isCommentSubmit) {
+                if (tabInput) tabInput.value = 'comentarios';
+                return;
+            }
+
             // Mantém active_tab coerente com a aba selecionada
             if (tabInput) {
                 var activeLink = document.querySelector('.nav-tabs .nav-link.active');
                 if (activeLink && activeLink.id === 'tab-etapas') {
                     tabInput.value = 'etapas';
+                } else if (activeLink && activeLink.id === 'tab-comentarios') {
+                    tabInput.value = 'comentarios';
                 } else {
                     tabInput.value = 'dados-gerais';
                 }
@@ -471,6 +600,121 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function handleCommentMentionTyping() {
+    var textarea = document.getElementById('comment_body');
+    if (!textarea) return;
+
+    var text = textarea.value;
+    var caretPos = textarea.selectionStart || 0;
+    if (!text || caretPos === 0) {
+        closeCommentMentionBox();
+        return;
+    }
+
+    // Localiza o último '@' antes do cursor
+    var lastAt = text.lastIndexOf('@', caretPos - 1);
+    if (lastAt === -1) {
+        closeCommentMentionBox();
+        return;
+    }
+
+    // Caracter anterior ao @ deve ser início de linha ou espaço
+    if (lastAt > 0) {
+        var charBefore = text.charAt(lastAt - 1);
+        if (!/\s/.test(charBefore)) {
+            closeCommentMentionBox();
+            return;
+        }
+    }
+
+    var afterAt = text.substring(lastAt + 1, caretPos);
+    // Se já digitou espaço depois do @, não é mais menção
+    if (afterAt.indexOf(' ') !== -1 || afterAt.indexOf('\n') !== -1) {
+        closeCommentMentionBox();
+        return;
+    }
+
+    commentMentionStartIndex = lastAt;
+    var term = afterAt.trim();
+    showCommentMentionBox(term);
+}
+
+function showCommentMentionBox(term) {
+    var textarea = document.getElementById('comment_body');
+    if (!textarea || !Array.isArray(commentMentionUsers) || !commentMentionUsers.length) return;
+
+    var filtered = commentMentionUsers;
+    if (term) {
+        var lower = term.toLowerCase();
+        filtered = commentMentionUsers.filter(function (u) {
+            return (u.name || '').toLowerCase().indexOf(lower) !== -1;
+        });
+    }
+
+    filtered = filtered.slice(0, 8);
+    if (!filtered.length) {
+        closeCommentMentionBox();
+        return;
+    }
+
+    if (!commentMentionBox) {
+        commentMentionBox = document.createElement('div');
+        commentMentionBox.className = 'mention-suggestions dropdown-menu show';
+        commentMentionBox.style.position = 'absolute';
+        commentMentionBox.style.zIndex = '1050';
+        document.body.appendChild(commentMentionBox);
+    }
+
+    // Posiciona abaixo do textarea
+    var rect = textarea.getBoundingClientRect();
+    commentMentionBox.style.left = (rect.left + window.scrollX) + 'px';
+    commentMentionBox.style.top = (rect.bottom + window.scrollY) + 'px';
+    commentMentionBox.style.minWidth = rect.width + 'px';
+
+    commentMentionBox.innerHTML = '';
+    filtered.forEach(function (u) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'dropdown-item';
+        var label = u.name;
+        if (u.email) {
+            label += ' - ' + u.email;
+        }
+        item.textContent = label;
+        item.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            insertCommentMention(u);
+        });
+        commentMentionBox.appendChild(item);
+    });
+}
+
+function closeCommentMentionBox() {
+    if (commentMentionBox && commentMentionBox.parentNode) {
+        commentMentionBox.parentNode.removeChild(commentMentionBox);
+    }
+    commentMentionBox = null;
+    commentMentionStartIndex = -1;
+}
+
+function insertCommentMention(user) {
+    var textarea = document.getElementById('comment_body');
+    if (!textarea || commentMentionStartIndex === -1) return;
+
+    var text = textarea.value;
+    var caretPos = textarea.selectionStart || 0;
+    var before = text.substring(0, commentMentionStartIndex);
+    var after = text.substring(caretPos);
+    var insert = '@' + (user.name || '') + ' ';
+    textarea.value = before + insert + after;
+
+    var newPos = (before + insert).length;
+    textarea.focus();
+    textarea.setSelectionRange(newPos, newPos);
+
+    closeCommentMentionBox();
+}
 
 function validateStageDependenciesClient() {
     var table = document.getElementById('stages-table');
@@ -647,7 +891,9 @@ function addStageRow() {
         '<td><input type="text" name="stage_name[' + idx + ']" class="form-control form-control-sm stage-name-input" placeholder="Nome da etapa"></td>' +
         '<td><input type="text" name="stage_activity[' + idx + ']" class="form-control form-control-sm"></td>' +
         '<td><input type="text" name="stage_description[' + idx + ']" class="form-control form-control-sm"></td>' +
-        '<td><select name="stage_responsible_user_id[' + idx + ']" class="form-select form-select-sm">' + usersOpts + '</select></td>' +
+        '<td><select name="stage_responsible_user_id[' + idx + ']" class="form-select form-select-sm">' + usersOpts + '</select>' +
+        '<input type="hidden" name="stage_original_responsible_user_id[' + idx + ']" value="">' +
+        '</td>' +
         '<td><select name="stage_depends_on_index[' + idx + ']" class="form-select form-select-sm stage-depends-select">' + depOpts + '</select></td>' +
         '<td><select name="stage_status[' + idx + ']" class="form-select form-select-sm">' + statusOpts + '</select></td>' +
         '<td class="text-center"><div class="form-check form-check-sm d-flex justify-content-center"><input type="checkbox" name="stage_completed[' + idx + ']" value="1" class="form-check-input stage-completed-cb"></div></td>' +

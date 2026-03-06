@@ -5,13 +5,16 @@ namespace App\adms\Controllers\projects;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
+use App\adms\Models\Repository\projects\ProjCommentsRepository;
 use App\adms\Models\Repository\projects\ProjProjectsRepository;
 use App\adms\Models\Repository\projects\ProjProjectStagesRepository;
 use App\adms\Models\Repository\projects\ProjStagesRepository;
 use App\adms\Models\Repository\projects\ProjStageGroupsRepository;
 use App\adms\Models\Services\WorkdayCalendarService;
+use App\adms\Models\Services\WhatsappNotificationService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateProject
@@ -20,11 +23,99 @@ class UpdateProject
 
     public function index(int|string $id): void
     {
-        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
+        // Marcar notificação como lida quando o usuário acessa o projeto pelo link da notificação
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($userId > 0 && isset($_GET['mark_notification']) && is_numeric($_GET['mark_notification'])) {
+            $notifRepo = new NotificationsRepository();
+            $notifRepo->markAsRead((int)$_GET['mark_notification'], $userId);
+        }
+
+        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT) ?: [];
 
         // Controlar qual aba deve permanecer ativa
         $this->data['active_tab'] = $this->data['form']['active_tab']
             ?? ($_GET['tab'] ?? 'dados-gerais');
+
+        // POST: adicionar comentário (formulário separado da aba Comentários)
+        if (!empty($this->data['form']['add_comment']) && (int)$id > 0) {
+            $csrfComment = $_POST['csrf_token_comment'] ?? '';
+            if (CSRFHelper::validateCSRFToken('form_add_comment', $csrfComment)) {
+                $repoProj = new ProjProjectsRepository();
+                $projectForComment = $repoProj->getOne((int)$id);
+                if ($projectForComment) {
+                    $body = trim((string)($this->data['form']['comment_body'] ?? ''));
+                    if ($body !== '') {
+                        $currentUserId = (int)($_SESSION['user_id'] ?? 0);
+                        $stageId = !empty($this->data['form']['comment_stage_id'])
+                            ? (int)$this->data['form']['comment_stage_id'] : null;
+
+                        // Menções vindas explicitamente do multiselect
+                        $mentionUserIds = isset($this->data['form']['mention_user_ids']) && is_array($this->data['form']['mention_user_ids'])
+                            ? array_map('intval', $this->data['form']['mention_user_ids']) : [];
+
+                        // Menções escritas no corpo do comentário com @Nome do usuário
+                        if ($body !== '') {
+                            $usersRepoForMentions = new UsersRepository();
+                            $allUsersForMentions = $usersRepoForMentions->getAllUsersForSelect();
+                            foreach ($allUsersForMentions as $u) {
+                                $userName = trim((string)($u['name'] ?? ''));
+                                if ($userName === '') {
+                                    continue;
+                                }
+                                // Procura por @Nome (case-insensitive)
+                                if (mb_stripos($body, '@' . $userName) !== false) {
+                                    $mentionUserIds[] = (int)$u['id'];
+                                }
+                            }
+                            $mentionUserIds = array_unique($mentionUserIds);
+                        }
+
+                        $commentsRepo = new ProjCommentsRepository();
+                        $commentId = $commentsRepo->create((int)$id, $stageId, $currentUserId, $body, $mentionUserIds);
+                        if ($commentId) {
+                            $projectName = $projectForComment['name'] ?? 'Projeto';
+                            $baseUrl = $_ENV['URL_ADM'] . 'update-project/' . (int)$id . '?tab=comentarios';
+                            $notifRepo = new NotificationsRepository();
+                            $usersRepo = new UsersRepository();
+                            $authorName = 'Alguém';
+                            if ($currentUserId > 0) {
+                                $author = $usersRepo->getUser($currentUserId);
+                                if (is_array($author) && !empty($author['name'])) {
+                                    $authorName = $author['name'];
+                                }
+                            }
+                            foreach ($mentionUserIds as $mentionedId) {
+                                if ($mentionedId === $currentUserId) {
+                                    continue;
+                                }
+                                $notifId = $notifRepo->create([
+                                    'user_id' => $mentionedId,
+                                    'type' => 'comentario_mencao',
+                                    'title' => 'Menção em comentário',
+                                    'message' => $authorName . ' mencionou você em um comentário no projeto "' . $projectName . '".',
+                                    'link_url' => $baseUrl,
+                                    'entity_type' => 'proj_comment',
+                                    'entity_id' => $commentId,
+                                ]);
+                                if ($notifId) {
+                                    $notifRepo->updateLinkUrl($notifId, $baseUrl . '&mark_notification=' . $notifId);
+                                }
+                            }
+                            $_SESSION['msg'] = 'Comentário adicionado.';
+                            $_SESSION['msg_type'] = 'success';
+                        } else {
+                            $_SESSION['msg'] = 'Erro ao salvar o comentário.';
+                            $_SESSION['msg_type'] = 'danger';
+                        }
+                    } else {
+                        $_SESSION['msg'] = 'Escreva o comentário.';
+                        $_SESSION['msg_type'] = 'warning';
+                    }
+                }
+            }
+            header('Location: ' . $_ENV['URL_ADM'] . 'update-project/' . (int)$id . '?tab=comentarios');
+            return;
+        }
 
         if (!empty($this->data['form']['csrf_token'])
             && CSRFHelper::validateCSRFToken('form_update_project', $this->data['form']['csrf_token'])) {
@@ -81,6 +172,15 @@ class UpdateProject
                 ? (string)$idToIndex[(int)$row['depends_on_stage_id']] : '';
         }
         $this->data['stages'] = $rawStages;
+
+        // Comentários do projeto (aba Comentários)
+        $commentsRepo = new ProjCommentsRepository();
+        $commentStageFilter = isset($_GET['comment_stage_filter']) ? (int)$_GET['comment_stage_filter'] : null;
+        if ($commentStageFilter === 0) {
+            $commentStageFilter = null;
+        }
+        $this->data['projectComments'] = $commentsRepo->listByProject((int)$id, $commentStageFilter);
+        $this->data['comment_stage_filter'] = $_GET['comment_stage_filter'] ?? '';
 
         $this->view();
     }
@@ -202,18 +302,19 @@ class UpdateProject
             return;
         }
 
-        $names      = $form['stage_name'];
-        $stageIds   = $form['stage_id'] ?? [];
-        $sequences  = $form['stage_sequence'] ?? [];
-        $starts     = $form['stage_start_date'] ?? [];
-        $expected   = $form['stage_expected_end_date'] ?? [];
-        $ends       = $form['stage_end_date'] ?? [];
-        $activities = $form['stage_activity'] ?? [];
-        $descs      = $form['stage_description'] ?? [];
+        $names       = $form['stage_name'];
+        $stageIds    = $form['stage_id'] ?? [];
+        $sequences   = $form['stage_sequence'] ?? [];
+        $starts      = $form['stage_start_date'] ?? [];
+        $expected    = $form['stage_expected_end_date'] ?? [];
+        $ends        = $form['stage_end_date'] ?? [];
+        $activities  = $form['stage_activity'] ?? [];
+        $descs       = $form['stage_description'] ?? [];
         $responsible = $form['stage_responsible_user_id'] ?? [];
+        $origResp    = $form['stage_original_responsible_user_id'] ?? [];
         $dependsIndex = $form['stage_depends_on_index'] ?? [];
-        $completed  = $form['stage_completed'] ?? [];
-        $statuses   = $form['stage_status'] ?? [];
+        $completed   = $form['stage_completed'] ?? [];
+        $statuses    = $form['stage_status'] ?? [];
 
         $stageIdsInt = array_filter(array_map('intval', $stageIds));
         $stageNamesById = $this->getStageNamesById($stageIdsInt);
@@ -265,6 +366,8 @@ class UpdateProject
                 'activity'             => isset($activities[$idx]) ? trim((string)$activities[$idx]) : null,
                 'description'          => isset($descs[$idx]) ? trim((string)$descs[$idx]) : null,
                 'responsible_user_id'  => !empty($responsible[$idx]) ? (int)$responsible[$idx] : null,
+                'original_responsible_user_id' => (isset($origResp[$idx]) && $origResp[$idx] !== '')
+                    ? (int)$origResp[$idx] : null,
                 'depends_on_index'     => $depIdx,
                 'completed'            => isset($completed[$idx]) ? 1 : 0,
                 'is_cost_stage'        => 0,
@@ -358,8 +461,115 @@ class UpdateProject
         }
         unset($line);
 
-        $stagesRepo = new ProjProjectStagesRepository();
-        $stagesRepo->replaceForProject($projectId, $lines);
+        // Carregar etapas antigas para detectar alterações campo a campo
+        $projectStagesRepo = new ProjProjectStagesRepository();
+        $oldStages = $projectStagesRepo->getByProject($projectId);
+        $oldStages = array_values($oldStages); // garantir índices sequenciais
+
+        // Persistir novas etapas
+        $projectStagesRepo->replaceForProject($projectId, $lines);
+
+        // Notificar por WhatsApp e notificação interna:
+        // - novos responsáveis
+        // - responsáveis trocados
+        // - responsáveis removidos
+        // - responsável atual quando qualquer campo da etapa for modificado
+        $projectsRepo = new ProjProjectsRepository();
+        $project = $projectsRepo->getOne($projectId);
+        $projectName = $project['name'] ?? 'Projeto';
+        $urlBase = rtrim($_ENV['URL_ADM'] ?? '', '/');
+        $notifRepo = new NotificationsRepository();
+        foreach ($lines as $idx => $line) {
+            $newResp = $line['responsible_user_id'] ?? null;
+            $newRespInt = !empty($newResp) ? (int)$newResp : null;
+
+            $oldStage = $oldStages[$idx] ?? null;
+            $oldRespInt = $oldStage && !empty($oldStage['responsible_user_id'])
+                ? (int)$oldStage['responsible_user_id']
+                : null;
+
+            $responsibleChanged = $newRespInt !== $oldRespInt;
+
+            // Detectar se algum outro campo relevante da etapa mudou
+            $contentChanged = false;
+            if ($oldStage) {
+                $oldNorm = [
+                    'stage_id'          => (int)($oldStage['stage_id'] ?? 0),
+                    'name'              => (string)($oldStage['name'] ?? ''),
+                    'activity'          => (string)($oldStage['activity'] ?? ''),
+                    'description'       => (string)($oldStage['description'] ?? ''),
+                    'sequence'          => (int)($oldStage['sequence'] ?? 0),
+                    'status'            => (string)($oldStage['status'] ?? ''),
+                    'start_date'        => (string)($oldStage['start_date'] ?? ''),
+                    'expected_end_date' => (string)($oldStage['expected_end_date'] ?? ''),
+                    'end_date'          => (string)($oldStage['end_date'] ?? ''),
+                    'completed'         => !empty($oldStage['completed']) ? 1 : 0,
+                ];
+                $newNorm = [
+                    'stage_id'          => (int)($line['stage_id'] ?? 0),
+                    'name'              => (string)($line['name'] ?? ''),
+                    'activity'          => (string)($line['activity'] ?? ''),
+                    'description'       => (string)($line['description'] ?? ''),
+                    'sequence'          => (int)($line['sequence'] ?? 0),
+                    'status'            => (string)($line['status'] ?? ''),
+                    'start_date'        => (string)($line['start_date'] ?? ''),
+                    'expected_end_date' => (string)($line['expected_end_date'] ?? ''),
+                    'end_date'          => (string)($line['end_date'] ?? ''),
+                    'completed'         => !empty($line['completed']) ? 1 : 0,
+                ];
+                $contentChanged = $oldNorm !== $newNorm;
+            } else {
+                // Etapa nova: consideramos como "alterada" para fins de notificação do novo responsável
+                $contentChanged = true;
+            }
+
+            // 1) Novo responsável / troca de responsável: WhatsApp + notificação
+            if ($newRespInt && $responsibleChanged) {
+                $userId = $newRespInt;
+                WhatsappNotificationService::notificarEtapaProjetoAtribuida(
+                    $projectId,
+                    $projectName,
+                    $line['name'] ?? 'Etapa',
+                    $userId
+                );
+                $notifRepo->create([
+                    'user_id' => $userId,
+                    'type' => 'projeto_etapa',
+                    'title' => 'Etapa atribuída: ' . ($line['name'] ?? 'Etapa'),
+                    'message' => 'Você foi atribuído(a) à etapa "' . ($line['name'] ?? 'Etapa') . '" do projeto "' . $projectName . '".',
+                    'link_url' => $urlBase . '/update-project/' . $projectId,
+                    'entity_type' => 'projeto',
+                    'entity_id' => $projectId,
+                ]);
+            }
+
+            // 2) Responsável removido da etapa
+            if ($oldRespInt && (!$newRespInt || $responsibleChanged)) {
+                $notifRepo->create([
+                    'user_id' => $oldRespInt,
+                    'type' => 'projeto_etapa_removida',
+                    'title' => 'Removido da etapa: ' . ($line['name'] ?? 'Etapa'),
+                    'message' => 'Você não é mais responsável pela etapa "' . ($line['name'] ?? 'Etapa') . '" do projeto "' . $projectName . '".',
+                    'link_url' => $urlBase . '/update-project/' . $projectId,
+                    'entity_type' => 'projeto',
+                    'entity_id' => $projectId,
+                ]);
+            }
+
+            // 3) Mesmo responsável, mas qualquer campo relevante da etapa foi modificado:
+            //    notificação interna de atualização (sem WhatsApp extra).
+            if ($newRespInt && !$responsibleChanged && $contentChanged) {
+                $notifRepo->create([
+                    'user_id' => $newRespInt,
+                    'type' => 'projeto_etapa_atualizada',
+                    'title' => 'Etapa atualizada: ' . ($line['name'] ?? 'Etapa'),
+                    'message' => 'Uma etapa da qual você é responsável foi atualizada no projeto "' . $projectName . '".',
+                    'link_url' => $urlBase . '/update-project/' . $projectId,
+                    'entity_type' => 'projeto',
+                    'entity_id' => $projectId,
+                ]);
+            }
+        }
     }
 
     /**
