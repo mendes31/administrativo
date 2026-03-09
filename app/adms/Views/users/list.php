@@ -26,12 +26,23 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
 
             <span class="ms-auto d-flex flex-wrap gap-1">
                 <?php
+                // Montar querystring atual para reaproveitar filtros na exportação
+                $qsExport = '';
+                if (!empty($this->data['filtros'] ?? [])) {
+                    $qsExport = http_build_query($this->data['filtros']);
+                    if ($qsExport) {
+                        $qsExport = '?' . $qsExport;
+                    }
+                }
+
                 if (in_array('CreateUser', $this->data['buttonPermission'])) {
                     echo "<a href='{$_ENV['URL_ADM']}create-user' class='btn btn-success btn-sm'><i class='fa-regular fa-square-plus'></i> Cadastrar</a> ";
                 }
                 // Botões de Template e Importar (sem permissão específica por enquanto)
                 // echo "<a href='{$_ENV['URL_ADM']}import-users/template' class='btn btn-outline-secondary btn-sm'><i class='fa-solid fa-download'></i> Baixar Template</a> ";
                 echo "<a href='{$_ENV['URL_ADM']}import-users' class='btn btn-primary btn-sm'><i class='fa-solid fa-file-import'></i> Importar</a> ";
+                echo "<a href='{$_ENV['URL_ADM']}export-users-excel{$qsExport}' class='btn btn-outline-success btn-sm'><i class='fa-solid fa-file-excel'></i> Excel</a> ";
+                echo "<a href='{$_ENV['URL_ADM']}export-users-pdf{$qsExport}' class='btn btn-outline-danger btn-sm'><i class='fa-solid fa-file-pdf'></i> PDF</a> ";
                 ?>
             </span>
         </div>

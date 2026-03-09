@@ -200,6 +200,8 @@ class PageLayoutService
             'ListTrainings',
             'ListTrainingStatus',
             'ListUsers',
+            'ExportUsersExcel',
+            'ExportUsersPdf',
             'OrganizationChart',
             'MatrixByUser',
             'MenuEstoque',

@@ -114,6 +114,71 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Recuperar todos os usuários para exportação (sem paginação), respeitando os mesmos filtros da listagem.
+     *
+     * @param array $filtros
+     * @return array<int, array<string,mixed>>
+     */
+    public function getAllUsersForExport(array $filtros = []): array
+    {
+        $where = [];
+        $params = [];
+
+        if (!empty($filtros['nome'])) {
+            $where[] = 'usr.name LIKE :nome';
+            $params[':nome'] = '%' . $filtros['nome'] . '%';
+        }
+        if (!empty($filtros['email'])) {
+            $where[] = 'usr.email LIKE :email';
+            $params[':email'] = '%' . $filtros['email'] . '%';
+        }
+        if (!empty($filtros['usuario'])) {
+            $where[] = 'usr.username LIKE :usuario';
+            $params[':usuario'] = '%' . $filtros['usuario'] . '%';
+        }
+        if (!empty($filtros['departamento_id']) && is_numeric($filtros['departamento_id'])) {
+            $where[] = 'usr.user_department_id = :departamento_id';
+            $params[':departamento_id'] = (int)$filtros['departamento_id'];
+        }
+        if (!empty($filtros['cargo_id']) && is_numeric($filtros['cargo_id'])) {
+            $where[] = 'usr.user_position_id = :cargo_id';
+            $params[':cargo_id'] = (int)$filtros['cargo_id'];
+        }
+        if (!empty($filtros['status']) && in_array($filtros['status'], ['Ativo', 'Inativo'])) {
+            $where[] = 'usr.status = :status';
+            $params[':status'] = $filtros['status'];
+        }
+        if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
+            $where[] = 'usr.bloqueado = :bloqueado';
+            $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+        }
+
+        if (isset($filtros['desligado']) && $filtros['desligado'] !== '' && $filtros['desligado'] !== null) {
+            if ($filtros['desligado'] == '1' || $filtros['desligado'] === 1) {
+                $where[] = 'usr.data_desligamento IS NOT NULL';
+            } else {
+                $where[] = 'usr.data_desligamento IS NULL';
+            }
+        }
+
+        $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
+                FROM adms_users usr
+                INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
+                INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
+                ' . $whereSql . '
+                ORDER BY usr.name ASC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $paramType = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $paramType);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Buscar usuário por username (chave única de importação)
      */
     public function getUserByUsername(string $username): array|false
