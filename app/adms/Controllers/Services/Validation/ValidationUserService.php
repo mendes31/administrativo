@@ -30,9 +30,9 @@ class ValidationUserService
             $errors['name'] = ' O campo nome é obrigatório.';
         }
 
-        // Verificar se o campo email está vazio e se o valor é do tipo email
-        if (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = ' O campo email é obrigatório e deve ser um email válido.';
+        // Verificar email apenas se informado (campo opcional)
+        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = ' O campo email deve ser um email válido.';
         }
 
         // Verificar se o campo username está vazio
