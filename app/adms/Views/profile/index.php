@@ -6,6 +6,7 @@ if (empty($_SESSION['user_id'])) {
 }
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\ImageHelper;
 ?>
 
 <div class="container-fluid px-4">
@@ -25,17 +26,18 @@ use App\adms\Helpers\CSRFHelper;
                     Foto do Perfil
                 </div>
                 <div class="card-body text-center">
-                    <?php if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png'): ?>
-                        <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/<?php echo $_SESSION['user_id']; ?>/<?php echo $this->data['form']['image']; ?>" 
-                             alt="Foto do usuário" 
-                             class="img-fluid rounded-circle mb-3" 
-                             style="width: 150px; height: 150px; object-fit: cover;">
-                    <?php else: ?>
-                        <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/icon_user.png" 
-                             alt="Foto padrão" 
-                             class="img-fluid rounded-circle mb-3" 
-                             style="width: 150px; height: 150px; object-fit: cover;">
-                    <?php endif; ?>
+                    <?php
+                    $profileImagePath = null;
+                    if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png') {
+                        $profileImagePath = 'users/' . ($_SESSION['user_id'] ?? 0) . '/' . $this->data['form']['image'];
+                    }
+
+                    echo ImageHelper::displayImage($profileImagePath, [
+                        'alt' => 'Foto do usuário',
+                        'class' => 'img-fluid rounded-circle mb-3',
+                        'style' => 'width: 150px; height: 150px; object-fit: cover;',
+                    ], 'icon_user.png', 'users');
+                    ?>
                     
                     <h5 class="card-title"><?php echo htmlspecialchars($this->data['form']['name'] ?? ''); ?></h5>
                     <p class="card-text text-muted">

@@ -55,10 +55,15 @@ class Dashboard
         }
         $this->data['categorias_informativos'] = $categorias;
 
-        // Buscar aniversariantes do mês (com departamento)
+        // Buscar aniversariantes do mês (data de nascimento) e aniversários de empresa (data de admissão)
         $usersRepo = new UsersRepository();
         $mesAtual = date('m');
-        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id, DATE_FORMAT(u.data_nascimento, "%d/%m") as aniversario, u.data_nascimento, d.name as departamento
+
+        // Aniversário de nascimento
+        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                       DATE_FORMAT(u.data_nascimento, "%d/%m") as aniversario,
+                       u.data_nascimento,
+                       d.name as departamento
                 FROM adms_users u
                 LEFT JOIN adms_departments d ON u.user_department_id = d.id
                 WHERE u.status = 1 AND MONTH(u.data_nascimento) = :mes
@@ -67,24 +72,59 @@ class Dashboard
         $stmt->bindValue(':mes', $mesAtual, \PDO::PARAM_INT);
         $stmt->execute();
         $aniversariantes = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        // Ajuste: normalizar caminho da imagem do usuário e validar existência
-        foreach ($aniversariantes as &$aniv) {
-            if (empty($aniv['image'])) {
-                $aniv['image'] = null;
-                continue;
+
+        // Aniversário de empresa (data de admissão)
+        $sqlEmpresa = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                              DATE_FORMAT(u.data_admissao, "%d/%m") as aniversario_empresa,
+                              u.data_admissao,
+                              d.name as departamento
+                       FROM adms_users u
+                       LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                       WHERE u.status = 1
+                         AND u.data_admissao IS NOT NULL
+                         AND MONTH(u.data_admissao) = :mes
+                       ORDER BY DAY(u.data_admissao) ASC';
+        $stmtEmpresa = $usersRepo->getConnection()->prepare($sqlEmpresa);
+        $stmtEmpresa->bindValue(':mes', $mesAtual, \PDO::PARAM_INT);
+        $stmtEmpresa->execute();
+        $aniversariantesEmpresa = $stmtEmpresa->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Ajuste: normalizar valor da coluna image e ignorar imagens padrão
+        foreach ([$aniversariantes, $aniversariantesEmpresa] as &$listaRef) {
+            foreach ($listaRef as &$aniv) {
+                if (empty($aniv['image'])) {
+                    $aniv['image'] = null;
+                    continue;
+                }
+
+                // Se for a imagem padrão (em qualquer formato de caminho), trata como "sem imagem"
+                $basename = basename((string)$aniv['image']);
+                if ($basename === 'icon_user.png') {
+                    $aniv['image'] = null;
+                }
             }
-            $baseUploads = 'public/adms/uploads/';
-            $hasSubdir = strpos($aniv['image'], '/') !== false || strpos($aniv['image'], '\\') !== false;
-            $relativePath = $hasSubdir ? $aniv['image'] : ('users/' . $aniv['id'] . '/' . $aniv['image']);
-            if (file_exists($baseUploads . $relativePath)) {
-                $aniv['image'] = $relativePath;
-            } else {
-                $aniv['image'] = null;
-            }
+            unset($aniv);
         }
-        unset($aniv);
+        unset($listaRef);
+
+        // Calcular anos de casa para aniversários de empresa
+        $anoAtual = (int)date('Y');
+        foreach ($aniversariantesEmpresa as &$anivEmp) {
+            $anos = null;
+            if (!empty($anivEmp['data_admissao'])) {
+                $anoAdm = (int)date('Y', strtotime($anivEmp['data_admissao']));
+                if ($anoAdm > 0 && $anoAtual >= $anoAdm) {
+                    $anos = max(0, $anoAtual - $anoAdm);
+                }
+            }
+            $anivEmp['anos_empresa'] = $anos;
+        }
+        unset($anivEmp);
+
         $this->data['aniversariantes_mes'] = $aniversariantes;
         $this->data['qtd_aniversariantes_mes'] = count($aniversariantes);
+        $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;
+        $this->data['qtd_aniversariantes_empresa_mes'] = count($aniversariantesEmpresa);
 
         $pageElements = [
             'title_head' => 'Dashboard',

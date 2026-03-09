@@ -103,15 +103,18 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
                     <dt class="col-sm-3">Imagem: </dt>
                     <dd class="col-sm-9">
-                        <?php if (!empty($image) && $image !== 'icon_user.png'): ?>
-                            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/<?php echo $id; ?>/<?php echo $image; ?>" 
-                                 alt="Imagem do usuário" 
-                                 style="max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;">
-                        <?php else: ?>
-                            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/icon_user.png" 
-                                 alt="Imagem padrão" 
-                                 style="max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;">
-                        <?php endif; ?>
+                        <?php
+                        // Monta caminho completo somente se houver imagem personalizada
+                        $userImagePath = null;
+                        if (!empty($image) && $image !== 'icon_user.png') {
+                            $userImagePath = 'users/' . $id . '/' . $image;
+                        }
+
+                        echo ImageHelper::displayImage($userImagePath, [
+                            'alt' => 'Imagem do usuário',
+                            'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;',
+                        ], 'icon_user.png', 'users');
+                        ?>
                         
                         <?php if (!empty($image) && $image !== 'icon_user.png'): ?>
                             <!-- Botão para abrir o modal de confirmação (desktop) -->

@@ -41,7 +41,11 @@ class LoadPageAdm
 
     /** @var array $listPgPublic Recebe a lista de paginas publicas */
     private array $listPgPublic = [
-        "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin"
+        "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin",
+        // Servidor de arquivos foi tornado público para evitar problemas
+        // de permissão com avatares e imagens em dashboards, mantendo ainda
+        // toda a validação de caminho dentro do próprio FileServer.
+        "ServeFile"
     ];
 
     private array $listPgPrivate = [
@@ -92,7 +96,7 @@ class LoadPageAdm
         "ViewStrategicPlanObservations", "AddStrategicPlanObservation",
         "ListStrategicIndicators", "CreateStrategicIndicator", "EditStrategicIndicator", "UpdateStrategicIndicator", "DeleteStrategicIndicator", "ViewStrategicIndicator",
         "ListBranches", "CreateBranch", "ViewBranch", "UpdateBranch", "DeleteBranch",
-        "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "ServeFile", "RemoveInformativoImagem", "RemoveInformativoAnexo",
+        "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "RemoveInformativoImagem", "RemoveInformativoAnexo",
         "ListNotifications",
         "LgpdDashboard",
         "LgpdRopa", "LgpdRopaCreate", "LgpdRopaEdit", "LgpdRopaView", "LgpdRopaDelete",

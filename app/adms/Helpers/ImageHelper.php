@@ -22,14 +22,11 @@ class ImageHelper
         if (empty($imagePath)) {
             return $_ENV['URL_ADM'] . "serve-file?path={$type}/{$defaultImage}";
         }
-
-        // Verificar se o arquivo existe
-        $fullPath = "public/adms/uploads/{$imagePath}";
-        if (!file_exists($fullPath)) {
-            return $_ENV['URL_ADM'] . "serve-file?path={$type}/{$defaultImage}";
-        }
-
-        return $_ENV['URL_ADM'] . "serve-file?path=" . urlencode($imagePath);
+        
+        // Deixar a validação e fallback para o FileServer.
+        // Aqui apenas montamos o caminho lógico; o FileServer já
+        // trata inexistência e redireciona para o ícone padrão.
+        return $_ENV['URL_ADM'] . "serve-file?path=" . $imagePath;
     }
 
     /**

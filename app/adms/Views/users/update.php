@@ -159,12 +159,13 @@ use App\adms\Helpers\ImageHelper;
                     <label for="image" class="form-label">Imagem do Usuário</label>
                     <input type="file" name="image" class="form-control" id="image" accept="image/*">
                     <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamanho máximo: 2MB.</small>
-                    <?php if (!empty($this->data['form']['image'])): ?>
+                    <?php if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png'): ?>
                         <div class="mt-2">
-                            <?php 
-                            echo ImageHelper::displayImage($this->data['form']['image'], [
+                            <?php
+                            $editAvatarPath = 'users/' . ($this->data['form']['id'] ?? 0) . '/' . $this->data['form']['image'];
+                            echo ImageHelper::displayImage($editAvatarPath, [
                                 'alt' => 'Imagem atual',
-                                'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;'
+                                'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;',
                             ], 'icon_user.png', 'users');
                             ?>
                         </div>

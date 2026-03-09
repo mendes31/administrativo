@@ -93,17 +93,17 @@ if (!empty($_SESSION['user_id'])) {
         </li>
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu do usuário">
-                <?php if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png'): ?>
-                    <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/<?php echo $userInfo['id']; ?>/<?php echo $userInfo['image']; ?>" 
-                         alt="Foto do usuário" 
-                         class="rounded-circle me-2" 
-                         style="width: 32px; height: 32px; object-fit: cover;">
-                <?php else: ?>
-                    <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/icon_user.png" 
-                         alt="Foto padrão" 
-                         class="rounded-circle me-2" 
-                         style="width: 32px; height: 32px; object-fit: cover;">
-                <?php endif; ?>
+                <?php
+                $navbarAvatarPath = null;
+                if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png') {
+                    $navbarAvatarPath = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
+                }
+                echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPath, [
+                    'alt' => 'Foto do usuário',
+                    'class' => 'rounded-circle me-2',
+                    'style' => 'width: 32px; height: 32px; object-fit: cover;',
+                ], 'icon_user.png', 'users');
+                ?>
                 
                 <div class="d-none d-md-block text-start me-2">
                     <div class="text-white fw-bold" style="font-size: 0.9rem; line-height: 1.1;">
@@ -117,17 +117,17 @@ if (!empty($_SESSION['user_id'])) {
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                 <li class="dropdown-header">
                     <div class="d-flex align-items-center">
-                        <?php if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png'): ?>
-                            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/<?php echo $userInfo['id']; ?>/<?php echo $userInfo['image']; ?>" 
-                                 alt="Foto do usuário" 
-                                 class="rounded-circle me-2" 
-                                 style="width: 40px; height: 40px; object-fit: cover;">
-                        <?php else: ?>
-                            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/icon_user.png" 
-                                 alt="Foto padrão" 
-                                 class="rounded-circle me-2" 
-                                 style="width: 40px; height: 40px; object-fit: cover;">
-                        <?php endif; ?>
+                        <?php
+                        $navbarAvatarPathLg = null;
+                        if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png') {
+                            $navbarAvatarPathLg = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
+                        }
+                        echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPathLg, [
+                            'alt' => 'Foto do usuário',
+                            'class' => 'rounded-circle me-2',
+                            'style' => 'width: 40px; height: 40px; object-fit: cover;',
+                        ], 'icon_user.png', 'users');
+                        ?>
                         
                         <div>
                             <div class="fw-bold"><?php echo htmlspecialchars($userInfo['name'] ?? 'Usuário'); ?></div>

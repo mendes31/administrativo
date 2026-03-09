@@ -30,6 +30,13 @@ class FileServer
             return;
         }
 
+        // Ajuste para imagem padrão de usuário:
+        // se vier apenas "icon_user.png", redirecionar para o caminho correto "users/icon_user.png"
+        $basename = basename($path);
+        if ($basename === 'icon_user.png' && ($path === 'icon_user.png' || $path === '/icon_user.png')) {
+            $path = 'users/icon_user.png';
+        }
+
         // Obter o caminho base correto (subindo 4 níveis a partir do diretório atual)
         $base = realpath(__DIR__ . '/../../../../public/adms/uploads');
         
@@ -40,21 +47,24 @@ class FileServer
         }
 
         $fullPath = realpath($base . DIRECTORY_SEPARATOR . $path);
-        
+
         // Log para debug (remover em produção)
         if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
-            error_log("DEBUG - Base: $base, Path: $path, Full: $fullPath");
+            error_log("DEBUG - Base: $base, Path: $path, Full: " . ($fullPath ?: 'false'));
         }
 
-        // Validar o caminho
-        if (!$fullPath || strpos($fullPath, $base) !== 0) {
-            $this->sendError('Caminho inválido', 400);
-            return;
-        }
+        // Validar o caminho; se for inválido ou o arquivo não existir,
+        // tentar cair no ícone padrão de usuário antes de retornar erro.
+        if (!$fullPath || strpos($fullPath, $base) !== 0 || !file_exists($fullPath)) {
+            $fallback = realpath($base . DIRECTORY_SEPARATOR . 'users' . DIRECTORY_SEPARATOR . 'icon_user.png');
 
-        if (!file_exists($fullPath)) {
-            $this->sendError('Arquivo não encontrado', 404);
-            return;
+            if ($fallback && file_exists($fallback)) {
+                $fullPath = $fallback;
+                $path = 'users/icon_user.png';
+            } else {
+                $this->sendError('Arquivo não encontrado', 404);
+                return;
+            }
         }
 
         if (!is_readable($fullPath)) {

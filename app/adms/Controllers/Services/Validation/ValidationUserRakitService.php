@@ -37,7 +37,8 @@ class ValidationUserRakitService
         // Definir as regras de validação
         $rules = [
             'name'              => 'required',
-            'email'             => 'required|email',
+            // Email passa a ser opcional; se informado, deve ser válido
+            'email'             => 'email',
             'cpf'               => 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
             'celular'           => 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/',
             'data_nascimento'   => 'required|date|before:tomorrow',
@@ -46,7 +47,8 @@ class ValidationUserRakitService
 
         // Se estiver ausente o ID, então é uma criação (cadastrar)
         if(!isset($data['id'])){
-            $rules['email'] = 'required|email|uniqueInColumns:adms_users,email;username';
+            // Email opcional; se preenchido, validar formato e unicidade
+            $rules['email'] = 'email|uniqueInColumns:adms_users,email;username';
             $rules['username'] = 'required|min:6|regex:/^\S*$/|uniqueInColumns:adms_users,email;username';
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf';
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
@@ -60,7 +62,8 @@ class ValidationUserRakitService
             // Para edição, adicionar validação de ID e ignorar o próprio usuário na verificação de email e username
             $rules['id'] = 'required|integer';
             $rules['username'] = 'required|min:6|regex:/^\S*$/|uniqueInColumns:adms_users,email;username,' . $data['id'];
-            $rules['email'] = 'required|email|uniqueInColumns:adms_users,email;username,' . $data['id'];
+            // Email opcional; se preenchido, validar formato e unicidade
+            $rules['email'] = 'email|uniqueInColumns:adms_users,email;username,' . $data['id'];
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf,' . $data['id'];
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
             
@@ -76,7 +79,6 @@ class ValidationUserRakitService
             
             'name:required'                 => 'O campo nome é obrigatório.',
             
-            'email:required'                => 'O campo email é obrigatório.',
             'email:email'                   => 'O campo email deve ser um email válido.',
             'email:uniqueInColumns'         => 'O email já está cadastrado.',
             
