@@ -4,6 +4,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\SendWhatsAppService;
 use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\UsersRepository;
 
 /**
@@ -111,6 +112,100 @@ class WhatsappNotificationService
         } catch (\Throwable $e) {
             // Não quebrar fluxo principal por falha de notificação
             error_log('WhatsappNotificationService::notificarInformativoUrgente error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Notifica usuários sobre uma Política Interna marcada para notificação.
+     *
+     * Reaproveita a mesma lógica de segmentação de departamentos e filtros
+     * de usuários usada em Informativos, apenas ajustando o texto e o link.
+     */
+    public static function notificarPolicyUrgente(int $policyId): void
+    {
+        try {
+            $policiesRepo = new PoliciesRepository();
+            $policy = $policiesRepo->getPolicyById($policyId);
+
+            if (!$policy) {
+                return;
+            }
+
+            // Só notificar se ativa e marcada para notificação
+            if (empty($policy['ativo']) || empty($policy['notificar'])) {
+                return;
+            }
+
+            // Departamentos alvo (se vazio, considera todos)
+            $departmentsTarget = $policiesRepo->getNotifyDepartmentsIds($policyId);
+
+            $usersRepo = new UsersRepository();
+
+            $sql = 'SELECT id, name, celular, user_department_id
+                    FROM adms_users
+                    WHERE status = :status
+                      AND (receber_notificacoes_whatsapp = 1 OR receber_notificacoes_whatsapp IS NULL)';
+
+            $params = [];
+            if (!empty($departmentsTarget)) {
+                $placeholders = [];
+                foreach ($departmentsTarget as $idx => $depId) {
+                    $ph = ':dep' . $idx;
+                    $placeholders[] = $ph;
+                    $params[$ph] = (int) $depId;
+                }
+                $sql .= ' AND user_department_id IN (' . implode(',', $placeholders) . ')';
+            }
+
+            $stmt = $usersRepo->getConnection()->prepare($sql);
+            $stmt->bindValue(':status', 'Ativo', \PDO::PARAM_STR);
+            foreach ($params as $ph => $value) {
+                $stmt->bindValue($ph, $value, \PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            $usuarios = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            if (empty($usuarios)) {
+                return;
+            }
+
+            $titulo = $policy['titulo'] ?? 'Nova política interna';
+            $resumo = $policy['resumo'] ?? strip_tags($policy['conteudo'] ?? '');
+            $urlBase = rtrim($_ENV['URL_ADM'] ?? '', '/');
+            // Por enquanto apontamos para a listagem; quando ViewPolicy existir,
+            // podemos ajustar o link para a visualização detalhada.
+            $link = $urlBase . '/list-policies';
+
+            foreach ($usuarios as $usuario) {
+                $celular = $usuario['celular'] ?? '';
+                if (empty($celular)) {
+                    continue;
+                }
+
+                $nome = trim($usuario['name'] ?? '');
+                $saudacaoNome = $nome !== '' ? $nome : 'Olá';
+
+                $mensagem  = $saudacaoNome . "!\n\n";
+                $mensagem .= "Uma nova *Política Interna* foi publicada no Sistema Administrativo Tiaraju";
+                if (!empty($policy['urgente'])) {
+                    $mensagem .= " *[URGENTE]*";
+                }
+                $mensagem .= ":\n\n";
+                $mensagem .= "*" . $titulo . "*\n";
+
+                if (!empty($resumo)) {
+                    $mensagem .= $resumo . "\n\n";
+                } else {
+                    $mensagem .= "\n";
+                }
+
+                $mensagem .= "Acesse para ver os detalhes:\n" . $link;
+
+                SendWhatsAppService::sendMessage($celular, $mensagem);
+            }
+        } catch (\Throwable $e) {
+            error_log('WhatsappNotificationService::notificarPolicyUrgente error: ' . $e->getMessage());
         }
     }
 

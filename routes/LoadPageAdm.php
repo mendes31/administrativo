@@ -97,6 +97,9 @@ class LoadPageAdm
         "ListStrategicIndicators", "CreateStrategicIndicator", "EditStrategicIndicator", "UpdateStrategicIndicator", "DeleteStrategicIndicator", "ViewStrategicIndicator",
         "ListBranches", "CreateBranch", "ViewBranch", "UpdateBranch", "DeleteBranch",
         "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "RemoveInformativoImagem", "RemoveInformativoAnexo",
+        // Políticas Internas
+        "ListPolicies", "CreatePolicy", "ViewPolicy", "UpdatePolicy", "DeletePolicy",
+        "ListPolicyCategories", "CreatePolicyCategory", "UpdatePolicyCategory", "DeletePolicyCategory",
         "ListNotifications",
         "LgpdDashboard",
         "LgpdRopa", "LgpdRopaCreate", "LgpdRopaEdit", "LgpdRopaView", "LgpdRopaDelete",
@@ -188,6 +191,8 @@ class LoadPageAdm
         "strategicIndicators",
         "branches",
         "informativos",
+        // Diretório das controllers de Políticas Internas
+        "policies",
         "serveFile",
         "lgpd",
         "crm",

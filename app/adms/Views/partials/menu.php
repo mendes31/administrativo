@@ -536,6 +536,18 @@ $menus = [
         'label' => 'Gestão de Pessoas',
         'submenu' => [
             [
+                'label' => 'Políticas Internas',
+                'icon'  => 'fa-solid fa-file-contract',
+                'url'   => $_ENV['URL_ADM'] . 'list-policies',
+                'permission' => 'ListPolicies',
+            ],
+            [
+                'label' => 'Categorias de Políticas',
+                'icon'  => 'fa-solid fa-tags',
+                'url'   => $_ENV['URL_ADM'] . 'list-policy-categories',
+                'permission' => 'ListPolicyCategories',
+            ],
+            [
                 'label' => 'Portal do Colaborador',
                 'url' => $_ENV['URL_ADM'] . 'employee-portal',
                 'permission' => 'EmployeePortal',
