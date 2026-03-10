@@ -12,12 +12,17 @@ if (!empty($_SESSION['user_id'])) {
         $userRepo = new \App\adms\Models\Repository\UsersRepository();
         $userInfo = $userRepo->getUser($userId);
         $infoRepo = new \App\adms\Models\Repository\InformativosRepository();
+        $policiesRepo = new \App\adms\Models\Repository\PoliciesRepository();
         $notifRepo = new \App\adms\Models\Repository\NotificationsRepository();
-        $navbarNotifCount = $infoRepo->countNaoLidos($userId);
-        $navbarNotifList = $navbarNotifCount > 0 ? $infoRepo->getListNaoLidos($userId, 10) : [];
+        $navbarNotifCountInformativos = $infoRepo->countNaoLidos($userId);
+        $navbarNotifListInformativos = $navbarNotifCountInformativos > 0 ? $infoRepo->getListNaoLidos($userId, 10) : [];
+
+        $navbarNotifCountPolicies = $policiesRepo->countNaoLidos($userId);
+        $navbarNotifListPolicies = $navbarNotifCountPolicies > 0 ? $policiesRepo->getListNaoLidos($userId, 10) : [];
+
         $navbarInternalCount = $notifRepo->countUnread($userId);
         $navbarInternalList = $navbarInternalCount > 0 ? $notifRepo->listUnreadForUser($userId, 10) : [];
-        $navbarTotalCount = $navbarNotifCount + $navbarInternalCount;
+        $navbarTotalCount = $navbarNotifCountInformativos + $navbarNotifCountPolicies + $navbarInternalCount;
     } catch (\Exception $e) {
         $userInfo = null;
         $navbarTotalCount = 0;
@@ -53,13 +58,32 @@ if (!empty($_SESSION['user_id'])) {
                     <?php if (!empty($navbarTotalCount) && $navbarTotalCount > 0): ?><span class="badge bg-primary"><?php echo (int)$navbarTotalCount; ?> não lido<?php echo $navbarTotalCount !== 1 ? 's' : ''; ?></span><?php endif; ?>
                 </li>
                 <li><hr class="dropdown-divider my-0"></li>
-                <?php if (!empty($navbarNotifList)): ?>
+                <?php if (!empty($navbarNotifListInformativos)): ?>
                     <li class="dropdown-header small text-muted">Comunicados</li>
-                    <?php foreach ($navbarNotifList as $notif): ?>
+                    <?php foreach ($navbarNotifListInformativos as $notif): ?>
                     <li>
                         <a class="dropdown-item py-2 d-block" href="<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo (int)$notif['id']; ?>">
                             <span class="d-block fw-semibold small"><?php if (!empty($notif['urgente'])): ?><i class="fas fa-exclamation-circle text-danger me-1"></i><?php endif; ?><?php echo htmlspecialchars($notif['titulo'] ?? ''); ?></span>
                             <span class="d-block text-muted" style="font-size: 0.8rem;"><?php echo date('d/m/Y H:i', strtotime($notif['created_at'] ?? 'now')); ?></span>
+                        </a>
+                    </li>
+                    <?php endforeach; ?>
+                    <li><hr class="dropdown-divider my-0"></li>
+                <?php endif; ?>
+                <?php if (!empty($navbarNotifListPolicies)): ?>
+                    <li class="dropdown-header small text-muted">Políticas Internas</li>
+                    <?php foreach ($navbarNotifListPolicies as $polNotif): ?>
+                    <li>
+                        <a class="dropdown-item py-2 d-block" href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int)$polNotif['id']; ?>">
+                            <span class="d-block fw-semibold small">
+                                <?php if (!empty($polNotif['urgente'])): ?>
+                                    <i class="fas fa-exclamation-circle text-danger me-1"></i>
+                                <?php endif; ?>
+                                <?php echo htmlspecialchars($polNotif['titulo'] ?? ''); ?>
+                            </span>
+                            <span class="d-block text-muted" style="font-size: 0.8rem;">
+                                <?php echo date('d/m/Y H:i', strtotime($polNotif['created_at'] ?? 'now')); ?>
+                            </span>
                         </a>
                     </li>
                     <?php endforeach; ?>
@@ -83,7 +107,7 @@ if (!empty($_SESSION['user_id'])) {
                     <?php endforeach; ?>
                     <li><hr class="dropdown-divider my-0"></li>
                 <?php endif; ?>
-                <?php if (empty($navbarNotifList) && empty($navbarInternalList)): ?>
+                <?php if (empty($navbarNotifListInformativos) && empty($navbarNotifListPolicies) && empty($navbarInternalList)): ?>
                 <li><div class="dropdown-item text-muted small py-3 text-center">Nenhuma notificação nova.</div></li>
                 <li><hr class="dropdown-divider my-0"></li>
                 <?php endif; ?>

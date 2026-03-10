@@ -243,7 +243,12 @@ class InformativosRepository extends DbConnection
                 WHERE i.ativo = 1
                   AND (i.publish_at IS NULL OR i.publish_at <= NOW())
                   AND (i.expire_at IS NULL OR i.expire_at > NOW())
-                  AND r.id IS NULL';
+                  AND (
+                        -- Quando exige ciência: continua em notificação até acknowledged = 1
+                        (i.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
+                        -- Quando NÃO exige ciência: some da notificação após visualização
+                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                      )';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
         $stmt->execute();
@@ -288,7 +293,12 @@ class InformativosRepository extends DbConnection
                 WHERE i.ativo = 1
                   AND (i.publish_at IS NULL OR i.publish_at <= NOW())
                   AND (i.expire_at IS NULL OR i.expire_at > NOW())
-                  AND r.id IS NULL
+                  AND (
+                        -- Quando exige ciência: continua em notificação até acknowledged = 1
+                        (i.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
+                        -- Quando NÃO exige ciência: some da notificação após visualização
+                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                      )
                 ORDER BY i.urgente DESC, i.created_at DESC
                 LIMIT :limit';
         $stmt = $this->getConnection()->prepare($sql);

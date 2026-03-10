@@ -67,14 +67,21 @@ class ListPolicies
         $this->data['filters'] = $filters;
         $this->data['isEditor'] = $isEditor;
 
+        // Elementos de página + permissões de botões (seguindo padrão de ListInformativos/Users)
         $pageElements = [
             'title_head' => 'Políticas Internas',
-            'menu' => 'gestao_pessoas',
-            'buttonPermission' => ['ListPolicies', 'CreatePolicy', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy'],
+            'menu'       => 'gestao_pessoas',
+            'buttonPermission' => ['CreatePolicy', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy', 'RelatorioPolicy'],
         ];
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+
+        // Garantir que Super Administrador (nível 1) enxergue todas as ações,
+        // mesmo se houver alguma inconsistência de configuração.
+        if (isset($_SESSION['user_access_level_id']) && (int) $_SESSION['user_access_level_id'] === 1) {
+            $this->data['buttonPermission'] = ['CreatePolicy', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy'];
+        }
 
         $loadView = new LoadViewService('adms/Views/policies/list', $this->data);
         $loadView->loadView();

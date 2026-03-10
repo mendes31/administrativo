@@ -5,6 +5,7 @@ namespace App\adms\Controllers\dashboard;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\MenuPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
@@ -31,8 +32,14 @@ class Dashboard
         $informativosRepo = new InformativosRepository();
         $informativos = $informativosRepo->getInformativosDashboard(50);
         $this->data['informativos'] = $informativos;
-        $this->data['informativos_urgentes'] = $informativosRepo->countInformativosUrgentes();
         $this->data['informativos_ativos'] = count(array_filter($informativos, fn($i) => $i['ativo']));
+
+        // Políticas Internas para card de destaque
+        $policiesRepo = new PoliciesRepository();
+        $policiesDashboard = $policiesRepo->getPoliciesDashboard(50);
+        $this->data['policies_dashboard'] = $policiesDashboard;
+        $this->data['policies_urgentes'] = $policiesRepo->countPoliciesUrgentes();
+        $this->data['policies_ativas'] = count(array_filter($policiesDashboard, fn($p) => $p['ativo']));
 
         // Categorias dos informativos
         $categorias = [];

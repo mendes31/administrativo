@@ -207,6 +207,8 @@ class PageLayoutService
             'ViewPolicy',
             'UpdatePolicy',
             'DeletePolicy',
+            'AcknowledgePolicy',
+            'ReadPolicy',
             'ListPolicyCategories',
             'CreatePolicyCategory',
             'UpdatePolicyCategory',

@@ -30,6 +30,11 @@ class ViewPolicy
 
         $this->data['policy'] = $policy;
 
+        // Se usuário logado, buscar status de leitura/ciência para exibir na view
+        if (!empty($_SESSION['user_id'])) {
+            $this->data['read_status'] = $repo->getReadByUser($policyId, (int)$_SESSION['user_id']);
+        }
+
         $pageElements = [
             'title_head'       => 'Visualizar Política Interna',
             'menu'             => 'gestao_pessoas',

@@ -18,7 +18,9 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-file-contract me-2"></i>Listar Políticas Internas</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
-                <?php if (!empty($this->data['buttonPermission']) && in_array('CreatePolicy', $this->data['buttonPermission'], true)): ?>
+                <?php
+                $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+                if ($isSuperAdmin || in_array('CreatePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>create-policy" class="btn btn-success btn-sm mb-1">
                         <i class="fa-solid fa-plus"></i> Cadastrar
                     </a>
@@ -158,30 +160,61 @@ use App\adms\Helpers\FormatHelper;
                                 <td>
                                     <?php
                                     $refDate = $policy['publish_at'] ?? $policy['created_at'] ?? null;
-                                    echo $refDate ? FormatHelper::dateTimeBr($refDate) : '-';
+                                    echo $refDate ? \App\adms\Helpers\FormatHelper::formatDateTime($refDate, 'd/m/Y H:i') : '-';
                                     ?>
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <?php if (!empty($this->data['buttonPermission']) && in_array('ViewPolicy', $this->data['buttonPermission'], true)): ?>
+                                        <?php
+                                        // Super administrador (nível 1) enxerga sempre todas as ações
+                                        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+
+                                        if ($isSuperAdmin): ?>
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) $policy['id']; ?>"
                                                class="btn btn-outline-primary" title="Visualizar">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
-                                        <?php endif; ?>
-                                        <?php if (!empty($this->data['buttonPermission']) && in_array('UpdatePolicy', $this->data['buttonPermission'], true) && !empty($this->data['isEditor'])): ?>
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int) $policy['id']; ?>"
                                                class="btn btn-outline-warning" title="Editar">
                                                 <i class="fa-solid fa-pen"></i>
                                             </a>
-                                        <?php endif; ?>
-                                        <?php if (!empty($this->data['buttonPermission']) && in_array('DeletePolicy', $this->data['buttonPermission'], true) && !empty($this->data['isEditor'])): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int) $policy['id']; ?>"
+                                               class="btn btn-outline-info" title="Relatório de Visualização/Ciência">
+                                                <i class="fa-solid fa-chart-bar"></i>
+                                            </a>
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int) $policy['id']; ?>"
                                                class="btn btn-outline-danger"
                                                onclick="return confirm('Tem certeza que deseja excluir esta política?');"
                                                title="Excluir">
                                                 <i class="fa-solid fa-trash"></i>
                                             </a>
+                                        <?php else: ?>
+                                            <?php if (in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) $policy['id']; ?>"
+                                                   class="btn btn-outline-primary" title="Visualizar">
+                                                    <i class="fa-solid fa-eye"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (!empty($this->data['isEditor']) && in_array('UpdatePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int) $policy['id']; ?>"
+                                                   class="btn btn-outline-warning" title="Editar">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('RelatorioPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int) $policy['id']; ?>"
+                                                   class="btn btn-outline-info" title="Relatório de Visualização/Ciência">
+                                                    <i class="fa-solid fa-chart-bar"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (!empty($this->data['isEditor']) && in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int) $policy['id']; ?>"
+                                                   class="btn btn-outline-danger"
+                                                   onclick="return confirm('Tem certeza que deseja excluir esta política?');"
+                                                   title="Excluir">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </a>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 </td>

@@ -22,13 +22,15 @@
                     </a>
                 </div>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos?urgente=1" class="text-decoration-none flex-fill h-100">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="text-decoration-none flex-fill h-100">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: #fff7f7;">
                             <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+                                <i class="fas fa-file-contract fa-3x text-danger"></i>
                             </div>
-                            <h5 class="fw-bold mb-1 text-danger text-center group-title">Informativos Urgentes</h5>
-                            <div class="text-danger mb-2 text-center" style="font-size: 1.1rem;"><?php echo $this->data['informativos_urgentes'] ?? 0; ?> urgente(s)</div>
+                            <h5 class="fw-bold mb-1 text-danger text-center group-title">Políticas Internas</h5>
+                            <div class="text-danger mb-2 text-center" style="font-size: 1.1rem;">
+                                <?php echo $this->data['policies_ativas'] ?? 0; ?> ativas
+                            </div>
                         </div>
                     </a>
                 </div>

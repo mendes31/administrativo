@@ -30,7 +30,7 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                 <div class="card-body p-4">
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-                    <form method="POST" style="max-width: 700px; margin: 0 auto;">
+                    <form method="POST" enctype="multipart/form-data" style="max-width: 700px; margin: 0 auto;">
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('update_policy'); ?>">
 
                         <div class="row g-3 mb-3">
@@ -112,6 +112,68 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                       rows="8"
                                       required
                                       placeholder="Descreva a política interna em detalhes..."><?php echo htmlspecialchars($policy['conteudo'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Imagem (opcional)</label>
+                                <div class="dropzone rounded-3 border border-2 border-dashed p-4 text-center bg-light position-relative"
+                                     style="min-height: 120px; cursor: pointer;">
+                                    <input type="file"
+                                           class="d-none"
+                                           id="imagem"
+                                           name="imagem"
+                                           accept=".png,.jpg,.jpeg,.gif,.webp"
+                                           onchange="previewImagem(this)">
+                                    <label for="imagem"
+                                           id="imagem-label"
+                                           class="w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+                                           style="cursor:pointer;">
+                                        <i class="fas fa-image fa-2x mb-2 text-secondary"></i>
+                                        <span class="text-muted">Clique para fazer upload ou arraste uma imagem aqui</span>
+                                        <span class="small text-muted">Formatos: PNG, JPG, JPEG, GIF, WEBP. Máx. 20MB</span>
+                                    </label>
+                                    <div id="preview-imagem" class="mt-2">
+                                        <?php if (!empty($policy['imagem'])): ?>
+                                            <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
+                                                 alt="Imagem atual"
+                                                 style="max-width: 100px; max-height: 100px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                            <div class="small mt-1 text-muted">
+                                                <?php echo htmlspecialchars(basename($policy['imagem'])); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Anexo (opcional)</label>
+                                <div class="dropzone rounded-3 border border-2 border-dashed p-4 text-center bg-light position-relative"
+                                     style="min-height: 120px; cursor: pointer;">
+                                    <input type="file"
+                                           class="d-none"
+                                           id="anexo"
+                                           name="anexo"
+                                           accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv,.zip,.rar"
+                                           onchange="previewAnexo(this)">
+                                    <label for="anexo"
+                                           id="anexo-label"
+                                           class="w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+                                           style="cursor:pointer;">
+                                        <i class="fas fa-paperclip fa-2x mb-2 text-secondary"></i>
+                                        <span class="text-muted">Clique para fazer upload ou arraste um arquivo aqui</span>
+                                        <span class="small text-muted">Formatos: PDF, DOC(X), TXT, XLS(X), CSV, ZIP, RAR. Máx. 20MB</span>
+                                    </label>
+                                    <div id="preview-anexo" class="mt-2">
+                                        <?php if (!empty($policy['anexo'])): ?>
+                                            <i class="fas fa-paperclip fa-2x me-2"></i>
+                                            <span class="small text-muted">
+                                                <?php echo htmlspecialchars(basename($policy['anexo'])); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row g-3 mb-3">
@@ -209,6 +271,14 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
     color: #3a3a3a;
     font-size: 1.02rem;
 }
+.dropzone {
+    transition: border-color 0.2s, background 0.2s;
+}
+.dropzone:hover,
+.dropzone:focus-within {
+    border-color: #0d6efd;
+    background: #f3f6ff;
+}
 .btn-primary {
     background: #0d6efd;
     border: none;
@@ -231,5 +301,52 @@ document.getElementById('categoria_id')?.addEventListener('change', function () 
     const hidden = document.getElementById('categoria_nome_hidden');
     if (hidden) hidden.value = nome;
 });
+
+function previewImagem(input) {
+    const preview = document.getElementById('preview-imagem');
+    if (!preview) return;
+    preview.innerHTML = '';
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML =
+                `<img src="${e.target.result}" alt="Pré-visualização" style="max-width: 100px; max-height: 100px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">` +
+                `<div class="small mt-1 text-muted">${file.name}</div>`;
+        };
+        reader.readAsDataURL(file);
+        const label = document.getElementById('imagem-label');
+        if (label) {
+            label.innerText = file.name;
+        }
+    }
+}
+
+function previewAnexo(input) {
+    const preview = document.getElementById('preview-anexo');
+    if (!preview) return;
+    preview.innerHTML = '';
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        let icon = 'fa-file';
+        if (['pdf'].includes(ext)) icon = 'fa-file-pdf text-danger';
+        else if (['doc','docx'].includes(ext)) icon = 'fa-file-word text-primary';
+        else if (['xls','xlsx','csv'].includes(ext)) icon = 'fa-file-excel text-success';
+        else if (['txt'].includes(ext)) icon = 'fa-file-alt text-secondary';
+        else if (['zip','rar'].includes(ext)) icon = 'fa-file-archive text-warning';
+
+        preview.innerHTML =
+            `<i class="fas ${icon} fa-2x me-2"></i>` +
+            `<span class="small text-muted">${file.name}</span>`;
+
+        const label = document.getElementById('anexo-label');
+        if (label) {
+            label.innerText = file.name;
+        }
+    }
+}
 </script>
 

@@ -222,6 +222,33 @@ class PoliciesRepository extends DbConnection
     }
 
     /**
+     * Usuários para relatório de políticas:
+     * - Sempre inclui usuários com status "Ativo"
+     * - Inclui também usuários inativos que já deram ciência (acknowledged = 1) para a política
+     */
+    public function getUsersForPolicyReport(int $policyId): array
+    {
+        $sql = 'SELECT DISTINCT 
+                    u.id,
+                    u.name,
+                    u.email,
+                    u.status
+                FROM adms_users u
+                LEFT JOIN adms_policies_reads r
+                  ON r.user_id = u.id
+                 AND r.policy_id = :policy_id
+                WHERE u.status = "Ativo"
+                   OR (r.acknowledged = 1)';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':policy_id', $policyId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $rows ?: [];
+    }
+
+    /**
      * Contar políticas não lidas para o usuário (dentro da janela)
      */
     public function countNaoLidos(int $userId): int
@@ -233,7 +260,12 @@ class PoliciesRepository extends DbConnection
                 WHERE p.ativo = 1
                   AND (p.publish_at IS NULL OR p.publish_at <= NOW())
                   AND (p.expire_at IS NULL OR p.expire_at > NOW())
-                  AND r.id IS NULL';
+                  AND (
+                        -- Quando exige ciência: continua em notificação até acknowledged = 1
+                        (p.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
+                        -- Quando NÃO exige ciência: some da notificação após visualização
+                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                      )';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
         $stmt->execute();
@@ -253,7 +285,12 @@ class PoliciesRepository extends DbConnection
                 WHERE p.ativo = 1
                   AND (p.publish_at IS NULL OR p.publish_at <= NOW())
                   AND (p.expire_at IS NULL OR p.expire_at > NOW())
-                  AND r.id IS NULL
+                  AND (
+                        -- Quando exige ciência: continua em notificação até acknowledged = 1
+                        (p.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
+                        -- Quando NÃO exige ciência: some da notificação após visualização
+                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                      )
                 ORDER BY p.urgente DESC, p.created_at DESC
                 LIMIT :limit';
         $stmt = $this->getConnection()->prepare($sql);

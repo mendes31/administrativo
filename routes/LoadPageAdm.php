@@ -98,7 +98,8 @@ class LoadPageAdm
         "ListBranches", "CreateBranch", "ViewBranch", "UpdateBranch", "DeleteBranch",
         "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "RemoveInformativoImagem", "RemoveInformativoAnexo",
         // Políticas Internas
-        "ListPolicies", "CreatePolicy", "ViewPolicy", "UpdatePolicy", "DeletePolicy",
+        "ListPolicies", "CreatePolicy", "ViewPolicy", "UpdatePolicy", "DeletePolicy", "AcknowledgePolicy", "ReadPolicy",
+        "RelatorioPolicy", "ExportRelatorioPolicyPdf",
         "ListPolicyCategories", "CreatePolicyCategory", "UpdatePolicyCategory", "DeletePolicyCategory",
         "ListNotifications",
         "LgpdDashboard",
