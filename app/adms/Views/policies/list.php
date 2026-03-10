@@ -2,6 +2,69 @@
 use App\adms\Helpers\FormatHelper;
 ?>
 
+<style>
+    /* Layout semelhante ao de Informativos, ajustado para Políticas Internas */
+    .table-policies {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .table-policies th,
+    .table-policies td {
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        vertical-align: middle;
+    }
+
+    .table-policies th.col-id,
+    .table-policies td.col-id {
+        width: 60px;
+        text-align: center;
+    }
+
+    .table-policies th.col-titulo,
+    .table-policies td.col-titulo {
+        width: 260px;
+    }
+
+    .table-policies th.col-categoria,
+    .table-policies td.col-categoria {
+        width: 150px;
+    }
+
+    .table-policies th.col-departamento,
+    .table-policies td.col-departamento {
+        width: 170px;
+    }
+
+    .table-policies th.col-urgente,
+    .table-policies td.col-urgente,
+    .table-policies th.col-ativo,
+    .table-policies td.col-ativo {
+        width: 90px;
+        text-align: center;
+    }
+
+    .table-policies th.col-data,
+    .table-policies td.col-data {
+        width: 140px;
+        text-align: center;
+    }
+
+    .table-policies th.col-acoes,
+    .table-policies td.col-acoes {
+        width: 130px;
+        text-align: center;
+    }
+
+    .table-policies .badge {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+</style>
+
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3">Políticas Internas</h2>
@@ -29,6 +92,7 @@ use App\adms\Helpers\FormatHelper;
         </div>
 
         <div class="card-body">
+            <?php if (!empty($this->data['isEditor'])): ?>
             <form method="get" action="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="row g-3 mb-3">
                 <div class="col-md-3">
                     <label for="busca" class="form-label">Busca</label>
@@ -115,120 +179,210 @@ use App\adms\Helpers\FormatHelper;
                     </a>
                 </div>
             </form>
+            <?php endif; ?>
 
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Título</th>
-                        <th>Categoria</th>
-                        <th>Departamento</th>
-                        <th>Urgente</th>
-                        <th>Ativo</th>
-                        <th>Publicação</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php if (!empty($this->data['policies'])): ?>
-                        <?php foreach ($this->data['policies'] as $policy): ?>
-                            <tr>
-                                <td><?php echo (int) $policy['id']; ?></td>
-                                <td>
-                                    <?php echo htmlspecialchars($policy['titulo']); ?>
-                                    <?php if (!empty($policy['requires_ack'])): ?>
-                                        <span class="badge bg-warning text-dark ms-1">Exige ciência</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($policy['department_name'] ?? ''); ?></td>
-                                <td>
-                                    <?php if (!empty($policy['urgente'])): ?>
-                                        <span class="badge bg-danger">Sim</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Não</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if (!empty($policy['ativo'])): ?>
-                                        <span class="badge bg-success">Ativo</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Inativo</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php
-                                    $refDate = $policy['publish_at'] ?? $policy['created_at'] ?? null;
-                                    echo $refDate ? \App\adms\Helpers\FormatHelper::formatDateTime($refDate, 'd/m/Y H:i') : '-';
-                                    ?>
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <?php
-                                        // Super administrador (nível 1) enxerga sempre todas as ações
-                                        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
-
-                                        if ($isSuperAdmin): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) $policy['id']; ?>"
-                                               class="btn btn-outline-primary" title="Visualizar">
-                                                <i class="fa-solid fa-eye"></i>
-                                            </a>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int) $policy['id']; ?>"
-                                               class="btn btn-outline-warning" title="Editar">
-                                                <i class="fa-solid fa-pen"></i>
-                                            </a>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int) $policy['id']; ?>"
-                                               class="btn btn-outline-info" title="Relatório de Visualização/Ciência">
-                                                <i class="fa-solid fa-chart-bar"></i>
-                                            </a>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int) $policy['id']; ?>"
-                                               class="btn btn-outline-danger"
-                                               onclick="return confirm('Tem certeza que deseja excluir esta política?');"
-                                               title="Excluir">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </a>
+            <!-- Tabela Desktop -->
+            <div class="d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle table-policies">
+                        <thead class="table-light">
+                        <tr>
+                            <th class="col-id">#</th>
+                            <th class="col-titulo">Título</th>
+                            <th class="col-categoria">Categoria</th>
+                            <th class="col-departamento">Departamento</th>
+                            <th class="col-urgente">Urgente</th>
+                            <th class="col-ativo">Ativo</th>
+                            <th class="col-data">Publicação</th>
+                            <th class="text-center col-acoes">Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (!empty($this->data['policies'])): ?>
+                            <?php foreach ($this->data['policies'] as $policy): ?>
+                                <tr>
+                                    <td class="col-id"><?php echo (int) $policy['id']; ?></td>
+                                    <td class="col-titulo">
+                                        <?php echo htmlspecialchars($policy['titulo']); ?>
+                                        <?php if (!empty($policy['requires_ack'])): ?>
+                                            <span class="badge bg-warning text-dark ms-1">Exige ciência</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="col-categoria"><?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></td>
+                                    <td class="col-departamento"><?php echo htmlspecialchars($policy['department_name'] ?? ''); ?></td>
+                                    <td class="col-urgente text-center">
+                                        <?php if (!empty($policy['urgente'])): ?>
+                                            <span class="badge bg-danger">Sim</span>
                                         <?php else: ?>
-                                            <?php if (in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                            <span class="badge bg-secondary">Não</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="col-ativo text-center">
+                                        <?php if (!empty($policy['ativo'])): ?>
+                                            <span class="badge bg-success">Ativo</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="col-data text-center">
+                                        <?php
+                                        $refDate = $policy['publish_at'] ?? $policy['created_at'] ?? null;
+                                        echo $refDate ? \App\adms\Helpers\FormatHelper::formatDateTime($refDate, 'd/m/Y H:i') : '-';
+                                        ?>
+                                    </td>
+                                    <td class="text-center col-acoes">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <?php
+                                            // Super administrador (nível 1) enxerga sempre todas as ações
+                                            $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+
+                                            if ($isSuperAdmin): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) $policy['id']; ?>"
                                                    class="btn btn-outline-primary" title="Visualizar">
                                                     <i class="fa-solid fa-eye"></i>
                                                 </a>
-                                            <?php endif; ?>
-                                            <?php if (!empty($this->data['isEditor']) && in_array('UpdatePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int) $policy['id']; ?>"
                                                    class="btn btn-outline-warning" title="Editar">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </a>
-                                            <?php endif; ?>
-                                            <?php if (in_array('RelatorioPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int) $policy['id']; ?>"
                                                    class="btn btn-outline-info" title="Relatório de Visualização/Ciência">
                                                     <i class="fa-solid fa-chart-bar"></i>
                                                 </a>
-                                            <?php endif; ?>
-                                            <?php if (!empty($this->data['isEditor']) && in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int) $policy['id']; ?>"
                                                    class="btn btn-outline-danger"
                                                    onclick="return confirm('Tem certeza que deseja excluir esta política?');"
                                                    title="Excluir">
                                                     <i class="fa-solid fa-trash"></i>
                                                 </a>
+                                            <?php else: ?>
+                                                <?php if (in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) $policy['id']; ?>"
+                                                       class="btn btn-outline-primary" title="Visualizar">
+                                                        <i class="fa-solid fa-eye"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if (!empty($this->data['isEditor']) && in_array('UpdatePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int) $policy['id']; ?>"
+                                                       class="btn btn-outline-warning" title="Editar">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if (in_array('RelatorioPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int) $policy['id']; ?>"
+                                                       class="btn btn-outline-info" title="Relatório de Visualização/Ciência">
+                                                        <i class="fa-solid fa-chart-bar"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if (!empty($this->data['isEditor']) && in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int) $policy['id']; ?>"
+                                                       class="btn btn-outline-danger"
+                                                       onclick="return confirm('Tem certeza que deseja excluir esta política?');"
+                                                       title="Excluir">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </a>
+                                                <?php endif; ?>
                                             <?php endif; ?>
-                                        <?php endif; ?>
-                                    </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    Nenhuma política encontrada com os filtros informados.
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                Nenhuma política encontrada com os filtros informados.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cards Mobile -->
+            <div class="d-block d-md-none">
+                <?php if (!empty($this->data['policies'])): ?>
+                    <?php foreach ($this->data['policies'] as $policy): ?>
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div class="flex-grow-1">
+                                        <h5 class="card-title mb-1">
+                                            <strong><?php echo htmlspecialchars($policy['titulo']); ?></strong>
+                                            <?php if (!empty($policy['requires_ack'])): ?>
+                                                <span class="badge bg-warning text-dark ms-1">Exige ciência</span>
+                                            <?php endif; ?>
+                                        </h5>
+                                        <div class="mb-1">
+                                            <?php if (!empty($policy['categoria_nome'] ?? $policy['categoria'])): ?>
+                                                <span class="badge bg-info">
+                                                    <?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($policy['department_name'])): ?>
+                                                <span class="badge bg-secondary ms-1">
+                                                    <?php echo htmlspecialchars($policy['department_name']); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($policy['ativo'])): ?>
+                                                <span class="badge bg-success ms-1">Ativa</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary ms-1">Inativa</span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($policy['urgente'])): ?>
+                                                <span class="badge bg-danger ms-1">Urgente</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="text-muted small mb-1">
+                                            <?php
+                                            $refDate = $policy['publish_at'] ?? $policy['created_at'] ?? null;
+                                            if ($refDate) {
+                                                echo '<i class="fas fa-calendar-alt me-1"></i>' . \App\adms\Helpers\FormatHelper::formatDateTime($refDate, 'd/m/Y H:i');
+                                            }
+                                            ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="btn-group-vertical btn-group-sm">
+                                        <?php
+                                        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+                                        ?>
+                                        <?php if ($isSuperAdmin || in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int)$policy['id']; ?>"
+                                               class="btn btn-outline-primary mb-1" title="Visualizar">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($isSuperAdmin || (!empty($this->data['isEditor']) && in_array('UpdatePolicy', $this->data['buttonPermission'] ?? [], true))): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int)$policy['id']; ?>"
+                                               class="btn btn-outline-warning mb-1" title="Editar">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($isSuperAdmin || in_array('RelatorioPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int)$policy['id']; ?>"
+                                               class="btn btn-outline-info mb-1" title="Relatório de Visualização/Ciência">
+                                                <i class="fa-solid fa-chart-bar"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($isSuperAdmin || (!empty($this->data['isEditor']) && in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true))): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int)$policy['id']; ?>"
+                                               class="btn btn-outline-danger mb-1"
+                                               onclick="return confirm('Tem certeza que deseja excluir esta política?');"
+                                               title="Excluir">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center text-muted py-3">
+                        Nenhuma política encontrada com os filtros informados.
+                    </div>
+                <?php endif; ?>
             </div>
 
             <?php if (isset($this->data['pagination'])): ?>
