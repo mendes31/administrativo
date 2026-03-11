@@ -43,13 +43,12 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Token de Autenticação *</label>
+                            <label class="form-label">Token de Autenticação</label>
                             <div class="input-group">
                                 <input type="password"
                                        name="api_token"
                                        id="sap_api_token"
                                        class="form-control"
-                                       required
                                        value="<?= htmlspecialchars($config['api_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                        autocomplete="off">
                                 <button class="btn btn-outline-secondary" type="button" onclick="toggleTokenVisibility(this)">
@@ -57,7 +56,8 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                                 </button>
                             </div>
                             <div class="form-text">
-                                Token utilizado no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.
+                                Se informado, será utilizado no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.
+                                Caso contrário, nenhuma autenticação por token será enviada e a segurança deve ser garantida pela própria API (IP/Firewall, etc.).
                             </div>
                         </div>
 

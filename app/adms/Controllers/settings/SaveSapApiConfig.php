@@ -35,13 +35,6 @@ class SaveSapApiConfig
             exit;
         }
 
-        if ($apiToken === '') {
-            $_SESSION['msg'] = 'Informe o token de autenticação da API.';
-            $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sap-api-config');
-            exit;
-        }
-
         if ($timeout < 1000) {
             $timeout = 1000;
         }

@@ -472,6 +472,15 @@ class DynamicQueryBuilderService
             
             // Converter encoding e obter TODOS os dados (sem paginação)
             $newData = $this->convertEncodingToUtf8($apiResult['data']);
+
+            // Limitar resultado bruto para evitar travar consultas gigantes (opcional)
+            // Use a env SAP_REPORT_API_MAX_ROWS (> 0) para ativar o truncamento.
+            // Se não definido ou <= 0, nenhum limite é aplicado.
+            $maxRows = isset($_ENV['SAP_REPORT_API_MAX_ROWS']) ? (int)$_ENV['SAP_REPORT_API_MAX_ROWS'] : 0;
+            if ($maxRows > 0 && is_array($newData) && count($newData) > $maxRows) {
+                error_log("⚠️ executeSapApiQuery - Resultado da API com " . count($newData) . " linhas, truncando para {$maxRows} para evitar travamentos.");
+                $newData = array_slice($newData, 0, $maxRows);
+            }
             
             // Se modo incremental e há cache existente, mesclar apenas novos registros
             if ($incremental && $existingCachedData !== null && !empty($existingCachedData)) {
