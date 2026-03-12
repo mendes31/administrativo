@@ -118,11 +118,6 @@ class TrainingUsersRepository extends DbConnection
                 $existeAtivo ?: [],
                 $dadosDepois
             );
-            // Atualizar matriz do usuário após alteração
-            $user = (new \App\adms\Models\Repository\UsersRepository())->getUser($userId);
-            if ($user) {
-                $this->recreateLinksForUser($userId, $user['user_position_id']);
-            }
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Vínculo de treinamento não salvo.", [
                 'user_id' => $userId,
@@ -1420,10 +1415,6 @@ class TrainingUsersRepository extends DbConnection
                     );
                 }
             }
-            // Atualizar matriz do usuário após alteração
-            if ($user) {
-                $this->recreateLinksForUser($userId, $user['user_position_id']);
-            }
         }
         
         // Log final
@@ -1570,11 +1561,6 @@ class TrainingUsersRepository extends DbConnection
                     $dadosAntes,
                     []
                 );
-            }
-            // Atualizar matriz do usuário após alteração
-            $user = (new \App\adms\Models\Repository\UsersRepository())->getUser($userId);
-            if ($user) {
-                $this->recreateLinksForUser($userId, $user['user_position_id']);
             }
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Vínculo individual não excluído.", [
