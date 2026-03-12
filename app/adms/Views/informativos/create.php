@@ -19,7 +19,7 @@ use App\adms\Helpers\CSRFHelper;
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
                     <form method="POST" enctype="multipart/form-data" style="max-width: 700px; margin: 0 auto;">
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('create_informativo'); ?>">
-                        <div class="row g-3 mb-3">
+                        <div class="row g-3 mb-3" style="margin-bottom: 2.5rem !important;">
                             <div class="col-md-6">
                                 <label for="titulo" class="form-label fw-semibold">Título *</label>
                                 <input type="text" class="form-control form-control-lg rounded-3" id="titulo" name="titulo" required maxlength="255" placeholder="Digite o título do comunicado">
@@ -54,38 +54,13 @@ use App\adms\Helpers\CSRFHelper;
                                 <input type="datetime-local" class="form-control form-control-lg rounded-3" id="expire_at" name="expire_at">
                             </div>
                         </div>
+                        <hr class="my-4">
                         <div class="mb-3">
                             <label for="conteudo" class="form-label fw-semibold">Conteúdo *</label>
                             <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" required placeholder="Digite o conteúdo do comunicado... (Suporte a Markdown disponível)"></textarea>
                             <div class="form-text">Dica: Use <b>**negrito**</b>, <i>*itálico*</i>, <code>`código`</code> e outros formatos Markdown</div>
                         </div>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Imagem</label>
-                                <div class="dropzone rounded-3 border border-2 border-dashed p-4 text-center bg-light position-relative" style="min-height: 120px; cursor: pointer;">
-                                    <input type="file" class="d-none" id="imagem" name="imagem" accept=".png,.jpg,.jpeg,.gif" onchange="previewImagem(this)">
-                                    <label for="imagem" id="imagem-label" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="cursor:pointer;">
-                                        <i class="fas fa-image fa-2x mb-2 text-secondary"></i>
-                                        <span class="text-muted">Clique para fazer upload ou arraste uma imagem aqui</span>
-                                        <span class="small text-muted">Formatos aceitos: PNG, JPG, JPEG, GIF. Máx. 10MB</span>
-                                    </label>
-                                    <div id="preview-imagem" class="mt-2"></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Anexo</label>
-                                <div class="dropzone rounded-3 border border-2 border-dashed p-4 text-center bg-light position-relative" style="min-height: 120px; cursor: pointer;">
-                                    <input type="file" class="d-none" id="anexo" name="anexo" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv,.zip,.rar" onchange="previewAnexo(this)">
-                                    <label for="anexo" id="anexo-label" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="cursor:pointer;">
-                                        <i class="fas fa-paperclip fa-2x mb-2 text-secondary"></i>
-                                        <span class="text-muted">Clique para fazer upload ou arraste um arquivo aqui</span>
-                                        <span class="small text-muted">Formatos aceitos: PDF, DOC, DOCX, TXT, XLS, XLSX, CSV, ZIP, RAR. Máx. 10MB</span>
-                                    </label>
-                                    <div id="preview-anexo" class="mt-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row g-3 mb-3">
+                        <div class="row g-3 mb-3 mt-3">
                             <div class="col-auto">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="urgente" name="urgente">
@@ -111,7 +86,7 @@ use App\adms\Helpers\CSRFHelper;
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-4">
+                        <div class="mb-4 mt-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" id="notificar" name="notificar">
                                 <label class="form-check-label fw-semibold" for="notificar">
@@ -129,6 +104,32 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                             <div class="form-text small mt-1">
                                 Marque os setores que devem receber a notificação. Nenhum marcado = todos recebem.
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3 mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Imagem</label>
+                                <div class="dropzone rounded-3 border border-2 border-dashed p-3 text-center bg-light position-relative" style="min-height: 90px; cursor: pointer;">
+                                    <input type="file" class="d-none" id="imagem" name="imagem" accept=".png,.jpg,.jpeg,.gif" onchange="previewImagem(this)">
+                                    <label for="imagem" id="imagem-label" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="cursor:pointer;">
+                                        <i class="fas fa-image fa-2x mb-2 text-secondary"></i>
+                                        <span class="text-muted">Clique para fazer upload ou arraste uma imagem aqui</span>
+                                        <span class="small text-muted">Formatos aceitos: PNG, JPG, JPEG, GIF. Máx. 10MB</span>
+                                    </label>
+                                    <div id="preview-imagem" class="mt-2"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Anexo</label>
+                                <div class="dropzone rounded-3 border border-2 border-dashed p-3 text-center bg-light position-relative" style="min-height: 90px; cursor: pointer;">
+                                    <input type="file" class="d-none" id="anexo" name="anexo" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv,.zip,.rar" onchange="previewAnexo(this)">
+                                    <label for="anexo" id="anexo-label" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="cursor:pointer;">
+                                        <i class="fas fa-paperclip fa-2x mb-2 text-secondary"></i>
+                                        <span class="text-muted">Clique para fazer upload ou arraste um arquivo aqui</span>
+                                        <span class="small text-muted">Formatos aceitos: PDF, DOC, DOCX, TXT, XLS, XLSX, CSV, ZIP, RAR. Máx. 10MB</span>
+                                    </label>
+                                    <div id="preview-anexo" class="mt-2"></div>
+                                </div>
                             </div>
                         </div>
                         <div class="d-flex gap-2 justify-content-end">

@@ -28,14 +28,14 @@ $informativo = $this->data['informativo'];
                 
                 <div class="row">
                     <div class="col-md-8">
-                        <div class="mb-3">
+                        <div class="mb-3" style="margin-bottom: 2.5rem !important;">
                             <label for="titulo" class="form-label">Título <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="titulo" name="titulo" required maxlength="255" 
                                    value="<?php echo htmlspecialchars($informativo['titulo']); ?>" 
                                    placeholder="Digite o título do informativo">
                         </div>
                         
-                        <div class="mb-3">
+                        <div class="mb-3 mt-3">
                             <label for="conteudo" class="form-label">Conteúdo <span class="text-danger">*</span></label>
                             <textarea class="form-control" id="conteudo" name="conteudo" rows="10" required 
                                       placeholder="Digite o conteúdo do informativo"><?php echo htmlspecialchars($informativo['conteudo']); ?></textarea>
@@ -43,7 +43,7 @@ $informativo = $this->data['informativo'];
                     </div>
                     
                     <div class="col-md-4">
-                        <div class="mb-3">
+                        <div class="mb-3 mt-2">
                             <label for="categoria_id" class="form-label">Categoria <span class="text-danger">*</span></label>
                             <select class="form-select" id="categoria_id" name="categoria_id" required>
                                 <option value="">Selecione uma categoria</option>
