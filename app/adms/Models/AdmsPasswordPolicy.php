@@ -25,4 +25,5 @@ class AdmsPasswordPolicy
     public string $forcar_logout_troca_senha;
     public string $expirar_sessao_por_tempo;
     public int $tempo_expiracao_sessao;
+    public int $tempo_bloqueio_tela;
 } 

@@ -138,8 +138,20 @@ $exemplo_senha = $nivel !== 'Customizado' ? $exemplos[$nivel] : ($form->exemplo_
                                 </div>
                             </div>
                             <div class="mb-3" id="campo_tempo_expiracao_sessao" style="display:<?= (isset($form->expirar_sessao_por_tempo) && $form->expirar_sessao_por_tempo == 'Sim') ? 'block' : 'none' ?>;">
-                                <label class="form-label" for="tempo_expiracao_sessao">Tempo de expiração da sessão (minutos)</label>
+                                <label class="form-label" for="tempo_expiracao_sessao">Tempo de expiração da sessão após inatividade (minutos)</label>
                                 <input type="number" class="form-control form-control-sm w-auto" style="max-width:90px;" name="tempo_expiracao_sessao" id="tempo_expiracao_sessao" value="<?= $form->tempo_expiracao_sessao ?? 30 ?>">
+                            </div>
+                            <div class="mb-3" id="campo_tempo_bloqueio_tela" style="display:<?= (isset($form->expirar_sessao_por_tempo) && $form->expirar_sessao_por_tempo == 'Sim') ? 'block' : 'none' ?>;">
+                                <label class="form-label" for="tempo_bloqueio_tela">Tempo para bloqueio de tela após inatividade (minutos)</label>
+                                <input type="number"
+                                       class="form-control form-control-sm w-auto"
+                                       style="max-width:90px;"
+                                       name="tempo_bloqueio_tela"
+                                       id="tempo_bloqueio_tela"
+                                       value="<?= $form->tempo_bloqueio_tela ?? 1 ?>">
+                                <div class="form-text">
+                                    Após o bloqueio da tela a sessão será mantida até desbloquear a tela ou atingir o tempo de expiração. Ao desbloquear a tela o tempo de sessão é renovado.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -252,9 +264,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Controle do toggle de expiração de sessão por tempo
     const toggleExpirarSessao = document.getElementById('expirar_sessao_por_tempo');
     const campoTempoExpiracao = document.getElementById('campo_tempo_expiracao_sessao');
+    const campoTempoBloqueioTela = document.getElementById('campo_tempo_bloqueio_tela');
     function atualizarCampoTempoExpiracao() {
-        if (toggleExpirarSessao && campoTempoExpiracao) {
-            campoTempoExpiracao.style.display = toggleExpirarSessao.checked ? 'block' : 'none';
+        if (toggleExpirarSessao) {
+            const display = toggleExpirarSessao.checked ? 'block' : 'none';
+            if (campoTempoExpiracao) campoTempoExpiracao.style.display = display;
+            if (campoTempoBloqueioTela) campoTempoBloqueioTela.style.display = display;
         }
     }
     if (toggleExpirarSessao) {

@@ -2,14 +2,8 @@
 
 use App\adms\Helpers\CSRFHelper;
 
-$rawMsg   = $_GET['msg']   ?? '';
-$rawError = $_GET['error'] ?? '';
-
-// Considera tanto msg quanto error com textos de sessão expirada
-$isSessionExpiredMsg = (
-    (!empty($rawMsg)   && (str_contains($rawMsg, 'Sessão expirada') || str_contains($rawMsg, 'Sua sessão expirou')))
-    || (!empty($rawError) && (str_contains($rawError, 'Sessão expirada') || str_contains($rawError, 'Sua sessão expirou')))
-);
+// Mantemos a leitura de msg/error apenas para exibir alertas, 
+// sem mais alterar o estado do botão.
 ?>
 
 <div class="col-lg-5">
@@ -51,8 +45,6 @@ $isSessionExpiredMsg = (
             ?>
 
             <form action="" method="POST" id="form-login">
-                <!-- Campo oculto para o token CSRF para proteger o formulário contra ataques de falsificação de solicitação entre sites -->
-                <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_login'); ?>">
 
 
                 <!-- Campo usuário -->
@@ -64,20 +56,28 @@ $isSessionExpiredMsg = (
                     <label for="username">Usuário</label>
                 </div>
 
-                <!-- Campo para a senha do usuário -->
-                <div class="form-floating mb-3">
-                    <input type="password" name="password" class="form-control" id="password" placeholder="Digite sua senha." value="<?php echo $this->data['form']['password'] ?? ''; ?>"
-                           oninput="this.value = this.value.replace(/\s/g, '')" 
-                           onpaste="this.value = this.value.replace(/\s/g, '')"
-                           autocomplete="current-password" required>
-                    <label for="password">Senha</label>
+                <!-- Campo para a senha do usuário (com opção de mostrar/ocultar) -->
+                <div class="mb-3 position-relative">
+                    <div class="form-floating">
+                        <input type="password" name="password" class="form-control" id="password" placeholder="Digite sua senha." value="<?php echo $this->data['form']['password'] ?? ''; ?>"
+                               oninput="this.value = this.value.replace(/\s/g, '')" 
+                               onpaste="this.value = this.value.replace(/\s/g, '')"
+                               autocomplete="current-password" required>
+                        <label for="password">Senha</label>
+                    </div>
+                    <button type="button"
+                            id="toggle-password-visibility"
+                            class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2"
+                            style="z-index: 3;">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>forgot-password" class="small text-decoration-none">Esqueceu a Senha?</a>
                     <!-- Botão para submeter o formulário -->
-                    <button type="submit" class="btn btn-primary btn-sm" id="btn-acessar" <?= $isSessionExpiredMsg ? 'disabled' : '' ?>>
-                        <i class="fas fa-sign-in-alt me-2"></i><?= $isSessionExpiredMsg ? 'Atualizando token...' : 'Acessar' ?>
+                    <button type="submit" class="btn btn-primary btn-sm" id="btn-acessar">
+                        <i class="fas fa-sign-in-alt me-2"></i>Acessar
                     </button>
                 </div>
                 
@@ -137,52 +137,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const form = document.getElementById('form-login');
     const submitBtn = document.getElementById('btn-acessar');
+    const togglePasswordBtn = document.getElementById('toggle-password-visibility');
+    const passwordInput = document.getElementById('password');
     
     console.log('Form encontrado:', !!form);
     console.log('Botão encontrado:', !!submitBtn);
+    console.log('Toggle senha encontrado:', !!togglePasswordBtn);
     
-    // Verificar se há mensagem de sessão expirada
-    const urlParams = new URLSearchParams(window.location.search);
-    const msg   = urlParams.get('msg')   || '';
-    const error = urlParams.get('error') || '';
-
-    console.log('Mensagem da URL (msg):', msg);
-    console.log('Mensagem da URL (error):', error);
-
-    const hasSessionExpired =
-        (msg && (msg.includes('Sessão expirada') || msg.includes('Sua sessão expirou'))) ||
-        (error && (error.includes('Sessão expirada') || error.includes('Sua sessão expirou')));
-
-    if (hasSessionExpired) {
-        console.log('=== SESSÃO EXPIRADA DETECTADA ===');
-
-        // Atualizar o token CSRF via AJAX para evitar erro de token inválido
-        // Desabilita o botão até o novo token ser aplicado
-        if (submitBtn) {
-            submitBtn.disabled = true;
-        }
-        updateCSRFToken(submitBtn);
-
-        // Destacar o botão quando a sessão expirou
-        submitBtn.classList.add('btn-warning');
-        submitBtn.classList.remove('btn-primary');
-        submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Sessão Expirada - Atualizando Token...';
-
-        // Adicionar efeito de pulso
-        submitBtn.style.animation = 'pulse 2s infinite';
-
-        // Adicionar CSS para animação
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
+    // Toggle mostrar/ocultar senha
+    if (togglePasswordBtn && passwordInput) {
+        togglePasswordBtn.addEventListener('click', function () {
+            const icon = this.querySelector('i');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                passwordInput.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
             }
-        `;
-        document.head.appendChild(style);
-
-        console.log('Botão destacado para sessão expirada');
+        });
     }
 
     // Proteção contra duplo submit
@@ -536,90 +515,7 @@ function getUrlFromFirefox(tabId) {
     return null;
 }
 
-// Função para atualizar o token CSRF via AJAX
-function updateCSRFToken(submitBtn) {
-    console.log('Atualizando token CSRF...');
-    
-    // Fazer requisição AJAX para obter novo token
-    fetch(window.location.href, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.text())
-    .then(html => {
-        // Extrair novo token do HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const newToken = doc.querySelector('input[name="csrf_token"]')?.value;
-        
-        if (newToken) {
-            // Atualizar o token no formulário
-            const tokenInput = document.querySelector('input[name="csrf_token"]');
-            if (tokenInput) {
-                tokenInput.value = newToken;
-                console.log('Token CSRF atualizado com sucesso');
-                
-                // Atualizar texto do botão
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Acessar';
-                    submitBtn.classList.remove('btn-warning');
-                    submitBtn.classList.add('btn-primary');
-                    submitBtn.style.animation = 'none';
-                }
-                
-                console.log('Token CSRF atualizado e botão restaurado');
-            }
-        } else {
-            console.error('Token CSRF não encontrado na resposta');
-            // Em vez de recarregar, mostrar mensagem de erro
-            showTokenError(submitBtn);
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao atualizar token CSRF:', error);
-        // Em vez de recarregar, mostrar mensagem de erro
-        showTokenError(submitBtn);
-    });
-}
-
-// Função para mostrar erro de token sem recarregar a página
-function showTokenError(submitBtn) {
-    console.log('Mostrando erro de token sem recarregar página');
-    
-    // Atualizar botão para mostrar erro
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Erro no Token - Clique para Tentar';
-        submitBtn.classList.remove('btn-warning');
-        submitBtn.classList.add('btn-danger');
-        submitBtn.style.animation = 'none';
-    }
-    
-    // Adicionar evento de clique para tentar novamente
-    submitBtn.onclick = function() {
-        updateCSRFToken(submitBtn);
-    };
-    
-    // Mostrar mensagem para o usuário
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
-    errorDiv.style.cssText = 'margin-top: 20px;';
-    
-    errorDiv.innerHTML = `
-        <strong><i class="fas fa-exclamation-triangle"></i> Erro no Token de Segurança</strong><br>
-        Clique no botão "Acessar" para tentar novamente ou recarregue a página manualmente.<br>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    // Inserir após o formulário
-    const form = document.getElementById('form-login');
-    if (form && form.parentElement) {
-        form.parentElement.appendChild(errorDiv);
-    }
-}
+// (Removido o fluxo de atualização de CSRF via AJAX, já que o login não usa mais CSRF)
 
 // Função para verificar se há usuário salvo
 function checkSavedUser() {

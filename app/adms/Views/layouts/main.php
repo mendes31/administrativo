@@ -17,6 +17,16 @@ if (function_exists('mb_http_output')) {
     mb_http_output('UTF-8');
 }
 
+// Expor dados básicos do usuário logado para o front-end (comparações e tela de bloqueio)
+if (!headers_sent() && isset($_SESSION['user_id'])) {
+    echo '<meta name="current-user-id" content="' . (int)$_SESSION['user_id'] . '">';
+    echo '<script>';
+    echo 'window.currentUserId = ' . (int)$_SESSION['user_id'] . ';';
+    $userName = $_SESSION['user_name'] ?? 'Usuário';
+    echo 'window.currentUserName = ' . json_encode($userName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';';
+    echo '</script>';
+}
+
 // Teste de execuÃ§Ã£o do layout
 // echo "<!-- LAYOUT MAIN EXECUTADO -->";
 
@@ -109,6 +119,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     $policy = $policyRepo->getPolicy();
     $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $policy->expirar_sessao_por_tempo === 'Sim');
     $limite = ($policy && isset($policy->tempo_expiracao_sessao)) ? ((int)$policy->tempo_expiracao_sessao * 60) : 1800;
+    $lockOffsetMinutes = ($policy && isset($policy->tempo_bloqueio_tela)) ? (int)$policy->tempo_bloqueio_tela : 1;
     
     if ($expirarPorTempo && $sess) {
         $agora = time();
@@ -290,12 +301,13 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         window.sessionConfig = {
             enabled: <?php echo json_encode($expirarPorTempo ?? false); ?>,
             timeoutMinutes: <?php echo json_encode(($policy && isset($policy->tempo_expiracao_sessao)) ? (int)$policy->tempo_expiracao_sessao : 30); ?>,
-            warningTime: <?php echo json_encode($limite * 1000); ?> // Converter para milissegundos
+            warningTime: <?php echo json_encode($limite * 1000); ?>, // Converter para milissegundos
+            lockOffsetMinutes: <?php echo json_encode($lockOffsetMinutes); ?>
         };
     </script>
 
-    <!-- VerificaÃ§Ã£o AutomÃ¡tica de SessÃ£o -->
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js"></script>
+    <!-- Verificação Automática de Sessão (com versionamento para evitar cache) -->
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js?v=<?php echo time(); ?>"></script>
 
     <!-- Responsividade genÃ©rica de listas (desktop x mobile) -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>

@@ -8,13 +8,18 @@ class SessionChecker {
         // Configuração da sessão
         this.config = window.sessionConfig || {
             enabled: false,
-            warningTime: 60000, // 1 minuto
-            timeoutMinutes: 30
+            warningTime: 60000, // 1 minuto (usado só para verificação com backend)
+            timeoutMinutes: 30,
+            lockOffsetMinutes: 5 // minutos de inatividade para bloqueio de tela
         };
         
-        // Tempos para bloqueio inteligente (em milissegundos)
-        this.saveTime = 2 * 60 * 1000; // 2 minutos antes da expiração
-        this.blockTime = 1 * 60 * 1000; // 1 minuto antes da expiração
+        // Bloqueio por inatividade (independente do tempo de expiração no servidor)
+        this.lockTimeoutMs = (this.config.lockOffsetMinutes || 5) * 60 * 1000;
+        this.lockTimer = null;
+        
+        // Tempos de save/block antigos (mantidos apenas para compatibilidade, não usados para avisos)
+        this.saveTime = this.lockTimeoutMs; // salvar estado próximo do bloqueio
+        this.blockTime = this.lockTimeoutMs;
         
         // Flags para controle de avisos
         this.warningShown = false;
@@ -745,6 +750,9 @@ class SessionChecker {
         
         // Configurar listeners de atividade
         this.setupActivityListeners();
+
+        // Considerar o carregamento da página como atividade inicial
+        this.updateLastActivity();
         
         // Primeira verificação após 5 segundos
         setTimeout(() => {
@@ -843,11 +851,16 @@ class SessionChecker {
     updateLastActivity() {
         // Salvar no localStorage para persistir entre abas
         this.saveToStorage('lastActivity', Date.now().toString());
-        
-        // Se o modal de bloqueio estiver visível, estender a sessão automaticamente
-        if (this.blockWarningShown && document.getElementById('app-block-overlay')) {
-            console.log('Atividade detectada, estendendo sessão automaticamente...');
-            this.extendSession();
+
+        // Reiniciar temporizador de bloqueio por inatividade
+        if (this.lockTimer) {
+            clearTimeout(this.lockTimer);
+        }
+        // Só arma o bloqueio se ainda não estiver bloqueado
+        if (!document.getElementById('app-block-overlay')) {
+            this.lockTimer = setTimeout(() => {
+                this.blockApplication();
+            }, this.lockTimeoutMs);
         }
     }
 
@@ -909,35 +922,14 @@ class SessionChecker {
                 return;
             }
 
-            // Verificar se está próximo de expirar
+            // Ajustar intervalo de verificação baseado no tempo restante informado pelo backend
             if (typeof data.expiresIn !== 'undefined' && data.expiresIn !== null) {
                 let expiresInMs = Number(data.expiresIn);
                 if (!Number.isNaN(expiresInMs)) {
-                    // Converter segundos para milissegundos se necessário
                     if (expiresInMs < 100000) {
                         expiresInMs = expiresInMs * 1000;
                     }
-                    
-                    // SISTEMA DE BLOQUEIO INTELIGENTE
-                    
-                    // 1. Salvar estado da aplicação 2 minutos antes da expiração (SILENCIOSO)
-                    if (expiresInMs < this.saveTime && !this.saveWarningShown) {
-                        this.saveApplicationState();
-                        // REMOVIDO: this.showSaveWarning(expiresInMs); ← POPUP AZUL NÃO APARECE MAIS!
-                        this.saveWarningShown = true;
-                    }
-                    
-                    // 2. Bloquear sistema 1 minuto antes da expiração (SILENCIOSO)
-                    if (expiresInMs < this.blockTime && !this.blockWarningShown) {
-                        this.blockApplication();
-                        // REMOVIDO: this.showBlockWarning(expiresInMs); ← POPUP AMARELO NÃO APARECE MAIS!
-                        this.blockWarningShown = true;
-                    }
-                    
-                    // 3. NÃO MOSTRAR AVISO LARANJA - apenas modal de bloqueio
-                    // REMOVIDO: if (expiresInMs < this.warningTime && !this.warningShown) { ... }
-                    
-                    // Ajustar intervalo de verificação baseado no tempo restante
+
                     if (expiresInMs < 60000) { // Menos de 1 minuto
                         this.checkInterval = 10000; // Verificar a cada 10 segundos
                     } else if (expiresInMs < 300000) { // Menos de 5 minutos
@@ -1011,23 +1003,37 @@ class SessionChecker {
             backdrop-filter: blur(5px);
         `;
         
+        const userName = window.currentUserName || 'Usuário';
+        
         blockOverlay.innerHTML = `
-            <div class="card" style="max-width: 500px; text-align: center; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div class="card" style="max-width: 420px; text-align: center; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
                 <div class="card-body p-4">
                     <div class="mb-3">
                         <i class="fas fa-lock fa-3x text-warning"></i>
                     </div>
-                    <h4 class="card-title text-warning mb-3">Sistema Bloqueado</h4>
+                    <h4 class="card-title text-warning mb-3">Tela Bloqueada</h4>
                     <p class="card-text mb-3">
-                        Sua sessão expira em breve por segurança.<br>
-                        <strong>Seus dados foram salvos automaticamente.</strong>
+                        Por segurança, o sistema foi bloqueado por inatividade.<br>
+                        <strong>Digite sua senha para continuar.</strong>
                     </p>
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-warning" onclick="sessionChecker.extendSession()">
-                            <i class="fas fa-sync-alt me-2"></i>Estender Sessão
+                    <div class="mb-3 text-start">
+                        <p class="mb-1 small text-muted">Usuário logado:</p>
+                        <p class="mb-2 fw-semibold" id="lockscreen-username">${userName}</p>
+                        <label for="lockscreen-password" class="form-label small">Senha</label>
+                        <div class="input-group input-group-sm">
+                            <input type="password" id="lockscreen-password" class="form-control" autocomplete="current-password" />
+                            <button type="button" class="btn btn-outline-secondary" id="lockscreen-toggle-password" tabindex="-1" aria-label="Mostrar ou ocultar senha">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="lockscreen-error" class="text-danger small mt-2" style="display:none;"></div>
+                    </div>
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="button" class="btn btn-warning" id="lockscreen-unlock-btn">
+                            <i class="fas fa-unlock-alt me-2"></i>Desbloquear
                         </button>
-                        <button type="button" class="btn btn-secondary" onclick="sessionChecker.logoutNow()">
-                            <i class="fas fa-sign-out-alt me-2"></i>Encerrar Sessão
+                        <button type="button" class="btn btn-secondary" id="lockscreen-logout-btn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Sair
                         </button>
                     </div>
                 </div>
@@ -1036,12 +1042,107 @@ class SessionChecker {
         
         document.body.appendChild(blockOverlay);
         
-        // Desabilitar interações
+        // Desabilitar interações no conteúdo de fundo
         document.body.style.pointerEvents = 'none';
         document.body.style.userSelect = 'none';
-        
         // Permitir apenas o overlay
         blockOverlay.style.pointerEvents = 'auto';
+
+        // Marcar como bloqueado
+        this.blockWarningShown = true;
+
+        const passwordInput = blockOverlay.querySelector('#lockscreen-password');
+        const unlockBtn = blockOverlay.querySelector('#lockscreen-unlock-btn');
+        const logoutBtn = blockOverlay.querySelector('#lockscreen-logout-btn');
+        const togglePasswordBtn = blockOverlay.querySelector('#lockscreen-toggle-password');
+        const errorDiv = blockOverlay.querySelector('#lockscreen-error');
+
+        if (passwordInput) {
+            passwordInput.focus();
+            passwordInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    unlockBtn?.click();
+                }
+            });
+        }
+
+        if (togglePasswordBtn && passwordInput) {
+            togglePasswordBtn.addEventListener('click', () => {
+                const isHidden = passwordInput.type === 'password';
+                passwordInput.type = isHidden ? 'text' : 'password';
+                const icon = togglePasswordBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                }
+                passwordInput.focus();
+            });
+        }
+
+        if (unlockBtn) {
+            unlockBtn.addEventListener('click', async () => {
+                if (!passwordInput) return;
+                const senha = passwordInput.value.trim();
+                if (!senha) {
+                    if (errorDiv) {
+                        errorDiv.textContent = 'Informe sua senha para desbloquear.';
+                        errorDiv.style.display = 'block';
+                    }
+                    return;
+                }
+                try {
+                    unlockBtn.disabled = true;
+                    unlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verificando...';
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                        errorDiv.textContent = '';
+                    }
+                    const response = await fetch(window.location.origin + '/administrativo/ajax-password-policy/validate-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ senha })
+                    });
+                    const data = await response.json();
+                    if (data && data.sucesso) {
+                        // Renovar sessão no servidor (se disponível)
+                        try {
+                            await this.extendSession();
+                        } catch (e) {
+                            console.warn('Falha ao estender sessão após desbloqueio, seguindo mesmo assim:', e);
+                        }
+                        // Remover bloqueio
+                        this.removeBlock();
+                        this.blockWarningShown = false;
+                        // Resetar temporizador de bloqueio a partir de agora
+                        this.updateLastActivity();
+                    } else {
+                        if (errorDiv) {
+                            errorDiv.textContent = data && data.mensagem ? data.mensagem : 'Senha incorreta. Tente novamente.';
+                            errorDiv.style.display = 'block';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao validar senha no bloqueio de tela:', error);
+                    if (errorDiv) {
+                        errorDiv.textContent = 'Erro ao validar senha. Tente novamente.';
+                        errorDiv.style.display = 'block';
+                    }
+                } finally {
+                    unlockBtn.disabled = false;
+                    unlockBtn.innerHTML = '<i class="fas fa-unlock-alt me-2"></i>Desbloquear';
+                }
+            });
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                window.location.href = window.location.origin + '/administrativo/logout';
+            });
+        }
     }
 
     // REMOVIDO: Função de popup azul não é mais usada

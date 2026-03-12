@@ -76,7 +76,8 @@ class AdmsPasswordPolicyRepository extends DbConnection
                 notificar_admins_bloqueio = :notificar_admins_bloqueio, 
                 forcar_logout_troca_senha = :forcar_logout_troca_senha, 
                 expirar_sessao_por_tempo = :expirar_sessao_por_tempo, 
-                tempo_expiracao_sessao = :tempo_expiracao_sessao, 
+                tempo_expiracao_sessao = :tempo_expiracao_sessao,
+                tempo_bloqueio_tela = :tempo_bloqueio_tela,
                 exemplo_senha = :exemplo_senha, 
                 nivel_seguranca = :nivel_seguranca, 
                 updated_at = :updated_at 
@@ -98,6 +99,7 @@ class AdmsPasswordPolicyRepository extends DbConnection
             $stmt->bindValue(':forcar_logout_troca_senha', $data['forcar_logout_troca_senha']);
             $stmt->bindValue(':expirar_sessao_por_tempo', $data['expirar_sessao_por_tempo']);
             $stmt->bindValue(':tempo_expiracao_sessao', $data['tempo_expiracao_sessao']);
+            $stmt->bindValue(':tempo_bloqueio_tela', $data['tempo_bloqueio_tela']);
             $stmt->bindValue(':exemplo_senha', $data['exemplo_senha']);
             $stmt->bindValue(':nivel_seguranca', $data['nivel_seguranca']);
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));

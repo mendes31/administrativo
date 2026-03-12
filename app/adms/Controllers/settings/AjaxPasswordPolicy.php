@@ -128,6 +128,7 @@ class AjaxPasswordPolicy
             'forcar_logout_troca_senha' => isset($form['forcar_logout_troca_senha']) && $form['forcar_logout_troca_senha'] === 'Sim' ? 'Sim' : 'Não',
             'expirar_sessao_por_tempo' => $form['expirar_sessao_por_tempo'] ?? 'Não',
             'tempo_expiracao_sessao' => isset($form['tempo_expiracao_sessao']) ? (int)$form['tempo_expiracao_sessao'] : 30,
+            'tempo_bloqueio_tela' => isset($form['tempo_bloqueio_tela']) ? (int)$form['tempo_bloqueio_tela'] : 1,
             'exemplo_senha' => $nivel !== 'Customizado' ? $exemplos[$nivel] : $exemplos['Customizado'],
             'updated_at' => date('Y-m-d H:i:s'),
         ];

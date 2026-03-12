@@ -87,22 +87,6 @@ class Login
             exit;
         }
         
-        // Validar CSRF
-        if (!isset($this->data['form']['csrf_token']) || !CSRFHelper::validateCSRFToken('form_login', $this->data['form']['csrf_token'])) {
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-                date('Y-m-d H:i:s') . " - [index] TOKEN CSRF INVALIDO\n", 
-                FILE_APPEND
-            );
-            $_SESSION['error'] = 'Token de segurança inválido. Tente novamente.';
-            $this->viewLogin();
-            return;
-        }
-        
-        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-            date('Y-m-d H:i:s') . " - [index] TOKEN CSRF VALIDO - PROCESSANDO LOGIN\n", 
-            FILE_APPEND
-        );
-        
         // Marcar como processado
         $_SESSION['login_processed'] = true;
         
