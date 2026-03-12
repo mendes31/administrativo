@@ -25,8 +25,15 @@ if (!isset($_ENV['DB_HOST'])) {
  */
 abstract class DbConnection
 {
-    /** @var object $connect Recebe a conexão com o banco de dados */
-    private object $connect;
+    /**
+     * Conexão PDO compartilhada entre todas as instâncias que estendem DbConnection.
+     *
+     * Ao usar uma conexão estática:
+     * - Evitamos abrir várias conexões em uma mesma requisição (cada Repository criava a sua).
+     * - Reduzimos a chance de atingir o limite de conexões do MySQL.
+     * - Mantemos o mesmo tratamento de erro 001 em caso de falha de conexão.
+     */
+    private static ?PDO $connect = null;
 
     /**
      * Realiza a conexão com o banco de dados.
@@ -39,12 +46,12 @@ abstract class DbConnection
      * @return object Retorna a conexão com o banco de dados.
      * @throws PDOException Se ocorrer um erro durante a tentativa de conexão com o banco de dados.
      */
-    public function getConnection(): object
+    public function getConnection(): PDO
     {
         try {
 
-            // Criar nova conexão com o bandco de dados se não existir
-            if (!isset($this->connect)) {
+            // Criar nova conexão com o banco de dados se não existir
+            if (self::$connect === null) {
 
                 // Conexão com a porta
                 // $this->connect = new PDO("mysql:host={$_ENV['DB_HOST']};port={$_ENV['DB_PORT']};dbname=" . $_ENV['DB_NAME'], $_ENV['DB_USER'], $_ENV['DB_PASS']);
@@ -56,13 +63,13 @@ abstract class DbConnection
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
                 ];
-                $this->connect = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], $options);
+                self::$connect = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], $options);
                 
 
                 // echo "Conexão realizada com sucesso!<br>";
             }
 
-            return $this->connect;
+            return self::$connect;
 
         } catch (PDOException $err) {
             // Chamar o método para salvar log
