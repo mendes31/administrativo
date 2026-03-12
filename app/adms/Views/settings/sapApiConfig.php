@@ -35,10 +35,12 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                                    name="base_url"
                                    class="form-control"
                                    required
-                                   placeholder="https://sap-api.seuservidor.com"
+                                   placeholder="http://192.168.1.223:5000"
                                    value="<?= htmlspecialchars($config['base_url'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                             <div class="form-text">
-                                Informe a URL base sem barra no final. Ex: <code>https://sap-api.seuservidor.com</code>
+                                Informe apenas a URL base do serviço (host + porta), sem <code>/query</code> ou <code>?sql=</code>.
+                                Ex: <code>http://192.168.1.223:5000</code>. O sistema irá montar internamente o endpoint de relatórios como
+                                <code>base_url + "/query?sql="</code>.
                             </div>
                         </div>
 
@@ -56,7 +58,7 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                                 </button>
                             </div>
                             <div class="form-text">
-                                Se informado, será utilizado no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.
+                                Se informado, será utilizado no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code> nas chamadas de relatório e de health-check.
                                 Caso contrário, nenhuma autenticação por token será enviada e a segurança deve ser garantida pela própria API (IP/Firewall, etc.).
                             </div>
                         </div>
@@ -88,17 +90,10 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Endpoint de Health Check</label>
-                            <input type="text"
-                                   name="health_endpoint"
-                                   class="form-control"
-                                   placeholder="/health"
-                                   value="<?= htmlspecialchars($config['health_endpoint'] ?? '/health', ENT_QUOTES, 'UTF-8') ?>">
-                            <div class="form-text">
-                                Caminho usado no teste de conexão. Deve retornar HTTP 200 (JSON).
-                            </div>
-                        </div>
+                        <!-- Campo legacy de health_endpoint mantido como hidden apenas para compatibilidade com o banco -->
+                        <input type="hidden"
+                               name="health_endpoint"
+                               value="<?= htmlspecialchars($config['health_endpoint'] ?? '/health', ENT_QUOTES, 'UTF-8') ?>">
 
                         <div class="form-check mb-4">
                             <input class="form-check-input"
@@ -129,11 +124,12 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                 </div>
                 <div class="card-body">
                     <p class="small text-muted">
-                        O teste envia uma requisição GET para <code>base_url + endpoint</code> e espera uma resposta 2xx.
+                        O teste executa uma consulta simples <code>SELECT 1 FROM DUMMY</code> usando a URL base configurada
+                        (chamando internamente <code>base_url + "/query?sql=SELECT 1 FROM DUMMY"</code>) e espera uma resposta HTTP 2xx.
                     </p>
                     <form method="POST" action="<?= $_ENV['URL_ADM'] ?>test-sap-api-config">
                         <button type="submit" class="btn btn-warning w-100">
-                            <i class="fas fa-plug me-2"></i>Executar Health Check
+                            <i class="fas fa-plug me-2"></i>Testar conexão (SELECT 1 FROM DUMMY)
                         </button>
                     </form>
                 </div>
@@ -145,11 +141,11 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_sa
                 </div>
                 <div class="card-body small">
                     <ul class="mb-0">
-                        <li>Garanta que o endpoint esteja publicado com HTTPS e certificado válido.</li>
-                        <li>O token deve ser de longa duração ou gerenciado automaticamente.</li>
-                        <li>Mantenha a API limitada por firewall e lista de IPs permitidos.</li>
-                        <li>No servidor da API, implemente rate limit e logs de auditoria.</li>
-                        <li>Timeout baixo pode cortar consultas grandes; ajuste conforme necessidade.</li>
+                        <li>A configuração desta tela substitui o uso das variáveis <code>SAP_REPORT_API_URL</code> e <code>SAP_REPORT_API_TIMEOUT</code> do arquivo <code>.env</code>.</li>
+                        <li>Em <strong>URL Base</strong>, informe apenas <code>host:porta</code>; o sistema adiciona <code>/query?sql=</code> automaticamente.</li>
+                        <li>O token (se usado) deve ser de longa duração ou gerenciado pela própria API; se não houver token, restrinja o acesso por firewall/IP.</li>
+                        <li>Mantenha logs e rate limit na API para evitar sobrecarga em consultas muito grandes.</li>
+                        <li>Timeout muito baixo pode interromper relatórios extensos; ajuste conforme o volume de dados esperado.</li>
                     </ul>
                 </div>
             </div>

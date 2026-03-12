@@ -49,6 +49,51 @@ Executar as seeds:
 vendor/bin/phinx seed:run -c database/phinx.php
 ```
 
+---
+
+## Integração SAP B1 via API HTTP
+
+A aplicação **não se conecta diretamente ao SAP B1**. Em vez disso, ela se comunica com uma **API HTTP própria**, que por sua vez acessa o banco de dados do SAP (HANA) e retorna os dados já consolidados.
+
+A configuração dessa API é feita **exclusivamente pela tela**:
+
+- Menu: `Administração > Configurações > Configuração SAP API`
+- Rota/controller: `sap-api-config` / `SapApiConfig`
+
+Nessa tela são definidos:
+
+- **URL Base da API**: endereço do serviço HTTP (host + porta), por exemplo `http://192.168.1.223:5000`. Internamente, o sistema monta as consultas como `base_url + "/query?sql="`.
+- **Token de Autenticação (opcional)**: se preenchido, é enviado em `Authorization: Bearer <token>` em todas as chamadas (relatórios e health check).
+- **Timeout (ms)**: tempo máximo de espera na requisição HTTP.
+- **Page Size**: tamanho padrão de página usado pela API (para paginação interna).
+- **Endpoint de Health Check**: caminho usado pelo botão “Executar Health Check” (ex.: `/health`).
+- **Ativar integração com a API SAP**: habilita/desabilita globalmente o uso da API.
+
+As variáveis de ambiente `SAP_REPORT_API_URL` e `SAP_REPORT_API_TIMEOUT` passaram a ser **apenas legado/documentação**; toda configuração ativa deve ser feita pela tela acima.
+
+---
+
+## Integração SAP B1 via API HTTP
+
+A aplicação **não se conecta diretamente ao SAP B1**. Em vez disso, ela se comunica com uma **API HTTP própria**, que por sua vez acessa o banco de dados do SAP (HANA) e retorna os dados já consolidados.
+
+A configuração dessa API é feita **exclusivamente pela tela**:
+
+- Menu: `Administração > Configurações > Configuração SAP API`
+- Rota/controller: `sap-api-config` / `SapApiConfig`
+
+Nessa tela são definidos:
+
+- **URL Base da API**: endereço do seu serviço HTTP (host + porta), por exemplo `http://192.168.1.223:5000`.  
+  Internamente, o sistema monta as consultas como `base_url + "/query?sql="`.
+- **Token de Autenticação (opcional)**: se preenchido, é enviado em `Authorization: Bearer <token>` em todas as chamadas (relatórios e health check).
+- **Timeout (ms)**: tempo máximo de espera na requisição HTTP.
+- **Page Size**: tamanho padrão de página usado pela API (para paginação interna).
+- **Endpoint de Health Check**: caminho usado pelo botão “Executar Health Check” (ex.: `/health`).
+- **Ativar integração com a API SAP**: habilita/desabilita globalmente o uso da API.
+
+As variáveis de ambiente `SAP_REPORT_API_URL` e `SAP_REPORT_API_TIMEOUT` passaram a ser **apenas legado/documentação**; toda configuração ativa deve ser feita pela tela acima.
+
 <!-- Acessar o projeto: [Acessar](http://localhost/administrativo) -->
 <!-- # Acessar o projeto: [Acessar](http://www.administrativotiaraju.kinghost.net/administrativo/) -->
 

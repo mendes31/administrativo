@@ -3,6 +3,7 @@
 namespace App\adms\Models\Services;
 
 use Exception;
+use App\adms\Models\Repository\AdmsSapApiConfigRepository;
 
 /**
  * Cliente HTTP simples para consultar a API de relatórios SAP.
@@ -11,13 +12,52 @@ class SapReportApiService
 {
     private string $baseUrl;
     private int $timeout;
+    private ?string $apiToken = null;
 
     public function __construct()
     {
-        $baseUrl = $_ENV['SAP_REPORT_API_URL'] ?? 'https://02eb453e3bb4.ngrok-free.app/query';
-        // Garantir que a URL não tenha barra no final
-        $this->baseUrl = rtrim($baseUrl, '/');
-        $this->timeout = (int)($_ENV['SAP_REPORT_API_TIMEOUT'] ?? 30);
+        // Toda configuração vem da tela "Configuração da API SAP B1"
+        $repo = new AdmsSapApiConfigRepository();
+        $config = $repo->getConfig();
+
+        if (empty($config) || (isset($config['is_active']) && (int)$config['is_active'] !== 1)) {
+            throw new Exception(
+                'Integração SAP B1 desativada ou não configurada. ' .
+                'Acesse "Configurações -> Configuração SAP API" e salve os parâmetros de conexão.'
+            );
+        }
+
+        // URL base cadastrada na tela (host + porta)
+        $baseUrl = trim($config['base_url'] ?? '');
+        $baseUrl = rtrim($baseUrl, '/');
+
+        // A API esperada recebe as consultas em /query?sql=...
+        // Se o admin já informou o endpoint /query completo, usar como está.
+        // Caso contrário, o sistema completa automaticamente com /query.
+        if ($baseUrl !== '' && !preg_match('~/query$~i', $baseUrl)) {
+            $baseUrl .= '/query';
+        }
+
+        if ($baseUrl === '') {
+            throw new Exception(
+                'URL base da API SAP B1 não informada. ' .
+                'Preencha o campo "URL Base da API" na tela de configuração SAP API.'
+            );
+        }
+
+        $this->baseUrl = $baseUrl;
+
+        // Timeout configurado em milissegundos na tela
+        $timeoutMs = (int)($config['timeout_ms'] ?? 30000);
+        if ($timeoutMs < 1000) {
+            $timeoutMs = 1000;
+        }
+        // Armazenar em segundos para uso no cURL
+        $this->timeout = (int)ceil($timeoutMs / 1000);
+
+        // Token de autenticação opcional
+        $apiToken = trim($config['api_token'] ?? '');
+        $this->apiToken = $apiToken !== '' ? $apiToken : null;
     }
 
     public function execute(string $sql): array
@@ -65,21 +105,30 @@ class SapReportApiService
         
         $ch = curl_init($url);
 
+        $headers = [
+            'Accept: application/json',
+            'Accept-Encoding: gzip, deflate', // Solicitar compressão
+            'ngrok-skip-browser-warning: true', // Header para ngrok-free
+            'User-Agent: PHP-SAP-Report-Client/1.0'
+        ];
+
+        // Se houver token configurado na tela, envia Authorization: Bearer <token>
+        if (!empty($this->apiToken)) {
+            $headers[] = 'Authorization: Bearer ' . $this->apiToken;
+        }
+
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 600, // 10 minutos para queries grandes
+            // Timeout geral para a requisição (em segundos)
+            CURLOPT_TIMEOUT => max(60, $this->timeout), // mínimo 60s para queries grandes
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'Accept-Encoding: gzip, deflate', // Solicitar compressão
-                'ngrok-skip-browser-warning: true', // Header para ngrok-free
-                'User-Agent: PHP-SAP-Report-Client/1.0'
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_ENCODING => '', // Aceitar qualquer encoding (gzip, deflate)
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 3,
-            CURLOPT_CONNECTTIMEOUT => 10, // Timeout de conexão mais curto
+            // Timeout de conexão em segundos (mais curto que o total da requisição)
+            CURLOPT_CONNECTTIMEOUT => min(10, $this->timeout),
             CURLOPT_BUFFERSIZE => 16384 // Buffer maior para melhor performance
         ]);
 

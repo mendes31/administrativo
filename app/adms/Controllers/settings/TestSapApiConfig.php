@@ -3,7 +3,8 @@
 namespace App\adms\Controllers\settings;
 
 use App\adms\Models\Repository\AdmsSapApiConfigRepository;
-use App\adms\Helpers\SapApiService;
+use App\adms\Models\Services\SapReportApiService;
+use Exception;
 
 class TestSapApiConfig
 {
@@ -24,17 +25,22 @@ class TestSapApiConfig
             exit;
         }
 
-        $result = SapApiService::healthCheck($config);
+        try {
+            // Usa o mesmo cliente de relatórios, executando um SELECT simples compatível com SAP HANA
+            $service = new SapReportApiService();
+            $start = microtime(true);
+            $result = $service->execute('SELECT 1 FROM DUMMY');
+            $durationMs = round((microtime(true) - $start) * 1000, 2);
 
-        if ($result['success']) {
-            $status = $result['status_code'] ?? 200;
-            $duration = $result['duration_ms'] !== null ? number_format($result['duration_ms'], 2, ',', '.') : 'n/d';
-            $_SESSION['msg'] = "✅ Conexão realizada com sucesso! (HTTP {$status} em {$duration} ms)";
-            $_SESSION['msg_type'] = 'success';
-        } else {
-            $status = $result['status_code'] ? 'HTTP ' . $result['status_code'] : 'sem resposta';
-            $error = $result['error'] ?: 'Erro desconhecido.';
-            $_SESSION['msg'] = "❌ Falha ao conectar na API ({$status}). Detalhes: {$error}";
+            if (!empty($result['data'])) {
+                $_SESSION['msg'] = "✅ Conexão realizada com sucesso! (SELECT 1 FROM DUMMY em {$durationMs} ms)";
+                $_SESSION['msg_type'] = 'success';
+            } else {
+                $_SESSION['msg'] = "⚠️ API respondeu, mas não retornou dados para SELECT 1 FROM DUMMY. Verifique a implementação da API.";
+                $_SESSION['msg_type'] = 'warning';
+            }
+        } catch (Exception $e) {
+            $_SESSION['msg'] = "❌ Falha ao conectar na API. Detalhes: " . $e->getMessage();
             $_SESSION['msg_type'] = 'danger';
         }
 
@@ -42,10 +48,4 @@ class TestSapApiConfig
         exit;
     }
 }
-
-
-
-
-
-
 
