@@ -129,13 +129,25 @@
                                     </div>
                                     <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
                                     <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
+                                    <?php
+                                        $anosEmpresa = isset($aniv['anos_empresa']) ? (int)$aniv['anos_empresa'] : null;
+                                    ?>
                                     <div class="text-muted small mt-1">
                                         <i class="fas fa-briefcase text-primary me-1"></i>
                                         <span class="fw-bold" style="color:#1976d2;">
                                             <?php echo $aniv['aniversario_empresa'] ?? ''; ?>
                                         </span>
-                                        <?php if (!empty($aniv['anos_empresa'])): ?>
-                                            <br><span class="small text-muted"><?php echo (int)$aniv['anos_empresa']; ?> ano(s) de casa</span>
+                                        <?php if ($anosEmpresa === 0): ?>
+                                            <br>
+                                            <span class="small fw-semibold"
+                                                  style="display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:#e8f5e9;color:#2e7d32;">
+                                                Novo Colaborador
+                                            </span>
+                                        <?php elseif ($anosEmpresa !== null && $anosEmpresa > 0): ?>
+                                            <br>
+                                            <span class="small text-muted">
+                                                <?php echo $anosEmpresa; ?> ano(s) de casa
+                                            </span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
