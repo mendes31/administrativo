@@ -199,6 +199,52 @@ composer require phpmailer/phpmailer
 
 ---
 
+## Matriz de Treinamentos – Regras de Atualização
+
+A matriz de treinamentos (`adms_training_users`) é mantida automaticamente pelo sistema com base em eventos do cadastro de usuários, cargos e treinamentos.  
+Os pontos principais são:
+
+- **Cadastro de usuário (`CreateUser`)**  
+  - Após criar um usuário com cargo, o sistema chama `TrainingMatrixService::updateMatrixForUser($userId)`.
+  - Resultado: são criados vínculos apenas para treinamentos **obrigatórios e ativos** do cargo do colaborador ativo.
+
+- **Edição de usuário (`UpdateUser`)**  
+  - **Ativo → Inativo**: remove vínculos ativos (`removeActiveLinksByUser`) e cancela avaliações pendentes/em andamento.
+  - **Inativo → Ativo**: recria vínculos obrigatórios com `recreateLinksForReactivatedUser($userId)` (somente treinamentos ativos).
+  - **Troca de cargo**: usa `checkAndFixUserLinks($userId)` para:
+    - converter vínculos individuais em vínculos por cargo quando o treinamento passa a ser obrigatório;
+    - criar vínculos obrigatórios que faltam para o novo cargo;
+    - manter o histórico de treinamentos concluídos.
+  - **Edição sem troca de status/cargo**: `updateMatrixForUser($userId)` apenas recalcula os vínculos daquele colaborador.
+
+- **CRUD de treinamentos (`CreateTraining`, `UpdateTraining`, `DeleteTraining`)**  
+  - **Criar**: `updateMatrixForAllUsers()` para aplicar o novo treinamento obrigatório a todos os usuários impactados.
+  - **Ativo → Inativo**: remove vínculos ativos com `removeActiveLinksByTraining($trainingId)` e preserva apenas o histórico concluído.
+  - **Inativo → Ativo**: `recreateLinksForReactivatedTraining($trainingId)` recria vínculos para usuários ativos dos cargos obrigatórios.
+  - **Editar treinamento ativo sem mudar status**: `updateMatrixForAllUsers()` para refletir as novas regras.
+
+- **Vínculos de cargos x treinamentos (`TrainingPositions`)**  
+  - Ao salvar os vínculos:
+    - Remove vínculos ativos de cargos que deixaram de ser obrigatórios (`removeActiveLinksByCargoAndTraining`).
+    - Para cada cargo ainda obrigatório, busca usuários ativos do cargo e chama `TrainingUsersRepository::recreateLinksForUser($userId, $cargoId)` para alinhar a matriz.
+
+- **Exclusão de cargo (`DeletePosition`)**  
+  - Após excluir um cargo, o sistema chama `updateMatrixForAllUsers()` para limpar/ajustar vínculos que ficaram inconsistentes.
+
+- **Ferramentas administrativas da matriz (`TrainingMatrixManager`)**  
+  - Permite:
+    - atualizar a matriz de **todos** os usuários (`updateMatrixForAllUsers()`);
+    - atualizar a matriz de **um usuário específico** (`updateMatrixForUser($userId)`);
+    - atualizar a matriz de **um cargo** (recalculando para todos os usuários daquele cargo).
+
+- **Sincronizações pontuais (`TrainingDashboard`, `SyncTrainingLinks`)**  
+  - Usam `TrainingUsersRepository::syncUserTrainingLinks($userId, $positionId)` para alinhar manualmente os vínculos de um colaborador com um cargo específico, sem recalcular toda a matriz.
+
+> Importante: o `TrainingUsersRepository` não chama mais `recreateLinksForUser` internamente em operações básicas (como `insertOrUpdate`), para evitar recursão e estouro de memória.  
+> O recálculo “global” da matriz sempre deve ser feito via `TrainingMatrixService` ou pelas telas administrativas citadas acima.
+
+---
+
 ## Como usar o GitHub
 
 Baixar os arquivos do Git:
