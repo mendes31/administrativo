@@ -90,6 +90,15 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
 
                 <div class="col-md-6 col-sm-12">
+                    <label for="default_page" class="form-label">Página Padrão</label>
+                    <select name="default_page" class="form-select" id="default_page">
+                        <option value="" selected>Selecione</option>
+                        <option value="1" <?php echo isset($this->data['form']['default_page']) && $this->data['form']['default_page'] == 1 ? 'selected' : ''; ?>>Sim</option>
+                        <option value="0" <?php echo isset($this->data['form']['default_page']) && $this->data['form']['default_page'] == 0 ? 'selected' : ''; ?>>Não</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6 col-sm-12">
                     <label for="adms_packages_page_id" class="form-label">Pacote</label>
                     <select name="adms_packages_page_id" class="form-select" id="adms_packages_page_id">
                         <option value="" selected>Selecione</option>

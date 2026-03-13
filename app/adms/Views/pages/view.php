@@ -102,7 +102,12 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
 
                     <dt class="col-sm-3">Pública: </dt>
                     <dd class="col-sm-9">
-                        <?php echo $public_page ? "<span class='badge text-bg-success'>Sim</span>" : "<span class='badge text-bg-danger'>Não</span>";; ?>
+                        <?php echo $public_page ? "<span class='badge text-bg-success'>Sim</span>" : "<span class='badge text-bg-danger'>Não</span>"; ?>
+                    </dd>
+
+                    <dt class="col-sm-3">Padrão: </dt>
+                    <dd class="col-sm-9">
+                        <?php echo !empty($default_page) ? "<span class='badge text-bg-success'>Sim</span>" : "<span class='badge text-bg-secondary'>Não</span>"; ?>
                     </dd>
 
                     <dt class="col-sm-3">Pacote: </dt>

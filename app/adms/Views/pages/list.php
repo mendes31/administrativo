@@ -97,6 +97,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                 <th scope="col">Controller</th>
                                 <th scope="col" class="d-none d-md-table-cell">Status</th>
                                 <th scope="col" class="d-none d-md-table-cell">Pública</th>
+                                <th scope="col" class="d-none d-md-table-cell">Padrão</th>
                                 <th scope="col" class="text-center">Ações</th>
                             </tr>
                         </thead>
@@ -118,6 +119,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                     </td>
                                     <td class="d-none d-md-table-cell">
                                         <?php echo $public_page ? "<span class='badge text-bg-success'>Sim</span>" : "<span class='badge text-bg-danger'>Não</span>"; ?>
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        <?php echo !empty($default_page) ? "<span class='badge text-bg-success'>Sim</span>" : "<span class='badge text-bg-secondary'>Não</span>"; ?>
                                     </td>
 
                                     <td class="text-center">
@@ -167,6 +171,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                         <div><b>ID:</b> <?= $page['id'] ?></div>
                                         <div><b>Controller:</b> <?= htmlspecialchars($page['controller_url']) ?></div>
                                         <div><b>Pública:</b> <?= $page['public_page'] ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-danger">Não</span>' ?></div>
+                                        <div><b>Padrão:</b> <?= !empty($page['default_page']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>
                                         <div class="mt-2">
                                             <?php if (in_array('ViewPage', $this->data['buttonPermission'])): ?>
                                                 <a href="<?= $_ENV['URL_ADM'] ?>view-page/<?= $page['id'] ?>" class="btn btn-primary btn-sm me-1 mb-1"><i class="fa-regular fa-eye"></i> Visualizar</a>

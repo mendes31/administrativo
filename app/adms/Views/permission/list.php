@@ -187,9 +187,6 @@
                     <tbody>
                         <?php
                         foreach ($groupedPages as $groupId => $pages) {
-                            // Debug: Verificar execução do loop
-                            echo "<!-- DEBUG LOOP DESKTOP: Executando loop para grupo '$groupId' -->";
-                            
                             // Calcular contadores do grupo
                             $totalCount = count($pages);
                             $authorizedCount = 0;
@@ -199,11 +196,7 @@
                                     $authorizedCount++;
                                 }
                             }
-                            
                             $revokedCount = $totalCount - $authorizedCount;
-                            
-                            // Debug: Verificar contagem PHP DESKTOP
-                            echo "<!-- DEBUG PHP DESKTOP: Grupo '$groupId' - Total: $totalCount, Autorizadas: $authorizedCount, Revogadas: $revokedCount -->";
                             
                             // Cabeçalho do grupo
                             echo '<tr class="group-header" data-group="' . htmlspecialchars($groupId) . '">';

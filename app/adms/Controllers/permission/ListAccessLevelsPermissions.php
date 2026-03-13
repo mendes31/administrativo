@@ -158,11 +158,6 @@ class ListAccessLevelsPermissions
         $listAccessLevelsPages = new AccessLevelsPagesRepository();
         $this->data['accessLevelsPages'] = $listAccessLevelsPages->getPagesAccessLevelsArray($this->id, true);
         
-        // Log de debug
-        error_log('View carregada - Total de páginas: ' . count($this->data['pages']));
-        error_log('View carregada - Total de permissões: ' . count($this->data['accessLevelsPages']));
-        error_log('View carregada - Permissões: ' . json_encode($this->data['accessLevelsPages']));
-        
         // Gerar token CSRF para o formulário
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('form_update_access_level_permissions');
         

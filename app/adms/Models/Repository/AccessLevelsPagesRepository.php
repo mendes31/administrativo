@@ -118,10 +118,32 @@ class AccessLevelsPagesRepository extends DbConnection
     {
         try {
             // Marca o ponto inicial de uma transação SQL
-            $this->getConnection()->beginTransaction();
+            $conn = $this->getConnection();
+            $conn->beginTransaction();
 
             // Array para armazenar ID do nível de acesso para salvar no log
             $accessLevelArrayId = [];
+
+            // Buscar metadados das páginas envolvidas (public_page, default_page, controller)
+            $allPageIds = [];
+            foreach ($data as $accessLevelId => $accessLevelPages) {
+                foreach ($accessLevelPages as $pageId) {
+                    $allPageIds[(int)$pageId] = true;
+                }
+            }
+
+            $pagesMeta = [];
+            if (!empty($allPageIds)) {
+                $ids = implode(',', array_map('intval', array_keys($allPageIds)));
+                $sqlPages = "SELECT id, controller, public_page, default_page 
+                             FROM adms_pages 
+                             WHERE id IN ({$ids})";
+                $stmtPages = $conn->prepare($sqlPages);
+                $stmtPages->execute();
+                foreach ($stmtPages->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $pagesMeta[(int)$row['id']] = $row;
+                }
+            }
 
             // Percorrer o array com nível de acesso e páginas
             foreach ($data as $accessLevelId => $accessLevelPages) {
@@ -132,7 +154,28 @@ class AccessLevelsPagesRepository extends DbConnection
 
                 // Percorrer o array de páginas que o nível de acesso não tem permissão de acessar
                 foreach ($accessLevelPages as $pageId) {
-                    $values[] = $accessLevelId == 1 ? 1 : 0;
+                    $pageId = (int)$pageId;
+                    if ($pageId <= 0) {
+                        continue;
+                    }
+
+                    $meta = $pagesMeta[$pageId] ?? null;
+                    $controller  = $meta['controller'] ?? '';
+                    $publicPage  = (int)($meta['public_page'] ?? 0);
+                    $defaultPage = (int)($meta['default_page'] ?? 0);
+
+                    $isBasic   = in_array($controller, $this->basicControllers, true);
+                    $isPublic  = $publicPage === 1;
+                    $isDefault = $defaultPage === 1;
+
+                    // Super admin (ID 1) sempre com permissão 1
+                    if ((int)$accessLevelId === 1) {
+                        $permission = 1;
+                    } else {
+                        $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
+                    }
+
+                    $values[] = $permission;
                     $values[] = $accessLevelId;
                     $values[] = $pageId;
                     $values[] = date("Y-m-d H:i:s");
@@ -146,7 +189,7 @@ class AccessLevelsPagesRepository extends DbConnection
                     $sql = "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at) VALUES " . implode(", ", $placeholders);
 
                     // Preparar a QUERY
-                    $stmt = $this->getConnection()->prepare($sql);
+                    $stmt = $conn->prepare($sql);
 
                     // Executar a QUERY
                     $stmt->execute($values);
@@ -162,7 +205,7 @@ class AccessLevelsPagesRepository extends DbConnection
             // Acessa somente o commit se cadastrou alguma página para o nível de acesso
             if ($accessLevelArrayId ?? false) {
                 // Operação SQL concluída com êxito
-                $this->getConnection()->commit();
+                $conn->commit();
             }
 
             return true;
@@ -202,7 +245,7 @@ class AccessLevelsPagesRepository extends DbConnection
             $conn->beginTransaction();
 
             // Buscar todas as páginas ativas com seus metadados
-            $sqlPages = 'SELECT id, controller, public_page
+            $sqlPages = 'SELECT id, controller, public_page, default_page
                          FROM adms_pages
                          WHERE page_status = 1';
             $stmtPages = $conn->prepare($sqlPages);
@@ -225,14 +268,16 @@ class AccessLevelsPagesRepository extends DbConnection
                 $pageId      = (int)($page['id'] ?? 0);
                 $controller  = $page['controller'] ?? '';
                 $publicPage  = (int)($page['public_page'] ?? 0);
+                $defaultPage = (int)($page['default_page'] ?? 0);
 
                 if ($pageId <= 0) {
                     continue;
                 }
 
-                $isBasic   = in_array($controller, $this->basicControllers, true);
-                $isPublic  = $publicPage === 1;
-                $permission = ($isPublic || $isBasic) ? 1 : 0;
+                $isBasic    = in_array($controller, $this->basicControllers, true);
+                $isPublic   = $publicPage === 1;
+                $isDefault  = $defaultPage === 1;
+                $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
 
                 $stmtInsert->bindValue(':permission', $permission, PDO::PARAM_INT);
                 $stmtInsert->bindValue(':level_id', $accessLevelId, PDO::PARAM_INT);

@@ -39,6 +39,7 @@ class ValidationPageService
             'directory' => 'required',
             'page_status' => 'required|boolean',
             'public_page' => 'required|boolean',
+            'default_page' => 'required|boolean',
             'adms_packages_page_id' => 'required|integer',
             'adms_groups_page_id' => 'required|integer',
         ];
@@ -60,6 +61,8 @@ class ValidationPageService
             'page_status:boolean' => 'O campo status deve ser true ou false.',
             'public_page:required' => 'O campo público é obrigatório.',
             'public_page:boolean' => 'O campo público deve ser true ou false.',
+            'default_page:required' => 'O campo página padrão é obrigatório.',
+            'default_page:boolean' => 'O campo página padrão deve ser true ou false.',
             'adms_packages_page_id:required' => 'O campo pacote é obrigatório.',
             'adms_packages_page_id:integer' => 'O campo pacote deve ser um número inteiro.',
             'adms_groups_page_id:required' => 'O campo grupo é obrigatório.',

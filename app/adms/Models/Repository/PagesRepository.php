@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Models\Repository\AccessLevelsRepository;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
@@ -52,7 +53,7 @@ class PagesRepository extends DbConnection
             $params[':publica'] = (int)$filters['publica'];
         }
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-        $sql = 'SELECT id, name, controller_url, page_status, public_page FROM adms_pages '
+        $sql = 'SELECT id, name, controller_url, page_status, public_page, default_page FROM adms_pages '
             . $whereSql . ' ORDER BY name ASC LIMIT :limit OFFSET :offset';
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
@@ -112,7 +113,7 @@ class PagesRepository extends DbConnection
     public function getPage(int $id): array|bool
     {
         // QUERY para recuperar o registro do banco de dados
-        $sql = 'SELECT ap.id, ap.name, ap.controller, ap.controller_url, ap.directory, ap.obs, ap.page_status, ap.public_page, ap.adms_packages_page_id, ap.adms_groups_page_id, ap.created_at, ap.updated_at,
+        $sql = 'SELECT ap.id, ap.name, ap.controller, ap.controller_url, ap.directory, ap.obs, ap.page_status, ap.public_page, ap.default_page, ap.adms_packages_page_id, ap.adms_groups_page_id, ap.created_at, ap.updated_at,
                 app.name app_name,
                 agp.name agp_name
                 FROM adms_pages AS ap
@@ -145,7 +146,7 @@ class PagesRepository extends DbConnection
         try {            
 
             // QUERY para cadastrar página
-            $sql = 'INSERT INTO adms_pages (name, controller, controller_url, directory, obs, page_status, public_page, adms_packages_page_id, adms_groups_page_id, created_at) VALUES (:name, :controller, :controller_url, :directory, :obs, :page_status, :public_page, :adms_packages_page_id, :adms_groups_page_id, :created_at)';
+            $sql = 'INSERT INTO adms_pages (name, controller, controller_url, directory, obs, page_status, public_page, default_page, adms_packages_page_id, adms_groups_page_id, created_at) VALUES (:name, :controller, :controller_url, :directory, :obs, :page_status, :public_page, :default_page, :adms_packages_page_id, :adms_groups_page_id, :created_at)';
 
             // Preparar a QUERY
             $stmt = $this->getConnection()->prepare($sql);
@@ -158,6 +159,7 @@ class PagesRepository extends DbConnection
             $stmt->bindValue(':obs', $data['obs'], PDO::PARAM_STR);
             $stmt->bindValue(':page_status', $data['page_status'], PDO::PARAM_BOOL);
             $stmt->bindValue(':public_page', $data['public_page'], PDO::PARAM_BOOL);
+            $stmt->bindValue(':default_page', $data['default_page'] ?? 0, PDO::PARAM_BOOL);
             $stmt->bindValue(':adms_packages_page_id', $data['adms_packages_page_id'], PDO::PARAM_INT);
             $stmt->bindValue(':adms_groups_page_id', $data['adms_groups_page_id'], PDO::PARAM_INT);
             $stmt->bindValue(':created_at', date("Y-m-d H:i:s"));
@@ -179,6 +181,7 @@ class PagesRepository extends DbConnection
                     'obs' => $data['obs'],
                     'page_status' => $data['page_status'],
                     'public_page' => $data['public_page'],
+                    'default_page' => $data['default_page'] ?? 0,
                     'adms_packages_page_id' => $data['adms_packages_page_id'],
                     'adms_groups_page_id' => $data['adms_groups_page_id'],
                     'created_at' => date("Y-m-d H:i:s")
@@ -192,6 +195,33 @@ class PagesRepository extends DbConnection
                     [],
                     $logData
                 );
+
+                // Se a página for pública ou padrão, conceder permissão automaticamente
+                $isPublic  = !empty($data['public_page']);
+                $isDefault = !empty($data['default_page']);
+                if ($isPublic || $isDefault) {
+                    $accessLevelsRepo = new AccessLevelsRepository();
+                    $levels = $accessLevelsRepo->getAllAccessLevelsSelect();
+                    $conn = $this->getConnection();
+                    $sqlPerm = 'INSERT IGNORE INTO adms_access_levels_pages 
+                                (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                                VALUES (:permission, :level_id, :page_id, :created_at, :updated_at)';
+                    $stmtPerm = $conn->prepare($sqlPerm);
+                    $now = date('Y-m-d H:i:s');
+                    foreach ($levels as $level) {
+                        $levelId = (int)($level['id'] ?? 0);
+                        // Ignorar IDs inválidos e o Super Administrador (ID 1 já é full por regra do sistema)
+                        if ($levelId <= 0 || $levelId === 1) {
+                            continue;
+                        }
+                        $stmtPerm->bindValue(':permission', 1, PDO::PARAM_INT);
+                        $stmtPerm->bindValue(':level_id', $levelId, PDO::PARAM_INT);
+                        $stmtPerm->bindValue(':page_id', (int)$pageId, PDO::PARAM_INT);
+                        $stmtPerm->bindValue(':created_at', $now);
+                        $stmtPerm->bindValue(':updated_at', $now);
+                        $stmtPerm->execute();
+                    }
+                }
             }
 
             return $pageId;
@@ -225,7 +255,8 @@ class PagesRepository extends DbConnection
                     directory = :directory, 
                     obs = :obs,
                     page_status = :page_status, 
-                    public_page = :public_page, 
+                    public_page = :public_page,
+                    default_page = :default_page,
                     adms_packages_page_id = :adms_packages_page_id, 
                     adms_groups_page_id = :adms_groups_page_id,  
                     updated_at = :updated_at';
@@ -244,6 +275,7 @@ class PagesRepository extends DbConnection
             $stmt->bindValue(':obs', $data['obs'], PDO::PARAM_STR);
             $stmt->bindValue(':page_status', $data['page_status'], PDO::PARAM_BOOL);
             $stmt->bindValue(':public_page', $data['public_page'], PDO::PARAM_BOOL);
+            $stmt->bindValue(':default_page', $data['default_page'] ?? 0, PDO::PARAM_BOOL);
             $stmt->bindValue(':adms_packages_page_id', $data['adms_packages_page_id'], PDO::PARAM_INT);
             $stmt->bindValue(':adms_groups_page_id', $data['adms_groups_page_id'], PDO::PARAM_INT);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
@@ -263,6 +295,7 @@ class PagesRepository extends DbConnection
                     'obs' => $data['obs'],
                     'page_status' => $data['page_status'],
                     'public_page' => $data['public_page'],
+                    'default_page' => $data['default_page'] ?? 0,
                     'adms_packages_page_id' => $data['adms_packages_page_id'],
                     'adms_groups_page_id' => $data['adms_groups_page_id'],
                     'updated_at' => date("Y-m-d H:i:s")
@@ -276,6 +309,43 @@ class PagesRepository extends DbConnection
                     $oldData,
                     $newData
                 );
+
+                // Se a página passou a ser padrão (0 -> 1), garantir permissão = 1 para todos os níveis
+                $oldDefault = (int)($oldData['default_page'] ?? 0);
+                $newDefault = (int)($data['default_page'] ?? 0);
+
+                if ($oldDefault === 0 && $newDefault === 1) {
+                    $conn = $this->getConnection();
+                    $pageId = (int)$data['id'];
+                    $now   = date('Y-m-d H:i:s');
+
+                    // Criar permissões onde ainda não existe linha
+                    $sqlInsert = 'INSERT IGNORE INTO adms_access_levels_pages
+                                  (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                                  SELECT 1, al.id, :page_id, :created_at, :updated_at
+                                  FROM adms_access_levels al
+                                  WHERE al.id <> 1
+                                    AND NOT EXISTS (
+                                      SELECT 1 FROM adms_access_levels_pages alp
+                                      WHERE alp.adms_access_level_id = al.id
+                                        AND alp.adms_page_id = :page_id
+                                  )';
+                    $stmtInsert = $conn->prepare($sqlInsert);
+                    $stmtInsert->bindValue(':page_id', $pageId, \PDO::PARAM_INT);
+                    $stmtInsert->bindValue(':created_at', $now);
+                    $stmtInsert->bindValue(':updated_at', $now);
+                    $stmtInsert->execute();
+
+                    // Atualizar para permission = 1 todas as linhas já existentes dessa página
+                    $sqlUpdatePerm = 'UPDATE adms_access_levels_pages
+                                      SET permission = 1, updated_at = :updated_at
+                                      WHERE adms_page_id = :page_id
+                                        AND adms_access_level_id <> 1';
+                    $stmtUpdatePerm = $conn->prepare($sqlUpdatePerm);
+                    $stmtUpdatePerm->bindValue(':updated_at', $now);
+                    $stmtUpdatePerm->bindValue(':page_id', $pageId, \PDO::PARAM_INT);
+                    $stmtUpdatePerm->execute();
+                }
             }
 
             return $result;
@@ -367,7 +437,7 @@ class PagesRepository extends DbConnection
     {
 
         // QUERY para recuperar os registros do banco de dados
-        $sql = 'SELECT ap.id, ap.name, ap.obs, ap.page_status, ap.public_page,
+        $sql = 'SELECT ap.id, ap.name, ap.obs, ap.page_status, ap.public_page, ap.default_page,
                 app.name app_name, agp.name AS agp_name
                 FROM adms_pages AS ap 
                 INNER JOIN adms_packages_pages AS app ON app.id=ap.adms_packages_page_id
