@@ -5,6 +5,7 @@ namespace App\adms\Controllers\pages;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\PagesRepository;
+use App\adms\Models\Repository\GroupsPagesRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Helpers\FiltersHelper;
 
@@ -41,7 +42,7 @@ class ListPages
     public function index(string|int $page = 1): void
     {
         // Padrão robusto para filtros e paginação
-        $params = FiltersHelper::getFilters(['nome', 'controller', 'status', 'publica']);
+        $params = FiltersHelper::getFilters(['id', 'nome', 'controller', 'grupo', 'status', 'publica', 'padrao']);
         $perPage = $params['per_page'];
         $currentPage = $params['page'];
         $filters = $params['filters'];
@@ -60,6 +61,10 @@ class ListPages
 
         // Recuperar as páginas para a página atual com filtros
         $this->data['pages'] = $listPages->getAllPages($currentPage, (int) $perPage, $filters);
+
+        // Carregar lista de grupos para o filtro "Grupo"
+        $groupsRepo = new GroupsPagesRepository();
+        $this->data['groups'] = $groupsRepo->getAllGroupsPagesSelect();
 
         // Gerar dados de paginação
         $this->data['pagination'] = PaginationService::generatePagination(

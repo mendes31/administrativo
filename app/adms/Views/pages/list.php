@@ -46,6 +46,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
             ?>
 
                 <form method="get" class="row g-2 mb-3 align-items-end" onsubmit="this.page.value=1;">
+                    <div class="col-md-2">
+                        <label for="id" class="form-label mb-1">ID</label>
+                        <input type="text" name="id" id="id" class="form-control" value="<?= htmlspecialchars($_GET['id'] ?? '') ?>">
+                    </div>
                     <div class="col-md-3">
                         <label for="nome" class="form-label mb-1">Nome</label>
                         <input type="text" name="nome" id="nome" class="form-control" value="<?= htmlspecialchars($_GET['nome'] ?? '') ?>">
@@ -53,6 +57,19 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                     <div class="col-md-3">
                         <label for="controller" class="form-label mb-1">Controller</label>
                         <input type="text" name="controller" id="controller" class="form-control" value="<?= htmlspecialchars($_GET['controller'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="grupo" class="form-label mb-1">Grupo</label>
+                        <select name="grupo" id="grupo" class="form-select">
+                            <option value="">Todos</option>
+                            <?php if (!empty($this->data['groups'])): ?>
+                                <?php foreach ($this->data['groups'] as $group): ?>
+                                    <option value="<?= (int)$group['id'] ?>" <?= (($_GET['grupo'] ?? '') == $group['id']) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($group['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label for="status" class="form-label mb-1">Status</label>
@@ -68,6 +85,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                             <option value="">Todas</option>
                             <option value="1" <?= (($_GET['publica'] ?? '') === '1') ? 'selected' : '' ?>>Sim</option>
                             <option value="0" <?= (($_GET['publica'] ?? '') === '0') ? 'selected' : '' ?>>Não</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="padrao" class="form-label mb-1">Padrão</label>
+                        <select name="padrao" id="padrao" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="1" <?= (($_GET['padrao'] ?? '') === '1') ? 'selected' : '' ?>>Sim</option>
+                            <option value="0" <?= (($_GET['padrao'] ?? '') === '0') ? 'selected' : '' ?>>Não</option>
                         </select>
                     </div>
                     <div class="col-auto mb-2">
@@ -94,6 +119,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                             <tr>
                                 <th scope="col">ID</th>
                                 <th scope="col">Nome</th>
+                                <th scope="col">Grupo</th>
                                 <th scope="col">Controller</th>
                                 <th scope="col" class="d-none d-md-table-cell">Status</th>
                                 <th scope="col" class="d-none d-md-table-cell">Pública</th>
@@ -113,6 +139,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                 <tr>
                                     <td><?php echo $id; ?></td>
                                     <td><?php echo $name; ?></td>
+                                    <td><?php echo htmlspecialchars($group_name ?? ''); ?></td>
                                     <td><?php echo $controller_url; ?></td>
                                     <td class="d-none d-md-table-cell">
                                         <?php echo $page_status ? "<span class='badge text-bg-success'>Ativa</span>" : "<span class='badge text-bg-danger'>Inativa</span>"; ?>
@@ -169,6 +196,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                     </div>
                                     <div class="collapse mt-2" id="cardPageDetails<?= $i ?>">
                                         <div><b>ID:</b> <?= $page['id'] ?></div>
+                                        <div><b>Grupo:</b> <?= htmlspecialchars($page['group_name'] ?? '') ?></div>
                                         <div><b>Controller:</b> <?= htmlspecialchars($page['controller_url']) ?></div>
                                         <div><b>Pública:</b> <?= $page['public_page'] ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-danger">Não</span>' ?></div>
                                         <div><b>Padrão:</b> <?= !empty($page['default_page']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>

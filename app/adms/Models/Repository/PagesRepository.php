@@ -36,25 +36,47 @@ class PagesRepository extends DbConnection
         $offset = max(0, ($page - 1) * $limitResult);
         $where = [];
         $params = [];
+        if (!empty($filters['id']) && is_numeric($filters['id'])) {
+            $where[] = 'ap.id = :id';
+            $params[':id'] = (int)$filters['id'];
+        }
         if (!empty($filters['nome'])) {
-            $where[] = 'name LIKE :nome';
+            $where[] = 'ap.name LIKE :nome';
             $params[':nome'] = '%' . $filters['nome'] . '%';
         }
         if (!empty($filters['controller'])) {
-            $where[] = 'controller_url LIKE :controller';
+            $where[] = 'ap.controller_url LIKE :controller';
             $params[':controller'] = '%' . $filters['controller'] . '%';
         }
+        if (!empty($filters['grupo']) && is_numeric($filters['grupo'])) {
+            $where[] = 'ap.adms_groups_page_id = :grupo';
+            $params[':grupo'] = (int)$filters['grupo'];
+        }
         if ($filters['status'] !== '' && $filters['status'] !== null) {
-            $where[] = 'page_status = :status';
+            $where[] = 'ap.page_status = :status';
             $params[':status'] = (int)$filters['status'];
         }
         if ($filters['publica'] !== '' && $filters['publica'] !== null) {
-            $where[] = 'public_page = :publica';
+            $where[] = 'ap.public_page = :publica';
             $params[':publica'] = (int)$filters['publica'];
         }
+        if ($filters['padrao'] !== '' && $filters['padrao'] !== null) {
+            $where[] = 'ap.default_page = :padrao';
+            $params[':padrao'] = (int)$filters['padrao'];
+        }
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-        $sql = 'SELECT id, name, controller_url, page_status, public_page, default_page FROM adms_pages '
-            . $whereSql . ' ORDER BY name ASC LIMIT :limit OFFSET :offset';
+        $sql = 'SELECT 
+                    ap.id, 
+                    ap.name, 
+                    ap.controller_url, 
+                    ap.page_status, 
+                    ap.public_page, 
+                    ap.default_page,
+                    ap.adms_groups_page_id,
+                    agp.name AS group_name
+                FROM adms_pages AS ap
+                INNER JOIN adms_groups_pages AS agp ON agp.id = ap.adms_groups_page_id '
+            . $whereSql . ' ORDER BY ap.name ASC LIMIT :limit OFFSET :offset';
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
@@ -76,6 +98,10 @@ class PagesRepository extends DbConnection
     {
         $where = [];
         $params = [];
+        if (!empty($filters['id']) && is_numeric($filters['id'])) {
+            $where[] = 'id = :id';
+            $params[':id'] = (int)$filters['id'];
+        }
         if (!empty($filters['nome'])) {
             $where[] = 'name LIKE :nome';
             $params[':nome'] = '%' . $filters['nome'] . '%';
@@ -84,6 +110,10 @@ class PagesRepository extends DbConnection
             $where[] = 'controller_url LIKE :controller';
             $params[':controller'] = '%' . $filters['controller'] . '%';
         }
+        if (!empty($filters['grupo']) && is_numeric($filters['grupo'])) {
+            $where[] = 'adms_groups_page_id = :grupo';
+            $params[':grupo'] = (int)$filters['grupo'];
+        }
         if ($filters['status'] !== '' && $filters['status'] !== null) {
             $where[] = 'page_status = :status';
             $params[':status'] = (int)$filters['status'];
@@ -91,6 +121,10 @@ class PagesRepository extends DbConnection
         if ($filters['publica'] !== '' && $filters['publica'] !== null) {
             $where[] = 'public_page = :publica';
             $params[':publica'] = (int)$filters['publica'];
+        }
+        if ($filters['padrao'] !== '' && $filters['padrao'] !== null) {
+            $where[] = 'default_page = :padrao';
+            $params[':padrao'] = (int)$filters['padrao'];
         }
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
         $sql = 'SELECT COUNT(id) as amount_records FROM adms_pages ' . $whereSql;
