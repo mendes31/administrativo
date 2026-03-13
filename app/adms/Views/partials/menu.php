@@ -50,6 +50,12 @@ $menus = [
                             'icon' => 'fas fa-link'
                         ],
                         [
+                            'label' => 'Configuração API MCP',
+                            'url' => $_ENV['URL_ADM'] . 'mcp-api-config',
+                            'permission' => 'McpApiConfig',
+                            'icon' => 'fas fa-robot'
+                        ],
+                        [
                             'label' => 'Configuração de WhatsApp',
                             'url' => $_ENV['URL_ADM'] . 'whats-app-config',
                             'permission' => 'WhatsAppConfig',

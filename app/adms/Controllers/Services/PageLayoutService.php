@@ -243,9 +243,12 @@ class PageLayoutService
             'SapApiConfig',
             'SaveSapApiConfig',
             'TestSapApiConfig',
+            'McpApiConfig',
+            'SaveMcpApiConfig',
             'WhatsAppConfig',
             'SaveWhatsAppConfig',
             'TestWhatsAppConfig',
+            'McpChat',
             // CRM - Gestão de Relacionamento com Clientes
             'CrmDashboard',
             'CrmKanbanPipeline',

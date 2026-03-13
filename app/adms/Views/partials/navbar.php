@@ -6,6 +6,7 @@ $navbarNotifCount = 0;
 $navbarNotifList = [];
 $navbarInternalCount = 0;
 $navbarInternalList = [];
+$mcpChatAvailable = false;
 if (!empty($_SESSION['user_id'])) {
     try {
         $userId = (int)$_SESSION['user_id'];
@@ -23,11 +24,27 @@ if (!empty($_SESSION['user_id'])) {
         $navbarInternalCount = $notifRepo->countUnread($userId);
         $navbarInternalList = $navbarInternalCount > 0 ? $notifRepo->listUnreadForUser($userId, 10) : [];
         $navbarTotalCount = $navbarNotifCountInformativos + $navbarNotifCountPolicies + $navbarInternalCount;
+
+        // Verificar se o chat MCP está habilitado e se o usuário tem permissão
+        $mcpConfigRepo = new \App\adms\Models\Repository\AdmsMcpApiConfigRepository();
+        $mcpConfig = $mcpConfigRepo->getConfig();
+        $mcpEnabled = !empty($mcpConfig) && !empty($mcpConfig['is_active']) && !empty($mcpConfig['base_url']);
+        $userCanMcpChat = false;
+
+        // Super Administrador (nível 1) sempre pode usar o chat MCP se a integração estiver ativa
+        if (isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1) {
+            $userCanMcpChat = true;
+        } elseif (!empty($this->data['menuPermission'] ?? [])) {
+            // Demais níveis dependem da permissão configurada para a página lógica "McpChat"
+            $userCanMcpChat = in_array('McpChat', $this->data['menuPermission'], true);
+        }
+        $mcpChatAvailable = $mcpEnabled && $userCanMcpChat;
     } catch (\Exception $e) {
         $userInfo = null;
         $navbarTotalCount = 0;
         $navbarNotifList = [];
         $navbarInternalList = [];
+        $mcpChatAvailable = false;
     }
 } else {
     $navbarTotalCount = 0;
@@ -43,6 +60,15 @@ if (!empty($_SESSION['user_id'])) {
         
     </form>
     <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4 align-items-center">
+        <?php if ($mcpChatAvailable): ?>
+        <li class="nav-item me-2">
+            <button class="btn btn-outline-light btn-sm position-relative" type="button"
+                    data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
+                    title="Assistente MCP" aria-label="Assistente MCP">
+                <i class="fas fa-robot"></i>
+            </button>
+        </li>
+        <?php endif; ?>
         <li class="nav-item dropdown">
             <a class="nav-link position-relative" href="#" id="navbarNotifications" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações" title="Notificações">
                 <i class="fas fa-bell"></i>
@@ -180,6 +206,158 @@ if (!empty($_SESSION['user_id'])) {
         </li>
     </ul>
 </nav>
+
+<?php if ($mcpChatAvailable): ?>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="mcpChatOffcanvasLabel"><i class="fas fa-robot me-2"></i>Assistente MCP</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+        <div id="mcpChatMessages" class="flex-grow-1 border rounded p-2 mb-2 overflow-auto" style="max-height: 60vh; background-color: #f8f9fa;">
+            <div class="text-muted small">Inicie uma conversa com o assistente digitando sua pergunta abaixo.</div>
+        </div>
+        <form id="mcpChatForm" class="mt-1">
+            <div class="input-group">
+                <textarea class="form-control" id="mcpChatInput" rows="2" placeholder="Digite sua pergunta..." aria-label="Mensagem para o assistente"></textarea>
+                <button class="btn btn-primary" type="submit" id="mcpChatSendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    const form = document.getElementById('mcpChatForm');
+    const input = document.getElementById('mcpChatInput');
+    const messagesEl = document.getElementById('mcpChatMessages');
+    const sendBtn = document.getElementById('mcpChatSendBtn');
+    if (!form || !input || !messagesEl || !sendBtn) return;
+
+    function appendMessage(text, from) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-2 d-flex ' + (from === 'user' ? 'justify-content-end' : 'justify-content-start');
+        const bubble = document.createElement('div');
+        bubble.className = 'p-2 rounded ' + (from === 'user' ? 'bg-primary text-white' : 'bg-light border');
+        bubble.style.maxWidth = '80%';
+        bubble.innerText = text;
+        wrapper.appendChild(bubble);
+        messagesEl.appendChild(wrapper);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage(message) {
+        appendMessage(message, 'user');
+        input.value = '';
+        input.focus();
+        sendBtn.disabled = true;
+        appendMessage('Pensando...', 'assistant');
+
+        try {
+            const response = await fetch("<?= rtrim($_ENV['URL_ADM'], '/') ?>/mcp-chat-api.php", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+            const data = await response.json().catch(() => null);
+            // remover último "Pensando..."
+            const bubbles = messagesEl.querySelectorAll('div');
+            if (bubbles.length) {
+                const last = bubbles[bubbles.length - 1];
+                if (last.textContent === 'Pensando...') {
+                    last.remove();
+                }
+            }
+            if (!data || !data.success) {
+                let errorText = 'Não foi possível obter resposta do assistente.';
+                if (data && data.message) {
+                    errorText = data.message;
+                    if (data.http_code) {
+                        errorText += ' (HTTP ' + data.http_code + ')';
+                    }
+                }
+                if (data && data.raw) {
+                    errorText += '\nDetalhes: ' + (typeof data.raw === 'string' ? data.raw : JSON.stringify(data.raw));
+                }
+                appendMessage(errorText, 'assistant');
+                return;
+            }
+
+            // Tratamento amigável da resposta: tenta interpretar JSON para exibir somente o campo principal
+            let reply = data.reply;
+            let displayText = '';
+
+            function formatParsed(parsed) {
+                // Se vier no formato { resposta: "..." } prioriza esse campo
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.resposta) {
+                    return String(parsed.resposta);
+                }
+                // Se for um array de registros, formata cada um em linhas legíveis
+                if (Array.isArray(parsed)) {
+                    return parsed.map(function (item, idx) {
+                        if (item && typeof item === 'object') {
+                            // Junta campos chave: valor em uma linha
+                            const parts = [];
+                            for (const k in item) {
+                                if (Object.prototype.hasOwnProperty.call(item, k)) {
+                                    parts.push(k + ': ' + String(item[k]));
+                                }
+                            }
+                            return (parsed.length > 1 ? ('[' + (idx + 1) + '] ') : '') + parts.join(' | ');
+                        }
+                        return String(item);
+                    }).join('\n');
+                }
+                // fallback: JSON formatado
+                return JSON.stringify(parsed, null, 2);
+            }
+
+            if (typeof reply === 'string') {
+                let parsed = null;
+                try {
+                    parsed = JSON.parse(reply);
+                } catch (e) {
+                    // não é JSON, usa texto puro
+                }
+                if (parsed !== null) {
+                    displayText = formatParsed(parsed);
+                } else {
+                    displayText = reply;
+                }
+            } else if (reply && typeof reply === 'object') {
+                displayText = formatParsed(reply);
+            } else {
+                displayText = String(reply ?? '');
+            }
+
+            appendMessage(displayText, 'assistant');
+        } catch (e) {
+            const bubbles = messagesEl.querySelectorAll('div');
+            if (bubbles.length) {
+                const last = bubbles[bubbles.length - 1];
+                if (last.textContent === 'Pensando...') {
+                    last.remove();
+                }
+            }
+            appendMessage('Erro ao comunicar com o assistente MCP.', 'assistant');
+        } finally {
+            sendBtn.disabled = false;
+        }
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        sendMessage(text);
+    });
+})();
+</script>
+<?php endif; ?>
 
 <style>
 /* Mobile: balão de notificações centralizado, usando a área central (não corta nas laterais) */

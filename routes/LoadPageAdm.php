@@ -132,6 +132,9 @@ class LoadPageAdm
         "CrmImportOpportunities", "CrmExportOpportunities", "CrmDownloadTemplateOpportunities",
         "WhatsAppConfig", "CrmSendWhatsApp",
         "SapApiConfig", "SaveSapApiConfig", "TestSapApiConfig",
+        "McpChatApi",
+        "McpApiConfig", 
+        "SaveMcpApiConfig",
         // Relatórios Dinâmicos
         "ListDynamicReports", "ListDynamicReportsSap",
         "DynamicReportBuilder", "DynamicReportBuilderLocal", "DynamicReportBuilderSap",

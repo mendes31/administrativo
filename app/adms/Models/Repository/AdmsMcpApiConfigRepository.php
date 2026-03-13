@@ -1,0 +1,47 @@
+<?php
+
+namespace App\adms\Models\Repository;
+
+use App\adms\Models\Services\DbConnection;
+use PDO;
+
+class AdmsMcpApiConfigRepository extends DbConnection
+{
+    public function getConfig(): array
+    {
+        $sql = 'SELECT * FROM adms_mcp_api_config ORDER BY id DESC LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $config ?: [];
+    }
+
+    public function saveConfig(array $data): bool
+    {
+        $current = $this->getConfig();
+
+        if ($current && !empty($current['id'])) {
+            $sql = 'UPDATE adms_mcp_api_config SET 
+                        base_url = :base_url,
+                        is_active = :is_active,
+                        updated_at = NOW()
+                    WHERE id = :id';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $current['id'], PDO::PARAM_INT);
+        } else {
+            $sql = 'INSERT INTO adms_mcp_api_config (
+                        base_url, is_active, created_at, updated_at
+                    ) VALUES (
+                        :base_url, :is_active, NOW(), NOW()
+                    )';
+            $stmt = $this->getConnection()->prepare($sql);
+        }
+
+        $stmt->bindValue(':base_url', $data['base_url']);
+        $stmt->bindValue(':is_active', $data['is_active'], PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
+}
+
