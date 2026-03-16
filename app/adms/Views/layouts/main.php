@@ -87,7 +87,14 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     
     if (!empty($motivos)) {
         $msg = implode(' e ', $motivos) . '! Contate o Administrador do sistema.';
-        
+        @file_put_contents(__DIR__ . '/../../logs/session_investigar.log',
+            date('Y-m-d H:i:s') . ' [main] QUEDA SESSAO BASICA user_id=' . ($_SESSION['user_id'] ?? 'null') .
+            ' php_session_id=' . session_id() .
+            ' motivos=' . implode(', ', $motivos) .
+            ' sessRow=' . json_encode($sess) .
+            ' url=' . ($_SERVER['REQUEST_URI'] ?? 'null') . PHP_EOL,
+            FILE_APPEND
+        );
         file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
             date('Y-m-d H:i:s') . ' - [main] QUEDA DE SESSÃƒO (bÃ¡sica) - user_id: ' . ($_SESSION['user_id'] ?? 'null') . 
             ' | session_id(): ' . session_id() . 

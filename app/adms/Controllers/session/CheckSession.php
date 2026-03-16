@@ -46,6 +46,11 @@ class CheckSession
         $sessionData = $sessionsRepository->getSessionByUserIdAndSessionId($_SESSION['user_id'], $_SESSION['session_id']);
         
         if (!$sessionData || $sessionData['status'] !== 'ativa') {
+            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+                date('Y-m-d H:i:s') . ' [CheckSession] INVALID session for user_id=' . ($_SESSION['user_id'] ?? 'null') .
+                ' php_session_id=' . session_id() . ' sessionRow=' . json_encode($sessionData) . PHP_EOL,
+                FILE_APPEND
+            );
             $this->sendJsonResponse(['valid' => false, 'message' => 'Sessão inválida', 'user_id' => (int)$_SESSION['user_id']]);
             return;
         }
@@ -59,6 +64,12 @@ class CheckSession
         // Verificar se a sessão expirou
         if ($expiresIn <= 0) {
             // Sessão expirou - invalidar
+            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+                date('Y-m-d H:i:s') . ' [CheckSession] EXPIRED user_id=' . ($_SESSION['user_id'] ?? 'null') .
+                ' php_session_id=' . session_id() . ' lastActivity=' . date('Y-m-d H:i:s', $lastActivity) .
+                ' timeout_s=' . $sessionTimeout . PHP_EOL,
+                FILE_APPEND
+            );
             $sessionsRepository->invalidateSessionByUserIdAndSessionId($_SESSION['user_id'], $_SESSION['session_id']);
             
             // Registrar LOGOUT_TIMEOUT
@@ -72,7 +83,7 @@ class CheckSession
             $this->sendJsonResponse(['valid' => false, 'message' => 'Sessão expirada', 'user_id' => (int)$_SESSION['user_id']]);
             return;
         }
-        
+
         $this->sendJsonResponse([
             'valid' => true,
             'message' => 'Sessão válida',

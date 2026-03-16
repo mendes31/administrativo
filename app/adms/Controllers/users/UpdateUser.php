@@ -157,6 +157,8 @@ class UpdateUser
         $userAntigo = $userUpdate->getUser($this->data['form']['id']);
         $statusAnterior = $userAntigo['status'] ?? 'Ativo';
         $cargoAnterior = $userAntigo['user_position_id'] ?? null;
+        $welcomeEmailAnterior = $userAntigo['enviar_boas_vindas_email'] ?? 0;
+        $welcomeWhatsAnterior = $userAntigo['enviar_boas_vindas_whatsapp'] ?? 0;
 
         // Instanciar Repository para editar o usuário
         $form = $this->data['form'];
@@ -184,6 +186,9 @@ class UpdateUser
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
         $form['modificar_senha_proximo_logon'] = isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] === 'Sim' ? 'Sim' : 'Não';
+        // Flags de mensagem de boas-vindas
+        $form['enviar_boas_vindas_email'] = !empty($form['enviar_boas_vindas_email']) ? 1 : 0;
+        $form['enviar_boas_vindas_whatsapp'] = !empty($form['enviar_boas_vindas_whatsapp']) ? 1 : 0;
         $this->data['form'] = $form;
         $result = $userUpdate->updateUser($this->data['form']);
 
@@ -303,6 +308,44 @@ class UpdateUser
                 }
             }
             
+            // Avaliar se deve enviar mensagem de boas-vindas agora (edição)
+            try {
+                $deveEnviarAgora = false;
+
+                // Se ainda nunca foi enviada, permitir envio quando qualquer flag estiver ligada
+                $jaEnviadoAlgumaVez = !empty($userAntigo['boas_vindas_enviado_em']);
+
+                // Transição de 0 -> 1 em e-mail ou WhatsApp
+                $emailLigadoAgora = !empty($form['enviar_boas_vindas_email']);
+                $whatsLigadoAgora = !empty($form['enviar_boas_vindas_whatsapp']);
+
+                $emailVirouOn = (!$welcomeEmailAnterior && $emailLigadoAgora);
+                $whatsVirouOn = (!$welcomeWhatsAnterior && $whatsLigadoAgora);
+
+                if (!$jaEnviadoAlgumaVez && ($emailLigadoAgora || $whatsLigadoAgora)) {
+                    $deveEnviarAgora = true;
+                } elseif ($emailVirouOn || $whatsVirouOn) {
+                    $deveEnviarAgora = true;
+                }
+
+                if ($deveEnviarAgora) {
+                    $userAtualizado = $userUpdate->getUser((int)$form['id']) ?: $form;
+                    $userAtualizado['enviar_boas_vindas_email'] = $form['enviar_boas_vindas_email'];
+                    $userAtualizado['enviar_boas_vindas_whatsapp'] = $form['enviar_boas_vindas_whatsapp'];
+                    $userAtualizado['celular'] = $form['celular'] ?? ($userAtualizado['celular'] ?? '');
+
+                    \App\adms\Controllers\Services\WelcomeMessageService::sendForNewUser(
+                        $userAtualizado,
+                        isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+                    );
+                }
+            } catch (\Throwable $e) {
+                \App\adms\Helpers\GenerateLog::generateLog('error', 'Erro ao enviar mensagem de boas-vindas na edição de usuário.', [
+                    'user_id' => $form['id'] ?? null,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+
             // Criar a mensagem de sucesso
             $_SESSION['success'] = "Usuário editado com suscesso!";
 

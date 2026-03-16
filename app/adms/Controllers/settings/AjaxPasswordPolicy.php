@@ -44,29 +44,76 @@ class AjaxPasswordPolicy
         $input = json_decode(file_get_contents('php://input'), true);
         $senha = $input['senha'] ?? '';
 
-        // Pega o usuário logado da sessão
-        $username = $_SESSION['user_username'] ?? null;
-        if (!$username) {
-            GenerateLog::generateLog('debug', 'Validação de senha na modal - usuário não autenticado', [
+        // Log inicial detalhado para investigação de desbloqueio
+        @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+            date('Y-m-d H:i:s') . ' [AjaxPasswordPolicy::validatePassword] INICIO ' .
+            ' php_session_id=' . session_id() .
+            ' user_id_session=' . ($_SESSION['user_id'] ?? 'null') .
+            ' user_username_session=' . ($_SESSION['user_username'] ?? 'null') .
+            ' senha_len=' . strlen((string)$senha) .
+            ' input_raw=' . json_encode($input) .
+            PHP_EOL,
+            FILE_APPEND
+        );
+
+        // Pega o usuário logado da sessão (ID é a fonte da verdade)
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            GenerateLog::generateLog('debug', 'Validação de senha na modal - usuário não autenticado (sem user_id)', [
                 'session' => $_SESSION,
                 'input' => $input,
-                'username' => $username
             ]);
-            echo json_encode(['sucesso' => false, 'mensagem' => 'Usuário não autenticado!']);
+            echo json_encode(['sucesso' => false, 'logout' => true, 'mensagem' => 'Sessão expirada. Faça login novamente.']);
             exit;
         }
 
-        // Usa o serviço de validação com preserveSession=true para não destruir a sessão atual
-        $validador = new ValidationUserLogin();
-        $ok = $validador->validationUserLogin([
-            'username' => $username,
-            'password' => $senha
-        ], true); // preserveSession=true para validação AJAX
-        GenerateLog::generateLog('debug', 'Validação de senha na modal', [
-            'session' => $_SESSION,
-            'input' => $input,
-            'username' => $username,
-            'resultado' => $ok ? 'Senha OK' : 'Senha incorreta'
+        try {
+            $userRepo = new \App\adms\Models\Repository\LoginRepository();
+            $user = $userRepo->getUserById((int)$userId);
+        } catch (\Throwable $e) {
+            $user = false;
+        }
+
+        if (!$user || empty($user['password'])) {
+            GenerateLog::generateLog('debug', 'Validação de senha na modal - usuário não encontrado ou sem senha', [
+                'session' => $_SESSION,
+                'input' => $input,
+                'user_id' => $userId,
+            ]);
+
+            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+                date('Y-m-d H:i:s') . ' [AjaxPasswordPolicy::validatePassword] USER_NOT_FOUND_OR_NO_PASSWORD ' .
+                ' user_id=' . $userId .
+                ' php_session_id=' . session_id() .
+                ' userRow=' . json_encode($user) .
+                PHP_EOL,
+                FILE_APPEND
+            );
+
+            echo json_encode(['sucesso' => false, 'logout' => true, 'mensagem' => 'Sessão expirada. Faça login novamente.']);
+            exit;
+        }
+
+        $hash = $user['password'];
+        $ok = password_verify($senha, $hash);
+
+        @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+            date('Y-m-d H:i:s') . ' [AjaxPasswordPolicy::validatePassword] RESULT ' .
+            ' user_id=' . $userId .
+            ' username=' . ($user['username'] ?? 'null') .
+            ' senha_len=' . strlen((string)$senha) .
+            ' hash_prefix=' . substr($hash, 0, 15) .
+            ' verify=' . ($ok ? 'OK' : 'FAIL') .
+            ' ua=' . ($_SERVER['HTTP_USER_AGENT'] ?? 'null') .
+            ' ip=' . ($_SERVER['REMOTE_ADDR'] ?? 'null') .
+            PHP_EOL,
+            FILE_APPEND
+        );
+
+        GenerateLog::generateLog('debug', 'Validação de senha na modal (password_verify)', [
+            'user_id' => $userId,
+            'username' => $user['username'] ?? null,
+            'resultado' => $ok ? 'Senha OK' : 'Senha incorreta',
         ]);
 
         if ($ok) {

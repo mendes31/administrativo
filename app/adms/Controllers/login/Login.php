@@ -125,6 +125,10 @@ class Login
             session_start();
         }
         file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] INICIO - session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . "\n", FILE_APPEND);
+        @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+            date('Y-m-d H:i:s') . ' [Login::login] INICIO php_session_id=' . session_id() . ' $_SESSION=' . json_encode($_SESSION) . PHP_EOL,
+            FILE_APPEND
+        );
         file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Início do método login\n", FILE_APPEND);
         $validationLogin = new ValidationLoginService();
         $this->data['errors'] = $validationLogin->validate($this->data['form']);
@@ -189,10 +193,18 @@ class Login
                     $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? ''), $hostnameConc); 
                 }
             }
+            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+                date('Y-m-d H:i:s') . ' [Login::login] BEFORE invalidate/save user_id=' . (int)$result['id'] . ' php_session_id=' . session_id() . PHP_EOL,
+                FILE_APPEND
+            );
             $sessionRepo->invalidateAllSessionsByUserId((int)$result['id']);
             $_SESSION['session_id'] = session_id();
             $sessionRepo->saveSession((int)$result['id'], session_id());
             file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] SALVOU SESSION NO BANCO: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION) . "\n", FILE_APPEND);
+            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+                date('Y-m-d H:i:s') . ' [Login::login] AFTER saveSession user_id=' . (int)$result['id'] . ' php_session_id=' . session_id() . ' $_SESSION=' . json_encode($_SESSION) . PHP_EOL,
+                FILE_APPEND
+            );
 
             // Serviços diários disparados no primeiro login de qualquer usuário
             // - Atualização de status dinâmicos de treinamentos

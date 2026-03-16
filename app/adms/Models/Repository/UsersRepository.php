@@ -97,8 +97,8 @@ class UsersRepository extends DbConnection
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
-                INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
-                INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
+                LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
+                LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id 
                 ' . $whereSql . '
                 ORDER BY usr.name ASC
                 LIMIT :limit OFFSET :offset';
@@ -164,8 +164,8 @@ class UsersRepository extends DbConnection
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
-                INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
-                INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
+                LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
+                LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id 
                 ' . $whereSql . '
                 ORDER BY usr.name ASC';
 
@@ -273,8 +273,8 @@ class UsersRepository extends DbConnection
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $sql = 'SELECT COUNT(usr.id) as amount_records 
                 FROM adms_users usr
-                INNER JOIN adms_departments dep ON usr.user_department_id = dep.id
-                INNER JOIN adms_positions pos ON usr.user_position_id = pos.id 
+                LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
+                LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id 
                 ' . $whereSql;
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $key => $value) {
@@ -377,9 +377,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, created_at, image, data_nascimento, data_admissao
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :created_at, :image, :data_nascimento, :data_admissao
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -396,6 +396,8 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':tentativas_login', $data['tentativas_login'] ?? 0, PDO::PARAM_INT);
             $stmt->bindValue(':senha_nunca_expira', $data['senha_nunca_expira'] ?? 'Não', PDO::PARAM_STR);
             $stmt->bindValue(':modificar_senha_proximo_logon', $data['modificar_senha_proximo_logon'] ?? 'Não', PDO::PARAM_STR);
+            $stmt->bindValue(':enviar_boas_vindas_email', !empty($data['enviar_boas_vindas_email']) ? 1 : 0, PDO::PARAM_INT);
+            $stmt->bindValue(':enviar_boas_vindas_whatsapp', !empty($data['enviar_boas_vindas_whatsapp']) ? 1 : 0, PDO::PARAM_INT);
             $stmt->bindValue(':created_at', date("Y-m-d H:i:s"));
             $stmt->bindValue(':image', $data['image'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':data_nascimento', $data['data_nascimento'] ?? null, PDO::PARAM_STR);

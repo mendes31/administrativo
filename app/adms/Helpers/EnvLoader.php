@@ -43,6 +43,14 @@ class EnvLoader
         try {
             $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../../../');
             $dotenv->load();
+
+            // Garantir timezone consistente em qualquer contexto que use EnvLoader::load()
+            // Usa APP_TIMEZONE do .env se disponível; caso contrário, cai para UTC.
+            $timezone = $_ENV['APP_TIMEZONE'] ?? ini_get('date.timezone') ?: 'UTC';
+            if ($timezone) {
+                date_default_timezone_set($timezone);
+            }
+
             return true;
         } catch (\Exception $e) {
             error_log('Erro ao carregar .env: ' . $e->getMessage());
@@ -57,12 +65,7 @@ class EnvLoader
      */
     public static function loadWithTimezone(): bool
     {
-        if (!self::load()) {
-            return false;
-        }
-        // Definir timezone
-        $timezone = $_ENV['APP_TIMEZONE'] ?? 'UTC';
-        date_default_timezone_set($timezone);
-        return true;
+        // Mantida apenas por compatibilidade; load() já define o timezone
+        return self::load();
     }
 } 

@@ -42,7 +42,8 @@ class ValidationUserRakitService
             'cpf'               => 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
             'celular'           => 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/',
             'data_nascimento'   => 'required|date|before:tomorrow',
-            
+            'user_department_id'=> 'required|integer|min:1',
+            'user_position_id'  => 'required|integer|min:1',
         ];
 
         // Se estiver ausente o ID, então é uma criação (cadastrar)
@@ -103,6 +104,12 @@ class ValidationUserRakitService
             'data_nascimento:date' => 'A data de nascimento deve ser uma data válida.',
             'data_nascimento:before_or_equal' => 'A data de nascimento não pode ser futura.',
             'image:uploaded_file' => 'A imagem deve ser JPG, PNG ou GIF e ter no máximo 2MB.',
+            'user_department_id:required' => 'O campo departamento é obrigatório.',
+            'user_department_id:integer'  => 'Departamento inválido.',
+            'user_department_id:min'      => 'Selecione um departamento válido.',
+            'user_position_id:required'   => 'O campo cargo é obrigatório.',
+            'user_position_id:integer'    => 'Cargo inválido.',
+            'user_position_id:min'        => 'Selecione um cargo válido.',
         ];
 
         // Criar o validador com os dados e regras fornecidas

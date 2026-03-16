@@ -35,6 +35,53 @@ class LoadPageAdmAccessLevel
         $this->urlController = $urlController;
         $this->urlParameter = $urlParameter;
 
+        // Tratamento especial: validação de senha na tela de bloqueio
+        // Esta rota é usada apenas para o próprio usuário validar a senha
+        // e não deve depender da permissão da página de Administração de Senhas.
+        if ($this->urlController === 'AjaxPasswordPolicy' && in_array($this->urlParameter, ['validate-password', 'validatePassword'], true)) {
+            $isAjax = (
+                !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+            ) || (
+                isset($_SERVER['HTTP_ACCEPT']) &&
+                str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+            );
+
+            if (!$isAjax) {
+                // Bloquear acesso direto via navegador
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'Endpoint disponível apenas para requisições AJAX.'
+                ]);
+                exit;
+            }
+
+            // Exigir usuário logado, mas sem checar permissão de página
+            if (empty($_SESSION['user_id'])) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'sucesso' => false,
+                    'logout'  => true,
+                    'mensagem' => 'Sessão expirada. Faça login novamente.'
+                ]);
+                exit;
+            }
+
+            $controller = new \App\adms\Controllers\settings\AjaxPasswordPolicy();
+            if (method_exists($controller, 'validatePassword')) {
+                $controller->validatePassword();
+                exit;
+            }
+
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Método de validação de senha não encontrado.'
+            ]);
+            exit;
+        }
+
         // Rotas técnicas internas (AJAX) que ainda não estão mapeadas em pages_routes,
         // mas precisam funcionar normalmente e responder em JSON (ex.: Kanban RH, planilhas).
         $internalAjaxMap = [

@@ -125,6 +125,10 @@ class CreateUser
         // Salvar data de admissão
         $form['data_admissao'] = !empty($_POST['data_admissao']) ? $_POST['data_admissao'] : null;
 
+        // Flags de mensagem de boas-vindas
+        $form['enviar_boas_vindas_email'] = !empty($form['enviar_boas_vindas_email']) ? 1 : 0;
+        $form['enviar_boas_vindas_whatsapp'] = !empty($form['enviar_boas_vindas_whatsapp']) ? 1 : 0;
+
         // Processar upload da imagem
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = 'public/adms/uploads/users/';
@@ -167,10 +171,30 @@ class CreateUser
             }
         }
 
-        // Acessa o IF se o repository retornou TRUE
+        // Acessa o IF se o repository retornou TRUE (retorna ID do novo usuário)
         if ($result) {
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
             $matrixService->updateMatrixForUser($result);
+
+            // Enviar mensagem de boas-vindas conforme flags
+            try {
+                $createdUser = $userCreate->getUser((int)$result);
+                if ($createdUser) {
+                    // Mesclar flags usados na criação (pois getUser não traz as colunas novas ainda em algumas versões)
+                    $createdUser['enviar_boas_vindas_email'] = $form['enviar_boas_vindas_email'] ?? 0;
+                    $createdUser['enviar_boas_vindas_whatsapp'] = $form['enviar_boas_vindas_whatsapp'] ?? 0;
+                    $createdUser['celular'] = $form['celular'] ?? ($createdUser['celular'] ?? '');
+                    \App\adms\Controllers\Services\WelcomeMessageService::sendForNewUser(
+                        $createdUser,
+                        isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+                    );
+                }
+            } catch (\Throwable $e) {
+                \App\adms\Helpers\GenerateLog::generateLog('error', 'Erro ao enviar mensagem de boas-vindas.', [
+                    'user_id' => $result,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
 
             // Criar a mensagem de sucesso
             $_SESSION['success'] = "Usuário cadastrado com suscesso!";

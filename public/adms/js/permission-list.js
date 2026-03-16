@@ -485,24 +485,35 @@ function savePermissions() {
         if (!pageId || parseInt(pageId, 10) <= 0) return; // evita envio de page_id 0 (causa Duplicate key no banco)
         permissions[pageId] = isChecked ? 1 : 0;
     }
+
+    // Coletar APENAS toggles cujo estado foi alterado em relação ao inicial
     allToggles.forEach((toggle, index) => {
         const pageId = toggle.dataset.pageId;
-        addPermission(pageId, toggle.checked);
-        if (pageId && parseInt(pageId, 10) > 0) {
-            console.log(`Página ${pageId}: ${toggle.checked ? '✅ Marcado (1)' : '❌ Desmarcado (0)'}`);
+        const initial = toggle.dataset.initial || '0';
+        const current = toggle.checked ? '1' : '0';
+
+        if (pageId && initial !== current) {
+            addPermission(pageId, toggle.checked);
+            console.log(
+                `Página ${pageId}: estado alterado de ${initial} para ${current} ` +
+                (current === '1' ? '✅ (Autorizar)' : '❌ (Revogar)')
+            );
         }
     });
 
-    // Forçar inclusão de toggles visíveis desktop mesmo se houver duplicados ocultos mobile
+    // Fallback: se por algum motivo nenhuma permissão alterada foi detectada,
+    // faz a coleta completa (comportamento antigo) para não quebrar o fluxo.
     if (Object.keys(permissions).length === 0) {
+        console.log('Nenhuma alteração detectada; aplicando fallback para coleta completa.');
         const backupToggles = form.querySelectorAll('.permission-toggle');
         backupToggles.forEach((toggle) => {
             const pageId = toggle.dataset.pageId;
-            if (pageId && !(pageId in permissions)) addPermission(pageId, toggle.checked);
+            if (!pageId) return;
+            addPermission(pageId, toggle.checked);
         });
     }
     
-    console.log('Permissões coletadas:', permissions);
+    console.log('Permissões coletadas (apenas alterações ou fallback):', permissions);
     
     if (Object.keys(permissions).length === 0) {
         showError('Nenhuma permissão encontrada para processar');
@@ -675,6 +686,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar event listeners para toggles de permissão
     const permissionToggles = document.querySelectorAll('.permission-toggle');
     permissionToggles.forEach(toggle => {
+        // Salvar estado inicial (para enviar apenas alterações)
+        toggle.dataset.initial = toggle.checked ? '1' : '0';
+
         toggle.addEventListener('change', function() {
             const groupId = this.dataset.group;
             if (groupId) {
@@ -683,7 +697,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    console.log(`✅ ${permissionToggles.length} toggles de permissão configurados`);
+    console.log(`✅ ${permissionToggles.length} toggles de permissão configurados (estado inicial salvo)`);
     
     // Verificar se há grupos e configurar inicialização
     const allGroups = document.querySelectorAll('[data-group]');

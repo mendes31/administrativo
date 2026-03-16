@@ -958,6 +958,9 @@ class SessionChecker {
         
         // Parar verificações
         this.stopSessionCheck();
+
+        // Garantir remoção da tela de bloqueio, se estiver ativa
+        this.removeBlock();
         
         // Verificar se já está sendo redirecionado pelo backend
         if (window.location.pathname.includes('login')) {
@@ -1097,6 +1100,33 @@ class SessionChecker {
                         errorDiv.style.display = 'none';
                         errorDiv.textContent = '';
                     }
+
+                    // Primeiro, verificar se a sessão ainda é válida
+                    try {
+                        const checkResp = await fetch(window.location.origin + '/administrativo/check-session', {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            credentials: 'same-origin'
+                        });
+                        if (checkResp.ok) {
+                            const checkData = await checkResp.json();
+                            if (!checkData.valid) {
+                                if (errorDiv) {
+                                    errorDiv.textContent = 'Sessão expirada. Faça login novamente.';
+                                    errorDiv.style.display = 'block';
+                                }
+                                setTimeout(() => {
+                                    window.location.href = window.location.origin + '/administrativo/login?msg=Sessão+expirada.+Faça+login+novamente.';
+                                }, 1500);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Falha ao validar sessão antes do desbloqueio:', e);
+                    }
+
                     const response = await fetch(window.location.origin + '/administrativo/ajax-password-policy/validate-password', {
                         method: 'POST',
                         headers: {
@@ -1107,6 +1137,19 @@ class SessionChecker {
                         body: JSON.stringify({ senha })
                     });
                     const data = await response.json();
+
+                    // Se o backend indicar que a sessão foi invalidada/expirada, forçar logout
+                    if (data && data.logout) {
+                        if (errorDiv) {
+                            errorDiv.textContent = data.mensagem || 'Sessão expirada. Faça login novamente.';
+                            errorDiv.style.display = 'block';
+                        }
+                        setTimeout(() => {
+                            window.location.href = window.location.origin + '/administrativo/login?msg=Sessão+expirada.+Faça+login+novamente.';
+                        }, 1500);
+                        return;
+                    }
+
                     if (data && data.sucesso) {
                         // Renovar sessão no servidor (se disponível)
                         try {
@@ -1143,6 +1186,11 @@ class SessionChecker {
                 window.location.href = window.location.origin + '/administrativo/logout';
             });
         }
+
+        // Ao bloquear a tela, reduzir o intervalo de checagem da sessão
+        // para detectar expiração com mais rapidez enquanto está bloqueado.
+        this.checkInterval = 10000; // 10 segundos
+        this.scheduleNextCheck();
     }
 
     // REMOVIDO: Função de popup azul não é mais usada
