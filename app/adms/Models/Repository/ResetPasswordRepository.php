@@ -101,6 +101,10 @@ class ResetPasswordRepository extends DbConnection
         // Usar try e catch para gerenciar exceção/erro
         try {  // Permanece no try se não houver nenhum erro
 
+            $conn = $this->getConnection();
+
+            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+
             // QUERY para atualizar usuário (usar ID para suportar usuários sem e-mail)
             $sql = 'UPDATE adms_users 
                     SET password = :password, 
@@ -110,15 +114,67 @@ class ResetPasswordRepository extends DbConnection
                     WHERE id = :id';
 
             // Preparar a QUERY
-            $stmt = $this->getConnection()->prepare($sql);
+            $stmt = $conn->prepare($sql);
 
             // Substituir os links da QUERY pelo valor
-            $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
+            $stmt->bindValue(':password', $hashedPassword);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
             $stmt->bindValue(':id', $data['user_id'], PDO::PARAM_INT);
 
-            // Retornar TRUE quando conseguir executar a QUERY SQL, não considerando se alterou dados do registro
-            return $stmt->execute();
+            $result = $stmt->execute();
+
+            if ($result) {
+                // Registrar histórico de senha para o próprio usuário (reset via fluxo público)
+                try {
+                    $sqlHist = 'INSERT INTO adms_password_history (user_id, password, created_at)
+                                VALUES (:user_id, :password, :created_at)';
+                    $stmtHist = $conn->prepare($sqlHist);
+                    $stmtHist->bindValue(':user_id', $data['user_id'], PDO::PARAM_INT);
+                    $stmtHist->bindValue(':password', $hashedPassword, PDO::PARAM_STR);
+                    $stmtHist->bindValue(':created_at', date("Y-m-d H:i:s"));
+                    $stmtHist->execute();
+
+                    // Limitar quantidade de registros de histórico de acordo com a política
+                    try {
+                        $policyRepo = new \App\adms\Models\Repository\AdmsPasswordPolicyRepository();
+                        $policy = $policyRepo->getPolicy();
+                        $limite = $policy ? (int)$policy->historico_senhas : 0;
+
+                        if ($limite > 0) {
+                            $sqlCleanup = '
+                                DELETE FROM adms_password_history
+                                WHERE user_id = :user_id
+                                  AND id NOT IN (
+                                      SELECT id FROM (
+                                          SELECT id
+                                          FROM adms_password_history
+                                          WHERE user_id = :user_id_inner
+                                          ORDER BY created_at DESC
+                                          LIMIT :limite
+                                      ) AS t
+                                  )';
+                            $stmtCleanup = $conn->prepare($sqlCleanup);
+                            $stmtCleanup->bindValue(':user_id', $data['user_id'], PDO::PARAM_INT);
+                            $stmtCleanup->bindValue(':user_id_inner', $data['user_id'], PDO::PARAM_INT);
+                            $stmtCleanup->bindValue(':limite', $limite, PDO::PARAM_INT);
+                            $stmtCleanup->execute();
+                        }
+                    } catch (Exception $e) {
+                        GenerateLog::generateLog("error", "Falha ao limpar histórico de senhas excedente (reset password).", [
+                            'user_id' => $data['user_id'] ?? null,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    GenerateLog::generateLog("error", "Falha ao registrar histórico de senha (reset password).", [
+                        'user_id' => (int)($data['user_id'] ?? 0),
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            // Retornar TRUE quando conseguir executar a QUERY SQL
+            return $result;
         } catch (Exception $e) { // Acessa o catch quando houver erro no try
 
             // Chamar o método para salvar o log

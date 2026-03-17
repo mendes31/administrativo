@@ -8,6 +8,7 @@ use App\adms\Helpers\SlugImg;
 use App\adms\Helpers\Upload;
 use App\adms\Helpers\ValExtImg;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 use Exception;
 use PDO;
 
@@ -1144,21 +1145,58 @@ class UsersRepository extends DbConnection
             $result = $stmt->execute();
 
             if ($result) {
-                // Registrar histórico de senha
-                try {
-                    $sqlHist = 'INSERT INTO adms_password_history (user_id, password, created_at)
-                                VALUES (:user_id, :password, :created_at)';
-                    $stmtHist = $conn->prepare($sqlHist);
-                    $stmtHist->bindValue(':user_id', $data['id'], PDO::PARAM_INT);
-                    $stmtHist->bindValue(':password', $hashedPassword, PDO::PARAM_STR);
-                    $stmtHist->bindValue(':created_at', date("Y-m-d H:i:s"));
-                    $stmtHist->execute();
-                } catch (Exception $e) {
-                    // Não falhar a troca de senha por erro no histórico, apenas logar.
-                    GenerateLog::generateLog("error", "Falha ao registrar histórico de senha.", [
-                        'user_id' => $data['id'] ?? null,
-                        'error' => $e->getMessage(),
-                    ]);
+                // Registrar histórico de senha apenas quando explicitamente solicitado
+                $salvarHistorico = $data['salvar_historico'] ?? true;
+                if ($salvarHistorico) {
+                    try {
+                        $sqlHist = 'INSERT INTO adms_password_history (user_id, password, created_at)
+                                    VALUES (:user_id, :password, :created_at)';
+                        $stmtHist = $conn->prepare($sqlHist);
+                        $stmtHist->bindValue(':user_id', $data['id'], PDO::PARAM_INT);
+                        $stmtHist->bindValue(':password', $hashedPassword, PDO::PARAM_STR);
+                        $stmtHist->bindValue(':created_at', date("Y-m-d H:i:s"));
+                        $stmtHist->execute();
+
+                        // Limitar quantidade de registros de histórico por usuário
+                        // com base em historico_senhas definido na política.
+                        try {
+                            $policyRepo = new AdmsPasswordPolicyRepository();
+                            $policy = $policyRepo->getPolicy();
+                            $limite = $policy ? (int)$policy->historico_senhas : 0;
+
+                            if ($limite > 0) {
+                                // Deletar registros mais antigos, mantendo apenas os N mais recentes.
+                                $sqlCleanup = '
+                                    DELETE FROM adms_password_history
+                                    WHERE user_id = :user_id
+                                      AND id NOT IN (
+                                          SELECT id FROM (
+                                              SELECT id
+                                              FROM adms_password_history
+                                              WHERE user_id = :user_id_inner
+                                              ORDER BY created_at DESC
+                                              LIMIT :limite
+                                          ) AS t
+                                      )';
+                                $stmtCleanup = $conn->prepare($sqlCleanup);
+                                $stmtCleanup->bindValue(':user_id', $data['id'], PDO::PARAM_INT);
+                                $stmtCleanup->bindValue(':user_id_inner', $data['id'], PDO::PARAM_INT);
+                                $stmtCleanup->bindValue(':limite', $limite, PDO::PARAM_INT);
+                                $stmtCleanup->execute();
+                            }
+                        } catch (Exception $e) {
+                            GenerateLog::generateLog("error", "Falha ao limpar histórico de senhas excedente.", [
+                                'user_id' => $data['id'] ?? null,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    } catch (Exception $e) {
+                        // Não falhar a troca de senha por erro no histórico, apenas logar.
+                        GenerateLog::generateLog("error", "Falha ao registrar histórico de senha.", [
+                            'user_id' => $data['id'] ?? null,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 

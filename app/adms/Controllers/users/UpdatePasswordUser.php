@@ -201,6 +201,8 @@ class UpdatePasswordUser
             (!empty($this->data['form']['modificar_senha_proximo_logon']) && $this->data['form']['modificar_senha_proximo_logon'] === 'Sim')
                 ? 'Sim'
                 : 'Não';
+        // Alteração feita pelo administrador: não registrar histórico de senhas
+        $updateData['salvar_historico'] = false;
 
         $result = $userUpdate->updatePasswordUser($updateData);
 

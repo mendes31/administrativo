@@ -4,6 +4,7 @@ namespace App\adms\Controllers\users;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationUserProfilePasswordService;
+use App\adms\Controllers\Services\SecurityService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
@@ -113,15 +114,40 @@ class UpdatePassword
         $validationUser = new ValidationUserProfilePasswordService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
 
+        // Adicionar o ID do usuário logado
+        $this->data['form']['id'] = $_SESSION['user_id'];
+        // Troca feita pelo próprio usuário: registrar histórico de senhas
+        $this->data['form']['salvar_historico'] = true;
+
+        // Validar também contra a política dinâmica completa, incluindo histórico de senhas.
+        if (empty($this->data['errors'])) {
+            try {
+                $securityService = new SecurityService();
+                $politica = $securityService->validarPoliticaSenha(
+                    (string)($this->data['form']['password'] ?? ''),
+                    (int)($_SESSION['user_id'] ?? 0),
+                    false // aqui a troca é feita pelo próprio usuário, então histórico deve ser considerado
+                );
+                if (!$politica['valid']) {
+                    foreach ($politica['errors'] as $msg) {
+                        $this->data['errors']['password_policy'] = $msg;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                GenerateLog::generateLog('error', 'Erro ao validar política de senha em UpdatePassword (perfil).', [
+                    'user_id' => $_SESSION['user_id'] ?? null,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+
         // Acessa o IF quando existir campo com dados incorretos
         if (!empty($this->data['errors'])) {
             // Chamar método carregar a view
             $this->viewUser();
             return;
         }
-
-        // Adicionar o ID do usuário logado
-        $this->data['form']['id'] = $_SESSION['user_id'];
 
         // Instanciar Repository para editar a senha do usuário
         $userUpdate = new UsersRepository();

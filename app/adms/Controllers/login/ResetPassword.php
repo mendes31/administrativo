@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\login;
 
 use App\adms\Controllers\Services\Validation\ValidationUserPasswordService;
+use App\adms\Controllers\Services\SecurityService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\ResetPasswordRepository;
@@ -51,16 +52,9 @@ class ResetPassword
 
     private function resetPassword(): void
     {
-        // Instanciar a classe validar os dados do fromuláriose com Rakit
+        // Instanciar a classe validar os dados do formulário com Rakit
         $validationUser = new ValidationUserPasswordService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
-
-        // Acessa o IF quando existir campo com dados incorretos
-        if (!empty($this->data['errors'])) {
-            // Chamar método carregar a view
-            $this->viewResetPassword();
-            return;
-        }
 
         // Instanciar o Repository para recuperar o registro do banco de dados
         $viewUser = new ResetPasswordRepository();
@@ -107,6 +101,33 @@ class ResetPassword
 
             $this->viewResetPassword();
 
+            return;
+        }
+
+        // Antes de resetar, validar também contra a política dinâmica,
+        // incluindo histórico (pois é troca feita pelo próprio dono via fluxo público).
+        try {
+            $securityService = new SecurityService();
+            $politica = $securityService->validarPoliticaSenha(
+                (string)($this->data['form']['password'] ?? ''),
+                (int)($this->data['user']['id'] ?? 0),
+                false
+            );
+            if (!$politica['valid']) {
+                foreach ($politica['errors'] as $msg) {
+                    $this->data['errors']['password_policy'] = $msg;
+                    break;
+                }
+            }
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('error', 'Erro ao validar política de senha em ResetPassword.', [
+                'user_id' => $this->data['user']['id'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
+        }
+
+        if (!empty($this->data['errors'])) {
+            $this->viewResetPassword();
             return;
         }
 

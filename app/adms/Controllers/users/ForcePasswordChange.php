@@ -123,6 +123,8 @@ class ForcePasswordChange
             return;
         }
         $this->data['form']['id'] = $_SESSION['user_id'];
+        // Troca obrigatória feita pelo próprio usuário: registrar histórico de senhas
+        $this->data['form']['salvar_historico'] = true;
         $userUpdate = new UsersRepository();
         $result = $userUpdate->updatePasswordUser($this->data['form']);
         file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Resultado updatePasswordUser: " . json_encode($result) . "\n", FILE_APPEND);
