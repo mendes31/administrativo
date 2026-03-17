@@ -1127,17 +1127,42 @@ class UsersRepository extends DbConnection
                 ? $data['modificar_senha_proximo_logon']
                 : 'Não';
 
+            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+
+            $conn = $this->getConnection();
+
             $sql = 'UPDATE adms_users 
                        SET password = :password,
                            modificar_senha_proximo_logon = :modificar_senha_proximo_logon,
                            updated_at = :updated_at 
                      WHERE id = :id';
-            $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
+            $stmt = $conn->prepare($sql);
+            $stmt->bindValue(':password', $hashedPassword);
             $stmt->bindValue(':modificar_senha_proximo_logon', $modificarProximoLogon, PDO::PARAM_STR);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
-            return $stmt->execute();
+            $result = $stmt->execute();
+
+            if ($result) {
+                // Registrar histórico de senha
+                try {
+                    $sqlHist = 'INSERT INTO adms_password_history (user_id, password, created_at)
+                                VALUES (:user_id, :password, :created_at)';
+                    $stmtHist = $conn->prepare($sqlHist);
+                    $stmtHist->bindValue(':user_id', $data['id'], PDO::PARAM_INT);
+                    $stmtHist->bindValue(':password', $hashedPassword, PDO::PARAM_STR);
+                    $stmtHist->bindValue(':created_at', date("Y-m-d H:i:s"));
+                    $stmtHist->execute();
+                } catch (Exception $e) {
+                    // Não falhar a troca de senha por erro no histórico, apenas logar.
+                    GenerateLog::generateLog("error", "Falha ao registrar histórico de senha.", [
+                        'user_id' => $data['id'] ?? null,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return $result;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Senha não editada.", ['id' => $data['id'], 'error' => $e->getMessage()]);
             return false;
