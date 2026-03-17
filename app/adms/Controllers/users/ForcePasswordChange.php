@@ -5,6 +5,8 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationUserPasswordForceChangeService;
 use App\adms\Controllers\Services\SecurityService;
+use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
+use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
@@ -75,15 +77,19 @@ class ForcePasswordChange
 
     private function viewUser(): void
     {
-        $pageElements = [
-            'title_head' => 'Troca Obrigatória de Senha',
-            'menu' => '',
-            'buttonPermission' => [],
-        ];
-        $pageLayoutService = new PageLayoutService();
-        $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+        $this->data['title_head'] = 'Troca Obrigatória de Senha';
+
+        // Carregar a política de senha para exibir requisitos na tela
+        try {
+            $policyRepo = new AdmsPasswordPolicyRepository();
+            $this->data['password_policy'] = $policyRepo->getPolicy();
+        } catch (\Throwable $e) {
+            $this->data['password_policy'] = null;
+        }
+
+        // Usar o layout de login para manter a tela "limpa" (sem menu lateral)
         $loadView = new LoadViewService('adms/Views/users/forcePasswordChange', $this->data);
-        $loadView->loadView();
+        $loadView->loadViewLogin();
     }
 
     private function editPasswordUser(): void
@@ -129,7 +135,96 @@ class ForcePasswordChange
         $result = $userUpdate->updatePasswordUser($this->data['form']);
         file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Resultado updatePasswordUser: " . json_encode($result) . "\n", FILE_APPEND);
         if ($result) {
-            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Senha alterada, redirecionando para dashboard\n", FILE_APPEND);
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Senha alterada com sucesso, avaliando redirecionamento (LGPD / dashboard)\n", FILE_APPEND);
+
+            // Atualizar atividade da sessão ao concluir a troca obrigatória de senha
+            try {
+                $sessionRepo = new \App\adms\Models\Repository\AdmsSessionsRepository();
+                $sessionId = $_SESSION['session_id'] ?? session_id();
+                $sessionRepo->updateSessionActivity((int)($_SESSION['user_id'] ?? 0), (string)$sessionId);
+            } catch (\Throwable $e) {
+                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',
+                    date('Y-m-d H:i:s') . " - Erro ao atualizar atividade da sessão após troca obrigatória de senha: " . $e->getMessage() . "\n",
+                    FILE_APPEND
+                );
+            }
+
+            // Após trocar a senha, não é mais necessário manter o flag de troca obrigatória
+            unset($_SESSION['force_password_change']);
+
+            // Replicar a lógica de verificação de consentimento LGPD usada no Login::login
+            try {
+                $userRepo = new UsersRepository();
+                $user = $userRepo->getUser((int)($_SESSION['user_id'] ?? 0));
+
+                if ($user && !empty($user['username'])) {
+                    $username = $user['username'];
+                    $isManager = (strtolower($username) === 'manager');
+
+                    if ($isManager) {
+                        file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',
+                            date('Y-m-d H:i:s') . " - Usuario manager detectado após troca obrigatória - pulando verificação de consentimento LGPD\n",
+                            FILE_APPEND
+                        );
+                    } else {
+                        // Verificar se existe termo ativo antes de solicitar consentimento
+                        $lgpdTermosRepo = new LgpdTermosRepository();
+                        $termoLogin = $lgpdTermosRepo->getTermoAtivoPorTipo('login');
+
+                        // Se não encontrar termo do tipo login, tentar último termo ativo como fallback
+                        if (!$termoLogin) {
+                            $termoLogin = $lgpdTermosRepo->getLastActiveTerm();
+                        }
+
+                        if ($termoLogin) {
+                            $consentVersionAtual = $termoLogin['versao'] ?? ($_ENV['LGPD_CONSENT_VERSION'] ?? '1.0');
+                            $temConsentimentoValido = false;
+                            $emailLogin = $user['email'] ?? '';
+
+                            $consentRepo = new \App\adms\Models\Repository\LgpdConsentimentosRepository();
+                            $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorUsuario((int)$user['id'], 'sistema_login');
+
+                            if (!$ultimoConsent && !empty($emailLogin)) {
+                                $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
+                            }
+
+                            file_put_contents(
+                                __DIR__ . '/../../../logs/force_password_change_debug.log',
+                                date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD após troca obrigatória - email=' . $emailLogin .
+                                ' | versao_atual=' . $consentVersionAtual .
+                                ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
+                                FILE_APPEND
+                            );
+
+                            if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
+                                $temConsentimentoValido = true;
+                            }
+
+                            if (!$temConsentimentoValido) {
+                                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',
+                                    date('Y-m-d H:i:s') . " - Consentimento LGPD pendente após troca obrigatória - redirecionando para lgpd-consentimento-login\n",
+                                    FILE_APPEND
+                                );
+                                $_SESSION['success'] = 'Senha alterada com sucesso! Antes de continuar, revise e aceite o termo de uso de dados pessoais.';
+                                header('Location: ' . $_ENV['URL_ADM'] . 'lgpd-consentimento-login');
+                                exit;
+                            }
+                        } else {
+                            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',
+                                date('Y-m-d H:i:s') . " - Nenhum termo LGPD ativo encontrado após troca obrigatória - seguindo para dashboard\n",
+                                FILE_APPEND
+                            );
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',
+                    date('Y-m-d H:i:s') . " - Erro ao verificar consentimento LGPD após troca obrigatória: " . $e->getMessage() . "\n",
+                    FILE_APPEND
+                );
+            }
+
+            // Caso já tenha consentimento válido (ou não haja termo ativo), seguir para dashboard normalmente
             $_SESSION['success'] = 'Senha alterada com sucesso! Agora você pode acessar o sistema normalmente.';
             header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
             exit;

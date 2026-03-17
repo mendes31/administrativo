@@ -25,6 +25,10 @@ class SessionChecker {
         this.warningShown = false;
         this.saveWarningShown = false;
         this.blockWarningShown = false;
+
+        // Controle de renovação por atividade (throttle)
+        this.lastExtendAt = 0;
+        this.extendThrottleMs = 30000; // no máximo 1 renovação a cada 30s
         
         // Identificador único para esta aba
         this.tabId = this.generateTabId();
@@ -852,6 +856,17 @@ class SessionChecker {
         // Salvar no localStorage para persistir entre abas
         this.saveToStorage('lastActivity', Date.now().toString());
 
+        // Renovar sessão no servidor ao detectar atividade real do usuário (com throttle)
+        // Regra: renovar por interação (não pelo check-session passivo).
+        const now = Date.now();
+        if (this.config && this.config.enabled && !document.getElementById('app-block-overlay')) {
+            if (now - this.lastExtendAt >= this.extendThrottleMs) {
+                this.lastExtendAt = now;
+                // Fire-and-forget (silencioso) para não poluir a UI
+                this.extendSession({ silent: true }).catch(() => {});
+            }
+        }
+
         // Reiniciar temporizador de bloqueio por inatividade
         if (this.lockTimer) {
             clearTimeout(this.lockTimer);
@@ -1228,7 +1243,8 @@ class SessionChecker {
         document.body.appendChild(expiredDiv);
     }
 
-    async extendSession() {
+    async extendSession(options = {}) {
+        const { silent = false } = options || {};
         try {
             const response = await fetch(window.location.origin + '/administrativo/extend-session', {
                 method: 'POST',
@@ -1244,12 +1260,12 @@ class SessionChecker {
                 if (data.success) {
                     // Remover todos os avisos
                     this.removeAllWarnings();
-                    
                     // Remover bloqueio se existir
                     this.removeBlock();
-                    
-                    // Mostrar mensagem de sucesso
-                    this.showSuccessMessage('Sessão estendida com sucesso!');
+                    // Mostrar mensagem de sucesso apenas quando NÃO for silencioso
+                    if (!silent) {
+                        this.showSuccessMessage('Sessão estendida com sucesso!');
+                    }
                     
                     // Resetar flags
                     this.warningShown = false;
@@ -1267,7 +1283,9 @@ class SessionChecker {
             }
         } catch (error) {
             console.error('Erro ao estender sessão:', error);
-            this.showErrorMessage('Erro ao estender sessão. Tente novamente.');
+            if (!silent) {
+                this.showErrorMessage('Erro ao estender sessão. Tente novamente.');
+            }
         }
     }
 
