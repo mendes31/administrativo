@@ -122,7 +122,7 @@ function testarEmail() {
         // Criar um formulário temporário para enviar o POST
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '<?= $_ENV['URL_ADM'] ?>email-config/test';
+        form.action = '<?= $_ENV['URL_ADM'] ?>test-email-config';
         // Adicionar ao DOM e enviar
         document.body.appendChild(form);
         form.submit();
