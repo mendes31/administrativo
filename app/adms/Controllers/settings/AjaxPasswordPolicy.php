@@ -5,6 +5,7 @@ namespace App\adms\Controllers\settings;
 use App\adms\Controllers\Services\ValidationUserLogin;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
+use App\adms\Models\Repository\AdmsSessionsRepository;
 
 class AjaxPasswordPolicy
 {
@@ -117,6 +118,22 @@ class AjaxPasswordPolicy
         ]);
 
         if ($ok) {
+            // Ao desbloquear a tela com senha correta, renovar a atividade da sessão
+            try {
+                $sessionId = $_SESSION['session_id'] ?? session_id();
+                $sessionRepo = new AdmsSessionsRepository();
+                $sessionRepo->updateSessionActivity((int)$userId, (string)$sessionId);
+            } catch (\Throwable $e) {
+                @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
+                    date('Y-m-d H:i:s') . ' [AjaxPasswordPolicy::validatePassword] ERRO_UPDATE_SESSION_ACTIVITY ' .
+                    ' user_id=' . $userId .
+                    ' php_session_id=' . session_id() .
+                    ' exception=' . $e->getMessage() .
+                    PHP_EOL,
+                    FILE_APPEND
+                );
+            }
+
             echo json_encode(['sucesso' => true]);
         } else {
             echo json_encode(['sucesso' => false, 'mensagem' => 'Senha incorreta!']);
