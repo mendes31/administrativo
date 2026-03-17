@@ -133,6 +133,7 @@ class LoadPageAdm
         "WhatsAppConfig", "CrmSendWhatsApp",
         "SapApiConfig", "SaveSapApiConfig", "TestSapApiConfig",
         "McpChatApi",
+        "CreateEmailConfig", "ListEmailConfig", "TestEmailConfig",
         "McpApiConfig", 
         "SaveMcpApiConfig",
         // Relatórios Dinâmicos
@@ -463,6 +464,17 @@ class LoadPageAdm
 
         // Instanciar a classe da pagina que deve ser carregada
         $classLoad = new $this->classLoad();
+
+        // Tratamento especial: sempre usar index() para TestEmailConfig,
+        // independentemente dos parâmetros recebidos na URL.
+        if ($this->urlController === 'TestEmailConfig' && method_exists($classLoad, 'index')) {
+            GenerateLog::generateLog("info", "Pagina acessada (TestEmailConfig).", [
+                'pagina' => $this->urlController,
+                'parametro' => $this->urlParameter,
+            ]);
+            $classLoad->index();
+            return;
+        }
 
         // Padrão: /Controller/Metodo
         $metodo = 'index';
