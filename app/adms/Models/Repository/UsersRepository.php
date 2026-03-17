@@ -1252,6 +1252,18 @@ class UsersRepository extends DbConnection
             $stms->execute();
             $affectedRows = $stms->rowCount();
             if ($affectedRows > 0) {
+                // Remover histórico de senhas associado a este usuário
+                try {
+                    $sqlHist = 'DELETE FROM adms_password_history WHERE user_id = :user_id';
+                    $stmtHist = $this->getConnection()->prepare($sqlHist);
+                    $stmtHist->bindValue(':user_id', $id, PDO::PARAM_INT);
+                    $stmtHist->execute();
+                } catch (Exception $e) {
+                    GenerateLog::generateLog("error", "Falha ao remover histórico de senhas ao deletar usuário.", [
+                        'user_id' => $id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
                 // Log de exclusão
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',

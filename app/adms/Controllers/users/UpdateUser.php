@@ -246,6 +246,24 @@ class UpdateUser
                     }
                 }
                 
+                // Limpar histórico de senhas ao inativar o usuário
+                try {
+                    $conn = $userUpdate->getConnection();
+                    $sqlHist = 'DELETE FROM adms_password_history WHERE user_id = :user_id';
+                    $stmtHist = $conn->prepare($sqlHist);
+                    $stmtHist->bindValue(':user_id', $form['id'], \PDO::PARAM_INT);
+                    $stmtHist->execute();
+                } catch (\Throwable $e) {
+                    \App\adms\Helpers\GenerateLog::generateLog(
+                        "error",
+                        "Falha ao limpar histórico de senhas ao inativar usuário",
+                        [
+                            'user_id' => $form['id'],
+                            'error' => $e->getMessage(),
+                        ]
+                    );
+                }
+
                 // Log da ação
                 \App\adms\Helpers\GenerateLog::generateLog(
                     "info", 
