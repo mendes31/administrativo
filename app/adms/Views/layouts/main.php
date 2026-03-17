@@ -3,6 +3,16 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+// LOG TEMPORÁRIO: configuração de sessão do PHP (para diagnóstico de expiração antecipada)
+@file_put_contents(__DIR__ . '/../../logs/php_session_config.log',
+    date('Y-m-d H:i:s') .
+    ' gc_maxlifetime=' . ini_get('session.gc_maxlifetime') .
+    ' cookie_lifetime=' . ini_get('session.cookie_lifetime') .
+    ' save_path=' . ini_get('session.save_path') .
+    PHP_EOL,
+    FILE_APPEND
+);
+
 // ForÃ§a cabeÃ§alhos/ambiente UTF-8 na resposta HTML
 if (!headers_sent()) {
     header('Content-Type: text/html; charset=UTF-8');
