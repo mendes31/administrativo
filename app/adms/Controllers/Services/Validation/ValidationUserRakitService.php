@@ -46,6 +46,9 @@ class ValidationUserRakitService
             'user_position_id'  => 'required|integer|min:1',
         ];
 
+        $isCreate = !isset($data['id']);
+        $gerarSenha = !empty($data['gerar_senha']) && (string)$data['gerar_senha'] === '1';
+
         // Se estiver ausente o ID, então é uma criação (cadastrar)
         if(!isset($data['id'])){
             // Email opcional; se preenchido, validar formato e unicidade
@@ -53,8 +56,14 @@ class ValidationUserRakitService
             $rules['username'] = 'required|min:6|regex:/^\S*$/|uniqueInColumns:adms_users,email;username';
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf';
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
-            $rules['password'] = 'required|min:6|regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])/';
-            $rules['confirm_password'] = 'required|same:password';
+            // Senha: se gerar_senha estiver marcado, liberar regras de complexidade
+            if ($gerarSenha) {
+                $rules['password'] = 'required';
+                $rules['confirm_password'] = 'required|same:password';
+            } else {
+                $rules['password'] = 'required|min:6|regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])/';
+                $rules['confirm_password'] = 'required|same:password';
+            }
             // Validação de imagem apenas se enviada
             if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $rules['image'] = 'uploaded_file:0,2048K,png,jpg,jpeg,gif';

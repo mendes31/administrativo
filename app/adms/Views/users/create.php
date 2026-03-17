@@ -148,6 +148,20 @@ use App\adms\Helpers\CSRFHelper;
                        autocomplete="new-password">
                 </div>
 
+                <div class="col-md-4">
+                    <label class="form-label">Gerar senha automática</label><br>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="gerar_senha" name="gerar_senha" value="1"
+                            <?php echo !empty($this->data['form']['gerar_senha']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="gerar_senha">
+                            Usar data de nascimento como senha inicial (ddmmaaaa)
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Quando marcado, a senha digitada acima será ignorada e a senha inicial será gerada a partir da data de nascimento.
+                    </div>
+                </div>
+
                 <!-- <div class="col-md-4">
                     <label for="status" class="form-label">Status</label>
                     <select name="status" class="form-select" id="status">

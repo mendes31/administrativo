@@ -22,17 +22,27 @@ use App\adms\Helpers\CSRFHelper;
                         <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_force_password_change') ?>">
                         <div class="mb-3">
                             <label for="password" class="form-label">Nova Senha</label>
-                            <input type="password" class="form-control" id="password" name="password" required autofocus
-                                   oninput="this.value = this.value.replace(/\s/g, '')" 
-                                   onpaste="this.value = this.value.replace(/\s/g, '')"
-                                   autocomplete="new-password">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password" required autofocus
+                                       oninput="this.value = this.value.replace(/\s/g, '')" 
+                                       onpaste="this.value = this.value.replace(/\s/g, '')"
+                                       autocomplete="new-password">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="password_confirm" class="form-label">Confirme a Nova Senha</label>
-                            <input type="password" class="form-control" id="password_confirm" name="confirm_password" required
-                                   oninput="this.value = this.value.replace(/\s/g, '')" 
-                                   onpaste="this.value = this.value.replace(/\s/g, '')"
-                                   autocomplete="new-password">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password_confirm" name="confirm_password" required
+                                       oninput="this.value = this.value.replace(/\s/g, '')" 
+                                       onpaste="this.value = this.value.replace(/\s/g, '')"
+                                       autocomplete="new-password">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Alterar Senha</button>
                     </form>
@@ -75,6 +85,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
             }
+        });
+    }
+});
+
+// Toggle visualização de senha
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const passwordToggle = document.getElementById('togglePassword');
+    const confirmInput = document.getElementById('password_confirm');
+    const confirmToggle = document.getElementById('togglePasswordConfirm');
+
+    function toggleVisibility(input, button) {
+        if (!input || !button) return;
+        const icon = button.querySelector('i');
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        if (icon) {
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        }
+    }
+
+    if (passwordToggle && passwordInput) {
+        passwordToggle.addEventListener('click', function () {
+            toggleVisibility(passwordInput, passwordToggle);
+        });
+    }
+
+    if (confirmToggle && confirmInput) {
+        confirmToggle.addEventListener('click', function () {
+            toggleVisibility(confirmInput, confirmToggle);
         });
     }
 });

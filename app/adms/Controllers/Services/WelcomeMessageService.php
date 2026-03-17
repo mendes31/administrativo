@@ -13,15 +13,17 @@ use App\adms\Models\Repository\UsersRepository;
 class WelcomeMessageService
 {
     /**
-     * Envia mensagem de boas-vindas para um usuário recém-criado,
-     * de acordo com os flags configurados no cadastro.
+     * Envia mensagem de acesso (boas-vindas ou desbloqueio),
+     * de acordo com o contexto informado e os flags configurados.
      *
      * @param array $user Dados do usuário, incluindo:
      *                    id, name, email, username, celular,
      *                    enviar_boas_vindas_email, enviar_boas_vindas_whatsapp
      * @param int|null $triggerUserId ID do usuário que disparou (logado)
+     * @param string $context Contexto da mensagem: 'welcome' (padrão) ou 'unlock'
+     * @param string|null $plainPassword Senha inicial/provisória a ser comunicada (opcional)
      */
-    public static function sendForNewUser(array $user, ?int $triggerUserId = null): void
+    public static function sendForNewUser(array $user, ?int $triggerUserId = null, string $context = 'welcome', ?string $plainPassword = null): void
     {
         try {
             $userId = (int)($user['id'] ?? 0);
@@ -48,35 +50,120 @@ class WelcomeMessageService
             }
 
             $loginUrl   = $baseUrl . '/login';
-            $passwordUrl = $baseUrl . '/update-password';
 
-            $subject = 'Bem-vindo(a) ao Portal Interno Tiaraju';
+            // Buscar política de senha para montar os requisitos mínimos
+            $policyRepo = new \App\adms\Models\Repository\AdmsPasswordPolicyRepository();
+            $policy = $policyRepo->getPolicy();
 
-            $bodyHtml = '
-                <p>Olá, <strong>' . htmlspecialchars($name ?: $username, ENT_QUOTES, 'UTF-8') . '</strong>!</p>
-                <p>Seu acesso ao Portal Interno da Tiaraju foi criado.</p>
-                <p>
-                    <strong>Usuário:</strong> ' . htmlspecialchars($username, ENT_QUOTES, 'UTF-8') . '<br>
-                </p>
-                <p>
-                    Você pode acessar o sistema pelo link abaixo:<br>
-                    <a href="' . htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') . '</a>
-                </p>
-                <p>
-                    No primeiro acesso, utilize a senha definida pelo administrador e, em seguida, altere sua senha
-                    pelo menu apropriado ou diretamente pelo link:<br>
-                    <a href="' . htmlspecialchars($passwordUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($passwordUrl, ENT_QUOTES, 'UTF-8') . '</a>
-                </p>
-                <p>Se você tiver qualquer dificuldade de acesso, entre em contato com a equipe de TI.</p>
-            ';
+            $minLen   = $policy->comprimento_minimo      ?? 6;
+            $minUpper = $policy->min_maiusculas          ?? 0;
+            $minLower = $policy->min_minusculas          ?? 0;
+            $minDigit = $policy->min_digitos             ?? 0;
+            $minSpec  = $policy->min_nao_alfanumericos   ?? 0;
 
-            $bodyText =
-                'Olá, ' . ($name ?: $username) . "!\n\n" .
-                "Seu acesso ao Portal Interno da Tiaraju foi criado.\n\n" .
-                "Usuário: {$username}\n\n" .
-                "Acesse: {$loginUrl}\n" .
-                "Após o primeiro acesso, altere sua senha em: {$passwordUrl}\n\n" .
-                "Em caso de dúvidas, procure a equipe de TI.";
+            $requirementsLines = [];
+            $requirementsLines[] = "- Mínimo de {$minLen} caracteres.";
+            if ($minUpper > 0) $requirementsLines[] = "- Pelo menos {$minUpper} letra(s) maiúscula(s).";
+            if ($minLower > 0) $requirementsLines[] = "- Pelo menos {$minLower} letra(s) minúscula(s).";
+            if ($minDigit > 0) $requirementsLines[] = "- Pelo menos {$minDigit} dígito(s).";
+            if ($minSpec > 0)  $requirementsLines[] = "- Pelo menos {$minSpec} caractere(s) especial(is).";
+            $requirementsHtml = '';
+            $requirementsText = '';
+            if (!empty($requirementsLines)) {
+                $requirementsHtml = '<ul>';
+                foreach ($requirementsLines as $line) {
+                    $requirementsHtml .= '<li>' . htmlspecialchars($line, ENT_QUOTES, 'UTF-8') . '</li>';
+                }
+                $requirementsHtml .= '</ul>';
+
+                $requirementsText = implode("\n", $requirementsLines);
+            }
+
+            // Definir assunto e textos conforme contexto
+            if ($context === 'unlock') {
+                $subject = 'Senha provisória do Portal Interno Tiaraju';
+
+                $bodyHtml = '
+                    <p>Olá, <strong>' . htmlspecialchars($name ?: $username, ENT_QUOTES, 'UTF-8') . '</strong>!</p>
+                    <p>Sua conta no Portal Interno da Tiaraju foi desbloqueada e uma <strong>senha provisória</strong> foi definida.</p>
+                    <p>
+                        <strong>Usuário:</strong> ' . htmlspecialchars($username, ENT_QUOTES, 'UTF-8') . '<br>';
+
+                if ($plainPassword !== null && $plainPassword !== '') {
+                    $bodyHtml .= '
+                        <strong>Senha provisória:</strong> ' . htmlspecialchars($plainPassword, ENT_QUOTES, 'UTF-8') . '<br>';
+                }
+
+                $bodyHtml .= '
+                    </p>
+                    <p>
+                        Acesse o sistema pelo link abaixo e, após o login, será solicitado que você <strong>altere sua senha</strong>:
+                        <br>
+                        <a href="' . htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') . '</a>
+                    </p>
+                    <p>A nova senha deve seguir, no mínimo, os seguintes requisitos:</p>
+                    ' . $requirementsHtml . '
+                    <p>Em caso de dúvidas, procure a equipe de TI.</p>
+                ';
+
+                $bodyText =
+                    'Olá, ' . ($name ?: $username) . "!\n\n" .
+                    "Sua conta no Portal Interno da Tiaraju foi desbloqueada e uma SENHA PROVISÓRIA foi definida.\n\n" .
+                    "Usuário: {$username}\n";
+
+                if ($plainPassword !== null && $plainPassword !== '') {
+                    $bodyText .= "Senha provisória: {$plainPassword}\n";
+                }
+
+                $bodyText .= "\nAcesse: {$loginUrl}\n" .
+                    "Após o login, será solicitado que você ALTERE sua senha.\n\n" .
+                    "A nova senha deve seguir, no mínimo, os requisitos abaixo:\n" .
+                    $requirementsText . "\n\n" .
+                    "Em caso de dúvidas, procure a equipe de TI.";
+            } else {
+                // Contexto padrão: boas-vindas (usuário novo)
+                $subject = 'Bem-vindo(a) ao Portal Interno Tiaraju';
+
+                $bodyHtml = '
+                    <p>Olá, <strong>' . htmlspecialchars($name ?: $username, ENT_QUOTES, 'UTF-8') . '</strong>!</p>
+                    <p>Seu acesso ao Portal Interno da Tiaraju foi criado.</p>
+                    <p>
+                        <strong>Usuário:</strong> ' . htmlspecialchars($username, ENT_QUOTES, 'UTF-8') . '<br>';
+
+                if ($plainPassword !== null && $plainPassword !== '') {
+                    $bodyHtml .= '
+                        <strong>Senha inicial:</strong> ' . htmlspecialchars($plainPassword, ENT_QUOTES, 'UTF-8') . '<br>';
+                }
+
+                $bodyHtml .= '
+                    </p>
+                    <p>
+                        Você pode acessar o sistema pelo link abaixo:<br>
+                        <a href="' . htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') . '</a>
+                    </p>
+                    <p>
+                        Após o primeiro acesso, utilize o menu apropriado para alterar sua senha. A nova senha deve seguir,
+                        no mínimo, os seguintes requisitos:
+                    </p>
+                    ' . $requirementsHtml . '
+                    <p>Se você tiver qualquer dificuldade de acesso, entre em contato com a equipe de TI.</p>
+                ';
+
+                $bodyText =
+                    'Olá, ' . ($name ?: $username) . "!\n\n" .
+                    "Seu acesso ao Portal Interno da Tiaraju foi criado.\n\n" .
+                    "Usuário: {$username}\n";
+
+                if ($plainPassword !== null && $plainPassword !== '') {
+                    $bodyText .= "Senha inicial: {$plainPassword}\n";
+                }
+
+                $bodyText .= "\nAcesse: {$loginUrl}\n" .
+                    "Após o primeiro acesso, utilize o menu apropriado para alterar sua senha.\n\n" .
+                    "A nova senha deve seguir, no mínimo, os requisitos abaixo:\n" .
+                    $requirementsText . "\n\n" .
+                    "Em caso de dúvidas, procure a equipe de TI.";
+            }
 
             $emailSent = false;
             $whatsSent = false;
@@ -86,14 +173,8 @@ class WelcomeMessageService
             }
 
             if ($sendWhats && $phone !== '') {
-                $whatsMessage =
-                    "Olá, " . ($name ?: $username) . "!\n\n" .
-                    "Seu acesso ao Portal Interno da Tiaraju foi criado.\n\n" .
-                    "Usuário: {$username}\n\n" .
-                    "Acesse: {$loginUrl}\n" .
-                    "Após o primeiro acesso, altere sua senha em: {$passwordUrl}\n\n" .
-                    "Em caso de dúvidas, procure a equipe de TI.";
-
+                // Para WhatsApp, reutilizar a versão texto da mesma mensagem
+                $whatsMessage = $bodyText;
                 $whatsResult = SendWhatsAppService::sendMessage($phone, $whatsMessage);
                 $whatsSent = $whatsResult['success'] ?? false;
             }

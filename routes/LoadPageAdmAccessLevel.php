@@ -196,7 +196,15 @@ class LoadPageAdmAccessLevel
             exit;
         }
 
-        die("Erro 003: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
+        // Para requisições normais (navegador), em vez de "prender" na tela de erro 003,
+        // limpar a sessão e redirecionar para o login com uma mensagem clara.
+        $_SESSION['error'] = 'Seu usuário não possui permissão para acessar esta área. Faça login com outro usuário ou contate o administrador.';
+
+        // Opcional: limpar dados principais da sessão para evitar redireciono automático
+        unset($_SESSION['user_id'], $_SESSION['session_id']);
+
+        header("Location: {$_ENV['URL_ADM']}login");
+        exit;
     }
 
     private function verifyLogin(): bool

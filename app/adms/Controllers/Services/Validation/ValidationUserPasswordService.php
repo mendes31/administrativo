@@ -32,13 +32,25 @@ class ValidationUserPasswordService
         // Instanciar a classe validar formulário
         $validator = new Validator();
 
+        // Se a flag gerar_senha estiver marcada, estamos gerando uma senha padrão
+        // (por exemplo, data de nascimento) que pode não seguir totalmente a política
+        // de senha forte. Nesse caso, validamos apenas presença e confirmação,
+        // sem exigir complexidade.
+        if (!empty($data['gerar_senha']) && $data['gerar_senha'] === '1') {
+            $rules = [
+                'password' => 'required',
+                'confirm_password' => 'required|same:password',
+            ];
+        } else {
+            // Regra padrão: senha forte (mínimo 6, letra, número e caractere especial)
+            $rules = [
+                'password' => 'required|min:6|regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])/',
+                'confirm_password' => 'required|same:password',
+            ];
+        }
+
         // Criar o validador com os dados e regras fornecidas
-        // Nesta etapa (nova senha), o usuário já foi identificado pela chave de recuperação,
-        // portanto não é necessário validar o e-mail aqui. Apenas senha e confirmação.
-        $validation = $validator->make($data, [
-            'password' => 'required|min:6|regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])/',            
-            'confirm_password' => 'required|same:password',
-        ]);
+        $validation = $validator->make($data, $rules);
 
         // Definir as mensagens de erro personalizadas
         $validation->setMessages([

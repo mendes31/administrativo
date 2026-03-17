@@ -1121,10 +1121,20 @@ class UsersRepository extends DbConnection
     public function updatePasswordUser(array $data): bool
     {
         try {
-            // Atualizar senha e modificar_senha_proximo_logon
-            $sql = 'UPDATE adms_users SET password = :password, modificar_senha_proximo_logon = "Não", updated_at = :updated_at WHERE id = :id';
+            // Atualizar senha e flag de "modificar_senha_proximo_logon"
+            // Se não for informado no array, assume "Não" (comportamento padrão antigo).
+            $modificarProximoLogon = isset($data['modificar_senha_proximo_logon'])
+                ? $data['modificar_senha_proximo_logon']
+                : 'Não';
+
+            $sql = 'UPDATE adms_users 
+                       SET password = :password,
+                           modificar_senha_proximo_logon = :modificar_senha_proximo_logon,
+                           updated_at = :updated_at 
+                     WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
+            $stmt->bindValue(':modificar_senha_proximo_logon', $modificarProximoLogon, PDO::PARAM_STR);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
             return $stmt->execute();

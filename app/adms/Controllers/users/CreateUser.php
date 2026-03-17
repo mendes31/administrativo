@@ -100,7 +100,27 @@ class CreateUser
      */
     private function addUser(): void
     {
-        // Instanciar a classe validar os dados do fromuláriose com Rakit
+        // Antes de validar, tratar geração automática de senha, se solicitado,
+        // para que o validador enxergue os campos preenchidos.
+        $form = $this->data['form'];
+
+        // Salvar data de nascimento e admissão em $form (usados em outros pontos)
+        $form['data_nascimento'] = !empty($_POST['data_nascimento']) ? $_POST['data_nascimento'] : ($form['data_nascimento'] ?? null);
+        $form['data_admissao']   = !empty($_POST['data_admissao'])   ? $_POST['data_admissao']   : ($form['data_admissao']   ?? null);
+
+        $plainPassword = null;
+        if (!empty($form['gerar_senha']) && $form['gerar_senha'] === '1' && !empty($form['data_nascimento'])) {
+            $ts = strtotime($form['data_nascimento']);
+            if ($ts !== false) {
+                $plainPassword = date('dmY', $ts);
+                $form['password'] = $plainPassword;
+                $form['confirm_password'] = $plainPassword;
+            }
+        }
+
+        $this->data['form'] = $form;
+
+        // Instanciar a classe validar os dados do formulário com Rakit
         $validationUser = new ValidationUserRakitService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
 
@@ -119,12 +139,7 @@ class CreateUser
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
         $form['modificar_senha_proximo_logon'] = isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] === 'Sim' ? 'Sim' : 'Não';
 
-        // Salvar data de nascimento
-        $form['data_nascimento'] = !empty($_POST['data_nascimento']) ? $_POST['data_nascimento'] : null;
-        
-        // Salvar data de admissão
-        $form['data_admissao'] = !empty($_POST['data_admissao']) ? $_POST['data_admissao'] : null;
-
+        // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas
         $form['enviar_boas_vindas_email'] = !empty($form['enviar_boas_vindas_email']) ? 1 : 0;
         $form['enviar_boas_vindas_whatsapp'] = !empty($form['enviar_boas_vindas_whatsapp']) ? 1 : 0;
@@ -186,7 +201,9 @@ class CreateUser
                     $createdUser['celular'] = $form['celular'] ?? ($createdUser['celular'] ?? '');
                     \App\adms\Controllers\Services\WelcomeMessageService::sendForNewUser(
                         $createdUser,
-                        isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+                        isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+                        'welcome',
+                        $plainPassword
                     );
                 }
             } catch (\Throwable $e) {

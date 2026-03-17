@@ -40,9 +40,9 @@ if (!empty($_SESSION['force_password_change'])): ?>
                         <i class="fas fa-user-circle text-primary me-2 fs-5"></i>
                         <div>
                             <strong class="text-primary">Usuário Selecionado:</strong>
-                            <span class="fw-bold text-dark"><?php echo htmlspecialchars($this->data['user_info']['name']); ?></span>
-                            <span class="badge bg-secondary ms-2">ID: <?php echo $this->data['user_info']['id']; ?></span>
-                            <span class="text-muted ms-2"><?php echo htmlspecialchars($this->data['user_info']['email']); ?></span>
+                            <span class="fw-bold text-dark"><?php echo htmlspecialchars($this->data['user_info']['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
+                            <span class="badge bg-secondary ms-2">ID: <?php echo (int)($this->data['user_info']['id'] ?? 0); ?></span>
+                            <span class="text-muted ms-2"><?php echo htmlspecialchars($this->data['user_info']['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
                         </div>
                     </div>
                 </div>
@@ -106,6 +106,73 @@ if (!empty($_SESSION['force_password_change'])): ?>
                        oninput="this.value = this.value.replace(/\s/g, '')" 
                        onpaste="this.value = this.value.replace(/\s/g, '')"
                        autocomplete="new-password">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Gerar senha automática</label><br>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="gerar_senha" name="gerar_senha" value="1"
+                            <?php echo !empty($this->data['form']['gerar_senha']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="gerar_senha">
+                            Usar data de nascimento como senha provisória (ddmmaaaa)
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Quando marcado, a senha digitada acima será ignorada e a senha provisória será gerada a partir da data de nascimento do usuário.
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Modificar senha no próximo logon</label><br>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="modificar_senha_proximo_logon" name="modificar_senha_proximo_logon" value="Sim"
+                            <?php echo (isset($this->data['form']['modificar_senha_proximo_logon']) && $this->data['form']['modificar_senha_proximo_logon'] === 'Sim') ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="modificar_senha_proximo_logon">
+                            Exigir troca de senha após o próximo acesso
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Quando marcado, o usuário será obrigado a definir uma nova senha no próximo login.
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Notificar usuário</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enviar_notificacao_email" name="enviar_notificacao_email" value="1"
+                            <?php echo !empty($this->data['form']['enviar_notificacao_email']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="enviar_notificacao_email">
+                            Enviar por e-mail
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mt-1">
+                        <input class="form-check-input" type="checkbox" id="enviar_notificacao_whatsapp" name="enviar_notificacao_whatsapp" value="1"
+                            <?php echo !empty($this->data['form']['enviar_notificacao_whatsapp']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="enviar_notificacao_whatsapp">
+                            Enviar por WhatsApp
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Marque ao menos uma opção para enviar a notificação ao usuário.
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="tipo_mensagem" class="form-label">Tipo de mensagem</label>
+                    <select name="tipo_mensagem" id="tipo_mensagem" class="form-select">
+                        <?php
+                        $tipoMensagem = $this->data['form']['tipo_mensagem'] ?? 'unlock';
+                        ?>
+                        <option value="unlock" <?php echo ($tipoMensagem === 'unlock') ? 'selected' : ''; ?>>
+                            Senha provisória / desbloqueio
+                        </option>
+                        <option value="welcome" <?php echo ($tipoMensagem === 'welcome') ? 'selected' : ''; ?>>
+                            Boas-vindas (acesso inicial)
+                        </option>
+                    </select>
+                    <div class="form-text">
+                        Define se o texto será de boas-vindas para primeiro acesso ou de desbloqueio com senha provisória.
+                    </div>
                 </div>
 
                 <div class="col-12">

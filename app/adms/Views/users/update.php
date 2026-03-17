@@ -217,40 +217,6 @@ use App\adms\Helpers\ImageHelper;
                         <label class="form-check-label" for="senha_nunca_expira">Sim</label>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Modificar Senha no Próximo Logon</label><br>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="modificar_senha_proximo_logon" name="modificar_senha_proximo_logon" value="Sim" <?php echo (isset($this->data['form']['modificar_senha_proximo_logon']) && $this->data['form']['modificar_senha_proximo_logon'] == 'Sim') ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="modificar_senha_proximo_logon">Sim</label>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Mensagem de boas-vindas</label>
-                    <div class="form-text mb-1">
-                        Ao marcar, será possível registrar a preferência de envio de mensagem de boas-vindas com link de acesso e orientação para troca de senha.
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="enviar_boas_vindas_email" name="enviar_boas_vindas_email" value="1"
-                                    <?php echo !empty($this->data['form']['enviar_boas_vindas_email']) ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="enviar_boas_vindas_email">
-                                    Enviar por e-mail
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="enviar_boas_vindas_whatsapp" name="enviar_boas_vindas_whatsapp" value="1"
-                                    <?php echo !empty($this->data['form']['enviar_boas_vindas_whatsapp']) ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="enviar_boas_vindas_whatsapp">
-                                    Enviar por WhatsApp
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="col-12">
                     <button type="submit" class="btn btn-warning btn-sm">Salvar</button>

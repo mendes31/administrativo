@@ -102,10 +102,24 @@ class UpdatePasswordUser
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
         
         // Adicionar informações do usuário para o cabeçalho
+        // Garantir que temos nome/e-mail do usuário mesmo após erro de validação (POST parcial)
+        $userId = isset($this->data['form']['id']) ? (int)$this->data['form']['id'] : 0;
+        $name   = $this->data['form']['name']  ?? null;
+        $email  = $this->data['form']['email'] ?? null;
+
+        if ($userId > 0 && ($name === null || $email === null)) {
+            $repo = new UsersRepository();
+            $u = $repo->getUser($userId);
+            if ($u) {
+                $name  = $name  ?? ($u['name']  ?? null);
+                $email = $email ?? ($u['email'] ?? null);
+            }
+        }
+
         $this->data['user_info'] = [
-            'id' => $this->data['form']['id'],
-            'name' => $this->data['form']['name'],
-            'email' => $this->data['form']['email']
+            'id'    => $userId,
+            'name'  => $name,
+            'email' => $email,
         ];
 
         // Carregar a VIEW
@@ -124,6 +138,25 @@ class UpdatePasswordUser
      */
     private function editPasswordUser(): void 
     {
+        // Instanciar Repository para editar o usuário
+        $userUpdate = new UsersRepository();
+
+        // Gerar senha automática a partir da data de nascimento, se solicitado,
+        // antes da validação (assim não exige preenchimento manual dos campos).
+        $plainPassword = null;
+        if (!empty($this->data['form']['gerar_senha']) && $this->data['form']['gerar_senha'] === '1') {
+            $userData = $userUpdate->getUser((int)$this->data['form']['id']);
+            $dataNascimento = $userData['data_nascimento'] ?? null;
+            if (!empty($dataNascimento)) {
+                $ts = strtotime($dataNascimento);
+                if ($ts !== false) {
+                    $plainPassword = date('dmY', $ts);
+                    $this->data['form']['password'] = $plainPassword;
+                    $this->data['form']['confirm_password'] = $plainPassword;
+                }
+            }
+        }
+
         // Instanciar a classe validar os dados do formulario
         $validationUser = new ValidationUserPasswordService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
@@ -135,14 +168,49 @@ class UpdatePasswordUser
             return;
         }
 
-        // Instanciar Repository para editar o usuário
-        $userUpdate = new UsersRepository();
-        $result = $userUpdate->updatePasswordUser($this->data['form']);
+        // Se o admin marcou "Modificar senha no próximo logon" aqui,
+        // persistir essa flag junto com a alteração de senha.
+        $updateData = $this->data['form'];
+        $updateData['modificar_senha_proximo_logon'] =
+            (!empty($this->data['form']['modificar_senha_proximo_logon']) && $this->data['form']['modificar_senha_proximo_logon'] === 'Sim')
+                ? 'Sim'
+                : 'Não';
+
+        $result = $userUpdate->updatePasswordUser($updateData);
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
             // Criar a mensagem de sucesso
             $_SESSION['success'] = "Senha alterada com sucesso! Agora você pode acessar o sistema normalmente.";
+
+            // Notificações opcionais (e-mail / WhatsApp) com contexto configurável
+            if (!empty($this->data['form']['enviar_notificacao_email']) || !empty($this->data['form']['enviar_notificacao_whatsapp'])) {
+                try {
+                    // Descobrir o contexto desejado para a mensagem
+                    $context = 'unlock';
+                    if (!empty($this->data['form']['tipo_mensagem']) && $this->data['form']['tipo_mensagem'] === 'welcome') {
+                        $context = 'welcome';
+                    }
+
+                    $updatedUser = $userUpdate->getUser((int)$this->data['form']['id']);
+                    if ($updatedUser) {
+                        $updatedUser['enviar_boas_vindas_email'] = !empty($this->data['form']['enviar_notificacao_email']) ? 1 : 0;
+                        $updatedUser['enviar_boas_vindas_whatsapp'] = !empty($this->data['form']['enviar_notificacao_whatsapp']) ? 1 : 0;
+                        $updatedUser['celular'] = $updatedUser['celular'] ?? '';
+                        \App\adms\Controllers\Services\WelcomeMessageService::sendForNewUser(
+                            $updatedUser,
+                            isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+                            $context,
+                            $plainPassword ?? ($this->data['form']['password'] ?? '')
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    GenerateLog::generateLog('error', 'Erro ao enviar notificação de senha provisória.', [
+                        'user_id' => $this->data['form']['id'] ?? null,
+                        'exception' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // Se for troca obrigatória, redirecionar para o dashboard
             if (!empty($_GET['force'])) {
