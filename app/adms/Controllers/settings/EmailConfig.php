@@ -38,6 +38,7 @@ class EmailConfig
             'encryption' => $_POST['MAIL_ENCRYPTI'] ?? '',
             'from_email' => $_POST['EMAIL_TI'] ?? '',
             'from_name' => $_POST['NAME_EMAIL_TI'] ?? '',
+            'test_recipient' => $_POST['TEST_RECIPIENT'] ?? '',
         ];
         $ok = $repo->saveConfig($config);
         if ($ok) {
@@ -105,8 +106,11 @@ class EmailConfig
             // Remetente
             $mail->setFrom($config['from_email'], $config['from_name']);
             
-            // Destinatário (enviar para o próprio e-mail configurado)
-            $mail->addAddress($config['username']);
+            // Destinatário de teste:
+            // - Se houver test_recipient configurado, usar esse endereço.
+            // - Caso contrário, usar o próprio usuário SMTP.
+            $destinatarioTeste = !empty($config['test_recipient']) ? $config['test_recipient'] : $config['username'];
+            $mail->addAddress($destinatarioTeste);
 
             // Conteúdo
             $mail->isHTML(true);

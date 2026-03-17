@@ -89,6 +89,17 @@ $config = $this->data['email_config'] ?? [];
                             <div class="form-text">Nome que aparecerá como remetente</div>
                         </div>
                         
+                        <div class="mb-3">
+                            <label for="TEST_RECIPIENT" class="form-label">Destinatário de teste (opcional)</label>
+                            <input type="email" class="form-control" id="TEST_RECIPIENT" name="TEST_RECIPIENT" 
+                                   value="<?= htmlspecialchars($config['test_recipient'] ?? '') ?>" 
+                                   placeholder="email-para-teste@empresa.com">
+                            <div class="form-text">
+                                Se preenchido, o botão <strong>Testar Configuração</strong> enviará o e-mail de teste para este endereço.
+                                Se vazio, o teste será enviado para o usuário SMTP configurado.
+                            </div>
+                        </div>
+                        
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save"></i> Salvar Configurações

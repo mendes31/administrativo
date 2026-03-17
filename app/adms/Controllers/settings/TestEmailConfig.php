@@ -49,7 +49,8 @@ class TestEmailConfig
             $mail->Port = $config['port'];
             $mail->CharSet = 'UTF-8';
             $mail->setFrom($config['from_email'], $config['from_name']);
-            $mail->addAddress($config['username']);
+            $destinatarioTeste = !empty($config['test_recipient']) ? $config['test_recipient'] : $config['username'];
+            $mail->addAddress($destinatarioTeste);
             $mail->isHTML(true);
             $mail->Subject = 'Teste de Configuração - Sistema Administrativo';
             $mail->Body = '<h2>✅ Teste de Configuração de E-mail</h2><p>Este e-mail foi enviado automaticamente para testar a configuração do servidor SMTP.</p><p><strong>Data/Hora:</strong> ' . date('d/m/Y H:i:s') . '</p><p><strong>Servidor:</strong> ' . $config['host'] . ':' . $config['port'] . '</p><p><strong>Criptografia:</strong> ' . $config['encryption'] . '</p><hr><p><em>Se você recebeu este e-mail, a configuração está funcionando corretamente!</em></p>';

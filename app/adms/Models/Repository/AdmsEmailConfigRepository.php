@@ -21,11 +21,24 @@ class AdmsEmailConfigRepository extends DbConnection
         // Se já existe, faz update, senão faz insert
         $config = $this->getConfig();
         if ($config && !empty($config['id'])) {
-            $sql = 'UPDATE adms_email_config SET host = :host, username = :username, password = :password, port = :port, encryption = :encryption, from_email = :from_email, from_name = :from_name, updated_at = NOW() WHERE id = :id';
+            $sql = 'UPDATE adms_email_config 
+                       SET host = :host, 
+                           username = :username, 
+                           password = :password, 
+                           port = :port, 
+                           encryption = :encryption, 
+                           from_email = :from_email, 
+                           from_name = :from_name,
+                           test_recipient = :test_recipient,
+                           updated_at = NOW() 
+                     WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $config['id'], PDO::PARAM_INT);
         } else {
-            $sql = 'INSERT INTO adms_email_config (host, username, password, port, encryption, from_email, from_name, created_at, updated_at) VALUES (:host, :username, :password, :port, :encryption, :from_email, :from_name, NOW(), NOW())';
+            $sql = 'INSERT INTO adms_email_config 
+                        (host, username, password, port, encryption, from_email, from_name, test_recipient, created_at, updated_at) 
+                    VALUES 
+                        (:host, :username, :password, :port, :encryption, :from_email, :from_name, :test_recipient, NOW(), NOW())';
             $stmt = $this->getConnection()->prepare($sql);
         }
         $stmt->bindValue(':host', $data['host']);
@@ -35,6 +48,7 @@ class AdmsEmailConfigRepository extends DbConnection
         $stmt->bindValue(':encryption', $data['encryption']);
         $stmt->bindValue(':from_email', $data['from_email']);
         $stmt->bindValue(':from_name', $data['from_name']);
+        $stmt->bindValue(':test_recipient', $data['test_recipient'] ?? null);
         return $stmt->execute();
     }
 } 
