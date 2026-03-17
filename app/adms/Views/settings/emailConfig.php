@@ -9,6 +9,7 @@ $config = $this->data['email_config'] ?? [];
                     <h4 class="mb-0">Configuração de Servidor de E-mail (SMTP)</h4>
                 </div>
                 <div class="card-body">
+                    <?php include './app/adms/Views/partials/alerts.php'; ?>
                     <!-- Dicas de configuração -->
                     <div class="alert alert-info">
                         <h6><i class="fas fa-info-circle"></i> Dicas para Gmail:</h6>
@@ -121,7 +122,7 @@ function testarEmail() {
         // Criar um formulário temporário para enviar o POST
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '<?= $_ENV['URL_ADM'] ?>test-email-config';
+        form.action = '<?= $_ENV['URL_ADM'] ?>email-config/test';
         // Adicionar ao DOM e enviar
         document.body.appendChild(form);
         form.submit();
