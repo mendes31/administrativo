@@ -4,6 +4,7 @@ namespace App\adms\Controllers\users;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationUserPasswordForceChangeService;
+use App\adms\Controllers\Services\SecurityService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
@@ -90,6 +91,32 @@ class ForcePasswordChange
         file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Início do editPasswordUser\n", FILE_APPEND);
         $validationUser = new ValidationUserPasswordForceChangeService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
+
+        // Validar também contra a política dinâmica completa, incluindo histórico de senhas.
+        try {
+            $securityService = new SecurityService();
+            // Aqui a troca é feita pelo próprio usuário, então o histórico DEVE ser considerado.
+            $politica = $securityService->validarPoliticaSenha(
+                (string)($this->data['form']['password'] ?? ''),
+                (int)($_SESSION['user_id'] ?? 0),
+                false
+            );
+            if (!$politica['valid']) {
+                foreach ($politica['errors'] as $msg) {
+                    $this->data['errors']['password_policy'] = $msg;
+                    break;
+                }
+            }
+        } catch (\Throwable $e) {
+            file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',
+                date('Y-m-d H:i:s') . " - Erro ao validar política de senha: " . $e->getMessage() . "\n",
+                FILE_APPEND
+            );
+            GenerateLog::generateLog('error', 'Erro ao validar política de senha na troca obrigatória.', [
+                'user_id' => $_SESSION['user_id'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
+        }
         if (!empty($this->data['errors'])) {
             file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log', date('Y-m-d H:i:s') . " - Erros de validação: " . json_encode($this->data['errors']) . "\n", FILE_APPEND);
             $this->viewUser();

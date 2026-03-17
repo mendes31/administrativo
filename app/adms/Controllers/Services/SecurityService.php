@@ -522,7 +522,7 @@ class SecurityService
     /**
      * Valida política de senha
      */
-    public function validarPoliticaSenha(string $senha, int|string|null $userId = null): array
+    public function validarPoliticaSenha(string $senha, int|string|null $userId = null, bool $ignorarHistorico = false): array
     {
         $policy = $this->policyRepo->getPolicy();
         if (!$policy) {
@@ -569,7 +569,8 @@ class SecurityService
         }
 
         // Histórico de senhas
-        if ($userId && $policy->historico_senhas > 0) {
+        // Quando $ignorarHistorico = true, não aplica essa regra (usado em trocas feitas por administradores).
+        if (!$ignorarHistorico && $userId && $policy->historico_senhas > 0) {
             if ($this->senhaNoHistorico($userId, $senha, $policy->historico_senhas)) {
                 $errors[] = "A senha não pode ser igual às últimas {$policy->historico_senhas} senhas utilizadas.";
             }

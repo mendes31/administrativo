@@ -4,6 +4,7 @@ namespace App\adms\Controllers\users;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationUserPasswordService;
+use App\adms\Controllers\Services\SecurityService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\UsersRepository;
@@ -160,6 +161,31 @@ class UpdatePasswordUser
         // Instanciar a classe validar os dados do formulario
         $validationUser = new ValidationUserPasswordService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
+
+        // Validar também contra a política dinâmica (comprimento, complexidade extra, histórico, etc.)
+        // Apenas quando não for geração automática de senha provisória.
+        if (empty($this->data['form']['gerar_senha']) || $this->data['form']['gerar_senha'] !== '1') {
+            try {
+                $securityService = new SecurityService();
+                // Ignorar histórico de senhas quando a troca é feita pelo administrador
+                $politica = $securityService->validarPoliticaSenha(
+                    (string)($this->data['form']['password'] ?? ''),
+                    (int)($this->data['form']['id'] ?? 0),
+                    true // ignorar histórico aqui
+                );
+                if (!$politica['valid']) {
+                    foreach ($politica['errors'] as $msg) {
+                        $this->data['errors']['password_policy'] = $msg;
+                        break; // mostrar apenas a primeira mensagem para o usuário
+                    }
+                }
+            } catch (\Throwable $e) {
+                GenerateLog::generateLog('error', 'Erro ao validar política de senha em UpdatePasswordUser.', [
+                    'user_id' => $this->data['form']['id'] ?? null,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
 
         // Acessa o IF quando existir campo com dados incorretos
         if (!empty($this->data['errors'])) {
