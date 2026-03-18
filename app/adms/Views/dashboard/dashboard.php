@@ -3,7 +3,7 @@
         <div class="col-12 col-lg-11">
             <div class="bg-success bg-gradient rounded-4 p-4 mb-4" style="margin-top: 2rem;">
                 <h2 class="fw-bold text-white mb-1" style="font-size: 1.7rem; letter-spacing: -1px;">Bem-vindo(a), <?php echo htmlspecialchars($this->data['user_name'] ?? 'Usuário'); ?>!</h2>
-                <div class="text-white" style="font-size: 1.05rem;">Portal Interno da Tiaraju - Sua central de informações corporativas</div>
+                <div class="text-white" style="font-size: 1.05rem;">Portal Interno do Grupo Tiaraju - Sua central de informações corporativas</div>
             </div>
         </div>
     </div>
