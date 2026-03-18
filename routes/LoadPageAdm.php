@@ -157,6 +157,12 @@ class LoadPageAdm
         "RhKpiDashboard",
         "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete",
         "CalendarConfig",
+        // Reserva de Salas - Tipos de Solicitação (Salas)
+        "RoomsListRequestTypes", "RoomsCreateRequestType", "RoomsUpdateRequestType", "RoomsDeleteRequestType",
+        // Reserva de Salas - Equipes/Grupos responsáveis
+        "RoomsListRequestGroups", "RoomsCreateRequestGroup", "RoomsUpdateRequestGroup", "RoomsDeleteRequestGroup",
+        // Reserva de Salas - Solicitações avulsas
+        "RoomsListServiceRequests", "RoomsCreateServiceRequest", "RoomsViewServiceRequest", "RoomsUpdateServiceRequest", "RoomsDeleteServiceRequest",
         // Gestão de Projetos
         "ListProjects", "CreateProject", "UpdateProject", "DeleteProject",
         // Gestão de Projetos - Grupos de Etapas

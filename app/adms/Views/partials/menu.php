@@ -720,13 +720,25 @@ $menus = [
                 ]
             ],
             [
-                'label' => 'Tipos de Solicitação',
+                'label' => 'Solicitações',
                 'icon' => 'fa-solid fa-list',
                 'submenu' => [
                     [
-                        'label' => 'Listar Tipos',
-                        'url' => $_ENV['URL_ADM'] . 'list-request-types',
-                        'permission' => 'ListRequestTypes'
+                        'label' => 'Solicitações',
+                        'url' => $_ENV['URL_ADM'] . 'rooms-list-service-requests',
+                        'permission' => 'RoomsListServiceRequests',
+                        'icon' => 'fas fa-clipboard-list'
+                    ],
+                    [
+                        'label' => 'Tipos (Salas)',
+                        'url' => $_ENV['URL_ADM'] . 'rooms-list-request-types',
+                        'permission' => 'RoomsListRequestTypes'
+                    ],
+                    [
+                        'label' => 'Equipes / Grupos',
+                        'url' => $_ENV['URL_ADM'] . 'rooms-list-request-groups',
+                        'permission' => 'RoomsListRequestGroups',
+                        'icon' => 'fas fa-users'
                     ],
                 ]
             ],

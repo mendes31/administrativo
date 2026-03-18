@@ -11,6 +11,23 @@ use PDO;
 class RequestTypesRepository extends DbConnection
 {
     /**
+     * Buscar todos os tipos (com filtros opcionais futuros)
+     */
+    public function getAll(): array
+    {
+        $sql = "SELECT rt.*, 
+                       u.name as default_responsible_name
+                FROM adms_request_types rt
+                LEFT JOIN adms_users u ON rt.default_responsible_user_id = u.id
+                ORDER BY rt.name ASC";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Buscar todos os tipos ativos
      */
     public function getAllActive(): array

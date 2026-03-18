@@ -155,7 +155,7 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                 </label>
                             </div>
                             <label class="form-label small mb-1">Departamentos a notificar (opcional)</label>
-                            <div class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
+                            <div class="border rounded p-2 bg-light" style="max-height: 130px; overflow-y: auto;">
                                 <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
                                     <?php
                                     $checked = in_array((int) $dep['id'], $notifyDeps, true) ? 'checked' : '';
@@ -174,16 +174,16 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                     </div>
                                 <?php endforeach; ?>
                             </div>
-                            <div class="form-text small mt-1">
+                            <div class="form-text small mt-1 mb-1">
                                 Marque os setores que devem receber a notificação. Nenhum marcado = todos recebem.
                             </div>
                         </div>
 
-                        <div class="row g-3 mb-3">
+                        <div class="row g-3 mb-2">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Imagem (opcional)</label>
-                                <div class="dropzone rounded-3 border border-2 border-dashed p-3 text-center bg-light position-relative"
-                                     style="min-height: 90px; cursor: pointer;">
+                                <div class="dropzone rounded-3 border border-2 border-dashed p-2 text-center bg-light position-relative"
+                                     style="min-height: 60px; cursor: pointer;">
                                     <input type="file"
                                            class="d-none"
                                            id="imagem"
@@ -213,8 +213,8 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Anexo (opcional)</label>
-                                <div class="dropzone rounded-3 border border-2 border-dashed p-3 text-center bg-light position-relative"
-                                     style="min-height: 90px; cursor: pointer;">
+                                <div class="dropzone rounded-3 border border-2 border-dashed p-2 text-center bg-light position-relative"
+                                     style="min-height: 60px; cursor: pointer;">
                                     <input type="file"
                                            class="d-none"
                                            id="anexo"
@@ -241,7 +241,7 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                             </div>
                         </div>
 
-                        <div class="d-flex gap-2 justify-content-end">
+                        <div class="form-sticky-footer d-flex gap-2 justify-content-end mt-3">
                             <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) ($policy['id'] ?? 0); ?>"
                                class="btn btn-outline-secondary btn-lg rounded-3 px-4">
                                 Voltar
@@ -279,6 +279,36 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
     border-color: #0d6efd;
     background: #f3f6ff;
 }
+.dropzone-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.dropzone-preview img {
+    max-width: 64px;
+    max-height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+.dropzone-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    border: none;
+    background: rgba(0,0,0,0.05);
+    border-radius: 999px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.dropzone-remove-btn:hover {
+    background: rgba(0,0,0,0.12);
+}
 .btn-primary {
     background: #0d6efd;
     border: none;
@@ -288,6 +318,16 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
 }
 .btn-outline-secondary {
     border: 2px solid #e9ecef;
+}
+
+.form-sticky-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: #fff;
+    padding-top: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-top: 1px solid #e9ecef;
 }
 @media (max-width: 991.98px) {
     .card-body form { max-width: 100% !important; }
@@ -307,16 +347,22 @@ function previewImagem(input) {
     if (!preview) return;
     preview.innerHTML = '';
 
+    const label = document.getElementById('imagem-label');
+
     if (input.files && input.files[0]) {
         const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
+            const dataUrl = e.target.result;
             preview.innerHTML =
-                `<img src="${e.target.result}" alt="Pré-visualização" style="max-width: 100px; max-height: 100px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">` +
-                `<div class="small mt-1 text-muted">${file.name}</div>`;
+                `<div class="dropzone-preview">
+                    <a href="${dataUrl}" target="_blank" rel="noopener">
+                        <img src="${dataUrl}" alt="Pré-visualização">
+                    </a>
+                    <span class="small text-muted text-truncate" style="max-width: 140px;">${file.name}</span>
+                </div>`;
         };
         reader.readAsDataURL(file);
-        const label = document.getElementById('imagem-label');
         if (label) {
             label.innerText = file.name;
         }
@@ -327,6 +373,8 @@ function previewAnexo(input) {
     const preview = document.getElementById('preview-anexo');
     if (!preview) return;
     preview.innerHTML = '';
+
+    const label = document.getElementById('anexo-label');
 
     if (input.files && input.files[0]) {
         const file = input.files[0];
@@ -339,10 +387,11 @@ function previewAnexo(input) {
         else if (['zip','rar'].includes(ext)) icon = 'fa-file-archive text-warning';
 
         preview.innerHTML =
-            `<i class="fas ${icon} fa-2x me-2"></i>` +
-            `<span class="small text-muted">${file.name}</span>`;
+            `<div class="dropzone-preview">
+                <i class="fas ${icon} fa-2x"></i>
+                <span class="small text-muted text-truncate" style="max-width: 160px;">${file.name}</span>
+            </div>`;
 
-        const label = document.getElementById('anexo-label');
         if (label) {
             label.innerText = file.name;
         }

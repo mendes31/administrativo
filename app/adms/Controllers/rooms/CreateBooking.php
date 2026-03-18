@@ -6,8 +6,8 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\MeetingRoomsRepository;
-use App\adms\Models\Repository\RequestTypesRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
+use App\adms\Models\Repository\RoomRequestTypesRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -33,7 +33,7 @@ class CreateBooking
     {
         $roomsRepo = new MeetingRoomsRepository();
         $usersRepo = new UsersRepository();
-        $requestTypesRepo = new RequestTypesRepository();
+        $requestTypesRepo = new RoomRequestTypesRepository();
 
         // Buscar salas ativas
         $this->data['rooms'] = $roomsRepo->getAll(['status' => 'active'], 1, 1000);
@@ -42,7 +42,7 @@ class CreateBooking
         $this->data['users'] = $usersRepo->getAllUsers(1, 1000, ['bloqueado' => false]);
 
         // Buscar tipos de solicitação ativos
-        $this->data['requestTypes'] = $requestTypesRepo->getAllActive();
+        $this->data['requestTypes'] = $requestTypesRepo->getAll(true);
 
         // Pré-selecionar sala se room_id foi passado via GET
         $this->data['selected_room_id'] = !empty($_GET['room_id']) ? (int)$_GET['room_id'] : null;
