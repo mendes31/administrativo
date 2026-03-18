@@ -123,7 +123,15 @@ $policy = $this->data['policy'] ?? [];
                         <div class="mb-4">
                             <h5>Conteúdo</h5>
                             <div class="border rounded p-3 bg-light">
-                                <?php echo nl2br(htmlspecialchars($policy['conteudo'] ?? '')); ?>
+                                <?php
+                                $conteudo = $policy['conteudo'] ?? '';
+                                // Compatibilidade: se vier HTML (ex.: TinyMCE), renderiza como HTML; senão mantém escape e quebras de linha.
+                                if (preg_match('/<[^>]+>/', $conteudo)) {
+                                    echo $conteudo;
+                                } else {
+                                    echo nl2br(htmlspecialchars($conteudo));
+                                }
+                                ?>
                             </div>
                         </div>
 

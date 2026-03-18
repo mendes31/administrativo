@@ -103,7 +103,16 @@ $informativo = $this->data['informativo'];
                     <div class="mb-4">
                         <h5>Conteúdo</h5>
                         <div class="border rounded p-3 bg-light">
-                            <?php echo nl2br(htmlspecialchars($informativo['conteudo'])); ?>
+                            <?php
+                            $conteudo = $informativo['conteudo'] ?? '';
+                            // Compatibilidade: se vier HTML (ex.: TinyMCE), renderiza como HTML.
+                            // Se vier texto puro/Markdown sem HTML, mantém escape e quebra de linha.
+                            if (preg_match('/<[^>]+>/', $conteudo)) {
+                                echo $conteudo;
+                            } else {
+                                echo nl2br(htmlspecialchars($conteudo));
+                            }
+                            ?>
                         </div>
                     </div>
                     

@@ -28,13 +28,17 @@ if (function_exists('mb_http_output')) {
 }
 
 // Expor dados básicos do usuário logado para o front-end (comparações e tela de bloqueio)
+// Importante: não imprimir nada antes do <!DOCTYPE> para não quebrar o "standards mode".
+$currentUserMetaTag = '';
+$currentUserScriptTag = '';
 if (!headers_sent() && isset($_SESSION['user_id'])) {
-    echo '<meta name="current-user-id" content="' . (int)$_SESSION['user_id'] . '">';
-    echo '<script>';
-    echo 'window.currentUserId = ' . (int)$_SESSION['user_id'] . ';';
+    $userId = (int)$_SESSION['user_id'];
     $userName = $_SESSION['user_name'] ?? 'Usuário';
-    echo 'window.currentUserName = ' . json_encode($userName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';';
-    echo '</script>';
+    $currentUserMetaTag = '<meta name="current-user-id" content="' . $userId . '">';
+    $currentUserScriptTag = '<script>' .
+        'window.currentUserId = ' . $userId . ';' .
+        'window.currentUserName = ' . json_encode($userName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';' .
+    '</script>';
 }
 
 // Teste de execuÃ§Ã£o do layout
@@ -180,6 +184,13 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
 <head>
     <meta charset="UTF-8">
+    <?php
+    // Renderiza após o <!DOCTYPE> para manter o documento em standards mode
+    // (TinyMCE exige standards mode para inicializar).
+    if (!empty($currentUserMetaTag)) {
+        echo $currentUserMetaTag . PHP_EOL . $currentUserScriptTag;
+    }
+    ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">

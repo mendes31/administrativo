@@ -37,8 +37,8 @@ $informativo = $this->data['informativo'];
                         
                         <div class="mb-3 mt-3">
                             <label for="conteudo" class="form-label">Conteúdo <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="conteudo" name="conteudo" rows="10" required 
-                                      placeholder="Digite o conteúdo do informativo"><?php echo htmlspecialchars($informativo['conteudo']); ?></textarea>
+                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="10" required 
+                                      placeholder="Digite o conteúdo do informativo"><?php echo str_replace('</textarea>', '&lt;/textarea&gt;', $informativo['conteudo'] ?? ''); ?></textarea>
                         </div>
                     </div>
                     
@@ -235,6 +235,11 @@ document.getElementById('imagem').addEventListener('change', function(e) {
 // Validação do formulário
 document.querySelector('form').addEventListener('submit', function(e) {
     const titulo = document.getElementById('titulo').value.trim();
+    // Garante que o TinyMCE sincronize o conteúdo para o textarea antes de validar
+    if (window.tinymce) {
+        const ed = tinymce.get('conteudo');
+        if (ed) ed.save();
+    }
     const conteudo = document.getElementById('conteudo').value.trim();
     const categoria = document.getElementById('categoria_id').value;
     
@@ -275,3 +280,237 @@ document.getElementById('categoria_id')?.addEventListener('change', function(){
   if (hidden) hidden.value = nome;
 });
 </script> 
+
+<style>
+.wysiwyg-source { display: none; }
+.wysiwyg-wrap { margin-top: 0.5rem; }
+.wysiwyg-toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+    padding: 0.5rem; background: #f8fafc; border: 1px solid #e9ecef; border-radius: 12px;
+    margin-bottom: 0.5rem;
+}
+.wysiwyg-btn {
+    border: 1px solid #dfe6ef; background: #fff; border-radius: 10px;
+    padding: 0.25rem 0.5rem; font-size: 0.9rem; cursor: pointer;
+}
+.wysiwyg-btn:hover { background: #eef6ff; }
+.wysiwyg-select {
+    border: 1px solid #dfe6ef; background: #fff; border-radius: 10px;
+    padding: 0.25rem 0.5rem; font-size: 0.9rem;
+}
+.wysiwyg-sep { width: 1px; height: 22px; background: #e9ecef; margin: 0 0.1rem; }
+.wysiwyg-editor {
+    min-height: 220px; border: 1px solid #e9ecef; background: #fff; border-radius: 12px;
+    padding: 0.9rem; overflow: auto;
+}
+.wysiwyg-editor:focus { outline: none; border-color: #198754; }
+</style>
+
+<script>
+(function () {
+    const textarea = document.getElementById('conteudo');
+    const wrap = document.querySelector('[data-wysiwyg-for="conteudo"]');
+    const editor = document.getElementById('conteudo_editor');
+    if (!textarea || !wrap || !editor) return;
+
+    function syncToTextarea() {
+        textarea.value = editor.innerHTML;
+    }
+
+    editor.innerHTML = textarea.value || '';
+    editor.addEventListener('input', syncToTextarea);
+    syncToTextarea();
+
+    function getSelectionRange() {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return null;
+        return sel.getRangeAt(0);
+    }
+
+    function isRangeInEditor(range) {
+        if (!range) return false;
+        return editor.contains(range.commonAncestorContainer);
+    }
+
+    function wrapRangeWithTag(tagName) {
+        const range = getSelectionRange();
+        if (!range || range.collapsed || !isRangeInEditor(range)) return false;
+        try {
+            const contents = range.extractContents();
+            const wrapper = document.createElement(tagName);
+            wrapper.appendChild(contents);
+            range.insertNode(wrapper);
+            window.getSelection()?.removeAllRanges();
+            editor.focus();
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function replaceRangeWithList(ordered) {
+        const range = getSelectionRange();
+        if (!range || range.collapsed || !isRangeInEditor(range)) return false;
+        try {
+            const text = range.toString();
+            const lines = text
+                .split(/\r?\n/)
+                .map(l => l.trim())
+                .filter(Boolean);
+            if (lines.length === 0) return false;
+
+            const listEl = document.createElement(ordered ? 'ol' : 'ul');
+            for (const line of lines) {
+                const li = document.createElement('li');
+                li.textContent = line;
+                listEl.appendChild(li);
+            }
+
+            range.deleteContents();
+            range.insertNode(listEl);
+            window.getSelection()?.removeAllRanges();
+            editor.focus();
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    wrap.addEventListener('click', function (e) {
+        const btn = e.target.closest('button.wysiwyg-btn');
+        if (!btn) return;
+        e.preventDefault();
+
+        const cmd = btn.getAttribute('data-cmd');
+        const action = btn.getAttribute('data-action');
+
+        if (cmd) {
+            const inlineMap = {
+                bold: 'strong',
+                italic: 'em',
+                underline: 'u',
+                strikeThrough: 's',
+            };
+
+            if (inlineMap[cmd]) {
+                const ok = wrapRangeWithTag(inlineMap[cmd]);
+                if (ok) {
+                    syncToTextarea();
+                    return;
+                }
+            }
+
+            if (cmd === 'insertUnorderedList') {
+                const ok = replaceRangeWithList(false);
+                if (ok) {
+                    syncToTextarea();
+                    return;
+                }
+            }
+            if (cmd === 'insertOrderedList') {
+                const ok = replaceRangeWithList(true);
+                if (ok) {
+                    syncToTextarea();
+                    return;
+                }
+            }
+
+            editor.focus();
+            document.execCommand(cmd, false, null);
+            syncToTextarea();
+            return;
+        }
+
+        if (action === 'link') {
+            const url = window.prompt('Informe a URL (ex.: https://...):');
+            if (!url) return;
+            const range = getSelectionRange();
+            if (range && !range.collapsed && isRangeInEditor(range)) {
+                try {
+                    const contents = range.extractContents();
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.appendChild(contents);
+                    range.insertNode(a);
+                    window.getSelection()?.removeAllRanges();
+                    editor.focus();
+                    syncToTextarea();
+                    return;
+                } catch (err) {
+                    // fallback abaixo
+                }
+            }
+            editor.focus();
+            document.execCommand('createLink', false, url);
+            syncToTextarea();
+            return;
+        }
+
+        if (action === 'code') {
+            const range = getSelectionRange();
+            if (range && !range.collapsed && isRangeInEditor(range)) {
+                try {
+                    const contents = range.extractContents();
+                    const codeEl = document.createElement('code');
+                    codeEl.appendChild(contents);
+                    range.insertNode(codeEl);
+                    window.getSelection()?.removeAllRanges();
+                    editor.focus();
+                    syncToTextarea();
+                    return;
+                } catch (err) {
+                    // fallback abaixo
+                }
+            }
+            editor.focus();
+            document.execCommand('insertHTML', false, '<code></code>');
+            syncToTextarea();
+            return;
+        }
+
+        if (action === 'fullscreen') {
+            const isFull = document.body.classList.contains('wysiwyg-fullscreen');
+            if (isFull) {
+                document.body.classList.remove('wysiwyg-fullscreen');
+                document.body.style.overflow = '';
+                editor.style.maxHeight = '';
+            } else {
+                document.body.classList.add('wysiwyg-fullscreen');
+                document.body.style.overflow = 'hidden';
+                editor.style.maxHeight = '80vh';
+            }
+            editor.focus();
+            return;
+        }
+    });
+
+    const formatSelect = wrap.querySelector('select[data-action="formatselect"]');
+    if (formatSelect) {
+        formatSelect.addEventListener('change', function () {
+            editor.focus();
+            document.execCommand('formatBlock', false, this.value.toUpperCase());
+            syncToTextarea();
+        });
+    }
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+tinymce.init({
+    selector: '#conteudo',
+    base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3',
+    menubar: false,
+    branding: false,
+    toolbar_location: 'top',
+    statusbar: false,
+    plugins: 'lists link code',
+    toolbar: 'undo redo | bold italic underline strikethrough | bullist numlist | outdent indent | removeformat | link | code',
+    height: 420,
+    language: 'pt_BR',
+    language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }'
+});
+</script>

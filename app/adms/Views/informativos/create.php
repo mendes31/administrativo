@@ -57,8 +57,7 @@ use App\adms\Helpers\CSRFHelper;
                         <hr class="my-4">
                         <div class="mb-3">
                             <label for="conteudo" class="form-label fw-semibold">Conteúdo *</label>
-                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" required placeholder="Digite o conteúdo do comunicado... (Suporte a Markdown disponível)"></textarea>
-                            <div class="form-text">Dica: Use <b>**negrito**</b>, <i>*itálico*</i>, <code>`código`</code> e outros formatos Markdown</div>
+                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" required placeholder="Digite o conteúdo do comunicado"></textarea>
                         </div>
                         <div class="row g-3 mb-3 mt-3">
                             <div class="col-auto">
@@ -199,6 +198,59 @@ use App\adms\Helpers\CSRFHelper;
 .dropzone-remove-btn:hover {
     background: rgba(0,0,0,0.12);
 }
+.wysiwyg-source {
+    display: none;
+}
+.wysiwyg-wrap {
+    margin-top: 0.5rem;
+}
+.wysiwyg-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+}
+.wysiwyg-btn {
+    border: 1px solid #dfe6ef;
+    background: #fff;
+    border-radius: 10px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.wysiwyg-btn:hover {
+    background: #eef6ff;
+}
+.wysiwyg-select {
+    border: 1px solid #dfe6ef;
+    background: #fff;
+    border-radius: 10px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+.wysiwyg-sep {
+    width: 1px;
+    height: 22px;
+    background: #e9ecef;
+    margin: 0 0.1rem;
+}
+.wysiwyg-editor {
+    min-height: 220px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.9rem;
+    overflow: auto;
+}
+.wysiwyg-editor:focus {
+    outline: none;
+    border-color: #198754;
+}
 .btn-success {
     background: #16c172;
     border: none;
@@ -279,5 +331,27 @@ function previewAnexo(input) {
         }
     }
 }
-</script> 
-</script> 
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+tinymce.init({
+    selector: '#conteudo',
+    base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3',
+    menubar: false,
+    branding: false,
+    toolbar_location: 'top',
+    statusbar: false,
+    plugins: 'lists link code',
+    toolbar: 'undo redo | bold italic underline strikethrough | bullist numlist | outdent indent | removeformat | link | code',
+    height: 420,
+    language: 'pt_BR',
+    language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }'
+});
+
+document.querySelector('form')?.addEventListener('submit', function () {
+    const ed = window.tinymce?.get('conteudo');
+    if (ed) ed.save();
+});
+</script>

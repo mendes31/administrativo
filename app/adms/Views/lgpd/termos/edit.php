@@ -82,10 +82,12 @@ use App\adms\Helpers\CSRFHelper;
 tinymce.init({
     selector: '#conteudo_termo',
     menubar: false,
-    plugins: 'lists link',
-    toolbar: 'undo redo | bold italic underline | bullist numlist | outdent indent | removeformat | link',
-    height: 400,
     branding: false,
-    language: 'pt_BR'
+    statusbar: true,
+    plugins: 'lists link code',
+    toolbar: 'undo redo | formatselect | bold italic underline | bullist numlist | outdent indent | removeformat | link | code',
+    height: 420,
+    language: 'pt_BR',
+    language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
 });
 </script>

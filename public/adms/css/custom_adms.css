@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+
 /* Suporte a rolagem horizontal em tabelas largas */
 .table-scroll-x {
   overflow-x: auto;
@@ -58,8 +60,6 @@
 .table-training-list .btn-group .btn.btn-sm {
     padding: 0.25rem 0.35rem;
 }
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
-
 * {
     margin: 0;
     padding: 0;
