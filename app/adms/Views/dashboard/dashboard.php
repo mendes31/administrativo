@@ -53,7 +53,7 @@
                             <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
                                 <i class="fas fa-briefcase fa-3x text-primary"></i>
                             </div>
-                            <h5 class="fw-bold mb-1 text-center group-title">Aniversariantes de Empresa</h5>
+                            <h5 class="fw-bold mb-1 text-center group-title">Tempo de Empresa</h5>
                             <div class="text-muted mb-2 text-center" style="font-size: 1.1rem;">
                                 <?php echo $this->data['qtd_aniversariantes_empresa_mes'] ?? 0; ?> este mês
                             </div>
@@ -106,7 +106,7 @@
         <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalAniversariantesEmpresaLabel">Aniversariantes de Empresa</h5>
+                    <h5 class="modal-title" id="modalAniversariantesEmpresaLabel">Tempo de Empresa</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
