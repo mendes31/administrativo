@@ -158,6 +158,20 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                         </div>
 
+                        <!-- Botões principais de ação (antes dos uploads) -->
+                        <div class="d-flex gap-2 justify-content-end mb-3">
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4"
+                                    onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>list-policies'">
+                                Cancelar
+                            </button>
+
+                            <button type="submit"
+                                    class="btn btn-primary btn-lg rounded-3 px-4 fw-bold">
+                                Salvar Política
+                            </button>
+                        </div>
+
                         <div class="row g-3 mb-2">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Imagem (opcional)</label>
@@ -204,18 +218,6 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                         </div>
 
-                        <div class="form-sticky-footer d-flex gap-2 justify-content-end mt-3">
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4"
-                                    onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>list-policies'">
-                                Cancelar
-                            </button>
-
-                            <button type="submit"
-                                    class="btn btn-primary btn-lg rounded-3 px-4 fw-bold">
-                                Salvar Política
-                            </button>
-                        </div>
                     </form>
                 </div>
             </div>
@@ -282,16 +284,6 @@ use App\adms\Helpers\CSRFHelper;
 }
 .btn-outline-secondary {
     border: 2px solid #e9ecef;
-}
-
-.form-sticky-footer {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    background: #fff;
-    padding-top: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-top: 1px solid #e9ecef;
 }
 @media (max-width: 991.98px) {
     .card-body form { max-width: 100% !important; }
