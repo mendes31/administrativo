@@ -57,7 +57,7 @@ use App\adms\Helpers\CSRFHelper;
                         <hr class="my-4">
                         <div class="mb-3">
                             <label for="conteudo" class="form-label fw-semibold">Conteúdo *</label>
-                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" required placeholder="Digite o conteúdo do comunicado"></textarea>
+                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" placeholder="Digite o conteúdo do comunicado"></textarea>
                         </div>
                         <div class="row g-3 mb-3 mt-3">
                             <div class="col-auto">
@@ -351,7 +351,7 @@ tinymce.init({
 });
 
 document.querySelector('form')?.addEventListener('submit', function () {
-    const ed = window.tinymce?.get('conteudo');
-    if (ed) ed.save();
+    // Garante que o conteúdo do editor é sincronizado para o textarea antes do POST.
+    window.tinymce?.triggerSave();
 });
 </script>

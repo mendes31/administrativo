@@ -37,7 +37,7 @@ $informativo = $this->data['informativo'];
                         
                         <div class="mb-3 mt-3">
                             <label for="conteudo" class="form-label">Conteúdo <span class="text-danger">*</span></label>
-                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="10" required 
+                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="10" 
                                       placeholder="Digite o conteúdo do informativo"><?php echo str_replace('</textarea>', '&lt;/textarea&gt;', $informativo['conteudo'] ?? ''); ?></textarea>
                         </div>
                     </div>
@@ -237,8 +237,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
     const titulo = document.getElementById('titulo').value.trim();
     // Garante que o TinyMCE sincronize o conteúdo para o textarea antes de validar
     if (window.tinymce) {
-        const ed = tinymce.get('conteudo');
-        if (ed) ed.save();
+        tinymce.triggerSave();
     }
     const conteudo = document.getElementById('conteudo').value.trim();
     const categoria = document.getElementById('categoria_id').value;

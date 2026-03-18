@@ -110,7 +110,6 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                       id="conteudo"
                                       name="conteudo"
                                       rows="8"
-                                      required
                                       placeholder="Descreva a política interna em detalhes..."><?php echo str_replace('</textarea>', '&lt;/textarea&gt;', $policy['conteudo'] ?? ''); ?></textarea>
                         </div>
 
@@ -462,8 +461,8 @@ tinymce.init({
 });
 
 document.querySelector('form')?.addEventListener('submit', function () {
-    const ed = window.tinymce?.get('conteudo');
-    if (ed) ed.save();
+    // Garante que o conteúdo do editor é sincronizado para o textarea antes do POST.
+    window.tinymce?.triggerSave();
 });
 </script>
 

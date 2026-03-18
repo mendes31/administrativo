@@ -44,6 +44,7 @@ class CreatePolicy
     {
         if (!CSRFHelper::validateCSRFToken('create_policy', $_POST['csrf_token'] ?? '')) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro de validação CSRF!</div>';
+            $_SESSION['msg_type'] = 'danger';
             return;
         }
 
@@ -62,18 +63,22 @@ class CreatePolicy
 
         if ($titulo === '') {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O título é obrigatório!</div>';
+            $_SESSION['msg_type'] = 'danger';
             return;
         }
         if ($conteudo === '') {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O conteúdo é obrigatório!</div>';
+            $_SESSION['msg_type'] = 'danger';
             return;
         }
         if ($categoriaId <= 0) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">A categoria é obrigatória!</div>';
+            $_SESSION['msg_type'] = 'danger';
             return;
         }
         if ($departmentId <= 0) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O departamento responsável é obrigatório!</div>';
+            $_SESSION['msg_type'] = 'danger';
             return;
         }
 
@@ -88,10 +93,12 @@ class CreatePolicy
             $expireDt = new \DateTime($expireAt);
             if ($publishDt && $expireDt <= $publishDt) {
                 $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">A data de expiração deve ser maior que a data de publicação!</div>';
+                $_SESSION['msg_type'] = 'danger';
                 return;
             }
             if (!$publishDt && $expireDt <= $now) {
                 $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">A expiração deve ser maior que agora quando não há publicação futura.</div>';
+                $_SESSION['msg_type'] = 'danger';
                 return;
             }
         }
@@ -103,10 +110,12 @@ class CreatePolicy
                 $imagem = $this->uploadFile($_FILES['imagem'], 'policies/imagens');
                 if ($imagem === null) {
                     $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Erro ao fazer upload da imagem. Verifique o tipo e tamanho (máx. 20MB).</div>';
+                    $_SESSION['msg_type'] = 'warning';
                     return;
                 }
             } elseif ($_FILES['imagem']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Erro no upload da imagem. Código: ' . (int) $_FILES['imagem']['error'] . '</div>';
+                $_SESSION['msg_type'] = 'warning';
                 return;
             }
         }
@@ -118,10 +127,12 @@ class CreatePolicy
                 $anexo = $this->uploadFile($_FILES['anexo'], 'policies/anexos');
                 if ($anexo === null) {
                     $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Erro ao fazer upload do anexo. Verifique o tipo e tamanho (máx. 20MB).</div>';
+                    $_SESSION['msg_type'] = 'warning';
                     return;
                 }
             } elseif ($_FILES['anexo']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Erro no upload do anexo. Código: ' . (int) $_FILES['anexo']['error'] . '</div>';
+                $_SESSION['msg_type'] = 'warning';
                 return;
             }
         }
@@ -164,13 +175,16 @@ class CreatePolicy
                 }
 
                 $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Política interna cadastrada com sucesso!</div>';
+                $_SESSION['msg_type'] = 'success';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-policies');
                 exit;
             }
 
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao cadastrar política interna!</div>';
+            $_SESSION['msg_type'] = 'danger';
         } catch (\Throwable $e) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao cadastrar política interna: ' . $e->getMessage() . '</div>';
+            $_SESSION['msg_type'] = 'danger';
         }
     }
 

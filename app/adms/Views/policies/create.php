@@ -97,7 +97,6 @@ use App\adms\Helpers\CSRFHelper;
                                       id="conteudo"
                                       name="conteudo"
                                       rows="8"
-                                      required
                                       placeholder="Descreva a política interna em detalhes..."></textarea>
                         </div>
 
@@ -432,9 +431,19 @@ tinymce.init({
     content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }'
 });
 
-document.querySelector('form')?.addEventListener('submit', function () {
+document.querySelector('form')?.addEventListener('submit', function (e) {
+    // Evita erro de validação nativa quando TinyMCE oculta o textarea.
+    window.tinymce?.triggerSave();
+
     const ed = window.tinymce?.get('conteudo');
-    if (ed) ed.save();
+    const conteudoTexto = ed
+        ? (ed.getContent({ format: 'text' }) || '').trim()
+        : (document.getElementById('conteudo')?.value || '').trim();
+
+    if (!conteudoTexto) {
+        e.preventDefault();
+        alert('O conteúdo da política é obrigatório!');
+    }
 });
 </script>
 

@@ -21,6 +21,7 @@ class UpdatePolicy
         $policyId = (int) ($id ?: ($_GET['id'] ?? 0));
         if ($policyId <= 0) {
             $_SESSION['msg'] = '<div class="alert alert-danger">Política inválida.</div>';
+            $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-policies');
             return;
         }
@@ -29,6 +30,7 @@ class UpdatePolicy
         $policy = $repo->getPolicyById($policyId);
         if (!$policy) {
             $_SESSION['msg'] = '<div class="alert alert-danger">Política não encontrada.</div>';
+            $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-policies');
             return;
         }
@@ -85,6 +87,7 @@ class UpdatePolicy
 
         if ($titulo === '' || $conteudo === '' || $categoriaId <= 0 || $departmentId <= 0) {
             $_SESSION['msg'] = '<div class="alert alert-danger">Preencha todos os campos obrigatórios.</div>';
+            $_SESSION['msg_type'] = 'danger';
             $this->prepareViewData($oldPolicy, $repo);
             return;
         }
@@ -100,11 +103,13 @@ class UpdatePolicy
             $expireDt = new \DateTime($expireAt);
             if ($publishDt && $expireDt <= $publishDt) {
                 $_SESSION['msg'] = '<div class="alert alert-danger">A data de expiração deve ser maior que a data de publicação.</div>';
+                $_SESSION['msg_type'] = 'danger';
                 $this->prepareViewData($oldPolicy, $repo);
                 return;
             }
             if (!$publishDt && $expireDt <= $now) {
                 $_SESSION['msg'] = '<div class="alert alert-danger">A expiração deve ser maior que agora quando não há publicação futura.</div>';
+                $_SESSION['msg_type'] = 'danger';
                 $this->prepareViewData($oldPolicy, $repo);
                 return;
             }
@@ -117,12 +122,14 @@ class UpdatePolicy
                 $upload = $this->uploadFile($_FILES['imagem'], 'policies/imagens', $imagem);
                 if ($upload === null) {
                     $_SESSION['msg'] = '<div class="alert alert-warning">Erro ao enviar imagem. Verifique tipo/tamanho (máx. 20MB).</div>';
+                    $_SESSION['msg_type'] = 'warning';
                     $this->prepareViewData($oldPolicy, $repo);
                     return;
                 }
                 $imagem = $upload;
             } else {
                 $_SESSION['msg'] = '<div class="alert alert-warning">Erro no upload da imagem. Código: ' . (int) $_FILES['imagem']['error'] . '</div>';
+                $_SESSION['msg_type'] = 'warning';
                 $this->prepareViewData($oldPolicy, $repo);
                 return;
             }
@@ -134,12 +141,14 @@ class UpdatePolicy
                 $upload = $this->uploadFile($_FILES['anexo'], 'policies/anexos', $anexo);
                 if ($upload === null) {
                     $_SESSION['msg'] = '<div class="alert alert-warning">Erro ao enviar anexo. Verifique tipo/tamanho (máx. 20MB).</div>';
+                    $_SESSION['msg_type'] = 'warning';
                     $this->prepareViewData($oldPolicy, $repo);
                     return;
                 }
                 $anexo = $upload;
             } else {
                 $_SESSION['msg'] = '<div class="alert alert-warning">Erro no upload do anexo. Código: ' . (int) $_FILES['anexo']['error'] . '</div>';
+                $_SESSION['msg_type'] = 'warning';
                 $this->prepareViewData($oldPolicy, $repo);
                 return;
             }
@@ -189,13 +198,16 @@ class UpdatePolicy
                 );
 
                 $_SESSION['msg'] = '<div class="alert alert-success">Política atualizada com sucesso.</div>';
+                $_SESSION['msg_type'] = 'success';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-policies');
                 exit;
             }
 
             $_SESSION['msg'] = '<div class="alert alert-danger">Erro ao atualizar política.</div>';
+            $_SESSION['msg_type'] = 'danger';
         } catch (\Throwable $e) {
             $_SESSION['msg'] = '<div class="alert alert-danger">Erro ao atualizar política: ' . $e->getMessage() . '</div>';
+            $_SESSION['msg_type'] = 'danger';
         }
 
         $this->prepareViewData($oldPolicy, $repo);
