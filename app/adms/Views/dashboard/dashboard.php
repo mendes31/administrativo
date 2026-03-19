@@ -9,7 +9,7 @@
     </div>
     <div class="row justify-content-center mb-4">
         <div class="col-12 col-lg-10">
-            <div class="row g-3 justify-content-center align-items-stretch">
+            <div class="row g-3 justify-content-center align-items-stretch dashboard-quick-row">
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos" class="text-decoration-none flex-fill h-100">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
@@ -167,10 +167,28 @@
 
     <div class="row justify-content-center mb-4">
         <div class="col-12 col-lg-10">
-            <div class="row g-4">
-                <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
+            <div class="row g-4 dashboard-recent-row">
+                <?php
+                $recentInformativos = array_slice($this->data['informativos'] ?? [], 0, 6);
+                $userIdDashboard = (int)($_SESSION['user_id'] ?? 0);
+                $unreadInformativoSetDashboard = [];
+
+                if ($userIdDashboard > 0 && !empty($recentInformativos)) {
+                    $recentIds = array_map(static fn($x) => (int)($x['id'] ?? 0), $recentInformativos);
+                    $infoRepo = new \App\adms\Models\Repository\InformativosRepository();
+                    $unreadIds = $infoRepo->getNaoLidosIdsByInformativoIds($userIdDashboard, $recentIds);
+                    $unreadInformativoSetDashboard = array_fill_keys(array_map('intval', $unreadIds), true);
+                }
+                ?>
+
+                <?php foreach ($recentInformativos as $info): ?>
+                    <?php
+                    $infoId = (int)($info['id'] ?? 0);
+                    $requiresAck = !empty($info['requires_ack']);
+                    $isUnread = $infoId > 0 && isset($unreadInformativoSetDashboard[$infoId]);
+                    ?>
                     <div class="col-12 col-md-6 col-lg-4 d-flex">
-                        <div class="card border-0 shadow-sm p-4 flex-fill d-flex flex-column card-info" style="border-radius: 14px; min-height: 220px;">
+                        <div class="card border-0 shadow-sm p-4 flex-fill d-flex flex-column card-info dashboard-recent-card" style="border-radius: 14px; min-height: 220px;">
                             <div class="d-flex align-items-center mb-2 gap-2 flex-wrap justify-content-between">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="fas fa-calendar-alt text-muted" title="Publicado em"></i>
@@ -186,15 +204,34 @@
                                         <span class="badge bg-secondary" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['department_name']); ?> </span>
                                     <?php endif; ?>
                                     <?php if ($info['urgente']): ?><span class="badge bg-danger">Urgente</span><?php endif; ?>
+
+                                    <?php if ($requiresAck): ?>
+                                        <?php if ($isUnread): ?>
+                                            <span class="badge bg-warning text-dark" style="border:1px solid #dc3545;">
+                                                <i class="fas fa-triangle-exclamation me-1"></i>Ciência pendente
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>Ciente
+                                            </span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <?php if ($isUnread): ?>
+                                            <span class="badge bg-primary">
+                                                Novo
+                                            </span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <h6 class="fw-bold mb-1 text-start text-truncate" title="<?php echo htmlspecialchars($info['titulo']); ?>"><?php echo htmlspecialchars($info['titulo']); ?></h6>
-                            <div class="text-muted mb-2 flex-grow-1 text-start" style="font-size: 1rem; min-height: 40px;">
+                            <div class="dashboard-informativo-resumo text-muted mb-2 flex-grow-1 text-start" style="font-size: 1rem;">
                                 <?php echo htmlspecialchars($info['resumo'] ?? substr(strip_tags($info['conteudo']), 0, 100) . '...'); ?>
                             </div>
                             <div class="d-flex gap-2 mt-2">
                                 <?php if (!empty($info['imagem'])): ?>
-                                    <a href="#" onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>'); return false;">
+                                    <a href="#"
+                                       onclick="return openDashboardInformativoImage(event, <?php echo (int)$infoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>');">
                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>"
                                              class="img-fluid rounded shadow"
                                              alt="Imagem do informativo"
@@ -202,13 +239,16 @@
                                     </a>
                                 <?php endif; ?>
                                 <?php if (!empty($info['anexo'])): ?>
-                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>" target="_blank" title="Baixar anexo">
+                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>"
+                                       target="_blank"
+                                       title="Baixar anexo"
+                                       onclick="return openDashboardInformativoAttachment(event, <?php echo (int)$infoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
                                         <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($info['anexo'], 'fa-2x'); ?>
                                     </a>
                                 <?php endif; ?>
                             </div>
                             <div class="mt-auto text-end">
-                                <button type="button" class="btn btn-outline-primary fw-semibold px-4" style="border-radius: 8px; border-width:2px; min-width: 120px;" data-bs-toggle="modal" data-bs-target="#informativoModal<?php echo $info['id']; ?>">
+                                <button type="button" class="btn btn-outline-primary fw-semibold px-4 dashboard-recent-vermais-btn" style="border-radius: 8px; border-width:2px; min-width: 120px;" data-bs-toggle="modal" data-bs-target="#informativoModal<?php echo $info['id']; ?>">
                                     <i class="fas fa-eye me-1"></i>Ver Mais
                                 </button>
                             </div>
@@ -522,6 +562,48 @@
     position: relative;
 }
 
+/* Limitar resumo nos cards do dashboard (não crescer no mobile) */
+.dashboard-informativo-resumo {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Mobile: ajustes de densidade nos cards */
+@media (max-width: 767.98px) {
+    .dashboard-quick-row {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+
+    .dashboard-recent-row {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+
+    .dashboard-recent-card {
+        min-height: 190px !important;
+        padding: 1rem !important;
+    }
+
+    .dashboard-recent-ver-mais-btn,
+    .dashboard-recent-ver-mais-btn * {
+        font-size: 0.9rem !important;
+    }
+
+    .dashboard-recent-vermais-btn {
+        min-width: 100px !important;
+        padding-left: 0.9rem !important;
+        padding-right: 0.9rem !important;
+    }
+
+    /* Ajuste no espaçamento entre conteúdo e botão */
+    .dashboard-recent-card .mt-2 {
+        margin-top: 0.6rem !important;
+    }
+}
+
 /* No modal, mostrar conteúdo completo sem limitação */
 .modal-body .informativo-conteudo {
     max-height: none !important;
@@ -583,6 +665,61 @@ function showImageModal(src) {
     img.onerror = function() {
         alert('Erro ao carregar a imagem. Por favor, tente novamente.');
     };
+}
+
+// Dashboard: ao abrir imagem/anexo, manter coerência com o sino.
+// - requires_ack=1: não remove notificação automaticamente (apenas abre).
+// - requires_ack=0: marca como lido via read-informativo e recarrega para atualizar badge/sino.
+function openDashboardInformativoImage(event, informativoId, requiresAck, imageUrl) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (requiresAck) {
+        showImageModal(imageUrl);
+        return false;
+    }
+
+    fetch(`${window.location.origin}/administrativo/read-informativo/${informativoId}`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    }).catch(function () {});
+
+    showImageModal(imageUrl);
+
+    setTimeout(function () {
+        window.location.reload();
+    }, 250);
+
+    return false;
+}
+
+function openDashboardInformativoAttachment(event, informativoId, requiresAck, url) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (requiresAck) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return false;
+    }
+
+    fetch(`${window.location.origin}/administrativo/read-informativo/${informativoId}`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    }).catch(function () {});
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+
+    setTimeout(function () {
+        window.location.reload();
+    }, 250);
+
+    return false;
 }
 
 function confirmarCiencia(informativoId) {
@@ -663,6 +800,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         btn.onclick = null;
                     }
                 }
+                        <?php if (empty($info['requires_ack'])): ?>
+                        // Para informativos sem ciência: atualizar sino/badges.
+                        setTimeout(function () { window.location.reload(); }, 250);
+                        <?php endif; ?>
             }).catch(() => {});
         });
     }

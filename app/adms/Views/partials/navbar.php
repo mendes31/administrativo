@@ -52,7 +52,10 @@ if (!empty($_SESSION['user_id'])) {
 ?>
 
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-nav">
-    <a class="navbar-brand ps-3" href="<?php echo $_ENV['URL_ADM']; ?>dashboard">Tiaraju</a>
+    <a class="navbar-brand ps-3 d-flex align-items-center gap-2" href="<?php echo $_ENV['URL_ADM']; ?>dashboard" aria-label="Home">
+        <i class="fas fa-home text-white d-inline d-md-none" aria-hidden="true" title="Home"></i>
+        <span>Tiaraju</span>
+    </a>
     <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" type="button" aria-label="Alternar menu lateral" title="Alternar menu lateral">
         <i class="fas fa-bars" aria-hidden="true"></i>
     </button>

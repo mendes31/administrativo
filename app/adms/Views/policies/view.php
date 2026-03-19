@@ -52,10 +52,21 @@ $policy = $this->data['policy'] ?? [];
                                     <i class="fas fa-exclamation-triangle me-1"></i>Urgente
                                 </span>
                             <?php endif; ?>
-                            <?php if (!empty($policy['requires_ack'])): ?>
-                                <span class="badge bg-warning text-dark ms-2">
-                                    Exige ciência
-                                </span>
+                            <?php
+                            $requiresAck = !empty($policy['requires_ack']);
+                            $readStatus = $this->data['read_status'] ?? null;
+                            $acknowledged = $readStatus && !empty($readStatus['acknowledged']);
+                            if ($requiresAck):
+                                ?>
+                                <?php if ($acknowledged): ?>
+                                    <span class="badge bg-success ms-2">
+                                        <i class="fas fa-check-circle me-1"></i>Ciente
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge bg-warning text-dark ms-2" style="border:1px solid #dc3545;">
+                                        <i class="fas fa-triangle-exclamation me-1"></i>Ciência pendente
+                                    </span>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </h3>
 
