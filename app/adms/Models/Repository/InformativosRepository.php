@@ -184,13 +184,35 @@ class InformativosRepository extends DbConnection
      */
     public function upsertRead(int $informativoId, int $userId): void
     {
-        $sql = 'INSERT INTO adms_informativos_reads (informativo_id, user_id, read_at, created_at)
-                VALUES (:inf, :usr, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE read_at = IF(read_at IS NULL, VALUES(read_at), read_at)';
-        $stmt = $this->getConnection()->prepare($sql);
+        // Atualiza TODAS as linhas existentes (evita duplicar em cenários sem UNIQUE adequado).
+        $sqlUpdate = 'UPDATE adms_informativos_reads
+                      SET read_at = IF(read_at IS NULL, NOW(), read_at)
+                      WHERE informativo_id = :inf AND user_id = :usr';
+        $stmt = $this->getConnection()->prepare($sqlUpdate);
         $stmt->bindValue(':inf', $informativoId, PDO::PARAM_INT);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
         $stmt->execute();
+
+        // Se não existia linha alguma, cria.
+        if ($stmt->rowCount() === 0) {
+            $sqlExists = 'SELECT id
+                           FROM adms_informativos_reads
+                           WHERE informativo_id = :inf AND user_id = :usr
+                           LIMIT 1';
+            $stmtExists = $this->getConnection()->prepare($sqlExists);
+            $stmtExists->bindValue(':inf', $informativoId, PDO::PARAM_INT);
+            $stmtExists->bindValue(':usr', $userId, PDO::PARAM_INT);
+            $stmtExists->execute();
+
+            if (!$stmtExists->fetch(PDO::FETCH_ASSOC)) {
+                $sqlInsert = 'INSERT INTO adms_informativos_reads (informativo_id, user_id, read_at, created_at)
+                               VALUES (:inf, :usr, NOW(), NOW())';
+                $stmt2 = $this->getConnection()->prepare($sqlInsert);
+                $stmt2->bindValue(':inf', $informativoId, PDO::PARAM_INT);
+                $stmt2->bindValue(':usr', $userId, PDO::PARAM_INT);
+                $stmt2->execute();
+            }
+        }
     }
 
     /**
@@ -199,15 +221,43 @@ class InformativosRepository extends DbConnection
     public function acknowledge(int $informativoId, int $userId): bool
     {
         try {
-            $sql = 'INSERT INTO adms_informativos_reads (informativo_id, user_id, read_at, acknowledged, ack_at, created_at)
-                    VALUES (:inf, :usr, NOW(), 1, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE acknowledged = 1, ack_at = NOW(), read_at = IF(read_at IS NULL, NOW(), read_at)';
-            $stmt = $this->getConnection()->prepare($sql);
+            // Atualiza TODAS as linhas existentes para não deixar "lixo" com acknowledged != 1.
+            $sqlUpdate = 'UPDATE adms_informativos_reads
+                           SET acknowledged = 1,
+                               ack_at = NOW(),
+                               read_at = IF(read_at IS NULL, NOW(), read_at)
+                           WHERE informativo_id = :inf AND user_id = :usr';
+            $stmt = $this->getConnection()->prepare($sqlUpdate);
             $stmt->bindValue(':inf', $informativoId, PDO::PARAM_INT);
             $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
-            $result = $stmt->execute();
-            
-            return $result;
+            $stmt->execute();
+
+            if ($stmt->rowCount() > 0) {
+                return true;
+            }
+
+            // rowCount pode voltar 0 mesmo com linha existindo (mesmo valor).
+            // Checamos existência antes de inserir para não duplicar.
+            $sqlExists = 'SELECT id
+                           FROM adms_informativos_reads
+                           WHERE informativo_id = :inf AND user_id = :usr
+                           LIMIT 1';
+            $stmtExists = $this->getConnection()->prepare($sqlExists);
+            $stmtExists->bindValue(':inf', $informativoId, PDO::PARAM_INT);
+            $stmtExists->bindValue(':usr', $userId, PDO::PARAM_INT);
+            $stmtExists->execute();
+
+            if ($stmtExists->fetch(PDO::FETCH_ASSOC)) {
+                return true;
+            }
+
+            // Se não existia linha alguma, cria.
+            $sqlInsert = 'INSERT INTO adms_informativos_reads (informativo_id, user_id, read_at, acknowledged, ack_at, created_at)
+                           VALUES (:inf, :usr, NOW(), 1, NOW(), NOW())';
+            $stmt2 = $this->getConnection()->prepare($sqlInsert);
+            $stmt2->bindValue(':inf', $informativoId, PDO::PARAM_INT);
+            $stmt2->bindValue(':usr', $userId, PDO::PARAM_INT);
+            return $stmt2->execute();
         } catch (\Exception $e) {
             // Log do erro
             error_log("Erro ao registrar ciência: " . $e->getMessage());
@@ -222,7 +272,9 @@ class InformativosRepository extends DbConnection
     {
         $sql = 'SELECT id, read_at, acknowledged, ack_at
                 FROM adms_informativos_reads
-                WHERE informativo_id = :inf AND user_id = :usr LIMIT 1';
+                WHERE informativo_id = :inf AND user_id = :usr
+                ORDER BY acknowledged DESC, ack_at DESC, read_at DESC
+                LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':inf', $informativoId, PDO::PARAM_INT);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
@@ -236,18 +288,29 @@ class InformativosRepository extends DbConnection
      */
     public function countNaoLidos(int $userId): int
     {
+        // NOT EXISTS para não “sofrer” com duplicidade de linhas em adms_informativos_reads.
+        // - requires_ack=1: só é não-lido se NÃO existir acknowledged=1 para o usuário.
+        // - requires_ack=0: só é não-lido se NÃO existir read_at IS NOT NULL para o usuário.
         $sql = 'SELECT COUNT(*) AS total
                 FROM adms_informativos i
-                LEFT JOIN adms_informativos_reads r
-                  ON r.informativo_id = i.id AND r.user_id = :usr
                 WHERE i.ativo = 1
                   AND (i.publish_at IS NULL OR i.publish_at <= NOW())
                   AND (i.expire_at IS NULL OR i.expire_at > NOW())
                   AND (
-                        -- Quando exige ciência: continua em notificação até acknowledged = 1
-                        (i.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
-                        -- Quando NÃO exige ciência: some da notificação após visualização
-                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                        (i.requires_ack = 1 AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_informativos_reads r
+                            WHERE r.informativo_id = i.id
+                              AND r.user_id = :usr
+                              AND r.acknowledged = 1
+                        ))
+                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_informativos_reads r2
+                            WHERE r2.informativo_id = i.id
+                              AND r2.user_id = :usr
+                              AND r2.read_at IS NOT NULL
+                        ))
                       )';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
@@ -288,16 +351,24 @@ class InformativosRepository extends DbConnection
     {
         $sql = 'SELECT i.id, i.titulo, i.resumo, i.urgente, i.created_at
                 FROM adms_informativos i
-                LEFT JOIN adms_informativos_reads r
-                  ON r.informativo_id = i.id AND r.user_id = :usr
                 WHERE i.ativo = 1
                   AND (i.publish_at IS NULL OR i.publish_at <= NOW())
                   AND (i.expire_at IS NULL OR i.expire_at > NOW())
                   AND (
-                        -- Quando exige ciência: continua em notificação até acknowledged = 1
-                        (i.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
-                        -- Quando NÃO exige ciência: some da notificação após visualização
-                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                        (i.requires_ack = 1 AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_informativos_reads r
+                            WHERE r.informativo_id = i.id
+                              AND r.user_id = :usr
+                              AND r.acknowledged = 1
+                        ))
+                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_informativos_reads r2
+                            WHERE r2.informativo_id = i.id
+                              AND r2.user_id = :usr
+                              AND r2.read_at IS NOT NULL
+                        ))
                       )
                 ORDER BY i.urgente DESC, i.created_at DESC
                 LIMIT :limit';
@@ -307,6 +378,63 @@ class InformativosRepository extends DbConnection
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return $rows ?: [];
+    }
+
+    /**
+     * Retorna os IDs dos informativos não lidos (mesma regra do sino),
+     * filtrando apenas os IDs presentes na lista da tela.
+     *
+     * @param int   $userId
+     * @param int[] $informativoIds
+     * @return int[]
+     */
+    public function getNaoLidosIdsByInformativoIds(int $userId, array $informativoIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $informativoIds), static fn ($v) => $v > 0)));
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $sql = "SELECT i.id
+                FROM adms_informativos i
+                WHERE i.id IN ({$placeholders})
+                  AND i.ativo = 1
+                  AND (i.publish_at IS NULL OR i.publish_at <= NOW())
+                  AND (i.expire_at IS NULL OR i.expire_at > NOW())
+                  AND (
+                        (i.requires_ack = 1 AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_informativos_reads r
+                            WHERE r.informativo_id = i.id
+                              AND r.user_id = ?
+                              AND r.acknowledged = 1
+                        ))
+                        OR ((i.requires_ack IS NULL OR i.requires_ack = 0) AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_informativos_reads r2
+                            WHERE r2.informativo_id = i.id
+                              AND r2.user_id = ?
+                              AND r2.read_at IS NOT NULL
+                        ))
+                      )";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $i = 1;
+        // Ordem dos placeholders no SQL:
+        // 1) IDs do i.id IN (...)
+        // 2) user_id do NOT EXISTS (acknowledged=1)
+        // 3) user_id do NOT EXISTS (read_at IS NOT NULL)
+        foreach ($ids as $id) {
+            $stmt->bindValue($i++, $id, PDO::PARAM_INT);
+        }
+        $stmt->bindValue($i++, $userId, PDO::PARAM_INT);
+        $stmt->bindValue($i++, $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(static fn ($row) => (int) $row['id'], $rows);
     }
     
     /**

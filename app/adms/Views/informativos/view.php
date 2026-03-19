@@ -146,7 +146,8 @@ $informativo = $this->data['informativo'];
                             <h5>Anexo</h5>
                             <div class="d-grid gap-2">
                                 <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>" target="_blank" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-file-pdf me-1"></i> Abrir/Download do Anexo
+                                    <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'me-1'); ?>
+                                    Abrir/Download do Anexo
                                 </a>
                             </div>
                         </div>

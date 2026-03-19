@@ -51,6 +51,35 @@ class ListPolicies
         $this->data['policies'] = $repo->getAllPolicies((int) $page, (int) $this->limitResult, $filters);
         $total = $repo->getTotalPolicies($filters);
 
+        // IDs não lidos (mesma regra do sino) para exibir badge "Novo" / "Ciência pendente" na lista
+        $policyIds = array_map(static fn ($p) => (int)($p['id'] ?? 0), $this->data['policies'] ?? []);
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $this->data['unreadPolicyIds'] = $userId > 0 ? $repo->getNaoLidosIdsByPolicyIds($userId, $policyIds) : [];
+
+        // Ordenação: não lidas / sem ciência primeiro, depois por data descrescente
+        // (mantém coerência entre desktop e mobile).
+        $unreadPolicyIdSet = array_fill_keys($this->data['unreadPolicyIds'] ?? [], true);
+        if (!empty($this->data['policies'])) {
+            usort($this->data['policies'], static function (array $a, array $b) use ($unreadPolicyIdSet): int {
+                $aId = (int)($a['id'] ?? 0);
+                $bId = (int)($b['id'] ?? 0);
+
+                $aUnread = $aId > 0 && isset($unreadPolicyIdSet[$aId]);
+                $bUnread = $bId > 0 && isset($unreadPolicyIdSet[$bId]);
+
+                if ($aUnread !== $bUnread) {
+                    return $aUnread ? -1 : 1;
+                }
+
+                $aRef = $a['publish_at'] ?? $a['created_at'] ?? null;
+                $bRef = $b['publish_at'] ?? $b['created_at'] ?? null;
+                $aTs = $aRef ? strtotime((string)$aRef) : 0;
+                $bTs = $bRef ? strtotime((string)$bRef) : 0;
+
+                return $bTs <=> $aTs; // desc
+            });
+        }
+
         $pagination = PaginationService::generatePagination(
             (int) $total,
             (int) $this->limitResult,

@@ -63,6 +63,26 @@ use App\adms\Helpers\FormatHelper;
         white-space: normal;
         word-wrap: break-word;
     }
+
+    .policy-card-alert {
+        border: 2px solid #dc3545; /* realce de alerta */
+        background: rgba(220, 53, 69, 0.06);
+    }
+
+    /* Evitar cards “crescendo” no mobile: título e resumo com limite. */
+    .policy-card-title-text {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .policy-card-summary {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 </style>
 
 <div class="container-fluid px-4">
@@ -92,6 +112,10 @@ use App\adms\Helpers\FormatHelper;
         </div>
 
         <div class="card-body">
+            <?php
+            $unreadPolicyIds = array_map('intval', $this->data['unreadPolicyIds'] ?? []);
+            $unreadPolicyIdSet = array_fill_keys($unreadPolicyIds, true);
+            ?>
             <?php if (!empty($this->data['isEditor'])): ?>
             <form method="get" action="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="row g-3 mb-3">
                 <div class="col-md-3">
@@ -200,12 +224,27 @@ use App\adms\Helpers\FormatHelper;
                         <tbody>
                         <?php if (!empty($this->data['policies'])): ?>
                             <?php foreach ($this->data['policies'] as $policy): ?>
+                                <?php
+                                $policyId = (int) ($policy['id'] ?? 0);
+                                $isUnread = $policyId > 0 && isset($unreadPolicyIdSet[$policyId]);
+                                $requiresAck = !empty($policy['requires_ack']);
+                                ?>
                                 <tr>
                                     <td class="col-id"><?php echo (int) $policy['id']; ?></td>
                                     <td class="col-titulo">
                                         <?php echo htmlspecialchars($policy['titulo']); ?>
-                                        <?php if (!empty($policy['requires_ack'])): ?>
-                                            <span class="badge bg-warning text-dark ms-1">Exige ciência</span>
+                                        <?php if ($requiresAck): ?>
+                                            <?php if ($isUnread): ?>
+                                                <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
+                                                    Ciência pendente
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-success ms-1">Ciente</span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <?php if ($isUnread): ?>
+                                                <span class="badge bg-primary ms-1">Novo</span>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
                                     <td class="col-categoria"><?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></td>
@@ -303,34 +342,53 @@ use App\adms\Helpers\FormatHelper;
             <div class="d-block d-md-none">
                 <?php if (!empty($this->data['policies'])): ?>
                     <?php foreach ($this->data['policies'] as $policy): ?>
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-body">
+                        <?php $isEditor = !empty($this->data['isEditor']); ?>
+                        <?php
+                        $policyId = (int) ($policy['id'] ?? 0);
+                        $isUnread = $policyId > 0 && isset($unreadPolicyIdSet[$policyId]);
+                        $requiresAck = !empty($policy['requires_ack']);
+                        $isAckPendingAlert = $requiresAck && $isUnread;
+                        ?>
+                        <div class="card mb-3 shadow-sm<?php echo $isAckPendingAlert ? ' policy-card-alert' : ''; ?>">
+                            <div class="card-body"<?php if (!$isEditor): ?> onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int)$policy['id']; ?>';" style="cursor:pointer;"<?php endif; ?>>
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div class="flex-grow-1">
                                         <h5 class="card-title mb-1">
-                                            <strong><?php echo htmlspecialchars($policy['titulo']); ?></strong>
-                                            <?php if (!empty($policy['requires_ack'])): ?>
-                                                <span class="badge bg-warning text-dark ms-1">Exige ciência</span>
+                                            <strong class="policy-card-title-text"><?php echo htmlspecialchars($policy['titulo']); ?></strong>
+                                            <?php if ($requiresAck): ?>
+                                                <?php if ($isUnread): ?>
+                                                    <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
+                                                        <i class="fa-solid fa-triangle-exclamation me-1"></i>Ciência pendente
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success ms-1">
+                                                        <i class="fa-solid fa-circle-check me-1"></i>Ciente
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <?php if ($isUnread): ?>
+                                                    <span class="badge bg-primary ms-1">Novo</span>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </h5>
-                                        <div class="mb-1">
+                                        <div class="mb-1 d-flex flex-wrap align-items-center gap-1">
                                             <?php if (!empty($policy['categoria_nome'] ?? $policy['categoria'])): ?>
                                                 <span class="badge bg-info">
                                                     <?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
                                                 </span>
                                             <?php endif; ?>
                                             <?php if (!empty($policy['department_name'])): ?>
-                                                <span class="badge bg-secondary ms-1">
+                                                <span class="badge bg-secondary">
                                                     <?php echo htmlspecialchars($policy['department_name']); ?>
                                                 </span>
                                             <?php endif; ?>
                                             <?php if (!empty($policy['ativo'])): ?>
-                                                <span class="badge bg-success ms-1">Ativa</span>
+                                                <span class="badge bg-success">Ativa</span>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary ms-1">Inativa</span>
+                                                <span class="badge bg-secondary">Inativa</span>
                                             <?php endif; ?>
                                             <?php if (!empty($policy['urgente'])): ?>
-                                                <span class="badge bg-danger ms-1">Urgente</span>
+                                                <span class="badge bg-danger">Urgente</span>
                                             <?php endif; ?>
                                         </div>
                                         <div class="text-muted small mb-1">
@@ -341,39 +399,71 @@ use App\adms\Helpers\FormatHelper;
                                             }
                                             ?>
                                         </div>
+                                        <div class="mb-2">
+                                            <?php
+                                            $textoResumoMobile = $policy['resumo'] ?? strip_tags($policy['conteudo'] ?? '');
+                                            ?>
+                                            <small class="policy-card-summary"><?php echo htmlspecialchars($textoResumoMobile); ?></small>
+                                        </div>
+                                        <?php if (!empty($policy['imagem']) || !empty($policy['anexo'])): ?>
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <?php if (!empty($policy['imagem'])): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
+                                                       target="_blank"
+                                                       onclick="return openPolicyAttachment(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                        <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
+                                                             alt="Imagem"
+                                                             style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if (!empty($policy['anexo'])): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['anexo']); ?>"
+                                                       target="_blank"
+                                                       class="d-flex align-items-center gap-1 text-decoration-none"
+                                                       onclick="return openPolicyAttachment(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                        <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($policy['anexo'], 'fa-2x'); ?>
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
 
-                                    <div class="btn-group-vertical btn-group-sm">
-                                        <?php
-                                        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
-                                        ?>
-                                        <?php if ($isSuperAdmin || in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int)$policy['id']; ?>"
-                                               class="btn btn-outline-primary mb-1" title="Visualizar">
-                                                <i class="fa-solid fa-eye"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($isSuperAdmin || (!empty($this->data['isEditor']) && in_array('UpdatePolicy', $this->data['buttonPermission'] ?? [], true))): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int)$policy['id']; ?>"
-                                               class="btn btn-outline-warning mb-1" title="Editar">
-                                                <i class="fa-solid fa-pen"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($isSuperAdmin || in_array('RelatorioPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int)$policy['id']; ?>"
-                                               class="btn btn-outline-info mb-1" title="Relatório de Visualização/Ciência">
-                                                <i class="fa-solid fa-chart-bar"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($isSuperAdmin || (!empty($this->data['isEditor']) && in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true))): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int)$policy['id']; ?>"
-                                               class="btn btn-outline-danger mb-1"
-                                               onclick="return confirm('Tem certeza que deseja excluir esta política?');"
-                                               title="Excluir">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
+                                    <?php
+                                    $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+                                    ?>
+                                    <?php if ($isSuperAdmin || $isEditor || in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                        <div class="btn-group-vertical btn-group-sm">
+                                            <?php if (($isSuperAdmin || in_array('ViewPolicy', $this->data['buttonPermission'] ?? [], true)) && $isEditor): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int)$policy['id']; ?>"
+                                                   class="btn btn-outline-primary mb-1" title="Visualizar"
+                                                   onclick="event.stopPropagation();">
+                                                    <i class="fa-solid fa-eye"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($isSuperAdmin || ($isEditor && in_array('UpdatePolicy', $this->data['buttonPermission'] ?? [], true))): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>update-policy/<?php echo (int)$policy['id']; ?>"
+                                                   class="btn btn-outline-warning mb-1" title="Editar"
+                                                   onclick="event.stopPropagation();">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($isSuperAdmin || in_array('RelatorioPolicy', $this->data['buttonPermission'] ?? [], true)): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy?policy_id=<?php echo (int)$policy['id']; ?>"
+                                                   class="btn btn-outline-info mb-1" title="Relatório de Visualização/Ciência"
+                                                   onclick="event.stopPropagation();">
+                                                    <i class="fa-solid fa-chart-bar"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($isSuperAdmin || ($isEditor && in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true))): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int)$policy['id']; ?>"
+                                                   class="btn btn-outline-danger mb-1"
+                                                   onclick="event.stopPropagation(); return confirm('Tem certeza que deseja excluir esta política?');"
+                                                   title="Excluir">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -416,4 +506,40 @@ use App\adms\Helpers\FormatHelper;
         </div>
     </div>
 </div>
+
+<script>
+    // Etapa 2 (Políticas): ao clicar em imagem/anexo do card (mobile),
+    // marcar como "lido" via endpoint read-policy apenas quando requires_ack=0.
+    function openPolicyAttachment(event, policyId, requiresAck, url) {
+        event.stopPropagation();
+
+        // Se exige ciência, não marcar como lido automaticamente.
+        if (requiresAck) {
+            return true;
+        }
+
+        event.preventDefault();
+
+        try {
+            // Abre o anexo/ imagem em nova aba.
+            window.open(url, '_blank', 'noopener,noreferrer');
+
+            // Marca como lida para atualizar sino/badge.
+            fetch('<?php echo $_ENV['URL_ADM']; ?>read-policy/' + policyId, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            }).catch(function () {});
+        } catch (e) {}
+
+        // Recarregar para refletir "Novo" removido / sino atualizado.
+        setTimeout(function () {
+            window.location.reload();
+        }, 250);
+
+        return false;
+    }
+</script>
 

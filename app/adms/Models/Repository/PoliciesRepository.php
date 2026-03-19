@@ -175,13 +175,34 @@ class PoliciesRepository extends DbConnection
      */
     public function upsertRead(int $policyId, int $userId): void
     {
-        $sql = 'INSERT INTO adms_policies_reads (policy_id, user_id, read_at, created_at)
-                VALUES (:pol, :usr, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE read_at = IF(read_at IS NULL, VALUES(read_at), read_at)';
-        $stmt = $this->getConnection()->prepare($sql);
+        // Atualiza TODAS as linhas existentes (evita duplicar em cenários sem UNIQUE adequado).
+        $sqlUpdate = 'UPDATE adms_policies_reads
+                      SET read_at = IF(read_at IS NULL, NOW(), read_at)
+                      WHERE policy_id = :pol AND user_id = :usr';
+        $stmt = $this->getConnection()->prepare($sqlUpdate);
         $stmt->bindValue(':pol', $policyId, PDO::PARAM_INT);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
         $stmt->execute();
+
+        if ($stmt->rowCount() === 0) {
+            $sqlExists = 'SELECT id
+                           FROM adms_policies_reads
+                           WHERE policy_id = :pol AND user_id = :usr
+                           LIMIT 1';
+            $stmtExists = $this->getConnection()->prepare($sqlExists);
+            $stmtExists->bindValue(':pol', $policyId, PDO::PARAM_INT);
+            $stmtExists->bindValue(':usr', $userId, PDO::PARAM_INT);
+            $stmtExists->execute();
+
+            if (!$stmtExists->fetch(PDO::FETCH_ASSOC)) {
+                $sqlInsert = 'INSERT INTO adms_policies_reads (policy_id, user_id, read_at, created_at)
+                               VALUES (:pol, :usr, NOW(), NOW())';
+                $stmt2 = $this->getConnection()->prepare($sqlInsert);
+                $stmt2->bindValue(':pol', $policyId, PDO::PARAM_INT);
+                $stmt2->bindValue(':usr', $userId, PDO::PARAM_INT);
+                $stmt2->execute();
+            }
+        }
     }
 
     /**
@@ -190,15 +211,43 @@ class PoliciesRepository extends DbConnection
     public function acknowledge(int $policyId, int $userId): bool
     {
         try {
-            $sql = 'INSERT INTO adms_policies_reads (policy_id, user_id, read_at, acknowledged, ack_at, created_at)
-                    VALUES (:pol, :usr, NOW(), 1, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE acknowledged = 1, ack_at = NOW(), read_at = IF(read_at IS NULL, NOW(), read_at)';
-            $stmt = $this->getConnection()->prepare($sql);
+            // Atualiza TODAS as linhas existentes para garantir que a notificação some.
+            $sqlUpdate = 'UPDATE adms_policies_reads
+                          SET acknowledged = 1,
+                              ack_at = NOW(),
+                              read_at = IF(read_at IS NULL, NOW(), read_at)
+                          WHERE policy_id = :pol AND user_id = :usr';
+            $stmt = $this->getConnection()->prepare($sqlUpdate);
             $stmt->bindValue(':pol', $policyId, PDO::PARAM_INT);
             $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
-            $result = $stmt->execute();
+            $stmt->execute();
 
-            return $result;
+            if ($stmt->rowCount() > 0) {
+                return true;
+            }
+
+            // rowCount pode voltar 0 mesmo com linha existindo.
+            // Checamos existência antes de inserir para não duplicar.
+            $sqlExists = 'SELECT id
+                           FROM adms_policies_reads
+                           WHERE policy_id = :pol AND user_id = :usr
+                           LIMIT 1';
+            $stmtExists = $this->getConnection()->prepare($sqlExists);
+            $stmtExists->bindValue(':pol', $policyId, PDO::PARAM_INT);
+            $stmtExists->bindValue(':usr', $userId, PDO::PARAM_INT);
+            $stmtExists->execute();
+
+            if ($stmtExists->fetch(PDO::FETCH_ASSOC)) {
+                return true;
+            }
+
+            // Se não existia linha alguma, cria.
+            $sqlInsert = 'INSERT INTO adms_policies_reads (policy_id, user_id, read_at, acknowledged, ack_at, created_at)
+                           VALUES (:pol, :usr, NOW(), 1, NOW(), NOW())';
+            $stmt2 = $this->getConnection()->prepare($sqlInsert);
+            $stmt2->bindValue(':pol', $policyId, PDO::PARAM_INT);
+            $stmt2->bindValue(':usr', $userId, PDO::PARAM_INT);
+            return $stmt2->execute();
         } catch (\Exception $e) {
             error_log("Erro ao registrar ciência de política: " . $e->getMessage());
             return false;
@@ -212,7 +261,9 @@ class PoliciesRepository extends DbConnection
     {
         $sql = 'SELECT id, read_at, acknowledged, ack_at
                 FROM adms_policies_reads
-                WHERE policy_id = :pol AND user_id = :usr LIMIT 1';
+                WHERE policy_id = :pol AND user_id = :usr
+                ORDER BY acknowledged DESC, ack_at DESC, read_at DESC
+                LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':pol', $policyId, PDO::PARAM_INT);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
@@ -253,18 +304,29 @@ class PoliciesRepository extends DbConnection
      */
     public function countNaoLidos(int $userId): int
     {
+        // NOT EXISTS para não “sofrer” com duplicidade de linhas em adms_policies_reads.
+        // - requires_ack=1: só é não-lido se NÃO existir acknowledged=1.
+        // - requires_ack=0: só é não-lido se NÃO existir read_at IS NOT NULL.
         $sql = 'SELECT COUNT(*) AS total
                 FROM adms_policies p
-                LEFT JOIN adms_policies_reads r
-                  ON r.policy_id = p.id AND r.user_id = :usr
                 WHERE p.ativo = 1
                   AND (p.publish_at IS NULL OR p.publish_at <= NOW())
                   AND (p.expire_at IS NULL OR p.expire_at > NOW())
                   AND (
-                        -- Quando exige ciência: continua em notificação até acknowledged = 1
-                        (p.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
-                        -- Quando NÃO exige ciência: some da notificação após visualização
-                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                        (p.requires_ack = 1 AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_policies_reads r
+                            WHERE r.policy_id = p.id
+                              AND r.user_id = :usr
+                              AND r.acknowledged = 1
+                        ))
+                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_policies_reads r2
+                            WHERE r2.policy_id = p.id
+                              AND r2.user_id = :usr
+                              AND r2.read_at IS NOT NULL
+                        ))
                       )';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
@@ -280,16 +342,24 @@ class PoliciesRepository extends DbConnection
     {
         $sql = 'SELECT p.id, p.titulo, p.resumo, p.urgente, p.created_at
                 FROM adms_policies p
-                LEFT JOIN adms_policies_reads r
-                  ON r.policy_id = p.id AND r.user_id = :usr
                 WHERE p.ativo = 1
                   AND (p.publish_at IS NULL OR p.publish_at <= NOW())
                   AND (p.expire_at IS NULL OR p.expire_at > NOW())
                   AND (
-                        -- Quando exige ciência: continua em notificação até acknowledged = 1
-                        (p.requires_ack = 1 AND (r.id IS NULL OR r.acknowledged <> 1))
-                        -- Quando NÃO exige ciência: some da notificação após visualização
-                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND (r.id IS NULL OR r.read_at IS NULL))
+                        (p.requires_ack = 1 AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_policies_reads r
+                            WHERE r.policy_id = p.id
+                              AND r.user_id = :usr
+                              AND r.acknowledged = 1
+                        ))
+                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_policies_reads r2
+                            WHERE r2.policy_id = p.id
+                              AND r2.user_id = :usr
+                              AND r2.read_at IS NOT NULL
+                        ))
                       )
                 ORDER BY p.urgente DESC, p.created_at DESC
                 LIMIT :limit';
@@ -299,6 +369,61 @@ class PoliciesRepository extends DbConnection
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return $rows ?: [];
+    }
+
+    /**
+     * Retorna os IDs das políticas não lidas (mesma regra do sino), filtrando por uma lista de IDs.
+     *
+     * @param int   $userId
+     * @param int[] $policyIds
+     * @return int[]
+     */
+    public function getNaoLidosIdsByPolicyIds(int $userId, array $policyIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $policyIds), static fn ($v) => $v > 0)));
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT p.id
+                FROM adms_policies p
+                WHERE p.id IN ({$placeholders})
+                  AND p.ativo = 1
+                  AND (p.publish_at IS NULL OR p.publish_at <= NOW())
+                  AND (p.expire_at IS NULL OR p.expire_at > NOW())
+                  AND (
+                        (p.requires_ack = 1 AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_policies_reads r
+                            WHERE r.policy_id = p.id
+                              AND r.user_id = ?
+                              AND r.acknowledged = 1
+                        ))
+                        OR ((p.requires_ack IS NULL OR p.requires_ack = 0) AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_policies_reads r2
+                            WHERE r2.policy_id = p.id
+                              AND r2.user_id = ?
+                              AND r2.read_at IS NOT NULL
+                        ))
+                      )";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $i = 1;
+        // Ordem dos placeholders no SQL:
+        // 1) IDs do p.id IN (...)
+        // 2) user_id do NOT EXISTS (acknowledged=1)
+        // 3) user_id do NOT EXISTS (read_at IS NOT NULL)
+        foreach ($ids as $id) {
+            $stmt->bindValue($i++, $id, PDO::PARAM_INT);
+        }
+        $stmt->bindValue($i++, $userId, PDO::PARAM_INT);
+        $stmt->bindValue($i++, $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(static fn ($row) => (int) $row['id'], $rows);
     }
 
     /**

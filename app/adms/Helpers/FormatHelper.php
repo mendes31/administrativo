@@ -56,4 +56,38 @@ class FormatHelper
             return (string) $dateTime;
         }
     }
+
+    /**
+     * Retorna o HTML de um ícone de arquivo baseado na extensão.
+     */
+    public static function renderFileIcon(?string $path, string $extraClasses = ''): string
+    {
+        if (!$path) {
+            return '';
+        }
+
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $icon = 'fa-file';
+        $color = 'text-muted';
+
+        if ($ext === 'pdf') {
+            $icon = 'fa-file-pdf';
+            $color = 'text-danger';
+        } elseif (in_array($ext, ['doc', 'docx'], true)) {
+            $icon = 'fa-file-word';
+            $color = 'text-primary';
+        } elseif (in_array($ext, ['xls', 'xlsx', 'csv'], true)) {
+            $icon = 'fa-file-excel';
+            $color = 'text-success';
+        } elseif ($ext === 'txt') {
+            $icon = 'fa-file-lines';
+            $color = 'text-secondary';
+        } elseif (in_array($ext, ['zip', 'rar'], true)) {
+            $icon = 'fa-file-archive';
+            $color = 'text-warning';
+        }
+
+        $classes = trim("fas {$icon} {$color} {$extraClasses}");
+        return '<i class="' . $classes . '"></i>';
+    }
 } 

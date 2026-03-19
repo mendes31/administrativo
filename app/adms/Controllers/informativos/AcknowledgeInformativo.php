@@ -20,12 +20,8 @@ class AcknowledgeInformativo
      */
     public function index(): void
     {
-        // Verificar se é uma requisição AJAX
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Requisição inválida']);
-            return;
-        }
+        // Se for chamada via AJAX (fetch), devolvemos JSON; se for POST normal (form), redirecionamos.
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
         // Verificar se o usuário está logado
         if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -69,7 +65,14 @@ class AcknowledgeInformativo
 
             if (!$informativo['requires_ack']) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Este informativo não exige confirmação de ciência']);
+                if ($isAjax) {
+                    echo json_encode(['success' => false, 'message' => 'Este informativo não exige confirmação de ciência']);
+                    return;
+                }
+
+                $_SESSION['msg'] = 'Este informativo não exige confirmação de ciência.';
+                $_SESSION['msg_type'] = 'warning';
+                header('Location: ' . $_ENV['URL_ADM'] . 'view-informativo/' . (int)$informativoId);
                 return;
             }
 
@@ -84,14 +87,30 @@ class AcknowledgeInformativo
                     FILE_APPEND | LOCK_EX
                 );
 
-                echo json_encode([
-                    'success' => true, 
-                    'message' => 'Ciência confirmada com sucesso',
-                    'timestamp' => date('Y-m-d H:i:s')
-                ]);
+                if ($isAjax) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Ciência confirmada com sucesso',
+                        'timestamp' => date('Y-m-d H:i:s')
+                    ]);
+                    return;
+                }
+
+                $_SESSION['msg'] = 'Ciência confirmada com sucesso.';
+                $_SESSION['msg_type'] = 'success';
+                header('Location: ' . $_ENV['URL_ADM'] . 'view-informativo/' . (int)$informativoId);
+                return;
             } else {
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Erro ao confirmar ciência']);
+                if ($isAjax) {
+                    echo json_encode(['success' => false, 'message' => 'Erro ao confirmar ciência']);
+                    return;
+                }
+
+                $_SESSION['msg'] = 'Erro ao confirmar ciência.';
+                $_SESSION['msg_type'] = 'danger';
+                header('Location: ' . $_ENV['URL_ADM'] . 'view-informativo/' . (int)$informativoId);
+                return;
             }
 
         } catch (\Exception $e) {
@@ -103,7 +122,15 @@ class AcknowledgeInformativo
             );
 
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+            if ($isAjax) {
+                echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+                return;
+            }
+
+            $_SESSION['msg'] = 'Erro interno do servidor.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
+            return;
         }
     }
 }

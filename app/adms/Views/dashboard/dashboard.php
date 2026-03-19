@@ -203,7 +203,7 @@
                                 <?php endif; ?>
                                 <?php if (!empty($info['anexo'])): ?>
                                     <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>" target="_blank" title="Baixar anexo">
-                                        <i class="fas fa-file-pdf fa-2x text-danger" style="vertical-align: middle;"></i>
+                                        <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($info['anexo'], 'fa-2x'); ?>
                                     </a>
                                 <?php endif; ?>
                             </div>

@@ -78,6 +78,26 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         gap: 0.5rem;
         margin-top: 0.25rem;
     }
+
+    .informativo-card-alert {
+        border: 2px solid #dc3545; /* realce de alerta */
+        background: rgba(220, 53, 69, 0.06);
+    }
+
+    /* Evitar cards “crescendo” no mobile: título e resumo com limite. */
+    .informativo-card-title-text {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .informativo-card-summary {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 </style>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -103,6 +123,11 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
+
+            <?php
+            $unreadInformativoIds = array_map('intval', $this->data['unreadInformativoIds'] ?? []);
+            $unreadInformativoIdSet = array_fill_keys($unreadInformativoIds, true);
+            ?>
             
             <!-- Filtros (somente para usuários com permissão de cadastrar/editar informativos) -->
             <?php if (!empty($this->data['isEditor'])): ?>
@@ -195,19 +220,43 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                     <tbody>
                         <?php if (!empty($this->data['informativos'])): ?>
                             <?php foreach ($this->data['informativos'] as $informativo): ?>
+                                <?php
+                                $informativoId = (int) ($informativo['id'] ?? 0);
+                                $isUnread = $informativoId > 0 && isset($unreadInformativoIdSet[$informativoId]);
+                                $requiresAck = !empty($informativo['requires_ack']);
+                                ?>
                                 <tr>
                                     <td class="col-titulo">
                                         <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
+                                        <?php if ($requiresAck): ?>
+                                            <?php if ($isUnread): ?>
+                                                <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Ciência pendente
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-success ms-1">
+                                                    <i class="fa-solid fa-circle-check me-1"></i>Ciente
+                                                </span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <?php if ($isUnread): ?>
+                                                <span class="badge bg-primary ms-1">Novo</span>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
                                             <div class="informativo-media">
                                                 <?php if (!empty($informativo['imagem'])): ?>
-                                                    <a href="#" onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>'); return false;">
+                                                    <a href="#"
+                                                       onclick="return openInformativoImageDesktop(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>');">
                                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>" alt="Imagem" style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e9ecef; cursor: pointer;">
                                                     </a>
                                                 <?php endif; ?>
                                                 <?php if (!empty($informativo['anexo'])): ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>" target="_blank" title="Baixar anexo">
-                                                        <i class="fas fa-file-pdf fa-2x text-danger" style="vertical-align: middle;"></i>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>"
+                                                       target="_blank"
+                                                       title="Baixar anexo"
+                                                       onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                        <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'fa-2x'); ?>
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
@@ -314,12 +363,34 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             <div class="d-block d-md-none list-mobile">
                 <?php if (!empty($this->data['informativos'])): ?>
                     <?php foreach ($this->data['informativos'] as $informativo): ?>
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-body">
+                        <?php $isEditor = !empty($this->data['isEditor']); ?>
+                        <?php
+                        $informativoId = (int) ($informativo['id'] ?? 0);
+                        $isUnread = $informativoId > 0 && isset($unreadInformativoIdSet[$informativoId]);
+                        $requiresAck = !empty($informativo['requires_ack']);
+                        $isAckPendingAlert = $requiresAck && $isUnread;
+                        ?>
+                        <div class="card mb-3 shadow-sm<?php echo $isAckPendingAlert ? ' informativo-card-alert' : ''; ?>">
+                            <div class="card-body"<?php if (!$isEditor): ?> onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>';" style="cursor:pointer;"<?php endif; ?>>
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <h5 class="card-title mb-1">
-                                            <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
+                                            <strong class="informativo-card-title-text"><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
+                                            <?php if ($requiresAck): ?>
+                                                <?php if ($isUnread): ?>
+                                                    <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
+                                                        <i class="fa-solid fa-triangle-exclamation me-1"></i>Ciência pendente
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success ms-1">
+                                                        <i class="fa-solid fa-circle-check me-1"></i>Ciente
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <?php if ($isUnread): ?>
+                                                    <span class="badge bg-primary ms-1">Novo</span>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
                                             <?php if ($informativo['urgente']): ?>
                                                 <span class="badge bg-danger ms-1">
                                                     <i class="fas fa-exclamation-triangle"></i> Urgente
@@ -349,19 +420,31 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <?php
                                             $textoResumoMobile = $informativo['resumo'] ?? strip_tags($informativo['conteudo']);
                                             ?>
-                                            <small><?php echo htmlspecialchars($textoResumoMobile); ?></small>
+                                            <small class="informativo-card-summary"><?php echo htmlspecialchars($textoResumoMobile); ?></small>
                                         </div>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
-                                            <div class="mb-2">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
                                                 <?php if (!empty($informativo['imagem'])): ?>
-                                                    <small class="text-muted me-2"><i class="fas fa-image"></i> Com imagem</small>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>"
+                                                       target="_blank"
+                                                       onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                        <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>"
+                                                             alt="Imagem"
+                                                             style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                                    </a>
                                                 <?php endif; ?>
                                                 <?php if (!empty($informativo['anexo'])): ?>
-                                                    <small class="text-muted"><i class="fas fa-paperclip"></i> Com anexo</small>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>"
+                                                       target="_blank"
+                                                       class="d-flex align-items-center gap-1 text-decoration-none"
+                                                       onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                        <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'fa-2x'); ?>
+                                                    </a>
                                                 <?php endif; ?>
                                             </div>
                                         <?php endif; ?>
                                     </div>
+                                    <?php if ($isEditor): ?>
                                     <div class="btn-group-vertical btn-group-sm">
                                         <?php if (in_array('ViewInformativo', $this->data['buttonPermission'])): ?>
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>" class="btn btn-primary btn-sm mb-1" title="Visualizar">
@@ -408,6 +491,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             </div>
                                         <?php endif; ?>
                                     </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -456,5 +540,66 @@ function showImageModal(url) {
         `;
         document.body.appendChild(modal);
     }
+}
+
+// Etapa 3/4 (Informativos): ao clicar em imagem/anexo do card mobile,
+// marcar como "lido" via read-informativo apenas quando requires_ack=0.
+function openInformativoAttachment(event, informativoId, requiresAck, url) {
+    event.stopPropagation();
+
+    // Se exige ciência, não marca como lido automaticamente.
+    if (requiresAck) {
+        return true;
+    }
+
+    event.preventDefault();
+
+    try {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        fetch('<?php echo $_ENV['URL_ADM']; ?>read-informativo/' + informativoId, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        }).catch(function () {});
+    } catch (e) {}
+
+    setTimeout(function () {
+        window.location.reload();
+    }, 250);
+
+    return false;
+}
+
+// Desktop: abre modal da imagem e, quando requires_ack=0, marca como lido.
+function openInformativoImageDesktop(event, informativoId, requiresAck, imageUrl) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Se exige ciência, apenas abre o modal.
+    if (requiresAck) {
+        showImageModal(imageUrl);
+        return false;
+    }
+
+    // Marca como lido e abre o modal.
+    try {
+        fetch('<?php echo $_ENV['URL_ADM']; ?>read-informativo/' + informativoId, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        }).catch(function () {});
+    } catch (e) {}
+
+    showImageModal(imageUrl);
+
+    setTimeout(function () {
+        window.location.reload();
+    }, 250);
+
+    return false;
 }
 </script> 

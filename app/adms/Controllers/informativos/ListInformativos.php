@@ -54,6 +54,34 @@ class ListInformativos
 
         $this->data['informativos'] = $repo->getAllInformativos((int)$page, (int)$this->limitResult, $filters);
         $totalInformativos = $repo->getTotalInformativos($filters);
+
+        // IDs não lidos (mesma regra do sino) para exibir badge "Novo" / "Ciência pendente" na lista
+        $informativoIds = array_map(static fn ($i) => (int)($i['id'] ?? 0), $this->data['informativos'] ?? []);
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $this->data['unreadInformativoIds'] = $userId > 0 ? $repo->getNaoLidosIdsByInformativoIds($userId, $informativoIds) : [];
+
+        // Ordenação: não lidos / sem ciência primeiro, depois por data descrescente.
+        $unreadInformativoIdSet = array_fill_keys($this->data['unreadInformativoIds'] ?? [], true);
+        if (!empty($this->data['informativos'])) {
+            usort($this->data['informativos'], static function (array $a, array $b) use ($unreadInformativoIdSet): int {
+                $aId = (int)($a['id'] ?? 0);
+                $bId = (int)($b['id'] ?? 0);
+
+                $aUnread = $aId > 0 && isset($unreadInformativoIdSet[$aId]);
+                $bUnread = $bId > 0 && isset($unreadInformativoIdSet[$bId]);
+
+                if ($aUnread !== $bUnread) {
+                    return $aUnread ? -1 : 1;
+                }
+
+                $aRef = $a['publish_at'] ?? $a['created_at'] ?? null;
+                $bRef = $b['publish_at'] ?? $b['created_at'] ?? null;
+                $aTs = $aRef ? strtotime((string)$aRef) : 0;
+                $bTs = $bRef ? strtotime((string)$bRef) : 0;
+
+                return $bTs <=> $aTs; // desc
+            });
+        }
         
         $pagination = PaginationService::generatePagination(
             (int) $totalInformativos,
