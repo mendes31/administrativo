@@ -784,6 +784,8 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
     const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');
     if (modalEl<?php echo $info['id']; ?>) {
+        const reloadOnClose<?php echo $info['id']; ?> = <?php echo empty($info['requires_ack']) ? 'true' : 'false'; ?>;
+
         modalEl<?php echo $info['id']; ?>.addEventListener('shown.bs.modal', function () {
             fetch(`${window.location.origin}/administrativo/read-informativo/<?php echo $info['id']; ?>`, {
                 method: 'POST',
@@ -800,11 +802,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         btn.onclick = null;
                     }
                 }
-                        <?php if (empty($info['requires_ack'])): ?>
-                        // Para informativos sem ciência: atualizar sino/badges.
-                        setTimeout(function () { window.location.reload(); }, 250);
-                        <?php endif; ?>
             }).catch(() => {});
+        });
+
+        // Só recarregar após o usuário fechar o modal (evita “abre e volta” na UI).
+        modalEl<?php echo $info['id']; ?>.addEventListener('hidden.bs.modal', function () {
+            if (reloadOnClose<?php echo $info['id']; ?>) {
+                window.location.reload();
+            }
         });
     }
     <?php endforeach; ?>
