@@ -1059,3 +1059,18 @@ select.input-search:focus{
         max-width: 100%;
     }
 }
+
+/* Mobile: ocultar migalha de pão para ganhar espaço útil */
+@media (max-width: 767.98px) {
+    .breadcrumb {
+        display: none !important;
+    }
+
+    .mobile-hide-page-title {
+        display: none !important;
+    }
+
+    .mobile-hide-breadcrumb {
+        display: none !important;
+    }
+}

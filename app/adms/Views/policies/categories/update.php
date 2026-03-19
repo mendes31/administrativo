@@ -8,9 +8,9 @@ $category = $this->data['category'] ?? [];
     <div class="row justify-content-center">
         <div class="col-12 col-lg-6">
             <div class="mb-1 d-flex flex-column flex-md-row align-items-md-center gap-2">
-                <h2 class="mt-3 fw-bold mb-0">Editar Categoria de Política</h2>
-                <nav aria-label="breadcrumb" class="ms-md-auto mt-2 mt-md-0">
-                    <ol class="breadcrumb mb-0">
+                <h2 class="mt-3 fw-bold mb-0 mobile-hide-page-title">Editar Categoria de Política</h2>
+                <nav aria-label="breadcrumb" class="ms-md-auto mt-2 mt-md-0 mobile-hide-breadcrumb">
+                    <ol class="breadcrumb mb-0 mobile-hide-breadcrumb">
                         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
                         <li class="breadcrumb-item">Gestão de Pessoas</li>
                         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-policy-categories" class="text-decoration-none">Categorias de Políticas</a></li>

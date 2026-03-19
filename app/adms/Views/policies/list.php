@@ -87,8 +87,8 @@ use App\adms\Helpers\FormatHelper;
 
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Políticas Internas</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+        <h2 class="mt-3 mobile-hide-page-title">Políticas Internas</h2>
+        <ol class="breadcrumb mb-3 mt-3 ms-auto mobile-hide-breadcrumb">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>

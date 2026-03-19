@@ -6,11 +6,11 @@ use App\adms\Helpers\CSRFHelper;
     <div class="row justify-content-center">
         <div class="col-12 col-lg-8">
             <div class="mb-1 d-flex flex-column flex-md-row align-items-md-center gap-2">
-                <h2 class="mt-3 text-primary fw-bold mb-0" style="font-size: 1.7rem; letter-spacing: -1px;">
+                <h2 class="mt-3 text-primary fw-bold mb-0 mobile-hide-page-title" style="font-size: 1.7rem; letter-spacing: -1px;">
                     Nova Política Interna
                 </h2>
-                <nav aria-label="breadcrumb" class="ms-md-auto mt-2 mt-md-0">
-                    <ol class="breadcrumb mb-0">
+                <nav aria-label="breadcrumb" class="ms-md-auto mt-2 mt-md-0 mobile-hide-breadcrumb">
+                    <ol class="breadcrumb mb-0 mobile-hide-breadcrumb">
                         <li class="breadcrumb-item">
                             <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
                         </li>

@@ -3,9 +3,9 @@ use App\adms\Helpers\CSRFHelper;
 ?>
 
 <div class="container-fluid px-4">
-    <h1 class="mt-4">Relatório de Informativos</h1>
+    <h1 class="mt-4 mobile-hide-page-title">Relatório de Informativos</h1>
     
-    <ol class="breadcrumb mb-4">
+    <ol class="breadcrumb mb-4 mobile-hide-breadcrumb">
         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos">Informativos</a></li>
         <li class="breadcrumb-item active">Relatório</li>
