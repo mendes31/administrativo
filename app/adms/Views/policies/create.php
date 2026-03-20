@@ -160,8 +160,14 @@ use App\adms\Helpers\CSRFHelper;
                         <!-- Botões principais de ação (antes dos uploads) -->
                         <div class="d-flex gap-2 justify-content-end mb-3">
                             <button type="button"
-                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4"
+                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4 d-none d-md-inline-block"
                                     onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>list-policies'">
+                                Cancelar
+                            </button>
+
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4 d-inline d-md-none"
+                                    onclick="window.history.back();">
                                 Cancelar
                             </button>
 

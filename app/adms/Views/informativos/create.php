@@ -107,7 +107,14 @@ use App\adms\Helpers\CSRFHelper;
                         </div>
                         <!-- Botões principais de ação (antes dos uploads para não serem afetados pelos cards) -->
                         <div class="d-flex gap-2 justify-content-end mb-3">
-                            <button type="button" class="btn btn-outline-secondary btn-lg rounded-3 px-4" onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>list-informativos'">
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4 d-none d-md-inline-block"
+                                    onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>list-informativos'">
+                                Cancelar
+                            </button>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4 d-inline d-md-none"
+                                    onclick="window.history.back();">
                                 Cancelar
                             </button>
                             <button type="submit" class="btn btn-success btn-lg rounded-3 px-4 fw-bold">

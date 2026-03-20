@@ -34,9 +34,15 @@ $policy = $this->data['policy'] ?? [];
                         <i class="fas fa-trash me-1"></i>Excluir
                     </a>
                 <?php endif; ?>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="btn btn-secondary btn-sm mb-1">
+                <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="btn btn-secondary btn-sm mb-1 d-none d-md-inline-block">
                     <i class="fas fa-arrow-left me-1"></i>Voltar
                 </a>
+                <button type="button"
+                        class="btn btn-secondary btn-sm mb-1 d-inline d-md-none"
+                        onclick="window.history.back();"
+                        aria-label="Voltar">
+                    <i class="fas fa-arrow-left me-1"></i>Voltar
+                </button>
             </span>
         </div>
         <div class="card-body">

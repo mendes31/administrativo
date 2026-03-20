@@ -369,9 +369,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                         $isUnread = $informativoId > 0 && isset($unreadInformativoIdSet[$informativoId]);
                         $requiresAck = !empty($informativo['requires_ack']);
                         $isAckPendingAlert = $requiresAck && $isUnread;
+
+                        $buttonPermission = $this->data['buttonPermission'] ?? [];
+                        $canViewInformativo = in_array('ViewInformativo', $buttonPermission, true);
+                        $cardClickable = (!$isEditor) || $canViewInformativo;
+
+                        $canUpdateInformativo = in_array('UpdateInformativo', $buttonPermission, true);
+                        $canRelatorioInformativo = in_array('RelatorioInformativo', $buttonPermission, true);
+                        $canDeleteInformativo = in_array('DeleteInformativo', $buttonPermission, true);
+                        $hasSecondaryActions = $canUpdateInformativo || $canRelatorioInformativo || $canDeleteInformativo;
                         ?>
                         <div class="card mb-3 shadow-sm<?php echo $isAckPendingAlert ? ' informativo-card-alert' : ''; ?>">
-                            <div class="card-body"<?php if (!$isEditor): ?> onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>';" style="cursor:pointer;"<?php endif; ?>>
+                            <div class="card-body"<?php if ($cardClickable): ?> onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>';" style="cursor:pointer;"<?php endif; ?>>
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <h5 class="card-title mb-1">
@@ -436,7 +445,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                 <?php if (!empty($informativo['anexo'])): ?>
                                                     <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>"
                                                        target="_blank"
-                                                       class="d-flex align-items-center gap-1 text-decoration-none"
+                                                       class="mobile-anexo-icon-thumb text-decoration-none"
                                                        onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
                                                         <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'fa-2x'); ?>
                                                     </a>
@@ -444,27 +453,52 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    <?php if ($isEditor): ?>
-                                    <div class="btn-group-vertical btn-group-sm">
-                                        <?php if (in_array('ViewInformativo', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>" class="btn btn-primary btn-sm mb-1" title="Visualizar">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (in_array('UpdateInformativo', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-informativo/<?php echo $informativo['id']; ?>" class="btn btn-warning btn-sm mb-1" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (in_array('RelatorioInformativo', $this->data['buttonPermission'])): ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo?informativo_id=<?php echo $informativo['id']; ?>" class="btn btn-info btn-sm mb-1" title="Relatório">
-                                                <i class="fas fa-chart-bar"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (in_array('DeleteInformativo', $this->data['buttonPermission'])): ?>
-                                            <button type="button" class="btn btn-danger btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDelete<?php echo $informativo['id']; ?>-mobile">
-                                                <i class="fas fa-trash"></i>
+                                    <?php if ($isEditor && $hasSecondaryActions): ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-secondary btn-sm mobile-card-actions-btn"
+                                                    type="button"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false"
+                                                    aria-label="Ações"
+                                                    onclick="event.stopPropagation();">
+                                                <i class="fas fa-ellipsis-v"></i>
                                             </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <?php if ($canUpdateInformativo): ?>
+                                                    <li>
+                                                        <a class="dropdown-item"
+                                                           href="<?php echo $_ENV['URL_ADM']; ?>update-informativo/<?php echo $informativo['id']; ?>"
+                                                           onclick="event.stopPropagation();">
+                                                            <i class="fas fa-edit me-2"></i>Editar
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
+
+                                                <?php if ($canRelatorioInformativo): ?>
+                                                    <li>
+                                                        <a class="dropdown-item"
+                                                           href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo?informativo_id=<?php echo $informativo['id']; ?>"
+                                                           onclick="event.stopPropagation();">
+                                                            <i class="fas fa-chart-bar me-2"></i>Relatório
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
+
+                                                <?php if ($canDeleteInformativo): ?>
+                                                    <li>
+                                                        <button type="button"
+                                                                class="dropdown-item text-danger"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#modalDelete<?php echo $informativo['id']; ?>-mobile"
+                                                                onclick="event.stopPropagation();">
+                                                            <i class="fas fa-trash me-2"></i>Excluir
+                                                        </button>
+                                                    </li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
+
+                                        <?php if ($canDeleteInformativo): ?>
                                             <!-- Modal Bootstrap Mobile -->
                                             <div class="modal fade" id="modalDelete<?php echo $informativo['id']; ?>-mobile" tabindex="-1" aria-labelledby="modalDeleteLabel<?php echo $informativo['id']; ?>-mobile" aria-hidden="true">
                                               <div class="modal-dialog modal-dialog-centered">
@@ -490,7 +524,6 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                               </div>
                                             </div>
                                         <?php endif; ?>
-                                    </div>
                                     <?php endif; ?>
                                 </div>
                             </div>

@@ -59,10 +59,17 @@ use App\adms\Helpers\CSRFHelper;
 
     <div class="row mb-3">
         <div class="col-md-6">
-            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy" class="btn btn-secondary">
+            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy" class="btn btn-secondary d-none d-md-inline-block">
                 <i class="fas fa-arrow-left me-1"></i>
                 Voltar
             </a>
+            <button type="button"
+                    class="btn btn-secondary d-inline d-md-none"
+                    onclick="window.history.back();"
+                    aria-label="Voltar">
+                <i class="fas fa-arrow-left me-1"></i>
+                Voltar
+            </button>
         </div>
         <div class="col-md-6 text-end">
             <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-policy-pdf?policy_id=<?php echo (int)$this->data['policy']['id']; ?>" class="btn btn-success">

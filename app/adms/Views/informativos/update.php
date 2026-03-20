@@ -193,9 +193,15 @@ $informativo = $this->data['informativo'];
                     <a href="<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>" class="btn btn-secondary">
                         <i class="fas fa-eye me-2"></i>Visualizar
                     </a>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos" class="btn btn-outline-secondary">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos"
+                       class="btn btn-outline-secondary d-none d-md-inline-block">
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
+                    <button type="button"
+                            class="btn btn-outline-secondary d-inline d-md-none"
+                            onclick="window.history.back();">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
                 </div>
             </form>
         </div>

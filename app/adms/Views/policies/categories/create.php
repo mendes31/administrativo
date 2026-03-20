@@ -44,9 +44,15 @@ use App\adms\Helpers\CSRFHelper;
 
                         <div class="d-flex gap-2 justify-content-end">
                             <a href="<?php echo $_ENV['URL_ADM']; ?>list-policy-categories"
-                               class="btn btn-outline-secondary">
+                               class="btn btn-outline-secondary d-none d-md-inline-block">
                                 Voltar
                             </a>
+                            <button type="button"
+                                    class="btn btn-outline-secondary d-inline d-md-none"
+                                    onclick="window.history.back();"
+                                    aria-label="Voltar">
+                                Voltar
+                            </button>
                             <button type="submit" class="btn btn-success">
                                 Salvar
                             </button>

@@ -181,9 +181,15 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                         <!-- Botões principais de ação (antes dos uploads) -->
                         <div class="d-flex gap-2 justify-content-end mb-3">
                             <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) ($policy['id'] ?? 0); ?>"
-                               class="btn btn-outline-secondary btn-lg rounded-3 px-4">
+                               class="btn btn-outline-secondary btn-lg rounded-3 px-4 d-none d-md-inline-block">
                                 Voltar
                             </a>
+
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-lg rounded-3 px-4 d-inline d-md-none"
+                                    onclick="window.history.back();">
+                                Voltar
+                            </button>
 
                             <button type="submit"
                                     class="btn btn-primary btn-lg rounded-3 px-4 fw-bold">

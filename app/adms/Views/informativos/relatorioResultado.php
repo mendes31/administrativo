@@ -57,10 +57,17 @@ use App\adms\Helpers\CSRFHelper;
     <!-- Botões de Ação -->
     <div class="row mb-3">
         <div class="col-md-6">
-            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo" class="btn btn-secondary">
+            <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo" class="btn btn-secondary d-none d-md-inline-block">
                 <i class="fas fa-arrow-left me-1"></i>
                 Voltar
             </a>
+            <button type="button"
+                    class="btn btn-secondary d-inline d-md-none"
+                    onclick="window.history.back();"
+                    aria-label="Voltar">
+                <i class="fas fa-arrow-left me-1"></i>
+                Voltar
+            </button>
         </div>
         <div class="col-md-6 text-end">
             <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-informativo-pdf?informativo_id=<?php echo $this->data['informativo']['id']; ?>" class="btn btn-success">
