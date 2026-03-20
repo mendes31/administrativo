@@ -157,7 +157,7 @@ use App\adms\Helpers\FormatHelper;
                 </div>
 
                 <div id="policiesFiltersAdvanced" class="collapse mt-2">
-                    <div class="row g-3 align-items-end">
+                    <div class="row g-2 align-items-end">
                         <div class="col-12 col-md-3">
                             <label for="categoria_id" class="form-label">Categoria</label>
                             <select id="categoria_id" name="categoria_id" class="form-select">
@@ -184,7 +184,7 @@ use App\adms\Helpers\FormatHelper;
                             </select>
                         </div>
 
-                        <div class="col-12 col-md-3">
+                        <div class="col-6 col-md-2">
                             <label for="ativo" class="form-label">Status</label>
                             <select id="ativo" name="ativo" class="form-select">
                                 <option value="">Todos</option>
@@ -193,7 +193,7 @@ use App\adms\Helpers\FormatHelper;
                             </select>
                         </div>
 
-                        <div class="col-12 col-md-2">
+                        <div class="col-6 col-md-2">
                             <label for="urgente" class="form-label">Urgente</label>
                             <select id="urgente" name="urgente" class="form-select">
                                 <option value="">Todos</option>
