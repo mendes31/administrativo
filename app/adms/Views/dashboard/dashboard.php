@@ -189,7 +189,7 @@
                 }
                 ?>
 
-                <?php foreach ($recentInformativos as $info): ?>
+                <?php foreach ($recentInformativos as $infoIdx => $info): ?>
                     <?php
                     $infoId = (int)($info['id'] ?? 0);
                     $requiresAck = !empty($info['requires_ack']);
@@ -239,10 +239,16 @@
                             <div class="d-flex gap-2 mt-2">
                                 <?php if (!empty($info['imagem'])): ?>
                                     <a href="#"
+                                       class="dashboard-informativo-thumb-wrap d-inline-block"
                                        onclick="return openDashboardInformativoImage(event, <?php echo (int)$infoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>');">
                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['imagem']); ?>"
-                                             class="img-fluid rounded shadow"
-                                             alt="Imagem do informativo"
+                                             class="img-fluid rounded shadow dashboard-informativo-thumb"
+                                             alt=""
+                                             width="56"
+                                             height="56"
+                                             loading="eager"
+                                             decoding="async"
+                                             <?php if ($infoIdx < 3): ?>fetchpriority="high"<?php endif; ?>
                                              style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; cursor: pointer;">
                                     </a>
                                 <?php endif; ?>
@@ -576,6 +582,14 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* Miniatura: área visível enquanto a imagem carrega (evita “quadrado branco” vazio) */
+.dashboard-informativo-thumb {
+    background-color: #e9ecef;
+    min-width: 56px;
+    min-height: 56px;
+    vertical-align: middle;
 }
 
 /* Mobile: ajustes de densidade nos cards */

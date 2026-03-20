@@ -97,15 +97,37 @@ class FileServer
 
         $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
 
-        // Configurar headers apropriados
-        header('Content-Type: ' . $mimeType);
-        header('Content-Length: ' . filesize($fullPath));
-        
-        // Para imagens, permitir cache
-        if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-            header('Cache-Control: public, max-age=31536000');
+        $fileSize = filesize($fullPath);
+        $lastmod = filemtime($fullPath);
+
+        // Para imagens: cache + 304 quando possível (menos bytes na rede em revisita)
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastmod) . ' GMT');
+            $etag = '"' . md5($fullPath . $lastmod . $fileSize) . '"';
+            header('ETag: ' . $etag);
+
+            if (!empty($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+                http_response_code(304);
+                exit;
+            }
+            if (!empty($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+                $ifModifiedSince = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+                if ($ifModifiedSince !== false && $lastmod <= $ifModifiedSince) {
+                    http_response_code(304);
+                    exit;
+                }
+            }
+
+            header('Content-Type: ' . $mimeType);
+            header('Content-Length: ' . $fileSize);
+            header('Cache-Control: public, max-age=31536000, immutable');
             header('Expires: ' . gmdate('D, d M Y H:i:s \G\M\T', time() + 31536000));
         } else {
+            header('Content-Type: ' . $mimeType);
+            header('Content-Length: ' . $fileSize);
+        }
+
+        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
             // Para outros arquivos, forçar download
             $disposition = ($extension === 'pdf') ? 'inline' : 'attachment';
             header('Content-Disposition: ' . $disposition . '; filename="' . basename($fullPath) . '"');

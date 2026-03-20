@@ -9,11 +9,11 @@ class ServeFile
     public function index()
     {
         $path = $_GET['path'] ?? '';
-        $logPath = __DIR__ . '/log_servefile.txt';
-        file_put_contents($logPath, date('Y-m-d H:i:s') . " | PATH: $path\n", FILE_APPEND);
-        file_put_contents(__DIR__ . '/debug_path_param.txt', var_export($path, true) . PHP_EOL, FILE_APPEND);
+        // Não gravar log em disco a cada imagem — com várias miniaturas na dashboard isso deixa o carregamento muito lento.
+        if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
+            error_log('[ServeFile] path=' . $path);
+        }
         $fileServer = new FileServer();
-        file_put_contents(__DIR__ . '/debug_path_service.txt', var_export($path, true) . PHP_EOL, FILE_APPEND);
         $fileServer->serveFile($path);
     }
 } 
