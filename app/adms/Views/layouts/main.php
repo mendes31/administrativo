@@ -268,18 +268,25 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 ?>
             </main>
 
-            <footer class="py-4 bg-light mt-auto">
+            <footer class="py-4 bg-light mt-auto adms-footer">
                 <div class="container-fluid px-4">
-                    <div class="d-flex align-items-center justify-content-between small">
-                        <div class="text-muted">Copyright &copy; <?php echo $_ENV['APP_NAME'] . " " . date("Y"); ?></div>
-                        <div>
-                            <a href="#" class="text-decoration-none">PolÃ­tica de Privacidade</a>
+                    <div class="d-flex align-items-center justify-content-between small adms-footer-row">
+                        <div class="adms-footer-links small">
+                            <a href="#" class="text-decoration-none">Políticas de Privacidade</a>
                             &middot;
                             <a href="#" class="text-decoration-none">Termos de Uso</a>
+                        </div>
+                        <div class="text-muted adms-footer-copyright small">
+                            Copyright &copy; <?php echo $_ENV['APP_NAME'] . " " . date("Y"); ?>
                         </div>
                     </div>
                 </div>
             </footer>
+
+    <?php
+    // Botão flutuante de "Voltar" foi removido para evitar aparecer no final da página.
+    // O retorno em mobile deve ser feito sempre via botão na navbar (ver navbar.php).
+    ?>
 
         </div>
     </div>
@@ -348,13 +355,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <!-- Bootstrap Bundle com Popper.js -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
 
-    <?php if (isset($_SESSION['user_id'])): ?>
-        <li class="nav-item">
-            <a class="nav-link" href="<?= $_ENV['URL_ADM'] ?>minhas-avaliacoes">
-                <i class="fas fa-clipboard-list me-2"></i>Minhas AvaliaÃ§Ãµes
-            </a>
-        </li>
-    <?php endif; ?>
+    <!-- (Removido) item "Minhas Avaliações" que estava sendo renderizado fora do navbar -->
 
     <script>
     // Intercepta todas as respostas fetch

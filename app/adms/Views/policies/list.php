@@ -117,90 +117,103 @@ use App\adms\Helpers\FormatHelper;
             $unreadPolicyIdSet = array_fill_keys($unreadPolicyIds, true);
             ?>
             <?php if (!empty($this->data['isEditor'])): ?>
-            <form method="get" action="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="row g-3 mb-3">
-                <div class="col-md-3">
-                    <label for="busca" class="form-label">Busca</label>
-                    <input type="text" id="busca" name="busca" class="form-control"
-                           value="<?php echo htmlspecialchars($this->data['filters']['busca'] ?? ''); ?>"
-                           placeholder="Título, conteúdo ou resumo">
+            <form method="get" action="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="mb-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label for="busca" class="form-label">Busca</label>
+                        <input type="text" id="busca" name="busca" class="form-control"
+                               value="<?php echo htmlspecialchars($this->data['filters']['busca'] ?? ''); ?>"
+                               placeholder="Título, conteúdo ou resumo">
+                    </div>
+
+                    <div class="col-6 col-md-auto mb-2">
+                        <label for="per_page" class="form-label">Mostrar</label>
+                        <select id="per_page" name="per_page" class="form-select form-select-sm" style="min-width: 90px;" onchange="this.form.submit()">
+                            <?php
+                            $perPage = (int) ($this->data['per_page'] ?? 10);
+                            foreach ([10, 20, 50, 100] as $opt) {
+                                $selected = $perPage === $opt ? 'selected' : '';
+                                echo "<option value=\"{$opt}\" {$selected}>{$opt}</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <div class="col-6 col-md-auto filtros-btns-row">
+                        <button type="submit" class="btn btn-primary btn-sm btn-filtros-mobile w-100">
+                            <i class="fa fa-search"></i> Filtrar
+                        </button>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="btn btn-secondary btn-sm btn-filtros-mobile w-100">
+                            <i class="fa fa-times"></i> Limpar
+                        </a>
+                    </div>
                 </div>
 
-                <div class="col-md-3">
-                    <label for="categoria_id" class="form-label">Categoria</label>
-                    <select id="categoria_id" name="categoria_id" class="form-select">
-                        <option value="">Todas</option>
-                        <?php foreach ($this->data['categorias'] ?? [] as $cat): ?>
-                            <option value="<?php echo (int) $cat['id']; ?>"
-                                <?php echo (($this->data['filters']['categoria_id'] ?? '') == $cat['id']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($cat['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label for="department_id" class="form-label">Departamento Responsável</label>
-                    <select id="department_id" name="department_id" class="form-select">
-                        <option value="">Todos</option>
-                        <?php foreach ($this->data['departments'] ?? [] as $dep): ?>
-                            <option value="<?php echo (int) $dep['id']; ?>"
-                                <?php echo (($this->data['filters']['department_id'] ?? '') == $dep['id']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($dep['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label for="ativo" class="form-label">Status</label>
-                    <select id="ativo" name="ativo" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="1" <?php echo (($this->data['filters']['ativo'] ?? '') === '1') ? 'selected' : ''; ?>>Ativos</option>
-                        <option value="0" <?php echo (($this->data['filters']['ativo'] ?? '') === '0') ? 'selected' : ''; ?>>Inativos</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label for="urgente" class="form-label">Urgente</label>
-                    <select id="urgente" name="urgente" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="1" <?php echo (($this->data['filters']['urgente'] ?? '') === '1') ? 'selected' : ''; ?>>Sim</option>
-                        <option value="0" <?php echo (($this->data['filters']['urgente'] ?? '') === '0') ? 'selected' : ''; ?>>Não</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label for="data_inicio" class="form-label">Data início</label>
-                    <input type="date" id="data_inicio" name="data_inicio" class="form-control"
-                           value="<?php echo htmlspecialchars($this->data['filters']['data_inicio'] ?? ''); ?>">
-                </div>
-
-                <div class="col-md-2">
-                    <label for="data_fim" class="form-label">Data fim</label>
-                    <input type="date" id="data_fim" name="data_fim" class="form-control"
-                           value="<?php echo htmlspecialchars($this->data['filters']['data_fim'] ?? ''); ?>">
-                </div>
-
-                <div class="col-md-2">
-                    <label for="per_page" class="form-label">Registros por página</label>
-                    <select id="per_page" name="per_page" class="form-select">
-                        <?php
-                        $perPage = (int) ($this->data['per_page'] ?? 10);
-                        foreach ([10, 20, 50, 100] as $opt) {
-                            $selected = $perPage === $opt ? 'selected' : '';
-                            echo "<option value=\"{$opt}\" {$selected}>{$opt}</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-
-                <div class="col-md-4 d-flex align-items-end justify-content-end gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fa-solid fa-filter"></i> Filtrar
+                <!-- Toggle de Filtros avançados no mobile -->
+                <div class="d-block d-md-none mt-2">
+                    <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#policiesFiltersAdvanced" aria-expanded="false" aria-controls="policiesFiltersAdvanced">
+                        <i class="fas fa-sliders me-2"></i>Filtros avançados
                     </button>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="btn btn-outline-secondary btn-sm">
-                        Limpar
-                    </a>
+                </div>
+
+                <div id="policiesFiltersAdvanced" class="collapse mt-2">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label for="categoria_id" class="form-label">Categoria</label>
+                            <select id="categoria_id" name="categoria_id" class="form-select">
+                                <option value="">Todas</option>
+                                <?php foreach ($this->data['categorias'] ?? [] as $cat): ?>
+                                    <option value="<?php echo (int) $cat['id']; ?>"
+                                        <?php echo (($this->data['filters']['categoria_id'] ?? '') == $cat['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($cat['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label for="department_id" class="form-label">Departamento Responsável</label>
+                            <select id="department_id" name="department_id" class="form-select">
+                                <option value="">Todos</option>
+                                <?php foreach ($this->data['departments'] ?? [] as $dep): ?>
+                                    <option value="<?php echo (int) $dep['id']; ?>"
+                                        <?php echo (($this->data['filters']['department_id'] ?? '') == $dep['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($dep['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label for="ativo" class="form-label">Status</label>
+                            <select id="ativo" name="ativo" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="1" <?php echo (($this->data['filters']['ativo'] ?? '') === '1') ? 'selected' : ''; ?>>Ativos</option>
+                                <option value="0" <?php echo (($this->data['filters']['ativo'] ?? '') === '0') ? 'selected' : ''; ?>>Inativos</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-2">
+                            <label for="urgente" class="form-label">Urgente</label>
+                            <select id="urgente" name="urgente" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="1" <?php echo (($this->data['filters']['urgente'] ?? '') === '1') ? 'selected' : ''; ?>>Sim</option>
+                                <option value="0" <?php echo (($this->data['filters']['urgente'] ?? '') === '0') ? 'selected' : ''; ?>>Não</option>
+                            </select>
+                        </div>
+
+                        <div class="col-6 col-md-2">
+                            <label for="data_inicio" class="form-label">Data início</label>
+                            <input type="date" id="data_inicio" name="data_inicio" class="form-control"
+                                   value="<?php echo htmlspecialchars($this->data['filters']['data_inicio'] ?? ''); ?>">
+                        </div>
+
+                        <div class="col-6 col-md-2">
+                            <label for="data_fim" class="form-label">Data fim</label>
+                            <input type="date" id="data_fim" name="data_fim" class="form-control"
+                                   value="<?php echo htmlspecialchars($this->data['filters']['data_fim'] ?? ''); ?>">
+                        </div>
+                    </div>
                 </div>
             </form>
             <?php endif; ?>

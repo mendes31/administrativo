@@ -1073,6 +1073,70 @@ select.input-search:focus{
     .mobile-hide-breadcrumb {
         display: none !important;
     }
+
+    /* Footer: melhorar leitura no mobile (links em cima, copyright embaixo) */
+    footer.adms-footer {
+        position: relative;
+        z-index: 1050;
+    }
+
+    footer.adms-footer .adms-footer-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+
+    footer.adms-footer .adms-footer-links {
+        order: 1;
+        width: 100%;
+    }
+
+    footer.adms-footer .adms-footer-copyright {
+        order: 2;
+        width: 100%;
+    }
+
+    footer.adms-footer a {
+        word-break: break-word;
+    }
+
+    /* Evitar botão interno "Voltar" nas views: sempre usar o botão da navbar no mobile */
+    #layoutSidenav_content button[aria-label="Voltar"] {
+        display: none !important;
+    }
+    #layoutSidenav_content button[onclick*="history.back"] {
+        display: none !important;
+    }
+}
+
+/* Mobile: botão flutuante para voltar */
+.mobile-back-fab {
+    position: fixed;
+    right: 16px;
+    bottom: 86px;
+    z-index: 1030;
+    display: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 767.98px) {
+    .mobile-back-fab {
+        display: none !important;
+    }
+}
+
+/* Desktop: manter "Filtros avançados" sempre visíveis (sem precisar do collapse). */
+@media (min-width: 768px) {
+    #informativosFiltersAdvanced,
+    #policiesFiltersAdvanced {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
 }
 
 /* Mobile cards: thumbnails e menu de ações compacto (informativos/políticas) */

@@ -56,6 +56,25 @@ if (!empty($_SESSION['user_id'])) {
         <i class="fas fa-home text-white d-inline d-md-none" aria-hidden="true" title="Home"></i>
         <span>Tiaraju</span>
     </a>
+    <?php
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    $path = parse_url($requestUri, PHP_URL_PATH) ?: $requestUri;
+    // Detecta dashboard considerando que o path pode vir como "/administrativo/dashboard"
+    $pathTrimmed = rtrim($path, '/');
+    $segments = array_values(array_filter(explode('/', $pathTrimmed)));
+    $lastSegment = end($segments) ?: '';
+    $isDashboardPage = strtolower($lastSegment) === 'dashboard';
+    $showMobileBackInNavbar = !empty($requestUri) && strpos($requestUri, 'login') === false && !$isDashboardPage;
+    ?>
+    <?php if ($showMobileBackInNavbar): ?>
+        <button type="button"
+                class="btn btn-link btn-sm d-inline d-md-none me-2"
+                aria-label="Voltar"
+                title="Voltar"
+                onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='<?php echo $_ENV['URL_ADM']; ?>dashboard'; }">
+            <i class="fas fa-arrow-left text-white" aria-hidden="true"></i>
+        </button>
+    <?php endif; ?>
     <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" type="button" aria-label="Alternar menu lateral" title="Alternar menu lateral">
         <i class="fas fa-bars" aria-hidden="true"></i>
     </button>
@@ -197,6 +216,11 @@ if (!empty($_SESSION['user_id'])) {
                 <li>
                     <a class="dropdown-item" href="<?php echo $_ENV['URL_ADM']; ?>update-password">
                         <i class="fa-solid fa-key me-2"></i> Alterar Senha
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="<?php echo $_ENV['URL_ADM']; ?>minhas-avaliacoes">
+                        <i class="fas fa-clipboard-list me-2"></i>Minhas Avaliações
                     </a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
