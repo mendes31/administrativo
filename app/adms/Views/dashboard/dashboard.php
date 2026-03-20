@@ -639,26 +639,53 @@
     touch-action: pan-y;
 }
 
+/* Modal de imagem: barra de ações sempre visível; só o miolo rola (evita “Fechar” só no fim da página) */
+#imageModal .dashboard-image-modal-content {
+    min-height: 100dvh;
+    min-height: 100svh;
+}
+@media (min-width: 768px) {
+    #imageModal .dashboard-image-modal-content {
+        min-height: auto;
+        max-height: 92vh;
+    }
+}
+#imageModal .dashboard-image-modal-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+#imageModal #modalImage {
+    max-height: calc(100vh - 7rem) !important;
+}
+@supports (height: 100dvh) {
+    #imageModal #modalImage {
+        max-height: min(78dvh, calc(100dvh - 7rem)) !important;
+    }
+}
+
 /* Backdrop mais suave em todos os modais da dashboard (informativos, imagem, aniversários) */
 .modal-backdrop.dashboard-soft-backdrop.show {
     opacity: 0.12 !important;
     background-color: #f8fafc !important;
 }
 </style>
-<!-- Modal para ampliar imagem - Tela cheia em mobile -->
+<!-- Modal para ampliar imagem - Tela cheia em mobile; Fechar sempre na barra superior -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down modal-xl">
-    <div class="modal-content" style="background-color: #fff;">
-      <div class="modal-header border-0 pb-0">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background-color: white; border-radius: 50%; padding: 0.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></button>
+    <div class="modal-content dashboard-image-modal-content d-flex flex-column bg-white border-0 rounded-0">
+      <div class="modal-header flex-shrink-0 border-0 py-2 px-3 shadow-sm bg-white align-items-center justify-content-end">
+        <span class="visually-hidden" id="imageModalLabel">Visualização de imagem</span>
+        <div class="d-flex gap-2 align-items-center">
+          <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i>Fechar
+          </button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
       </div>
-      <div class="modal-body text-center d-flex align-items-center justify-content-center p-0" style="background-color: #fff;">
-        <img id="modalImage" src="" alt="Imagem ampliada" class="img-fluid" style="max-width: 100%; max-height: 90vh; width: auto; height: auto; object-fit: contain;">
-      </div>
-      <div class="modal-footer border-0 justify-content-center">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-2"></i>Fechar
-        </button>
+      <div class="modal-body dashboard-image-modal-body text-center d-flex align-items-center justify-content-center p-2 p-md-3 bg-white">
+        <img id="modalImage" src="" alt="Imagem ampliada" class="img-fluid" style="width: auto; height: auto; object-fit: contain;">
       </div>
     </div>
   </div>
@@ -675,9 +702,10 @@ function showImageModal(src) {
     const modalEl = document.getElementById('imageModal');
     if (!img || !modalEl) return;
 
-    img.src = src;
-
-    img.onload = function () {
+    let opened = false;
+    function openModalOnce() {
+        if (opened) return;
+        opened = true;
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
             backdrop: 'static',
             keyboard: true,
@@ -689,11 +717,22 @@ function showImageModal(src) {
             img.style.filter = '';
             img.style.opacity = '1';
         }, 50);
-    };
+    }
 
     img.onerror = function () {
+        opened = false;
         alert('Erro ao carregar a imagem. Por favor, tente novamente.');
     };
+
+    img.onload = function () {
+        openModalOnce();
+    };
+
+    img.src = src;
+    // Imagem já em cache (comum no localhost): onload pode não disparar
+    if (img.complete && img.naturalWidth > 0) {
+        setTimeout(openModalOnce, 0);
+    }
 }
 
 // Dashboard: ao abrir imagem/anexo, manter coerência com o sino.

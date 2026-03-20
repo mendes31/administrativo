@@ -300,8 +300,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <!-- Fix para garantir funcionamento do menu toggle -->
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-toggle-fix.js"></script>
 
-    <!-- Fix para modais travados em mobile -->
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/modal-fix.js"></script>
+    <!-- Fix para modais travados em mobile (inclui mover .modal para body — stacking context) -->
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/modal-fix.js?v=20260213"></script>
     
     <!-- Fix para garantir que formulários funcionem em mobile -->
     <!-- TEMPORARIAMENTE DESABILITADO para testar modais -->
