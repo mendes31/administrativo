@@ -24,7 +24,12 @@ class CrmTagsRepository extends DbConnection
     {
         // Cache para queries frequentes (TTL: 5 minutos)
         $cacheService = new \App\adms\Models\Services\QueryCacheService(null, 300);
-        $cacheKey = 'crm_tags_all';
+        // Stamp para renovar cache automaticamente quando houver mudanças na tabela
+        $stampSql = 'SELECT COUNT(*) AS total_rows, COALESCE(MAX(id), 0) AS max_id FROM crm_tags';
+        $stampStmt = $this->getConnection()->prepare($stampSql);
+        $stampStmt->execute();
+        $stamp = $stampStmt->fetch(PDO::FETCH_ASSOC) ?: ['total_rows' => 0, 'max_id' => 0];
+        $cacheKey = 'crm_tags_all_' . (int)$stamp['total_rows'] . '_' . (int)$stamp['max_id'];
         
         // Tentar obter do cache
         $cached = $cacheService->get($cacheKey);
