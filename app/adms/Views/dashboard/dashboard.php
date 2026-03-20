@@ -665,7 +665,7 @@ function showImageModal(src) {
 
     img.onload = function () {
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
-            backdrop: true,
+            backdrop: 'static',
             keyboard: true,
             focus: true
         });
@@ -684,7 +684,7 @@ function showImageModal(src) {
 
 // Dashboard: ao abrir imagem/anexo, manter coerência com o sino.
 // - requires_ack=1: não remove notificação automaticamente (apenas abre).
-// - requires_ack=0: marca como lido via read-informativo e recarrega para atualizar badge/sino.
+// - requires_ack=0: marca como lido via read-informativo (sem reload — evita fechar o modal de imagem).
 function openDashboardInformativoImage(event, informativoId, requiresAck, imageUrl) {
     event.preventDefault();
     event.stopPropagation();
@@ -703,10 +703,6 @@ function openDashboardInformativoImage(event, informativoId, requiresAck, imageU
     }).catch(function () {});
 
     showImageModal(imageUrl);
-
-    setTimeout(function () {
-        window.location.reload();
-    }, 250);
 
     return false;
 }
@@ -729,10 +725,6 @@ function openDashboardInformativoAttachment(event, informativoId, requiresAck, u
     }).catch(function () {});
 
     window.open(url, '_blank', 'noopener,noreferrer');
-
-    setTimeout(function () {
-        window.location.reload();
-    }, 250);
 
     return false;
 }
