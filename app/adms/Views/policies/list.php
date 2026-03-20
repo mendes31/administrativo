@@ -185,12 +185,15 @@ use App\adms\Helpers\FormatHelper;
                         </div>
 
                         <div class="col-6 col-md-2">
-                            <label for="ativo" class="form-label">Status</label>
-                            <select id="ativo" name="ativo" class="form-select">
-                                <option value="">Todos</option>
-                                <option value="1" <?php echo (($this->data['filters']['ativo'] ?? '') === '1') ? 'selected' : ''; ?>>Ativos</option>
-                                <option value="0" <?php echo (($this->data['filters']['ativo'] ?? '') === '0') ? 'selected' : ''; ?>>Inativos</option>
-                            </select>
+                            <label for="data_inicio" class="form-label">Data início</label>
+                            <input type="date" id="data_inicio" name="data_inicio" class="form-control"
+                                   value="<?php echo htmlspecialchars($this->data['filters']['data_inicio'] ?? ''); ?>">
+                        </div>
+
+                        <div class="col-6 col-md-2">
+                            <label for="data_fim" class="form-label">Data fim</label>
+                            <input type="date" id="data_fim" name="data_fim" class="form-control"
+                                   value="<?php echo htmlspecialchars($this->data['filters']['data_fim'] ?? ''); ?>">
                         </div>
 
                         <div class="col-6 col-md-2">
@@ -203,15 +206,12 @@ use App\adms\Helpers\FormatHelper;
                         </div>
 
                         <div class="col-6 col-md-2">
-                            <label for="data_inicio" class="form-label">Data início</label>
-                            <input type="date" id="data_inicio" name="data_inicio" class="form-control"
-                                   value="<?php echo htmlspecialchars($this->data['filters']['data_inicio'] ?? ''); ?>">
-                        </div>
-
-                        <div class="col-6 col-md-2">
-                            <label for="data_fim" class="form-label">Data fim</label>
-                            <input type="date" id="data_fim" name="data_fim" class="form-control"
-                                   value="<?php echo htmlspecialchars($this->data['filters']['data_fim'] ?? ''); ?>">
+                            <label for="ativo" class="form-label">Status</label>
+                            <select id="ativo" name="ativo" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="1" <?php echo (($this->data['filters']['ativo'] ?? '') === '1') ? 'selected' : ''; ?>>Ativos</option>
+                                <option value="0" <?php echo (($this->data['filters']['ativo'] ?? '') === '0') ? 'selected' : ''; ?>>Inativos</option>
+                            </select>
                         </div>
                     </div>
                 </div>

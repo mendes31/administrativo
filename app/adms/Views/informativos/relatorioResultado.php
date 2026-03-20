@@ -70,14 +70,19 @@ use App\adms\Helpers\CSRFHelper;
             </button>
         </div>
         <div class="col-md-6 text-end">
-            <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-informativo-pdf?informativo_id=<?php echo $this->data['informativo']['id']; ?>" class="btn btn-success">
+            <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-informativo-pdf?informativo_id=<?php echo $this->data['informativo']['id']; ?>"
+               class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-2"
+               title="Baixar relatório em PDF">
                 <i class="fas fa-file-pdf me-1"></i>
-                Exportar PDF
+                PDF
             </a>
-            <button onclick="exportarCSV()" class="btn btn-info">
-                <i class="fas fa-download me-1"></i>
-                Exportar CSV
-            </button>
+            <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-informativo-excel?informativo_id=<?php echo (int)$this->data['informativo']['id']; ?>"
+               class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-2"
+               title="Baixar relatório em Excel (.xlsx)"
+               onclick="const q=(typeof getRelatorioInformativoUserFilterValue === 'function') ? getRelatorioInformativoUserFilterValue() : ''; if (q) { const url = new URL(this.href, window.location.href); url.searchParams.set('usuario_filter', q); this.href = url.toString(); }">
+                <i class="fas fa-file-excel me-1"></i>
+                Excel
+            </a>
         </div>
     </div>
 
@@ -141,7 +146,17 @@ use App\adms\Helpers\CSRFHelper;
             </h5>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
+            <div class="mb-3">
+                <label for="relatorioUserFilterInformativo" class="form-label mb-1">Filtrar por usuário</label>
+                <input
+                    type="text"
+                    id="relatorioUserFilterInformativo"
+                    class="form-control"
+                    placeholder="Digite nome ou email"
+                    oninput="filterRelatorioInformativoUsuarios()"
+                >
+            </div>
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-striped table-bordered" id="tabela-relatorio">
                     <thead class="table-dark">
                         <tr>
@@ -207,45 +222,98 @@ use App\adms\Helpers\CSRFHelper;
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile: mini-cards (evita scroll lateral) -->
+            <div class="d-block d-md-none">
+                <?php if (!empty($this->data['dados_relatorio'])): ?>
+                    <?php foreach ($this->data['dados_relatorio'] as $dado): ?>
+                        <?php
+                        $visualizouSim = ($dado['visualizou'] === 'SIM');
+                        $estaCiente = $dado['esta_ciente'] ?? 'N/A';
+                        $cieStatus = $estaCiente === 'N/A' ? 'bg-secondary' : ($estaCiente === 'SIM' ? 'bg-success' : 'bg-warning text-dark');
+                        $statusClass = match($dado['status']) {
+                            'PENDENTE' => 'bg-danger',
+                            'VISUALIZOU' => 'bg-info',
+                            'VISUALIZOU MAS NÃO CIENTE' => 'bg-warning text-dark',
+                            'CIENTE' => 'bg-success',
+                            default => 'bg-secondary'
+                        };
+                        ?>
+
+                        <div
+                            class="card mb-3 shadow-sm relatorio-user-card"
+                            style="border-radius: 12px;"
+                            data-user="<?php echo htmlspecialchars($dado['usuario_nome'] ?? ''); ?>"
+                            data-email="<?php echo htmlspecialchars($dado['usuario_email'] ?? ''); ?>"
+                        >
+                            <div class="card-body" style="padding: 14px;">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div class="flex-grow-1">
+                                        <strong><?php echo htmlspecialchars($dado['usuario_nome']); ?></strong>
+                                        <div class="text-muted small"><?php echo htmlspecialchars($dado['usuario_email']); ?></div>
+                                    </div>
+                                    <span class="badge <?php echo $statusClass; ?>">
+                                        <?php echo htmlspecialchars($dado['status']); ?>
+                                    </span>
+                                </div>
+
+                                <div class="mt-2 d-flex flex-wrap gap-1">
+                                    <span class="badge <?php echo $visualizouSim ? 'bg-success' : 'bg-danger'; ?>">
+                                        Visualizou: <?php echo $visualizouSim ? 'SIM' : 'NÃO'; ?>
+                                    </span>
+                                    <span class="badge <?php echo $cieStatus; ?>">
+                                        Ciência: <?php echo htmlspecialchars($estaCiente); ?>
+                                    </span>
+                                </div>
+
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        Visualização em: <?php echo htmlspecialchars($dado['data_visualizacao']); ?>
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        Ciência em: <?php echo htmlspecialchars($dado['data_ciencia']); ?>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center text-muted py-3">Nenhum usuário encontrado</div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-function exportarCSV() {
+
+function getRelatorioInformativoUserFilterValue() {
+    const input = document.getElementById('relatorioUserFilterInformativo');
+    return (input?.value || '').toString().toLowerCase().trim();
+}
+
+function filterRelatorioInformativoUsuarios() {
+    const q = getRelatorioInformativoUserFilterValue();
+
+    // Desktop: filtra linhas da tabela
     const table = document.getElementById('tabela-relatorio');
-    const rows = table.querySelectorAll('tr');
-    
-    let csv = [];
-    
-    // Cabeçalho
-    const headers = [];
-    rows[0].querySelectorAll('th').forEach(th => {
-        headers.push('"' + th.textContent.trim() + '"');
-    });
-    csv.push(headers.join(','));
-    
-    // Dados
-    for (let i = 1; i < rows.length; i++) {
-        const row = [];
-        rows[i].querySelectorAll('td').forEach(td => {
-            // Remover HTML e pegar apenas texto
-            const text = td.textContent.trim().replace(/\s+/g, ' ');
-            row.push('"' + text + '"');
+    if (table) {
+        const tbodyRows = table.querySelectorAll('tbody tr');
+        tbodyRows.forEach(tr => {
+            const userCell = tr.querySelector('td.ps-3 strong')?.textContent || '';
+            const emailCell = tr.querySelector('td.ps-3 small')?.textContent || '';
+            const haystack = (userCell + ' ' + emailCell).toLowerCase();
+            tr.style.display = (!q || haystack.includes(q)) ? '' : 'none';
         });
-        csv.push(row.join(','));
     }
-    
-    // Download
-    const csvContent = csv.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'relatorio_informativo_<?php echo $this->data['informativo']['id']; ?>_<?php echo date('Y-m-d_H-i-s'); ?>.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    // Mobile: filtra cards
+    const cards = document.querySelectorAll('.relatorio-user-card');
+    cards.forEach(card => {
+        const user = (card.dataset.user || '').toLowerCase();
+        const email = (card.dataset.email || '').toLowerCase();
+        const haystack = user + ' ' + email;
+        card.style.display = (!q || haystack.includes(q)) ? '' : 'none';
+    });
 }
 </script>
