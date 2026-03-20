@@ -35,7 +35,11 @@
                     </a>
                 </div>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
-                    <a href="#" class="text-decoration-none flex-fill h-100" data-bs-toggle="modal" data-bs-target="#modalAniversariantesMes">
+                    <a href="#"
+                       class="text-decoration-none flex-fill h-100"
+                       data-bs-toggle="modal"
+                       data-bs-target="#modalAniversariantesMes"
+                       onclick="event.preventDefault();">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
                             <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
                                 <i class="fas fa-birthday-cake fa-3x text-warning"></i>
@@ -48,7 +52,11 @@
                     </a>
                 </div>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
-                    <a href="#" class="text-decoration-none flex-fill h-100" data-bs-toggle="modal" data-bs-target="#modalAniversariantesEmpresa">
+                    <a href="#"
+                       class="text-decoration-none flex-fill h-100"
+                       data-bs-toggle="modal"
+                       data-bs-target="#modalAniversariantesEmpresa"
+                       onclick="event.preventDefault();">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
                             <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
                                 <i class="fas fa-briefcase fa-3x text-primary"></i>
@@ -609,6 +617,12 @@
     max-height: none !important;
     overflow: visible !important;
 }
+
+/* Backdrop mais suave nos modais de Aniversariantes/Tempo de Empresa */
+.modal-backdrop.dashboard-soft-backdrop.show {
+    opacity: 0.12 !important;
+    background-color: #f8fafc !important;
+}
 </style>
 <!-- Modal para ampliar imagem - Tela cheia em mobile -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
@@ -781,6 +795,60 @@ function confirmarCiencia(informativoId) {
 }
 // Registrar leitura ao abrir o modal
 document.addEventListener('DOMContentLoaded', function() {
+    // Dashboard: controlar modais dos cards "Aniversariantes do mês" e "Tempo de Empresa"
+    // para não poluir histórico e manter o "Voltar" dentro da dashboard.
+    const dashboardModalIds = ['modalAniversariantesMes', 'modalAniversariantesEmpresa'];
+    let modalStatePushed = false;
+    let closingFromPopstate = false;
+
+    function getOpenDashboardModalEl() {
+        for (const id of dashboardModalIds) {
+            const el = document.getElementById(id);
+            if (el && el.classList.contains('show')) return el;
+        }
+        return null;
+    }
+
+    function applySoftBackdrop() {
+        const backdrop = document.querySelector('.modal-backdrop.show');
+        if (backdrop) {
+            backdrop.classList.add('dashboard-soft-backdrop');
+        }
+    }
+
+    dashboardModalIds.forEach(function(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.addEventListener('shown.bs.modal', function () {
+            applySoftBackdrop();
+
+            if (!modalStatePushed) {
+                history.pushState({ dashboardModalOpen: true }, '', window.location.href);
+                modalStatePushed = true;
+            }
+        });
+
+        el.addEventListener('hidden.bs.modal', function () {
+            if (modalStatePushed && !closingFromPopstate) {
+                history.back();
+            }
+            closingFromPopstate = false;
+            modalStatePushed = false;
+        });
+    });
+
+    window.addEventListener('popstate', function () {
+        const openModalEl = getOpenDashboardModalEl();
+        if (!openModalEl) return;
+
+        closingFromPopstate = true;
+        const modalInstance = bootstrap.Modal.getInstance(openModalEl);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    });
+
     <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
     const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');
     if (modalEl<?php echo $info['id']; ?>) {

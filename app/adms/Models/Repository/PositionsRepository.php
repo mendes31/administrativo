@@ -276,8 +276,14 @@ class PositionsRepository extends DbConnection
     public function getAllPositionsSelect(): array
     {
         // Cache para queries frequentes (TTL: 5 minutos)
+        // Obs.: se o cargo for criado/alterado direto no banco (fora do sistema),
+        // o "stamp" abaixo muda e força atualização automática do cache.
         $cacheService = new \App\adms\Models\Services\QueryCacheService(null, 300);
-        $cacheKey = 'positions_select_all';
+        $stampSql = 'SELECT UNIX_TIMESTAMP(MAX(COALESCE(updated_at, created_at))) AS last_change FROM adms_positions';
+        $stampStmt = $this->getConnection()->prepare($stampSql);
+        $stampStmt->execute();
+        $lastChange = (string)($stampStmt->fetch(PDO::FETCH_ASSOC)['last_change'] ?? '0');
+        $cacheKey = 'positions_select_all_' . $lastChange;
         
         // Tentar obter do cache
         $cached = $cacheService->get($cacheKey);
