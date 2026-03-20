@@ -72,7 +72,7 @@
         </div>
     </div>
     <!-- Modal de aniversariantes do mês -->
-    <div class="modal fade" id="modalAniversariantesMes" tabindex="-1" aria-labelledby="modalAniversariantesMesLabel" aria-hidden="true">
+    <div class="modal fade" id="modalAniversariantesMes" tabindex="-1" aria-labelledby="modalAniversariantesMesLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
         <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -110,7 +110,7 @@
     </div>
 
     <!-- Modal de aniversariantes de empresa -->
-    <div class="modal fade" id="modalAniversariantesEmpresa" tabindex="-1" aria-labelledby="modalAniversariantesEmpresaLabel" aria-hidden="true">
+    <div class="modal fade" id="modalAniversariantesEmpresa" tabindex="-1" aria-labelledby="modalAniversariantesEmpresaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
         <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -263,7 +263,7 @@
                         </div>
                     </div>
                     <!-- Modal para cada informativo - Design Moderno Reformulado -->
-                    <div class="modal fade" id="informativoModal<?php echo $info['id']; ?>" tabindex="-1" aria-labelledby="informativoModalLabel<?php echo $info['id']; ?>" aria-hidden="true">
+                    <div class="modal fade dashboard-informativo-modal" id="informativoModal<?php echo $info['id']; ?>" tabindex="-1" aria-labelledby="informativoModalLabel<?php echo $info['id']; ?>" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
                         <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg modal-dialog-centered">
                             <div class="modal-content informativo-modal-modern">
                                 
@@ -618,14 +618,21 @@
     overflow: visible !important;
 }
 
-/* Backdrop mais suave nos modais de Aniversariantes/Tempo de Empresa */
+/* Mobile: evita que o scroll “vaze” para a página de trás e reduz gestos que disparam voltar */
+.dashboard-informativo-modal.modal .modal-dialog-scrollable .modal-body,
+#imageModal.modal .modal-body {
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+/* Backdrop mais suave em todos os modais da dashboard (informativos, imagem, aniversários) */
 .modal-backdrop.dashboard-soft-backdrop.show {
     opacity: 0.12 !important;
     background-color: #f8fafc !important;
 }
 </style>
 <!-- Modal para ampliar imagem - Tela cheia em mobile -->
-<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down modal-xl">
     <div class="modal-content" style="background-color: #fff;">
       <div class="modal-header border-0 pb-0">
@@ -643,40 +650,34 @@
   </div>
 </div>
 <script>
+function applyDashboardSoftBackdropToAll() {
+    document.querySelectorAll('.modal-backdrop.show').forEach(function (b) {
+        b.classList.add('dashboard-soft-backdrop');
+    });
+}
+
 function showImageModal(src) {
     const img = document.getElementById('modalImage');
     const modalEl = document.getElementById('imageModal');
-    
+    if (!img || !modalEl) return;
+
     img.src = src;
-    
-    // Garantir que a imagem seja carregada antes de abrir o modal
-    img.onload = function() {
-        var modal = new bootstrap.Modal(modalEl, {
-            backdrop: 'static',  // Backdrop claro
+
+    img.onload = function () {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+            backdrop: true,
             keyboard: true,
             focus: true
         });
-        
         modal.show();
-        
-        // Após abrir, garantir que backdrop seja claro
-        setTimeout(function() {
-            const backdrop = document.querySelector('.modal-backdrop.show');
-            if (backdrop) {
-                backdrop.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                backdrop.style.backdropFilter = 'blur(5px)';
-            }
-            
-            // Garantir que a imagem seja visível e clara
-            img.style.filter = 'brightness(1.1) contrast(1.05)';
+        setTimeout(function () {
+            applyDashboardSoftBackdropToAll();
+            img.style.filter = '';
             img.style.opacity = '1';
-            
-            console.log('✅ Modal de imagem aberto - backdrop claro aplicado');
-        }, 100);
+        }, 50);
     };
-    
-    // Se der erro ao carregar a imagem
-    img.onerror = function() {
+
+    img.onerror = function () {
         alert('Erro ao carregar a imagem. Por favor, tente novamente.');
     };
 }
@@ -795,65 +796,97 @@ function confirmarCiencia(informativoId) {
 }
 // Registrar leitura ao abrir o modal
 document.addEventListener('DOMContentLoaded', function() {
-    // Dashboard: controlar modais dos cards "Aniversariantes do mês" e "Tempo de Empresa"
-    // para não poluir histórico e manter o "Voltar" dentro da dashboard.
-    const dashboardModalIds = ['modalAniversariantesMes', 'modalAniversariantesEmpresa'];
-    let modalStatePushed = false;
+    /**
+     * Modais da dashboard: backdrop suave + histórico (Fechar / Voltar do navegador ou navbar
+     * fecham o overlay e mantêm o usuário na própria página da dashboard).
+     * Um push no histórico por abertura (dataset.historyPushed) evita duplicar entradas se shown.bs.modal disparar mais de uma vez.
+     */
     let closingFromPopstate = false;
+    /** Evita fechar o modal “de baixo” quando history.back() veio do próprio script (fechar com X). */
+    let ignoreNextPopstate = false;
 
-    function getOpenDashboardModalEl() {
-        for (const id of dashboardModalIds) {
-            const el = document.getElementById(id);
-            if (el && el.classList.contains('show')) return el;
+    const dashboardManagedModalIds = [
+        'imageModal',
+        <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
+        'informativoModal<?php echo (int)$info['id']; ?>',
+        <?php endforeach; ?>
+        'modalAniversariantesMes',
+        'modalAniversariantesEmpresa'
+    ];
+
+    function getTopmostDashboardModalEl() {
+        const order = [
+            'imageModal',
+            <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
+            'informativoModal<?php echo (int)$info['id']; ?>',
+            <?php endforeach; ?>
+            'modalAniversariantesMes',
+            'modalAniversariantesEmpresa'
+        ];
+        for (let i = 0; i < order.length; i++) {
+            const el = document.getElementById(order[i]);
+            if (el && el.classList.contains('show')) {
+                return el;
+            }
         }
         return null;
     }
 
-    function applySoftBackdrop() {
-        const backdrop = document.querySelector('.modal-backdrop.show');
-        if (backdrop) {
-            backdrop.classList.add('dashboard-soft-backdrop');
-        }
-    }
-
-    dashboardModalIds.forEach(function(id) {
-        const el = document.getElementById(id);
+    function wireDashboardModal(el) {
         if (!el) return;
 
         el.addEventListener('shown.bs.modal', function () {
-            applySoftBackdrop();
-
-            if (!modalStatePushed) {
-                history.pushState({ dashboardModalOpen: true }, '', window.location.href);
-                modalStatePushed = true;
+            applyDashboardSoftBackdropToAll();
+            setTimeout(applyDashboardSoftBackdropToAll, 50);
+            if (!el.dataset.historyPushed) {
+                history.pushState({ dashboardModal: true }, '', window.location.href);
+                el.dataset.historyPushed = '1';
             }
         });
 
         el.addEventListener('hidden.bs.modal', function () {
-            if (modalStatePushed && !closingFromPopstate) {
-                history.back();
+            if (closingFromPopstate) {
+                closingFromPopstate = false;
+                if (el.dataset.historyPushed) {
+                    delete el.dataset.historyPushed;
+                }
+                return;
             }
-            closingFromPopstate = false;
-            modalStatePushed = false;
+            if (el.dataset.historyPushed) {
+                delete el.dataset.historyPushed;
+                ignoreNextPopstate = true;
+                history.back();
+                setTimeout(function () {
+                    if (ignoreNextPopstate) {
+                        ignoreNextPopstate = false;
+                    }
+                }, 400);
+            }
         });
+    }
+
+    dashboardManagedModalIds.forEach(function (id) {
+        wireDashboardModal(document.getElementById(id));
     });
 
     window.addEventListener('popstate', function () {
-        const openModalEl = getOpenDashboardModalEl();
-        if (!openModalEl) return;
-
-        closingFromPopstate = true;
-        const modalInstance = bootstrap.Modal.getInstance(openModalEl);
-        if (modalInstance) {
-            modalInstance.hide();
+        if (ignoreNextPopstate) {
+            ignoreNextPopstate = false;
+            return;
         }
+        const openModalEl = getTopmostDashboardModalEl();
+        if (!openModalEl) {
+            return;
+        }
+        closingFromPopstate = true;
+        const inst = bootstrap.Modal.getInstance(openModalEl)
+            || bootstrap.Modal.getOrCreateInstance(openModalEl);
+        inst.hide();
     });
 
     <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
     const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');
     if (modalEl<?php echo $info['id']; ?>) {
-        const reloadOnClose<?php echo $info['id']; ?> = <?php echo empty($info['requires_ack']) ? 'true' : 'false'; ?>;
-
         modalEl<?php echo $info['id']; ?>.addEventListener('shown.bs.modal', function () {
             fetch(`${window.location.origin}/administrativo/read-informativo/<?php echo $info['id']; ?>`, {
                 method: 'POST',
@@ -871,13 +904,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }).catch(() => {});
-        });
-
-        // Só recarregar após o usuário fechar o modal (evita “abre e volta” na UI).
-        modalEl<?php echo $info['id']; ?>.addEventListener('hidden.bs.modal', function () {
-            if (reloadOnClose<?php echo $info['id']; ?>) {
-                window.location.reload();
-            }
         });
     }
     <?php endforeach; ?>
