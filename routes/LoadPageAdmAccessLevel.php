@@ -88,11 +88,20 @@ class LoadPageAdmAccessLevel
             'UploadSpreadsheet'           => "\\App\\adms\\Controllers\\dashboards\\UploadSpreadsheet",
             'GetSpreadsheetFields'        => "\\App\\adms\\Controllers\\dashboards\\GetSpreadsheetFields",
             'RhAtualizarStatusCandidatura' => "\\App\\adms\\Controllers\\rh\\RhAtualizarStatusCandidatura",
+            // Exportações usadas em relatórios (podem não estar cadastradas em pages_routes).
+            // Bypass para evitar Erro 003 quando a entrada de rota no banco ainda não existe.
+            'ExportRelatorioInformativoExcel' => "\\App\\adms\\Controllers\\informativos\\ExportRelatorioInformativoExcel",
+            'ExportRelatorioPolicyExcel'      => "\\App\\adms\\Controllers\\policies\\ExportRelatorioPolicyExcel",
         ];
         if (isset($internalAjaxMap[$this->urlController])) {
             $this->classLoad = $internalAjaxMap[$this->urlController];
 
             if (class_exists($this->classLoad)) {
+                // Garantir usuário logado (exportação é endpoint privado).
+                if (empty($_SESSION['user_id']) && empty($_SESSION['user_name']) && empty($_SESSION['user_email'])) {
+                    header("Location: {$_ENV['URL_ADM']}login");
+                    exit;
+                }
                 $this->loadMetodo();
                 return;
             }

@@ -74,16 +74,17 @@ use App\adms\Helpers\CSRFHelper;
         <div class="col-md-6 text-end">
             <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-policy-pdf?policy_id=<?php echo (int)$this->data['policy']['id']; ?>"
                class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-2"
-               title="Baixar relatório em PDF">
+               title="Baixar relatório em PDF"
+               onclick="event.preventDefault(); const q=(typeof getRelatorioPolicyUserFilterValue === 'function') ? getRelatorioPolicyUserFilterValue() : ''; const href=this.getAttribute('href'); if (q) { window.location.href = href + '&usuario_filter=' + encodeURIComponent(q); } else { window.location.href = href; }">
                 <i class="fas fa-file-pdf me-1"></i>
                 PDF
             </a>
             <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-policy-excel?policy_id=<?php echo (int)$this->data['policy']['id']; ?>"
                class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-2"
                title="Baixar relatório em Excel (.xlsx)"
-               onclick="const q=(typeof getRelatorioPolicyUserFilterValue === 'function') ? getRelatorioPolicyUserFilterValue() : ''; if (q) { const url = new URL(this.href, window.location.href); url.searchParams.set('usuario_filter', q); this.href = url.toString(); }">
+               onclick="event.preventDefault(); const q=(typeof getRelatorioPolicyUserFilterValue === 'function') ? getRelatorioPolicyUserFilterValue() : ''; const href=this.getAttribute('href'); if (q) { window.location.href = href + '&usuario_filter=' + encodeURIComponent(q); } else { window.location.href = href; }">
                 <i class="fas fa-file-excel me-1"></i>
-                Excel
+                <span>Excel (XLSX)</span>
             </a>
         </div>
     </div>
@@ -310,6 +311,87 @@ function filterRelatorioPolicyUsuarios() {
         const haystack = user + ' ' + email;
         card.style.display = (!q || haystack.includes(q)) ? '' : 'none';
     });
+}
+
+/* eslint-disable no-undef */
+const SHEETJS_SRC = 'https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js';
+
+function loadSheetJs() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+
+    // Sempre tenta carregar de novo para evitar “promise rejeitada” em cliques repetidos.
+    const existing = document.getElementById('sheetjs-xlsx-cdn');
+    if (existing) existing.remove();
+
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.id = 'sheetjs-xlsx-cdn';
+        s.src = SHEETJS_SRC;
+        s.async = true;
+        s.onload = () => {
+            if (window.XLSX) resolve(window.XLSX);
+            else reject(new Error('XLSX carregou, mas não apareceu em window'));
+        };
+        s.onerror = () => reject(new Error('Falha ao carregar SheetJS (XLSX)'));
+        document.head.appendChild(s);
+    });
+}
+
+async function exportarExcelRelatorioPolicy() {
+    const table = document.getElementById('tabela-relatorio-policy');
+    if (!table) return;
+
+    // Garante que o filtro já foi aplicado antes de exportar.
+    if (typeof filterRelatorioPolicyUsuarios === 'function') {
+        filterRelatorioPolicyUsuarios();
+    }
+
+    const btn = document.getElementById('btnExportExcelRelatorioPolicy');
+    const originalBtnHTML = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Gerando Excel...';
+    }
+
+    try {
+        const XLSX = await Promise.race([
+            loadSheetJs(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000))
+        ]);
+
+        if (!XLSX || !XLSX.utils || typeof XLSX.utils.aoa_to_sheet !== 'function') {
+            throw new Error('SheetJS carregado, mas utils.aoa_to_sheet não está disponível');
+        }
+
+        const tbodyRows = Array.from(table.querySelectorAll('tbody tr'))
+            .filter(tr => tr.style.display !== 'none');
+
+        const headers = Array.from(table.querySelectorAll('thead th'))
+            .map(th => th.textContent.trim());
+
+        const aoa = [headers];
+
+        tbodyRows.forEach(tr => {
+            const cells = Array.from(tr.querySelectorAll('td'))
+                .map(td => td.textContent.trim().replace(/\s+/g, ' '));
+            aoa.push(cells);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+
+        const fileName = 'relatorio_politica_<?php echo (int)$this->data['policy']['id']; ?>_<?php echo date('Y-m-d_H-i-s'); ?>.xlsx';
+        XLSX.writeFile(wb, fileName);
+    } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        alert('Falha ao gerar o Excel. Tente novamente.\n\nDetalhe: ' + msg);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHTML;
+        }
+    }
 }
 </script>
 

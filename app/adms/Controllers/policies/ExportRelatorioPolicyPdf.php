@@ -32,10 +32,21 @@ class ExportRelatorioPolicyPdf
             $requiresAck = true;
         }
 
+        // Filtro opcional (mesma lógica da tela/Excel): por nome/email.
+        $usuarioFilter = trim((string)($_GET['usuario_filter'] ?? ''));
+        $usuarioFilterLower = mb_strtolower($usuarioFilter);
+
         // Usuários para o relatório:
         // - Todos ativos
         // - E também inativos que já deram ciência desta política
         $usuarios = $repo->getUsersForPolicyReport($policyId);
+
+        if ($usuarioFilterLower !== '') {
+            $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {
+                $haystack = mb_strtolower((string)($u['name'] ?? '') . ' ' . (string)($u['email'] ?? ''));
+                return mb_strpos($haystack, $usuarioFilterLower) !== false;
+            }));
+        }
 
         $rowsHtml = '';
         $visualizaram = 0;

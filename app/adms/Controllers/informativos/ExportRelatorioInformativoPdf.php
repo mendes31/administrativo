@@ -32,9 +32,20 @@ class ExportRelatorioInformativoPdf
             $requiresAck = true;
         }
 
+        // Filtro opcional (mesma lógica da tela/Excel): por nome/email.
+        $usuarioFilter = trim((string)($_GET['usuario_filter'] ?? ''));
+        $usuarioFilterLower = mb_strtolower($usuarioFilter);
+
         // Montar linhas do relatório
         $usersRepo = new UsersRepository();
         $usuarios = $usersRepo->getAllUsers(1, 10000, []);
+
+        if ($usuarioFilterLower !== '') {
+            $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {
+                $haystack = mb_strtolower((string)($u['name'] ?? '') . ' ' . (string)($u['email'] ?? ''));
+                return mb_strpos($haystack, $usuarioFilterLower) !== false;
+            }));
+        }
 
         $rowsHtml = '';
         $visualizaram = 0;
