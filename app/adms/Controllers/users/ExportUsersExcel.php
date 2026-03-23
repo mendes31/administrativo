@@ -29,6 +29,9 @@ class ExportUsersExcel
             'status' => $_GET['status'] ?? $_SESSION['filtros_list_users']['status'] ?? '',
             'bloqueado' => $_GET['bloqueado'] ?? $_SESSION['filtros_list_users']['bloqueado'] ?? '',
             'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
+            'periodo_tipo' => $_GET['periodo_tipo'] ?? $_SESSION['filtros_list_users']['periodo_tipo'] ?? '',
+            'data_de' => $_GET['data_de'] ?? $_SESSION['filtros_list_users']['data_de'] ?? '',
+            'data_ate' => $_GET['data_ate'] ?? $_SESSION['filtros_list_users']['data_ate'] ?? '',
         ];
 
         $usersRepo = new UsersRepository();
@@ -40,7 +43,7 @@ class ExportUsersExcel
 
         // Cabeçalhos
         $headers = [
-            'ID', 'Nome', 'E-mail', 'Usuário', 'Departamento', 'Cargo',
+            'ID', 'Nome', 'CPF', 'E-mail', 'Usuário', 'Departamento', 'Cargo',
             'Status', 'Bloqueado', 'Desligado', 'Data Admissão', 'Data Desligamento',
         ];
 
@@ -60,25 +63,26 @@ class ExportUsersExcel
         foreach ($users as $user) {
             $sheet->setCellValue('A' . $row, $user['id'] ?? '');
             $sheet->setCellValue('B' . $row, $user['name'] ?? '');
-            $sheet->setCellValue('C' . $row, $user['email'] ?? '');
-            $sheet->setCellValue('D' . $row, $user['username'] ?? '');
-            $sheet->setCellValue('E' . $row, $user['name_dep'] ?? '');
-            $sheet->setCellValue('F' . $row, $user['name_pos'] ?? '');
-            $sheet->setCellValue('G' . $row, $user['status'] ?? '');
+            $sheet->setCellValueExplicit('C' . $row, (string)($user['cpf'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('D' . $row, $user['email'] ?? '');
+            $sheet->setCellValue('E' . $row, $user['username'] ?? '');
+            $sheet->setCellValue('F' . $row, $user['name_dep'] ?? '');
+            $sheet->setCellValue('G' . $row, $user['name_pos'] ?? '');
+            $sheet->setCellValue('H' . $row, $user['status'] ?? '');
 
             $bloqueado = $user['bloqueado'] ?? 0;
-            $sheet->setCellValue('H' . $row, ($bloqueado == 1 || $bloqueado === 'Sim') ? 'Sim' : 'Não');
+            $sheet->setCellValue('I' . $row, ($bloqueado == 1 || $bloqueado === 'Sim') ? 'Sim' : 'Não');
 
             $dataDesligamento = $user['data_desligamento'] ?? null;
-            $sheet->setCellValue('I' . $row, $dataDesligamento ? 'Sim' : 'Não');
-            $sheet->setCellValue('J' . $row, !empty($user['data_admissao']) ? date('d/m/Y', strtotime($user['data_admissao'])) : '');
-            $sheet->setCellValue('K' . $row, $dataDesligamento ? date('d/m/Y', strtotime($dataDesligamento)) : '');
+            $sheet->setCellValue('J' . $row, $dataDesligamento ? 'Sim' : 'Não');
+            $sheet->setCellValue('K' . $row, !empty($user['data_admissao']) ? date('d/m/Y', strtotime($user['data_admissao'])) : '');
+            $sheet->setCellValue('L' . $row, $dataDesligamento ? date('d/m/Y', strtotime($dataDesligamento)) : '');
 
             $row++;
         }
 
         // Auto-ajustar largura
-        foreach (range('A', 'K') as $col) {
+        foreach (range('A', 'L') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

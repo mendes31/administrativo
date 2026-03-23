@@ -94,6 +94,47 @@ class UsersRepository extends DbConnection
                 $where[] = 'usr.data_desligamento IS NULL';
             }
         }
+
+        // Filtro de período (de/até) por tipo selecionado
+        $periodoTipo = $filtros['periodo_tipo'] ?? '';
+        $dataDe = $filtros['data_de'] ?? '';
+        $dataAte = $filtros['data_ate'] ?? '';
+        if ($periodoTipo === 'atualizacao_cargos') {
+            $sqlExists = "EXISTS (
+                SELECT 1
+                FROM adms_log_alteracoes log
+                INNER JOIN adms_log_alteracoes_detalhes det ON det.log_alteracao_id = log.id
+                WHERE log.tabela = 'adms_users'
+                  AND log.objeto_id = usr.id
+                  AND log.tipo_operacao = 'UPDATE'
+                  AND det.campo = 'user_position_id'";
+            if (!empty($dataDe)) {
+                $sqlExists .= " AND DATE(log.data_alteracao) >= :periodo_data_de";
+                $params[':periodo_data_de'] = $dataDe;
+            }
+            if (!empty($dataAte)) {
+                $sqlExists .= " AND DATE(log.data_alteracao) <= :periodo_data_ate";
+                $params[':periodo_data_ate'] = $dataAte;
+            }
+            $sqlExists .= ")";
+            $where[] = $sqlExists;
+        } else {
+            $periodoMap = [
+                'admissao' => 'usr.data_admissao',
+                'desligamento' => 'usr.data_desligamento',
+            ];
+            if (isset($periodoMap[$periodoTipo])) {
+                $periodoField = $periodoMap[$periodoTipo];
+                if (!empty($dataDe)) {
+                    $where[] = "DATE({$periodoField}) >= :periodo_data_de";
+                    $params[':periodo_data_de'] = $dataDe;
+                }
+                if (!empty($dataAte)) {
+                    $where[] = "DATE({$periodoField}) <= :periodo_data_ate";
+                    $params[':periodo_data_ate'] = $dataAte;
+                }
+            }
+        }
         
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
@@ -159,6 +200,47 @@ class UsersRepository extends DbConnection
                 $where[] = 'usr.data_desligamento IS NOT NULL';
             } else {
                 $where[] = 'usr.data_desligamento IS NULL';
+            }
+        }
+
+        // Filtro de período (de/até) por tipo selecionado
+        $periodoTipo = $filtros['periodo_tipo'] ?? '';
+        $dataDe = $filtros['data_de'] ?? '';
+        $dataAte = $filtros['data_ate'] ?? '';
+        if ($periodoTipo === 'atualizacao_cargos') {
+            $sqlExists = "EXISTS (
+                SELECT 1
+                FROM adms_log_alteracoes log
+                INNER JOIN adms_log_alteracoes_detalhes det ON det.log_alteracao_id = log.id
+                WHERE log.tabela = 'adms_users'
+                  AND log.objeto_id = usr.id
+                  AND log.tipo_operacao = 'UPDATE'
+                  AND det.campo = 'user_position_id'";
+            if (!empty($dataDe)) {
+                $sqlExists .= " AND DATE(log.data_alteracao) >= :periodo_data_de";
+                $params[':periodo_data_de'] = $dataDe;
+            }
+            if (!empty($dataAte)) {
+                $sqlExists .= " AND DATE(log.data_alteracao) <= :periodo_data_ate";
+                $params[':periodo_data_ate'] = $dataAte;
+            }
+            $sqlExists .= ")";
+            $where[] = $sqlExists;
+        } else {
+            $periodoMap = [
+                'admissao' => 'usr.data_admissao',
+                'desligamento' => 'usr.data_desligamento',
+            ];
+            if (isset($periodoMap[$periodoTipo])) {
+                $periodoField = $periodoMap[$periodoTipo];
+                if (!empty($dataDe)) {
+                    $where[] = "DATE({$periodoField}) >= :periodo_data_de";
+                    $params[':periodo_data_de'] = $dataDe;
+                }
+                if (!empty($dataAte)) {
+                    $where[] = "DATE({$periodoField}) <= :periodo_data_ate";
+                    $params[':periodo_data_ate'] = $dataAte;
+                }
             }
         }
 
@@ -268,6 +350,47 @@ class UsersRepository extends DbConnection
             } else {
                 // Filtrar apenas não desligados (sem data_desligamento)
                 $where[] = 'usr.data_desligamento IS NULL';
+            }
+        }
+
+        // Filtro de período (de/até) por tipo selecionado
+        $periodoTipo = $filtros['periodo_tipo'] ?? '';
+        $dataDe = $filtros['data_de'] ?? '';
+        $dataAte = $filtros['data_ate'] ?? '';
+        if ($periodoTipo === 'atualizacao_cargos') {
+            $sqlExists = "EXISTS (
+                SELECT 1
+                FROM adms_log_alteracoes log
+                INNER JOIN adms_log_alteracoes_detalhes det ON det.log_alteracao_id = log.id
+                WHERE log.tabela = 'adms_users'
+                  AND log.objeto_id = usr.id
+                  AND log.tipo_operacao = 'UPDATE'
+                  AND det.campo = 'user_position_id'";
+            if (!empty($dataDe)) {
+                $sqlExists .= " AND DATE(log.data_alteracao) >= :periodo_data_de";
+                $params[':periodo_data_de'] = $dataDe;
+            }
+            if (!empty($dataAte)) {
+                $sqlExists .= " AND DATE(log.data_alteracao) <= :periodo_data_ate";
+                $params[':periodo_data_ate'] = $dataAte;
+            }
+            $sqlExists .= ")";
+            $where[] = $sqlExists;
+        } else {
+            $periodoMap = [
+                'admissao' => 'usr.data_admissao',
+                'desligamento' => 'usr.data_desligamento',
+            ];
+            if (isset($periodoMap[$periodoTipo])) {
+                $periodoField = $periodoMap[$periodoTipo];
+                if (!empty($dataDe)) {
+                    $where[] = "DATE({$periodoField}) >= :periodo_data_de";
+                    $params[':periodo_data_de'] = $dataDe;
+                }
+                if (!empty($dataAte)) {
+                    $where[] = "DATE({$periodoField}) <= :periodo_data_ate";
+                    $params[':periodo_data_ate'] = $dataAte;
+                }
             }
         }
         

@@ -112,6 +112,23 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <option value="0" <?= ($this->data['filtros']['desligado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label for="periodo_tipo" class="form-label mb-1">Selecionar</label>
+                    <select name="periodo_tipo" id="periodo_tipo" class="form-select form-select-sm">
+                        <option value="">-- Selecionar --</option>
+                        <option value="admissao" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'admissao' ? 'selected' : '' ?>>Admissão</option>
+                        <option value="desligamento" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'desligamento' ? 'selected' : '' ?>>Desligamento</option>
+                        <option value="atualizacao_cargos" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'atualizacao_cargos' ? 'selected' : '' ?>>Atualização de Cargos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="data_de" class="form-label mb-1">Data de</label>
+                    <input type="date" name="data_de" id="data_de" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['data_de'] ?? '') ?>">
+                </div>
+                <div class="col-md-2">
+                    <label for="data_ate" class="form-label mb-1">Data até</label>
+                    <input type="date" name="data_ate" id="data_ate" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['data_ate'] ?? '') ?>">
+                </div>
                 <div class="col-md-2">
                     <label for="per_page" class="form-label mb-1">Mostrar</label>
                     <div class="d-flex align-items-center">

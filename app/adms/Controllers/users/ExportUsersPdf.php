@@ -25,6 +25,9 @@ class ExportUsersPdf
             'status' => $_GET['status'] ?? $_SESSION['filtros_list_users']['status'] ?? '',
             'bloqueado' => $_GET['bloqueado'] ?? $_SESSION['filtros_list_users']['bloqueado'] ?? '',
             'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
+            'periodo_tipo' => $_GET['periodo_tipo'] ?? $_SESSION['filtros_list_users']['periodo_tipo'] ?? '',
+            'data_de' => $_GET['data_de'] ?? $_SESSION['filtros_list_users']['data_de'] ?? '',
+            'data_ate' => $_GET['data_ate'] ?? $_SESSION['filtros_list_users']['data_ate'] ?? '',
         ];
 
         $usersRepo = new UsersRepository();
@@ -45,22 +48,24 @@ class ExportUsersPdf
 
         $html .= '<table><thead><tr>
             <th style="width:6%;">ID</th>
-            <th style="width:18%;">Nome</th>
-            <th style="width:20%;">E-mail</th>
+            <th style="width:14%;">Nome</th>
+            <th style="width:10%;">CPF</th>
+            <th style="width:16%;">E-mail</th>
             <th style="width:10%;">Usuário</th>
-            <th style="width:14%;">Departamento</th>
-            <th style="width:14%;">Cargo</th>
+            <th style="width:12%;">Departamento</th>
+            <th style="width:12%;">Cargo</th>
             <th style="width:6%;">Status</th>
             <th style="width:6%;">Bloq.</th>
             <th style="width:6%;">Desl.</th>
         </tr></thead><tbody>';
 
         if (!$users) {
-            $html .= '<tr><td colspan="9" class="text-center">Nenhum usuário encontrado com os filtros selecionados.</td></tr>';
+            $html .= '<tr><td colspan="10" class="text-center">Nenhum usuário encontrado com os filtros selecionados.</td></tr>';
         } else {
             foreach ($users as $user) {
                 $id = (int)($user['id'] ?? 0);
                 $name = htmlspecialchars($user['name'] ?? '');
+                $cpf = htmlspecialchars((string)($user['cpf'] ?? ''));
                 $email = htmlspecialchars($user['email'] ?? '');
                 $username = htmlspecialchars($user['username'] ?? '');
                 $dep = htmlspecialchars($user['name_dep'] ?? '');
@@ -73,6 +78,7 @@ class ExportUsersPdf
                 $html .= '<tr>';
                 $html .= '<td class="text-center">' . $id . '</td>';
                 $html .= '<td>' . $name . '</td>';
+                $html .= '<td class="text-center">' . $cpf . '</td>';
                 $html .= '<td>' . $email . '</td>';
                 $html .= '<td>' . $username . '</td>';
                 $html .= '<td>' . $dep . '</td>';
