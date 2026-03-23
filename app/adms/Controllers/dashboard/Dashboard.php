@@ -128,6 +128,14 @@ class Dashboard
         }
         unset($anivEmp);
 
+        $hojeDiaMes = date('d/m');
+        $aniversariantesHoje = array_values(array_filter(
+            $aniversariantes,
+            static fn(array $item): bool => (($item['aniversario'] ?? '') === $hojeDiaMes)
+        ));
+
+        $this->data['aniversariantes_dia'] = $aniversariantesHoje;
+        $this->data['qtd_aniversariantes_dia'] = count($aniversariantesHoje);
         $this->data['aniversariantes_mes'] = $aniversariantes;
         $this->data['qtd_aniversariantes_mes'] = count($aniversariantes);
         $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;

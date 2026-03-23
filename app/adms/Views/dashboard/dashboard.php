@@ -38,15 +38,24 @@
                     <a href="#"
                        class="text-decoration-none flex-fill h-100"
                        data-bs-toggle="modal"
-                       data-bs-target="#modalAniversariantesMes"
+                       data-bs-target="#modalAniversariantesDia"
                        onclick="event.preventDefault();">
-                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                        <div class="card card-main dashboard-card dashboard-birthday-card d-flex flex-column align-items-center justify-content-center p-4 h-100 position-relative">
+                            <button type="button"
+                                    class="btn btn-sm dashboard-card-more-btn"
+                                    aria-label="Abrir calendário de aniversários"
+                                    title="Ver calendário do mês"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalAniversariantesMes"
+                                    onclick="event.preventDefault(); event.stopPropagation();">
+                                <i class="fas fa-calendar-alt"></i>
+                            </button>
                             <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
                                 <i class="fas fa-birthday-cake fa-3x text-warning"></i>
                             </div>
-                            <h5 class="fw-bold mb-1 text-center group-title">Aniversariantes do mês</h5>
+                            <h5 class="fw-bold mb-1 text-center group-title">Aniversariantes de hoje</h5>
                             <div class="text-muted mb-2 text-center" style="font-size: 1.1rem;">
-                                <?php echo $this->data['qtd_aniversariantes_mes'] ?? 0; ?> este mês
+                                <?php echo $this->data['qtd_aniversariantes_dia'] ?? 0; ?> hoje
                             </div>
                         </div>
                     </a>
@@ -71,6 +80,51 @@
             </div>
         </div>
     </div>
+    <!-- Modal de aniversariantes do dia -->
+    <div class="modal fade" id="modalAniversariantesDia" tabindex="-1" aria-labelledby="modalAniversariantesDiaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAniversariantesDiaLabel">Aniversariantes de Hoje</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <?php if (!empty($this->data['aniversariantes_dia'])): ?>
+                        <div class="row g-3">
+                            <?php foreach ($this->data['aniversariantes_dia'] as $aniv): ?>
+                                <div class="col-12 col-md-6 col-lg-4 d-flex">
+                                    <div class="card border-0 shadow-sm text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center" style="border-radius: 18px; min-height: 180px;">
+                                        <div class="mb-2">
+                                            <?php if (!empty($aniv['image'])): ?>
+                                                <?php
+                                                $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
+                                                echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
+                                                    'class' => 'rounded-circle mb-2',
+                                                    'style' => 'width: 80px; height: 80px; object-fit: cover;',
+                                                ], 'icon_user.png', 'users');
+                                                ?>
+                                            <?php else: ?>
+                                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2" style="width: 80px; height: 80px;">
+                                            <?php endif; ?>
+                                        </div>
+                                        <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
+                                        <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
+                                        <div class="text-muted small mt-1"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-day fa-2x mb-2"></i>
+                            <div>Nenhum aniversariante hoje.</div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de aniversariantes do mês -->
     <div class="modal fade" id="modalAniversariantesMes" tabindex="-1" aria-labelledby="modalAniversariantesMesLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
         <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
@@ -195,8 +249,8 @@
                     $requiresAck = !empty($info['requires_ack']);
                     $isUnread = $infoId > 0 && isset($unreadInformativoSetDashboard[$infoId]);
                     ?>
-                    <div class="col-12 col-md-6 col-lg-4 d-flex">
-                        <div class="card border-0 shadow-sm p-4 flex-fill d-flex flex-column card-info dashboard-recent-card" style="border-radius: 14px; min-height: 220px;">
+                    <div class="col-12 col-md-6 col-lg-3 d-flex">
+                        <div class="card border-0 shadow-sm p-4 flex-fill d-flex flex-column card-info dashboard-recent-card" style="border-radius: 14px;">
                             <div class="d-flex align-items-center mb-2 gap-2 flex-wrap justify-content-between">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="fas fa-calendar-alt text-muted" title="Publicado em"></i>
@@ -206,7 +260,7 @@
                                         <span class="text-muted small"><?php echo date('d/m/Y', strtotime($info['expire_at'])); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <div class="d-flex align-items-center gap-1 flex-nowrap dashboard-recent-badges">
                                     <span class="badge bg-info text-white" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['categoria_nome'] ?? $info['categoria']); ?> </span>
                                     <?php if (!empty($info['department_name'])): ?>
                                         <span class="badge bg-secondary" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['department_name']); ?> </span>
@@ -232,7 +286,7 @@
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <h6 class="fw-bold mb-1 text-start text-truncate" title="<?php echo htmlspecialchars($info['titulo']); ?>"><?php echo htmlspecialchars($info['titulo']); ?></h6>
+                            <h6 class="fw-bold mb-1 text-start dashboard-recent-title" title="<?php echo htmlspecialchars($info['titulo']); ?>"><?php echo htmlspecialchars($info['titulo']); ?></h6>
                             <div class="dashboard-informativo-resumo text-muted mb-2 flex-grow-1 text-start" style="font-size: 1rem;">
                                 <?php echo htmlspecialchars($info['resumo'] ?? substr(strip_tags($info['conteudo']), 0, 100) . '...'); ?>
                             </div>
@@ -261,7 +315,7 @@
                                     </a>
                                 <?php endif; ?>
                             </div>
-                            <div class="mt-auto text-end">
+                            <div class="dashboard-recent-footer text-end">
                                 <button type="button" class="btn btn-outline-primary fw-semibold px-4 dashboard-recent-vermais-btn" style="border-radius: 8px; border-width:2px; min-width: 120px;" data-bs-toggle="modal" data-bs-target="#informativoModal<?php echo $info['id']; ?>">
                                     <i class="fas fa-eye me-1"></i>Ver Mais
                                 </button>
@@ -411,85 +465,6 @@
             </div>
         </div>
     </div>
-    <!-- Próximos Aniversários -->
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-10">
-            <h5 class="fw-bold mb-3 mt-2" style="color: #219150; text-align: left;">Próximos Aniversários</h5>
-        </div>
-    </div>
-
-    <div class="row justify-content-center mb-4">
-        <div class="col-12 col-lg-10">
-            <div class="row g-4">
-                <?php foreach ($this->data['aniversariantes_mes'] ?? [] as $aniv): ?>
-                    <div class="col-12 col-md-6 col-lg-4 d-flex">
-                        <div class="card border-0 shadow-sm text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center" style="border-radius: 18px; min-height: 180px;">
-                            <div class="mb-2">
-                                <?php if (!empty($aniv['image'])): ?>
-                                    <?php
-                                    $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
-                                    echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                        'class' => 'rounded-circle mb-2',
-                                        'style' => 'width: 80px; height: 80px; object-fit: cover;',
-                                    ], 'icon_user.png', 'users');
-                                    ?>
-                                <?php else: ?>
-                                    <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2" style="width: 80px; height: 80px;">
-                                <?php endif; ?>
-                            </div>
-                            <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
-                            <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
-                            <div class="text-muted small mt-1"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
-
-    <!-- Próximos Aniversários de Empresa -->
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-10">
-            <h5 class="fw-bold mb-3 mt-2" style="color: #219150; text-align: left;">Próximos Aniversários de Empresa</h5>
-        </div>
-    </div>
-
-    <div class="row justify-content-center mb-4">
-        <div class="col-12 col-lg-10">
-            <div class="row g-4">
-                <?php foreach ($this->data['aniversariantes_empresa_mes'] ?? [] as $aniv): ?>
-                    <div class="col-12 col-md-6 col-lg-4 d-flex">
-                        <div class="card border-0 shadow-sm text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center" style="border-radius: 18px; min-height: 180px;">
-                            <div class="mb-2">
-                                <?php if (!empty($aniv['image'])): ?>
-                                    <?php
-                                    $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
-                                    echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                        'class' => 'rounded-circle mb-2',
-                                        'style' => 'width: 80px; height: 80px; object-fit: cover;',
-                                    ], 'icon_user.png', 'users');
-                                    ?>
-                                <?php else: ?>
-                                    <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2" style="width: 80px; height: 80px;">
-                                <?php endif; ?>
-                            </div>
-                            <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
-                            <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
-                            <div class="text-muted small mt-1">
-                                <i class="fas fa-briefcase text-primary me-1"></i>
-                                <span class="fw-bold" style="color:#1976d2;">
-                                    <?php echo $aniv['aniversario_empresa'] ?? ''; ?>
-                                </span>
-                                <?php if (!empty($aniv['anos_empresa'])): ?>
-                                    <br><span class="small text-muted"><?php echo (int)$aniv['anos_empresa']; ?> ano(s) de casa</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -558,10 +533,86 @@
     transition: box-shadow 0.2s, border-color 0.2s;
     background: #fff;
 }
+.dashboard-recent-card {
+    min-height: 188px !important;
+    height: 188px !important;
+    padding: 1rem !important;
+    padding-bottom: 3.1rem !important;
+    position: relative;
+    overflow: hidden;
+}
+.dashboard-recent-badges {
+    min-width: 0;
+    overflow: hidden;
+}
+.dashboard-recent-badges .badge {
+    white-space: nowrap;
+}
+.dashboard-recent-footer {
+    position: absolute;
+    right: 1rem;
+    bottom: 0.75rem;
+    margin-top: 0 !important;
+}
+.dashboard-recent-card .dashboard-informativo-resumo {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.25;
+    min-height: 2.45em;
+}
+.dashboard-recent-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.2;
+    min-height: 2.4em;
+    font-size: 1rem;
+}
 .dashboard-card:hover, .dashboard-card-clickable:hover {
     box-shadow: 0 4px 18px rgba(33, 145, 80, 0.10) !important;
     border-color: #219150 !important;
     cursor: pointer;
+}
+.dashboard-birthday-card {
+    position: relative !important;
+    overflow: visible;
+}
+.dashboard-card-more-btn {
+    position: absolute !important;
+    inset: auto 12px 12px auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    margin: 0 !important;
+    padding: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    border: 1px solid #d8e5dc !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f2fbf6 100%) !important;
+    color: #1f7f4e !important;
+    box-shadow: 0 4px 12px rgba(33, 145, 80, 0.16);
+    transition: all 0.2s ease;
+}
+.dashboard-card-more-btn i {
+    font-size: 0.95rem;
+}
+.dashboard-card-more-btn:hover,
+.dashboard-card-more-btn:focus {
+    border-color: #219150 !important;
+    background: linear-gradient(180deg, #ffffff 0%, #e9f8ef 100%) !important;
+    color: #15673d !important;
+    box-shadow: 0 6px 14px rgba(33, 145, 80, 0.24);
+    transform: translateY(-1px);
+}
+.dashboard-card-more-btn:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(33, 145, 80, 0.22), 0 6px 14px rgba(33, 145, 80, 0.24);
 }
 .card-info:hover, .card:hover, .card.border-0:hover, .card.shadow-sm:hover {
     box-shadow: 0 4px 18px rgba(33, 145, 80, 0.10) !important;
@@ -605,8 +656,10 @@
     }
 
     .dashboard-recent-card {
-        min-height: 190px !important;
+        min-height: 188px !important;
+        height: auto !important;
         padding: 1rem !important;
+        padding-bottom: 1rem !important;
     }
 
     .dashboard-recent-ver-mais-btn,
@@ -623,6 +676,22 @@
     /* Ajuste no espaçamento entre conteúdo e botão */
     .dashboard-recent-card .mt-2 {
         margin-top: 0.6rem !important;
+    }
+
+    .dashboard-recent-footer {
+        position: static;
+        margin-top: auto !important;
+    }
+
+    .dashboard-card-more-btn {
+        inset: auto 12px 12px auto;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+
+    .dashboard-card-more-btn i {
+        font-size: 0.95rem;
     }
 }
 
@@ -855,6 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
         'informativoModal<?php echo (int)$info['id']; ?>',
         <?php endforeach; ?>
+        'modalAniversariantesDia',
         'modalAniversariantesMes',
         'modalAniversariantesEmpresa'
     ];
@@ -865,6 +935,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
             'informativoModal<?php echo (int)$info['id']; ?>',
             <?php endforeach; ?>
+            'modalAniversariantesDia',
             'modalAniversariantesMes',
             'modalAniversariantesEmpresa'
         ];
