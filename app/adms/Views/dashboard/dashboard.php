@@ -248,10 +248,32 @@
                     $infoId = (int)($info['id'] ?? 0);
                     $requiresAck = !empty($info['requires_ack']);
                     $isUnread = $infoId > 0 && isset($unreadInformativoSetDashboard[$infoId]);
+                    $recentBadges = [];
+                    // Prioridade visual: 1) Ciência/Pendência/Novo 2) Urgente 3) Categoria/Departamento
+                    if ($requiresAck) {
+                        if ($isUnread) {
+                            $recentBadges[] = ['class' => 'bg-warning text-dark border border-danger-subtle', 'label' => '<i class="fas fa-triangle-exclamation me-1"></i>Ciência pendente', 'isHtml' => true];
+                        } else {
+                            $recentBadges[] = ['class' => 'bg-success', 'label' => '<i class="fas fa-check-circle me-1"></i>Ciente', 'isHtml' => true];
+                        }
+                    } elseif ($isUnread) {
+                        $recentBadges[] = ['class' => 'bg-primary', 'label' => 'Novo'];
+                    }
+                    if (!empty($info['urgente'])) {
+                        $recentBadges[] = ['class' => 'bg-danger', 'label' => 'Urgente'];
+                    }
+                    $recentBadges[] = ['class' => 'bg-info text-white', 'label' => htmlspecialchars($info['categoria_nome'] ?? $info['categoria'])];
+                    if (!empty($info['department_name'])) {
+                        $recentBadges[] = ['class' => 'bg-secondary', 'label' => htmlspecialchars($info['department_name'])];
+                    }
+                    $desktopBadgeLimit = 3;
+                    $mobileBadgeLimit = 2;
+                    $desktopExtraBadges = max(0, count($recentBadges) - $desktopBadgeLimit);
+                    $mobileExtraBadges = max(0, count($recentBadges) - $mobileBadgeLimit);
                     ?>
                     <div class="col-12 col-md-6 col-lg-3 d-flex">
                         <div class="card border-0 shadow-sm p-4 flex-fill d-flex flex-column card-info dashboard-recent-card" style="border-radius: 14px;">
-                            <div class="d-flex align-items-center mb-2 gap-2 flex-wrap justify-content-between">
+                            <div class="mb-2">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="fas fa-calendar-alt text-muted" title="Publicado em"></i>
                                     <span class="text-muted small"><?php echo date('d/m/Y', strtotime($info['created_at'])); ?></span>
@@ -260,29 +282,32 @@
                                         <span class="text-muted small"><?php echo date('d/m/Y', strtotime($info['expire_at'])); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="d-flex align-items-center gap-1 flex-nowrap dashboard-recent-badges">
-                                    <span class="badge bg-info text-white" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['categoria_nome'] ?? $info['categoria']); ?> </span>
-                                    <?php if (!empty($info['department_name'])): ?>
-                                        <span class="badge bg-secondary" style="font-size:0.95rem;"> <?php echo htmlspecialchars($info['department_name']); ?> </span>
+                                <div class="d-none d-md-flex align-items-center gap-1 flex-nowrap dashboard-recent-badges mt-1">
+                                    <?php foreach (array_slice($recentBadges, 0, $desktopBadgeLimit) as $badge): ?>
+                                        <span class="badge <?php echo $badge['class']; ?>" style="font-size:0.82rem;">
+                                            <?php if (!empty($badge['isHtml'])): ?>
+                                                <?php echo $badge['label']; ?>
+                                            <?php else: ?>
+                                                <?php echo $badge['label']; ?>
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                    <?php if ($desktopExtraBadges > 0): ?>
+                                        <span class="badge bg-light text-secondary border">+<?php echo $desktopExtraBadges; ?></span>
                                     <?php endif; ?>
-                                    <?php if ($info['urgente']): ?><span class="badge bg-danger">Urgente</span><?php endif; ?>
-
-                                    <?php if ($requiresAck): ?>
-                                        <?php if ($isUnread): ?>
-                                            <span class="badge bg-warning text-dark" style="border:1px solid #dc3545;">
-                                                <i class="fas fa-triangle-exclamation me-1"></i>Ciência pendente
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check-circle me-1"></i>Ciente
-                                            </span>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <?php if ($isUnread): ?>
-                                            <span class="badge bg-primary">
-                                                Novo
-                                            </span>
-                                        <?php endif; ?>
+                                </div>
+                                <div class="d-flex d-md-none align-items-center gap-1 flex-nowrap dashboard-recent-badges mt-1">
+                                    <?php foreach (array_slice($recentBadges, 0, $mobileBadgeLimit) as $badge): ?>
+                                        <span class="badge <?php echo $badge['class']; ?>" style="font-size:0.76rem;">
+                                            <?php if (!empty($badge['isHtml'])): ?>
+                                                <?php echo $badge['label']; ?>
+                                            <?php else: ?>
+                                                <?php echo $badge['label']; ?>
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                    <?php if ($mobileExtraBadges > 0): ?>
+                                        <span class="badge bg-light text-secondary border">+<?php echo $mobileExtraBadges; ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -528,8 +553,8 @@
 .dashboard-card, .dashboard-card-clickable {
     min-height: 170px !important;
     border-radius: 16px !important;
-    border: 1px solid #e3e8ee !important;
-    box-shadow: none !important;
+    border: 1px solid #cfd9e6 !important;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
     transition: box-shadow 0.2s, border-color 0.2s;
     background: #fff;
 }
@@ -540,6 +565,8 @@
     padding-bottom: 3.1rem !important;
     position: relative;
     overflow: hidden;
+    border: 1px solid #cfd9e6 !important;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
 }
 .dashboard-recent-badges {
     min-width: 0;
@@ -553,6 +580,27 @@
     right: 1rem;
     bottom: 0.75rem;
     margin-top: 0 !important;
+}
+.dashboard-recent-vermais-btn {
+    min-width: 104px !important;
+    height: 30px;
+    padding: 0.2rem 0.75rem !important;
+    border-radius: 999px !important;
+    border-width: 1px !important;
+    border-color: #7eb5ea !important;
+    color: #2b75c7 !important;
+    background: #f8fcff !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    line-height: 1.1;
+    box-shadow: 0 1px 2px rgba(43, 117, 199, 0.12);
+}
+.dashboard-recent-vermais-btn:hover,
+.dashboard-recent-vermais-btn:focus {
+    color: #1f62ad !important;
+    border-color: #5d9fe0 !important;
+    background: #eef6ff !important;
+    box-shadow: 0 2px 5px rgba(43, 117, 199, 0.18);
 }
 .dashboard-recent-card .dashboard-informativo-resumo {
     display: -webkit-box;
@@ -615,7 +663,7 @@
     box-shadow: 0 0 0 0.2rem rgba(33, 145, 80, 0.22), 0 6px 14px rgba(33, 145, 80, 0.24);
 }
 .card-info:hover, .card:hover, .card.border-0:hover, .card.shadow-sm:hover {
-    box-shadow: 0 4px 18px rgba(33, 145, 80, 0.10) !important;
+    box-shadow: 0 6px 16px rgba(33, 145, 80, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
     border-color: #219150 !important;
     cursor: pointer;
 }
