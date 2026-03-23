@@ -34,12 +34,18 @@
                         </div>
                     </a>
                 </div>
+                <?php $hasAniversarianteHoje = !empty($this->data['qtd_aniversariantes_dia']); ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
-                       class="text-decoration-none flex-fill h-100"
-                       data-bs-toggle="modal"
-                       data-bs-target="#modalAniversariantesDia"
-                       onclick="event.preventDefault();">
+                       class="text-decoration-none flex-fill h-100 <?php echo $hasAniversarianteHoje ? '' : 'birthday-card-disabled'; ?>"
+                       <?php if ($hasAniversarianteHoje): ?>
+                           data-bs-toggle="modal"
+                           data-bs-target="#modalAniversariantesDia"
+                           onclick="event.preventDefault();"
+                       <?php else: ?>
+                           aria-disabled="true"
+                           onclick="event.preventDefault(); return false;"
+                       <?php endif; ?>>
                         <div class="card card-main dashboard-card dashboard-birthday-card d-flex flex-column align-items-center justify-content-center p-4 h-100 position-relative">
                             <button type="button"
                                     class="btn btn-sm dashboard-card-more-btn"
@@ -82,34 +88,34 @@
     </div>
     <!-- Modal de aniversariantes do dia -->
     <div class="modal fade" id="modalAniversariantesDia" tabindex="-1" aria-labelledby="modalAniversariantesDiaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg modal-dialog-centered">
+            <div class="modal-content birthday-modal-content">
+                <div class="modal-header birthday-modal-header">
                     <h5 class="modal-title" id="modalAniversariantesDiaLabel">Aniversariantes de Hoje</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body birthday-modal-body">
                     <?php if (!empty($this->data['aniversariantes_dia'])): ?>
                         <div class="row g-3">
                             <?php foreach ($this->data['aniversariantes_dia'] as $aniv): ?>
                                 <div class="col-12 col-md-6 col-lg-4 d-flex">
-                                    <div class="card border-0 shadow-sm text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center" style="border-radius: 18px; min-height: 180px;">
+                                    <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                         <div class="mb-2">
                                             <?php if (!empty($aniv['image'])): ?>
                                                 <?php
                                                 $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                                 echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                                    'class' => 'rounded-circle mb-2',
-                                                    'style' => 'width: 80px; height: 80px; object-fit: cover;',
+                                                    'class' => 'rounded-circle mb-2 birthday-avatar',
+                                                    'style' => 'width: 86px; height: 86px; object-fit: cover;',
                                                 ], 'icon_user.png', 'users');
                                                 ?>
                                             <?php else: ?>
-                                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2" style="width: 80px; height: 80px;">
+                                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2 birthday-avatar" style="width: 86px; height: 86px;">
                                             <?php endif; ?>
                                         </div>
                                         <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
                                         <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
-                                        <div class="text-muted small mt-1"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
+                                        <div class="text-muted small mt-1 birthday-date-pill"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -127,36 +133,61 @@
 
     <!-- Modal de aniversariantes do mês -->
     <div class="modal fade" id="modalAniversariantesMes" tabindex="-1" aria-labelledby="modalAniversariantesMesLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg modal-dialog-centered">
+            <div class="modal-content birthday-modal-content">
+                <div class="modal-header birthday-modal-header">
                     <h5 class="modal-title" id="modalAniversariantesMesLabel">Aniversariantes do Mês</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <?php foreach ($this->data['aniversariantes_mes'] ?? [] as $aniv): ?>
-                            <div class="col-12 col-md-6 col-lg-4 d-flex">
-                                <div class="card border-0 shadow-sm text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center" style="border-radius: 18px; min-height: 180px;">
+                <div class="modal-body birthday-modal-body">
+                    <?php
+                    $mesesPt = [
+                        1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
+                        5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
+                        9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
+                    ];
+                    $mesAtualCalendar = (int)date('n');
+                    ?>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 birthday-filter-bar">
+                        <span class="text-muted small">Filtrar por mês</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <select id="aniversariantesMesFilter" class="form-select form-select-sm" style="max-width: 210px;">
+                                <?php foreach ($mesesPt as $mesNum => $mesNome): ?>
+                                    <option value="<?php echo $mesNum; ?>" <?php echo $mesNum === $mesAtualCalendar ? 'selected' : ''; ?>>
+                                        <?php echo $mesNome; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span id="aniversariantesMesCount" class="badge rounded-pill text-bg-light border birthday-month-count">0</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3" id="aniversariantesMesGrid">
+                        <?php foreach ($this->data['aniversariantes_todos'] ?? [] as $aniv): ?>
+                            <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-mes-item" data-mes="<?php echo (int)($aniv['aniversario_mes'] ?? 0); ?>">
+                                <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                     <div class="mb-2">
                                         <?php if (!empty($aniv['image'])): ?>
                                             <?php
                                             $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                             echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                                'class' => 'rounded-circle mb-2',
-                                                'style' => 'width: 80px; height: 80px; object-fit: cover;',
+                                                'class' => 'rounded-circle mb-2 birthday-avatar',
+                                                'style' => 'width: 86px; height: 86px; object-fit: cover;',
                                             ], 'icon_user.png', 'users');
                                             ?>
                                         <?php else: ?>
-                                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2" style="width: 80px; height: 80px;">
+                                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2 birthday-avatar" style="width: 86px; height: 86px;">
                                         <?php endif; ?>
                                     </div>
                                     <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
                                     <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
-                                    <div class="text-muted small mt-1"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
+                                    <div class="text-muted small mt-1 birthday-date-pill"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
+                    </div>
+                    <div id="aniversariantesMesEmpty" class="text-center text-muted py-3 d-none">
+                        Nenhum aniversariante encontrado para o mês selecionado.
                     </div>
                 </div>
             </div>
@@ -628,6 +659,12 @@
     position: relative !important;
     overflow: visible;
 }
+.birthday-card-disabled {
+    cursor: default;
+}
+.birthday-card-disabled .dashboard-birthday-card {
+    cursor: default !important;
+}
 .dashboard-card-more-btn {
     position: absolute !important;
     inset: auto 12px 12px auto;
@@ -661,6 +698,70 @@
 .dashboard-card-more-btn:focus-visible {
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(33, 145, 80, 0.22), 0 6px 14px rgba(33, 145, 80, 0.24);
+}
+.birthday-modal-content {
+    border: 1px solid #d7e3ef;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 14px 35px rgba(15, 23, 42, 0.10);
+    background: #f7fafc;
+}
+.birthday-modal-header {
+    border-bottom: 1px solid #d7e3ef;
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8fc 100%);
+    padding: 0.95rem 1rem;
+}
+.birthday-modal-header .modal-title {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+.birthday-modal-body {
+    padding: 1rem;
+}
+.birthday-filter-bar {
+    border: 1px solid #dbe6f1;
+    border-radius: 12px;
+    padding: 0.55rem 0.7rem;
+    background: #ffffff;
+}
+.birthday-filter-bar .form-select {
+    border-color: #ced9e6;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.birthday-month-count {
+    min-width: 72px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #35556f !important;
+    background: #f6fbff !important;
+    border-color: #d6e4f1 !important;
+}
+.birthday-person-card {
+    border: 1px solid #d9e5f0 !important;
+    border-radius: 16px !important;
+    min-height: 192px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.birthday-person-card:hover {
+    transform: translateY(-1px);
+    border-color: #b8d0e8 !important;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.09) !important;
+}
+.birthday-avatar {
+    border: 2px solid #e7eef5;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10);
+}
+.birthday-date-pill {
+    border: 1px solid #f8d8a0;
+    border-radius: 999px;
+    background: #fff8ea;
+    padding: 0.18rem 0.62rem;
 }
 .card-info:hover, .card:hover, .card.border-0:hover, .card.shadow-sm:hover {
     box-shadow: 0 6px 16px rgba(33, 145, 80, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
@@ -740,6 +841,15 @@
 
     .dashboard-card-more-btn i {
         font-size: 0.95rem;
+    }
+
+    .birthday-modal-body {
+        padding: 0.85rem;
+    }
+
+    .birthday-person-card {
+        min-height: 180px;
+        padding: 1rem !important;
     }
 }
 
@@ -1047,6 +1157,41 @@ document.addEventListener('DOMContentLoaded', function() {
             || bootstrap.Modal.getOrCreateInstance(openModalEl);
         inst.hide();
     });
+
+    // Calendário de aniversariantes por mês (modal do mês)
+    const aniversariantesMesFilter = document.getElementById('aniversariantesMesFilter');
+    const aniversariantesMesItems = Array.from(document.querySelectorAll('.aniversariante-mes-item'));
+    const aniversariantesMesEmpty = document.getElementById('aniversariantesMesEmpty');
+    const aniversariantesMesModal = document.getElementById('modalAniversariantesMes');
+    const aniversariantesMesCount = document.getElementById('aniversariantesMesCount');
+
+    function applyAniversariantesMesFilter() {
+        if (!aniversariantesMesFilter || aniversariantesMesItems.length === 0) return;
+        const selectedMonth = parseInt(aniversariantesMesFilter.value || '0', 10);
+        let visibleCount = 0;
+
+        aniversariantesMesItems.forEach(function (item) {
+            const itemMonth = parseInt(item.getAttribute('data-mes') || '0', 10);
+            const show = selectedMonth === 0 || itemMonth === selectedMonth;
+            item.classList.toggle('d-none', !show);
+            if (show) visibleCount++;
+        });
+
+        if (aniversariantesMesEmpty) {
+            aniversariantesMesEmpty.classList.toggle('d-none', visibleCount > 0);
+        }
+        if (aniversariantesMesCount) {
+            aniversariantesMesCount.textContent = `${visibleCount} no mês`;
+        }
+    }
+
+    if (aniversariantesMesFilter) {
+        aniversariantesMesFilter.addEventListener('change', applyAniversariantesMesFilter);
+    }
+    if (aniversariantesMesModal) {
+        aniversariantesMesModal.addEventListener('shown.bs.modal', applyAniversariantesMesFilter);
+    }
+    applyAniversariantesMesFilter();
 
     <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
     const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');
