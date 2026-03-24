@@ -1092,6 +1092,7 @@ function confirmarCiencia(informativoId) {
 }
 // Registrar leitura ao abrir o modal
 document.addEventListener('DOMContentLoaded', function() {
+    const currentMonthNumber = <?php echo (int)date('n'); ?>;
     /**
      * Modais da dashboard: backdrop suave + histórico (Fechar / Voltar do navegador ou navbar
      * fecham o overlay e mantêm o usuário na própria página da dashboard).
@@ -1218,7 +1219,12 @@ document.addEventListener('DOMContentLoaded', function() {
         aniversariantesMesFilter.addEventListener('change', applyAniversariantesMesFilter);
     }
     if (aniversariantesMesModal) {
-        aniversariantesMesModal.addEventListener('shown.bs.modal', applyAniversariantesMesFilter);
+        aniversariantesMesModal.addEventListener('shown.bs.modal', function () {
+            if (aniversariantesMesFilter) {
+                aniversariantesMesFilter.value = String(currentMonthNumber);
+            }
+            applyAniversariantesMesFilter();
+        });
     }
     applyAniversariantesMesFilter();
 
@@ -1246,7 +1252,12 @@ document.addEventListener('DOMContentLoaded', function() {
         aniversariantesEmpresaMesFilter.addEventListener('change', applyAniversariantesEmpresaMesFilter);
     }
     if (aniversariantesEmpresaMesModal) {
-        aniversariantesEmpresaMesModal.addEventListener('shown.bs.modal', applyAniversariantesEmpresaMesFilter);
+        aniversariantesEmpresaMesModal.addEventListener('shown.bs.modal', function () {
+            if (aniversariantesEmpresaMesFilter) {
+                aniversariantesEmpresaMesFilter.value = String(currentMonthNumber);
+            }
+            applyAniversariantesEmpresaMesFilter();
+        });
     }
     applyAniversariantesEmpresaMesFilter();
 
