@@ -1310,33 +1310,21 @@ class TrainingUsersRepository extends DbConnection
             : '';
 
         if ($forLntExport) {
-            $taLastJoin = 'LEFT JOIN (
-                SELECT 
-                    ta1.adms_user_id,
-                    ta1.adms_training_id,
-                    ta1.data_realizacao,
-                    ta1.nota,
-                    ta1.observacoes,
-                    ta1.instrutor_nome,
-                    ta1.instrutor_email,
-                    ta1.aplicado_por,
-                    ta1.id,
-                    ta1.created_at
-                FROM adms_training_applications ta1
-                INNER JOIN (
-                    SELECT 
-                        adms_user_id,
-                        adms_training_id,
-                        MAX(created_at) as max_created_at
-                    FROM adms_training_applications
-                    WHERE status = \'concluido\'
-                    GROUP BY adms_user_id, adms_training_id
-                ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
-                    AND ta1.adms_training_id = ta2.adms_training_id 
-                    AND ta1.created_at = ta2.max_created_at
-                WHERE ta1.status = \'concluido\'
-            ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
-                AND ta_last.adms_training_id = tu.adms_training_id';
+            // Não usar MAX(created_at): pode existir outro registro "concluído" mais recente sem data_realizacao.
+            // Priorizar aplicação com data válida e a mais recente (alinhado a getLastCompletedTraining).
+            $taLastJoin = 'LEFT JOIN adms_training_applications ta_last ON ta_last.id = (
+                SELECT ta3.id
+                FROM adms_training_applications ta3
+                WHERE ta3.adms_user_id = tu.adms_user_id
+                  AND ta3.adms_training_id = tu.adms_training_id
+                  AND ta3.status = \'concluido\'
+                ORDER BY
+                    CASE WHEN ta3.data_realizacao IS NOT NULL AND ta3.data_realizacao > \'0000-00-00\' THEN 0 ELSE 1 END ASC,
+                    ta3.data_realizacao DESC,
+                    ta3.created_at DESC,
+                    ta3.id DESC
+                LIMIT 1
+            )';
         } else {
             $taLastJoin = 'LEFT JOIN (
                 SELECT 
@@ -1483,7 +1471,7 @@ class TrainingUsersRepository extends DbConnection
 
     /**
      * Para exportação LNT com filtro por treinamento: preenche data_realizacao e nota
-     * da última aplicação concluída por treinamento para o colaborador.
+     * da melhor aplicação concluída por treinamento (mesma regra do JOIN do LNT).
      *
      * @param array<int, array<string, mixed>> $rows
      * @return array<int, array<string, mixed>>
@@ -1494,22 +1482,33 @@ class TrainingUsersRepository extends DbConnection
             return $rows;
         }
 
-        $sql = 'SELECT ta1.adms_training_id, ta1.data_realizacao, ta1.nota
-                FROM adms_training_applications ta1
-                INNER JOIN (
-                    SELECT adms_training_id, MAX(created_at) AS max_created_at
-                    FROM adms_training_applications
-                    WHERE adms_user_id = ? AND status = \'concluido\'
-                    GROUP BY adms_training_id
-                ) t2 ON t2.adms_training_id = ta1.adms_training_id
-                    AND t2.max_created_at = ta1.created_at
-                WHERE ta1.adms_user_id = ? AND ta1.status = \'concluido\'';
-
+        $sql = 'SELECT * FROM adms_training_applications
+                WHERE adms_user_id = ? AND status = \'concluido\'';
         $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute([$userId, $userId]);
+        $stmt->execute([$userId]);
+        $applications = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $bestByTraining = [];
+        foreach ($applications as $app) {
+            $tid = (int)($app['adms_training_id'] ?? 0);
+            if ($tid <= 0) {
+                continue;
+            }
+            if (!isset($bestByTraining[$tid])) {
+                $bestByTraining[$tid] = $app;
+                continue;
+            }
+            if ($this->lntConcluidoApplicationCompare($app, $bestByTraining[$tid]) > 0) {
+                $bestByTraining[$tid] = $app;
+            }
+        }
+
         $map = [];
-        while ($r = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-            $map[(int)$r['adms_training_id']] = $r;
+        foreach ($bestByTraining as $tid => $app) {
+            $map[$tid] = [
+                'data_realizacao' => $app['data_realizacao'] ?? null,
+                'nota' => $app['nota'] ?? null,
+            ];
         }
 
         foreach ($rows as &$row) {
@@ -1525,6 +1524,44 @@ class TrainingUsersRepository extends DbConnection
         unset($row);
 
         return $rows;
+    }
+
+    /**
+     * Compara duas aplicações concluídas do mesmo usuário+t treinamento: retorno > 0 se $a deve prevalecer.
+     */
+    private function lntConcluidoApplicationCompare(array $a, array $b): int
+    {
+        $aOk = $this->lntHasValidDataRealizacao($a);
+        $bOk = $this->lntHasValidDataRealizacao($b);
+        if ($aOk !== $bOk) {
+            return $aOk <=> $bOk;
+        }
+        if ($aOk) {
+            $cmp = strcmp((string)($a['data_realizacao'] ?? ''), (string)($b['data_realizacao'] ?? ''));
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+        }
+        $ta = strtotime((string)($a['created_at'] ?? '')) ?: 0;
+        $tb = strtotime((string)($b['created_at'] ?? '')) ?: 0;
+        if ($ta !== $tb) {
+            return $ta <=> $tb;
+        }
+
+        return ((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0));
+    }
+
+    private function lntHasValidDataRealizacao(array $row): bool
+    {
+        $dr = $row['data_realizacao'] ?? null;
+        if ($dr === null || $dr === '') {
+            return false;
+        }
+        if (strpos((string)$dr, '0000-') === 0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
