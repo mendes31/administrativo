@@ -6,6 +6,21 @@ use Phinx\Migration\AbstractMigration;
 
 final class AddTrainingUsersGuards extends AbstractMigration
 {
+    private function executeTriggerSafely(string $sql, string $triggerName): void
+    {
+        try {
+            $this->execute($sql);
+        } catch (\PDOException $e) {
+            $message = $e->getMessage();
+            // Ambiente sem privilégio CREATE TRIGGER: não bloquear deploy.
+            if (str_contains($message, '1142') || str_contains(strtolower($message), 'trigger command denied')) {
+                error_log("[Phinx] Sem permissão para criar trigger {$triggerName}. Mantendo validação no PHP.");
+                return;
+            }
+            throw $e;
+        }
+    }
+
     public function up(): void
     {
         if (!$this->hasTable('adms_training_users')) {
@@ -23,7 +38,7 @@ final class AddTrainingUsersGuards extends AbstractMigration
         }
 
         $this->execute('DROP TRIGGER IF EXISTS trg_tu_prevent_duplicate_active_insert');
-        $this->execute(
+        $this->executeTriggerSafely(
             "CREATE TRIGGER trg_tu_prevent_duplicate_active_insert
              BEFORE INSERT ON adms_training_users
              FOR EACH ROW
@@ -40,11 +55,12 @@ final class AddTrainingUsersGuards extends AbstractMigration
                      SIGNAL SQLSTATE '45000'
                          SET MESSAGE_TEXT = 'Vínculo ativo duplicado para usuário+treinamento+tipo.';
                  END IF;
-             END"
+             END",
+            'trg_tu_prevent_duplicate_active_insert'
         );
 
         $this->execute('DROP TRIGGER IF EXISTS trg_tu_cargo_overrides_individual_insert');
-        $this->execute(
+        $this->executeTriggerSafely(
             "CREATE TRIGGER trg_tu_cargo_overrides_individual_insert
              AFTER INSERT ON adms_training_users
              FOR EACH ROW
@@ -57,7 +73,8 @@ final class AddTrainingUsersGuards extends AbstractMigration
                        AND status <> 'concluido'
                        AND id <> NEW.id;
                  END IF;
-             END"
+             END",
+            'trg_tu_cargo_overrides_individual_insert'
         );
     }
 
