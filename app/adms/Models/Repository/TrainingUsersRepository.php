@@ -1310,7 +1310,8 @@ class TrainingUsersRepository extends DbConnection
             : '';
 
         if ($forLntExport) {
-            // Não usar MAX(created_at): pode existir outro registro "concluído" mais recente sem data_realizacao.
+            // Apenas aplicações do MESMO registro de treinamento da linha (codigo+versao do catálogo = tu.adms_training_id).
+            // Não misturar versões: outro par (codigo, versao) é outro id em adms_trainings.
             // Priorizar aplicação com data válida e a mais recente (alinhado a getLastCompletedTraining).
             $taLastJoin = 'LEFT JOIN adms_training_applications ta_last ON ta_last.id = (
                 SELECT ta3.id
@@ -1471,7 +1472,7 @@ class TrainingUsersRepository extends DbConnection
 
     /**
      * Para exportação LNT com filtro por treinamento: preenche data_realizacao e nota
-     * da melhor aplicação concluída por treinamento (mesma regra do JOIN do LNT).
+     * da melhor aplicação concluída para o mesmo adms_training_id da linha (codigo+versao da matriz).
      *
      * @param array<int, array<string, mixed>> $rows
      * @return array<int, array<string, mixed>>
@@ -1488,34 +1489,25 @@ class TrainingUsersRepository extends DbConnection
         $stmt->execute([$userId]);
         $applications = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
-        $bestByTraining = [];
+        $bestByTrainingId = [];
         foreach ($applications as $app) {
             $tid = (int)($app['adms_training_id'] ?? 0);
             if ($tid <= 0) {
                 continue;
             }
-            if (!isset($bestByTraining[$tid])) {
-                $bestByTraining[$tid] = $app;
-                continue;
+            if (!isset($bestByTrainingId[$tid])) {
+                $bestByTrainingId[$tid] = $app;
+            } elseif ($this->lntConcluidoApplicationCompare($app, $bestByTrainingId[$tid]) > 0) {
+                $bestByTrainingId[$tid] = $app;
             }
-            if ($this->lntConcluidoApplicationCompare($app, $bestByTraining[$tid]) > 0) {
-                $bestByTraining[$tid] = $app;
-            }
-        }
-
-        $map = [];
-        foreach ($bestByTraining as $tid => $app) {
-            $map[$tid] = [
-                'data_realizacao' => $app['data_realizacao'] ?? null,
-                'nota' => $app['nota'] ?? null,
-            ];
         }
 
         foreach ($rows as &$row) {
             $tid = (int)($row['training_id'] ?? 0);
-            if (isset($map[$tid])) {
-                $row['data_realizacao'] = $map[$tid]['data_realizacao'];
-                $row['nota'] = $map[$tid]['nota'];
+            if ($tid > 0 && isset($bestByTrainingId[$tid])) {
+                $pick = $bestByTrainingId[$tid];
+                $row['data_realizacao'] = $pick['data_realizacao'] ?? null;
+                $row['nota'] = $pick['nota'] ?? null;
             } else {
                 $row['data_realizacao'] = null;
                 $row['nota'] = null;
