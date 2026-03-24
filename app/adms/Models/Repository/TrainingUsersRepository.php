@@ -36,26 +36,6 @@ class TrainingUsersRepository extends DbConnection
         string $motivo = 'primeiro'
     ): void
     {
-        // Verificar se já existe vínculo ativo (status != 'concluido')
-        $sqlCheck = "SELECT id, tipo_vinculo FROM adms_training_users WHERE adms_user_id = :user_id AND adms_training_id = :training_id AND status != 'concluido'";
-        $stmtCheck = $this->getConnection()->prepare($sqlCheck);
-        $stmtCheck->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmtCheck->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
-        $stmtCheck->execute();
-        $existeAtivo = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-
-        if ($existeAtivo) {
-            // Se já existe vínculo ativo do mesmo tipo, não criar outro
-            if ($existeAtivo['tipo_vinculo'] === $tipoVinculo) {
-                return;
-            }
-            // Se for individual e já existe cargo, não criar individual
-            if ($tipoVinculo === 'individual' && $existeAtivo['tipo_vinculo'] === 'cargo') {
-                return;
-            }
-            // Se for cargo e já existe individual, permitir atualização para 'cargo'
-        }
-
         try {
             // Determinar prazo pelo tipo_treinamento no vínculo por cargo (Inicial=90, Continuo=365)
             $prazoDias = 90; // default
@@ -88,36 +68,83 @@ class TrainingUsersRepository extends DbConnection
                 $dataLimite = (new \DateTime())->modify("+{$prazoDias} days")->format('Y-m-d');
             }
 
-            $sql = 'INSERT INTO adms_training_users (adms_user_id, adms_training_id, status, tipo_vinculo, motivo, created_at, updated_at, data_limite_primeiro_treinamento)
-                    VALUES (:user_id, :training_id, :status, :tipo_vinculo, :motivo, NOW(), NOW(), :data_limite)
-                    ON DUPLICATE KEY UPDATE status = :status, tipo_vinculo = :tipo_vinculo, motivo = :motivo, updated_at = NOW(), data_limite_primeiro_treinamento = :data_limite';
-            $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-            $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
-            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-            $stmt->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
-            $stmt->bindValue(':motivo', $motivo, PDO::PARAM_STR);
-            $stmt->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
-            $stmt->execute();
-            
-            // Log de alteração (insert ou update)
-            $operacao = $existeAtivo ? 'update' : 'insert';
-            $dadosDepois = [
-                'adms_user_id' => $userId,
-                'adms_training_id' => $trainingId,
-                'status' => $status,
-                'tipo_vinculo' => $tipoVinculo,
-                'motivo' => $motivo,
-            ];
-            
-            \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
-                'adms_training_users',
-                $userId, // Usando user_id como identificador principal
-                $_SESSION['user_id'] ?? 0,
-                $operacao,
-                $existeAtivo ?: [],
-                $dadosDepois
-            );
+            // Buscar vínculos ativos atuais para consolidar escrita e evitar duplicados
+            $sqlCheck = "SELECT id, tipo_vinculo
+                         FROM adms_training_users
+                         WHERE adms_user_id = :user_id
+                           AND adms_training_id = :training_id
+                           AND status != 'concluido'
+                         ORDER BY id DESC";
+            $stmtCheck = $this->getConnection()->prepare($sqlCheck);
+            $stmtCheck->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmtCheck->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+            $stmtCheck->execute();
+            $ativos = $stmtCheck->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $hasCargoAtivo = false;
+            $latestSameTypeId = null;
+            $latestAnyId = null;
+
+            foreach ($ativos as $ativo) {
+                $currentId = (int)$ativo['id'];
+                $latestAnyId = $latestAnyId === null ? $currentId : max($latestAnyId, $currentId);
+                if (($ativo['tipo_vinculo'] ?? '') === 'cargo') {
+                    $hasCargoAtivo = true;
+                }
+                if (($ativo['tipo_vinculo'] ?? '') === $tipoVinculo) {
+                    $latestSameTypeId = $latestSameTypeId === null ? $currentId : max($latestSameTypeId, $currentId);
+                }
+            }
+
+            // Regra: se já há vínculo por cargo, não permitir criar vínculo individual
+            if ($tipoVinculo === 'individual' && $hasCargoAtivo) {
+                return;
+            }
+
+            if (!empty($ativos)) {
+                // Se passou a ser obrigatório por cargo, converte para cargo e remove ativos extras
+                $keeperId = $latestSameTypeId ?? $latestAnyId;
+
+                $sqlUpdate = "UPDATE adms_training_users
+                              SET status = :status,
+                                  tipo_vinculo = :tipo_vinculo,
+                                  motivo = :motivo,
+                                  updated_at = NOW(),
+                                  data_limite_primeiro_treinamento = :data_limite
+                              WHERE id = :id";
+                $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+                $stmtUpdate->bindValue(':status', $status, PDO::PARAM_STR);
+                $stmtUpdate->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
+                $stmtUpdate->bindValue(':motivo', $motivo, PDO::PARAM_STR);
+                $stmtUpdate->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
+                $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
+                $stmtUpdate->execute();
+
+                $sqlDeleteExtras = "DELETE FROM adms_training_users
+                                    WHERE adms_user_id = :user_id
+                                      AND adms_training_id = :training_id
+                                      AND status != 'concluido'
+                                      AND id <> :id";
+                $stmtDeleteExtras = $this->getConnection()->prepare($sqlDeleteExtras);
+                $stmtDeleteExtras->bindValue(':user_id', $userId, PDO::PARAM_INT);
+                $stmtDeleteExtras->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+                $stmtDeleteExtras->bindValue(':id', $keeperId, PDO::PARAM_INT);
+                $stmtDeleteExtras->execute();
+                return;
+            }
+
+            // Sem vínculo ativo: cria novo
+            $sqlInsert = 'INSERT INTO adms_training_users
+                        (adms_user_id, adms_training_id, status, tipo_vinculo, motivo, created_at, updated_at, data_limite_primeiro_treinamento)
+                         VALUES (:user_id, :training_id, :status, :tipo_vinculo, :motivo, NOW(), NOW(), :data_limite)';
+            $stmtInsert = $this->getConnection()->prepare($sqlInsert);
+            $stmtInsert->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmtInsert->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+            $stmtInsert->bindValue(':status', $status, PDO::PARAM_STR);
+            $stmtInsert->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
+            $stmtInsert->bindValue(':motivo', $motivo, PDO::PARAM_STR);
+            $stmtInsert->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
+            $stmtInsert->execute();
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Vínculo de treinamento não salvo.", [
                 'user_id' => $userId,
@@ -216,6 +243,13 @@ class TrainingUsersRepository extends DbConnection
                 ta_last.aplicado_por,
                 ta_last.id as application_id
             FROM adms_training_users tu
+            INNER JOIN (
+                SELECT adms_user_id, adms_training_id, MAX(id) AS latest_id
+                FROM adms_training_users
+                GROUP BY adms_user_id, adms_training_id
+            ) tu_latest ON tu_latest.adms_user_id = tu.adms_user_id
+                        AND tu_latest.adms_training_id = tu.adms_training_id
+                        AND tu_latest.latest_id = tu.id
             INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = "Ativo"
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
@@ -639,7 +673,12 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getByUserAndTraining(int $userId, int $trainingId): ?array
     {
-        $sql = 'SELECT * FROM adms_training_users WHERE adms_user_id = ? AND adms_training_id = ?';
+        $sql = 'SELECT *
+                FROM adms_training_users
+                WHERE adms_user_id = ?
+                  AND adms_training_id = ?
+                ORDER BY (status != "concluido") DESC, id DESC
+                LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $stmt->bindValue(2, $trainingId, PDO::PARAM_INT);
@@ -653,30 +692,52 @@ class TrainingUsersRepository extends DbConnection
      */
     public function applyTraining(int $userId, int $trainingId, array $data): bool
     {
-        // Garante que data_realizacao tenha data e hora
-        if (empty($data['data_realizacao'])) {
-            $data['data_realizacao'] = date('Y-m-d H:i:s');
+        // Preferir atualizar o vínculo ativo mais recente para não gerar duplicidade.
+        $sqlActive = 'SELECT id
+                      FROM adms_training_users
+                      WHERE adms_user_id = :user_id
+                        AND adms_training_id = :training_id
+                        AND status != "concluido"
+                      ORDER BY id DESC
+                      LIMIT 1';
+        $stmtActive = $this->getConnection()->prepare($sqlActive);
+        $stmtActive->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmtActive->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmtActive->execute();
+        $activeId = (int)($stmtActive->fetchColumn() ?? 0);
+
+        if ($activeId > 0) {
+            $sqlUpdate = 'UPDATE adms_training_users
+                          SET data_realizacao = :data_realizacao,
+                              data_agendada = :data_agendada,
+                              nota = :nota,
+                              observacoes = :observacoes,
+                              status = :status,
+                              updated_at = NOW()
+                          WHERE id = :id';
+            $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+            $stmtUpdate->bindValue(':data_realizacao', $data['data_realizacao'] ?? null, PDO::PARAM_STR);
+            $stmtUpdate->bindValue(':data_agendada', $data['data_agendada'] ?? null, PDO::PARAM_STR);
+            $stmtUpdate->bindValue(':nota', $data['nota'] ?? null, PDO::PARAM_STR);
+            $stmtUpdate->bindValue(':observacoes', $data['observacoes'] ?? null, PDO::PARAM_STR);
+            $stmtUpdate->bindValue(':status', $data['status'], PDO::PARAM_STR);
+            $stmtUpdate->bindValue(':id', $activeId, PDO::PARAM_INT);
+            return $stmtUpdate->execute();
         }
-        // Atualiza o vínculo na tabela de usuários
-        $sql = 'INSERT INTO adms_training_users (adms_user_id, adms_training_id, data_realizacao, data_agendada, nota, observacoes, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE
-                data_realizacao = VALUES(data_realizacao),
-                data_agendada = VALUES(data_agendada),
-                nota = VALUES(nota),
-                observacoes = VALUES(observacoes),
-                status = VALUES(status),
-                updated_at = NOW()';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-        $stmt->bindValue(2, $trainingId, PDO::PARAM_INT);
-        $stmt->bindValue(3, $data['data_realizacao'], PDO::PARAM_STR);
-        $stmt->bindValue(4, $data['data_agendada'], PDO::PARAM_STR);
-        $stmt->bindValue(5, $data['nota'], PDO::PARAM_STR);
-        $stmt->bindValue(6, $data['observacoes'] ?? null, PDO::PARAM_STR);
-        $stmt->bindValue(7, $data['status'], PDO::PARAM_STR);
-        $ok = $stmt->execute();
-        return $ok;
+
+        // Sem vínculo ativo, cria um novo.
+        $sqlInsert = 'INSERT INTO adms_training_users
+                      (adms_user_id, adms_training_id, data_realizacao, data_agendada, nota, observacoes, status, created_at, updated_at)
+                      VALUES (:user_id, :training_id, :data_realizacao, :data_agendada, :nota, :observacoes, :status, NOW(), NOW())';
+        $stmtInsert = $this->getConnection()->prepare($sqlInsert);
+        $stmtInsert->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmtInsert->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmtInsert->bindValue(':data_realizacao', $data['data_realizacao'] ?? null, PDO::PARAM_STR);
+        $stmtInsert->bindValue(':data_agendada', $data['data_agendada'] ?? null, PDO::PARAM_STR);
+        $stmtInsert->bindValue(':nota', $data['nota'] ?? null, PDO::PARAM_STR);
+        $stmtInsert->bindValue(':observacoes', $data['observacoes'] ?? null, PDO::PARAM_STR);
+        $stmtInsert->bindValue(':status', $data['status'], PDO::PARAM_STR);
+        return $stmtInsert->execute();
     }
 
     /**
@@ -992,13 +1053,28 @@ class TrainingUsersRepository extends DbConnection
                 $stmt->execute();
                 // NÃO marcar como concluído e não criar novo ciclo!
             } else {
-                // Marcar vínculo atual como concluído
-                $sql = 'UPDATE adms_training_users SET status = "concluido", updated_at = NOW() 
-                        WHERE adms_user_id = ? AND adms_training_id = ?';
-                $stmt = $this->getConnection()->prepare($sql);
-                $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-                $stmt->bindValue(2, $trainingId, PDO::PARAM_INT);
-                $stmt->execute();
+                // Marcar apenas o vínculo ativo mais recente como concluído.
+                $sqlActive = 'SELECT id
+                              FROM adms_training_users
+                              WHERE adms_user_id = :user_id
+                                AND adms_training_id = :training_id
+                                AND status != "concluido"
+                              ORDER BY id DESC
+                              LIMIT 1';
+                $stmtActive = $this->getConnection()->prepare($sqlActive);
+                $stmtActive->bindValue(':user_id', $userId, PDO::PARAM_INT);
+                $stmtActive->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+                $stmtActive->execute();
+                $activeId = (int)($stmtActive->fetchColumn() ?? 0);
+
+                if ($activeId > 0) {
+                    $sql = 'UPDATE adms_training_users
+                            SET status = "concluido", updated_at = NOW()
+                            WHERE id = ?';
+                    $stmt = $this->getConnection()->prepare($sql);
+                    $stmt->bindValue(1, $activeId, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
 
                 // Se deve criar novo ciclo e o treinamento tem reciclagem
                 if ($createNewCycle) {
@@ -1078,6 +1154,16 @@ class TrainingUsersRepository extends DbConnection
                 ta_last.aplicado_por,
                 ta_last.id as application_id
             FROM adms_training_users tu
+            INNER JOIN (
+                -- Consolidar matriz por colaborador+treinamento:
+                -- mantém apenas o vínculo mais recente (maior id) para evitar duplicidade visual.
+                SELECT adms_user_id, adms_training_id, MAX(id) AS latest_id
+                FROM adms_training_users
+                GROUP BY adms_user_id, adms_training_id
+            ) tu_latest
+                ON tu_latest.adms_user_id = tu.adms_user_id
+               AND tu_latest.adms_training_id = tu.adms_training_id
+               AND tu_latest.latest_id = tu.id
             INNER JOIN adms_users u ON u.id = tu.adms_user_id
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
@@ -1779,16 +1865,8 @@ class TrainingUsersRepository extends DbConnection
         string $dataLimite
     ): void
     {
-        $sql = 'INSERT INTO adms_training_users (adms_user_id, adms_training_id, status, tipo_vinculo, motivo, created_at, updated_at, data_limite_primeiro_treinamento)
-                VALUES (:user_id, :training_id, :status, :tipo_vinculo, :motivo, NOW(), NOW(), :data_limite)';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
-        $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-        $stmt->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
-        $stmt->bindValue(':motivo', $motivo, PDO::PARAM_STR);
-        $stmt->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
-        $stmt->execute();
+        // Reutiliza a regra central para evitar criação de ativos duplicados.
+        $this->insertOrUpdate($userId, $trainingId, $status, $tipoVinculo, $dataLimite, $motivo);
     }
 
     public function removeActiveLinksByUser($userId) {

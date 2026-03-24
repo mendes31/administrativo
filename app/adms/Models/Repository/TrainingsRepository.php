@@ -9,6 +9,31 @@ use Exception;
 
 class TrainingsRepository extends DbConnection
 {
+    private function existsCodeVersion(string $codigo, ?string $versao, ?int $excludeId = null): bool
+    {
+        $codigo = trim($codigo);
+        $versao = trim((string)($versao ?? ''));
+
+        $sql = 'SELECT id
+                FROM adms_trainings
+                WHERE TRIM(codigo) = :codigo
+                  AND COALESCE(TRIM(versao), "") = :versao';
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :exclude_id';
+        }
+        $sql .= ' LIMIT 1';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':codigo', $codigo, PDO::PARAM_STR);
+        $stmt->bindValue(':versao', $versao, PDO::PARAM_STR);
+        if ($excludeId !== null) {
+            $stmt->bindValue(':exclude_id', $excludeId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function getAllTrainings(int $page = 1, int $limit = 20, array $filters = []): array
     {
         $offset = max(0, ($page - 1) * $limit);
@@ -111,6 +136,18 @@ class TrainingsRepository extends DbConnection
     public function createTraining(array $data): bool|int
     {
         try {
+            $codigo = trim((string)($data['codigo'] ?? ''));
+            $versao = trim((string)($data['versao'] ?? ''));
+            if ($codigo === '') {
+                throw new Exception('O campo "Código" é obrigatório.');
+            }
+            if ($versao === '') {
+                throw new Exception('O campo "Versão" é obrigatório.');
+            }
+            if ($this->existsCodeVersion($codigo, $versao)) {
+                throw new Exception('Já existe um treinamento com o mesmo código e versão.');
+            }
+
             // Validação do prazo de treinamento
             $prazoTreinamento = (int)($data['prazo_treinamento'] ?? 0);
             if ($prazoTreinamento <= 0) {
@@ -189,6 +226,18 @@ class TrainingsRepository extends DbConnection
     public function updateTraining(int|string $id, array $data): bool
     {
         try {
+            $codigo = trim((string)($data['codigo'] ?? ''));
+            $versao = trim((string)($data['versao'] ?? ''));
+            if ($codigo === '') {
+                throw new Exception('O campo "Código" é obrigatório.');
+            }
+            if ($versao === '') {
+                throw new Exception('O campo "Versão" é obrigatório.');
+            }
+            if ($this->existsCodeVersion($codigo, $versao, (int)$id)) {
+                throw new Exception('Já existe outro treinamento com o mesmo código e versão.');
+            }
+
             // Validação do prazo de treinamento
             $prazoTreinamento = (int)($data['prazo_treinamento'] ?? 0);
             if ($prazoTreinamento <= 0) {

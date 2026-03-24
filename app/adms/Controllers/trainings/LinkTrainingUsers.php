@@ -88,19 +88,12 @@ class LinkTrainingUsers
     // Processa o POST de vínculo
     public function store()
     {
-        die('CHEGOU NO STORE');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
             exit;
         }
         $trainingId = isset($_POST['training_id']) ? (int)$_POST['training_id'] : null;
         $userIds = $_POST['user_ids'] ?? [];
-        // LOG DE DEPURAÇÃO
-        echo '<pre style="color:red;">DEBUG POST:\n';
-        echo 'trainingId: ' . var_export($trainingId, true) . "\n";
-        echo 'userIds: ' . var_export($userIds, true) . "\n";
-        echo '</pre>';
-        // FIM LOG
         if ($trainingId && !empty($userIds)) {
             $repo = new TrainingUsersRepository();
             $repo->vincularUsuariosTreinamento($trainingId, $userIds);
