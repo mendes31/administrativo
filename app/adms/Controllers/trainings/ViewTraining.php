@@ -40,6 +40,15 @@ class ViewTraining
             exit;
         }
 
+        // Garante materialização dos vínculos obrigatórios por cargo
+        // antes de calcular estatísticas e exibir detalhes.
+        $syncOk = $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers((int)$id);
+        if (!$syncOk) {
+            GenerateLog::generateLog("error", "Falha ao sincronizar vínculos obrigatórios por cargo na visualização do treinamento.", [
+                'training_id' => (int)$id
+            ]);
+        }
+
         // Buscar cargos vinculados
         $linkedPositions = $trainingPositionsRepo->getPositionsByTraining($id);
         $positionIds = array_column($linkedPositions, 'adms_position_id');

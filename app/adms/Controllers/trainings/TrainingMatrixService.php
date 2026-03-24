@@ -74,15 +74,16 @@ class TrainingMatrixService
         $mandatoryTrainings = $trainingPositionsRepo->getTrainingsByPosition($userPosition);
         $mandatoryTrainings = array_unique($mandatoryTrainings);
 
-        // Remove todos os vínculos que não são mais obrigatórios
-        $trainingUsersRepo->deleteByUserAndNotInTrainings($userId, $mandatoryTrainings);
+        // Remove apenas vínculos ativos por cargo que não são mais obrigatórios.
+        // Preserva históricos concluídos e vínculos individuais.
+        $trainingUsersRepo->deleteActiveCargoLinksByUserAndNotInTrainings($userId, $mandatoryTrainings);
 
         // Garante que todos os obrigatórios estejam na matriz (apenas treinamentos ativos)
         foreach ($mandatoryTrainings as $trainingId) {
             $training = $trainingsRepo->getTraining($trainingId);
             // Apenas criar vínculo se o treinamento estiver ativo
             if ($training && $training['ativo'] == 1) {
-                $trainingUsersRepo->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo');
+                $trainingUsersRepo->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo', 'cargo');
             }
         }
     }

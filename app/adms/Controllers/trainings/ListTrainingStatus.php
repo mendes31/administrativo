@@ -80,6 +80,19 @@ class ListTrainingStatus
         }
 
         $statusFiltro = $filters['status'] ?? '';
+
+        // Garante materialização dos vínculos obrigatórios por cargo na tabela adms_training_users
+        // antes da listagem de status.
+        $syncOk = $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers(
+            !empty($filters['treinamento']) ? (int)$filters['treinamento'] : null
+        );
+        if (!$syncOk) {
+            \App\adms\Helpers\GenerateLog::generateLog(
+                "error",
+                "Falha ao sincronizar vínculos obrigatórios por cargo antes da listagem de status.",
+                ['filters' => $filters]
+            );
+        }
         
         // Paginação
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;

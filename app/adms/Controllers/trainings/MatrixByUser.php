@@ -86,6 +86,20 @@ class MatrixByUser
         
         $matrixByUser = [];
         $total = 0;
+
+        // Garante materialização dos vínculos obrigatórios por cargo na tabela adms_training_users
+        // antes de montar a listagem da matriz por colaborador.
+        $syncOk = $this->trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers(
+            !empty($filters['treinamento']) ? (int)$filters['treinamento'] : null
+        );
+        if (!$syncOk) {
+            \App\adms\Helpers\GenerateLog::generateLog(
+                "error",
+                "Falha ao sincronizar vínculos obrigatórios por cargo antes da matriz por colaborador.",
+                ['filters' => $filters]
+            );
+        }
+
         if (!empty($filters['treinamento'])) {
             // Se filtrou por um treinamento específico, traz todos os vinculados (cargo e individual)
             $matrixByUser = $this->trainingUsersRepo->getAllVinculadosPorTreinamento($filters['treinamento']);

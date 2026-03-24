@@ -12,6 +12,13 @@ function getPerformanceStatus($grade) {
     }
 }
 $performanceFilter = $_GET['performance'] ?? '';
+
+// Faixa de paginação segura para evitar "Mostrando 1 até 0 de 0".
+$pageInfoPage = (int)($this->data['page'] ?? 1);
+$pageInfoPerPage = (int)($this->data['per_page'] ?? 20);
+$pageInfoTotal = (int)($this->data['total'] ?? 0);
+$pageInfoFrom = $pageInfoTotal > 0 ? (($pageInfoPage - 1) * $pageInfoPerPage) + 1 : 0;
+$pageInfoTo = $pageInfoTotal > 0 ? min($pageInfoPage * $pageInfoPerPage, $pageInfoTotal) : 0;
 ?>
 <style>
 .performance-reprovado {
@@ -515,7 +522,7 @@ thead th {
         <div class="d-flex justify-content-between align-items-center mt-4">
             <div>
                 <small class="text-muted">
-                    Mostrando <?= (($page - 1) * $perPage) + 1 ?> até <?= min($page * $perPage, $total) ?> de <?= $total ?> registro(s)
+                    Mostrando <?= $pageInfoFrom ?> até <?= $pageInfoTo ?> de <?= $total ?> registro(s)
                 </small>
             </div>
             <?php if ($totalPages > 1): ?>
@@ -552,7 +559,7 @@ thead th {
         <div class="d-flex justify-content-between align-items-center mt-4">
             <div>
                 <small class="text-muted">
-                    Mostrando <?= (($page - 1) * $perPage) + 1 ?> até <?= min($page * $perPage, $total) ?> de <?= $total ?> registro(s)
+                    Mostrando <?= $pageInfoFrom ?> até <?= $pageInfoTo ?> de <?= $total ?> registro(s)
                 </small>
             </div>
             <?php if ($totalPages > 1): ?>

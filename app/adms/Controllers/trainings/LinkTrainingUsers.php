@@ -43,6 +43,16 @@ class LinkTrainingUsers
 
         // Buscar usuários já vinculados (direto ou por cargo obrigatório)
         $trainingUsersRepo = new TrainingUsersRepository();
+        // Auto-correção: ao abrir a tela de vínculo de um treinamento,
+        // materializa vínculos obrigatórios por cargo na adms_training_users.
+        $syncOk = $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers($id);
+        if (!$syncOk) {
+            \App\adms\Helpers\GenerateLog::generateLog(
+                "error",
+                "Falha ao sincronizar vínculos obrigatórios por cargo na abertura da tela de vínculo.",
+                ['training_id' => $id]
+            );
+        }
         $this->data['vinculados'] = $trainingUsersRepo->getAllVinculadosPorTreinamento($id);
         $vinculadosIds = array_column($this->data['vinculados'], 'id');
 

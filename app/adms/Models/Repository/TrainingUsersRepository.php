@@ -244,7 +244,13 @@ class TrainingUsersRepository extends DbConnection
                 ta_last.id as application_id
             FROM adms_training_users tu
             INNER JOIN (
-                SELECT adms_user_id, adms_training_id, MAX(id) AS latest_id
+                SELECT
+                    adms_user_id,
+                    adms_training_id,
+                    COALESCE(
+                        MAX(CASE WHEN status <> "concluido" THEN id END),
+                        MAX(id)
+                    ) AS latest_id
                 FROM adms_training_users
                 GROUP BY adms_user_id, adms_training_id
             ) tu_latest ON tu_latest.adms_user_id = tu.adms_user_id
@@ -781,8 +787,9 @@ class TrainingUsersRepository extends DbConnection
             $requiredTrainings = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
             
             if (empty($requiredTrainings)) {
-                // Se não há treinamentos obrigatórios, remove todos os vínculos
-                $this->deleteByUserAndNotInTrainings($userId, []);
+                // Se não há treinamentos obrigatórios, remove apenas vínculos ativos de cargo
+                // (não apagar históricos concluídos nem vínculos individuais).
+                $this->deleteActiveCargoLinksByUserAndNotInTrainings($userId, []);
                 return true;
             }
             
@@ -791,12 +798,174 @@ class TrainingUsersRepository extends DbConnection
                 $this->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo', 'cargo');
             }
             
-            // Remover vínculos de treinamentos que não são mais obrigatórios
-            $this->deleteByUserAndNotInTrainings($userId, $requiredTrainings);
+            // Remover apenas vínculos ativos de cargo que não são mais obrigatórios
+            $this->deleteActiveCargoLinksByUserAndNotInTrainings($userId, $requiredTrainings);
             
             return true;
         } catch (\Exception $e) {
             return false;
+        }
+    }
+
+    /**
+     * Sincroniza vínculos obrigatórios por cargo para todos os usuários ativos.
+     * - Converte vínculo ativo individual -> cargo quando o cargo é obrigatório.
+     * - Insere vínculo ativo cargo quando não existe vínculo ativo para o par usuário+treinamento.
+     */
+    public function syncMandatoryCargoLinksForAllActiveUsers(?int $trainingId = null): bool
+    {
+        try {
+            $trainingFilterUpdate = '';
+            $trainingFilterInsert = '';
+            $paramsUpdate = [];
+            $paramsInsert = [];
+
+            if ($trainingId !== null) {
+                $trainingFilterUpdate = ' AND tp.adms_training_id = :training_id';
+                $trainingFilterInsert = ' AND tp.adms_training_id = :training_id';
+                $paramsUpdate[':training_id'] = $trainingId;
+                $paramsInsert[':training_id'] = $trainingId;
+            }
+
+            // 1) Se o cargo passou a ser obrigatório, vínculo ativo deve ser por cargo.
+            $sqlConvert = "UPDATE adms_training_users tu
+                           INNER JOIN adms_users u
+                                   ON u.id = tu.adms_user_id
+                                  AND u.status = 'Ativo'
+                           INNER JOIN adms_training_positions tp
+                                   ON tp.adms_training_id = tu.adms_training_id
+                                  AND tp.adms_position_id = u.user_position_id
+                                  AND tp.obrigatorio = 1
+                           INNER JOIN adms_trainings t
+                                   ON t.id = tu.adms_training_id
+                                  AND t.ativo = 1
+                           SET tu.tipo_vinculo = 'cargo',
+                               tu.motivo = 'sincronizacao_cargo',
+                               tu.updated_at = NOW()
+                           WHERE tu.status != 'concluido'
+                             AND tu.tipo_vinculo = 'individual'{$trainingFilterUpdate}";
+            $stmtConvert = $this->getConnection()->prepare($sqlConvert);
+            foreach ($paramsUpdate as $key => $value) {
+                $stmtConvert->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $stmtConvert->execute();
+
+            // 2) Inserir vínculos ativos por cargo que ainda não existem.
+            $sqlInsertMissing = "INSERT INTO adms_training_users
+                                    (adms_user_id, adms_training_id, status, tipo_vinculo, motivo, created_at, updated_at, data_limite_primeiro_treinamento)
+                                 SELECT
+                                    u.id,
+                                    tp.adms_training_id,
+                                    'dentro_do_prazo',
+                                    'cargo',
+                                    'sincronizacao_cargo',
+                                    NOW(),
+                                    NOW(),
+                                    DATE_ADD(CURDATE(), INTERVAL CASE WHEN tp.tipo_treinamento = 'Continuo' THEN 365 ELSE 90 END DAY)
+                                 FROM adms_training_positions tp
+                                 INNER JOIN adms_users u
+                                         ON u.user_position_id = tp.adms_position_id
+                                        AND u.status = 'Ativo'
+                                 INNER JOIN adms_trainings t
+                                         ON t.id = tp.adms_training_id
+                                        AND t.ativo = 1
+                                 LEFT JOIN adms_training_users tu_ativo
+                                        ON tu_ativo.adms_user_id = u.id
+                                       AND tu_ativo.adms_training_id = tp.adms_training_id
+                                       AND tu_ativo.status != 'concluido'
+                                 WHERE tp.obrigatorio = 1
+                                   AND tu_ativo.id IS NULL{$trainingFilterInsert}";
+            $stmtInsert = $this->getConnection()->prepare($sqlInsertMissing);
+            foreach ($paramsInsert as $key => $value) {
+                $stmtInsert->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $stmtInsert->execute();
+
+            // 3) Fallback determinístico:
+            // caso algum par usuário+treinamento obrigatório ainda fique sem vínculo ativo,
+            // materializa linha a linha via regra central.
+            $sqlMissingAfterBulk = "SELECT
+                                        u.id AS user_id,
+                                        tp.adms_training_id AS training_id
+                                    FROM adms_training_positions tp
+                                    INNER JOIN adms_users u
+                                            ON u.user_position_id = tp.adms_position_id
+                                           AND u.status = 'Ativo'
+                                    INNER JOIN adms_trainings t
+                                            ON t.id = tp.adms_training_id
+                                           AND t.ativo = 1
+                                    LEFT JOIN adms_training_users tu_ativo
+                                           ON tu_ativo.adms_user_id = u.id
+                                          AND tu_ativo.adms_training_id = tp.adms_training_id
+                                          AND tu_ativo.status != 'concluido'
+                                    WHERE tp.obrigatorio = 1
+                                      AND tu_ativo.id IS NULL";
+            if ($trainingId !== null) {
+                $sqlMissingAfterBulk .= " AND tp.adms_training_id = :training_id";
+            }
+            $stmtMissing = $this->getConnection()->prepare($sqlMissingAfterBulk);
+            if ($trainingId !== null) {
+                $stmtMissing->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+            }
+            $stmtMissing->execute();
+            $missingPairs = $stmtMissing->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            foreach ($missingPairs as $pair) {
+                $this->insertOrUpdate(
+                    (int)$pair['user_id'],
+                    (int)$pair['training_id'],
+                    'dentro_do_prazo',
+                    'cargo',
+                    null,
+                    'sincronizacao'
+                );
+            }
+
+            return true;
+        } catch (Exception $e) {
+            GenerateLog::generateLog("error", "Falha na sincronização global de vínculos por cargo.", [
+                'training_id' => $trainingId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Remove apenas vínculos ATIVOS por CARGO que não estejam na lista informada.
+     * Preserva históricos concluídos e vínculos individuais do colaborador.
+     */
+    public function deleteActiveCargoLinksByUserAndNotInTrainings(int $userId, array $trainingIds): void
+    {
+        try {
+            if (empty($trainingIds)) {
+                $sql = "DELETE FROM adms_training_users
+                        WHERE adms_user_id = ?
+                          AND tipo_vinculo = 'cargo'
+                          AND status != 'concluido'";
+                $stmt = $this->getConnection()->prepare($sql);
+                $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+                $stmt->execute();
+                return;
+            }
+
+            $in = implode(',', array_fill(0, count($trainingIds), '?'));
+            $sql = "DELETE FROM adms_training_users
+                    WHERE adms_user_id = ?
+                      AND tipo_vinculo = 'cargo'
+                      AND status != 'concluido'
+                      AND adms_training_id NOT IN ($in)";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+            foreach ($trainingIds as $k => $tid) {
+                $stmt->bindValue($k + 2, (int)$tid, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog("error", "Falha ao remover vínculos ativos de cargo fora da lista.", [
+                'user_id' => $userId,
+                'training_ids' => $trainingIds,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
@@ -1156,8 +1325,14 @@ class TrainingUsersRepository extends DbConnection
             FROM adms_training_users tu
             INNER JOIN (
                 -- Consolidar matriz por colaborador+treinamento:
-                -- mantém apenas o vínculo mais recente (maior id) para evitar duplicidade visual.
-                SELECT adms_user_id, adms_training_id, MAX(id) AS latest_id
+                -- prioriza vínculo ativo e, na ausência dele, usa o mais recente.
+                SELECT
+                    adms_user_id,
+                    adms_training_id,
+                    COALESCE(
+                        MAX(CASE WHEN status <> "concluido" THEN id END),
+                        MAX(id)
+                    ) AS latest_id
                 FROM adms_training_users
                 GROUP BY adms_user_id, adms_training_id
             ) tu_latest
@@ -1404,6 +1579,18 @@ class TrainingUsersRepository extends DbConnection
         $positionsRepo = new \App\adms\Models\Repository\TrainingPositionsRepository();
         $cargosObrigatorios = $positionsRepo->getPositionIdsByTraining($trainingId);
         $usersRepo = new \App\adms\Models\Repository\UsersRepository();
+
+        // Auto-sincronização defensiva:
+        // garante que todos os usuários ativos dos cargos obrigatórios tenham vínculo por cargo
+        // antes de processar vínculos individuais selecionados na tela.
+        foreach ($cargosObrigatorios as $cargoId) {
+            $usersFromCargo = $usersRepo->getUsersByPosition((int)$cargoId);
+            foreach ($usersFromCargo as $cargoUser) {
+                if (($cargoUser['status'] ?? '') === 'Ativo') {
+                    $this->insertOrUpdate((int)$cargoUser['id'], $trainingId, 'dentro_do_prazo', 'cargo');
+                }
+            }
+        }
         
         // Log dos cargos obrigatórios
         \App\adms\Helpers\GenerateLog::generateLog(
@@ -1894,12 +2081,24 @@ class TrainingUsersRepository extends DbConnection
     }
 
     public function getLastCompletedTraining($userId, $trainingId) {
-        $sql = "SELECT * FROM adms_training_users WHERE adms_user_id = :user_id AND adms_training_id = :training_id AND status = 'concluido' ORDER BY data_realizacao DESC, updated_at DESC LIMIT 1";
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        // Fonte oficial de conclusão: aplicações registradas.
+        $sqlApp = "SELECT id, adms_user_id, adms_training_id, data_realizacao, status, created_at, updated_at
+                   FROM adms_training_applications
+                   WHERE adms_user_id = :user_id
+                     AND adms_training_id = :training_id
+                     AND status = 'concluido'
+                     AND data_realizacao IS NOT NULL
+                   ORDER BY data_realizacao DESC, created_at DESC, id DESC
+                   LIMIT 1";
+        $stmtApp = $this->getConnection()->prepare($sqlApp);
+        $stmtApp->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmtApp->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmtApp->execute();
+        $application = $stmtApp->fetch(PDO::FETCH_ASSOC);
+        if ($application) {
+            return $application;
+        }
+        return null;
     }
 
     public function isReciclagemVencida($dataRealizacao, $reciclagemPeriodo) {

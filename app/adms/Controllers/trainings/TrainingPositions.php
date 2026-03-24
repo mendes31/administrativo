@@ -70,7 +70,9 @@ class TrainingPositions
                     // Verificar se o usuário está ativo antes de recriar vínculos
                     // (otimização: evita chamar recreateLinksForUser para usuários inativos)
                     if (isset($user['status']) && $user['status'] === 'Ativo') {
-                        $trainingUsersRepo->recreateLinksForUser($user['id'], $cargoId);
+                        // Sincronização robusta: materializa vínculo obrigatório por cargo
+                        // para todos os usuários ativos do cargo selecionado.
+                        $trainingUsersRepo->syncUserTrainingLinks((int)$user['id'], (int)$cargoId);
                     }
                 }
             }
