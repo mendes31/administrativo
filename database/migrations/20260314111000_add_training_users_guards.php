@@ -6,21 +6,6 @@ use Phinx\Migration\AbstractMigration;
 
 final class AddTrainingUsersGuards extends AbstractMigration
 {
-    private function executeTriggerSafely(string $sql, string $triggerName): void
-    {
-        try {
-            $this->execute($sql);
-        } catch (\PDOException $e) {
-            $message = $e->getMessage();
-            // Ambiente sem privilégio CREATE TRIGGER: não bloquear deploy.
-            if (str_contains($message, '1142') || str_contains(strtolower($message), 'trigger command denied')) {
-                error_log("[Phinx] Sem permissão para criar trigger {$triggerName}. Mantendo validação no PHP.");
-                return;
-            }
-            throw $e;
-        }
-    }
-
     public function up(): void
     {
         if (!$this->hasTable('adms_training_users')) {
@@ -36,54 +21,13 @@ final class AddTrainingUsersGuards extends AbstractMigration
                 )
                 ->update();
         }
-
-        $this->execute('DROP TRIGGER IF EXISTS trg_tu_prevent_duplicate_active_insert');
-        $this->executeTriggerSafely(
-            "CREATE TRIGGER trg_tu_prevent_duplicate_active_insert
-             BEFORE INSERT ON adms_training_users
-             FOR EACH ROW
-             BEGIN
-                 IF NEW.status <> 'concluido' AND EXISTS (
-                     SELECT 1
-                     FROM adms_training_users tu
-                     WHERE tu.adms_user_id = NEW.adms_user_id
-                       AND tu.adms_training_id = NEW.adms_training_id
-                       AND tu.tipo_vinculo = NEW.tipo_vinculo
-                       AND tu.status <> 'concluido'
-                     LIMIT 1
-                 ) THEN
-                     SIGNAL SQLSTATE '45000'
-                         SET MESSAGE_TEXT = 'Vínculo ativo duplicado para usuário+treinamento+tipo.';
-                 END IF;
-             END",
-            'trg_tu_prevent_duplicate_active_insert'
-        );
-
-        $this->execute('DROP TRIGGER IF EXISTS trg_tu_cargo_overrides_individual_insert');
-        $this->executeTriggerSafely(
-            "CREATE TRIGGER trg_tu_cargo_overrides_individual_insert
-             AFTER INSERT ON adms_training_users
-             FOR EACH ROW
-             BEGIN
-                 IF NEW.tipo_vinculo = 'cargo' AND NEW.status <> 'concluido' THEN
-                     DELETE FROM adms_training_users
-                     WHERE adms_user_id = NEW.adms_user_id
-                       AND adms_training_id = NEW.adms_training_id
-                       AND tipo_vinculo = 'individual'
-                       AND status <> 'concluido'
-                       AND id <> NEW.id;
-                 END IF;
-             END",
-            'trg_tu_cargo_overrides_individual_insert'
-        );
+        // Sem triggers por limitação de permissão no ambiente de produção.
+        // As regras de integridade ficam garantidas no PHP (repositórios/controladores).
     }
 
     public function down(): void
     {
         if ($this->hasTable('adms_training_users')) {
-            $this->execute('DROP TRIGGER IF EXISTS trg_tu_prevent_duplicate_active_insert');
-            $this->execute('DROP TRIGGER IF EXISTS trg_tu_cargo_overrides_individual_insert');
-
             $indexes = $this->fetchAll("SHOW INDEX FROM adms_training_users WHERE Key_name = 'idx_tu_user_training_tipo_status'");
             if (!empty($indexes)) {
                 $this->table('adms_training_users')

@@ -1,4 +1,9 @@
 -- Hardening do módulo Gestão de Treinamentos
+-- STATUS: OPCIONAL (admin only)
+-- Uso recomendado:
+-- - Fluxo oficial do projeto: migrations + validações no PHP.
+-- - Este script é apenas alternativa operacional para DBA/admin em ambiente com permissões adequadas.
+--
 -- IMPORTANTE SOBRE TRANSAÇÃO:
 -- - Ajustes de DADOS (INSERT/UPDATE/DELETE) devem ser executados em START TRANSACTION/COMMIT.
 -- - Este script é de ESTRUTURA (ALTER TABLE / CREATE TRIGGER), que no MySQL faz COMMIT implícito.
@@ -28,6 +33,7 @@ ALTER TABLE adms_training_users
 -- 4) Trigger: bloquear novo vínculo ativo duplicado por usuário+treinamento+tipo_vinculo
 -- Requer permissão para TRIGGER.
 -- OBS: DDL (CREATE/DROP TRIGGER) -> commit implícito no MySQL.
+-- OPCIONAL: use apenas se o usuário do banco possuir privilégio TRIGGER.
 DROP TRIGGER IF EXISTS trg_tu_prevent_duplicate_active_insert;
 DELIMITER $$
 CREATE TRIGGER trg_tu_prevent_duplicate_active_insert
@@ -51,6 +57,7 @@ DELIMITER ;
 
 -- 5) Trigger: se entrar vínculo por cargo ativo, remover vínculo individual ativo do mesmo usuário+treinamento
 -- OBS: DDL (CREATE/DROP TRIGGER) -> commit implícito no MySQL.
+-- OPCIONAL: use apenas se o usuário do banco possuir privilégio TRIGGER.
 DROP TRIGGER IF EXISTS trg_tu_cargo_overrides_individual_insert;
 DELIMITER $$
 CREATE TRIGGER trg_tu_cargo_overrides_individual_insert

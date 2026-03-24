@@ -43,6 +43,9 @@ Executar as migrations:
 vendor/bin/phinx migrate -c database/phinx.php
 ```
 
+> Nota (Gestão de Treinamentos): o fluxo oficial de hardening é via **migrations + validações PHP**.  
+> O arquivo `scripts/training_hardening_validacoes.sql` é **opcional (admin only)** e não deve ser o caminho padrão de deploy.
+
 Executar as seeds:
 
 ```bash
