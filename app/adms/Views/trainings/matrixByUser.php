@@ -67,9 +67,18 @@ thead th {
                 <a href="<?= $_ENV['URL_ADM'] ?>matrix-by-user?<?= http_build_query(array_merge($_GET, ['export' => 'excel'])) ?>" class="btn btn-success btn-sm me-2">
                     <i class="fas fa-file-excel me-1"></i>Exportar Excel
                 </a>
-                <a href="<?= $_ENV['URL_ADM'] ?>matrix-by-user?<?= http_build_query(array_merge($_GET, ['export' => 'pdf'])) ?>" class="btn btn-danger btn-sm">
+                <a href="<?= $_ENV['URL_ADM'] ?>matrix-by-user?<?= http_build_query(array_merge($_GET, ['export' => 'pdf'])) ?>" class="btn btn-danger btn-sm me-2">
                     <i class="fas fa-file-pdf me-1"></i>Exportar PDF
                 </a>
+                <?php if (!empty($this->data['filters']['colaborador'])): ?>
+                    <a href="<?= $_ENV['URL_ADM'] ?>matrix-by-user?<?= http_build_query(array_merge($_GET, ['export' => 'lnt'])) ?>" class="btn btn-primary btn-sm" title="Levantamento de Necessidades de Treinamento do colaborador filtrado">
+                        <i class="fas fa-file-signature me-1"></i>Gerar LNT
+                    </a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Selecione um colaborador e clique em Filtrar">
+                        <i class="fas fa-file-signature me-1"></i>Gerar LNT
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
         <div class="card-body pt-2">

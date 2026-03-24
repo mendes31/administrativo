@@ -1292,10 +1292,80 @@ class TrainingUsersRepository extends DbConnection
      * @param int $limit Limite de registros
      * @param int $offset Offset para paginação
      * @param bool $returnTotal Se true, retorna array com 'data' e 'total'
+     * @param bool $forLntExport Inclui CPF/e-mail/admissão/gestor e última aplicação com status concluído (PDF LNT)
      * @return array Dados ou array com 'data' e 'total' se $returnTotal = true
      */
-    public function getMandatoryMatrixByUser(array $filters = [], int $limit = 10, int $offset = 0, bool $returnTotal = false): array
+    public function getMandatoryMatrixByUser(array $filters = [], int $limit = 10, int $offset = 0, bool $returnTotal = false, bool $forLntExport = false): array
     {
+        $lntCols = $forLntExport
+            ? ',
+                u.cpf,
+                u.email AS user_email_lnt,
+                u.data_admissao,
+                gestor.name AS gestor_nome'
+            : '';
+
+        $lntGestorJoin = $forLntExport
+            ? 'LEFT JOIN adms_users gestor ON gestor.id = u.immediate_supervisor_id'
+            : '';
+
+        if ($forLntExport) {
+            $taLastJoin = 'LEFT JOIN (
+                SELECT 
+                    ta1.adms_user_id,
+                    ta1.adms_training_id,
+                    ta1.data_realizacao,
+                    ta1.nota,
+                    ta1.observacoes,
+                    ta1.instrutor_nome,
+                    ta1.instrutor_email,
+                    ta1.aplicado_por,
+                    ta1.id,
+                    ta1.created_at
+                FROM adms_training_applications ta1
+                INNER JOIN (
+                    SELECT 
+                        adms_user_id,
+                        adms_training_id,
+                        MAX(created_at) as max_created_at
+                    FROM adms_training_applications
+                    WHERE status = \'concluido\'
+                    GROUP BY adms_user_id, adms_training_id
+                ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                    AND ta1.adms_training_id = ta2.adms_training_id 
+                    AND ta1.created_at = ta2.max_created_at
+                WHERE ta1.status = \'concluido\'
+            ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                AND ta_last.adms_training_id = tu.adms_training_id';
+        } else {
+            $taLastJoin = 'LEFT JOIN (
+                SELECT 
+                    ta1.adms_user_id,
+                    ta1.adms_training_id,
+                    ta1.data_realizacao,
+                    ta1.nota,
+                    ta1.observacoes,
+                    ta1.instrutor_nome,
+                    ta1.instrutor_email,
+                    ta1.aplicado_por,
+                    ta1.id,
+                    ta1.created_at
+                FROM adms_training_applications ta1
+                INNER JOIN (
+                    SELECT 
+                        adms_user_id,
+                        adms_training_id,
+                        MAX(created_at) as max_created_at
+                    FROM adms_training_applications
+                    GROUP BY adms_user_id, adms_training_id
+                ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
+                    AND ta1.adms_training_id = ta2.adms_training_id 
+                    AND ta1.created_at = ta2.max_created_at
+            ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
+                AND ta_last.adms_training_id = tu.adms_training_id
+                AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)';
+        }
+
         // Construir query base
         $sql = 'SELECT 
                 u.id as user_id,
@@ -1313,7 +1383,8 @@ class TrainingUsersRepository extends DbConnection
                 tu.status,
                 tu.tipo_vinculo,
                 tu.created_at as vinculo_created_at,
-                tu.data_limite_primeiro_treinamento,
+                tu.data_limite_primeiro_treinamento
+                ' . $lntCols . ',
                 -- Última aplicação (otimização N+1)
                 ta_last.data_realizacao,
                 ta_last.nota,
@@ -1342,35 +1413,11 @@ class TrainingUsersRepository extends DbConnection
             INNER JOIN adms_users u ON u.id = tu.adms_user_id
             INNER JOIN adms_departments d ON u.user_department_id = d.id
             INNER JOIN adms_positions p ON u.user_position_id = p.id
+            ' . $lntGestorJoin . '
             INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
             LEFT JOIN adms_training_positions tp ON tp.adms_training_id = tu.adms_training_id AND tp.adms_position_id = u.user_position_id
             -- LEFT JOIN para última aplicação (subquery otimizada - resolve N+1)
-            LEFT JOIN (
-                SELECT 
-                    ta1.adms_user_id,
-                    ta1.adms_training_id,
-                    ta1.data_realizacao,
-                    ta1.nota,
-                    ta1.observacoes,
-                    ta1.instrutor_nome,
-                    ta1.instrutor_email,
-                    ta1.aplicado_por,
-                    ta1.id,
-                    ta1.created_at
-                FROM adms_training_applications ta1
-                INNER JOIN (
-                    SELECT 
-                        adms_user_id,
-                        adms_training_id,
-                        MAX(created_at) as max_created_at
-                    FROM adms_training_applications
-                    GROUP BY adms_user_id, adms_training_id
-                ) ta2 ON ta1.adms_user_id = ta2.adms_user_id 
-                    AND ta1.adms_training_id = ta2.adms_training_id 
-                    AND ta1.created_at = ta2.max_created_at
-            ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
-                AND ta_last.adms_training_id = tu.adms_training_id
-                AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)
+            ' . $taLastJoin . '
             WHERE t.ativo = 1';
         $params = [];
         
@@ -1432,6 +1479,52 @@ class TrainingUsersRepository extends DbConnection
         }
         
         return $results;
+    }
+
+    /**
+     * Para exportação LNT com filtro por treinamento: preenche data_realizacao e nota
+     * da última aplicação concluída por treinamento para o colaborador.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    public function mergeUltimaRealizacaoConcluidaForUser(array $rows, int $userId): array
+    {
+        if ($rows === [] || $userId <= 0) {
+            return $rows;
+        }
+
+        $sql = 'SELECT ta1.adms_training_id, ta1.data_realizacao, ta1.nota
+                FROM adms_training_applications ta1
+                INNER JOIN (
+                    SELECT adms_training_id, MAX(created_at) AS max_created_at
+                    FROM adms_training_applications
+                    WHERE adms_user_id = ? AND status = \'concluido\'
+                    GROUP BY adms_training_id
+                ) t2 ON t2.adms_training_id = ta1.adms_training_id
+                    AND t2.max_created_at = ta1.created_at
+                WHERE ta1.adms_user_id = ? AND ta1.status = \'concluido\'';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([$userId, $userId]);
+        $map = [];
+        while ($r = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $map[(int)$r['adms_training_id']] = $r;
+        }
+
+        foreach ($rows as &$row) {
+            $tid = (int)($row['training_id'] ?? 0);
+            if (isset($map[$tid])) {
+                $row['data_realizacao'] = $map[$tid]['data_realizacao'];
+                $row['nota'] = $map[$tid]['nota'];
+            } else {
+                $row['data_realizacao'] = null;
+                $row['nota'] = null;
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**
@@ -1775,7 +1868,7 @@ class TrainingUsersRepository extends DbConnection
         $cargos = $stmtCargo->fetchAll(\PDO::FETCH_ASSOC);
 
         // Buscar dados do treinamento
-        $sqlTreinamento = "SELECT id, nome, codigo, reciclagem, reciclagem_periodo FROM adms_trainings WHERE id = :training_id";
+        $sqlTreinamento = "SELECT id, nome, codigo, versao, reciclagem, reciclagem_periodo FROM adms_trainings WHERE id = :training_id";
         $stmtTreinamento = $this->getConnection()->prepare($sqlTreinamento);
         $stmtTreinamento->bindValue(':training_id', $trainingId, \PDO::PARAM_INT);
         $stmtTreinamento->execute();
@@ -1793,6 +1886,9 @@ class TrainingUsersRepository extends DbConnection
                 'training_id' => $treinamento['id'],
                 'training_name' => $treinamento['nome'],
                 'codigo' => $treinamento['codigo'],
+                'training_version' => $treinamento['versao'] ?? '',
+                'tipo_vinculo' => ($item['tipo'] ?? '') === 'individual' ? 'individual' : 'cargo',
+                'tipo_treinamento' => $item['tipo_treinamento'] ?? '',
                 'reciclagem' => $treinamento['reciclagem'],
                 'reciclagem_periodo' => $treinamento['reciclagem_periodo'] ?? '',
                 // Compatibilidade com a view:
