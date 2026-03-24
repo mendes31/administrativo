@@ -196,28 +196,49 @@
 
     <!-- Modal de aniversariantes de empresa -->
     <div class="modal fade" id="modalAniversariantesEmpresa" tabindex="-1" aria-labelledby="modalAniversariantesEmpresaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg modal-dialog-centered">
+            <div class="modal-content birthday-modal-content">
+                <div class="modal-header birthday-modal-header">
                     <h5 class="modal-title" id="modalAniversariantesEmpresaLabel">Tempo de Empresa</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <?php foreach ($this->data['aniversariantes_empresa_mes'] ?? [] as $aniv): ?>
-                            <div class="col-12 col-md-6 col-lg-4 d-flex">
-                                <div class="card border-0 shadow-sm text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center" style="border-radius: 18px; min-height: 180px;">
+                <div class="modal-body birthday-modal-body">
+                    <?php
+                    $mesesPt = [
+                        1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
+                        5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
+                        9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
+                    ];
+                    $mesAtualCalendar = (int)date('n');
+                    ?>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 birthday-filter-bar">
+                        <span class="text-muted small">Filtrar por mês</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <select id="aniversariantesEmpresaMesFilter" class="form-select form-select-sm" style="max-width: 210px;">
+                                <?php foreach ($mesesPt as $mesNum => $mesNome): ?>
+                                    <option value="<?php echo $mesNum; ?>" <?php echo $mesNum === $mesAtualCalendar ? 'selected' : ''; ?>>
+                                        <?php echo $mesNome; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span id="aniversariantesEmpresaMesCount" class="badge rounded-pill text-bg-light border birthday-month-count">0</span>
+                        </div>
+                    </div>
+                    <div class="row g-3" id="aniversariantesEmpresaMesGrid">
+                        <?php foreach ($this->data['aniversariantes_empresa_todos'] ?? [] as $aniv): ?>
+                            <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-empresa-mes-item" data-mes="<?php echo (int)($aniv['aniversario_empresa_mes'] ?? 0); ?>">
+                                <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                     <div class="mb-2">
                                         <?php if (!empty($aniv['image'])): ?>
                                             <?php
                                             $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                             echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                                'class' => 'rounded-circle mb-2',
-                                                'style' => 'width: 80px; height: 80px; object-fit: cover;',
+                                                'class' => 'rounded-circle mb-2 birthday-avatar',
+                                                'style' => 'width: 86px; height: 86px; object-fit: cover;',
                                             ], 'icon_user.png', 'users');
                                             ?>
                                         <?php else: ?>
-                                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2" style="width: 80px; height: 80px;">
+                                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2 birthday-avatar" style="width: 86px; height: 86px;">
                                         <?php endif; ?>
                                     </div>
                                     <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
@@ -246,6 +267,9 @@
                                 </div>
                             </div>
                         <?php endforeach; ?>
+                    </div>
+                    <div id="aniversariantesEmpresaMesEmpty" class="text-center text-muted py-3 d-none">
+                        Nenhum colaborador encontrado para o mês selecionado.
                     </div>
                 </div>
             </div>
@@ -1164,6 +1188,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const aniversariantesMesEmpty = document.getElementById('aniversariantesMesEmpty');
     const aniversariantesMesModal = document.getElementById('modalAniversariantesMes');
     const aniversariantesMesCount = document.getElementById('aniversariantesMesCount');
+    const aniversariantesEmpresaMesFilter = document.getElementById('aniversariantesEmpresaMesFilter');
+    const aniversariantesEmpresaMesItems = Array.from(document.querySelectorAll('.aniversariante-empresa-mes-item'));
+    const aniversariantesEmpresaMesEmpty = document.getElementById('aniversariantesEmpresaMesEmpty');
+    const aniversariantesEmpresaMesModal = document.getElementById('modalAniversariantesEmpresa');
+    const aniversariantesEmpresaMesCount = document.getElementById('aniversariantesEmpresaMesCount');
 
     function applyAniversariantesMesFilter() {
         if (!aniversariantesMesFilter || aniversariantesMesItems.length === 0) return;
@@ -1192,6 +1221,34 @@ document.addEventListener('DOMContentLoaded', function() {
         aniversariantesMesModal.addEventListener('shown.bs.modal', applyAniversariantesMesFilter);
     }
     applyAniversariantesMesFilter();
+
+    function applyAniversariantesEmpresaMesFilter() {
+        if (!aniversariantesEmpresaMesFilter || aniversariantesEmpresaMesItems.length === 0) return;
+        const selectedMonth = parseInt(aniversariantesEmpresaMesFilter.value || '0', 10);
+        let visibleCount = 0;
+
+        aniversariantesEmpresaMesItems.forEach(function (item) {
+            const itemMonth = parseInt(item.getAttribute('data-mes') || '0', 10);
+            const show = selectedMonth === 0 || itemMonth === selectedMonth;
+            item.classList.toggle('d-none', !show);
+            if (show) visibleCount++;
+        });
+
+        if (aniversariantesEmpresaMesEmpty) {
+            aniversariantesEmpresaMesEmpty.classList.toggle('d-none', visibleCount > 0);
+        }
+        if (aniversariantesEmpresaMesCount) {
+            aniversariantesEmpresaMesCount.textContent = `${visibleCount} no mês`;
+        }
+    }
+
+    if (aniversariantesEmpresaMesFilter) {
+        aniversariantesEmpresaMesFilter.addEventListener('change', applyAniversariantesEmpresaMesFilter);
+    }
+    if (aniversariantesEmpresaMesModal) {
+        aniversariantesEmpresaMesModal.addEventListener('shown.bs.modal', applyAniversariantesEmpresaMesFilter);
+    }
+    applyAniversariantesEmpresaMesFilter();
 
     <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
     const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');

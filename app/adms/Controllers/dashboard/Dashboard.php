@@ -88,21 +88,24 @@ class Dashboard
         // Aniversário de empresa (data de admissão)
         $sqlEmpresa = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
                               DATE_FORMAT(u.data_admissao, "%d/%m") as aniversario_empresa,
+                              MONTH(u.data_admissao) as aniversario_empresa_mes,
                               u.data_admissao,
                               d.name as departamento
                        FROM adms_users u
                        LEFT JOIN adms_departments d ON u.user_department_id = d.id
                        WHERE u.status = 1
                          AND u.data_admissao IS NOT NULL
-                         AND MONTH(u.data_admissao) = :mes
-                       ORDER BY DAY(u.data_admissao) ASC';
+                       ORDER BY MONTH(u.data_admissao) ASC, DAY(u.data_admissao) ASC';
         $stmtEmpresa = $usersRepo->getConnection()->prepare($sqlEmpresa);
-        $stmtEmpresa->bindValue(':mes', $mesAtual, \PDO::PARAM_INT);
         $stmtEmpresa->execute();
-        $aniversariantesEmpresa = $stmtEmpresa->fetchAll(\PDO::FETCH_ASSOC);
+        $aniversariantesEmpresaTodos = $stmtEmpresa->fetchAll(\PDO::FETCH_ASSOC);
+        $aniversariantesEmpresa = array_values(array_filter(
+            $aniversariantesEmpresaTodos,
+            static fn(array $item): bool => ((int)($item['aniversario_empresa_mes'] ?? 0) === $mesAtual)
+        ));
 
         // Ajuste: normalizar valor da coluna image e ignorar imagens padrão
-        foreach ([$aniversariantesTodos, $aniversariantesEmpresa] as &$listaRef) {
+        foreach ([$aniversariantesTodos, $aniversariantesEmpresaTodos] as &$listaRef) {
             foreach ($listaRef as &$aniv) {
                 if (empty($aniv['image'])) {
                     $aniv['image'] = null;
@@ -121,7 +124,7 @@ class Dashboard
 
         // Calcular anos de casa para aniversários de empresa
         $anoAtual = (int)date('Y');
-        foreach ($aniversariantesEmpresa as &$anivEmp) {
+        foreach ($aniversariantesEmpresaTodos as &$anivEmp) {
             $anos = null;
             if (!empty($anivEmp['data_admissao'])) {
                 $anoAdm = (int)date('Y', strtotime($anivEmp['data_admissao']));
@@ -144,6 +147,7 @@ class Dashboard
         $this->data['aniversariantes_todos'] = $aniversariantesTodos;
         $this->data['aniversariantes_mes'] = $aniversariantes;
         $this->data['qtd_aniversariantes_mes'] = count($aniversariantes);
+        $this->data['aniversariantes_empresa_todos'] = $aniversariantesEmpresaTodos;
         $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;
         $this->data['qtd_aniversariantes_empresa_mes'] = count($aniversariantesEmpresa);
 
