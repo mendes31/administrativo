@@ -1970,9 +1970,10 @@ class TrainingUsersRepository extends DbConnection
     }
 
     /**
-     * Retorna matriz de treinamentos concluídos por colaborador, paginada
+     * Retorna matriz de treinamentos concluídos por colaborador, paginada.
+     * Passe $perPage = null para retornar todos os registros que atendem aos filtros (exportação).
      */
-    public function getCompletedTrainingsMatrixPaginated(array $filters = [], int $page = 1, int $perPage = 20): array
+    public function getCompletedTrainingsMatrixPaginated(array $filters = [], int $page = 1, ?int $perPage = 20): array
     {
         $sql = 'SELECT 
                     ta.id as application_id,
@@ -2037,9 +2038,11 @@ class TrainingUsersRepository extends DbConnection
         } else {
             $sql .= ' ORDER BY u.name ASC, ta.data_realizacao DESC';
         }
-        $offset = max(0, ($page - 1) * $perPage);
-        $perPage = max(1, (int)$perPage);
-        $sql .= ' LIMIT ' . $perPage . ' OFFSET ' . $offset;
+        if ($perPage !== null) {
+            $offset = max(0, ($page - 1) * $perPage);
+            $perPage = max(1, (int)$perPage);
+            $sql .= ' LIMIT ' . $perPage . ' OFFSET ' . $offset;
+        }
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $data = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];

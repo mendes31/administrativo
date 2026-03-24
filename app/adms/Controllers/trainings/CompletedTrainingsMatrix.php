@@ -93,13 +93,15 @@ class CompletedTrainingsMatrix
         $total = $matrixData['total'];
         // NOTA: Filtro de código já é aplicado no SQL (não precisa filtrar em PHP novamente)
         $summary = $this->trainingUsersRepo->getCompletedTrainingsSummary($filters);
-        // Exportação
+        // Exportação: todos os registros do conjunto filtrado (ignora paginação da tela)
         if (isset($_GET['export']) && $_GET['export'] === 'excel') {
-            $this->exportExcel($matrix);
+            $exportData = $this->trainingUsersRepo->getCompletedTrainingsMatrixPaginated($filters, 1, null);
+            $this->exportExcel($exportData['data']);
             return;
         }
         if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
-            $this->exportPdf($matrix);
+            $exportData = $this->trainingUsersRepo->getCompletedTrainingsMatrixPaginated($filters, 1, null);
+            $this->exportPdf($exportData['data']);
             return;
         }
         $data = [
