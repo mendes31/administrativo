@@ -42,8 +42,7 @@ $csrfCreate = \App\adms\Helpers\CSRFHelper::generateCSRFToken('timeline_create_p
                         </div>
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTimelineMention" data-bs-toggle="modal" data-bs-target="#modalTimelineMention"><i class="fas fa-at me-1"></i>Mencionar</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTimelinePhotoCam" title="Usa a câmera do dispositivo (HTTPS recomendado)"><i class="fas fa-camera me-1"></i>Foto (câmera)</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTimelineVideoCam" title="Gravação curta em WebM no navegador"><i class="fas fa-video me-1"></i>Vídeo (câmera)</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTimelineCamera" title="Usa a câmera do dispositivo (HTTPS recomendado)" aria-label="Abrir câmera para foto ou vídeo"><i class="fas fa-camera"></i></button>
                         </div>
                         <button type="submit" class="btn btn-info text-white fw-semibold px-4"><i class="fas fa-paper-plane me-1"></i>Publicar</button>
                     </form>
@@ -93,6 +92,30 @@ $csrfCreate = \App\adms\Helpers\CSRFHelper::generateCSRFToken('timeline_create_p
                 <label class="form-label">Buscar por nome ou e-mail</label>
                 <input type="text" class="form-control mb-2" id="timelineMentionSearch" placeholder="Digite nome ou e-mail" autocomplete="off">
                 <div id="timelineMentionResults" class="list-group timeline-mention-results"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($this->data['can_create'])): ?>
+<div class="modal fade" id="modalTimelineCamera" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Câmera</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+                    <video id="timelineCameraPreview" class="w-100 h-100" autoplay playsinline muted></video>
+                </div>
+                <div class="text-muted small mt-2" id="timelineCameraHint">Escolha `Foto` ou `Vídeo` para capturar.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="btnTimelineCameraPhoto">Foto</button>
+                <button type="button" class="btn btn-outline-secondary" id="btnTimelineCameraVideo">Vídeo</button>
+                <button type="button" class="btn btn-danger d-none" id="btnTimelineCameraStop">Parar</button>
             </div>
         </div>
     </div>
@@ -464,38 +487,181 @@ $csrfCreate = \App\adms\Helpers\CSRFHelper::generateCSRFToken('timeline_create_p
         }, true);
     })();
 
-    const btnPhoto = document.getElementById('btnTimelinePhotoCam');
-    if (btnPhoto && imgIn) {
-        btnPhoto.addEventListener('click', function () {
+    const modalCameraEl = document.getElementById('modalTimelineCamera');
+    const previewEl = document.getElementById('timelineCameraPreview');
+    const btnCamPhoto = document.getElementById('btnTimelineCameraPhoto');
+    const btnCamVideo = document.getElementById('btnTimelineCameraVideo');
+    const btnCamStop = document.getElementById('btnTimelineCameraStop');
+    const btnCamOpen = document.getElementById('btnTimelineCamera');
+
+    if (modalCameraEl && previewEl && btnCamOpen && btnCamPhoto && btnCamVideo && btnCamStop && imgIn && vidIn) {
+        let camStream = null;
+        let mediaRecorder = null;
+        let mediaChunks = [];
+        let stopTimer = null;
+        let isRecording = false;
+
+        function stopCameraTracks() {
+            if (camStream) {
+                camStream.getTracks().forEach(function (t) { t.stop(); });
+                camStream = null;
+            }
+            if (previewEl) previewEl.srcObject = null;
+            isRecording = false;
+        }
+
+        function resetCameraUI() {
+            if (btnCamStop) btnCamStop.classList.add('d-none');
+            if (btnCamVideo) btnCamVideo.disabled = false;
+            if (btnCamPhoto) btnCamPhoto.disabled = false;
+        }
+
+        function ensureCameraStream() {
+            if (camStream) return Promise.resolve(camStream);
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert('Seu navegador não suporta acesso à câmera. Use o campo de imagem.');
+                return Promise.reject(new Error('Seu navegador não suporta acesso à câmera.'));
+            }
+            return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (stream) {
+                camStream = stream;
+                previewEl.srcObject = stream;
+                // Em alguns navegadores, apenas autoplay não inicia; como estamos com muted, o play geralmente é permitido.
+                if (previewEl && typeof previewEl.play === 'function') {
+                    previewEl.play().catch(function () { /* ignore */ });
+                }
+                return stream;
+            });
+        }
+
+        function openCameraModal() {
+            const m = bootstrap.Modal.getInstance(modalCameraEl) || new bootstrap.Modal(modalCameraEl);
+            m.show();
+        }
+
+        function stopRecordingAndClose() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            } else {
+                stopCameraTracks();
+                var mi = bootstrap.Modal.getInstance(modalCameraEl);
+                if (mi) mi.hide();
+            }
+        }
+
+        btnCamOpen.addEventListener('click', function () {
+            resetCameraUI();
+            openCameraModal();
+        });
+
+        modalCameraEl.addEventListener('shown.bs.modal', function () {
+            resetCameraUI();
+            ensureCameraStream()
+                .then(function () {
+                    // nada: a prévia já deve estar rodando
+                })
+                .catch(function (e) {
+                    alert(e && e.message ? e.message : 'Não foi possível acessar a câmera. Verifique permissões e use HTTPS em produção.');
+                    var mi = bootstrap.Modal.getInstance(modalCameraEl);
+                    if (mi) mi.hide();
+                });
+        });
+
+        modalCameraEl.addEventListener('hidden.bs.modal', function () {
+            if (stopTimer) {
+                clearTimeout(stopTimer);
+                stopTimer = null;
+            }
+            if (isRecording) {
+                // Se o modal for fechado durante gravação, finalize e limpe ao parar.
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    return;
+                }
+            }
+            resetCameraUI();
+            stopCameraTracks();
+        });
+
+        btnCamPhoto.addEventListener('click', function () {
+            if (!camStream) return;
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                // Evita captura durante gravação.
                 return;
             }
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (stream) {
-                const v = document.createElement('video');
-                v.playsInline = true;
-                v.muted = true;
-                v.srcObject = stream;
-                v.onloadedmetadata = function () {
-                    v.play().then(function () {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = v.videoWidth || 640;
-                        canvas.height = v.videoHeight || 480;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-                        stream.getTracks().forEach(function (t) { t.stop(); });
-                        canvas.toBlob(function (blob) {
-                            if (!blob) return;
-                            const dt = new DataTransfer();
-                            dt.items.add(new File([blob], 'camera-' + Date.now() + '.jpg', { type: 'image/jpeg' }));
-                            imgIn.files = dt.files;
-                            vidIn.value = '';
-                        }, 'image/jpeg', 0.88);
-                    }).catch(function () { stream.getTracks().forEach(function (t) { t.stop(); }); });
-                };
-            }).catch(function () {
-                alert('Não foi possível acessar a câmera. Verifique permissões e use HTTPS em produção.');
-            });
+            const canvas = document.createElement('canvas');
+            const w = previewEl.videoWidth || 640;
+            const h = previewEl.videoHeight || 480;
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(previewEl, 0, 0, w, h);
+
+            canvas.toBlob(function (blob) {
+                if (!blob) return;
+                const dt = new DataTransfer();
+                dt.items.add(new File([blob], 'camera-' + Date.now() + '.jpg', { type: 'image/jpeg' }));
+                imgIn.files = dt.files;
+                vidIn.value = '';
+                resetCameraUI();
+                stopCameraTracks();
+                var mi = bootstrap.Modal.getInstance(modalCameraEl);
+                if (mi) mi.hide();
+            }, 'image/jpeg', 0.88);
+        });
+
+        btnCamVideo.addEventListener('click', function () {
+            if (!camStream) return;
+            if (isRecording) return;
+            mediaChunks = [];
+
+            let mime = 'video/webm;codecs=vp8,opus';
+            if (window.MediaRecorder && !MediaRecorder.isTypeSupported(mime)) {
+                mime = 'video/webm';
+            }
+
+            try {
+                mediaRecorder = new MediaRecorder(camStream, { mimeType: mime });
+            } catch (e) {
+                alert('Gravação não suportada neste navegador.');
+                return;
+            }
+
+            isRecording = true;
+            resetCameraUI();
+            btnCamStop.classList.remove('d-none');
+            btnCamVideo.disabled = true;
+            btnCamPhoto.disabled = true;
+
+            mediaRecorder.ondataavailable = function (e) {
+                if (e.data && e.data.size) mediaChunks.push(e.data);
+            };
+            mediaRecorder.onstop = function () {
+                if (stopTimer) {
+                    clearTimeout(stopTimer);
+                    stopTimer = null;
+                }
+                const blob = new Blob(mediaChunks, { type: 'video/webm' });
+                const dt = new DataTransfer();
+                dt.items.add(new File([blob], 'gravacao-' + Date.now() + '.webm', { type: 'video/webm' }));
+                vidIn.files = dt.files;
+                imgIn.value = '';
+
+                resetCameraUI();
+                stopCameraTracks();
+                var mi = bootstrap.Modal.getInstance(modalCameraEl);
+                if (mi) mi.hide();
+            };
+
+            mediaRecorder.start(1000);
+            const maxMs = 90000;
+            stopTimer = setTimeout(function () {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            }, maxMs);
+        });
+
+        btnCamStop.addEventListener('click', function () {
+            stopRecordingAndClose();
         });
     }
 
@@ -565,49 +731,6 @@ $csrfCreate = \App\adms\Helpers\CSRFHelper::generateCSRFToken('timeline_create_p
                         submitBtn.disabled = false;
                     }
                 });
-        });
-    }
-
-    const btnVid = document.getElementById('btnTimelineVideoCam');
-    if (btnVid && vidIn) {
-        btnVid.addEventListener('click', function () {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert('Gravação no navegador indisponível. Envie um arquivo MP4/WebM.');
-                return;
-            }
-            let mime = 'video/webm;codecs=vp8,opus';
-            if (window.MediaRecorder && !MediaRecorder.isTypeSupported(mime)) {
-                mime = 'video/webm';
-            }
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(function (stream) {
-                let rec;
-                try {
-                    rec = new MediaRecorder(stream, { mimeType: mime });
-                } catch (e) {
-                    stream.getTracks().forEach(function (t) { t.stop(); });
-                    alert('Gravação não suportada neste navegador.');
-                    return;
-                }
-                const chunks = [];
-                rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
-                rec.start(1000);
-                const maxMs = 90000;
-                const stopAll = function () {
-                    if (rec.state !== 'inactive') rec.stop();
-                    stream.getTracks().forEach(function (t) { t.stop(); });
-                };
-                alert('Gravação iniciada. Será encerrada automaticamente em até 90 segundos.');
-                setTimeout(stopAll, maxMs);
-                rec.onstop = function () {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const dt = new DataTransfer();
-                    dt.items.add(new File([blob], 'gravacao-' + Date.now() + '.webm', { type: 'video/webm' }));
-                    vidIn.files = dt.files;
-                    if (imgIn) imgIn.value = '';
-                };
-            }).catch(function () {
-                alert('Não foi possível acessar câmera/microfone.');
-            });
         });
     }
 })();
