@@ -1,0 +1,72 @@
+<?php
+
+namespace App\adms\Controllers\timeline;
+
+use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\TimelineMentionHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\TimelineRepository;
+use App\adms\Models\Repository\UsersRepository;
+use App\adms\Views\Services\LoadViewService;
+
+class Timeline
+{
+    private array $data = [];
+
+    public function index(string|int $page = 1): void
+    {
+        if (isset($_GET['page']) && is_numeric($_GET['page'])) {
+            $page = (int)$_GET['page'];
+        }
+        $page = max(1, (int)$page);
+        $perPage = 10;
+
+        $repo = new TimelineRepository();
+        $this->data['posts'] = $repo->getFeedPosts($page, $perPage);
+        $userRepo = new UsersRepository();
+        $mentionIds = [];
+        foreach ($this->data['posts'] as $p) {
+            $mentionIds = array_merge(
+                $mentionIds,
+                TimelineMentionHelper::extractMentionedUserIds((string)($p['content'] ?? ''), $userRepo)
+            );
+        }
+        $mentionIds = array_values(array_unique($mentionIds));
+        $this->data['mention_name_map'] = $userRepo->getIdNameMapForIds($mentionIds);
+
+        $postIds = array_map(static fn ($p) => (int)($p['id'] ?? 0), $this->data['posts']);
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $this->data['liked_map'] = $repo->getUserLikedMap($userId, $postIds);
+
+        $total = $repo->countActivePosts();
+        $this->data['pagination'] = PaginationService::generatePagination(
+            $total,
+            $perPage,
+            $page,
+            'timeline',
+            []
+        );
+
+        $permRepo = new ButtonPermissionUserRepository();
+        $perms = $permRepo->buttonPermission([
+            'CreateTimelinePost',
+            'TimelineModerate',
+            'TimelineReport',
+        ]);
+        $this->data['can_create'] = is_array($perms) && in_array('CreateTimelinePost', $perms, true);
+        $this->data['can_moderate'] = is_array($perms) && in_array('TimelineModerate', $perms, true);
+        $this->data['can_report'] = is_array($perms) && in_array('TimelineReport', $perms, true);
+
+        $pageElements = [
+            'title_head' => 'Timeline',
+            'menu' => 'timeline',
+            'buttonPermission' => [],
+        ];
+        $pageLayoutService = new PageLayoutService();
+        $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+
+        $loadView = new LoadViewService('adms/Views/timeline/feed', $this->data);
+        $loadView->loadView();
+    }
+}

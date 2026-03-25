@@ -84,6 +84,38 @@
                     </a>
                 </div>
             </div>
+            <div class="row g-3 justify-content-center align-items-stretch mt-1">
+                <?php if (!empty($this->data['show_timeline_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>timeline" class="text-decoration-none flex-fill h-100">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: linear-gradient(135deg, #f0f9ff 0%, #fff 100%);">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-stream fa-3x text-info"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Timeline</h5>
+                            <div class="text-muted mb-2 text-center small">Comunicação entre colaboradores</div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="#"
+                       class="text-decoration-none flex-fill h-100"
+                       data-bs-toggle="modal"
+                       data-bs-target="#modalEventosMes"
+                       onclick="event.preventDefault();">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-calendar-alt fa-3x text-success"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Eventos</h5>
+                            <div class="text-muted mb-2 text-center" style="font-size: 1.1rem;">
+                                <?php echo (int)($this->data['company_events_month_count'] ?? 0); ?> neste mês
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     <!-- Modal de aniversariantes do dia -->
@@ -193,6 +225,8 @@
             </div>
         </div>
     </div>
+
+    <?php include __DIR__ . '/partials/modal_eventos_mes.php'; ?>
 
     <!-- Modal de aniversariantes de empresa -->
     <div class="modal fade" id="modalAniversariantesEmpresa" tabindex="-1" aria-labelledby="modalAniversariantesEmpresaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">

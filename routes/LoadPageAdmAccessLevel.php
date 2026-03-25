@@ -92,6 +92,16 @@ class LoadPageAdmAccessLevel
             // Bypass para evitar Erro 003 quando a entrada de rota no banco ainda não existe.
             'ExportRelatorioInformativoExcel' => "\\App\\adms\\Controllers\\informativos\\ExportRelatorioInformativoExcel",
             'ExportRelatorioPolicyExcel'      => "\\App\\adms\\Controllers\\policies\\ExportRelatorioPolicyExcel",
+            // Autocomplete de menções na timeline (GET JSON); evita "rota não encontrada" se adms_pages ainda não tiver a página.
+            'TimelineSearchUsers' => "\\App\\adms\\Controllers\\timeline\\TimelineSearchUsers",
+            // POST do formulário da timeline; mesmo motivo (cadastro/ directory incorreto no banco gerava Erro 004).
+            'CreateTimelinePost' => "\\App\\adms\\Controllers\\timeline\\CreateTimelinePost",
+            // JSON da timeline (curtidas, comentários, denúncia) — evita Erro 004/HTML quando adms_pages está inconsistente.
+            'TimelineLike'    => "\\App\\adms\\Controllers\\timeline\\TimelineLike",
+            'TimelineComment' => "\\App\\adms\\Controllers\\timeline\\TimelineComment",
+            'TimelineReport'  => "\\App\\adms\\Controllers\\timeline\\TimelineReport",
+            // Renovação de sessão (AJAX) — evita falha de rota se adms_pages estiver incompleto.
+            'ExtendSession' => "\\App\\adms\\Controllers\\session\\ExtendSession",
         ];
         if (isset($internalAjaxMap[$this->urlController])) {
             $this->classLoad = $internalAjaxMap[$this->urlController];
@@ -248,7 +258,11 @@ class LoadPageAdmAccessLevel
             return true;
         }
 
-        return false;
+        GenerateLog::generateLog("error", "Classe da controller não encontrada pelo autoload.", [
+            'class' => $this->classLoad,
+            'pagina' => $this->urlController,
+        ]);
+        die("Erro: controller não encontrada. Verifique o cadastro da página (diretório/pacote) ou o namespace da classe.");
     }
 
     /**
@@ -284,22 +298,29 @@ class LoadPageAdmAccessLevel
         if (!empty($this->urlParameter) && !is_numeric($this->urlParameter)) {
             // Converter kebab-case para camelCase (ex: get-application -> getApplication)
             $metodoCamelCase = lcfirst(SlugController::slugController($this->urlParameter));
-            if (method_exists($classLoad, $metodoCamelCase)) {
+            // is_callable (não method_exists): method_exists retorna true para métodos privados/protected,
+            // e o roteador escolhia "uploadImage" etc. em CreateTimelinePost — depois falhava ao invocar.
+            if (is_callable([$classLoad, $metodoCamelCase])) {
                 $metodo = $metodoCamelCase;
                 $parametro = null; // Se for um método, não passar como parâmetro
             }
         }
-        
-        // Verificar se o método existe na classe
-        if (method_exists($classLoad, $metodo)) {
-            GenerateLog::generateLog("info", "Página acessada.", [
-                'pagina' => $this->urlController,
-                'parametro' => $this->urlParameter,
-                'metodo' => $metodo,
-                'action_user_id' => $_SESSION['user_id'] ?? ''
-            ]);
 
+        // Se o nome resolvido não for invocável, mas index() existir, cair no padrão (evita Erro 004 em rotas ambíguas)
+        if (!is_callable([$classLoad, $metodo]) && is_callable([$classLoad, 'index'])) {
+            $metodo = 'index';
+        }
+        
+        // Só métodos publicamente invocáveis na instância (evita falso positivo com privados)
+        if (is_callable([$classLoad, $metodo])) {
             try {
+                GenerateLog::generateLog("info", "Página acessada.", [
+                    'pagina' => $this->urlController,
+                    'parametro' => $this->urlParameter,
+                    'metodo' => $metodo,
+                    'action_user_id' => $_SESSION['user_id'] ?? ''
+                ]);
+
                 if (in_array($this->urlController, $internalAjaxControllers, true)) {
                     // UploadSpreadsheet não precisa de parâmetro, mas GetSpreadsheetFields precisa do ID
                     if ($this->urlController === 'UploadSpreadsheet') {
@@ -329,7 +350,12 @@ class LoadPageAdmAccessLevel
                 } else {
                     // Se o método for diferente de index, chamar sem parâmetro (ou com parâmetro se necessário)
                     if ($metodo === 'index') {
-                        $classLoad->{$metodo}($parametro);
+                        // PHP 8+: não passar string vazia — controllers com index(): void quebram com index('');
+                        if ($parametro === '' || $parametro === null) {
+                            $classLoad->index();
+                        } else {
+                            $classLoad->index($parametro);
+                        }
                     } else {
                         $classLoad->{$metodo}();
                     }
@@ -353,7 +379,12 @@ class LoadPageAdmAccessLevel
                 die("Erro 004: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
             }
         } else {
-            GenerateLog::generateLog("error", "Método não encontrado.", ['pagina' => $this->urlController, 'parametro' => $this->urlParameter]);
+            GenerateLog::generateLog("error", "Método não encontrado ou não invocável.", [
+                'pagina' => $this->urlController,
+                'parametro' => $this->urlParameter,
+                'metodo' => $metodo,
+                'classe' => $this->classLoad,
+            ]);
             die("Erro 004: Por favor tente novamente. Caso o problema persista, entre em contato com o administrador {$_ENV['EMAIL_ADM']}");
         }
     }

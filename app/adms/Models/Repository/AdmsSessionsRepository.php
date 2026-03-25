@@ -94,13 +94,37 @@ class AdmsSessionsRepository extends DbConnection
                 date('Y-m-d H:i:s') . " [updateSessionActivity] user_id={$userId} session_id_param={$sessionId} php_session_id=" . session_id() . PHP_EOL,
                 FILE_APPEND
             );
+            $conn = $this->getConnection();
+
+            // 1) Sessão já marcada como ativa
             $sql = "UPDATE {$this->table} SET updated_at = NOW() WHERE user_id = :user_id AND session_id = :session_id AND status = 'ativa'";
-            $stmt = $this->getConnection()->prepare($sql);
+            $stmt = $conn->prepare($sql);
             $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
             $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
             $stmt->execute();
-            
-            return $stmt->rowCount() > 0;
+            if ($stmt->rowCount() > 0) {
+                return true;
+            }
+
+            // 2) Linha existe mas status != 'ativa' (ou drift) — reativa e atualiza
+            $sql2 = "UPDATE {$this->table} SET status = 'ativa', updated_at = NOW() WHERE user_id = :user_id AND session_id = :session_id";
+            $stmt2 = $conn->prepare($sql2);
+            $stmt2->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt2->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
+            $stmt2->execute();
+            if ($stmt2->rowCount() > 0) {
+                return true;
+            }
+
+            // 3) Sem linha no BD: usuário autenticado no PHP mas registro ausente — insere
+            $sql3 = "INSERT INTO {$this->table} (user_id, session_id, status, created_at, updated_at)
+                     VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())";
+            $stmt3 = $conn->prepare($sql3);
+            $stmt3->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt3->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
+            $stmt3->execute();
+
+            return true;
         } catch (\Exception $e) {
             error_log("Erro ao atualizar atividade da sessão: " . $e->getMessage());
             return false;

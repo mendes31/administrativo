@@ -151,6 +151,24 @@ class Dashboard
         $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;
         $this->data['qtd_aniversariantes_empresa_mes'] = count($aniversariantesEmpresa);
 
+        // Eventos corporativos (card + modal no dashboard)
+        try {
+            $eventsRepo = new \App\adms\Models\Repository\CompanyEventsRepository();
+            $y = (int)date('Y');
+            $m = (int)date('n');
+            $companyEvents = $eventsRepo->getEventsIntersectingMonth($y, $m);
+            $uid = (int)($_SESSION['user_id'] ?? 0);
+            foreach ($companyEvents as &$ce) {
+                $ce['rsvp'] = $uid > 0 ? $eventsRepo->getRsvpForUser((int)$ce['id'], $uid) : null;
+            }
+            unset($ce);
+            $this->data['company_events_month'] = $companyEvents;
+            $this->data['company_events_month_count'] = count($companyEvents);
+        } catch (\Throwable $e) {
+            $this->data['company_events_month'] = [];
+            $this->data['company_events_month_count'] = 0;
+        }
+
         $pageElements = [
             'title_head' => 'Dashboard',
             'menu' => 'dashboard',
@@ -159,6 +177,8 @@ class Dashboard
         
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+
+        $this->data['show_timeline_card'] = in_array('Timeline', $this->data['menuPermission'] ?? [], true);
 
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/dashboard/dashboard", $this->data);

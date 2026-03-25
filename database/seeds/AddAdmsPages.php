@@ -39,6 +39,28 @@ class AddAdmsPages extends AbstractSeed
         $this->execute("SET character_set_results = 'utf8mb4'");
         $this->execute("SET character_set_connection = 'utf8mb4'");
 
+        // Garantir grupos usados com placeholder (IDs variam entre ambientes)
+        $groupsToEnsure = [
+            ['name' => 'Gestão de Pessoas', 'obs' => 'Módulo completo de Gestão de Pessoas (RH)'],
+            ['name' => 'Reserva de Salas', 'obs' => 'Módulo de agendamento e reserva de salas de reunião'],
+            ['name' => 'Comunicação Social', 'obs' => 'Timeline interna e eventos corporativos'],
+        ];
+        foreach ($groupsToEnsure as $g) {
+            $exists = $this->query('SELECT id FROM adms_groups_pages WHERE name = :name', ['name' => $g['name']])->fetch();
+            if (!$exists) {
+                $this->table('adms_groups_pages')->insert([
+                    'name' => $g['name'],
+                    'obs' => $g['obs'],
+                    'created_at' => date('Y-m-d H:i:s'),
+                ])->save();
+            }
+        }
+
+        // Corrigir URLs legadas do CRUD de páginas (estavam iguais ao CRUD de grupos de página)
+        $this->execute("UPDATE adms_pages SET controller_url = 'view-page', updated_at = NOW() WHERE controller = 'ViewPage' AND controller_url = 'view-group-page'");
+        $this->execute("UPDATE adms_pages SET controller_url = 'update-page', updated_at = NOW() WHERE controller = 'UpdatePage' AND controller_url = 'update-group-page'");
+        $this->execute("UPDATE adms_pages SET controller_url = 'delete-page', updated_at = NOW() WHERE controller = 'DeletePage' AND controller_url = 'delete-group-page'");
+
         // Variável para receber os dados que devem ser validados antes de cadastrar
         $pages = [
             // ===== GRUPO 1: DASHBOARD =====
@@ -87,9 +109,9 @@ class AddAdmsPages extends AbstractSeed
             // ===== GRUPO 6: PÁGINAS =====
             ['name'=> 'Cadastrar Página', 'controller' => 'CreatePage', 'controller_url' => 'create-page', 'directory' => 'pages', 'obs' => 'Página com o formulário cadastrar página.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
             ['name'=> 'Listar Páginas', 'controller' => 'ListPages', 'controller_url' => 'list-pages', 'directory' => 'pages', 'obs' => 'Página para listar o páginas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
-            ['name'=> 'Visualizar Página', 'controller' => 'ViewPage', 'controller_url' => 'view-group-page', 'directory' => 'pages', 'obs' => 'Página apresentar os detalhes do página.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
-            ['name'=> 'Editar Página', 'controller' => 'UpdatePage', 'controller_url' => 'update-group-page', 'directory' => 'pages', 'obs' => 'Página com o formulário editar página.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],            
-            ['name'=> 'Apagar Página', 'controller' => 'DeletePage', 'controller_url' => 'delete-group-page', 'directory' => 'pages', 'obs' => 'Página para apagar o página do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
+            ['name'=> 'Visualizar Página', 'controller' => 'ViewPage', 'controller_url' => 'view-page', 'directory' => 'pages', 'obs' => 'Página apresentar os detalhes do página.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
+            ['name'=> 'Editar Página', 'controller' => 'UpdatePage', 'controller_url' => 'update-page', 'directory' => 'pages', 'obs' => 'Página com o formulário editar página.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
+            ['name'=> 'Apagar Página', 'controller' => 'DeletePage', 'controller_url' => 'delete-page', 'directory' => 'pages', 'obs' => 'Página para apagar o página do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 6],
 
             // ===== GRUPO 7: LOGIN =====
             ['name'=> 'Página de Login', 'controller' => 'Login', 'controller_url' => 'login', 'directory' => 'login', 'obs' => 'Página com o formulário de login.', 'public_page' => 1, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 7],
@@ -762,6 +784,22 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Dashboard de Reservas', 'controller' => 'AdminBookingDashboard', 'controller_url' => 'admin-booking-dashboard', 'directory' => 'rooms', 'obs' => 'Dashboard administrativo com estatísticas e relatórios de reservas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
             ['name'=> 'Todas as Reservas', 'controller' => 'AdminBookings', 'controller_url' => 'admin-bookings', 'directory' => 'rooms', 'obs' => 'Página administrativa para visualizar todas as reservas do sistema.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
             ['name'=> 'Relatórios de Reservas', 'controller' => 'BookingReports', 'controller_url' => 'booking-reports', 'directory' => 'rooms', 'obs' => 'Relatórios e análises de uso das salas de reunião.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 37],
+
+            // ===== GRUPO 39: COMUNICAÇÃO SOCIAL (ID resolvido pelo nome no foreach) =====
+            ['name'=> 'Feed Timeline', 'controller' => 'Timeline', 'controller_url' => 'timeline', 'directory' => 'timeline', 'obs' => 'Feed social interno.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Criar post na Timeline', 'controller' => 'CreateTimelinePost', 'controller_url' => 'create-timeline-post', 'directory' => 'timeline', 'obs' => 'Publicar na timeline.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Moderação Timeline', 'controller' => 'TimelineModerate', 'controller_url' => 'timeline-moderate', 'directory' => 'timeline', 'obs' => 'Moderar posts e denúncias.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Denunciar post Timeline', 'controller' => 'TimelineReport', 'controller_url' => 'timeline-report', 'directory' => 'timeline', 'obs' => 'Denunciar conteúdo da timeline.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Curtir post Timeline', 'controller' => 'TimelineLike', 'controller_url' => 'timeline-like', 'directory' => 'timeline', 'obs' => 'Endpoint curtir post.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Comentar post Timeline', 'controller' => 'TimelineComment', 'controller_url' => 'timeline-comment', 'directory' => 'timeline', 'obs' => 'Endpoint comentar post.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Listar Eventos Corporativos', 'controller' => 'ListCompanyEvents', 'controller_url' => 'list-company-events', 'directory' => 'companyEvents', 'obs' => 'Lista de eventos corporativos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Criar Evento Corporativo', 'controller' => 'CreateCompanyEvent', 'controller_url' => 'create-company-event', 'directory' => 'companyEvents', 'obs' => 'Cadastro de evento corporativo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Editar Evento Corporativo', 'controller' => 'UpdateCompanyEvent', 'controller_url' => 'update-company-event', 'directory' => 'companyEvents', 'obs' => 'Edição de evento corporativo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Excluir Evento Corporativo', 'controller' => 'DeleteCompanyEvent', 'controller_url' => 'delete-company-event', 'directory' => 'companyEvents', 'obs' => 'Exclusão de evento corporativo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Relatório Evento Corporativo', 'controller' => 'CompanyEventReport', 'controller_url' => 'company-event-report', 'directory' => 'companyEvents', 'obs' => 'Relatório de confirmações e convidados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'RSVP Evento Corporativo', 'controller' => 'EventRsvp', 'controller_url' => 'event-rsvp', 'directory' => 'companyEvents', 'obs' => 'Confirmar ou cancelar presença em evento.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Eventos do mês (JSON)', 'controller' => 'CompanyEventsMonth', 'controller_url' => 'company-events-month', 'directory' => 'companyEvents', 'obs' => 'JSON de eventos do mês para o dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Buscar usuários (Timeline)', 'controller' => 'TimelineSearchUsers', 'controller_url' => 'timeline-search-users', 'directory' => 'timeline', 'obs' => 'Autocomplete de colaboradores para menções na timeline.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
         ];
 
         // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
@@ -778,6 +816,12 @@ class AddAdmsPages extends AbstractSeed
         }
         $reservaSalasGroupId = (int)$reservaSalasGroup['id'];
 
+        $comunicacaoSocialGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Comunicação Social'");
+        if (!$comunicacaoSocialGroup) {
+            throw new \Exception("ERRO: O grupo 'Comunicação Social' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $comunicacaoSocialGroupId = (int)$comunicacaoSocialGroup['id'];
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -786,7 +830,10 @@ class AddAdmsPages extends AbstractSeed
         foreach ($pages as $page) {
             // Verificar se o registro já existe no banco de dados (por controller_url que é único)
             $controllerUrl = $page['controller_url'];
-            $existingRecord = $this->fetchRow("SELECT id FROM adms_pages WHERE controller_url = '{$controllerUrl}'");
+            $existingRecord = $this->query(
+                'SELECT id FROM adms_pages WHERE controller_url = :controller_url',
+                ['controller_url' => $controllerUrl]
+            )->fetch();
 
             // Se o registro não existir, insere os dados na variável $data para em seguida cadastrar na tabela
             if (!$existingRecord) {
@@ -796,6 +843,8 @@ class AddAdmsPages extends AbstractSeed
                     $groupId = $gestaoPessoasGroupId;
                 } elseif ($groupId == 37) {
                     $groupId = $reservaSalasGroupId;
+                } elseif ($groupId == 39) {
+                    $groupId = $comunicacaoSocialGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
                     // Páginas de Dashboards KPI adicionadas nesta seed usam 0 como placeholder
                     $groupId = $dashboardsKpiGroupId;
