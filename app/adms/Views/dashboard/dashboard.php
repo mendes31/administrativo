@@ -317,6 +317,8 @@
             </div>
         </div>
     </div>
+    <?php // Seção temporariamente oculta para reduzir poluição visual no Dashboard. ?>
+    <?php if (false): ?>
     <!-- Informativos Recentes -->
     <div class="row justify-content-center">
         <div class="col-12 col-lg-10">
@@ -587,6 +589,7 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <style>
