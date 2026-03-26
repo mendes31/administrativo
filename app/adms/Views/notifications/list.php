@@ -30,6 +30,63 @@ $iconByType = static function (string $type): string {
     };
 };
 
+$reactionLabel = static function (?string $message): string {
+    $raw = trim((string)$message);
+    if ($raw === '') {
+        return '';
+    }
+    $raw = preg_replace('/^rea..o:\s*/iu', '', $raw) ?? $raw;
+    $key = strtolower(trim($raw));
+    return match ($key) {
+        'like', 'curtir' => 'curtiu',
+        'love', 'amei' => 'amou',
+        'haha', 'risada' => 'achou engraçado',
+        'wow', 'uau' => 'se surpreendeu',
+        'sad', 'triste' => 'ficou triste',
+        'angry', 'grr' => 'ficou bravo',
+        default => 'reagiu',
+    };
+};
+
+$isReactionNotification = static function (string $type, string $title, string $message): bool {
+    $t = strtolower(trim($type));
+    if ($t === 'timeline_reaction' || $t === 'timeline_like' || $t === 'reaction') {
+        return true;
+    }
+
+    $haystackTitle = mb_strtolower($title, 'UTF-8');
+    $haystackMessage = mb_strtolower($message, 'UTF-8');
+
+    if (str_contains($haystackMessage, 'reação:')
+        || str_contains($haystackMessage, 'reacao:')
+        || str_contains($haystackTitle, 'reagiu')) {
+        return true;
+    }
+
+    return false;
+};
+
+$normalizeLegacyTitle = static function (string $title): string {
+    $t = trim($title);
+    if ($t === '') {
+        return 'Notificação';
+    }
+
+    // Remove caracteres de controle invisíveis.
+    $t = preg_replace('/[\x00-\x1F\x7F]/u', '', $t) ?? $t;
+
+    // Remove qualquer prefixo legado até o primeiro caractere alfanumérico válido.
+    if (preg_match('/[\p{L}\p{N}]/u', $t, $m, PREG_OFFSET_CAPTURE)) {
+        $firstPos = (int)($m[0][1] ?? 0);
+        if ($firstPos > 0) {
+            $t = mb_substr($t, $firstPos);
+        }
+    }
+    $t = ltrim($t);
+
+    return $t !== '' ? $t : 'Notificação';
+};
+
 $relativeTime = static function (?string $createdAt) use ($now): string {
     if (empty($createdAt)) return '-';
     try {
@@ -67,9 +124,9 @@ foreach ($notifications as $n) {
         @media (min-width: 993px) {
             .notifications-page .notif-item {
                 display: grid !important;
-                grid-template-columns: 10px 34px minmax(320px, 1fr) auto !important;
+                grid-template-columns: 10px 48px minmax(360px, 1fr) auto !important;
                 align-items: start;
-                gap: 0.65rem;
+                gap: 1rem;
             }
 
             .notifications-page .notif-item__body {
@@ -96,6 +153,47 @@ foreach ($notifications as $n) {
                 gap: 0.2rem;
                 width: auto !important;
             }
+
+            .notifications-page .notif-read-state {
+                font-size: 0.72rem;
+                font-weight: 600;
+                line-height: 1;
+                margin-top: 0.05rem;
+            }
+
+            .notifications-page .notif-read-state--unread {
+                color: #0d6efd;
+            }
+
+            .notifications-page .notif-read-state--read {
+                color: #6c757d;
+            }
+
+            .notifications-page .notif-item__icon {
+                width: 38px;
+                height: 38px;
+                margin-top: 0.1rem;
+                margin-left: 0.2rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .notifications-page .notif-item__dot.is-hidden {
+                visibility: hidden;
+                background: transparent;
+            }
+
+            .notifications-page .notif-item__body {
+                padding-left: 0.35rem;
+            }
+
+            .notifications-page .notif-item--reaction .notif-item__title {
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+                display: block;
+            }
         }
 
         @media (max-width: 992px) {
@@ -109,6 +207,11 @@ foreach ($notifications as $n) {
             .notifications-page .notif-item__dot {
                 flex: 0 0 8px;
                 margin-top: 0.65rem;
+            }
+
+            .notifications-page .notif-item__dot.is-hidden {
+                visibility: hidden;
+                background: transparent;
             }
 
             .notifications-page .notif-item__icon {
@@ -138,6 +241,20 @@ foreach ($notifications as $n) {
                 justify-content: flex-start !important;
                 align-items: center;
                 gap: 0.45rem;
+            }
+
+            .notifications-page .notif-read-state {
+                font-size: 0.72rem;
+                font-weight: 600;
+                margin-left: 0.1rem;
+            }
+
+            .notifications-page .notif-read-state--unread {
+                color: #0d6efd;
+            }
+
+            .notifications-page .notif-read-state--read {
+                color: #6c757d;
             }
         }
     </style>
@@ -183,16 +300,27 @@ foreach ($notifications as $n) {
                                 $unread = empty($n['read_at']);
                                 $type = (string)($n['type'] ?? '');
                                 $openUrl = $buildMarkedUrl($n['link_url'] ?? null, (int)$n['id'], $unread);
+                                $baseTitle = (string)($n['title'] ?? 'Notificação');
+                                $baseMessage = (string)($n['message'] ?? '');
+                                $displayTitle = $normalizeLegacyTitle($baseTitle);
+                                $displayMessage = $baseMessage;
+                                $isReaction = $isReactionNotification($type, $baseTitle, $baseMessage);
+                                if ($isReaction) {
+                                    $displayTitle = preg_replace('/\s+reagiu\s+.+$/iu', '', $baseTitle) ?: $baseTitle;
+                                    $displayTitle = $normalizeLegacyTitle($displayTitle);
+                                    $displayTitle = trim($displayTitle) . ' ' . $reactionLabel($baseMessage) . ' na sua publicação';
+                                    $displayMessage = '';
+                                }
                             ?>
-                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?>">
-                                <div class="notif-item__dot <?= $unread ? '' : 'd-none'; ?>"></div>
+                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?> <?= $isReaction ? 'notif-item--reaction' : ''; ?>">
+                                <div class="notif-item__dot <?= $unread ? '' : 'is-hidden'; ?>"></div>
                                 <div class="notif-item__icon"><i class="<?= $iconByType($type); ?>"></i></div>
                                 <div class="notif-item__body">
                                     <a class="notif-item__title" href="<?= htmlspecialchars($openUrl); ?>">
-                                        <?= htmlspecialchars((string)($n['title'] ?? 'Notificação')); ?>
+                                        <?= htmlspecialchars($displayTitle); ?>
                                     </a>
-                                    <?php if (!empty($n['message'])): ?>
-                                        <div class="notif-item__message"><?= htmlspecialchars((string)$n['message']); ?></div>
+                                    <?php if ($displayMessage !== ''): ?>
+                                        <div class="notif-item__message"><?= htmlspecialchars($displayMessage); ?></div>
                                     <?php endif; ?>
                                     <div class="notif-item__meta">
                                         <span><?= htmlspecialchars($relativeTime((string)($n['created_at'] ?? ''))); ?></span>
@@ -205,7 +333,9 @@ foreach ($notifications as $n) {
                                         <a href="<?= htmlspecialchars($openUrl); ?>" class="btn btn-sm btn-outline-primary">Abrir</a>
                                     <?php endif; ?>
                                     <?php if ($unread): ?>
-                                        <a href="<?= $urlAdm; ?>notificacoes?mark=<?= (int)$n['id']; ?>" class="btn btn-sm btn-link text-decoration-none">Lida</a>
+                                        <a href="<?= $urlAdm; ?>notificacoes?mark=<?= (int)$n['id']; ?>" class="btn btn-sm btn-link text-decoration-none">Marcar como lida</a>
+                                    <?php else: ?>
+                                        <span class="notif-read-state notif-read-state--read">Lida</span>
                                     <?php endif; ?>
                                 </div>
                             </article>
@@ -221,16 +351,27 @@ foreach ($notifications as $n) {
                                 $unread = empty($n['read_at']);
                                 $type = (string)($n['type'] ?? '');
                                 $openUrl = $buildMarkedUrl($n['link_url'] ?? null, (int)$n['id'], $unread);
+                                $baseTitle = (string)($n['title'] ?? 'Notificação');
+                                $baseMessage = (string)($n['message'] ?? '');
+                                $displayTitle = $normalizeLegacyTitle($baseTitle);
+                                $displayMessage = $baseMessage;
+                                $isReaction = $isReactionNotification($type, $baseTitle, $baseMessage);
+                                if ($isReaction) {
+                                    $displayTitle = preg_replace('/\s+reagiu\s+.+$/iu', '', $baseTitle) ?: $baseTitle;
+                                    $displayTitle = $normalizeLegacyTitle($displayTitle);
+                                    $displayTitle = trim($displayTitle) . ' ' . $reactionLabel($baseMessage) . ' na sua publicação';
+                                    $displayMessage = '';
+                                }
                             ?>
-                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?>">
-                                <div class="notif-item__dot <?= $unread ? '' : 'd-none'; ?>"></div>
+                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?> <?= $isReaction ? 'notif-item--reaction' : ''; ?>">
+                                <div class="notif-item__dot <?= $unread ? '' : 'is-hidden'; ?>"></div>
                                 <div class="notif-item__icon"><i class="<?= $iconByType($type); ?>"></i></div>
                                 <div class="notif-item__body">
                                     <a class="notif-item__title" href="<?= htmlspecialchars($openUrl); ?>">
-                                        <?= htmlspecialchars((string)($n['title'] ?? 'Notificação')); ?>
+                                        <?= htmlspecialchars($displayTitle); ?>
                                     </a>
-                                    <?php if (!empty($n['message'])): ?>
-                                        <div class="notif-item__message"><?= htmlspecialchars((string)$n['message']); ?></div>
+                                    <?php if ($displayMessage !== ''): ?>
+                                        <div class="notif-item__message"><?= htmlspecialchars($displayMessage); ?></div>
                                     <?php endif; ?>
                                     <div class="notif-item__meta">
                                         <span><?= htmlspecialchars($relativeTime((string)($n['created_at'] ?? ''))); ?></span>
@@ -243,7 +384,9 @@ foreach ($notifications as $n) {
                                         <a href="<?= htmlspecialchars($openUrl); ?>" class="btn btn-sm btn-outline-primary">Abrir</a>
                                     <?php endif; ?>
                                     <?php if ($unread): ?>
-                                        <a href="<?= $urlAdm; ?>notificacoes?mark=<?= (int)$n['id']; ?>" class="btn btn-sm btn-link text-decoration-none">Lida</a>
+                                        <a href="<?= $urlAdm; ?>notificacoes?mark=<?= (int)$n['id']; ?>" class="btn btn-sm btn-link text-decoration-none">Marcar como lida</a>
+                                    <?php else: ?>
+                                        <span class="notif-read-state notif-read-state--read">Lida</span>
                                     <?php endif; ?>
                                 </div>
                             </article>
