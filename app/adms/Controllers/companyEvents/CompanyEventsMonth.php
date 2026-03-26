@@ -32,6 +32,7 @@ class CompanyEventsMonth
                 $ev['rsvp'] = $repo->getRsvpForUser((int)$ev['id'], $uid);
             }
             unset($ev);
+
             echo json_encode(['success' => true, 'events' => $events, 'year' => $y, 'month' => $m]);
         } catch (\Throwable $e) {
             http_response_code(500);

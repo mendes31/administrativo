@@ -7,6 +7,102 @@ use PDO;
 
 class CompanyEventsRepository extends DbConnection
 {
+    /**
+     * Registra leitura de um evento para o usuário (upsert).
+     */
+    public function upsertRead(int $eventId, int $userId): void
+    {
+        $sql = 'INSERT INTO adms_company_event_reads (event_id, user_id, read_at, created_at)
+                VALUES (:e, :u, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    read_at = IF(read_at IS NULL, NOW(), read_at)';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':e', $eventId, PDO::PARAM_INT);
+        $stmt->bindValue(':u', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
+    /**
+     * Marca uma lista de eventos como lidos para o usuário.
+     *
+     * @param int[] $eventIds
+     */
+    public function markManyAsRead(array $eventIds, int $userId): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $eventIds), static fn ($v) => $v > 0)));
+        if ($userId <= 0 || $ids === []) {
+            return;
+        }
+        foreach ($ids as $eventId) {
+            $this->upsertRead($eventId, $userId);
+        }
+    }
+
+    /**
+     * Conta eventos não lidos do usuário que intersectam o mês informado.
+     */
+    public function countUnreadIntersectingMonth(int $year, int $month, int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+        $month = max(1, min(12, $month));
+        $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
+        $end = date('Y-m-t 23:59:59', strtotime($start));
+
+        $sql = 'SELECT COUNT(*) AS total
+                FROM adms_company_events e
+                WHERE e.ativo = 1
+                  AND e.created_by <> :u
+                  AND e.starts_at <= :end
+                  AND e.ends_at >= :start
+                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
+                  AND (e.expire_at IS NULL OR e.expire_at > NOW())
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM adms_company_event_reads r
+                        WHERE r.event_id = e.id
+                          AND r.user_id = :u
+                          AND r.read_at IS NOT NULL
+                  )';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':start' => $start, ':end' => $end, ':u' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['total'] ?? 0);
+    }
+
+    /**
+     * Conta eventos não lidos do usuário que intersectam o ano informado.
+     */
+    public function countUnreadIntersectingYear(int $year, int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+        $start = sprintf('%04d-01-01 00:00:00', $year);
+        $end = sprintf('%04d-12-31 23:59:59', $year);
+
+        $sql = 'SELECT COUNT(*) AS total
+                FROM adms_company_events e
+                WHERE e.ativo = 1
+                  AND e.created_by <> :u
+                  AND e.starts_at <= :end
+                  AND e.ends_at >= :start
+                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
+                  AND (e.expire_at IS NULL OR e.expire_at > NOW())
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM adms_company_event_reads r
+                        WHERE r.event_id = e.id
+                          AND r.user_id = :u
+                          AND r.read_at IS NOT NULL
+                  )';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':start' => $start, ':end' => $end, ':u' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['total'] ?? 0);
+    }
+
     public function createEvent(array $data): int
     {
         $sql = 'INSERT INTO adms_company_events (

@@ -175,10 +175,12 @@ class Dashboard
             $this->data['company_events_month'] = $companyEvents;
             $this->data['company_events_month_count'] = count($companyEvents);
             $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
+            $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $uid);
         } catch (\Throwable $e) {
             $this->data['company_events_month'] = [];
             $this->data['company_events_month_count'] = 0;
             $this->data['company_events_year_count'] = 0;
+            $this->data['company_events_unread_count'] = 0;
         }
 
         $pageElements = [

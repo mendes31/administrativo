@@ -120,6 +120,9 @@
                             <div class="text-muted text-center small fw-semibold">
                                 <?php echo (int)($this->data['company_events_year_count'] ?? 0); ?> no ano
                             </div>
+                            <div class="text-success text-center small fw-semibold">
+                                <?php echo (int)($this->data['company_events_unread_count'] ?? 0); ?> não lidos no ano
+                            </div>
                         </div>
                     </a>
                 </div>
