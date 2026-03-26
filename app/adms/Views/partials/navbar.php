@@ -7,6 +7,7 @@ $navbarNotifList = [];
 $navbarInternalCount = 0;
 $navbarInternalList = [];
 $mcpChatAvailable = false;
+$navbarMarkAllCsrf = \App\adms\Helpers\CSRFHelper::generateCSRFToken('navbar_notifications_mark_all');
 if (!empty($_SESSION['user_id'])) {
     try {
         $userId = (int)$_SESSION['user_id'];
@@ -92,7 +93,9 @@ if (!empty($_SESSION['user_id'])) {
         </li>
         <?php endif; ?>
         <li class="nav-item dropdown">
-            <a class="nav-link position-relative" href="#" id="navbarNotifications" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações" title="Notificações">
+            <a class="nav-link position-relative" href="#" id="navbarNotifications" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações" title="Notificações"
+               data-mark-all-url="<?php echo htmlspecialchars(($_ENV['URL_ADM'] ?? '') . 'mark-notifications-read'); ?>"
+               data-mark-all-csrf="<?php echo htmlspecialchars($navbarMarkAllCsrf); ?>">
                 <i class="fas fa-bell"></i>
                 <?php if (!empty($navbarTotalCount) && $navbarTotalCount > 0): ?>
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="navbarNotifBadge" style="font-size: 0.65rem;"><?php echo $navbarTotalCount > 99 ? '99+' : (int)$navbarTotalCount; ?></span>
@@ -142,8 +145,8 @@ if (!empty($_SESSION['user_id'])) {
                     <?php foreach ($navbarInternalList as $intNotif): ?>
                     <li>
                         <?php
-                        $intLink = !empty($intNotif['link_url']) ? $intNotif['link_url'] : ($_ENV['URL_ADM'] . 'list-notifications');
-                        if (!empty($intNotif['link_url']) && strpos($intNotif['link_url'], 'list-notifications') === false) {
+                        $intLink = !empty($intNotif['link_url']) ? $intNotif['link_url'] : ($_ENV['URL_ADM'] . 'notificacoes');
+                        if (!empty($intNotif['link_url']) && strpos($intNotif['link_url'], 'notificacoes') === false) {
                             $intLink .= (strpos($intLink, '?') !== false ? '&' : '?') . 'mark_notification=' . (int)($intNotif['id'] ?? 0);
                         }
                         ?>
@@ -160,7 +163,7 @@ if (!empty($_SESSION['user_id'])) {
                 <li><hr class="dropdown-divider my-0"></li>
                 <?php endif; ?>
                 <li><a class="dropdown-item small text-center" href="<?php echo $_ENV['URL_ADM']; ?>list-informativos"><i class="fas fa-bullhorn me-1"></i>Comunicados</a></li>
-                <li><a class="dropdown-item small text-center" href="<?php echo $_ENV['URL_ADM']; ?>list-notifications"><i class="fas fa-bell me-1"></i>Ver todas as notificações</a></li>
+                <li><a class="dropdown-item small text-center" href="<?php echo $_ENV['URL_ADM']; ?>notificacoes"><i class="fas fa-bell me-1"></i>Ver todas as notificações</a></li>
             </ul>
         </li>
         <li class="nav-item dropdown">
@@ -233,6 +236,39 @@ if (!empty($_SESSION['user_id'])) {
         </li>
     </ul>
 </nav>
+
+<script>
+(function () {
+    var bell = document.getElementById('navbarNotifications');
+    if (!bell) return;
+
+    var sent = false;
+    bell.addEventListener('shown.bs.dropdown', function () {
+        if (sent) return;
+        var url = bell.getAttribute('data-mark-all-url');
+        var csrf = bell.getAttribute('data-mark-all-csrf');
+        if (!url || !csrf) return;
+
+        sent = true;
+        var fd = new FormData();
+        fd.append('csrf_token', csrf);
+        fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: fd
+        }).then(function () {
+            var badge = document.getElementById('navbarNotifBadge');
+            if (badge) {
+                badge.textContent = '0';
+                badge.style.display = 'none';
+            }
+        }).catch(function () {
+            sent = false;
+        });
+    });
+})();
+</script>
 
 <?php if ($mcpChatAvailable): ?>
 <div class="offcanvas offcanvas-end" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">

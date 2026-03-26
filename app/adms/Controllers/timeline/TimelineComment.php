@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\TimelineMentionHelper;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
 
@@ -65,6 +66,40 @@ class TimelineComment
         $mentionIds = TimelineMentionHelper::extractMentionedUserIds($text, $userRepo);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('comment', $cid, $validIds);
+
+        $actorId = (int)($_SESSION['user_id'] ?? 0);
+        $actorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+        $notifRepo = new NotificationsRepository();
+        $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+
+        // Notifica o autor do post quando outra pessoa comenta.
+        $postOwnerId = (int)($post['user_id'] ?? 0);
+        if ($postOwnerId > 0 && $postOwnerId !== $actorId) {
+            $notifRepo->create([
+                'user_id' => $postOwnerId,
+                'type' => 'timeline_comment',
+                'title' => $actorName . ' comentou na sua publicação',
+                'message' => mb_substr($text, 0, 180),
+                'link_url' => $base . 'timeline?post=' . $pid,
+                'entity_type' => 'timeline_post',
+                'entity_id' => $pid,
+            ]);
+        }
+
+        // Notifica menções no comentário (exceto o próprio autor da ação).
+        foreach ($validIds as $mentionedUserId) {
+            $mentionedUserId = (int)$mentionedUserId;
+            if ($mentionedUserId <= 0 || $mentionedUserId === $actorId) continue;
+            $notifRepo->create([
+                'user_id' => $mentionedUserId,
+                'type' => 'timeline_mention',
+                'title' => $actorName . ' mencionou você em um comentário',
+                'message' => mb_substr($text, 0, 180),
+                'link_url' => $base . 'timeline?post=' . $pid,
+                'entity_type' => 'timeline_post',
+                'entity_id' => $pid,
+            ]);
+        }
 
         $comments = $repo->getCommentsForPost($pid);
         $this->attachCommentsHtml($comments);

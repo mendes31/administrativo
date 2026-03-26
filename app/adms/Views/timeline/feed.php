@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=12">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=13">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -347,6 +347,23 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         angry: 'fas fa-angry text-fb-angry'
     };
 
+    (function focusPostFromQuery() {
+        try {
+            var params = new URLSearchParams(window.location.search || '');
+            var postId = params.get('post');
+            if (!postId) return;
+            var target = document.getElementById('timeline-post-' + postId);
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('timeline-post-focus');
+            setTimeout(function () {
+                target.classList.remove('timeline-post-focus');
+            }, 2200);
+        } catch (e) {
+            // ignore
+        }
+    })();
+
     function renderReactionStackHtml(summary) {
         summary = summary || {};
         var types = [];
@@ -497,7 +514,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 ev.stopPropagation();
                 var bundle = pick.closest('.timeline-curtir-bundle');
                 var trayM = pick.closest('.timeline-reaction-tray-mobile');
-                var id = (bundle && bundle.getAttribute('data-post-id')) || (trayM && trayM.getAttribute('data-post-id'));
+                var id = pick.getAttribute('data-post-id') ||
+                    (bundle && bundle.getAttribute('data-post-id')) ||
+                    (trayM && trayM.getAttribute('data-post-id'));
                 if (!id) return;
                 var r = pick.getAttribute('data-reaction') || 'like';
                 var fd = new FormData();

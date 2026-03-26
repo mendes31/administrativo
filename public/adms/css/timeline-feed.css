@@ -31,6 +31,11 @@
 .timeline-post-card:hover {
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
 }
+.timeline-post-focus {
+    outline: 2px solid rgba(24, 119, 242, 0.7);
+    box-shadow: 0 0 0 4px rgba(24, 119, 242, 0.18);
+    transition: box-shadow 0.25s ease, outline-color 0.25s ease;
+}
 .timeline-post-header {
     display: flex;
     align-items: flex-start;
@@ -146,29 +151,41 @@ video.timeline-post-media {
 }
 
 .timeline-curtir-wrap {
+    position: relative;
     min-width: 0;
+}
+.timeline-curtir-wrap::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -12px;
+    height: 12px;
 }
 .timeline-reaction-tray {
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + 1px);
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1080;
+    z-index: 3000;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.12s ease;
     white-space: nowrap;
+    pointer-events: none;
 }
 .timeline-curtir-wrap:hover .timeline-reaction-tray,
 .timeline-reaction-tray:hover {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
 }
 .timeline-reaction-tray .timeline-reaction-pick-fb {
     width: 36px;
     height: 36px;
     padding: 0;
     line-height: 1;
+    pointer-events: auto;
 }
 .timeline-reaction-tray .timeline-reaction-pick-fb i {
     font-size: 1.1rem;

@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\timeline;
 
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 
 class TimelineLike
@@ -28,7 +29,26 @@ class TimelineLike
             return;
         }
         $reaction = (string)($_POST['reaction'] ?? $_GET['reaction'] ?? 'heart');
-        $result = $repo->setReaction($postId, (int)$_SESSION['user_id'], $reaction);
+        $actorId = (int)$_SESSION['user_id'];
+        $result = $repo->setReaction($postId, $actorId, $reaction);
+
+        // Notifica o autor quando outra pessoa reage.
+        $postOwnerId = (int)($post['user_id'] ?? 0);
+        if ($result['liked'] && $postOwnerId > 0 && $postOwnerId !== $actorId) {
+            $notifRepo = new NotificationsRepository();
+            $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+            $actorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+            $notifRepo->create([
+                'user_id' => $postOwnerId,
+                'type' => 'timeline_reaction',
+                'title' => $actorName . ' reagiu à sua publicação',
+                'message' => 'Reação: ' . (string)($result['reaction'] ?? 'curtir'),
+                'link_url' => $base . 'timeline?post=' . $postId,
+                'entity_type' => 'timeline_post',
+                'entity_id' => $postId,
+            ]);
+        }
+
         echo json_encode([
             'success' => true,
             'liked' => $result['liked'],

@@ -39,7 +39,7 @@ $usersRepoMention = new UsersRepository();
     }
     $imgsJson = htmlspecialchars(json_encode(array_values($imgs)), ENT_QUOTES, 'UTF-8');
 ?>
-    <article class="card timeline-post-card mb-3">
+    <article class="card timeline-post-card mb-3" id="timeline-post-<?php echo $pid; ?>" data-post-id="<?php echo $pid; ?>">
         <div class="card-body">
             <div class="timeline-post-header mb-2">
                 <?php
@@ -150,6 +150,7 @@ $usersRepoMention = new UsersRepository();
                                     $col = TimelineReactionHelper::colorClass($rt);
                                 ?>
                                 <button type="button" class="btn btn-sm rounded-circle timeline-reaction-pick timeline-reaction-pick-fb border-0"
+                                        data-post-id="<?php echo $pid; ?>"
                                         data-reaction="<?php echo htmlspecialchars($rt); ?>"
                                         title="<?php echo htmlspecialchars($lab); ?>">
                                     <i class="<?php echo htmlspecialchars($ic . ' ' . $col); ?>"></i>
@@ -177,6 +178,7 @@ $usersRepoMention = new UsersRepository();
                         $col = TimelineReactionHelper::colorClass($rt);
                     ?>
                     <button type="button" class="btn btn-sm rounded-circle timeline-reaction-pick timeline-reaction-pick-fb border bg-white shadow-sm"
+                            data-post-id="<?php echo $pid; ?>"
                             data-reaction="<?php echo htmlspecialchars($rt); ?>"
                             title="<?php echo htmlspecialchars($lab); ?>">
                         <i class="<?php echo htmlspecialchars($ic . ' ' . $col); ?>"></i>

@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -17,6 +18,12 @@ class Timeline
 
     public function index(string|int $page = 1): void
     {
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($userId > 0 && isset($_GET['mark_notification']) && is_numeric($_GET['mark_notification'])) {
+            $notifRepo = new NotificationsRepository();
+            $notifRepo->markAsRead((int)$_GET['mark_notification'], $userId);
+        }
+
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int)$_GET['page'];
         }
@@ -58,7 +65,6 @@ class Timeline
         $this->data['mention_name_map'] = $userRepo->getIdNameMapForIds($mentionIds);
 
         $postIds = array_map(static fn ($p) => (int)($p['id'] ?? 0), $this->data['posts']);
-        $userId = (int)($_SESSION['user_id'] ?? 0);
         $this->data['current_user_id'] = $userId;
         $this->data['reaction_map'] = $repo->getUserReactionMap($userId, $postIds);
         $this->data['reaction_summaries'] = $repo->getReactionSummariesByPostIds($postIds);

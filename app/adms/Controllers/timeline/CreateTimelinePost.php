@@ -6,6 +6,7 @@ namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Helpers\CSRFHelper;
@@ -98,6 +99,29 @@ class CreateTimelinePost
         $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('post', $postId, $validIds);
+
+        // Notifica usuários mencionados no post.
+        $authorId = (int)($_SESSION['user_id'] ?? 0);
+        $authorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+        if ($validIds !== []) {
+            $notifRepo = new NotificationsRepository();
+            $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+            foreach ($validIds as $mentionedUserId) {
+                $mentionedUserId = (int)$mentionedUserId;
+                if ($mentionedUserId <= 0 || $mentionedUserId === $authorId) {
+                    continue;
+                }
+                $notifRepo->create([
+                    'user_id' => $mentionedUserId,
+                    'type' => 'timeline_mention',
+                    'title' => $authorName . ' mencionou você em uma publicação',
+                    'message' => mb_substr($content, 0, 180),
+                    'link_url' => $base . 'timeline?post=' . $postId,
+                    'entity_type' => 'timeline_post',
+                    'entity_id' => $postId,
+                ]);
+            }
+        }
 
         $_SESSION['success'] = 'Publicação enviada.';
         header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
