@@ -192,7 +192,14 @@ class Dashboard
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
-        $this->data['show_timeline_card'] = in_array('Timeline', $this->data['menuPermission'] ?? [], true);
+        $menuPermission = $this->data['menuPermission'] ?? [];
+        // Regra estrita: cada card depende exclusivamente da permissão DashboardCard...
+        $this->data['show_informativos_card'] = in_array('DashboardCardInformativos', $menuPermission, true);
+        $this->data['show_policies_card'] = in_array('DashboardCardPolicies', $menuPermission, true);
+        $this->data['show_timeline_card'] = in_array('DashboardCardTimeline', $menuPermission, true);
+        $this->data['show_eventos_card'] = in_array('DashboardCardEventos', $menuPermission, true);
+        $this->data['show_aniversariantes_card'] = in_array('DashboardCardAniversariantes', $menuPermission, true);
+        $this->data['show_tempo_empresa_card'] = in_array('DashboardCardTempoEmpresa', $menuPermission, true);
 
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/dashboard/dashboard", $this->data);

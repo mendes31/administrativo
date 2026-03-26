@@ -180,6 +180,13 @@ class PageLayoutService
             'CompanyEventReport',
             'EventRsvp',
             'CompanyEventsMonth',
+            // Dashboard - visibilidade de cards
+            'DashboardCardInformativos',
+            'DashboardCardPolicies',
+            'DashboardCardTimeline',
+            'DashboardCardEventos',
+            'DashboardCardAniversariantes',
+            'DashboardCardTempoEmpresa',
             'ListPolicies',
             'ListMovBetweenAccounts',
             'ListPages',

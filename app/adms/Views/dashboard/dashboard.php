@@ -1,4 +1,5 @@
 <div class="container-fluid px-4">
+    <?php include __DIR__ . '/../partials/alerts.php'; ?>
     <div class="row justify-content-center">
         <div class="col-12 col-lg-11">
             <div class="bg-success bg-gradient rounded-4 p-4 mb-4" style="margin-top: 2rem;">
@@ -10,6 +11,7 @@
     <div class="row justify-content-center mb-4">
         <div class="col-12 col-lg-10">
             <div class="row g-3 justify-content-center align-items-stretch dashboard-quick-row">
+                <?php if (!empty($this->data['show_informativos_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos" class="text-decoration-none flex-fill h-100">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
@@ -22,6 +24,8 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
+                <?php if (!empty($this->data['show_policies_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="text-decoration-none flex-fill h-100">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: #fff7f7;">
@@ -38,7 +42,9 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
                 <?php $hasAniversarianteHoje = !empty($this->data['qtd_aniversariantes_dia']); ?>
+                <?php if (!empty($this->data['show_aniversariantes_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
                        class="text-decoration-none flex-fill h-100 <?php echo $hasAniversarianteHoje ? '' : 'birthday-card-disabled'; ?>"
@@ -70,6 +76,8 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
+                <?php if (!empty($this->data['show_tempo_empresa_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
                        class="text-decoration-none flex-fill h-100"
@@ -87,6 +95,7 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
             </div>
             <div class="row g-3 justify-content-center align-items-stretch mt-1">
                 <?php if (!empty($this->data['show_timeline_card'])): ?>
@@ -103,6 +112,7 @@
                     </a>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($this->data['show_eventos_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
                        class="text-decoration-none flex-fill h-100"
@@ -126,6 +136,7 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
