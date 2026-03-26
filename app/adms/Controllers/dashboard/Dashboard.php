@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\MenuPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\PoliciesRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
@@ -25,6 +26,7 @@ class Dashboard
         InformativosStatusUpdaterService::ensureUpdated();
 
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';
+        $userId = (int)($_SESSION['user_id'] ?? 0);
 
         // Definir o título da página
         // Ativar o item de menu
@@ -33,6 +35,7 @@ class Dashboard
         $informativos = $informativosRepo->getInformativosDashboard(50);
         $this->data['informativos'] = $informativos;
         $this->data['informativos_ativos'] = count(array_filter($informativos, fn($i) => $i['ativo']));
+        $this->data['informativos_nao_lidos'] = $userId > 0 ? $informativosRepo->countNaoLidos($userId) : 0;
 
         // Políticas Internas para card de destaque
         $policiesRepo = new PoliciesRepository();
@@ -40,6 +43,13 @@ class Dashboard
         $this->data['policies_dashboard'] = $policiesDashboard;
         $this->data['policies_urgentes'] = $policiesRepo->countPoliciesUrgentes();
         $this->data['policies_ativas'] = count(array_filter($policiesDashboard, fn($p) => $p['ativo']));
+        $this->data['policies_nao_lidas'] = $userId > 0 ? $policiesRepo->countNaoLidos($userId) : 0;
+
+        // Notificações não lidas da timeline (reações/comentários/menções)
+        $notifRepo = new NotificationsRepository();
+        $this->data['timeline_notificacoes_nao_lidas'] = $userId > 0
+            ? $notifRepo->countUnreadByTypePrefix($userId, 'timeline_')
+            : 0;
 
         // Categorias dos informativos
         $categorias = [];
@@ -157,16 +167,18 @@ class Dashboard
             $y = (int)date('Y');
             $m = (int)date('n');
             $companyEvents = $eventsRepo->getEventsIntersectingMonth($y, $m);
-            $uid = (int)($_SESSION['user_id'] ?? 0);
+            $uid = $userId;
             foreach ($companyEvents as &$ce) {
                 $ce['rsvp'] = $uid > 0 ? $eventsRepo->getRsvpForUser((int)$ce['id'], $uid) : null;
             }
             unset($ce);
             $this->data['company_events_month'] = $companyEvents;
             $this->data['company_events_month_count'] = count($companyEvents);
+            $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
         } catch (\Throwable $e) {
             $this->data['company_events_month'] = [];
             $this->data['company_events_month_count'] = 0;
+            $this->data['company_events_year_count'] = 0;
         }
 
         $pageElements = [

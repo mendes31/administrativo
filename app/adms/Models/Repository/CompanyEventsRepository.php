@@ -102,6 +102,27 @@ class CompanyEventsRepository extends DbConnection
     }
 
     /**
+     * Conta eventos ativos/publicados que intersectam o ano informado.
+     */
+    public function countEventsIntersectingYear(int $year): int
+    {
+        $start = sprintf('%04d-01-01 00:00:00', $year);
+        $end = sprintf('%04d-12-31 23:59:59', $year);
+
+        $sql = 'SELECT COUNT(*) AS total
+                FROM adms_company_events e
+                WHERE e.ativo = 1
+                  AND e.starts_at <= :end
+                  AND e.ends_at >= :start
+                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
+                  AND (e.expire_at IS NULL OR e.expire_at > NOW())';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':start' => $start, ':end' => $end]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['total'] ?? 0);
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function listAllForAdmin(int $page, int $perPage): array

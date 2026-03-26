@@ -48,6 +48,29 @@ class NotificationsRepository extends DbConnection
     }
 
     /**
+     * Conta notificações não lidas por prefixo do tipo (ex.: "timeline_").
+     */
+    public function countUnreadByTypePrefix(int $userId, string $typePrefix): int
+    {
+        $prefix = trim($typePrefix);
+        if ($prefix === '') {
+            return 0;
+        }
+
+        $sql = 'SELECT COUNT(*) AS total
+                FROM adms_notifications
+                WHERE user_id = :user_id
+                  AND read_at IS NULL
+                  AND type LIKE :type_prefix';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':type_prefix', $prefix . '%', PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['total'] ?? 0);
+    }
+
+    /**
      * Lista notificações do usuário (não lidas primeiro, depois por data).
      *
      * @param int $userId

@@ -18,6 +18,7 @@
                             </div>
                             <h5 class="fw-bold mb-1 text-center group-title">Informativos</h5>
                             <div class="text-muted mb-2 text-center" style="font-size: 1.1rem;"><?php echo $this->data['informativos_ativos'] ?? 0; ?> ativos</div>
+                            <div class="text-primary text-center small fw-semibold"><?php echo (int)($this->data['informativos_nao_lidos'] ?? 0); ?> não lidos</div>
                         </div>
                     </a>
                 </div>
@@ -30,6 +31,9 @@
                             <h5 class="fw-bold mb-1 text-danger text-center group-title">Políticas Internas</h5>
                             <div class="text-danger mb-2 text-center" style="font-size: 1.1rem;">
                                 <?php echo $this->data['policies_ativas'] ?? 0; ?> ativas
+                            </div>
+                            <div class="text-danger text-center small fw-semibold">
+                                <?php echo (int)($this->data['policies_nao_lidas'] ?? 0); ?> não lidas
                             </div>
                         </div>
                     </a>
@@ -93,7 +97,8 @@
                                 <i class="fas fa-stream fa-3x text-info"></i>
                             </div>
                             <h5 class="fw-bold mb-1 text-center group-title">Timeline</h5>
-                            <div class="text-muted mb-2 text-center small">Comunicação entre colaboradores</div>
+                            <div class="text-muted mb-1 text-center small">Comunicação entre colaboradores</div>
+                            <div class="text-info text-center small fw-semibold"><?php echo (int)($this->data['timeline_notificacoes_nao_lidas'] ?? 0); ?> não lidas</div>
                         </div>
                     </a>
                 </div>
@@ -109,8 +114,11 @@
                                 <i class="fas fa-calendar-alt fa-3x text-success"></i>
                             </div>
                             <h5 class="fw-bold mb-1 text-center group-title">Eventos</h5>
-                            <div class="text-muted mb-2 text-center" style="font-size: 1.1rem;">
-                                <?php echo (int)($this->data['company_events_month_count'] ?? 0); ?> neste mês
+                            <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
+                                <?php echo (int)($this->data['company_events_month_count'] ?? 0); ?> ativos neste mês
+                            </div>
+                            <div class="text-muted text-center small fw-semibold">
+                                <?php echo (int)($this->data['company_events_year_count'] ?? 0); ?> no ano
                             </div>
                         </div>
                     </a>
