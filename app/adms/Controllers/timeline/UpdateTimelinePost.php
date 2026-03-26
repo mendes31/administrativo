@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\adms\Controllers\timeline;
+
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TimelineMentionHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\TimelineRepository;
+use App\adms\Models\Repository\UsersRepository;
+
+class UpdateTimelinePost
+{
+    public function index(string|int|null $routeParam = null): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
+            return;
+        }
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Não autenticado']);
+            return;
+        }
+
+        if (!CSRFHelper::validateCSRFToken('timeline_edit_post', $_POST['csrf_token'] ?? '')) {
+            http_response_code(422);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.']);
+            return;
+        }
+
+        $postId = (int)($_POST['post_id'] ?? 0);
+        $content = trim((string)($_POST['content'] ?? ''));
+        if ($content === '') {
+            $content = ' ';
+        }
+        if ($postId <= 0) {
+            http_response_code(422);
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos.']);
+            return;
+        }
+
+        $repo = new TimelineRepository();
+        $post = $repo->getPostById($postId);
+        if (!$post || ($post['status'] ?? '') !== 'active') {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Post não encontrado.']);
+            return;
+        }
+        $uid = (int)$_SESSION['user_id'];
+        if ((int)($post['user_id'] ?? 0) !== $uid) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Apenas o autor pode editar esta publicação.']);
+            return;
+        }
+
+        $ok = $repo->updatePostContentByAuthor($postId, $uid, $content);
+        if (!$ok) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Não foi possível salvar.']);
+            return;
+        }
+
+        $userRepo = new UsersRepository();
+        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo);
+        $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
+        $repo->replaceMentions('post', $postId, $validIds);
+
+        echo json_encode(['success' => true, 'message' => 'Publicação atualizada.']);
+    }
+}

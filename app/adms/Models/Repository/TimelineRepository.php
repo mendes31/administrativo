@@ -2,22 +2,48 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\TimelineReactionHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
 class TimelineRepository extends DbConnection
 {
-    public function createPost(int $userId, string $content, ?string $imagePath, ?string $videoPath = null): int
+    /**
+     * @param array<int, string>|null $imagePaths
+     */
+    public function createPost(int $userId, string $content, ?array $imagePaths, ?string $videoPath = null): int
     {
         $sql = 'INSERT INTO adms_timeline_posts (user_id, content, image_path, video_path, status, created_at, updated_at)
                 VALUES (:uid, :content, :img, :vid, "active", NOW(), NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':content', $content, PDO::PARAM_STR);
-        $stmt->bindValue(':img', $imagePath, $imagePath !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        // Mantém compatibilidade com posts antigos: se vier apenas 1 imagem, guarda na coluna image_path.
+        // Para múltiplas imagens, a lista fica em adms_timeline_post_images.
+        $singleImagePath = null;
+        if ($imagePaths !== null && count($imagePaths) === 1) {
+            $singleImagePath = $imagePaths[0];
+        }
+        $stmt->bindValue(':img', $singleImagePath, $singleImagePath !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':vid', $videoPath, $videoPath !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->execute();
-        return (int)$this->getConnection()->lastInsertId();
+        $postId = (int)$this->getConnection()->lastInsertId();
+
+        // Insere múltiplas imagens em tabela auxiliar.
+        if ($imagePaths !== null && count($imagePaths) > 1) {
+            $ins = $this->getConnection()->prepare(
+                'INSERT INTO adms_timeline_post_images (post_id, image_path, sort_order, created_at)
+                 VALUES (:p, :img, :ord, NOW())'
+            );
+            $ord = 0;
+            foreach ($imagePaths as $imgPath) {
+                if ($imgPath === null || $imgPath === '') continue;
+                $ins->execute([':p' => $postId, ':img' => $imgPath, ':ord' => $ord]);
+                $ord++;
+            }
+        }
+
+        return $postId;
     }
 
     /**
@@ -78,46 +104,142 @@ class TimelineRepository extends DbConnection
 
     /**
      * @param array<int> $postIds
-     * @return array<int, bool> post_id => liked
+     * @return array<int, string> post_id => reaction_type
      */
-    public function getUserLikedMap(int $userId, array $postIds): array
+    public function getUserReactionMap(int $userId, array $postIds): array
     {
         if ($userId <= 0 || $postIds === []) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($postIds), '?'));
-        $sql = "SELECT post_id FROM adms_timeline_likes WHERE user_id = ? AND post_id IN ($placeholders)";
+        $sql = "SELECT post_id, reaction_type FROM adms_timeline_likes WHERE user_id = ? AND post_id IN ($placeholders)";
         $params = array_merge([$userId], $postIds);
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $map = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $map[(int)$row['post_id']] = true;
+            $map[(int)$row['post_id']] = TimelineReactionHelper::normalize((string)($row['reaction_type'] ?? 'like'));
         }
         return $map;
     }
 
-    public function toggleLike(int $postId, int $userId): array
+    /**
+     * @param array<int> $postIds
+     * @return array<int, array<string, int>> post_id => [ reaction_type => count ]
+     */
+    public function getReactionSummariesByPostIds(array $postIds): array
     {
-        $sql = 'SELECT id FROM adms_timeline_likes WHERE post_id = :p AND user_id = :u LIMIT 1';
+        if ($postIds === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+        $sql = "SELECT post_id, reaction_type, COUNT(*) AS c FROM adms_timeline_likes WHERE post_id IN ($placeholders) GROUP BY post_id, reaction_type";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($postIds);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $pid = (int)($row['post_id'] ?? 0);
+            $t = TimelineReactionHelper::normalize((string)($row['reaction_type'] ?? 'like'));
+            if (!isset($out[$pid])) {
+                $out[$pid] = [];
+            }
+            $out[$pid][$t] = (int)($row['c'] ?? 0);
+        }
+        return $out;
+    }
+
+    /**
+     * @return array{liked: bool, reaction: ?string, likes_count: int, summary: array<string, int>}
+     */
+    public function setReaction(int $postId, int $userId, string $reactionType): array
+    {
+        $type = TimelineReactionHelper::normalize($reactionType);
+        $sql = 'SELECT id, reaction_type FROM adms_timeline_likes WHERE post_id = :p AND user_id = :u LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':p' => $postId, ':u' => $userId]);
-        $exists = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($exists) {
-            $del = $this->getConnection()->prepare('DELETE FROM adms_timeline_likes WHERE post_id = :p AND user_id = :u');
-            $del->execute([':p' => $postId, ':u' => $userId]);
-            $liked = false;
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $currentReaction = null;
+        if ($row) {
+            $existingType = TimelineReactionHelper::normalize((string)($row['reaction_type'] ?? 'like'));
+            if ($existingType === $type) {
+                $del = $this->getConnection()->prepare('DELETE FROM adms_timeline_likes WHERE post_id = :p AND user_id = :u');
+                $del->execute([':p' => $postId, ':u' => $userId]);
+            } else {
+                $this->getConnection()->prepare(
+                    'UPDATE adms_timeline_likes SET reaction_type = :t WHERE post_id = :p AND user_id = :u'
+                )->execute([':t' => $type, ':p' => $postId, ':u' => $userId]);
+                $currentReaction = $type;
+            }
         } else {
-            $ins = $this->getConnection()->prepare(
-                'INSERT INTO adms_timeline_likes (post_id, user_id, created_at) VALUES (:p, :u, NOW())'
-            );
-            $ins->execute([':p' => $postId, ':u' => $userId]);
-            $liked = true;
+            $this->getConnection()->prepare(
+                'INSERT INTO adms_timeline_likes (post_id, user_id, reaction_type, created_at) VALUES (:p, :u, :t, NOW())'
+            )->execute([':p' => $postId, ':u' => $userId, ':t' => $type]);
+            $currentReaction = $type;
         }
+
         $cnt = $this->getConnection()->prepare('SELECT COUNT(*) AS c FROM adms_timeline_likes WHERE post_id = :p');
         $cnt->execute([':p' => $postId]);
-        $row = $cnt->fetch(PDO::FETCH_ASSOC);
-        return ['liked' => $liked, 'likes_count' => (int)($row['c'] ?? 0)];
+        $total = (int)($cnt->fetch(PDO::FETCH_ASSOC)['c'] ?? 0);
+
+        $summaryStmt = $this->getConnection()->prepare(
+            'SELECT reaction_type, COUNT(*) AS c FROM adms_timeline_likes WHERE post_id = :p GROUP BY reaction_type'
+        );
+        $summaryStmt->execute([':p' => $postId]);
+        $summary = [];
+        while ($s = $summaryStmt->fetch(PDO::FETCH_ASSOC)) {
+            $tk = TimelineReactionHelper::normalize((string)($s['reaction_type'] ?? 'like'));
+            $summary[$tk] = (int)($s['c'] ?? 0);
+        }
+
+        return [
+            'liked' => $currentReaction !== null,
+            'reaction' => $currentReaction,
+            'likes_count' => $total,
+            'summary' => $summary,
+        ];
+    }
+
+    /**
+     * @return array<int, array{name: string, username: string, reaction_type: string, created_at: string}>
+     */
+    public function listReactionsForPost(int $postId): array
+    {
+        $sql = 'SELECT l.user_id, l.reaction_type, l.created_at, u.name, u.username
+                FROM adms_timeline_likes l
+                INNER JOIN adms_users u ON u.id = l.user_id
+                WHERE l.post_id = :p
+                ORDER BY l.created_at ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':p' => $postId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $out = [];
+        foreach ($rows as $r) {
+            $out[] = [
+                'name' => (string)($r['name'] ?? ''),
+                'username' => (string)($r['username'] ?? ''),
+                'reaction_type' => TimelineReactionHelper::normalize((string)($r['reaction_type'] ?? 'like')),
+                'created_at' => (string)($r['created_at'] ?? ''),
+            ];
+        }
+        return $out;
+    }
+
+    public function updatePostContentByAuthor(int $postId, int $authorUserId, string $content): bool
+    {
+        $content = trim($content);
+        if ($content === '') {
+            $content = ' ';
+        }
+        $sql = 'UPDATE adms_timeline_posts SET content = :c, updated_at = NOW(), edited_at = NOW()
+                WHERE id = :id AND user_id = :uid AND status = "active"';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([
+            ':c' => $content,
+            ':id' => $postId,
+            ':uid' => $authorUserId,
+        ]);
+        return $stmt->rowCount() > 0;
     }
 
     public function addComment(int $postId, int $userId, string $content): int
@@ -202,5 +324,77 @@ class TimelineRepository extends DbConnection
         $stmt->execute([':id' => $postId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * @param array<int> $postIds
+     * @return array<int, array<int, string>> post_id => [image_path,...]
+     */
+    public function getPostImagesByPostIds(array $postIds): array
+    {
+        $postIds = array_values(array_unique(array_filter(array_map('intval', $postIds), static fn ($v) => $v > 0)));
+        if ($postIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+        $sql = 'SELECT post_id, image_path
+                FROM adms_timeline_post_images
+                WHERE post_id IN (' . $placeholders . ')
+                ORDER BY sort_order ASC, id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($postIds);
+
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $pid = (int)($row['post_id'] ?? 0);
+            if ($pid <= 0) continue;
+            if (!isset($out[$pid])) $out[$pid] = [];
+            $p = (string)($row['image_path'] ?? '');
+            if ($p !== '') $out[$pid][] = $p;
+        }
+        return $out;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getPostImagesByPostId(int $postId): array
+    {
+        $map = $this->getPostImagesByPostIds([$postId]);
+        return $map[$postId] ?? [];
+    }
+
+    public function deletePostByAuthor(int $postId, int $authorUserId): bool
+    {
+        $sqlPost = 'DELETE FROM adms_timeline_posts WHERE id = :id AND user_id = :uid AND status = "active"';
+
+        // Apagar na ordem certa para não deixar registros órfãos.
+        $sqlDelMentions = 'DELETE FROM adms_timeline_mentions WHERE entity_type = "post" AND entity_id = :id';
+        $sqlDelLikes = 'DELETE FROM adms_timeline_likes WHERE post_id = :id';
+        $sqlDelComments = 'DELETE FROM adms_timeline_comments WHERE post_id = :id';
+        $sqlDelReports = 'DELETE FROM adms_timeline_reports WHERE post_id = :id';
+        $sqlDelImages = 'DELETE FROM adms_timeline_post_images WHERE post_id = :id';
+
+        $pdo = $this->getConnection();
+        try {
+            $pdo->beginTransaction();
+
+            $pdo->prepare($sqlDelMentions)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelLikes)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelComments)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelReports)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelImages)->execute([':id' => $postId]);
+
+            $stmtPost = $pdo->prepare($sqlPost);
+            $stmtPost->execute([':id' => $postId, ':uid' => $authorUserId]);
+            $deleted = $stmtPost->rowCount() > 0;
+
+            $pdo->commit();
+            return $deleted;
+        } catch (\Throwable $e) {
+            try { $pdo->rollBack(); } catch (\Throwable $ignore) {}
+            return false;
+        }
     }
 }

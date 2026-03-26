@@ -4,6 +4,7 @@ namespace App\adms\Controllers\timeline;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\TimelineRepository;
@@ -24,6 +25,27 @@ class Timeline
 
         $repo = new TimelineRepository();
         $this->data['posts'] = $repo->getFeedPosts($page, $perPage);
+
+        // Anexa mídias (múltiplas fotos) aos posts.
+        $postIdsForImages = array_map(static fn ($p) => (int)($p['id'] ?? 0), $this->data['posts']);
+        $imagesMap = $repo->getPostImagesByPostIds($postIdsForImages);
+        foreach ($this->data['posts'] as &$p) {
+            $pid = (int)($p['id'] ?? 0);
+            $hasVideo = !empty($p['video_path']);
+            if ($hasVideo) {
+                $p['image_paths'] = [];
+                continue;
+            }
+
+            $paths = $imagesMap[$pid] ?? [];
+            // Compatibilidade: posts antigos ainda usam adms_timeline_posts.image_path (1 foto).
+            if ($paths === [] && !empty($p['image_path'])) {
+                $paths = [(string)$p['image_path']];
+            }
+            $p['image_paths'] = $paths;
+        }
+        unset($p);
+
         $userRepo = new UsersRepository();
         $mentionIds = [];
         foreach ($this->data['posts'] as $p) {
@@ -37,7 +59,10 @@ class Timeline
 
         $postIds = array_map(static fn ($p) => (int)($p['id'] ?? 0), $this->data['posts']);
         $userId = (int)($_SESSION['user_id'] ?? 0);
-        $this->data['liked_map'] = $repo->getUserLikedMap($userId, $postIds);
+        $this->data['current_user_id'] = $userId;
+        $this->data['reaction_map'] = $repo->getUserReactionMap($userId, $postIds);
+        $this->data['reaction_summaries'] = $repo->getReactionSummariesByPostIds($postIds);
+        $this->data['csrf_timeline_edit'] = CSRFHelper::generateCSRFToken('timeline_edit_post');
 
         $total = $repo->countActivePosts();
         $this->data['pagination'] = PaginationService::generatePagination(

@@ -35,33 +35,65 @@ class CreateTimelinePost
 
         $userRepo = new UsersRepository();
         $content = trim((string)($_POST['content'] ?? ''));
-        $imagePath = null;
+        $imagePaths = null; // array<string>
         $videoPath = null;
 
-        if (!empty($_FILES['video']['tmp_name']) && (int)($_FILES['video']['error'] ?? 0) === UPLOAD_ERR_OK) {
+        $videoProvided = !empty($_FILES['video']['tmp_name']) && (int)($_FILES['video']['error'] ?? 0) === UPLOAD_ERR_OK;
+        // Suporta tanto campo `images[]` quanto `image` com multiple.
+        $imagesProvided = false;
+        $uploadedImageFiles = [];
+        if (!empty($_FILES['images']) && is_array($_FILES['images']['tmp_name'] ?? null)) {
+            $imagesProvided = true;
+            $uploadedImageFiles = $this->normalizeUploadedFilesArray($_FILES['images']);
+        } elseif (!empty($_FILES['image']) && is_array($_FILES['image']['tmp_name'] ?? null)) {
+            $imagesProvided = true;
+            $uploadedImageFiles = $this->normalizeUploadedFilesArray($_FILES['image']);
+        } elseif (!empty($_FILES['image']['tmp_name'] ?? null) && (int)($_FILES['image']['error'] ?? 0) === UPLOAD_ERR_OK) {
+            $imagesProvided = true;
+            $uploadedImageFiles = [$_FILES['image']];
+        }
+
+        if ($videoProvided && $imagesProvided && $uploadedImageFiles !== []) {
+            $_SESSION['msg_warning'] = 'Não é permitido enviar vídeo e fotos no mesmo post.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
+            exit;
+        }
+
+        if ($videoProvided) {
             $videoPath = $this->uploadVideo($_FILES['video']);
             if ($videoPath === null) {
                 $_SESSION['msg_warning'] = 'Vídeo inválido (use MP4 ou WebM, máx. 50MB).';
                 header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
                 exit;
             }
-        } elseif (!empty($_FILES['image']['tmp_name']) && (int)($_FILES['image']['error'] ?? 0) === UPLOAD_ERR_OK) {
-            $imagePath = $this->uploadImage($_FILES['image']);
-            if ($imagePath === null) {
-                $_SESSION['msg_warning'] = 'Não foi possível salvar a imagem (formato/tamanho ou envio incompleto). Tente outro arquivo ou tire a foto novamente.';
+        } elseif ($imagesProvided && $uploadedImageFiles !== []) {
+            $maxPhotos = 6;
+            if (count($uploadedImageFiles) > $maxPhotos) {
+                $_SESSION['msg_warning'] = 'Você pode enviar até ' . $maxPhotos . ' fotos por post.';
                 header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
                 exit;
             }
+
+            $imagePaths = [];
+            foreach ($uploadedImageFiles as $file) {
+                $img = $this->uploadImage($file);
+                if ($img === null) {
+                    $_SESSION['msg_warning'] = 'Não foi possível salvar uma das imagens. Verifique o formato/tamanho e tente novamente.';
+                    header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
+                    exit;
+                }
+                $imagePaths[] = $img;
+            }
         }
 
-        if ($content === '' && $imagePath === null && $videoPath === null) {
+        if ($content === '' && ($imagePaths === null || $imagePaths === []) && $videoPath === null) {
             $_SESSION['msg_warning'] = 'Escreva algo ou anexe uma imagem ou vídeo.';
             header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
             exit;
         }
 
         $repo = new TimelineRepository();
-        $postId = $repo->createPost((int)$_SESSION['user_id'], $content !== '' ? $content : ' ', $imagePath, $videoPath);
+        $postId = $repo->createPost((int)$_SESSION['user_id'], $content !== '' ? $content : ' ', $imagePaths, $videoPath);
 
         $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
@@ -104,6 +136,37 @@ class CreateTimelinePost
         }
 
         return $folder . '/' . $filename;
+    }
+
+    /**
+     * Normaliza estrutura $_FILES[field] (multiple) para uma lista de arquivos no formato esperado por uploadImage().
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeUploadedFilesArray(array $files): array
+    {
+        $names = $files['name'] ?? [];
+        $tmpNames = $files['tmp_name'] ?? [];
+        $errors = $files['error'] ?? [];
+        $sizes = $files['size'] ?? [];
+        $types = $files['type'] ?? [];
+
+        if (!is_array($names) || !is_array($tmpNames)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($names as $idx => $name) {
+            $out[] = [
+                'name' => $name,
+                'tmp_name' => $tmpNames[$idx] ?? '',
+                'error' => $errors[$idx] ?? UPLOAD_ERR_NO_FILE,
+                'size' => $sizes[$idx] ?? 0,
+                'type' => $types[$idx] ?? '',
+            ];
+        }
+
+        return $out;
     }
 
     private function uploadVideo(array $file): ?string

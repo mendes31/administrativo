@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Models\Repository\TimelineRepository;
 
-class TimelineLike
+class TimelinePostReactions
 {
-    public function index(string|null $id = null): void
+    public function index(string|int|null $id = null): void
     {
         header('Content-Type: application/json; charset=utf-8');
         if (empty($_SESSION['user_id'])) {
@@ -14,7 +16,7 @@ class TimelineLike
             echo json_encode(['success' => false, 'message' => 'Não autenticado']);
             return;
         }
-        $postId = (int)($id ?? $_POST['post_id'] ?? 0);
+        $postId = (int)($id ?? $_GET['post_id'] ?? 0);
         if ($postId <= 0) {
             http_response_code(422);
             echo json_encode(['success' => false, 'message' => 'Post inválido']);
@@ -27,14 +29,7 @@ class TimelineLike
             echo json_encode(['success' => false, 'message' => 'Post não encontrado']);
             return;
         }
-        $reaction = (string)($_POST['reaction'] ?? $_GET['reaction'] ?? 'heart');
-        $result = $repo->setReaction($postId, (int)$_SESSION['user_id'], $reaction);
-        echo json_encode([
-            'success' => true,
-            'liked' => $result['liked'],
-            'reaction' => $result['reaction'],
-            'likes_count' => $result['likes_count'],
-            'summary' => $result['summary'],
-        ]);
+        $list = $repo->listReactionsForPost($postId);
+        echo json_encode(['success' => true, 'reactions' => $list]);
     }
 }

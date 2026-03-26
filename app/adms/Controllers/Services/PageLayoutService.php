@@ -169,6 +169,8 @@ class PageLayoutService
             'TimelineModerate',
             'TimelineReport',
             'TimelineLike',
+            'TimelinePostReactions',
+            'UpdateTimelinePost',
             'TimelineComment',
             'TimelineSearchUsers',
             'ListCompanyEvents',
