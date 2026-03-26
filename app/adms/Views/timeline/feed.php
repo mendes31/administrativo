@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=9">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=12">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -299,6 +299,29 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnTimelineDeletePostConfirm">Deletar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTimelineMediaCarousel" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white">Fotos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="timeline-media-viewer" role="group" aria-label="Visualizador de fotos">
+                    <button type="button" class="btn btn-link text-white p-3 timeline-media-viewer-prev" id="timelineMediaViewerPrev" aria-label="Anterior">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <img id="timelineMediaViewerImg" class="timeline-media-viewer-img" alt="Foto">
+                    <button type="button" class="btn btn-link text-white p-3 timeline-media-viewer-next" id="timelineMediaViewerNext" aria-label="Próxima">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="timeline-media-viewer-count text-white-50 small" id="timelineMediaViewerCount"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -731,6 +754,85 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     }
 
     bindPostActions();
+
+    // Visualizador de fotos (ao clicar nas thumbs)
+    var timelineViewerImages = [];
+    var timelineViewerIndex = 0;
+
+    function getMediaViewerEls() {
+        return {
+            modalEl: document.getElementById('modalTimelineMediaCarousel'),
+            imgEl: document.getElementById('timelineMediaViewerImg'),
+            prevEl: document.getElementById('timelineMediaViewerPrev'),
+            nextEl: document.getElementById('timelineMediaViewerNext'),
+            countEl: document.getElementById('timelineMediaViewerCount'),
+        };
+    }
+
+    function timelineShowViewerAt(idx) {
+        var els = getMediaViewerEls();
+        if (!els.modalEl || !els.imgEl) return;
+        if (!timelineViewerImages || !timelineViewerImages.length) return;
+
+        var max = timelineViewerImages.length;
+        if (idx < 0) idx = max - 1;
+        if (idx >= max) idx = 0;
+        timelineViewerIndex = idx;
+
+        var p = timelineViewerImages[timelineViewerIndex];
+        els.imgEl.src = base + 'serve-file?path=' + encodeURIComponent(p);
+
+        if (els.countEl) {
+            els.countEl.textContent = (timelineViewerIndex + 1) + ' / ' + max;
+        }
+    }
+
+    document.addEventListener('click', function (ev) {
+        var t = ev.target && ev.target.closest ? ev.target.closest('.timeline-media-clickable') : null;
+        if (!t) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        var imgsJson = t.getAttribute('data-images') || '[]';
+        var imgs = [];
+        try { imgs = JSON.parse(imgsJson); }
+        catch (e) {
+            try { imgs = JSON.parse((imgsJson || '').replace(/&quot;/g, '"')); } catch (e2) { imgs = []; }
+        }
+        if (!imgs || !imgs.length) return;
+
+        var di = parseInt(t.getAttribute('data-index') || '0', 10);
+        if (isNaN(di)) di = 0;
+
+        timelineViewerImages = imgs;
+        timelineShowViewerAt(di);
+
+        var els = getMediaViewerEls();
+        if (!els.modalEl) return;
+        var modal = bootstrap.Modal.getOrCreateInstance(els.modalEl);
+        modal.show();
+    }, true);
+
+    // Bind botões prev/next sempre (re-busca elementos se necessário)
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.closest && e.target.closest('#timelineMediaViewerPrev')) {
+            e.preventDefault();
+            timelineShowViewerAt(timelineViewerIndex - 1);
+        }
+        if (e.target && e.target.closest && e.target.closest('#timelineMediaViewerNext')) {
+            e.preventDefault();
+            timelineShowViewerAt(timelineViewerIndex + 1);
+        }
+    }, true);
+
+    document.addEventListener('hidden.bs.modal', function (e) {
+        if (!e || !e.target || e.target.id !== 'modalTimelineMediaCarousel') return;
+        var els = getMediaViewerEls();
+        timelineViewerImages = [];
+        timelineViewerIndex = 0;
+        if (els.imgEl) els.imgEl.src = '';
+        if (els.countEl) els.countEl.textContent = '';
+    }, true);
 
     const imgIn = document.getElementById('timelineFileImage');
     const vidIn = document.getElementById('timelineFileVideo');

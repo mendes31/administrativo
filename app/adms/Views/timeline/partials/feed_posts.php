@@ -32,6 +32,12 @@ $usersRepoMention = new UsersRepository();
     $editB64 = base64_encode($txt);
     $stackTypes = TimelineReactionHelper::stackTypesFromSummary($summary);
     $commentsCount = (int)($postRow['comments_count'] ?? 0);
+    $imgs = $postRow['image_paths'] ?? [];
+    if (!is_array($imgs)) $imgs = [];
+    if ($imgs === [] && !empty($postRow['image_path'])) {
+        $imgs = [(string)$postRow['image_path']];
+    }
+    $imgsJson = htmlspecialchars(json_encode(array_values($imgs)), ENT_QUOTES, 'UTF-8');
 ?>
     <article class="card timeline-post-card mb-3">
         <div class="card-body">
@@ -73,10 +79,6 @@ $usersRepoMention = new UsersRepository();
                 }
                 ?>
             </div>
-            <?php
-                $imgs = $postRow['image_paths'] ?? [];
-                if (!is_array($imgs)) $imgs = [];
-            ?>
             <?php if (!empty($postRow['video_path'])): ?>
                 <div class="mb-2 mx-n3">
                     <video class="timeline-post-media w-100 rounded" controls playsinline preload="metadata"
@@ -86,21 +88,22 @@ $usersRepoMention = new UsersRepository();
                 <div class="mb-2 mx-n3">
                     <?php if (count($imgs) === 1): ?>
                         <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode($imgs[0]); ?>"
-                             class="timeline-post-media" alt="">
+                             class="timeline-post-media timeline-media-clickable"
+                             data-images="<?php echo $imgsJson; ?>"
+                             data-index="0"
+                             alt="">
                     <?php else: ?>
                         <?php $colCount = count($imgs) === 2 ? 2 : 3; ?>
                         <div class="timeline-media-grid" style="grid-template-columns: repeat(<?php echo (int)$colCount; ?>, minmax(0, 1fr));">
-                            <?php foreach ($imgs as $img): ?>
+                            <?php foreach ($imgs as $i => $img): ?>
                                 <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode($img); ?>"
-                                     class="timeline-media-grid-item" alt="">
+                                     class="timeline-media-grid-item timeline-media-clickable"
+                                     data-images="<?php echo $imgsJson; ?>"
+                                     data-index="<?php echo (int)$i; ?>"
+                                     alt="">
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
-                </div>
-            <?php elseif (!empty($postRow['image_path'])): ?>
-                <div class="mb-2 mx-n3">
-                    <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode($postRow['image_path']); ?>"
-                         class="timeline-post-media" alt="">
                 </div>
             <?php endif; ?>
 

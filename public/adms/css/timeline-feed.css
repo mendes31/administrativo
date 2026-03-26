@@ -214,6 +214,48 @@ video.timeline-post-media {
     background: #f1f3f5;
 }
 
+.timeline-media-modal-img {
+    max-height: 70vh;
+    object-fit: contain;
+    background: #000;
+}
+
+/* Visualizador (foto única / carrossel) */
+.timeline-media-viewer {
+    background: #000;
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.timeline-media-viewer-img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    background: #000;
+}
+.timeline-media-viewer-prev,
+.timeline-media-viewer-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+.timeline-media-viewer-prev {
+    left: 6px;
+}
+.timeline-media-viewer-next {
+    right: 6px;
+}
+.timeline-media-viewer-count {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+}
+
 /* Compositor (pré-visualização) multi-foto */
 .timeline-composer-preview-images-grid {
     display: grid;
