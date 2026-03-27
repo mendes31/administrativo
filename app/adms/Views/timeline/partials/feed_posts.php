@@ -32,6 +32,8 @@ $usersRepoMention = new UsersRepository();
     $editB64 = base64_encode($txt);
     $stackTypes = TimelineReactionHelper::stackTypesFromSummary($summary);
     $commentsCount = (int)($postRow['comments_count'] ?? 0);
+    $canModerate = !empty($this->data['can_moderate']);
+    $canDelete = $isAuthor || $canModerate;
     $imgs = $postRow['image_paths'] ?? [];
     if (!is_array($imgs)) $imgs = [];
     if ($imgs === [] && !empty($postRow['image_path'])) {
@@ -64,6 +66,8 @@ $usersRepoMention = new UsersRepository();
                             title="Editar publicação">
                         <i class="fas fa-pen"></i>
                     </button>
+                <?php endif; ?>
+                <?php if ($canDelete): ?>
                     <button type="button" class="btn btn-link btn-sm text-danger py-0 btn-timeline-delete-post"
                             data-post-id="<?php echo $pid; ?>"
                             title="Deletar publicação"
@@ -168,6 +172,15 @@ $usersRepoMention = new UsersRepository();
                     <?php if (!empty($this->data['can_report'])): ?>
                     <button type="button" class="btn btn-light btn-sm text-danger btn-timeline-report flex-shrink-0" data-post-id="<?php echo $pid; ?>" title="Denunciar">
                         <i class="far fa-flag"></i>
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($canDelete): ?>
+                    <button type="button"
+                            class="btn btn-light btn-sm text-danger btn-timeline-delete-post d-md-none flex-shrink-0"
+                            data-post-id="<?php echo $pid; ?>"
+                            title="Deletar publicação"
+                            aria-label="Deletar publicação">
+                        <i class="fas fa-trash"></i>
                     </button>
                     <?php endif; ?>
                 </div>
