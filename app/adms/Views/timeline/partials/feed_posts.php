@@ -59,21 +59,25 @@ $usersRepoMention = new UsersRepository();
                         <?php endif; ?>
                     </div>
                 </div>
-                <?php if ($isAuthor): ?>
-                    <button type="button" class="btn btn-link btn-sm text-muted py-0 btn-timeline-edit-post"
-                            data-post-id="<?php echo $pid; ?>"
-                            data-post-content-b64="<?php echo htmlspecialchars($editB64, ENT_QUOTES, 'UTF-8'); ?>"
-                            title="Editar publicação">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                <?php endif; ?>
-                <?php if ($canDelete): ?>
-                    <button type="button" class="btn btn-link btn-sm text-danger py-0 btn-timeline-delete-post"
-                            data-post-id="<?php echo $pid; ?>"
-                            title="Deletar publicação"
-                            aria-label="Deletar publicação">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <?php if ($isAuthor || $canDelete): ?>
+                <div class="timeline-post-header-actions">
+                    <?php if ($isAuthor): ?>
+                        <button type="button" class="btn btn-link btn-sm text-muted py-0 btn-timeline-edit-post"
+                                data-post-id="<?php echo $pid; ?>"
+                                data-post-content-b64="<?php echo htmlspecialchars($editB64, ENT_QUOTES, 'UTF-8'); ?>"
+                                title="Editar publicação">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                    <?php endif; ?>
+                    <?php if ($canDelete): ?>
+                        <button type="button" class="btn btn-link btn-sm text-danger py-0 btn-timeline-delete-post"
+                                data-post-id="<?php echo $pid; ?>"
+                                title="Deletar publicação"
+                                aria-label="Deletar publicação">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
             </div>
             <div class="timeline-post-body mb-2" id="timeline-post-body-<?php echo $pid; ?>">
@@ -172,15 +176,6 @@ $usersRepoMention = new UsersRepository();
                     <?php if (!empty($this->data['can_report'])): ?>
                     <button type="button" class="btn btn-light btn-sm text-danger btn-timeline-report flex-shrink-0" data-post-id="<?php echo $pid; ?>" title="Denunciar">
                         <i class="far fa-flag"></i>
-                    </button>
-                    <?php endif; ?>
-                    <?php if ($canDelete): ?>
-                    <button type="button"
-                            class="btn btn-light btn-sm text-danger btn-timeline-delete-post d-md-none flex-shrink-0"
-                            data-post-id="<?php echo $pid; ?>"
-                            title="Deletar publicação"
-                            aria-label="Deletar publicação">
-                        <i class="fas fa-trash"></i>
                     </button>
                     <?php endif; ?>
                 </div>

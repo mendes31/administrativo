@@ -41,6 +41,17 @@
     align-items: flex-start;
     gap: 0.75rem;
 }
+.timeline-post-header-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.timeline-post-header-actions .btn {
+    flex: 0 0 auto;
+}
 .timeline-avatar {
     width: 44px;
     height: 44px;
@@ -262,6 +273,15 @@ video.timeline-post-media {
 .timeline-action-bar .btn-light {
     border: 1px solid rgba(0, 0, 0, 0.06);
     font-weight: 500;
+}
+@media (max-width: 576px) {
+    .timeline-post-header {
+        gap: 0.5rem;
+    }
+    .timeline-post-header-actions .btn {
+        padding-left: 0.25rem !important;
+        padding-right: 0.25rem !important;
+    }
 }
 
 /* Galeria multi-foto (até 6) */
