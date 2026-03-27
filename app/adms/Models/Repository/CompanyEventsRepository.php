@@ -24,6 +24,38 @@ class CompanyEventsRepository extends DbConnection
     }
 
     /**
+     * Condição SQL: evento conta como "não lido" para o usuário.
+     * - Sem RSVP obrigatório: não lido até registro em adms_company_event_reads.
+     * - Com requires_rsvp: não lido até resposta confirm/decline (cancel só após confirmar).
+     */
+    private function sqlConditionEventUnreadForUser(): string
+    {
+        return '(
+            (
+                (e.requires_rsvp IS NULL OR e.requires_rsvp = 0)
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM adms_company_event_reads r
+                    WHERE r.event_id = e.id
+                      AND r.user_id = :u
+                      AND r.read_at IS NOT NULL
+                )
+            )
+            OR
+            (
+                e.requires_rsvp = 1
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM adms_company_event_rsvps rsvp
+                    WHERE rsvp.event_id = e.id
+                      AND rsvp.user_id = :u
+                      AND rsvp.status IN (\'confirmed\', \'declined\', \'cancelled\')
+                )
+            )
+        )';
+    }
+
+    /**
      * Marca uma lista de eventos como lidos para o usuário.
      *
      * @param int[] $eventIds
@@ -51,7 +83,8 @@ class CompanyEventsRepository extends DbConnection
         $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
         $end = date('Y-m-t 23:59:59', strtotime($start));
 
-        $sql = 'SELECT COUNT(*) AS total
+        $unread = $this->sqlConditionEventUnreadForUser();
+        $sql = "SELECT COUNT(*) AS total
                 FROM adms_company_events e
                 WHERE e.ativo = 1
                   AND e.created_by <> :u
@@ -59,13 +92,7 @@ class CompanyEventsRepository extends DbConnection
                   AND e.ends_at >= :start
                   AND (e.publish_at IS NULL OR e.publish_at <= NOW())
                   AND (e.expire_at IS NULL OR e.expire_at > NOW())
-                  AND NOT EXISTS (
-                        SELECT 1
-                        FROM adms_company_event_reads r
-                        WHERE r.event_id = e.id
-                          AND r.user_id = :u
-                          AND r.read_at IS NOT NULL
-                  )';
+                  AND {$unread}";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end, ':u' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -83,7 +110,8 @@ class CompanyEventsRepository extends DbConnection
         $start = sprintf('%04d-01-01 00:00:00', $year);
         $end = sprintf('%04d-12-31 23:59:59', $year);
 
-        $sql = 'SELECT COUNT(*) AS total
+        $unread = $this->sqlConditionEventUnreadForUser();
+        $sql = "SELECT COUNT(*) AS total
                 FROM adms_company_events e
                 WHERE e.ativo = 1
                   AND e.created_by <> :u
@@ -91,13 +119,7 @@ class CompanyEventsRepository extends DbConnection
                   AND e.ends_at >= :start
                   AND (e.publish_at IS NULL OR e.publish_at <= NOW())
                   AND (e.expire_at IS NULL OR e.expire_at > NOW())
-                  AND NOT EXISTS (
-                        SELECT 1
-                        FROM adms_company_event_reads r
-                        WHERE r.event_id = e.id
-                          AND r.user_id = :u
-                          AND r.read_at IS NOT NULL
-                  )';
+                  AND {$unread}";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end, ':u' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);

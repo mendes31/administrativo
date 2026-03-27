@@ -28,12 +28,35 @@ class CompanyEventsMonth
             $repo = new CompanyEventsRepository();
             $events = $repo->getEventsIntersectingMonth($y, $m);
             $uid = (int)$_SESSION['user_id'];
+            $eventIdsToMarkAsRead = [];
             foreach ($events as &$ev) {
                 $ev['rsvp'] = $repo->getRsvpForUser((int)$ev['id'], $uid);
+                $eid = (int)($ev['id'] ?? 0);
+                if ($eid <= 0) {
+                    continue;
+                }
+                $requiresRsvp = !empty($ev['requires_rsvp']);
+                if (!$requiresRsvp) {
+                    $eventIdsToMarkAsRead[] = $eid;
+                    continue;
+                }
+                $rsvpRow = $ev['rsvp'] ?? null;
+                $st = is_array($rsvpRow) ? (string)($rsvpRow['status'] ?? '') : '';
+                if (in_array($st, ['confirmed', 'declined', 'cancelled'], true)) {
+                    $eventIdsToMarkAsRead[] = $eid;
+                }
             }
             unset($ev);
+            $repo->markManyAsRead($eventIdsToMarkAsRead, $uid);
+            $unreadYear = $repo->countUnreadIntersectingYear($y, $uid);
 
-            echo json_encode(['success' => true, 'events' => $events, 'year' => $y, 'month' => $m]);
+            echo json_encode([
+                'success' => true,
+                'events' => $events,
+                'year' => $y,
+                'month' => $m,
+                'unread_year_count' => $unreadYear,
+            ]);
         } catch (\Throwable $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro ao carregar eventos']);

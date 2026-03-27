@@ -36,8 +36,10 @@ class EventRsvp
             return;
         }
 
+        $uid = (int)$_SESSION['user_id'];
+
         if ($action === 'cancel') {
-            $ok = $repo->cancelRsvp($eventId, (int)$_SESSION['user_id']);
+            $ok = $repo->cancelRsvp($eventId, $uid);
             echo json_encode([
                 'success' => $ok,
                 'message' => $ok ? 'Participação cancelada.' : 'Não foi possível cancelar (prazo ou status).',
@@ -60,16 +62,23 @@ class EventRsvp
 
         $ok = $repo->saveRsvpWithGuests(
             $eventId,
-            (int)$_SESSION['user_id'],
+            $uid,
             $status === 'declined' ? 'declined' : 'confirmed',
             $guests,
             !empty($event['allows_guests']),
             (int)($event['max_guests_per_user'] ?? 0)
         );
 
+        if ($ok) {
+            $repo->upsertRead($eventId, $uid);
+        }
+
+        $unreadYear = $ok ? $repo->countUnreadIntersectingYear((int)date('Y'), $uid) : null;
+
         echo json_encode([
             'success' => $ok,
             'message' => $ok ? 'Resposta registrada.' : 'Não foi possível registrar (verifique prazos).',
+            'unread_year_count' => $unreadYear,
         ]);
     }
 }

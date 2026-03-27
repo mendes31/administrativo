@@ -237,6 +237,12 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         if (data && data.success) {
+                            if (typeof data.unread_year_count !== 'undefined') {
+                                const unreadEl = document.getElementById('dashboardEventsUnreadCount');
+                                if (unreadEl) {
+                                    unreadEl.textContent = String(parseInt(data.unread_year_count, 10) || 0) + ' não lidos no ano';
+                                }
+                            }
                             const ano = document.getElementById('eventosMesAno');
                             const mes = document.getElementById('eventosMesNum');
                             if (ano && mes) loadMonth(ano.value, mes.value);
@@ -257,6 +263,12 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
             .then(function (data) {
                 if (data && data.success) {
                     renderList(data.events || []);
+                    if (typeof data.unread_year_count !== 'undefined') {
+                        const unreadEl = document.getElementById('dashboardEventsUnreadCount');
+                        if (unreadEl) {
+                            unreadEl.textContent = String(parseInt(data.unread_year_count, 10) || 0) + ' não lidos no ano';
+                        }
+                    }
                 }
             })
             .catch(function () {});
@@ -265,6 +277,14 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
     const btnFiltrar = document.getElementById('eventosMesFiltrar');
     if (btnFiltrar) {
         btnFiltrar.addEventListener('click', function () {
+            const ano = document.getElementById('eventosMesAno');
+            const mes = document.getElementById('eventosMesNum');
+            if (ano && mes) loadMonth(ano.value, mes.value);
+        });
+    }
+    const modalEl = document.getElementById('modalEventosMes');
+    if (modalEl) {
+        modalEl.addEventListener('shown.bs.modal', function () {
             const ano = document.getElementById('eventosMesAno');
             const mes = document.getElementById('eventosMesNum');
             if (ano && mes) loadMonth(ano.value, mes.value);
