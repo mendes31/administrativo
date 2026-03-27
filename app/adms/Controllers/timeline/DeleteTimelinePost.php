@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\TimelineRepository;
 
 class DeleteTimelinePost
@@ -26,7 +27,12 @@ class DeleteTimelinePost
 
         if (!CSRFHelper::validateCSRFToken('timeline_delete_post', $_POST['csrf_token'] ?? '')) {
             http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.']);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.',
+                'csrf_expired' => true,
+                'csrf_token' => CSRFHelper::generateCSRFToken('timeline_delete_post'),
+            ]);
             return;
         }
 
@@ -47,16 +53,20 @@ class DeleteTimelinePost
             return;
         }
 
-        if ((int)($post['user_id'] ?? 0) !== $uid) {
+        $isAuthor = (int)($post['user_id'] ?? 0) === $uid;
+        $permRepo = new ButtonPermissionUserRepository();
+        $perms = $permRepo->buttonPermission(['TimelineModerate']);
+        $canModerate = is_array($perms) && in_array('TimelineModerate', $perms, true);
+        if (!$isAuthor && !$canModerate) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Apenas o autor pode deletar esta publicação.']);
+            echo json_encode(['success' => false, 'message' => 'Sem permissão para deletar esta publicação.']);
             return;
         }
 
         // Precisa buscar antes do delete, pois a remoção apaga adms_timeline_post_images.
         $imgPaths = $repo->getPostImagesByPostId($postId);
 
-        $ok = $repo->deletePostByAuthor($postId, $uid);
+        $ok = $isAuthor ? $repo->deletePostByAuthor($postId, $uid) : $repo->deletePostByModerator($postId, $uid);
         if (!$ok) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Não foi possível deletar.']);

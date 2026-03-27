@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\timeline;
 
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
@@ -47,6 +48,17 @@ class TimelineComment
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Não autenticado']);
+            return;
+        }
+
+        if (!CSRFHelper::validateCSRFToken('timeline_comment_post', $_POST['csrf_token'] ?? '')) {
+            http_response_code(422);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.',
+                'csrf_expired' => true,
+                'csrf_token' => CSRFHelper::generateCSRFToken('timeline_comment_post'),
+            ]);
             return;
         }
 

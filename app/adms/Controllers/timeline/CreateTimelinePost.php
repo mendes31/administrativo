@@ -26,6 +26,16 @@ class CreateTimelinePost
         }
 
         if (!CSRFHelper::validateCSRFToken('timeline_create_post', $_POST['csrf_token'] ?? '')) {
+            if ($this->isAjaxRequest() && !empty($_SESSION['user_id'])) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.',
+                    'csrf_expired' => true,
+                    'csrf_token' => CSRFHelper::generateCSRFToken('timeline_create_post'),
+                ]);
+                exit;
+            }
             $this->failAndExit('Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.', 'error');
         }
 

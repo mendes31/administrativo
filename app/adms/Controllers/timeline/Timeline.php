@@ -69,6 +69,9 @@ class Timeline
         $this->data['reaction_map'] = $repo->getUserReactionMap($userId, $postIds);
         $this->data['reaction_summaries'] = $repo->getReactionSummariesByPostIds($postIds);
         $this->data['csrf_timeline_edit'] = CSRFHelper::generateCSRFToken('timeline_edit_post');
+        $this->data['csrf_timeline_comment'] = CSRFHelper::generateCSRFToken('timeline_comment_post');
+        $this->data['csrf_timeline_like'] = CSRFHelper::generateCSRFToken('timeline_like_post');
+        $this->data['csrf_timeline_report'] = CSRFHelper::generateCSRFToken('timeline_report_post');
 
         $total = $repo->countActivePosts();
         $this->data['pagination'] = PaginationService::generatePagination(

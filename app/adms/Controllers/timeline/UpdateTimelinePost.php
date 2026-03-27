@@ -29,7 +29,12 @@ class UpdateTimelinePost
 
         if (!CSRFHelper::validateCSRFToken('timeline_edit_post', $_POST['csrf_token'] ?? '')) {
             http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.']);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.',
+                'csrf_expired' => true,
+                'csrf_token' => CSRFHelper::generateCSRFToken('timeline_edit_post'),
+            ]);
             return;
         }
 

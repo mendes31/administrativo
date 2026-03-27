@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\timeline;
 
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\TimelineRepository;
 
@@ -27,6 +28,16 @@ class TimelineReport
             echo json_encode(['success' => false, 'message' => 'Use POST']);
             return;
         }
+        if (!CSRFHelper::validateCSRFToken('timeline_report_post', $_POST['csrf_token'] ?? '')) {
+            http_response_code(422);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.',
+                'csrf_expired' => true,
+                'csrf_token' => CSRFHelper::generateCSRFToken('timeline_report_post'),
+            ]);
+            return;
+        }
         $postId = (int)($_POST['post_id'] ?? 0);
         $reason = trim((string)($_POST['reason'] ?? ''));
         $details = trim((string)($_POST['details'] ?? ''));
@@ -43,6 +54,10 @@ class TimelineReport
             return;
         }
         $repo->createReport($postId, (int)$_SESSION['user_id'], $reason, $details !== '' ? $details : null);
-        echo json_encode(['success' => true, 'message' => 'Denúncia registrada.']);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Denúncia registrada.',
+            'csrf_token' => CSRFHelper::generateCSRFToken('timeline_report_post'),
+        ]);
     }
 }

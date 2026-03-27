@@ -34,7 +34,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             <div class="card timeline-composer-card timeline-composer-fb mb-3" id="timelineComposerCard">
                 <div class="card-body py-2 px-3">
                     <form method="post" action="<?php echo htmlspecialchars($urlAdm); ?>create-timeline-post" enctype="multipart/form-data" class="timeline-composer-form" id="timelineComposerForm" novalidate>
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfCreate); ?>">
+                        <input type="hidden" name="csrf_token" id="timelineComposerCsrfToken" value="<?php echo htmlspecialchars($csrfCreate); ?>">
                         <div id="timelineComposerCreateHead" class="timeline-composer-create-head d-none mb-2 pb-2 border-bottom">
                             <div class="d-flex align-items-center justify-content-between gap-2">
                                 <div class="d-flex flex-column min-w-0">
@@ -335,8 +335,11 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     const base = <?php echo json_encode($urlAdm); ?>;
     const canReport = <?php echo !empty($this->data['can_report']) ? 'true' : 'false'; ?>;
     const canCreate = <?php echo !empty($this->data['can_create']) ? 'true' : 'false'; ?>;
-    const timelineEditCsrf = <?php echo json_encode($this->data['csrf_timeline_edit'] ?? ''); ?>;
-    const timelineDeleteCsrf = <?php echo json_encode($csrfDelete); ?>;
+    let timelineEditCsrf = <?php echo json_encode($this->data['csrf_timeline_edit'] ?? ''); ?>;
+    let timelineCommentCsrf = <?php echo json_encode($this->data['csrf_timeline_comment'] ?? ''); ?>;
+    let timelineLikeCsrf = <?php echo json_encode($this->data['csrf_timeline_like'] ?? ''); ?>;
+    let timelineReportCsrf = <?php echo json_encode($this->data['csrf_timeline_report'] ?? ''); ?>;
+    let timelineDeleteCsrf = <?php echo json_encode($csrfDelete); ?>;
 
     var reactionOrder = ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'];
     var reactionLabels = { like: 'Curtir', love: 'Amei', care: 'Cuidar', haha: 'Risada', wow: 'Uau', sad: 'Triste', angry: 'Raiva' };
@@ -548,15 +551,26 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     (trayM && trayM.getAttribute('data-post-id'));
                 if (!id) return;
                 var r = pick.getAttribute('data-reaction') || 'like';
-                var fd = new FormData();
-                fd.append('reaction', r);
-                fetchJson(base + 'timeline-like/' + id, { method: 'POST', body: fd })
+                function sendLike(triesLeft) {
+                    var fd = new FormData();
+                    fd.append('reaction', r);
+                    fd.append('csrf_token', timelineLikeCsrf);
+                    return fetchJson(base + 'timeline-like/' + id, { method: 'POST', body: fd })
                     .then(function (data) {
+                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                            timelineLikeCsrf = data.csrf_token;
+                            return sendLike(triesLeft - 1);
+                        }
+                        if (data && data.csrf_token) {
+                            timelineLikeCsrf = data.csrf_token;
+                        }
                         if (data && data.success) {
                             updateReactionUI(id, data);
                         }
                     })
                     .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível registrar a reação.'); });
+                }
+                sendLike(1);
             };
         });
 
@@ -566,15 +580,26 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 ev.stopPropagation();
                 var id = btn.getAttribute('data-post-id');
                 if (!id) return;
-                var fd = new FormData();
-                fd.append('reaction', 'like');
-                fetchJson(base + 'timeline-like/' + id, { method: 'POST', body: fd })
+                function sendLikeMain(triesLeft) {
+                    var fd = new FormData();
+                    fd.append('reaction', 'like');
+                    fd.append('csrf_token', timelineLikeCsrf);
+                    return fetchJson(base + 'timeline-like/' + id, { method: 'POST', body: fd })
                     .then(function (data) {
+                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                            timelineLikeCsrf = data.csrf_token;
+                            return sendLikeMain(triesLeft - 1);
+                        }
+                        if (data && data.csrf_token) {
+                            timelineLikeCsrf = data.csrf_token;
+                        }
                         if (data && data.success) {
                             updateReactionUI(id, data);
                         }
                     })
                     .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível registrar a reação.'); });
+                }
+                sendLikeMain(1);
             };
         });
 
@@ -656,12 +681,17 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 if (!id) {
                     return;
                 }
-                var fd = new FormData();
-                fd.append('post_id', id);
-                fd.append('content', content);
-                fd.append('csrf_token', timelineEditCsrf);
-                fetchJson(base + 'update-timeline-post', { method: 'POST', body: fd })
+                function sendEdit(triesLeft) {
+                    var form = new FormData();
+                    form.append('post_id', id);
+                    form.append('content', content);
+                    form.append('csrf_token', timelineEditCsrf);
+                    return fetchJson(base + 'update-timeline-post', { method: 'POST', body: form })
                     .then(function (data) {
+                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                            timelineEditCsrf = data.csrf_token;
+                            return sendEdit(triesLeft - 1);
+                        }
                         if (data && data.success) {
                             window.location.reload();
                         } else if (data && data.message) {
@@ -669,6 +699,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         }
                     })
                     .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível salvar.'); });
+                }
+                sendEdit(1);
             };
         }
 
@@ -696,8 +728,16 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 fd.append('csrf_token', timelineDeleteCsrf);
 
                 btnConfirmDelete.disabled = true;
-                fetchJson(base + 'delete-timeline-post', { method: 'POST', body: fd })
+                function sendDelete(triesLeft) {
+                    var form = new FormData();
+                    form.append('post_id', id);
+                    form.append('csrf_token', timelineDeleteCsrf);
+                    return fetchJson(base + 'delete-timeline-post', { method: 'POST', body: form })
                     .then(function (data) {
+                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                            timelineDeleteCsrf = data.csrf_token;
+                            return sendDelete(triesLeft - 1);
+                        }
                         if (data && data.success) {
                             window.location.href = base.replace(/\/?$/, '/') + 'timeline';
                         } else if (data && data.message) {
@@ -709,7 +749,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     .catch(function (err) {
                         console.error(err);
                         alert(err.message || 'Não foi possível deletar.');
-                    })
+                    });
+                }
+                sendDelete(1)
                     .finally(function () {
                         btnConfirmDelete.disabled = false;
                         var m = bootstrap.Modal.getInstance(document.getElementById('modalTimelineDeletePost'));
@@ -742,11 +784,17 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 const id = btn.getAttribute('data-post-id');
                 const inp = document.querySelector('.timeline-comment-input[data-post-id="' + id + '"]');
                 if (!inp || !inp.value.trim()) return;
-                const fd = new FormData();
-                fd.append('post_id', id);
-                fd.append('content', inp.value.trim());
-                fetchJson(base + 'timeline-comment/' + id, { method: 'POST', body: fd })
+                function sendComment(triesLeft) {
+                    const form = new FormData();
+                    form.append('post_id', id);
+                    form.append('content', inp.value.trim());
+                    form.append('csrf_token', timelineCommentCsrf);
+                    return fetchJson(base + 'timeline-comment/' + id, { method: 'POST', body: form })
                     .then(function (data) {
+                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                            timelineCommentCsrf = data.csrf_token;
+                            return sendComment(triesLeft - 1);
+                        }
                         if (data && data.success) {
                             inp.value = '';
                             renderComments(id, data.comments || []);
@@ -757,6 +805,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         }
                     })
                     .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível enviar o comentário.'); });
+                }
+                sendComment(1);
             };
         });
 
@@ -788,16 +838,27 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         btnDen.onclick = function () {
             if (!canReport) return;
             const id = document.getElementById('denunciaPostId').value;
-            const fd = new FormData();
-            fd.append('post_id', id);
-            fd.append('reason', document.getElementById('denunciaMotivo').value);
-            fd.append('details', document.getElementById('denunciaDetalhes').value);
-            fetchJson(base + 'timeline-report', { method: 'POST', body: fd })
+            function sendReport(triesLeft) {
+                const form = new FormData();
+                form.append('post_id', id);
+                form.append('reason', document.getElementById('denunciaMotivo').value);
+                form.append('details', document.getElementById('denunciaDetalhes').value);
+                form.append('csrf_token', timelineReportCsrf);
+                return fetchJson(base + 'timeline-report', { method: 'POST', body: form })
                 .then(function (data) {
+                    if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                        timelineReportCsrf = data.csrf_token;
+                        return sendReport(triesLeft - 1);
+                    }
+                    if (data && data.csrf_token) {
+                        timelineReportCsrf = data.csrf_token;
+                    }
                     alert(data && data.message ? data.message : 'Enviado.');
                     bootstrap.Modal.getInstance(document.getElementById('modalDenunciaTimeline')).hide();
                 })
                 .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível enviar a denúncia.'); });
+            }
+            sendReport(1);
         };
     }
 
@@ -1834,6 +1895,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     // Envio via fetch: em alguns navegadores (mobile/câmera) arquivos atribuídos com DataTransfer não entram no POST nativo.
     const composerForm = document.getElementById('timelineComposerForm');
     if (composerForm) {
+        const composerCsrfInput = document.getElementById('timelineComposerCsrfToken');
         composerForm.addEventListener('submit', function (ev) {
             ev.preventDefault();
             var maxVideoBytes = 50 * 1024 * 1024;
@@ -1846,18 +1908,18 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             }
             const submitBtns = composerForm.querySelectorAll('button[type="submit"]');
             submitBtns.forEach(function (b) { b.disabled = true; });
-            const fd = new FormData(composerForm);
             const actionUrl = composerForm.getAttribute('action');
-            fetch(actionUrl, {
-                method: 'POST',
-                body: fd,
-                credentials: 'same-origin',
-                redirect: 'follow',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json, text/html;q=0.9, */*;q=0.8'
-                }
-            })
+            function sendComposer(maxRetry) {
+                return fetch(actionUrl, {
+                    method: 'POST',
+                    body: new FormData(composerForm),
+                    credentials: 'same-origin',
+                    redirect: 'follow',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json, text/html;q=0.9, */*;q=0.8'
+                    }
+                })
                 .then(function (response) {
                     var ct = (response.headers.get('Content-Type') || '').toLowerCase();
                     if (ct.indexOf('application/json') !== -1) {
@@ -1879,6 +1941,10 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     }
                     if (result.kind === 'json') {
                         var d = result.data || {};
+                        if (d.csrf_expired && d.csrf_token && composerCsrfInput && maxRetry > 0) {
+                            composerCsrfInput.value = d.csrf_token;
+                            return sendComposer(maxRetry - 1);
+                        }
                         if (d.success === false || d.error) {
                             alert(d.error || d.message || 'Não foi possível publicar. Tente novamente.');
                             return;
@@ -1901,6 +1967,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 .finally(function () {
                     submitBtns.forEach(function (b) { b.disabled = false; });
                 });
+            }
+            sendComposer(1);
         });
     }
 })();

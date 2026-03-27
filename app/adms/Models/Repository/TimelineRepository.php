@@ -415,4 +415,39 @@ class TimelineRepository extends DbConnection
             return false;
         }
     }
+
+    public function deletePostByModerator(int $postId, int $moderatorUserId): bool
+    {
+        if ($moderatorUserId <= 0) {
+            return false;
+        }
+        $sqlPost = 'DELETE FROM adms_timeline_posts WHERE id = :id AND status = "active"';
+
+        $sqlDelMentions = 'DELETE FROM adms_timeline_mentions WHERE entity_type = "post" AND entity_id = :id';
+        $sqlDelLikes = 'DELETE FROM adms_timeline_likes WHERE post_id = :id';
+        $sqlDelComments = 'DELETE FROM adms_timeline_comments WHERE post_id = :id';
+        $sqlDelReports = 'DELETE FROM adms_timeline_reports WHERE post_id = :id';
+        $sqlDelImages = 'DELETE FROM adms_timeline_post_images WHERE post_id = :id';
+
+        $pdo = $this->getConnection();
+        try {
+            $pdo->beginTransaction();
+
+            $pdo->prepare($sqlDelMentions)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelLikes)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelComments)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelReports)->execute([':id' => $postId]);
+            $pdo->prepare($sqlDelImages)->execute([':id' => $postId]);
+
+            $stmtPost = $pdo->prepare($sqlPost);
+            $stmtPost->execute([':id' => $postId]);
+            $deleted = $stmtPost->rowCount() > 0;
+
+            $pdo->commit();
+            return $deleted;
+        } catch (\Throwable) {
+            try { $pdo->rollBack(); } catch (\Throwable $ignore) {}
+            return false;
+        }
+    }
 }
