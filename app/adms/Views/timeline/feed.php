@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=20">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=21">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -870,16 +870,19 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             var btn = wrap.querySelector('.timeline-post-readmore');
             if (!textEl || !btn) return;
 
-            textEl.classList.add('timeline-post-text-collapsed');
             btn.classList.add('d-none');
             btn.setAttribute('aria-expanded', 'false');
             btn.textContent = 'Ler mais';
 
+            /* Medir sem colapso: se for curto, não aplica collapsed (evita degradê ::after que deixa o texto acinzentado) */
+            textEl.classList.remove('timeline-post-text-collapsed');
+            var fullH = textEl.scrollHeight;
             var maxCollapsedPx = window.matchMedia('(min-width: 768px)').matches ? 116 : 74;
-            if (textEl.scrollHeight <= maxCollapsedPx + 4) {
+            if (fullH <= maxCollapsedPx + 4) {
                 return;
             }
 
+            textEl.classList.add('timeline-post-text-collapsed');
             btn.classList.remove('d-none');
             btn.onclick = function () {
                 var expanded = btn.getAttribute('aria-expanded') === 'true';

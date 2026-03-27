@@ -80,6 +80,12 @@
 }
 .timeline-post-text {
     overflow-wrap: anywhere;
+    color: #1c1e21;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+}
+.timeline-post-text a {
+    color: #0d6efd;
 }
 .timeline-post-text.timeline-post-text-collapsed {
     position: relative;

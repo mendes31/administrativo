@@ -83,7 +83,7 @@ $usersRepoMention = new UsersRepository();
             <div class="timeline-post-body mb-2" id="timeline-post-body-<?php echo $pid; ?>">
                 <?php
                 if ($txt !== '') {
-                    echo '<p class="mb-0 timeline-post-text timeline-post-text-collapsed">', TimelineMentionHelper::renderHtml($txt, $urlAdm, $mentionMap, $usersRepoMention), '</p>';
+                    echo '<p class="mb-0 timeline-post-text">', TimelineMentionHelper::renderHtml($txt, $urlAdm, $mentionMap, $usersRepoMention), '</p>';
                     echo '<button type="button" class="btn btn-link btn-sm p-0 mt-1 timeline-post-readmore d-none" aria-expanded="false">Ler mais</button>';
                 }
                 ?>
