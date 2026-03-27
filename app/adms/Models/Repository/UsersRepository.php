@@ -24,6 +24,11 @@ use PDO;
  */
 class UsersRepository extends DbConnection
 {
+    /**
+     * Login ignorado no organograma e nas contagens (ex.: usuário técnico "manager" do seed).
+     */
+    private const ORGCHART_EXCLUDED_USERNAME = 'manager';
+
     /** @var array|string|null $data Recebe os dados que devem ser enviados para a VIEW */
     private array|string|null $data = null;
 
@@ -1441,6 +1446,7 @@ class UsersRepository extends DbConnection
                               AND u2.status = :statusAtivo
                               AND (u2.data_desligamento IS NULL 
                                    OR u2.data_desligamento = "0000-00-00")
+                              AND LOWER(TRIM(u2.username)) <> LOWER(:exclOrgchartUser)
                         ) AS direct_subordinates_count
                     FROM adms_users u
                     INNER JOIN adms_departments d ON u.user_department_id = d.id
@@ -1448,10 +1454,12 @@ class UsersRepository extends DbConnection
                     WHERE u.status = :statusAtivo
                       AND (u.data_desligamento IS NULL 
                            OR u.data_desligamento = "0000-00-00")
+                      AND LOWER(TRIM(u.username)) <> LOWER(:exclOrgchartUser)
                     ORDER BY u.name ASC';
             
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':statusAtivo', 'Ativo', PDO::PARAM_STR);
+            $stmt->bindValue(':exclOrgchartUser', self::ORGCHART_EXCLUDED_USERNAME, PDO::PARAM_STR);
             $stmt->execute();
             
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1487,6 +1495,7 @@ class UsersRepository extends DbConnection
                                           AND s.status = :statusAtivo
                                           AND (s.data_desligamento IS NULL 
                                                OR s.data_desligamento = "0000-00-00")
+                                          AND LOWER(TRIM(s.username)) <> LOWER(:exclOrgchartUser)
                                     )
                                     OR LOWER(p.name) LIKE :cargoGerente
                                     OR LOWER(p.name) LIKE :cargoSupervisor
@@ -1505,10 +1514,12 @@ class UsersRepository extends DbConnection
                     INNER JOIN adms_positions p ON u.user_position_id = p.id
                     WHERE u.status = :statusAtivo
                       AND (u.data_desligamento IS NULL 
-                           OR u.data_desligamento = "0000-00-00")';
+                           OR u.data_desligamento = "0000-00-00")
+                      AND LOWER(TRIM(u.username)) <> LOWER(:exclOrgchartUser)';
             
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':statusAtivo', 'Ativo', PDO::PARAM_STR);
+            $stmt->bindValue(':exclOrgchartUser', self::ORGCHART_EXCLUDED_USERNAME, PDO::PARAM_STR);
             $stmt->bindValue(':cargoGerente', '%gerente%', PDO::PARAM_STR);
             $stmt->bindValue(':cargoSupervisor', '%supervisor%', PDO::PARAM_STR);
             $stmt->bindValue(':cargoCoordenador', '%coordenador%', PDO::PARAM_STR);
