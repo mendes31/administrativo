@@ -551,7 +551,11 @@ video.timeline-post-media {
 }
 .timeline-composer-preview-video {
     display: block;
+    width: 100%;
+    height: 260px;
     max-height: 260px;
+    object-fit: cover;
+    object-position: center center;
     background: #000;
 }
 .timeline-composer-remove-media {

@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=17">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=18">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>

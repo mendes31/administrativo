@@ -74,6 +74,24 @@ class TimelineRepository extends DbConnection
     }
 
     /**
+     * @return array<int>
+     */
+    public function getMentionedUserIds(string $entityType, int $entityId): array
+    {
+        if (!in_array($entityType, ['post', 'comment'], true) || $entityId <= 0) {
+            return [];
+        }
+        $sql = 'SELECT mentioned_user_id
+                FROM adms_timeline_mentions
+                WHERE entity_type = :t AND entity_id = :e';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':t' => $entityType, ':e' => $entityId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+        return array_values(array_unique(array_filter(array_map('intval', $rows), static fn ($v) => $v > 0)));
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function getFeedPosts(int $page, int $perPage): array

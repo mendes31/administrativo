@@ -7,6 +7,7 @@ namespace App\adms\Controllers\timeline;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
 
@@ -65,9 +66,33 @@ class UpdateTimelinePost
         }
 
         $userRepo = new UsersRepository();
+        $beforeMentionIds = $repo->getMentionedUserIds('post', $postId);
         $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('post', $postId, $validIds);
+
+        // Notifica somente novos mencionados após edição.
+        $newMentionIds = array_values(array_diff($validIds, $beforeMentionIds));
+        if ($newMentionIds !== []) {
+            $notifRepo = new NotificationsRepository();
+            $authorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+            $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+            foreach ($newMentionIds as $mentionedUserId) {
+                $mentionedUserId = (int)$mentionedUserId;
+                if ($mentionedUserId <= 0 || $mentionedUserId === $uid) {
+                    continue;
+                }
+                $notifRepo->create([
+                    'user_id' => $mentionedUserId,
+                    'type' => 'timeline_mention',
+                    'title' => $authorName . ' mencionou você em uma publicação (editada)',
+                    'message' => mb_substr($content, 0, 180),
+                    'link_url' => $base . 'timeline?post=' . $postId,
+                    'entity_type' => 'timeline_post',
+                    'entity_id' => $postId,
+                ]);
+            }
+        }
 
         echo json_encode(['success' => true, 'message' => 'Publicação atualizada.']);
     }
