@@ -1,5 +1,9 @@
 name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 
+# Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
+# (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
+# (seção "GitHub Actions: erro FTP ETIMEDOUT").
+
 on:
   push:
     branches:
@@ -252,14 +256,14 @@ jobs:
           quit
           EOF
 
-      # Estratégia 2: Fallback lftp com verificação incremental
-      # Executa SEMPRE que as 5 tentativas falharem (ou se deploy5 não existir)
+      # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
+      # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
       - name: Install lftp (Fallback Inteligente)
-        if: always() && (steps.deploy5.outcome == 'failure' || steps.deploy5.outcome == 'skipped')
+        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via lftp (Fallback Incremental)
-        if: always() && (steps.deploy5.outcome == 'failure' || steps.deploy5.outcome == 'skipped')
+        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -367,11 +371,7 @@ jobs:
           echo "📁 Criando pasta public/uploads..."
           mkdir -p public/uploads
           
-          echo "📁 Verificando permissões..."
-          chmod 755 logs
-          chmod 755 public/uploads
-          
-          echo "✅ Pastas essenciais criadas com sucesso!"
+          echo "✅ Pastas essenciais criadas (chmod via FTP costuma falhar em hospedagem compartilhada — ajuste no painel se precisar)"
           quit
           EOF
 

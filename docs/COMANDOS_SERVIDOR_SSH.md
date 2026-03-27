@@ -144,3 +144,37 @@ ls -la /files/
 ls -la /home/tiaraju/public_html/
 ```
 
+---
+
+## GitHub Actions: erro FTP `ETIMEDOUT` (control socket)
+
+Se o workflow **Deploy PHP para Kinghost** falha com:
+
+`connect ETIMEDOUT … :21` ou `Failed to connect … are you sure your server works via FTP?`
+
+**O que isso significa:** o runner do GitHub Actions **não consegue abrir a conexão TCP** na porta **21** do servidor FTP. A falha ocorre **antes** de usuário, senha ou modo passivo — não é problema de `exclude`, `timeout` ou versão do action.
+
+**Mensagens como IPv6 `ENETUNREACH`** costumam aparecer junto; o bloqueio ou rota inválida no IPv6 não é o ponto principal se o IPv4 também dá timeout.
+
+### Causas comuns em hospedagem compartilhada (ex.: Kinghost)
+
+- Firewall que **não aceita** conexões FTP vindas de **IPs internacionais** ou de **faixas usadas pelos runners** do GitHub (Azure).
+- FTP **restrito** a IPs brasileiros ou à rede do próprio painel.
+- Serviço FTP **indisponível** para acesso externo.
+
+### O que normalmente **não** resolve sozinho
+
+- Aumentar `timeout` no `FTP-Deploy-Action`.
+- Trocar `protocol` para FTPS (só faz sentido **depois** que a porta 21 ou a porta FTPS aceitar conexão).
+
+### Caminhos práticos
+
+1. **Kinghost/suporte:** perguntar se FTP/FTPS permite acesso a partir de **GitHub Actions** e se existe **liberação por IP** (a Meta publica faixas dos runners; mudam com o tempo).
+2. **Self-hosted runner** do GitHub em uma máquina/VPS que **já consiga** conectar no FTP da hospedagem (mesmo país/rede).
+3. **Deploy fora do GitHub:** artefato no Actions + upload manual (**FileZilla**) ou **SSH/rsync** se o plano tiver SSH no mesmo diretório do site.
+4. **Teste rápido:** no seu PC (mesma rede que você usa no dia a dia), testar porta 21 no host FTP (PowerShell: `Test-NetConnection SEU_HOST -Port 21`). Se abrir aí e **só** falhar no Actions, reforça bloqueio de IP no servidor.
+
+### Se o painel exigir **FTPS explícito**
+
+No `deploy.yml`, no passo `SamKirkland/FTP-Deploy-Action`, é possível usar `protocol: ftps` e, se necessário, `port` conforme a documentação do provedor — **somente** depois de confirmar que a conexão TCP na porta correta responde a partir de uma origem externa (ou do runner).
+
