@@ -155,15 +155,15 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <thead>
                             <tr>
                                 <th scope="col" style="width: 4%;">ID</th>
-                                <th scope="col" style="width: min(28%, 220px);">Nome</th>
-                                <!-- Colunas extras em camadas (md→lg→xl→xxl) para caber com sidebar; Ações sempre visível -->
-                                <th scope="col" style="width: 16%;" class="d-none d-xxl-table-cell">E-mail</th>
+                                <th scope="col" style="width: 18%;">Nome</th>
+                                <!-- E-mail e Usuário: ocultos em telas &lt; xl para encurtar a tabela; demais colunas seguem no desktop -->
+                                <th scope="col" style="width: 16%;" class="d-none d-xl-table-cell">E-mail</th>
                                 <th scope="col" style="width: 10%;" class="d-none d-xl-table-cell">Usuário</th>
-                                <th scope="col" style="width: 12%;" class="d-none d-lg-table-cell">Departamento</th>
-                                <th scope="col" style="width: 12%;" class="d-none d-xl-table-cell">Cargo</th>
+                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Departamento</th>
+                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Cargo</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Status</th>
-                                <th scope="col" style="width: 7%;" class="d-none d-lg-table-cell">Bloqueado</th>
-                                <th scope="col" style="width: 8%;" class="d-none d-xl-table-cell">Desligado</th>
+                                <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Bloqueado</th>
+                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Desligado</th>
                                 <th scope="col" class="text-center text-nowrap table-users-desktop-actions">Ações</th>
                             </tr>
                         </thead>
@@ -181,17 +181,17 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                             <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="d-none d-xxl-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
+                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
                                     <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
-                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
-                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
                                     <td class="d-none d-md-table-cell text-center">
                                         <span class="badge <?= $status === 'Ativo' ? 'bg-success' : 'bg-danger'; ?>"><?= $status ?></span>
                                     </td>
-                                    <td class="d-none d-lg-table-cell text-center">
+                                    <td class="d-none d-md-table-cell text-center">
                                         <span class="badge <?= $bloqueado === 'Sim' ? 'bg-danger' : 'bg-success'; ?>"><?= $bloqueado ?></span>
                                     </td>
-                                    <td class="d-none d-xl-table-cell text-center">
+                                    <td class="d-none d-md-table-cell text-center">
                                         <?php if ($isDesligado): ?>
                                             <span class="badge bg-danger" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>">
                                                 <i class="fas fa-user-slash me-1"></i>Sim
