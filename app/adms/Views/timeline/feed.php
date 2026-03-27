@@ -106,6 +106,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         </div>
                         <input type="file" name="images[]" id="timelineFileImage" class="visually-hidden" accept="image/jpeg,image/png,image/gif,image/webp" multiple tabindex="-1">
                         <input type="file" name="video" id="timelineFileVideo" class="visually-hidden" accept="video/mp4,video/webm" tabindex="-1">
+                        <input type="file" id="timelineFileCapturePhoto" class="visually-hidden" accept="image/*" capture="environment" tabindex="-1">
+                        <input type="file" id="timelineFileCaptureVideo" class="visually-hidden" accept="video/*" capture="environment" tabindex="-1">
                         <div class="timeline-composer-meta d-flex justify-content-between align-items-center gap-2 mt-1 px-1">
                             <span id="timelineComposerCharHint" class="small text-muted text-truncate d-none d-md-inline mb-0">Menções: <code>@</code> + username</span>
                             <span class="small text-muted ms-auto"><strong><span id="timelineComposerCharLeft">2000</span></strong> restantes</span>
@@ -1306,8 +1308,10 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     const btnCamVideo = document.getElementById('btnTimelineCameraVideo');
     const btnCamStop = document.getElementById('btnTimelineCameraStop');
     const btnCamOpen = document.getElementById('btnTimelineCamera');
+    const capturePhotoIn = document.getElementById('timelineFileCapturePhoto');
+    const captureVideoIn = document.getElementById('timelineFileCaptureVideo');
 
-    if (modalCameraEl && previewEl && btnCamOpen && btnCamPhoto && btnCamVideo && btnCamStop && imgIn && vidIn) {
+    if (modalCameraEl && previewEl && btnCamOpen && btnCamPhoto && btnCamVideo && btnCamStop && imgIn && vidIn && capturePhotoIn && captureVideoIn) {
         let camStream = null;
         let mediaRecorder = null;
         let mediaChunks = [];
@@ -1345,6 +1349,40 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             });
         }
 
+        function canUseLiveCamera() {
+            return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        }
+
+        function isSecureCameraContext() {
+            var h = (window.location.hostname || '').toLowerCase();
+            return window.isSecureContext === true || h === 'localhost' || h === '127.0.0.1';
+        }
+
+        function openCaptureWithFallback(captureInput, regularInput) {
+            try {
+                captureInput.click();
+            } catch (e) {
+                if (regularInput) regularInput.click();
+                return;
+            }
+            // Alguns navegadores desktop ignoram `capture`; nesses casos abre seletor normal.
+            setTimeout(function () {
+                if (captureInput && captureInput.files && captureInput.files.length === 0 && regularInput) {
+                    regularInput.click();
+                }
+            }, 300);
+        }
+
+        function openNativeCaptureFallback(kind) {
+            var k = kind || 'photo';
+            alert('Câmera ao vivo exige HTTPS (ou localhost). Vamos abrir a captura nativa do dispositivo.');
+            if (k === 'video') {
+                openCaptureWithFallback(captureVideoIn, vidIn);
+                return;
+            }
+            openCaptureWithFallback(capturePhotoIn, imgIn);
+        }
+
         function openCameraModal() {
             const m = bootstrap.Modal.getInstance(modalCameraEl) || new bootstrap.Modal(modalCameraEl);
             m.show();
@@ -1362,6 +1400,10 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 
         btnCamOpen.addEventListener('click', function () {
             resetCameraUI();
+            if (!isSecureCameraContext() || !canUseLiveCamera()) {
+                openNativeCaptureFallback('photo');
+                return;
+            }
             openCameraModal();
         });
 
@@ -1372,7 +1414,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     // nada: a prévia já deve estar rodando
                 })
                 .catch(function (e) {
-                    alert(e && e.message ? e.message : 'Não foi possível acessar a câmera. Verifique permissões e use HTTPS em produção.');
+                    alert(e && e.message ? e.message : 'Não foi possível acessar a câmera ao vivo. Verifique permissões e, em rede local, prefira HTTPS para prévia em tempo real.');
                     var mi = bootstrap.Modal.getInstance(modalCameraEl);
                     if (mi) mi.hide();
                 });
@@ -1490,9 +1532,39 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         if (btnCamList) {
             btnCamList.addEventListener('click', function () {
                 resetCameraUI();
+                if (!isSecureCameraContext() || !canUseLiveCamera()) {
+                    openNativeCaptureFallback('video');
+                    return;
+                }
                 openCameraModal();
             });
         }
+
+        capturePhotoIn.addEventListener('change', function () {
+            var files = Array.from(capturePhotoIn.files || []);
+            if (!files.length) return;
+            vidIn.value = '';
+            var merged = (timelineSelectedImageFiles || []).concat(files).slice(0, 6);
+            timelineSelectedImageFiles = merged;
+            var dt = new DataTransfer();
+            merged.forEach(function (f) { dt.items.add(f); });
+            imgIn.files = dt.files;
+            timelineComposerRefreshMediaPreview();
+            capturePhotoIn.value = '';
+        });
+
+        captureVideoIn.addEventListener('change', function () {
+            var files = Array.from(captureVideoIn.files || []);
+            if (!files.length) return;
+            var f = files[0];
+            var dt = new DataTransfer();
+            dt.items.add(f);
+            vidIn.files = dt.files;
+            imgIn.value = '';
+            timelineSelectedImageFiles = [];
+            timelineComposerRefreshMediaPreview();
+            captureVideoIn.value = '';
+        });
     }
 
     // Envio via fetch: em alguns navegadores (mobile/câmera) arquivos atribuídos com DataTransfer não entram no POST nativo.
