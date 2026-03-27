@@ -156,8 +156,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                             <tr>
                                 <th scope="col" style="width: 4%;">ID</th>
                                 <th scope="col" style="width: 18%;">Nome</th>
-                                <th scope="col" style="width: 16%;" class="d-none d-md-table-cell">E-mail</th>
-                                <th scope="col" style="width: 10%;" class="d-none d-md-table-cell">Usuário</th>
+                                <!-- E-mail: só a partir de xl; Usuário: a partir de lg (desktop estreito prioriza Ações) -->
+                                <th scope="col" style="width: 16%;" class="d-none d-xl-table-cell">E-mail</th>
+                                <th scope="col" style="width: 10%;" class="d-none d-lg-table-cell">Usuário</th>
                                 <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Departamento</th>
                                 <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Cargo</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Status</th>
@@ -180,8 +181,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                             <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
-                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
+                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
+                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
                                     <td class="d-none d-md-table-cell text-center">
@@ -410,9 +411,16 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     font-size: 0.875rem;
 }
 
-/* Garantir que a tabela não tenha scroll horizontal desnecessário */
-.table-responsive {
-    overflow-x: visible;
+/* Scroll só se necessário após ocultar colunas (email < xl, usuário < lg) */
+.list-desktop.table-responsive {
+    overflow-x: auto;
+}
+
+/* Coluna Ações: não encolher demais */
+.table-users-desktop th:last-child,
+.table-users-desktop td:last-child {
+    width: 1%;
+    white-space: nowrap;
 }
 
 /* Responsividade para telas médias */
