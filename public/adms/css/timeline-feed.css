@@ -126,6 +126,7 @@
     overflow: hidden;
     background: #f3f4f6;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 .timeline-suggestion-avatar {
     width: 100%;
@@ -142,6 +143,11 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.timeline-mention-dropdown-item:hover .timeline-suggestion-avatar-wrap,
+.timeline-mention-dropdown-item.active .timeline-suggestion-avatar-wrap {
+    box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.55), 0 0 0 2px rgba(13, 110, 253, 0.12);
+    transform: scale(1.03);
 }
 video.timeline-post-media {
     max-height: 480px;
