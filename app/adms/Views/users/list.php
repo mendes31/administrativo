@@ -155,11 +155,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <thead>
                             <tr>
                                 <th scope="col" style="width: 4%;">ID</th>
-                                <th scope="col" style="width: 18%;">Nome</th>
-                                <!-- E-mail e Usuário: ocultos em telas &lt; xl para encurtar a tabela; demais colunas seguem no desktop -->
-                                <th scope="col" style="width: 16%;" class="d-none d-xl-table-cell">E-mail</th>
-                                <th scope="col" style="width: 10%;" class="d-none d-xl-table-cell">Usuário</th>
-                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Departamento</th>
+                                <th scope="col" style="width: 22%;">Nome</th>
+                                <th scope="col" style="width: 16%;" class="d-none d-md-table-cell">Departamento</th>
                                 <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Cargo</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Status</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Bloqueado</th>
@@ -181,8 +178,6 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                             <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
-                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
                                     <td class="d-none d-md-table-cell text-center">
@@ -411,7 +406,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     font-size: 0.875rem;
 }
 
-/* Scroll horizontal só se ainda faltar espaço após ocultar colunas por breakpoint */
+/* Scroll horizontal se ainda faltar espaço (ex.: textos longos em Nome/Cargo) */
 .list-desktop.table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
