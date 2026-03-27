@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\TimelineMentionHelper;
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
@@ -40,7 +41,7 @@ class CreateTimelinePost
         }
 
         $userRepo = new UsersRepository();
-        $content = trim((string)($_POST['content'] ?? ''));
+        $content = trim(TextEncodingHelper::decodeEntities((string)($_POST['content'] ?? '')));
         $imagePaths = null; // array<string>
         $videoPath = null;
 

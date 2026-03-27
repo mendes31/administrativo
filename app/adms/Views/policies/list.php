@@ -245,7 +245,7 @@ use App\adms\Helpers\FormatHelper;
                                 <tr>
                                     <td class="col-id"><?php echo (int) $policy['id']; ?></td>
                                     <td class="col-titulo">
-                                        <?php echo htmlspecialchars($policy['titulo']); ?>
+                                        <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?>
                                         <?php if ($requiresAck): ?>
                                             <?php if ($isUnread): ?>
                                                 <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
@@ -260,8 +260,8 @@ use App\adms\Helpers\FormatHelper;
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="col-categoria"><?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></td>
-                                    <td class="col-departamento"><?php echo htmlspecialchars($policy['department_name'] ?? ''); ?></td>
+                                    <td class="col-categoria"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></td>
+                                    <td class="col-departamento"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['department_name'] ?? ''); ?></td>
                                     <td class="col-urgente text-center">
                                         <?php if (!empty($policy['urgente'])): ?>
                                             <span class="badge bg-danger">Sim</span>
@@ -377,7 +377,7 @@ use App\adms\Helpers\FormatHelper;
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div class="flex-grow-1">
                                         <h5 class="card-title mb-1">
-                                            <strong class="policy-card-title-text"><?php echo htmlspecialchars($policy['titulo']); ?></strong>
+                                            <strong class="policy-card-title-text"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?></strong>
                                             <?php if ($requiresAck): ?>
                                                 <?php if ($isUnread): ?>
                                                     <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
@@ -402,12 +402,12 @@ use App\adms\Helpers\FormatHelper;
                                         <div class="mb-1 d-flex flex-wrap align-items-center gap-1">
                                             <?php if (!empty($policy['categoria_nome'] ?? $policy['categoria'])): ?>
                                                 <span class="badge bg-info">
-                                                    <?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
+                                                    <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
                                                 </span>
                                             <?php endif; ?>
                                             <?php if (!empty($policy['department_name'])): ?>
                                                 <span class="badge bg-secondary">
-                                                    <?php echo htmlspecialchars($policy['department_name']); ?>
+                                                    <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['department_name'] ?? ''); ?>
                                                 </span>
                                             <?php endif; ?>
                                             <?php if (!empty($policy['ativo'])): ?>

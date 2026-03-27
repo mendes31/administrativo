@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
@@ -39,7 +40,7 @@ class UpdateTimelinePost
         }
 
         $postId = (int)($_POST['post_id'] ?? 0);
-        $content = trim((string)($_POST['content'] ?? ''));
+        $content = trim(TextEncodingHelper::decodeEntities((string)($_POST['content'] ?? '')));
         if ($content === '') {
             $content = ' ';
         }

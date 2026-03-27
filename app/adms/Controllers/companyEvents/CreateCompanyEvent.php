@@ -4,6 +4,7 @@ namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -40,7 +41,7 @@ class CreateCompanyEvent
             return;
         }
 
-        $title = trim((string)($_POST['title'] ?? ''));
+        $title = trim(TextEncodingHelper::decodeEntities((string)($_POST['title'] ?? '')));
         $starts = $this->normalizeDatetimeLocal(trim((string)($_POST['starts_at'] ?? '')));
         $ends = $this->normalizeDatetimeLocal(trim((string)($_POST['ends_at'] ?? '')));
         if ($title === '' || $starts === null || $ends === null) {
@@ -50,8 +51,8 @@ class CreateCompanyEvent
 
         $data = [
             'title' => $title,
-            'description' => trim((string)($_POST['description'] ?? '')) ?: null,
-            'location' => trim((string)($_POST['location'] ?? '')) ?: null,
+            'description' => trim(TextEncodingHelper::decodeEntities((string)($_POST['description'] ?? ''))) ?: null,
+            'location' => trim(TextEncodingHelper::decodeEntities((string)($_POST['location'] ?? ''))) ?: null,
             'starts_at' => $starts,
             'ends_at' => $ends,
             'publish_at' => $this->normalizeDatetimeLocal(trim((string)($_POST['publish_at'] ?? ''))),

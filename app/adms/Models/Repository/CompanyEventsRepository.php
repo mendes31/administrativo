@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -169,7 +170,7 @@ class CompanyEventsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare('SELECT * FROM adms_company_events WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row ? $this->normalizeRow($row) : null;
     }
 
     /**
@@ -194,7 +195,7 @@ class CompanyEventsRepository extends DbConnection
                 ORDER BY e.starts_at ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
 
     /**
@@ -234,7 +235,7 @@ class CompanyEventsRepository extends DbConnection
         $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
 
     public function countAll(): int
@@ -267,7 +268,7 @@ class CompanyEventsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare('SELECT * FROM adms_company_event_rsvps WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row ? $this->normalizeRow($row) : null;
     }
 
     public function getRsvpForUser(int $eventId, int $userId): ?array
@@ -277,7 +278,7 @@ class CompanyEventsRepository extends DbConnection
         );
         $stmt->execute([':e' => $eventId, ':u' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row ? $this->normalizeRow($row) : null;
     }
 
     /**
@@ -405,6 +406,39 @@ class CompanyEventsRepository extends DbConnection
         }
         unset($row);
 
+        return $this->normalizeRows($rows);
+    }
+
+    private function normalizeRows(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            if (is_array($row)) {
+                $row = $this->normalizeRow($row);
+            }
+        }
+        unset($row);
         return $rows;
+    }
+
+    private function normalizeRow(array $row): array
+    {
+        foreach (['title', 'description', 'location', 'creator_name', 'user_name', 'department_name'] as $field) {
+            if (array_key_exists($field, $row) && is_string($row[$field])) {
+                $row[$field] = TextEncodingHelper::decodeEntities($row[$field]);
+            }
+        }
+        if (isset($row['guests']) && is_array($row['guests'])) {
+            foreach ($row['guests'] as &$guest) {
+                if (is_array($guest)) {
+                    foreach (['full_name', 'relationship', 'notes'] as $field) {
+                        if (array_key_exists($field, $guest) && is_string($guest[$field])) {
+                            $guest[$field] = TextEncodingHelper::decodeEntities($guest[$field]);
+                        }
+                    }
+                }
+            }
+            unset($guest);
+        }
+        return $row;
     }
 }

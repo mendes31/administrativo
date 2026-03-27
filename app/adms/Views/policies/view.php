@@ -52,7 +52,7 @@ $policy = $this->data['policy'] ?? [];
                 <div class="col-md-8">
                     <div class="mb-4">
                         <h3 class="mb-2">
-                            <?php echo htmlspecialchars($policy['titulo'] ?? ''); ?>
+                            <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?>
                             <?php if (!empty($policy['urgente'])): ?>
                                 <span class="badge bg-danger ms-2">
                                     <i class="fas fa-exclamation-triangle me-1"></i>Urgente
@@ -79,12 +79,12 @@ $policy = $this->data['policy'] ?? [];
                         <div class="d-flex gap-2 mb-2 flex-wrap">
                             <?php if (!empty($policy['categoria_nome'] ?? $policy['categoria'])): ?>
                                 <span class="badge bg-info">
-                                    <?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria']); ?>
+                                    <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
                                 </span>
                             <?php endif; ?>
                             <?php if (!empty($policy['department_name'])): ?>
                                 <span class="badge bg-secondary">
-                                    <?php echo htmlspecialchars($policy['department_name']); ?>
+                                    <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['department_name'] ?? ''); ?>
                                 </span>
                             <?php endif; ?>
                             <?php if (!empty($policy['ativo'])): ?>
@@ -95,7 +95,7 @@ $policy = $this->data['policy'] ?? [];
                         </div>
 
                         <div class="text-muted small mb-3">
-                            <i class="fas fa-user me-1"></i>Por: <?php echo htmlspecialchars($policy['usuario_nome'] ?? 'N/A'); ?>
+                            <i class="fas fa-user me-1"></i>Por: <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['usuario_nome'] ?? 'N/A'); ?>
                             <?php if (!empty($policy['created_at'])): ?>
                                 <span class="ms-3" title="Criada em">
                                     <i class="fas fa-calendar me-1"></i>
@@ -156,7 +156,7 @@ $policy = $this->data['policy'] ?? [];
                             <div class="mb-4">
                                 <h5>Resumo</h5>
                                 <div class="border rounded p-3 bg-light">
-                                    <?php echo htmlspecialchars($policy['resumo']); ?>
+                                    <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['resumo'] ?? ''); ?>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -217,14 +217,14 @@ $policy = $this->data['policy'] ?? [];
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Categoria:</small><br>
-                                    <span class="badge bg-info"><?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></span>
+                                    <span class="badge bg-info"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></span>
                                 </div>
                             </div>
                             <hr>
                             <div class="row">
                                 <div class="col-6">
                                     <small class="text-muted">Departamento:</small><br>
-                                    <span class="badge bg-secondary"><?php echo htmlspecialchars($policy['department_name'] ?? ''); ?></span>
+                                    <span class="badge bg-secondary"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['department_name'] ?? ''); ?></span>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Expira em:</small><br>

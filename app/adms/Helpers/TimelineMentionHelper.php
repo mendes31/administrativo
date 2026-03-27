@@ -44,10 +44,11 @@ final class TimelineMentionHelper
      */
     public static function renderHtml(string $text, string $urlAdm, array $idToName, UsersRepository $users): string
     {
+        $text = TextEncodingHelper::decodeEntities($text);
         $urlAdm = rtrim($urlAdm, '/') . '/';
         $parts = preg_split('/(@\d+|@[a-zA-Z0-9._-]+)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
         if ($parts === false) {
-            return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            return TextEncodingHelper::escape($text);
         }
         $out = '';
         foreach ($parts as $part) {
@@ -57,8 +58,8 @@ final class TimelineMentionHelper
             if (preg_match('/^@(\d+)$/', $part, $mm)) {
                 $id = (int) $mm[1];
                 $label = $idToName[$id] ?? ('#' . $id);
-                $safeLabel = htmlspecialchars('@' . $label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                $safeUrl = htmlspecialchars($urlAdm . 'view-user/' . $id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $safeLabel = TextEncodingHelper::escape('@' . $label);
+                $safeUrl = TextEncodingHelper::escape($urlAdm . 'view-user/' . $id);
                 $out .= '<a href="' . $safeUrl . '" class="timeline-mention">' . $safeLabel . '</a>';
                 continue;
             }
@@ -67,15 +68,15 @@ final class TimelineMentionHelper
                 $map = $users->getActiveUsersByUsernames([$uname]);
                 if (isset($map[$uname])) {
                     $id = $map[$uname]['id'];
-                    $safeUser = htmlspecialchars($uname, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                    $safeUrl = htmlspecialchars($urlAdm . 'view-user/' . $id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                    $safeUser = TextEncodingHelper::escape($uname);
+                    $safeUrl = TextEncodingHelper::escape($urlAdm . 'view-user/' . $id);
                     $out .= '<a href="' . $safeUrl . '" class="timeline-mention">@' . $safeUser . '</a>';
                 } else {
-                    $out .= nl2br(htmlspecialchars($part, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+                    $out .= nl2br(TextEncodingHelper::escape($part));
                 }
                 continue;
             }
-            $out .= nl2br(htmlspecialchars($part, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+            $out .= nl2br(TextEncodingHelper::escape($part));
         }
 
         return $out;

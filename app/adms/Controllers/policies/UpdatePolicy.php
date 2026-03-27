@@ -4,6 +4,7 @@ namespace App\adms\Controllers\policies;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Services\LogAlteracaoService;
@@ -72,10 +73,10 @@ class UpdatePolicy
     {
         $form = $this->data['form'] ?? [];
 
-        $titulo        = trim($form['titulo'] ?? '');
-        $conteudo      = trim($form['conteudo'] ?? '');
+        $titulo        = trim(TextEncodingHelper::decodeEntities((string)($form['titulo'] ?? '')));
+        $conteudo      = trim(TextEncodingHelper::decodeEntities((string)($form['conteudo'] ?? '')));
         $categoriaId   = (int) ($form['categoria_id'] ?? 0);
-        $categoriaNome = trim($form['categoria'] ?? '');
+        $categoriaNome = trim(TextEncodingHelper::decodeEntities((string)($form['categoria'] ?? '')));
         $departmentId  = (int) ($form['department_id'] ?? 0);
         $publishAt     = trim($form['publish_at'] ?? '');
         $expireAt      = trim($form['expire_at'] ?? '');

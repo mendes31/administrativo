@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -87,7 +88,7 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
     
     /**
@@ -176,7 +177,7 @@ class InformativosRepository extends DbConnection
         $stmt->execute();
         
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ?: null;
+        return $result ? $this->normalizeRow($result) : null;
     }
 
     /**
@@ -280,7 +281,7 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':usr', $userId, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row ? $this->normalizeRow($row) : null;
     }
 
     /**
@@ -377,7 +378,7 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $rows ?: [];
+        return $this->normalizeRows($rows ?: []);
     }
 
     /**
@@ -631,7 +632,7 @@ class InformativosRepository extends DbConnection
         $sql = "SELECT id, name FROM adms_informativos_categorias WHERE ativo = 1 ORDER BY name";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
 
     public function getCategoriaById(int $id): ?array
@@ -640,7 +641,7 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row ? $this->normalizeRow($row) : null;
     }
     
     /**
@@ -675,7 +676,7 @@ class InformativosRepository extends DbConnection
         }
         
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
     
     /**
@@ -693,5 +694,26 @@ class InformativosRepository extends DbConnection
         
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int) $result['total'];
+    }
+
+    private function normalizeRows(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            if (is_array($row)) {
+                $row = $this->normalizeRow($row);
+            }
+        }
+        unset($row);
+        return $rows;
+    }
+
+    private function normalizeRow(array $row): array
+    {
+        foreach (['titulo', 'conteudo', 'resumo', 'categoria', 'categoria_nome', 'usuario_nome', 'department_name'] as $field) {
+            if (array_key_exists($field, $row) && is_string($row[$field])) {
+                $row[$field] = TextEncodingHelper::decodeEntities($row[$field]);
+            }
+        }
+        return $row;
     }
 } 

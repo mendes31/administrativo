@@ -29,9 +29,9 @@ use App\adms\Helpers\CSRFHelper;
                                 <?php if (!empty($this->data['informativos'])): ?>
                                     <?php foreach ($this->data['informativos'] as $informativo): ?>
                                         <option value="<?php echo $informativo['id']; ?>">
-                                            <?php echo htmlspecialchars($informativo['titulo']); ?>
+                                            <?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?>
                                             <?php if ($informativo['urgente']): ?> (URGENTE)<?php endif; ?>
-                                            - <?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?>
+                                            - <?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['categoria_nome'] ?? $informativo['categoria'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

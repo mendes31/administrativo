@@ -4,6 +4,7 @@ namespace App\adms\Controllers\policies;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Services\WhatsappNotificationService;
@@ -48,10 +49,10 @@ class CreatePolicy
             return;
         }
 
-        $titulo            = trim($_POST['titulo'] ?? '');
-        $conteudo          = trim($_POST['conteudo'] ?? '');
+        $titulo            = trim(TextEncodingHelper::decodeEntities((string)($_POST['titulo'] ?? '')));
+        $conteudo          = trim(TextEncodingHelper::decodeEntities((string)($_POST['conteudo'] ?? '')));
         $categoriaId       = (int) ($_POST['categoria_id'] ?? 0);
-        $categoriaNome     = trim($_POST['categoria'] ?? '');
+        $categoriaNome     = trim(TextEncodingHelper::decodeEntities((string)($_POST['categoria'] ?? '')));
         $departmentId      = (int) ($_POST['department_id'] ?? 0);
         $publishAt         = trim($_POST['publish_at'] ?? '');
         $expireAt          = trim($_POST['expire_at'] ?? '');

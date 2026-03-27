@@ -48,7 +48,7 @@ $informativo = $this->data['informativo'];
                     <!-- Título e Status -->
                     <div class="mb-4">
                         <h3 class="mb-2">
-                            <?php echo htmlspecialchars($informativo['titulo']); ?>
+                            <?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?>
                             <?php if ($informativo['urgente']): ?>
                                 <span class="badge bg-danger ms-2">
                                     <i class="fas fa-exclamation-triangle me-1"></i>Urgente
@@ -57,9 +57,9 @@ $informativo = $this->data['informativo'];
                         </h3>
                         
                         <div class="d-flex gap-2 mb-2 flex-wrap">
-                            <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
+                            <span class="badge bg-info"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['categoria_nome'] ?? $informativo['categoria'] ?? ''); ?></span>
                             <?php if (!empty($informativo['department_name'])): ?>
-                                <span class="badge bg-secondary"><?php echo htmlspecialchars($informativo['department_name']); ?></span>
+                                <span class="badge bg-secondary"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['department_name'] ?? ''); ?></span>
                             <?php endif; ?>
                             <?php if ($informativo['ativo']): ?>
                                 <span class="badge bg-success">Ativo</span>
@@ -86,7 +86,7 @@ $informativo = $this->data['informativo'];
                         ?>
                         
                         <div class="text-muted small">
-                            <i class="fas fa-user me-1"></i>Por: <?php echo htmlspecialchars($informativo['usuario_nome'] ?? 'N/A'); ?>
+                            <i class="fas fa-user me-1"></i>Por: <?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['usuario_nome'] ?? 'N/A'); ?>
                             <span class="ms-3" title="Publicado em">
                                 <i class="fas fa-calendar me-1"></i>
                                 <?php echo date('d/m/Y H:i', strtotime($informativo['created_at'])); ?>
@@ -127,7 +127,7 @@ $informativo = $this->data['informativo'];
                         <div class="mb-4">
                             <h5>Resumo</h5>
                             <div class="border rounded p-3 bg-light">
-                                <?php echo htmlspecialchars($informativo['resumo']); ?>
+                                <?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['resumo'] ?? ''); ?>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -189,14 +189,14 @@ $informativo = $this->data['informativo'];
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Categoria:</small><br>
-                                    <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
+                                    <span class="badge bg-info"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['categoria_nome'] ?? $informativo['categoria'] ?? ''); ?></span>
                                 </div>
                             </div>
                             <hr>
                             <div class="row">
                                 <div class="col-6">
                                     <small class="text-muted">Departamento:</small><br>
-                                    <span class="badge bg-secondary"><?php echo htmlspecialchars($informativo['department_name'] ?? ''); ?></span>
+                                    <span class="badge bg-secondary"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['department_name'] ?? ''); ?></span>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Expira em:</small><br>

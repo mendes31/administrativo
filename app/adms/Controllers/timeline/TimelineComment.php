@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
@@ -63,7 +64,7 @@ class TimelineComment
         }
 
         $userRepo = new UsersRepository();
-        $text = trim((string)($_POST['content'] ?? ''));
+        $text = trim(TextEncodingHelper::decodeEntities((string)($_POST['content'] ?? '')));
         if ($text === '') {
             http_response_code(422);
             echo json_encode(['success' => false, 'message' => 'Comentário vazio']);

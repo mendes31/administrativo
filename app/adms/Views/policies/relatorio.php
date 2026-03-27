@@ -29,9 +29,9 @@ use App\adms\Helpers\CSRFHelper;
                                 <?php if (!empty($this->data['policies'])): ?>
                                     <?php foreach ($this->data['policies'] as $policy): ?>
                                         <option value="<?php echo (int)$policy['id']; ?>">
-                                            <?php echo htmlspecialchars($policy['titulo']); ?>
+                                            <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?>
                                             <?php if (!empty($policy['urgente'])): ?> (URGENTE)<?php endif; ?>
-                                            - <?php echo htmlspecialchars($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
+                                            - <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

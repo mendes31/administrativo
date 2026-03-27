@@ -42,7 +42,7 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                        name="titulo"
                                        required
                                        maxlength="255"
-                                       value="<?php echo htmlspecialchars($policy['titulo'] ?? ''); ?>"
+                                       value="<?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?>"
                                        placeholder="Título da política interna">
                             </div>
 
@@ -58,11 +58,11 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                         $selected = ((int)($policy['categoria_id'] ?? 0) === (int)$categoria['id']) ? 'selected' : '';
                                         ?>
                                         <option value="<?= (int) $categoria['id']; ?>" <?= $selected; ?>>
-                                            <?= htmlspecialchars($categoria['name']); ?>
+                                            <?= \App\adms\Helpers\TextEncodingHelper::escape($categoria['name'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <input type="hidden" name="categoria" id="categoria_nome_hidden" value="<?php echo htmlspecialchars($policy['categoria'] ?? ''); ?>">
+                                <input type="hidden" name="categoria" id="categoria_nome_hidden" value="<?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria'] ?? ''); ?>">
                             </div>
                         </div>
 
@@ -79,7 +79,7 @@ $notifyDeps = $this->data['notify_departments'] ?? [];
                                         $selected = ((int)($policy['department_id'] ?? 0) === (int)$dep['id']) ? 'selected' : '';
                                         ?>
                                         <option value="<?= (int) $dep['id']; ?>" <?= $selected; ?>>
-                                            <?= htmlspecialchars($dep['name']); ?>
+                                            <?= \App\adms\Helpers\TextEncodingHelper::escape($dep['name'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>

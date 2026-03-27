@@ -252,7 +252,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                 ?>
                                 <tr>
                                     <td class="col-titulo">
-                                        <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
+                                        <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>
                                         <?php if ($requiresAck): ?>
                                             <?php if ($isUnread): ?>
                                                 <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
@@ -288,10 +288,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                         <?php endif; ?>
                                     </td>
                                     <td class="col-categoria">
-                                        <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
+                                        <span class="badge bg-info"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['categoria_nome'] ?? $informativo['categoria'] ?? ''); ?></span>
                                     </td>
                                     <td class="col-departamento">
-                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($informativo['department_name'] ?? ''); ?></span>
+                                        <span class="badge bg-secondary"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['department_name'] ?? ''); ?></span>
                                     </td>
                                     <td class="col-resumo">
                                         <?php
@@ -357,14 +357,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                                       </div>
                                                       <div class="modal-body">
-                                                        Tem certeza que deseja excluir o informativo <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>?<br>
+                                                        Tem certeza que deseja excluir o informativo <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>?<br>
                                                         <small class="text-muted">Você não poderá reverter esta ação.</small>
                                                       </div>
                                                       <div class="modal-footer">
                                                         <form id="formDelete<?php echo $informativo['id']; ?>-desktop" action="<?php echo $_ENV['URL_ADM']; ?>delete-informativo" method="POST" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                                             <input type="hidden" name="id" value="<?php echo $informativo['id']; ?>">
-                                                            <input type="hidden" name="titulo" value="<?php echo htmlspecialchars($informativo['titulo']); ?>">
+                                                            <input type="hidden" name="titulo" value="<?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?>">
                                                             <button type="submit" class="btn btn-danger">Sim, excluir!</button>
                                                         </form>
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -409,7 +409,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <h5 class="card-title mb-1">
-                                            <strong class="informativo-card-title-text"><?php echo htmlspecialchars($informativo['titulo']); ?></strong>
+                                            <strong class="informativo-card-title-text"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>
                                             <?php if ($requiresAck): ?>
                                                 <?php if ($isUnread): ?>
                                                     <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
@@ -432,9 +432,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <?php endif; ?>
                                         </h5>
                                         <div class="mb-1">
-                                            <span class="badge bg-info"><?php echo htmlspecialchars($informativo['categoria_nome'] ?? $informativo['categoria']); ?></span>
+                                            <span class="badge bg-info"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['categoria_nome'] ?? $informativo['categoria'] ?? ''); ?></span>
                                             <?php if (!empty($informativo['department_name'])): ?>
-                                                <span class="badge bg-secondary ms-1"><?php echo htmlspecialchars($informativo['department_name']); ?></span>
+                                                <span class="badge bg-secondary ms-1"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['department_name'] ?? ''); ?></span>
                                             <?php endif; ?>
                                             <?php if ($informativo['ativo']): ?>
                                                 <span class="badge bg-success ms-1">Ativo</span>
@@ -533,14 +533,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                                   </div>
                                                   <div class="modal-body">
-                                                    Tem certeza que deseja excluir o informativo <strong><?php echo htmlspecialchars($informativo['titulo']); ?></strong>?<br>
+                                                    Tem certeza que deseja excluir o informativo <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>?<br>
                                                     <small class="text-muted">Você não poderá reverter esta ação.</small>
                                                   </div>
                                                   <div class="modal-footer">
                                                     <form id="formDelete<?php echo $informativo['id']; ?>-mobile" action="<?php echo $_ENV['URL_ADM']; ?>delete-informativo" method="POST" class="d-inline">
                                                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                                         <input type="hidden" name="id" value="<?php echo $informativo['id']; ?>">
-                                                        <input type="hidden" name="titulo" value="<?php echo htmlspecialchars($informativo['titulo']); ?>">
+                                                        <input type="hidden" name="titulo" value="<?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?>">
                                                         <button type="submit" class="btn btn-danger">Sim, excluir!</button>
                                                     </form>
                                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

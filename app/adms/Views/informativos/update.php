@@ -31,14 +31,14 @@ $informativo = $this->data['informativo'];
                         <div class="mb-3" style="margin-bottom: 2.5rem !important;">
                             <label for="titulo" class="form-label">Título <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="titulo" name="titulo" required maxlength="255" 
-                                   value="<?php echo htmlspecialchars($informativo['titulo']); ?>" 
+                                   value="<?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?>" 
                                    placeholder="Digite o título do informativo">
                         </div>
                         
                         <div class="mb-3 mt-3">
                             <label for="conteudo" class="form-label">Conteúdo <span class="text-danger">*</span></label>
                             <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="10" 
-                                      placeholder="Digite o conteúdo do informativo"><?php echo str_replace('</textarea>', '&lt;/textarea&gt;', $informativo['conteudo'] ?? ''); ?></textarea>
+                                      placeholder="Digite o conteúdo do informativo"><?php echo str_replace('</textarea>', '&lt;/textarea&gt;', \App\adms\Helpers\TextEncodingHelper::decodeEntities($informativo['conteudo'] ?? '')); ?></textarea>
                         </div>
                     </div>
                     
@@ -50,11 +50,11 @@ $informativo = $this->data['informativo'];
                                 <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
                                     <?php $selected = ((int)($informativo['categoria_id'] ?? 0) === (int)$categoria['id']) ? 'selected' : ''; ?>
                                     <option value="<?= (int)$categoria['id'] ?>" <?= $selected ?>>
-                                        <?= htmlspecialchars($categoria['name']) ?>
+                                        <?= \App\adms\Helpers\TextEncodingHelper::escape($categoria['name'] ?? '') ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <input type="hidden" name="categoria" id="categoria_nome_hidden" value="<?= htmlspecialchars($informativo['categoria'] ?? '') ?>">
+                            <input type="hidden" name="categoria" id="categoria_nome_hidden" value="<?= \App\adms\Helpers\TextEncodingHelper::escape($informativo['categoria'] ?? '') ?>">
                         </div>
 
                         <div class="mb-3">
@@ -63,7 +63,7 @@ $informativo = $this->data['informativo'];
                                 <option value="">Selecione o departamento</option>
                                 <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
                                     <?php $selected = ((int)($informativo['department_id'] ?? 0) === (int)$dep['id']) ? 'selected' : ''; ?>
-                                    <option value="<?= (int)$dep['id'] ?>" <?= $selected ?>><?= htmlspecialchars($dep['name']) ?></option>
+                                    <option value="<?= (int)$dep['id'] ?>" <?= $selected ?>><?= \App\adms\Helpers\TextEncodingHelper::escape($dep['name'] ?? '') ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

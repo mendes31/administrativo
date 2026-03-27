@@ -21,7 +21,7 @@
             <tbody>
                 <?php foreach (($this->data['events'] ?? []) as $ev): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($ev['title'] ?? ''); ?></td>
+                        <td><?php echo \App\adms\Helpers\TextEncodingHelper::escape($ev['title'] ?? ''); ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($ev['starts_at'] ?? '')); ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($ev['ends_at'] ?? '')); ?></td>
                         <td><?php echo !empty($ev['ativo']) ? 'Sim' : 'Não'; ?></td>
@@ -48,7 +48,7 @@
         <?php foreach (($this->data['events'] ?? []) as $ev): ?>
             <div class="card mb-3">
                 <div class="card-body">
-                    <h6 class="fw-bold"><?php echo htmlspecialchars($ev['title'] ?? ''); ?></h6>
+                    <h6 class="fw-bold"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($ev['title'] ?? ''); ?></h6>
                     <div class="small text-muted mb-2">
                         <?php echo date('d/m/Y H:i', strtotime($ev['starts_at'] ?? '')); ?> — <?php echo date('d/m/Y H:i', strtotime($ev['ends_at'] ?? '')); ?>
                     </div>
