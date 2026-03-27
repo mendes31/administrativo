@@ -29,6 +29,9 @@ class UsersRepository extends DbConnection
      */
     private const ORGCHART_EXCLUDED_USERNAME = 'manager';
 
+    /** @var array<string, int>|null slug (minúsculo) => id do departamento */
+    private static ?array $timelineDeptSlugToIdCache = null;
+
     /** @var array|string|null $data Recebe os dados que devem ser enviados para a VIEW */
     private array|string|null $data = null;
 
@@ -1853,9 +1856,229 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * IDs de colaboradores ativos de um departamento (menção @depto-id), com as mesmas regras de @todos.
+     *
+     * @return array<int>
+     */
+    public function getActiveUserIdsByDepartmentForTimelineMentions(int $departmentId, int $excludeUserId): array
+    {
+        if ($departmentId <= 0) {
+            return [];
+        }
+        try {
+            $sql = 'SELECT u.id FROM adms_users u
+                    WHERE u.status = "Ativo"
+                      AND (u.data_desligamento IS NULL OR u.data_desligamento = "0000-00-00")
+                      AND u.user_department_id = :dep
+                      AND LOWER(TRIM(u.username)) <> LOWER(:excl)';
+            $params = [
+                ':dep' => $departmentId,
+                ':excl' => self::ORGCHART_EXCLUDED_USERNAME,
+            ];
+            if ($excludeUserId > 0) {
+                $sql .= ' AND u.id <> :uid';
+                $params[':uid'] = $excludeUserId;
+            }
+            $sql .= ' ORDER BY u.id ASC';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute($params);
+            $ids = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $ids[] = (int) $row['id'];
+            }
+
+            return $ids;
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao listar IDs por departamento na timeline.', [
+                'exception' => $e->getMessage(),
+                'department_id' => $departmentId,
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Interpreta token @depto-1, @dep-1 ou @departamento-1 (case-insensitive).
+     */
+    public function parseTimelineDepartmentMentionToken(string $token): ?int
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return null;
+        }
+        if (preg_match('/^(?:depto|dep|departamento)-(\d+)$/i', $token, $m)) {
+            return (int) $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Slug estável a partir do nome do departamento (ex.: "Financeiro" → financeiro, "RH Comercial" → rh-comercial).
+     */
+    public function timelineDepartmentSlugFromName(string $name): string
+    {
+        $slugImg = new SlugImg();
+        $slug = $slugImg->slug(trim($name));
+        if ($slug === null || $slug === '') {
+            return '';
+        }
+
+        return trim($slug, '-');
+    }
+
+    /**
+     * Mapa slug (minúsculo) → id; em colisão de slug, prevalece o menor id.
+     *
+     * @return array<string, int>
+     */
+    private function loadTimelineDepartmentSlugToIdMap(): array
+    {
+        if (self::$timelineDeptSlugToIdCache !== null) {
+            return self::$timelineDeptSlugToIdCache;
+        }
+        try {
+            $sql = 'SELECT id, name FROM adms_departments ORDER BY id ASC';
+            $rows = $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao montar mapa de slugs de departamentos (timeline).', [
+                'exception' => $e->getMessage(),
+            ]);
+            self::$timelineDeptSlugToIdCache = [];
+
+            return self::$timelineDeptSlugToIdCache;
+        }
+        $map = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $slug = mb_strtolower($this->timelineDepartmentSlugFromName((string) ($row['name'] ?? '')), 'UTF-8');
+            if ($slug === '') {
+                continue;
+            }
+            if (!isset($map[$slug])) {
+                $map[$slug] = $id;
+            }
+        }
+        self::$timelineDeptSlugToIdCache = $map;
+
+        return self::$timelineDeptSlugToIdCache;
+    }
+
+    /**
+     * Resolve menção de departamento: formato gravado @depto-id ou slug pelo nome (ex.: financeiro).
+     */
+    public function resolveTimelineDepartmentMention(string $token): ?int
+    {
+        $id = $this->parseTimelineDepartmentMentionToken($token);
+        if ($id !== null && $id > 0) {
+            return $id;
+        }
+        $slug = mb_strtolower(trim($token), 'UTF-8');
+        if ($slug === '') {
+            return null;
+        }
+        $map = $this->loadTimelineDepartmentSlugToIdMap();
+
+        return $map[$slug] ?? null;
+    }
+
+    public function getDepartmentNameById(int $id): ?string
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT name FROM adms_departments WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? (string) $row['name'] : null;
+    }
+
+    /**
+     * @param array<int> $ids
+     * @return array<int, string> id => nome
+     */
+    public function getDepartmentNamesByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($v) => $v > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT id, name FROM adms_departments WHERE id IN ($placeholders)";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($ids);
+        $map = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $map[(int) $row['id']] = (string) $row['name'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Departamentos para autocomplete de menção (@depto-id).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchDepartmentsForTimelineMention(string $q, int $limit = 8): array
+    {
+        $limit = max(0, min(20, $limit));
+        if ($limit === 0) {
+            return [];
+        }
+        $q = trim($q);
+        try {
+            if ($q === '') {
+                $sql = 'SELECT id, name FROM adms_departments ORDER BY name ASC LIMIT ' . (int) $limit;
+                $rows = $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            } else {
+                $like = '%' . $q . '%';
+                $sql = 'SELECT id, name FROM adms_departments WHERE name LIKE :q ORDER BY name ASC LIMIT ' . (int) $limit;
+                $stmt = $this->getConnection()->prepare($sql);
+                $stmt->execute([':q' => $like]);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao buscar departamentos para menção na timeline.', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+        $out = [];
+        foreach ($rows as $row) {
+            $did = (int) ($row['id'] ?? 0);
+            if ($did <= 0) {
+                continue;
+            }
+            $name = (string) ($row['name'] ?? '');
+            $slug = $this->timelineDepartmentSlugFromName($name);
+            if ($slug === '') {
+                $slug = 'depto-' . $did;
+            }
+            $out[] = [
+                'id' => 0,
+                'name' => $name,
+                'email' => '',
+                'username' => $slug,
+                'image' => null,
+                'mention_department' => true,
+                'department_id' => $did,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Busca rápida de colaboradores para autocomplete de menções na timeline (por username).
      *
-     * @return array<int, array{id:int, name:string, email:string, username:string, image:?string}>
+     * @return array<int, array<string, mixed>>
      */
     public function searchUsersForTimeline(string $q, int $limit = 12): array
     {
@@ -1906,9 +2129,17 @@ class UsersRepository extends DbConnection
             }
         }
 
-        $slot = $limit - count($mentionAllRows);
-        if ($slot < 1) {
+        $afterPrefix = $limit - count($mentionAllRows);
+        if ($afterPrefix < 1) {
             return $mentionAllRows;
+        }
+
+        $deptLimit = min(8, max(0, (int) ceil($afterPrefix / 2)));
+        $deptRows = $this->searchDepartmentsForTimelineMention($q, $deptLimit);
+
+        $slot = $limit - count($mentionAllRows) - count($deptRows);
+        if ($slot < 1) {
+            return array_merge($mentionAllRows, $deptRows);
         }
 
         if ($q === '') {
@@ -1929,7 +2160,7 @@ class UsersRepository extends DbConnection
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
-        return array_merge($mentionAllRows, $rows);
+        return array_merge($mentionAllRows, $deptRows, $rows);
     }
 
     /**

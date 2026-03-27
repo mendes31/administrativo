@@ -7,8 +7,8 @@ namespace App\adms\Helpers;
 use App\adms\Models\Repository\UsersRepository;
 
 /**
- * Menções no formato @username (texto) e @123 (legado). IDs são persistidos em adms_timeline_mentions.
- * @todos / @everyone mencionam todos os colaboradores ativos (exceto o autor da ação).
+ * Menções: @username, @123 (legado), @todos / @everyone, departamento por @depto-{id} ou slug (ex.: @financeiro).
+ * IDs são persistidos em adms_timeline_mentions.
  */
 final class TimelineMentionHelper
 {
@@ -16,19 +16,20 @@ final class TimelineMentionHelper
     private const EVERYONE_TOKENS = ['todos', 'everyone'];
 
     /**
-     * Extrai IDs de usuários mencionados: @137 (legado), @username, e @todos/@everyone (todos ativos exceto $excludeActorId).
+     * Extrai IDs de usuários mencionados: @137 (legado), @username, @todos/@everyone, menções por departamento.
      *
-     * @param bool $expandEveryone Quando false, @todos/@everyone não geram lista de IDs (ex.: mapa de nomes na view).
+     * @param bool $expandGroupMentions Quando false, @todos, @everyone e @depto-id não geram lista de IDs (ex.: mapa na view).
      * @return array<int>
      */
     public static function extractMentionedUserIds(
         string $text,
         UsersRepository $repo,
         ?int $excludeActorId = null,
-        bool $expandEveryone = true
+        bool $expandGroupMentions = true
     ): array {
         $ids = [];
         $hasEveryoneToken = false;
+        $departmentIds = [];
 
         if (preg_match_all('/@(\d+)/u', $text, $m)) {
             foreach ($m[1] as $d) {
@@ -46,16 +47,27 @@ final class TimelineMentionHelper
 
                     continue;
                 }
-                $id = $repo->findIdByUsernameExact($tok);
-                if ($id !== null) {
-                    $ids[] = $id;
+                $userId = $repo->findIdByUsernameExact($tok);
+                if ($userId !== null) {
+                    $ids[] = $userId;
+
+                    continue;
+                }
+                $depId = $repo->resolveTimelineDepartmentMention($tok);
+                if ($depId !== null && $depId > 0) {
+                    $departmentIds[] = $depId;
                 }
             }
         }
 
-        if ($expandEveryone && $hasEveryoneToken) {
-            $exclude = $excludeActorId ?? 0;
+        $exclude = $excludeActorId ?? 0;
+        if ($expandGroupMentions && $hasEveryoneToken) {
             $ids = array_merge($ids, $repo->getAllActiveUserIdsForTimelineMentions($exclude));
+        }
+        if ($expandGroupMentions && $departmentIds !== []) {
+            foreach (array_unique($departmentIds) as $did) {
+                $ids = array_merge($ids, $repo->getActiveUserIdsByDepartmentForTimelineMentions((int) $did, $exclude));
+            }
         }
 
         return array_values(array_unique(array_filter($ids, static fn ($v) => $v > 0)));
@@ -68,6 +80,24 @@ final class TimelineMentionHelper
     {
         $text = TextEncodingHelper::decodeEntities($text);
         $urlAdm = rtrim($urlAdm, '/') . '/';
+
+        $deptNameMap = [];
+        if (preg_match_all('/@([a-zA-Z0-9._-]+)/u', $text, $dm)) {
+            $depIds = [];
+            foreach ($dm[1] as $tok) {
+                if (ctype_digit($tok)) {
+                    continue;
+                }
+                $i = $users->resolveTimelineDepartmentMention($tok);
+                if ($i !== null && $i > 0) {
+                    $depIds[] = $i;
+                }
+            }
+            if ($depIds !== []) {
+                $deptNameMap = $users->getDepartmentNamesByIds(array_values(array_unique($depIds)));
+            }
+        }
+
         $parts = preg_split('/(@\d+|@[a-zA-Z0-9._-]+)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
         if ($parts === false) {
             return TextEncodingHelper::escape($text);
@@ -99,9 +129,20 @@ final class TimelineMentionHelper
                     $safeUser = TextEncodingHelper::escape($uname);
                     $safeUrl = TextEncodingHelper::escape($urlAdm . 'view-user/' . $id);
                     $out .= '<a href="' . $safeUrl . '" class="timeline-mention">@' . $safeUser . '</a>';
-                } else {
-                    $out .= nl2br(TextEncodingHelper::escape($part));
+                    continue;
                 }
+                $depId = $users->resolveTimelineDepartmentMention($uname);
+                if ($depId !== null && $depId > 0) {
+                    $dname = $deptNameMap[$depId] ?? null;
+                    if ($dname !== null && $dname !== '') {
+                        $title = TextEncodingHelper::escape('@' . $uname);
+                        $out .= '<span class="timeline-mention timeline-mention-dept" title="' . $title . '">@' . TextEncodingHelper::escape($dname) . '</span>';
+                    } else {
+                        $out .= nl2br(TextEncodingHelper::escape($part));
+                    }
+                    continue;
+                }
+                $out .= nl2br(TextEncodingHelper::escape($part));
                 continue;
             }
             $out .= nl2br(TextEncodingHelper::escape($part));
