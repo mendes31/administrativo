@@ -37,9 +37,13 @@
     transition: box-shadow 0.25s ease, outline-color 0.25s ease;
 }
 .timeline-post-header {
-    display: flex;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
     gap: 0.75rem;
+}
+.timeline-post-header > .flex-grow-1 {
+    min-width: 0;
 }
 .timeline-post-header-actions {
     margin-left: auto;
@@ -289,6 +293,17 @@ video.timeline-post-media {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+.timeline-action-bar .timeline-curtir-main,
+.timeline-action-bar .btn-timeline-comments-toggle,
+.timeline-action-bar .btn-timeline-report,
+.timeline-action-bar .timeline-reaction-fb-more {
+    height: 36px !important;
+    min-height: 36px !important;
+    line-height: 1.1;
+}
+.timeline-action-bar .btn-timeline-comments-toggle {
+    white-space: nowrap;
 }
 .timeline-action-bar .timeline-reaction-fb-more {
     width: 32px;
