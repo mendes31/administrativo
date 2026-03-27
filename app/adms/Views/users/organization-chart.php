@@ -466,6 +466,28 @@
             box-shadow: none;
             border: 1px solid #eef1f4;
         }
+        /* Mais espaço para lideranças; menos para departamento — reduz scroll horizontal na tabela */
+        .org-ranking-col-leaders {
+            min-width: 0;
+        }
+        .org-ranking-col-leaders .table-responsive {
+            overflow-x: visible;
+        }
+        @media (max-width: 991.98px) {
+            .org-ranking-col-leaders .table-responsive {
+                overflow-x: auto;
+            }
+        }
+        .org-ranking-leaders-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .org-ranking-leaders-table th,
+        .org-ranking-leaders-table td {
+            vertical-align: middle;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
 
         @media print {
             .no-print {
@@ -540,9 +562,9 @@
             ?>
             <!-- Rankings: departamento + lideranças (área com scroll) -->
             <div class="org-ranking-panel mb-4">
-            <div class="row org-ranking-section">
-                <div class="col-lg-6 mb-3 mb-lg-0">
-                    <div class="card border-0 shadow-sm">
+            <div class="row org-ranking-section g-2 g-lg-3">
+                <div class="col-12 col-md-5 col-lg-4 mb-3 mb-lg-0 org-ranking-col-dept">
+                    <div class="card border-0 shadow-sm h-100">
                         <div class="card-header bg-white border-bottom py-3">
                             <h2 class="h6 mb-1"><i class="fas fa-building me-2 text-success"></i>Ranking por departamento</h2>
                             <p class="small text-muted mb-0">Colaboradores ativos por departamento (do maior para o menor).</p>
@@ -575,8 +597,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
+                <div class="col-12 col-md-7 col-lg-8 org-ranking-col-leaders">
+                    <div class="card border-0 shadow-sm h-100">
                         <div class="card-header bg-white border-bottom py-3">
                             <h2 class="h6 mb-1"><i class="fas fa-user-tie me-2 text-primary"></i>Ranking de lideranças</h2>
                             <p class="small text-muted mb-0">
