@@ -232,14 +232,29 @@ class OrganizationChart
     }
     
     /**
-     * Rankings: colaboradores por departamento (maior → menor) e por nível hierárquico.
+     * Conta subordinados diretos e indiretos sob um gestor (árvore completa abaixo dele).
+     */
+    private function countDescendantsTotal(array $allUsers, int $managerId): int
+    {
+        $n = 0;
+        foreach ($allUsers as $u) {
+            if ((int)($u['immediate_supervisor_id'] ?? 0) === $managerId) {
+                $n += 1 + $this->countDescendantsTotal($allUsers, (int)$u['id']);
+            }
+        }
+
+        return $n;
+    }
+
+    /**
+     * Rankings: colaboradores por departamento e lideranças (gestores com equipe), por tamanho.
      *
-     * @return array{by_department: list<array{name: string, count: int, department_id: int}>, by_level: list<array{level: int, count: int}>}
+     * @return array{by_department: list<array{name: string, count: int, department_id: int}>, by_leadership: list<array{name: string, position_name: string, department_name: string, direct: int, total: int}>}
      */
     private function buildTeamRankings(array $allUsers): array
     {
         if ($allUsers === []) {
-            return ['by_department' => [], 'by_level' => []];
+            return ['by_department' => [], 'by_leadership' => []];
         }
 
         $deptMap = [];
@@ -264,27 +279,31 @@ class OrganizationChart
             return ($b['count'] <=> $a['count']) ?: strcasecmp($a['name'], $b['name']);
         });
 
-        $levelMap = [];
+        $byLeadership = [];
         foreach ($allUsers as $u) {
-            $lvl = $this->getUserLevel($allUsers, (int)$u['id']);
-            if (!isset($levelMap[$lvl])) {
-                $levelMap[$lvl] = 0;
+            $direct = (int)($u['direct_subordinates_count'] ?? 0);
+            if ($direct <= 0) {
+                continue;
             }
-            $levelMap[$lvl]++;
-        }
-        ksort($levelMap, SORT_NUMERIC);
-
-        $byLevel = [];
-        foreach ($levelMap as $lvl => $cnt) {
-            $byLevel[] = [
-                'level' => (int)$lvl,
-                'count' => (int)$cnt,
+            $uid = (int)$u['id'];
+            $byLeadership[] = [
+                'name' => (string)($u['name'] ?? ''),
+                'position_name' => trim((string)($u['position_name'] ?? '')),
+                'department_name' => trim((string)($u['department_name'] ?? '')),
+                'direct' => $direct,
+                'total' => $this->countDescendantsTotal($allUsers, $uid),
             ];
         }
 
+        usort($byLeadership, static function ($a, $b) {
+            return ($b['total'] <=> $a['total'])
+                ?: ($b['direct'] <=> $a['direct'])
+                ?: strcasecmp($a['name'], $b['name']);
+        });
+
         return [
             'by_department' => $byDepartment,
-            'by_level' => $byLevel,
+            'by_leadership' => $byLeadership,
         ];
     }
 
