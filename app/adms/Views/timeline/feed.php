@@ -1382,9 +1382,6 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 return navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
                     camStream = stream;
                     previewEl.srcObject = stream;
-                    if (previewEl && typeof previewEl.play === 'function') {
-                        previewEl.play().catch(function () { /* ignore */ });
-                    }
                     return stream;
                 }).catch(function (err) {
                     return tryNext(err);
@@ -1437,6 +1434,20 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             m.show();
         }
 
+        function handleLiveCameraFailure(err) {
+            var msg = getCameraErrorMessage(err);
+            console.warn('[TimelineCamera] Falha na prévia ao vivo:', {
+                name: err && err.name ? err.name : null,
+                message: err && err.message ? err.message : String(err || '')
+            });
+            setCameraHint(msg, true);
+            alert(msg + ' Vamos abrir a captura nativa do dispositivo.');
+            stopCameraTracks();
+            var mi = bootstrap.Modal.getInstance(modalCameraEl);
+            if (mi) mi.hide();
+            openCaptureWithFallback(capturePhotoIn, imgIn);
+        }
+
         function stopRecordingAndClose() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
@@ -1462,17 +1473,31 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             resetCameraUI();
             setCameraHint('Solicitando permissão para câmera...', false);
             ensureCameraStream()
-                .then(function () {
-                    setCameraHint('Câmera ativa. Escolha `Foto` ou `Vídeo` para capturar.', false);
+                .then(function (stream) {
+                    if (!previewEl || typeof previewEl.play !== 'function') {
+                        setCameraHint('Câmera ativa. Escolha `Foto` ou `Vídeo` para capturar.', false);
+                        return;
+                    }
+                    return previewEl.play().then(function () {
+                        setCameraHint('Câmera ativa. Escolha `Foto` ou `Vídeo` para capturar.', false);
+                    }).catch(function (playErr) {
+                        // Alguns navegadores falham ao iniciar o elemento de vídeo mesmo com stream válido.
+                        if (stream && stream.getTracks) {
+                            stream.getTracks().forEach(function (t) {
+                                try { t.stop(); } catch (e) { /* ignore */ }
+                            });
+                        }
+                        throw playErr;
+                    });
                 })
                 .catch(function (e) {
-                    var msg = getCameraErrorMessage(e);
-                    setCameraHint(msg, true);
-                    alert(msg + ' Vamos abrir a captura nativa do dispositivo.');
-                    var mi = bootstrap.Modal.getInstance(modalCameraEl);
-                    if (mi) mi.hide();
-                    openCaptureWithFallback(capturePhotoIn, imgIn);
+                    handleLiveCameraFailure(e);
                 });
+        });
+
+        previewEl.addEventListener('error', function () {
+            // Captura casos como "Could not start video source".
+            handleLiveCameraFailure(new Error('Could not start video source'));
         });
 
         modalCameraEl.addEventListener('hidden.bs.modal', function () {
