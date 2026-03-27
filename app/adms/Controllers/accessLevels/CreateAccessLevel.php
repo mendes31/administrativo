@@ -85,6 +85,10 @@ class CreateAccessLevel
      */
     private function addAccessLevel(): void
     {
+        if (isset($this->data['form']['name'])) {
+            $this->data['form']['name'] = trim((string) $this->data['form']['name']);
+        }
+
         // Instanciar a classe de validação dos dados do formulário
         $validationAccessLevel = new ValidationAccessLevelService();
         $this->data['errors'] = $validationAccessLevel->validate($this->data['form']);

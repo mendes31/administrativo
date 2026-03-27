@@ -51,7 +51,7 @@ class ValidationAccessLevelService
             'id:required' => 'Dados inválidos.',
             'id:integer' => 'Dados inválidos.',
             'name:required' => 'O campo nome é obrigatório.',
-            'email:uniqueInColumns' => 'Já existe um nível de acesso cadastrado com este nome.',
+            'name:uniqueInColumns' => 'Já existe um nível de acesso cadastrado com este nome.',
         ];
 
         // Criar o validador com os dados e regras fornecidos
