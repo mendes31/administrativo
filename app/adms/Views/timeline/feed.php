@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=13">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=14">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -481,6 +481,32 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         const d = document.createElement('div');
         d.textContent = s || '';
         return d.innerHTML;
+    }
+
+    function getUserAvatarPath(u) {
+        if (!u || !u.id) return 'users/icon_user.png';
+        var img = (u.image || '').trim();
+        if (!img || img === 'icon_user.png') return 'users/icon_user.png';
+        return 'users/' + encodeURIComponent(String(u.id)) + '/' + encodeURIComponent(img);
+    }
+
+    function getUserAvatarUrl(u) {
+        return base + 'serve-file?path=' + encodeURIComponent(getUserAvatarPath(u));
+    }
+
+    function renderUserSuggestionHtml(u) {
+        var username = escapeHtml(u && u.username ? u.username : '');
+        var name = escapeHtml(u && u.name ? u.name : '');
+        var email = escapeHtml(u && u.email ? u.email : '');
+        var avatarUrl = getUserAvatarUrl(u);
+        return '' +
+            '<span class="timeline-suggestion-avatar-wrap">' +
+            '<img src="' + avatarUrl + '" class="timeline-suggestion-avatar" alt="Avatar de @' + username + '">' +
+            '</span>' +
+            '<span class="timeline-suggestion-text-wrap">' +
+            '<span class="fw-semibold">@' + username + '</span>' +
+            '<span class="small text-muted d-block">' + name + (email ? ' · ' + email : '') + '</span>' +
+            '</span>';
     }
 
     var ajaxHeaders = {
@@ -1074,8 +1100,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         users.forEach(function (u) {
                             var b = document.createElement('button');
                             b.type = 'button';
-                            b.className = 'list-group-item list-group-item-action text-start';
-                            b.innerHTML = '<span class="fw-semibold">@' + escapeHtml(u.username || '') + '</span><br><span class="small text-muted">' + escapeHtml(u.name || '') + ' · ' + escapeHtml(u.email || '') + '</span>';
+                            b.className = 'list-group-item list-group-item-action text-start timeline-suggestion-item';
+                            b.innerHTML = renderUserSuggestionHtml(u);
                             b.onclick = function () {
                                 var username = u.username || '';
                                 var token = username ? '@' + username : '';
@@ -1136,8 +1162,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         data.users.forEach(function (u) {
                             const a = document.createElement('button');
                             a.type = 'button';
-                            a.className = 'list-group-item list-group-item-action text-start';
-                            a.innerHTML = '<span class="fw-semibold">@' + escapeHtml(u.username || '') + '</span><br><span class="small text-muted">' + escapeHtml(u.name || '') + ' · ' + escapeHtml(u.email || '') + '</span>';
+                            a.className = 'list-group-item list-group-item-action text-start timeline-suggestion-item';
+                            a.innerHTML = renderUserSuggestionHtml(u);
                             a.onclick = function () { appendMentionToComposer(u.username || String(u.id)); mentionSearch.value = ''; };
                             mentionResults.appendChild(a);
                         });
@@ -1190,9 +1216,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             mState.users.forEach(function (u, i) {
                 var b = document.createElement('button');
                 b.type = 'button';
-                b.className = 'timeline-mention-dropdown-item' + (i === mState.hi ? ' active' : '');
+                b.className = 'timeline-mention-dropdown-item timeline-suggestion-item' + (i === mState.hi ? ' active' : '');
                 b.setAttribute('role', 'option');
-                b.innerHTML = '<span class="fw-semibold">@' + escapeHtml(u.username || '') + '</span><span class="d-block small text-muted">' + escapeHtml(u.name || '') + ' · ' + escapeHtml(u.email || '') + '</span>';
+                b.innerHTML = renderUserSuggestionHtml(u);
                 b.onclick = function (ev) {
                     ev.preventDefault();
                     applyMentionPick(u);

@@ -1809,14 +1809,14 @@ class UsersRepository extends DbConnection
     /**
      * Busca rápida de colaboradores para autocomplete de menções na timeline (por username).
      *
-     * @return array<int, array{id:int, name:string, email:string, username:string}>
+     * @return array<int, array{id:int, name:string, email:string, username:string, image:?string}>
      */
     public function searchUsersForTimeline(string $q, int $limit = 12): array
     {
         $q = trim($q);
         $limit = max(1, min(30, $limit));
         if ($q === '') {
-            $sql = 'SELECT id, name, email, username FROM adms_users
+            $sql = 'SELECT id, name, email, username, image FROM adms_users
                     WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
                     ORDER BY username ASC
                     LIMIT ' . $limit;
@@ -1824,7 +1824,7 @@ class UsersRepository extends DbConnection
             return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
         $like = '%' . $q . '%';
-        $sql = 'SELECT id, name, email, username FROM adms_users
+        $sql = 'SELECT id, name, email, username, image FROM adms_users
                 WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
                   AND username LIKE :q
                 ORDER BY username ASC
