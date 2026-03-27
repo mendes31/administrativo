@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=18">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=20">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -802,6 +802,39 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     }
 
     bindPostActions();
+
+    function initPostReadMore() {
+        document.querySelectorAll('.timeline-post-body').forEach(function (wrap) {
+            var textEl = wrap.querySelector('.timeline-post-text');
+            var btn = wrap.querySelector('.timeline-post-readmore');
+            if (!textEl || !btn) return;
+
+            textEl.classList.add('timeline-post-text-collapsed');
+            btn.classList.add('d-none');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.textContent = 'Ler mais';
+
+            var maxCollapsedPx = window.matchMedia('(min-width: 768px)').matches ? 116 : 74;
+            if (textEl.scrollHeight <= maxCollapsedPx + 4) {
+                return;
+            }
+
+            btn.classList.remove('d-none');
+            btn.onclick = function () {
+                var expanded = btn.getAttribute('aria-expanded') === 'true';
+                if (expanded) {
+                    textEl.classList.add('timeline-post-text-collapsed');
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.textContent = 'Ler mais';
+                } else {
+                    textEl.classList.remove('timeline-post-text-collapsed');
+                    btn.setAttribute('aria-expanded', 'true');
+                    btn.textContent = 'Ler menos';
+                }
+            };
+        });
+    }
+    initPostReadMore();
 
     // Visualizador de fotos (ao clicar nas thumbs)
     var timelineViewerImages = [];
