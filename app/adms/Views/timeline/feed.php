@@ -1310,6 +1310,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     const btnCamOpen = document.getElementById('btnTimelineCamera');
     const capturePhotoIn = document.getElementById('timelineFileCapturePhoto');
     const captureVideoIn = document.getElementById('timelineFileCaptureVideo');
+    const cameraHintEl = document.getElementById('timelineCameraHint');
 
     if (modalCameraEl && previewEl && btnCamOpen && btnCamPhoto && btnCamVideo && btnCamStop && imgIn && vidIn && capturePhotoIn && captureVideoIn) {
         let camStream = null;
@@ -1333,17 +1334,65 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             if (btnCamPhoto) btnCamPhoto.disabled = false;
         }
 
+        function setCameraHint(message, isError) {
+            if (!cameraHintEl) return;
+            cameraHintEl.textContent = message || 'Escolha `Foto` ou `Vídeo` para capturar.';
+            cameraHintEl.classList.toggle('text-danger', !!isError);
+            cameraHintEl.classList.toggle('text-muted', !isError);
+        }
+
+        function getCameraErrorMessage(err) {
+            var name = (err && err.name) ? String(err.name) : '';
+            if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+                return 'Permissão da câmera negada. Libere a permissão do site nas configurações do navegador.';
+            }
+            if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+                return 'Nenhuma câmera foi encontrada neste dispositivo.';
+            }
+            if (name === 'NotReadableError' || name === 'TrackStartError') {
+                return 'A câmera está em uso por outro aplicativo.';
+            }
+            if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+                return 'Não foi possível atender à configuração de câmera solicitada.';
+            }
+            if (name === 'SecurityError') {
+                return 'Acesso bloqueado por política de segurança do navegador/servidor.';
+            }
+            return (err && err.message) ? err.message : 'Não foi possível acessar a câmera ao vivo.';
+        }
+
         function ensureCameraStream() {
             if (camStream) return Promise.resolve(camStream);
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 return Promise.reject(new Error('Seu navegador não suporta acesso à câmera.'));
             }
-            return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (stream) {
-                camStream = stream;
-                previewEl.srcObject = stream;
-                // Em alguns navegadores, apenas autoplay não inicia; como estamos com muted, o play geralmente é permitido.
-                if (previewEl && typeof previewEl.play === 'function') {
-                    previewEl.play().catch(function () { /* ignore */ });
+            // Alguns devices/navegadores falham com facingMode específico.
+            // Tentamos em cascata: traseira -> frontal -> qualquer câmera.
+            var attempts = [
+                { video: { facingMode: { ideal: 'environment' } }, audio: false },
+                { video: { facingMode: { ideal: 'user' } }, audio: false },
+                { video: true, audio: false }
+            ];
+            var i = 0;
+            function tryNext(lastErr) {
+                if (i >= attempts.length) {
+                    return Promise.reject(lastErr || new Error('Não foi possível iniciar a câmera.'));
+                }
+                var constraints = attempts[i++];
+                return navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+                    camStream = stream;
+                    previewEl.srcObject = stream;
+                    if (previewEl && typeof previewEl.play === 'function') {
+                        previewEl.play().catch(function () { /* ignore */ });
+                    }
+                    return stream;
+                }).catch(function (err) {
+                    return tryNext(err);
+                });
+            }
+            return tryNext(null).then(function (stream) {
+                if (!stream || !stream.getVideoTracks || !stream.getVideoTracks().length) {
+                    throw new Error('A câmera não retornou trilha de vídeo.');
                 }
                 return stream;
             });
@@ -1400,7 +1449,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 
         btnCamOpen.addEventListener('click', function () {
             resetCameraUI();
+            setCameraHint('Preparando câmera...', false);
             if (!isSecureCameraContext() || !canUseLiveCamera()) {
+                setCameraHint('Prévia ao vivo indisponível neste contexto. Abrindo captura nativa...', true);
                 openNativeCaptureFallback('photo');
                 return;
             }
@@ -1409,14 +1460,18 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 
         modalCameraEl.addEventListener('shown.bs.modal', function () {
             resetCameraUI();
+            setCameraHint('Solicitando permissão para câmera...', false);
             ensureCameraStream()
                 .then(function () {
-                    // nada: a prévia já deve estar rodando
+                    setCameraHint('Câmera ativa. Escolha `Foto` ou `Vídeo` para capturar.', false);
                 })
                 .catch(function (e) {
-                    alert(e && e.message ? e.message : 'Não foi possível acessar a câmera ao vivo. Verifique permissões e, em rede local, prefira HTTPS para prévia em tempo real.');
+                    var msg = getCameraErrorMessage(e);
+                    setCameraHint(msg, true);
+                    alert(msg + ' Vamos abrir a captura nativa do dispositivo.');
                     var mi = bootstrap.Modal.getInstance(modalCameraEl);
                     if (mi) mi.hide();
+                    openCaptureWithFallback(capturePhotoIn, imgIn);
                 });
         });
 
@@ -1434,6 +1489,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             }
             resetCameraUI();
             stopCameraTracks();
+            setCameraHint('Escolha `Foto` ou `Vídeo` para capturar.', false);
         });
 
         btnCamPhoto.addEventListener('click', function () {
@@ -1492,6 +1548,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             btnCamStop.classList.remove('d-none');
             btnCamVideo.disabled = true;
             btnCamPhoto.disabled = true;
+            setCameraHint('Gravando vídeo... toque em "Parar" para finalizar.', false);
 
             mediaRecorder.ondataavailable = function (e) {
                 if (e.data && e.data.size) mediaChunks.push(e.data);
@@ -1511,6 +1568,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 
                 resetCameraUI();
                 stopCameraTracks();
+                setCameraHint('Vídeo capturado com sucesso.', false);
                 var mi = bootstrap.Modal.getInstance(modalCameraEl);
                 if (mi) mi.hide();
             };
