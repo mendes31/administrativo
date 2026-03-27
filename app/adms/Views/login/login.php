@@ -6,18 +6,109 @@ use App\adms\Helpers\CSRFHelper;
 // sem mais alterar o estado do botão.
 ?>
 
-<div class="col-lg-5">
-    <div class="card shadow-lg border-0 rounded-lg mt-5">
+<style>
+    .login-app-shell {
+        width: 100%;
+        max-width: none;
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        padding: 1.2rem 0.6rem;
+        box-sizing: border-box;
+        display: grid;
+        place-items: center;
+        /* Opção B: gradiente em tons de verde (mais leve no rodapé) */
+        background: linear-gradient(180deg, #0a5b30 0%, #18914a 38%, #e9fff4 100%);
+    }
 
-        <div class="text-center mt-4">
-                            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/logo/Logo-Tiaraju.png" alt="Logo Tiaraju" style="max-width: 200px;">
+    .login-app-card {
+        border: 0;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 14px 38px rgba(16, 24, 40, 0.16);
+        background: #fff;
+        width: 100%;
+        max-width: 460px;
+    }
+
+    .login-app-brand {
+        padding: 1.4rem 1.2rem 1rem;
+        text-align: center;
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbf9 100%);
+        border-bottom: 1px solid #e8edf3;
+    }
+
+    .login-app-logo {
+        width: min(240px, 72%);
+        height: auto;
+    }
+
+    .login-app-title {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #1f2937;
+        letter-spacing: -0.02em;
+    }
+
+    .login-app-subtitle {
+        margin-top: 0.25rem;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+
+    .login-app-body {
+        padding: 1.15rem 1.2rem 1.1rem;
+    }
+
+    .login-app-body .form-floating > .form-control {
+        border-radius: 12px;
+        border-color: #d7dfeb;
+        box-shadow: none;
+    }
+
+    .login-app-body .form-floating > .form-control:focus {
+        border-color: #219150;
+        box-shadow: 0 0 0 0.18rem rgba(33, 145, 80, 0.16);
+    }
+
+    .login-app-footer {
+        padding: 0.85rem 1.2rem 1.1rem;
+        text-align: center;
+        border-top: 1px solid #e8edf3;
+        background: #fbfcfe;
+    }
+
+    .login-app-hint {
+        font-size: 0.82rem;
+    }
+
+    @media (max-width: 576px) {
+        .login-app-shell {
+            padding: 0.8rem 0.35rem;
+        }
+        .login-app-brand {
+            padding-top: 1rem;
+        }
+        .login-app-body {
+            padding: 0.95rem 0.85rem;
+        }
+        .login-app-footer {
+            padding: 0.75rem 0.85rem 0.95rem;
+        }
+    }
+</style>
+
+<div class="login-app-shell">
+    <div class="login-app-card">
+
+        <div class="login-app-brand">
+            <img src="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/logo/Logo-Tiaraju.png" alt="Logo Tiaraju" class="login-app-logo">
+            <h1 class="login-app-title mt-2">Acesso</h1>
+            <p class="login-app-subtitle">Entre com seu usuário corporativo</p>
         </div>
 
-        <div class="card-header">
-            <h3 class="text-center font-weight-light my-4">Login</h3>
-        </div>
-
-        <div class="card-body">
+        <div class="login-app-body">
             <?php if (!empty($_GET['msg'])): ?>
                 <div class="alert alert-warning" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>
@@ -76,14 +167,14 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>forgot-password" class="small text-decoration-none">Esqueceu a Senha?</a>
                     <!-- Botão para submeter o formulário -->
-                    <button type="submit" class="btn btn-primary btn-sm" id="btn-acessar">
+                    <button type="submit" class="btn btn-primary btn-sm px-3" id="btn-acessar">
                         <i class="fas fa-sign-in-alt me-2"></i>Acessar
                     </button>
                 </div>
                 
                 <!-- Instruções adicionais -->
                 <div class="text-center mt-3">
-                    <small class="text-muted">
+                    <small class="text-muted login-app-hint">
                         <i class="fas fa-info-circle me-1"></i>
                         Clique em "Acessar" para fazer login no sistema
                     </small>
@@ -92,7 +183,7 @@ use App\adms\Helpers\CSRFHelper;
 
         </div>
 
-        <div class="card-footer text-center py-3">
+        <div class="login-app-footer">
             <div class="small">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>new-user" class="text-decoration-none">Cadastrar</a>
             </div>
@@ -542,7 +633,7 @@ function showUserOptions(username) {
     // Criar div de opções
     const optionsDiv = document.createElement('div');
     optionsDiv.id = 'user-options';
-    optionsDiv.className = 'alert alert-info alert-dismissible fade show';
+    optionsDiv.className = 'alert alert-info alert-dismissible fade show user-options';
     optionsDiv.style.cssText = 'margin-top: 20px;';
     
     optionsDiv.innerHTML = `

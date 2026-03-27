@@ -1,4 +1,5 @@
 <div class="container-fluid px-4">
+    <?php include __DIR__ . '/../partials/alerts.php'; ?>
     <div class="row justify-content-center">
         <div class="col-12 col-lg-11">
             <div class="bg-success bg-gradient rounded-4 p-4 mb-4" style="margin-top: 2rem;">
@@ -10,6 +11,7 @@
     <div class="row justify-content-center mb-4">
         <div class="col-12 col-lg-10">
             <div class="row g-3 justify-content-center align-items-stretch dashboard-quick-row">
+                <?php if (!empty($this->data['show_informativos_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-informativos" class="text-decoration-none flex-fill h-100">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
@@ -18,9 +20,12 @@
                             </div>
                             <h5 class="fw-bold mb-1 text-center group-title">Informativos</h5>
                             <div class="text-muted mb-2 text-center" style="font-size: 1.1rem;"><?php echo $this->data['informativos_ativos'] ?? 0; ?> ativos</div>
+                            <div class="text-primary text-center small fw-semibold"><?php echo (int)($this->data['informativos_nao_lidos'] ?? 0); ?> não lidos</div>
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
+                <?php if (!empty($this->data['show_policies_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-policies" class="text-decoration-none flex-fill h-100">
                         <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: #fff7f7;">
@@ -31,10 +36,15 @@
                             <div class="text-danger mb-2 text-center" style="font-size: 1.1rem;">
                                 <?php echo $this->data['policies_ativas'] ?? 0; ?> ativas
                             </div>
+                            <div class="text-danger text-center small fw-semibold">
+                                <?php echo (int)($this->data['policies_nao_lidas'] ?? 0); ?> não lidas
+                            </div>
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
                 <?php $hasAniversarianteHoje = !empty($this->data['qtd_aniversariantes_dia']); ?>
+                <?php if (!empty($this->data['show_aniversariantes_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
                        class="text-decoration-none flex-fill h-100 <?php echo $hasAniversarianteHoje ? '' : 'birthday-card-disabled'; ?>"
@@ -66,6 +76,8 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
+                <?php if (!empty($this->data['show_tempo_empresa_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
                        class="text-decoration-none flex-fill h-100"
@@ -83,6 +95,48 @@
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
+            </div>
+            <div class="row g-3 justify-content-center align-items-stretch mt-1">
+                <?php if (!empty($this->data['show_timeline_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>timeline" class="text-decoration-none flex-fill h-100">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: linear-gradient(135deg, #f0f9ff 0%, #fff 100%);">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-stream fa-3x text-info"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Timeline</h5>
+                            <div class="text-muted mb-1 text-center small">Comunicação entre colaboradores</div>
+                            <div class="text-info text-center small fw-semibold"><?php echo (int)($this->data['timeline_notificacoes_nao_lidas'] ?? 0); ?> não lidas</div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($this->data['show_eventos_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="#"
+                       class="text-decoration-none flex-fill h-100"
+                       data-bs-toggle="modal"
+                       data-bs-target="#modalEventosMes"
+                       onclick="event.preventDefault();">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-calendar-alt fa-3x text-success"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Eventos</h5>
+                            <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
+                                <?php echo (int)($this->data['company_events_month_count'] ?? 0); ?> ativos neste mês
+                            </div>
+                            <div class="text-muted text-center small fw-semibold">
+                                <?php echo (int)($this->data['company_events_year_count'] ?? 0); ?> no ano
+                            </div>
+                            <div class="text-success text-center small fw-semibold">
+                                <?php echo (int)($this->data['company_events_unread_count'] ?? 0); ?> não lidos no ano
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -194,6 +248,8 @@
         </div>
     </div>
 
+    <?php include __DIR__ . '/partials/modal_eventos_mes.php'; ?>
+
     <!-- Modal de aniversariantes de empresa -->
     <div class="modal fade" id="modalAniversariantesEmpresa" tabindex="-1" aria-labelledby="modalAniversariantesEmpresaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
         <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-lg modal-dialog-centered">
@@ -275,6 +331,8 @@
             </div>
         </div>
     </div>
+    <?php // Seção temporariamente oculta para reduzir poluição visual no Dashboard. ?>
+    <?php if (false): ?>
     <!-- Informativos Recentes -->
     <div class="row justify-content-center">
         <div class="col-12 col-lg-10">
@@ -545,6 +603,7 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <style>

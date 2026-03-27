@@ -42,21 +42,24 @@ class ExtendSession
         $sessionsRepository = new AdmsSessionsRepository();
         $result = $sessionsRepository->updateSessionActivity($_SESSION['user_id'], $_SESSION['session_id']);
         
+        // Sempre atualiza atividade na sessão PHP para o cliente não receber 500 por falha pontual no BD
+        $_SESSION['last_activity'] = time();
+
         if ($result) {
-            // Atualizar timestamp da sessão local
-            $_SESSION['last_activity'] = time();
-            
             $this->sendJsonResponse([
                 'success' => true,
                 'message' => 'Sessão estendida com sucesso',
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
-        } else {
-            $this->sendJsonResponse([
-                'success' => false,
-                'message' => 'Erro ao estender sessão'
-            ], 500);
+            return;
         }
+
+        $this->sendJsonResponse([
+            'success' => true,
+            'message' => 'Atividade registrada localmente',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'best_effort' => true,
+        ]);
     }
 
     /**

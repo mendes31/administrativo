@@ -174,7 +174,22 @@ $menus = [
                 'label' => 'Informativos',
                 'url' => $_ENV['URL_ADM'] . 'list-informativos',
                 'permission' => 'ListInformativos'
-            ]
+            ],
+            [
+                'label' => 'Timeline',
+                'url' => $_ENV['URL_ADM'] . 'timeline',
+                'permission' => 'Timeline'
+            ],
+            [
+                'label' => 'Eventos corporativos',
+                'url' => $_ENV['URL_ADM'] . 'list-company-events',
+                'permission' => 'ListCompanyEvents'
+            ],
+            [
+                'label' => 'Moderação da timeline',
+                'url' => $_ENV['URL_ADM'] . 'timeline-moderate',
+                'permission' => 'TimelineModerate'
+            ],
         ]
     ],
     [

@@ -1782,5 +1782,102 @@ class UsersRepository extends DbConnection
         }
     }
 
+    /**
+     * Mapa id => nome para usuários ativos (timeline / menções).
+     *
+     * @param array<int> $ids
+     * @return array<int, string>
+     */
+    public function getIdNameMapForIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($v) => $v > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT id, name FROM adms_users WHERE id IN ($placeholders) AND status = 'Ativo'";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($ids);
+        $map = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $map[(int)$row['id']] = (string)$row['name'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Busca rápida de colaboradores para autocomplete de menções na timeline (por username).
+     *
+     * @return array<int, array{id:int, name:string, email:string, username:string}>
+     */
+    public function searchUsersForTimeline(string $q, int $limit = 12): array
+    {
+        $q = trim($q);
+        $limit = max(1, min(30, $limit));
+        if ($q === '') {
+            $sql = 'SELECT id, name, email, username FROM adms_users
+                    WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
+                    ORDER BY username ASC
+                    LIMIT ' . $limit;
+
+            return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+        $like = '%' . $q . '%';
+        $sql = 'SELECT id, name, email, username FROM adms_users
+                WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
+                  AND username LIKE :q
+                ORDER BY username ASC
+                LIMIT ' . $limit;
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':q' => $like]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Resolve menção @username (correspondência exata, usuário ativo).
+     */
+    public function findIdByUsernameExact(string $username): ?int
+    {
+        $username = trim($username);
+        if ($username === '') {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT id FROM adms_users WHERE status = "Ativo" AND username = :u LIMIT 1'
+        );
+        $stmt->execute([':u' => $username]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? (int) $row['id'] : null;
+    }
+
+    /**
+     * @param array<int, string> $usernames
+     * @return array<string, array{id:int, name:string, username:string}>
+     */
+    public function getActiveUsersByUsernames(array $usernames): array
+    {
+        $usernames = array_values(array_unique(array_filter(array_map('trim', $usernames), static fn ($u) => $u !== '')));
+        if ($usernames === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($usernames), '?' ));
+        $sql = "SELECT id, name, username FROM adms_users
+                WHERE status = 'Ativo' AND username IN ($placeholders)";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($usernames);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[(string) $row['username']] = [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+                'username' => (string) $row['username'],
+            ];
+        }
+
+        return $out;
+    }
 
 }

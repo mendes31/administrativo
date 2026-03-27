@@ -19,6 +19,9 @@ if (isset($_SESSION['msg']) && isset($_SESSION['msg_type'])) {
     $alertType = $_SESSION['msg_type'] === 'success' ? 'success' : 
                  ($_SESSION['msg_type'] === 'warning' ? 'warning' : 'danger');
     echo "<div class='alert alert-{$alertType}' role='alert'>{$_SESSION['msg']}</div>";
+} elseif (!empty($_SESSION['msg'])) {
+    // Fallback: só msg (ex.: fluxos antigos com HTML já formatado)
+    echo $_SESSION['msg'];
 }
 
 // Mensagem de aviso/warning (amarelo)

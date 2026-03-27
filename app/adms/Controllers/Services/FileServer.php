@@ -5,7 +5,7 @@ namespace App\adms\Controllers\Services;
 class FileServer
 {
     private array $allowedExtensions = [
-        'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip', 'rar'
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip', 'rar'
     ];
     
     private string $uploadBasePath = 'public/adms/uploads/';
@@ -84,6 +84,8 @@ class FileServer
             'png' => 'image/png',
             'gif' => 'image/gif',
             'webp' => 'image/webp',
+            'mp4' => 'video/mp4',
+            'webm' => 'video/webm',
             'pdf' => 'application/pdf',
             'doc' => 'application/msword',
             'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -128,9 +130,12 @@ class FileServer
         }
 
         if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
-            // Para outros arquivos, forçar download
-            $disposition = ($extension === 'pdf') ? 'inline' : 'attachment';
-            header('Content-Disposition: ' . $disposition . '; filename="' . basename($fullPath) . '"');
+            // PDF e vídeos curtos da timeline: inline no navegador; demais: download
+            if ($extension === 'pdf' || in_array($extension, ['mp4', 'webm'], true)) {
+                header('Content-Disposition: inline; filename="' . basename($fullPath) . '"');
+            } else {
+                header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
+            }
         }
 
         // Limpar buffers antes de enviar arquivo binário
