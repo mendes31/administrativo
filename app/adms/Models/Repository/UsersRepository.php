@@ -1818,6 +1818,41 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * IDs de colaboradores ativos para menção @todos (exclui o autor e o login técnico do organograma).
+     *
+     * @return array<int>
+     */
+    public function getAllActiveUserIdsForTimelineMentions(int $excludeUserId): array
+    {
+        try {
+            $sql = 'SELECT u.id FROM adms_users u
+                    WHERE u.status = "Ativo"
+                      AND (u.data_desligamento IS NULL OR u.data_desligamento = "0000-00-00")
+                      AND LOWER(TRIM(u.username)) <> LOWER(:excl)';
+            $params = [':excl' => self::ORGCHART_EXCLUDED_USERNAME];
+            if ($excludeUserId > 0) {
+                $sql .= ' AND u.id <> :uid';
+                $params[':uid'] = $excludeUserId;
+            }
+            $sql .= ' ORDER BY u.id ASC';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute($params);
+            $ids = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $ids[] = (int)$row['id'];
+            }
+
+            return $ids;
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao listar IDs para menção @todos na timeline.', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
      * Busca rápida de colaboradores para autocomplete de menções na timeline (por username).
      *
      * @return array<int, array{id:int, name:string, email:string, username:string, image:?string}>
@@ -1826,24 +1861,75 @@ class UsersRepository extends DbConnection
     {
         $q = trim($q);
         $limit = max(1, min(30, $limit));
+        $lower = mb_strtolower($q, 'UTF-8');
+
+        $mentionAllRows = [];
+        if ($q === '') {
+            $mentionAllRows[] = [
+                'id' => 0,
+                'name' => 'Todos os colaboradores',
+                'email' => '',
+                'username' => 'todos',
+                'image' => null,
+                'mention_all' => true,
+            ];
+            if ($limit >= 2) {
+                $mentionAllRows[] = [
+                    'id' => 0,
+                    'name' => 'Todos (everyone)',
+                    'email' => '',
+                    'username' => 'everyone',
+                    'image' => null,
+                    'mention_all' => true,
+                ];
+            }
+        } else {
+            if (str_starts_with('todos', $lower)) {
+                $mentionAllRows[] = [
+                    'id' => 0,
+                    'name' => 'Todos os colaboradores',
+                    'email' => '',
+                    'username' => 'todos',
+                    'image' => null,
+                    'mention_all' => true,
+                ];
+            }
+            if (str_starts_with('everyone', $lower)) {
+                $mentionAllRows[] = [
+                    'id' => 0,
+                    'name' => 'Todos os colaboradores',
+                    'email' => '',
+                    'username' => 'everyone',
+                    'image' => null,
+                    'mention_all' => true,
+                ];
+            }
+        }
+
+        $slot = $limit - count($mentionAllRows);
+        if ($slot < 1) {
+            return $mentionAllRows;
+        }
+
         if ($q === '') {
             $sql = 'SELECT id, name, email, username, image FROM adms_users
                     WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
                     ORDER BY username ASC
-                    LIMIT ' . $limit;
-
-            return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                    LIMIT ' . (int) $slot;
+            $rows = $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } else {
+            $like = '%' . $q . '%';
+            $sql = 'SELECT id, name, email, username, image FROM adms_users
+                    WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
+                      AND username LIKE :q
+                    ORDER BY username ASC
+                    LIMIT ' . (int) $slot;
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute([':q' => $like]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
-        $like = '%' . $q . '%';
-        $sql = 'SELECT id, name, email, username, image FROM adms_users
-                WHERE status = "Ativo" AND username IS NOT NULL AND username != ""
-                  AND username LIKE :q
-                ORDER BY username ASC
-                LIMIT ' . $limit;
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute([':q' => $like]);
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_merge($mentionAllRows, $rows);
     }
 
     /**

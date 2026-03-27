@@ -58,7 +58,7 @@ class Timeline
         foreach ($this->data['posts'] as $p) {
             $mentionIds = array_merge(
                 $mentionIds,
-                TimelineMentionHelper::extractMentionedUserIds((string)($p['content'] ?? ''), $userRepo)
+                TimelineMentionHelper::extractMentionedUserIds((string)($p['content'] ?? ''), $userRepo, null, false)
             );
         }
         $mentionIds = array_values(array_unique($mentionIds));

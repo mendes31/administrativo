@@ -96,14 +96,14 @@ class CreateTimelinePost
         }
 
         $repo = new TimelineRepository();
-        $postId = $repo->createPost((int)$_SESSION['user_id'], $content !== '' ? $content : ' ', $imagePaths, $videoPath);
+        $authorId = (int)($_SESSION['user_id'] ?? 0);
+        $postId = $repo->createPost($authorId, $content !== '' ? $content : ' ', $imagePaths, $videoPath);
 
-        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo);
+        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo, $authorId);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('post', $postId, $validIds);
 
         // Notifica usuários mencionados no post.
-        $authorId = (int)($_SESSION['user_id'] ?? 0);
         $authorName = (string)($_SESSION['user_name'] ?? 'Alguém');
         if ($validIds !== []) {
             $notifRepo = new NotificationsRepository();

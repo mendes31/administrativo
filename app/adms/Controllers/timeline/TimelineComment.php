@@ -76,12 +76,12 @@ class TimelineComment
             echo json_encode(['success' => false, 'message' => 'Erro ao comentar']);
             return;
         }
-        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($text, $userRepo);
+        $actorId = (int)($_SESSION['user_id'] ?? 0);
+        $actorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($text, $userRepo, $actorId);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('comment', $cid, $validIds);
 
-        $actorId = (int)($_SESSION['user_id'] ?? 0);
-        $actorName = (string)($_SESSION['user_name'] ?? 'Alguém');
         $notifRepo = new NotificationsRepository();
         $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 
@@ -129,7 +129,7 @@ class TimelineComment
         foreach ($comments as $c) {
             $allIds = array_merge(
                 $allIds,
-                TimelineMentionHelper::extractMentionedUserIds((string)($c['content'] ?? ''), $userRepo)
+                TimelineMentionHelper::extractMentionedUserIds((string)($c['content'] ?? ''), $userRepo, null, false)
             );
         }
         $allIds = array_values(array_unique($allIds));

@@ -8,17 +8,28 @@ use App\adms\Models\Repository\UsersRepository;
 
 /**
  * Menções no formato @username (texto) e @123 (legado). IDs são persistidos em adms_timeline_mentions.
+ * @todos / @everyone mencionam todos os colaboradores ativos (exceto o autor da ação).
  */
 final class TimelineMentionHelper
 {
+    /** Tokens que expandem para todos os usuários (comparação sem acento de maiúsculas). */
+    private const EVERYONE_TOKENS = ['todos', 'everyone'];
+
     /**
-     * Extrai IDs de usuários mencionados: @137 (legado) e @username (correspondência exata ao campo username).
+     * Extrai IDs de usuários mencionados: @137 (legado), @username, e @todos/@everyone (todos ativos exceto $excludeActorId).
      *
+     * @param bool $expandEveryone Quando false, @todos/@everyone não geram lista de IDs (ex.: mapa de nomes na view).
      * @return array<int>
      */
-    public static function extractMentionedUserIds(string $text, UsersRepository $repo): array
-    {
+    public static function extractMentionedUserIds(
+        string $text,
+        UsersRepository $repo,
+        ?int $excludeActorId = null,
+        bool $expandEveryone = true
+    ): array {
         $ids = [];
+        $hasEveryoneToken = false;
+
         if (preg_match_all('/@(\d+)/u', $text, $m)) {
             foreach ($m[1] as $d) {
                 $ids[] = (int) $d;
@@ -29,11 +40,22 @@ final class TimelineMentionHelper
                 if (ctype_digit($tok)) {
                     continue;
                 }
+                $lower = strtolower($tok);
+                if (in_array($lower, self::EVERYONE_TOKENS, true)) {
+                    $hasEveryoneToken = true;
+
+                    continue;
+                }
                 $id = $repo->findIdByUsernameExact($tok);
                 if ($id !== null) {
                     $ids[] = $id;
                 }
             }
+        }
+
+        if ($expandEveryone && $hasEveryoneToken) {
+            $exclude = $excludeActorId ?? 0;
+            $ids = array_merge($ids, $repo->getAllActiveUserIdsForTimelineMentions($exclude));
         }
 
         return array_values(array_unique(array_filter($ids, static fn ($v) => $v > 0)));
@@ -65,6 +87,12 @@ final class TimelineMentionHelper
             }
             if (preg_match('/^@([a-zA-Z0-9._-]+)$/', $part, $mm) && !ctype_digit($mm[1])) {
                 $uname = $mm[1];
+                $lower = strtolower($uname);
+                if (in_array($lower, self::EVERYONE_TOKENS, true)) {
+                    $display = $lower === 'everyone' ? 'everyone' : 'todos';
+                    $out .= '<span class="timeline-mention timeline-mention-everyone">@' . TextEncodingHelper::escape($display) . '</span>';
+                    continue;
+                }
                 $map = $users->getActiveUsersByUsernames([$uname]);
                 if (isset($map[$uname])) {
                     $id = $map[$uname]['id'];

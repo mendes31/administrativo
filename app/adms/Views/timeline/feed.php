@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=21">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=22">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -109,7 +109,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         <input type="file" id="timelineFileCapturePhoto" class="visually-hidden" accept="image/*" capture="environment" tabindex="-1">
                         <input type="file" id="timelineFileCaptureVideo" class="visually-hidden" accept="video/*" capture="environment" tabindex="-1">
                         <div class="timeline-composer-meta d-flex justify-content-between align-items-center gap-2 mt-1 px-1">
-                            <span id="timelineComposerCharHint" class="small text-muted text-truncate d-none d-md-inline mb-0">Menções: <code>@</code> + username</span>
+                            <span id="timelineComposerCharHint" class="small text-muted text-truncate d-none d-md-inline mb-0">Menções: <code>@</code> username, <code>@todos</code> ou <code>@everyone</code></span>
                             <span class="small text-muted ms-auto"><strong><span id="timelineComposerCharLeft">2000</span></strong> restantes</span>
                         </div>
                     </form>
@@ -158,7 +158,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     <ul class="small text-muted ps-3 mb-0">
                         <li class="mb-2">Respeite o ambiente corporativo.</li>
                         <li class="mb-2">Comunicados oficiais continuam em <a href="<?php echo htmlspecialchars($urlAdm); ?>list-informativos">Informativos</a>.</li>
-                        <li class="mb-2">Menções: <code>@</code> + <strong>username</strong> (autocomplete por login); vídeos curtos por arquivo ou pela câmera.</li>
+                        <li class="mb-2">Menções: <code>@username</code>, <code>@todos</code> ou <code>@everyone</code> (todos os colaboradores); vídeos curtos por arquivo ou pela câmera.</li>
                     </ul>
                 </div>
             </div>
@@ -276,7 +276,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                           placeholder="Texto da publicação"
                           autocomplete="off"
                           maxlength="2000"></textarea>
-                <p class="small text-muted mt-2 mb-0">Menções: use <code>@username</code>. Mídia não é alterada por aqui.</p>
+                <p class="small text-muted mt-2 mb-0">Menções: <code>@username</code>, <code>@todos</code> ou <code>@everyone</code>. Mídia não é alterada por aqui.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -499,6 +499,18 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     }
 
     function renderUserSuggestionHtml(u) {
+        if (u && u.mention_all) {
+            var username = escapeHtml(u.username || '');
+            var name = escapeHtml(u.name || '');
+            return '' +
+                '<span class="timeline-suggestion-avatar-wrap timeline-suggestion-mention-all-wrap">' +
+                '<span class="timeline-suggestion-mention-all-icon" aria-hidden="true"><i class="fas fa-users"></i></span>' +
+                '</span>' +
+                '<span class="timeline-suggestion-text-wrap">' +
+                '<span class="fw-semibold">@' + username + '</span>' +
+                '<span class="small text-muted d-block">' + name + '</span>' +
+                '</span>';
+        }
         var username = escapeHtml(u && u.username ? u.username : '');
         var name = escapeHtml(u && u.name ? u.name : '');
         var email = escapeHtml(u && u.email ? u.email : '');

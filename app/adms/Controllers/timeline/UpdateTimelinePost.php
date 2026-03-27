@@ -73,7 +73,7 @@ class UpdateTimelinePost
 
         $userRepo = new UsersRepository();
         $beforeMentionIds = $repo->getMentionedUserIds('post', $postId);
-        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo);
+        $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo, $uid);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('post', $postId, $validIds);
 
