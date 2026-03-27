@@ -16,22 +16,17 @@ class CreateTimelinePost
     public function index(string|int|null $routeParam = null): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-            header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-            exit;
+            $this->failAndExit('Requisição inválida.', 'error');
         }
 
         $permRepo = new ButtonPermissionUserRepository();
         $perms = $permRepo->buttonPermission(['CreateTimelinePost']);
         if (!is_array($perms) || !in_array('CreateTimelinePost', $perms, true)) {
-            $_SESSION['error'] = 'Sem permissão para publicar na timeline.';
-            header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-            exit;
+            $this->failAndExit('Sem permissão para publicar na timeline.', 'error');
         }
 
         if (!CSRFHelper::validateCSRFToken('timeline_create_post', $_POST['csrf_token'] ?? '')) {
-            $_SESSION['error'] = 'Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.';
-            header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-            exit;
+            $this->failAndExit('Token CSRF inválido ou sessão expirou. Atualize a página e tente novamente.', 'error');
         }
 
         $userRepo = new UsersRepository();
@@ -39,7 +34,12 @@ class CreateTimelinePost
         $imagePaths = null; // array<string>
         $videoPath = null;
 
-        $videoProvided = !empty($_FILES['video']['tmp_name']) && (int)($_FILES['video']['error'] ?? 0) === UPLOAD_ERR_OK;
+        $videoFile = (isset($_FILES['video']) && is_array($_FILES['video'])) ? $_FILES['video'] : null;
+        $videoErrorCode = (int)($videoFile['error'] ?? UPLOAD_ERR_NO_FILE);
+        $videoProvided = !empty($videoFile['tmp_name']) && $videoErrorCode === UPLOAD_ERR_OK;
+        if ($videoErrorCode !== UPLOAD_ERR_NO_FILE && !$videoProvided) {
+            $this->failAndExit($this->mapUploadErrorToMessage($videoErrorCode), 'msg_warning');
+        }
         // Suporta tanto campo `images[]` quanto `image` com multiple.
         $imagesProvided = false;
         $uploadedImageFiles = [];
@@ -55,42 +55,33 @@ class CreateTimelinePost
         }
 
         if ($videoProvided && $imagesProvided && $uploadedImageFiles !== []) {
-            $_SESSION['msg_warning'] = 'Não é permitido enviar vídeo e fotos no mesmo post.';
-            header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-            exit;
+            $this->failAndExit('Não é permitido enviar vídeo e fotos no mesmo post.', 'msg_warning');
         }
 
         if ($videoProvided) {
-            $videoPath = $this->uploadVideo($_FILES['video']);
+            $videoError = null;
+            $videoPath = $this->uploadVideo($videoFile, $videoError);
             if ($videoPath === null) {
-                $_SESSION['msg_warning'] = 'Vídeo inválido (use MP4 ou WebM, máx. 50MB).';
-                header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-                exit;
+                $this->failAndExit($videoError ?? 'Vídeo inválido (use MP4 ou WebM, máx. 50MB).', 'msg_warning');
             }
         } elseif ($imagesProvided && $uploadedImageFiles !== []) {
             $maxPhotos = 6;
             if (count($uploadedImageFiles) > $maxPhotos) {
-                $_SESSION['msg_warning'] = 'Você pode enviar até ' . $maxPhotos . ' fotos por post.';
-                header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-                exit;
+                $this->failAndExit('Você pode enviar até ' . $maxPhotos . ' fotos por post.', 'msg_warning');
             }
 
             $imagePaths = [];
             foreach ($uploadedImageFiles as $file) {
                 $img = $this->uploadImage($file);
                 if ($img === null) {
-                    $_SESSION['msg_warning'] = 'Não foi possível salvar uma das imagens. Verifique o formato/tamanho e tente novamente.';
-                    header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-                    exit;
+                    $this->failAndExit('Não foi possível salvar uma das imagens. Verifique o formato/tamanho e tente novamente.', 'msg_warning');
                 }
                 $imagePaths[] = $img;
             }
         }
 
         if ($content === '' && ($imagePaths === null || $imagePaths === []) && $videoPath === null) {
-            $_SESSION['msg_warning'] = 'Escreva algo ou anexe uma imagem ou vídeo.';
-            header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-            exit;
+            $this->failAndExit('Escreva algo ou anexe uma imagem ou vídeo.', 'msg_warning');
         }
 
         $repo = new TimelineRepository();
@@ -123,9 +114,7 @@ class CreateTimelinePost
             }
         }
 
-        $_SESSION['success'] = 'Publicação enviada.';
-        header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
-        exit;
+        $this->successAndExit('Publicação enviada.');
     }
 
     private function uploadImage(array $file): ?string
@@ -193,13 +182,15 @@ class CreateTimelinePost
         return $out;
     }
 
-    private function uploadVideo(array $file): ?string
+    private function uploadVideo(array $file, ?string &$errorMessage = null): ?string
     {
         if ((int)($file['error'] ?? 0) !== UPLOAD_ERR_OK) {
+            $errorMessage = $this->mapUploadErrorToMessage((int)($file['error'] ?? UPLOAD_ERR_NO_FILE));
             return null;
         }
         $tmp = (string)($file['tmp_name'] ?? '');
         if ($tmp === '' || !is_readable($tmp)) {
+            $errorMessage = 'Não foi possível ler o arquivo de vídeo enviado.';
             return null;
         }
         $basePath = dirname(__DIR__, 4);
@@ -210,14 +201,17 @@ class CreateTimelinePost
         }
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, ['mp4', 'webm'], true)) {
+            $errorMessage = 'Formato de vídeo não suportado. Use MP4 ou WebM.';
             return null;
         }
-        if ($file['size'] > 50 * 1024 * 1024) {
+        if ((int)($file['size'] ?? 0) > 50 * 1024 * 1024) {
+            $errorMessage = 'Vídeo muito grande. Limite de 50MB.';
             return null;
         }
         $filename = uniqid('tlv_', true) . '.' . $ext;
         $pathFs = $uploadDir . $filename;
         if (!$this->moveUploadedOrCopy($tmp, $pathFs)) {
+            $errorMessage = 'Falha ao salvar o vídeo no servidor.';
             return null;
         }
 
@@ -238,5 +232,55 @@ class CreateTimelinePost
         @unlink($tmpName);
 
         return true;
+    }
+
+    private function isAjaxRequest(): bool
+    {
+        $requestedWith = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+        $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
+        return $requestedWith === 'xmlhttprequest' || str_contains($accept, 'application/json');
+    }
+
+    private function mapUploadErrorToMessage(int $errorCode): string
+    {
+        return match ($errorCode) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Vídeo excede o limite de upload do servidor/formulário.',
+            UPLOAD_ERR_PARTIAL => 'Upload do vídeo foi interrompido. Tente novamente.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Servidor sem pasta temporária para upload.',
+            UPLOAD_ERR_CANT_WRITE => 'Servidor não conseguiu gravar o vídeo em disco.',
+            UPLOAD_ERR_EXTENSION => 'Upload bloqueado por extensão do PHP no servidor.',
+            default => 'Falha no upload do vídeo. Tente novamente.',
+        };
+    }
+
+    private function failAndExit(string $message, string $sessionKey = 'msg_warning'): void
+    {
+        $_SESSION[$sessionKey] = $message;
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'message' => $message,
+            ]);
+            exit;
+        }
+        header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
+        exit;
+    }
+
+    private function successAndExit(string $message): void
+    {
+        $_SESSION['success'] = $message;
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => true,
+                'message' => $message,
+                'redirect' => rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/timeline',
+            ]);
+            exit;
+        }
+        header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
+        exit;
     }
 }

@@ -1730,6 +1730,14 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     if (composerForm) {
         composerForm.addEventListener('submit', function (ev) {
             ev.preventDefault();
+            var maxVideoBytes = 50 * 1024 * 1024;
+            if (vidIn && vidIn.files && vidIn.files.length) {
+                var videoFile = vidIn.files[0];
+                if (videoFile && videoFile.size > maxVideoBytes) {
+                    alert('Vídeo muito grande. Limite de 50MB. Grave um vídeo mais curto e tente novamente.');
+                    return;
+                }
+            }
             const submitBtns = composerForm.querySelectorAll('button[type="submit"]');
             submitBtns.forEach(function (b) { b.disabled = true; });
             const fd = new FormData(composerForm);
