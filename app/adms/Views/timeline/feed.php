@@ -109,7 +109,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                         <input type="file" id="timelineFileCapturePhoto" class="visually-hidden" accept="image/*" capture="environment" tabindex="-1">
                         <input type="file" id="timelineFileCaptureVideo" class="visually-hidden" accept="video/*" capture="environment" tabindex="-1">
                         <div class="timeline-composer-meta d-flex justify-content-between align-items-center gap-2 mt-1 px-1">
-                            <span id="timelineComposerCharHint" class="small text-muted text-truncate d-none d-md-inline mb-0">Menções: <code>@</code> username, <code>@todos</code>, <code>@everyone</code> ou <code>@depto-ID</code></span>
+                            <span id="timelineComposerCharHint" class="small text-muted text-truncate d-none d-md-inline mb-0">Menções: <code>@</code> username, <code>@todos</code>, <code>@everyone</code> ou <code>@nome-do-departamento</code> (ex.: <code>@financeiro</code>)</span>
                             <span class="small text-muted ms-auto"><strong><span id="timelineComposerCharLeft">2000</span></strong> restantes</span>
                         </div>
                     </form>
@@ -158,7 +158,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     <ul class="small text-muted ps-3 mb-0">
                         <li class="mb-2">Respeite o ambiente corporativo.</li>
                         <li class="mb-2">Comunicados oficiais continuam em <a href="<?php echo htmlspecialchars($urlAdm); ?>list-informativos">Informativos</a>.</li>
-                        <li class="mb-2">Menções: <code>@username</code>, <code>@todos</code>, <code>@everyone</code> ou <code>@depto-</code> + id do departamento (lista no autocomplete); vídeos curtos por arquivo ou pela câmera.</li>
+                        <li class="mb-2">Menções: <code>@username</code>, <code>@todos</code>, <code>@everyone</code> ou <code>@nome-do-departamento</code> (slug do nome no cadastro, ex.: <code>@financeiro</code> — use o autocomplete); vídeos curtos por arquivo ou pela câmera.</li>
                     </ul>
                 </div>
             </div>
@@ -276,7 +276,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                           placeholder="Texto da publicação"
                           autocomplete="off"
                           maxlength="2000"></textarea>
-                <p class="small text-muted mt-2 mb-0">Menções: <code>@username</code>, <code>@todos</code>, <code>@everyone</code> ou <code>@depto-ID</code>. Mídia não é alterada por aqui.</p>
+                <p class="small text-muted mt-2 mb-0">Menções: <code>@username</code>, <code>@todos</code>, <code>@everyone</code> ou <code>@nome-do-departamento</code> (ex.: <code>@financeiro</code>). Mídia não é alterada por aqui.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
