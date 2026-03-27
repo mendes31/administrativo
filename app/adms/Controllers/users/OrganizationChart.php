@@ -96,6 +96,8 @@ class OrganizationChart
         // Níveis hierárquicos ainda são calculados em PHP a partir da árvore atual
         $stats['total_levels'] = $this->countLevels($allUsers);
         $this->data['stats'] = $stats;
+
+        $this->data['team_rankings'] = $this->buildTeamRankings($allUsers);
         
         // Filtro por departamento (opcional)
         $filters = [
@@ -229,6 +231,63 @@ class OrganizationChart
         return $largest;
     }
     
+    /**
+     * Rankings: colaboradores por departamento (maior → menor) e por nível hierárquico.
+     *
+     * @return array{by_department: list<array{name: string, count: int, department_id: int}>, by_level: list<array{level: int, count: int}>}
+     */
+    private function buildTeamRankings(array $allUsers): array
+    {
+        if ($allUsers === []) {
+            return ['by_department' => [], 'by_level' => []];
+        }
+
+        $deptMap = [];
+        foreach ($allUsers as $u) {
+            $did = (int)($u['user_department_id'] ?? 0);
+            $dname = trim((string)($u['department_name'] ?? ''));
+            if ($dname === '') {
+                $dname = '—';
+            }
+            if (!isset($deptMap[$did])) {
+                $deptMap[$did] = [
+                    'department_id' => $did,
+                    'name' => $dname,
+                    'count' => 0,
+                ];
+            }
+            $deptMap[$did]['count']++;
+        }
+
+        $byDepartment = array_values($deptMap);
+        usort($byDepartment, static function ($a, $b) {
+            return ($b['count'] <=> $a['count']) ?: strcasecmp($a['name'], $b['name']);
+        });
+
+        $levelMap = [];
+        foreach ($allUsers as $u) {
+            $lvl = $this->getUserLevel($allUsers, (int)$u['id']);
+            if (!isset($levelMap[$lvl])) {
+                $levelMap[$lvl] = 0;
+            }
+            $levelMap[$lvl]++;
+        }
+        ksort($levelMap, SORT_NUMERIC);
+
+        $byLevel = [];
+        foreach ($levelMap as $lvl => $cnt) {
+            $byLevel[] = [
+                'level' => (int)$lvl,
+                'count' => (int)$cnt,
+            ];
+        }
+
+        return [
+            'by_department' => $byDepartment,
+            'by_level' => $byLevel,
+        ];
+    }
+
     /**
      * Obter lista de departamentos
      */

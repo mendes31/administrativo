@@ -426,6 +426,42 @@
             margin-right: 5px;
         }
         
+        .org-ranking-section .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .org-ranking-section .table th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #495057;
+        }
+        .org-ranking-section .rank-pos {
+            font-weight: 700;
+            color: #2E9263;
+            width: 2.5rem;
+        }
+
+        /* Painel único com rolagem vertical — não empurra o organograma para baixo */
+        .org-ranking-panel {
+            max-height: clamp(220px, 36vh, 380px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.75rem 0.85rem 0.65rem;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            -webkit-overflow-scrolling: touch;
+        }
+        .org-ranking-panel .org-ranking-section {
+            margin-bottom: 0 !important;
+        }
+        .org-ranking-panel .card {
+            box-shadow: none;
+            border: 1px solid #eef1f4;
+        }
+
         @media print {
             .no-print {
                 display: none;
@@ -433,6 +469,12 @@
             
             .org-chart-container {
                 background: white;
+            }
+
+            .org-ranking-panel {
+                max-height: none !important;
+                overflow: visible !important;
+                box-shadow: none;
             }
         }
     </style>
@@ -485,7 +527,88 @@
                     </div>
                 </div>
             </div>
-            
+
+            <?php
+            $teamRank = $this->data['team_rankings'] ?? ['by_department' => [], 'by_level' => []];
+            $rankDept = $teamRank['by_department'] ?? [];
+            $rankLevel = $teamRank['by_level'] ?? [];
+            ?>
+            <!-- Rankings: equipe por departamento e por nível hierárquico (área com scroll) -->
+            <div class="org-ranking-panel mb-4">
+            <div class="row org-ranking-section">
+                <div class="col-lg-6 mb-3 mb-lg-0">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h2 class="h6 mb-1"><i class="fas fa-building me-2 text-success"></i>Ranking por departamento</h2>
+                            <p class="small text-muted mb-0">Colaboradores ativos por departamento (do maior para o menor).</p>
+                        </div>
+                        <div class="card-body p-0">
+                            <?php if (empty($rankDept)): ?>
+                                <p class="text-muted small p-3 mb-0">Nenhum dado para exibir.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0 align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th scope="col" class="border-0">#</th>
+                                                <th scope="col" class="border-0">Departamento</th>
+                                                <th scope="col" class="border-0 text-end">Colaboradores</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($rankDept as $i => $row): ?>
+                                                <tr>
+                                                    <td class="rank-pos"><?= $i + 1 ?></td>
+                                                    <td><?= htmlspecialchars($row['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                    <td class="text-end fw-semibold"><?= (int)($row['count'] ?? 0) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h2 class="h6 mb-1"><i class="fas fa-layer-group me-2 text-primary"></i>Por nível hierárquico</h2>
+                            <p class="small text-muted mb-0">Nível 1 = topo (ex.: direção); níveis seguintes = distância na cadeia até o topo.</p>
+                        </div>
+                        <div class="card-body p-0">
+                            <?php if (empty($rankLevel)): ?>
+                                <p class="text-muted small p-3 mb-0">Nenhum dado para exibir.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0 align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th scope="col" class="border-0">Nível</th>
+                                                <th scope="col" class="border-0 text-end">Colaboradores</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($rankLevel as $row): ?>
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                                            Nível <?= (int)($row['level'] ?? 0) ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-end fw-semibold"><?= (int)($row['count'] ?? 0) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
             <!-- Legenda -->
             <div class="legend no-print">
                 <strong><i class="fas fa-info-circle me-2"></i>Legenda:</strong>
