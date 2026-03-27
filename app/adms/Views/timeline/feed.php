@@ -201,6 +201,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 <div class="text-muted small mt-2" id="timelineCameraHint">Escolha `Foto` ou `Vídeo` para capturar.</div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary d-none" id="btnTimelineCameraSwitch">Usar frontal</button>
                 <button type="button" class="btn btn-outline-secondary" id="btnTimelineCameraPhoto">Foto</button>
                 <button type="button" class="btn btn-outline-secondary" id="btnTimelineCameraVideo">Vídeo</button>
                 <button type="button" class="btn btn-danger d-none" id="btnTimelineCameraStop">Parar</button>
@@ -1333,6 +1334,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     const btnCamPhoto = document.getElementById('btnTimelineCameraPhoto');
     const btnCamVideo = document.getElementById('btnTimelineCameraVideo');
     const btnCamStop = document.getElementById('btnTimelineCameraStop');
+    const btnCamSwitch = document.getElementById('btnTimelineCameraSwitch');
     const btnCamOpen = document.getElementById('btnTimelineCamera');
     const capturePhotoIn = document.getElementById('timelineFileCapturePhoto');
     const captureVideoIn = document.getElementById('timelineFileCaptureVideo');
@@ -1344,6 +1346,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         let mediaChunks = [];
         let stopTimer = null;
         let isRecording = false;
+        let preferredFacingMode = 'environment';
+        let availableVideoInputs = 0;
 
         function hasUsableVideoTrack(stream) {
             if (!stream || !stream.getVideoTracks) return false;
@@ -1380,6 +1384,36 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             if (btnCamStop) btnCamStop.classList.add('d-none');
             if (btnCamVideo) btnCamVideo.disabled = false;
             if (btnCamPhoto) btnCamPhoto.disabled = false;
+            if (btnCamSwitch) btnCamSwitch.disabled = false;
+        }
+
+        function updateSwitchCameraButton() {
+            if (!btnCamSwitch) return;
+            var canSwitch = canUseLiveCamera() && availableVideoInputs > 1;
+            if (!canSwitch) {
+                btnCamSwitch.classList.add('d-none');
+                return;
+            }
+            var nextFacing = preferredFacingMode === 'user' ? 'environment' : 'user';
+            btnCamSwitch.textContent = nextFacing === 'user' ? 'Usar frontal' : 'Usar traseira';
+            btnCamSwitch.classList.remove('d-none');
+        }
+
+        function refreshAvailableCameras() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                availableVideoInputs = 0;
+                updateSwitchCameraButton();
+                return Promise.resolve();
+            }
+            return navigator.mediaDevices.enumerateDevices()
+                .then(function (devices) {
+                    availableVideoInputs = (devices || []).filter(function (d) { return d && d.kind === 'videoinput'; }).length;
+                    updateSwitchCameraButton();
+                })
+                .catch(function () {
+                    availableVideoInputs = 0;
+                    updateSwitchCameraButton();
+                });
         }
 
         function setCameraHint(message, isError) {
@@ -1420,10 +1454,11 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 return Promise.reject(new Error('Seu navegador não suporta acesso à câmera.'));
             }
             // Alguns devices/navegadores falham com facingMode específico.
-            // Tentamos em cascata: traseira -> frontal -> qualquer câmera.
+            // Tentamos em cascata: preferência atual -> alternativo -> qualquer câmera.
+            var altFacing = preferredFacingMode === 'user' ? 'environment' : 'user';
             var attempts = [
-                { video: { facingMode: { ideal: 'environment' } }, audio: false },
-                { video: { facingMode: { ideal: 'user' } }, audio: false },
+                { video: { facingMode: { ideal: preferredFacingMode } }, audio: false },
+                { video: { facingMode: { ideal: altFacing } }, audio: false },
                 { video: true, audio: false }
             ];
             var i = 0;
@@ -1435,6 +1470,14 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 return navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
                     camStream = stream;
                     previewEl.srcObject = stream;
+                    var tracks = stream.getVideoTracks ? stream.getVideoTracks() : [];
+                    if (tracks.length && tracks[0].getSettings) {
+                        var fm = tracks[0].getSettings().facingMode;
+                        if (fm === 'user' || fm === 'environment') {
+                            preferredFacingMode = fm;
+                        }
+                    }
+                    updateSwitchCameraButton();
                     return stream;
                 }).catch(function (err) {
                     return tryNext(err);
@@ -1531,6 +1574,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             setCameraHint('Solicitando permissão para câmera...', false);
             ensureCameraStream()
                 .then(function (stream) {
+                    return refreshAvailableCameras().then(function () { return stream; });
+                })
+                .then(function (stream) {
                     if (!previewEl || typeof previewEl.play !== 'function') {
                         setCameraHint('Câmera ativa. Escolha `Foto` ou `Vídeo` para capturar.', false);
                         return;
@@ -1568,6 +1614,33 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     handleLiveCameraFailure(e);
                 });
         });
+
+        if (btnCamSwitch) {
+            btnCamSwitch.addEventListener('click', function () {
+                if (isRecording) {
+                    return;
+                }
+                btnCamSwitch.disabled = true;
+                preferredFacingMode = preferredFacingMode === 'user' ? 'environment' : 'user';
+                stopCameraTracks();
+                setCameraHint('Alternando câmera...', false);
+                ensureCameraStream()
+                    .then(function () {
+                        if (previewEl && typeof previewEl.play === 'function') {
+                            return previewEl.play().catch(function () { /* ignore */ });
+                        }
+                    })
+                    .then(function () {
+                        setCameraHint('Câmera ativa. Escolha `Foto` ou `Vídeo` para capturar.', false);
+                    })
+                    .catch(function (e) {
+                        handleLiveCameraFailure(e);
+                    })
+                    .finally(function () {
+                        btnCamSwitch.disabled = false;
+                    });
+            });
+        }
 
         previewEl.addEventListener('error', function () {
             // Captura casos como "Could not start video source".
