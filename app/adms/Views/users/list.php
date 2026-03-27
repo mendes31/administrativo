@@ -155,16 +155,16 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <thead>
                             <tr>
                                 <th scope="col" style="width: 4%;">ID</th>
-                                <th scope="col" style="width: 18%;">Nome</th>
-                                <!-- E-mail: só a partir de xl; Usuário: a partir de lg (desktop estreito prioriza Ações) -->
-                                <th scope="col" style="width: 16%;" class="d-none d-xl-table-cell">E-mail</th>
-                                <th scope="col" style="width: 10%;" class="d-none d-lg-table-cell">Usuário</th>
-                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Departamento</th>
-                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Cargo</th>
+                                <th scope="col" style="width: min(28%, 220px);">Nome</th>
+                                <!-- Colunas extras em camadas (md→lg→xl→xxl) para caber com sidebar; Ações sempre visível -->
+                                <th scope="col" style="width: 16%;" class="d-none d-xxl-table-cell">E-mail</th>
+                                <th scope="col" style="width: 10%;" class="d-none d-xl-table-cell">Usuário</th>
+                                <th scope="col" style="width: 12%;" class="d-none d-lg-table-cell">Departamento</th>
+                                <th scope="col" style="width: 12%;" class="d-none d-xl-table-cell">Cargo</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Status</th>
-                                <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Bloqueado</th>
-                                <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Desligado</th>
-                                <th scope="col" style="width: 10%;" class="text-center">Ações</th>
+                                <th scope="col" style="width: 7%;" class="d-none d-lg-table-cell">Bloqueado</th>
+                                <th scope="col" style="width: 8%;" class="d-none d-xl-table-cell">Desligado</th>
+                                <th scope="col" class="text-center text-nowrap table-users-desktop-actions">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -181,17 +181,17 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                             <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
-                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
-                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
-                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
+                                    <td class="d-none d-xxl-table-cell text-truncate" title="<?= htmlspecialchars($email); ?>"><?= $email; ?></td>
+                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($username); ?>"><?= $username ?></td>
+                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
+                                    <td class="d-none d-xl-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
                                     <td class="d-none d-md-table-cell text-center">
                                         <span class="badge <?= $status === 'Ativo' ? 'bg-success' : 'bg-danger'; ?>"><?= $status ?></span>
                                     </td>
-                                    <td class="d-none d-md-table-cell text-center">
+                                    <td class="d-none d-lg-table-cell text-center">
                                         <span class="badge <?= $bloqueado === 'Sim' ? 'bg-danger' : 'bg-success'; ?>"><?= $bloqueado ?></span>
                                     </td>
-                                    <td class="d-none d-md-table-cell text-center">
+                                    <td class="d-none d-xl-table-cell text-center">
                                         <?php if ($isDesligado): ?>
                                             <span class="badge bg-danger" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>">
                                                 <i class="fas fa-user-slash me-1"></i>Sim
@@ -203,7 +203,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center table-users-desktop-actions">
                                         <div class="btn-group btn-group-sm" role="group">
                                             <?php
                                             if (in_array('ViewUser', $this->data['buttonPermission'])) {
@@ -411,16 +411,39 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     font-size: 0.875rem;
 }
 
-/* Scroll só se necessário após ocultar colunas (email < xl, usuário < lg) */
+/* Scroll horizontal só se ainda faltar espaço após ocultar colunas por breakpoint */
 .list-desktop.table-responsive {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Coluna Ações: não encolher demais */
-.table-users-desktop th:last-child,
-.table-users-desktop td:last-child {
+/* Ações: largura mínima + fixa à direita se houver scroll (menu lateral não é alterado) */
+.table-users-desktop th.table-users-desktop-actions,
+.table-users-desktop td.table-users-desktop-actions {
     width: 1%;
+    min-width: 108px;
     white-space: nowrap;
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background-color: var(--bs-body-bg, #fff);
+    box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.12);
+}
+
+.table-users-desktop.table-striped > tbody > tr:nth-of-type(odd) > td.table-users-desktop-actions {
+    background-color: var(--bs-table-striped-bg, rgba(0, 0, 0, 0.05));
+}
+
+.table-users-desktop.table-hover > tbody > tr:hover > td.table-users-desktop-actions {
+    background-color: var(--bs-table-hover-bg, rgba(0, 0, 0, 0.075));
+}
+
+.table-users-desktop tbody tr.table-danger > td.table-users-desktop-actions {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+}
+
+.table-users-desktop.table-hover > tbody > tr.table-danger:hover > td.table-users-desktop-actions {
+    background-color: #f1c2cb;
 }
 
 /* Responsividade para telas médias */
