@@ -138,14 +138,14 @@ final class TimelineMentionHelper
                         $title = TextEncodingHelper::escape('@' . $uname);
                         $out .= '<span class="timeline-mention timeline-mention-dept" title="' . $title . '">@' . TextEncodingHelper::escape($dname) . '</span>';
                     } else {
-                        $out .= nl2br(TextEncodingHelper::escape($part));
+                        $out .= TimelineHashtagHelper::renderWithLinks($part, $urlAdm);
                     }
                     continue;
                 }
-                $out .= nl2br(TextEncodingHelper::escape($part));
+                $out .= TimelineHashtagHelper::renderWithLinks($part, $urlAdm);
                 continue;
             }
-            $out .= nl2br(TextEncodingHelper::escape($part));
+            $out .= TimelineHashtagHelper::renderWithLinks($part, $urlAdm);
         }
 
         return $out;

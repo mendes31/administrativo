@@ -76,6 +76,7 @@ class UpdateTimelinePost
         $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo, $uid);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('post', $postId, $validIds);
+        $repo->syncPostTags($postId, $content);
 
         // Notifica somente novos mencionados após edição.
         $newMentionIds = array_values(array_diff($validIds, $beforeMentionIds));

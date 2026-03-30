@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 
@@ -14,6 +15,14 @@ class TimelineLike
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Não autenticado']);
+            return;
+        }
+        $permRepo = new ButtonPermissionUserRepository();
+        $perms = $permRepo->buttonPermission(['TimelineLike']);
+        $canLike = is_array($perms) && in_array('TimelineLike', $perms, true);
+        if (!$canLike) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Sem permissão para reagir a publicações.']);
             return;
         }
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {

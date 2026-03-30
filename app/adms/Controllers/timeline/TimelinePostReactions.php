@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\timeline;
 
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\TimelineRepository;
 
 class TimelinePostReactions
@@ -14,6 +15,14 @@ class TimelinePostReactions
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Não autenticado']);
+            return;
+        }
+        $permRepo = new ButtonPermissionUserRepository();
+        $perms = $permRepo->buttonPermission(['TimelinePostReactions']);
+        $canViewReactions = is_array($perms) && in_array('TimelinePostReactions', $perms, true);
+        if (!$canViewReactions) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Sem permissão para visualizar reações.']);
             return;
         }
         $postId = (int)($id ?? $_GET['post_id'] ?? 0);

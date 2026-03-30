@@ -10,7 +10,7 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=23">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=29">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -35,6 +35,8 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 <div class="card-body py-2 px-3">
                     <form method="post" action="<?php echo htmlspecialchars($urlAdm); ?>create-timeline-post" enctype="multipart/form-data" class="timeline-composer-form" id="timelineComposerForm" novalidate>
                         <input type="hidden" name="csrf_token" id="timelineComposerCsrfToken" value="<?php echo htmlspecialchars($csrfCreate); ?>">
+                        <input type="hidden" name="shared_from_post_id" id="timelineComposerSharedFromPostId" value="">
+                        <input type="hidden" name="post_type" id="timelineComposerPostType" value="regular">
                         <div id="timelineComposerCreateHead" class="timeline-composer-create-head d-none mb-2 pb-2 border-bottom">
                             <div class="d-flex align-items-center justify-content-between gap-2">
                                 <div class="d-flex flex-column min-w-0">
@@ -73,9 +75,47 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                             <button type="button" class="timeline-composer-icon-btn timeline-composer-icon-mention" id="btnTimelineMention" data-bs-toggle="modal" data-bs-target="#modalTimelineMention" title="Mencionar" aria-label="Mencionar colaborador">
                                 <i class="fas fa-at" aria-hidden="true"></i>
                             </button>
+                            <button type="button" class="timeline-composer-icon-btn" id="btnTimelinePoll" title="Criar enquete" aria-label="Criar enquete">
+                                <i class="fas fa-poll-h" aria-hidden="true"></i>
+                            </button>
                             <button type="submit" class="timeline-composer-submit ms-auto" id="timelineComposerSubmitIcon" title="Publicar" aria-label="Publicar">
                                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
                             </button>
+                        </div>
+                        <div id="timelineComposerPollBlock" class="timeline-poll-editor d-none mt-2 border rounded p-2 bg-light-subtle">
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                <div class="small fw-semibold mb-0"><i class="fas fa-poll-h me-1"></i>Nova enquete</div>
+                                <button type="button" class="btn btn-link btn-sm text-danger p-0" id="timelineComposerPollClear">Remover enquete</button>
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm" name="poll_question" id="timelinePollQuestion" placeholder="Pergunta da enquete">
+                            </div>
+                            <div id="timelinePollOptionsWrap" class="d-flex flex-column gap-1 mb-2">
+                                <input type="text" class="form-control form-control-sm" name="poll_options[]" placeholder="Opção 1">
+                                <input type="text" class="form-control form-control-sm" name="poll_options[]" placeholder="Opção 2">
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" id="timelinePollAddOption">+ opção</button>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label small mb-1">Início (opcional)</label>
+                                    <input type="datetime-local" class="form-control form-control-sm" name="poll_starts_at" id="timelinePollStartsAt">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small mb-1">Encerramento</label>
+                                    <input type="datetime-local" class="form-control form-control-sm" name="poll_ends_at" id="timelinePollEndsAt">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="timelineComposerSharePreview" class="timeline-share-preview d-none mt-2 p-2 border rounded bg-light-subtle">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div class="min-w-0">
+                                    <div class="small text-muted">Repostando publicação de <strong id="timelineComposerShareAuthor">-</strong></div>
+                                    <div class="small text-truncate" id="timelineComposerShareExcerpt">-</div>
+                                </div>
+                                <button type="button" class="btn btn-link btn-sm text-danger p-0" id="timelineComposerShareClear" title="Cancelar repost">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div id="timelineComposerMediaBlock" class="timeline-composer-media-block d-none mt-3">
                             <div class="timeline-composer-media-preview position-relative rounded overflow-hidden bg-light border">
@@ -143,6 +183,12 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 </div>
                 <div id="timelineSearchPeopleResults" class="list-group timeline-mention-results mt-2 d-none timeline-search-people-results" style="max-height: 220px; overflow-y: auto;"></div>
             </div>
+            <?php if (!empty($this->data['active_tag'])): ?>
+                <div class="alert alert-info py-2 px-3 small mb-3">
+                    Exibindo publicações com <strong>#<?php echo htmlspecialchars($this->data['active_tag']); ?></strong>.
+                    <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline" class="ms-2">Limpar filtro</a>
+                </div>
+            <?php endif; ?>
 
             <?php include __DIR__ . '/partials/feed_posts.php'; ?>
 
@@ -260,6 +306,23 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     </div>
 </div>
 
+<div class="modal fade" id="modalTimelinePollVotes" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Votos da enquete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <input type="text" class="form-control form-control-sm" id="timelinePollVotesSearch" placeholder="Buscar por nome ou @usuário">
+                </div>
+                <div id="timelinePollVotesBody" class="small text-muted">Carregando…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalTimelineEditPost" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -335,6 +398,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     const base = <?php echo json_encode($urlAdm); ?>;
     const canReport = <?php echo !empty($this->data['can_report']) ? 'true' : 'false'; ?>;
     const canCreate = <?php echo !empty($this->data['can_create']) ? 'true' : 'false'; ?>;
+    const canLike = <?php echo !empty($this->data['can_like']) ? 'true' : 'false'; ?>;
+    const pollStateMap = <?php echo json_encode($this->data['poll_map'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    let currentPollVotesPostId = '';
     let timelineEditCsrf = <?php echo json_encode($this->data['csrf_timeline_edit'] ?? ''); ?>;
     let timelineCommentCsrf = <?php echo json_encode($this->data['csrf_timeline_comment'] ?? ''); ?>;
     let timelineLikeCsrf = <?php echo json_encode($this->data['csrf_timeline_like'] ?? ''); ?>;
@@ -682,6 +748,47 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             }
         }
 
+        function openShareComposer(postId, author, contentB64) {
+            var taComposer = document.getElementById('timelineComposerText');
+            var inputShared = document.getElementById('timelineComposerSharedFromPostId');
+            var box = document.getElementById('timelineComposerSharePreview');
+            var elAuthor = document.getElementById('timelineComposerShareAuthor');
+            var elExcerpt = document.getElementById('timelineComposerShareExcerpt');
+            if (!inputShared || !box || !elAuthor || !elExcerpt || !postId) return;
+            var excerptRaw = (contentB64 ? b64ToUtf8(contentB64) : '').trim();
+            if (!excerptRaw) excerptRaw = 'Sem texto';
+            if (excerptRaw.length > 180) excerptRaw = excerptRaw.slice(0, 180) + '…';
+            inputShared.value = String(postId);
+            elAuthor.textContent = author || 'Usuário';
+            elExcerpt.textContent = excerptRaw;
+            box.classList.remove('d-none');
+            if (taComposer) {
+                taComposer.focus();
+                taComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function clearShareComposer() {
+            var inputShared = document.getElementById('timelineComposerSharedFromPostId');
+            var box = document.getElementById('timelineComposerSharePreview');
+            if (inputShared) inputShared.value = '';
+            if (box) box.classList.add('d-none');
+        }
+
+        var btnClearShare = document.getElementById('timelineComposerShareClear');
+        if (btnClearShare) {
+            btnClearShare.onclick = function () { clearShareComposer(); };
+        }
+
+        document.querySelectorAll('.btn-timeline-share').forEach(function (btn) {
+            btn.onclick = function () {
+                var postId = btn.getAttribute('data-post-id') || '';
+                var author = btn.getAttribute('data-post-author') || '';
+                var contentB64 = btn.getAttribute('data-post-content-b64') || '';
+                openShareComposer(postId, author, contentB64);
+            };
+        });
+
         document.querySelectorAll('.btn-timeline-edit-post').forEach(function (btn) {
             btn.onclick = function () {
                 var id = btn.getAttribute('data-post-id');
@@ -717,7 +824,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                             return sendEdit(triesLeft - 1);
                         }
                         if (data && data.success) {
-                            window.location.reload();
+                            window.location.href = base + 'timeline';
                         } else if (data && data.message) {
                             alert(data.message);
                         }
@@ -834,6 +941,146 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             };
         });
 
+        document.querySelectorAll('.timeline-poll-option-btn').forEach(function (btn) {
+            btn.onclick = function () {
+                if (btn.disabled) return;
+                var postId = btn.getAttribute('data-post-id');
+                var optionId = btn.getAttribute('data-option-id');
+                if (!postId || !optionId) return;
+                function sendVote(triesLeft) {
+                    const form = new FormData();
+                    form.append('post_id', postId);
+                    form.append('poll_option_id', optionId);
+                    form.append('csrf_token', timelineCommentCsrf);
+                    return fetchJson(base + 'timeline-comment/' + postId, { method: 'POST', body: form })
+                        .then(function (data) {
+                            if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                                timelineCommentCsrf = data.csrf_token;
+                                return sendVote(triesLeft - 1);
+                            }
+                            if (data && data.csrf_token) {
+                                timelineCommentCsrf = data.csrf_token;
+                            }
+                            if (data && data.success) {
+                                if (data.poll) {
+                                    updatePollUI(postId, data.poll);
+                                }
+                            } else if (data && data.message) {
+                                alert(data.message);
+                            }
+                        })
+                        .catch(function (err) {
+                            console.error(err);
+                            alert(err.message || 'Não foi possível registrar o voto.');
+                        });
+                }
+                sendVote(1);
+            };
+        });
+
+        document.querySelectorAll('.btn-poll-votes-open').forEach(function (btn) {
+            btn.onclick = function () {
+                var postId = String(btn.getAttribute('data-post-id') || '');
+                if (!postId) return;
+                currentPollVotesPostId = postId;
+                var poll = pollStateMap[postId] || null;
+                var body = document.getElementById('timelinePollVotesBody');
+                var search = document.getElementById('timelinePollVotesSearch');
+                if (search) search.value = '';
+                if (body) {
+                    body.innerHTML = buildPollVotesModalHtml(poll, '');
+                }
+                var mEl = document.getElementById('modalTimelinePollVotes');
+                if (mEl) {
+                    var m = bootstrap.Modal.getInstance(mEl) || new bootstrap.Modal(mEl);
+                    m.show();
+                }
+            };
+        });
+
+        var pollVotesSearch = document.getElementById('timelinePollVotesSearch');
+        if (pollVotesSearch) {
+            pollVotesSearch.addEventListener('input', function () {
+                if (!currentPollVotesPostId) return;
+                var poll = pollStateMap[currentPollVotesPostId] || null;
+                var body = document.getElementById('timelinePollVotesBody');
+                if (!body) return;
+                body.innerHTML = buildPollVotesModalHtml(poll, pollVotesSearch.value || '');
+            });
+        }
+
+        document.addEventListener('click', function (ev) {
+            var mainBtn = ev.target && ev.target.closest ? ev.target.closest('.timeline-comment-react-main') : null;
+            if (!mainBtn) return;
+            ev.preventDefault();
+            var cid = mainBtn.getAttribute('data-comment-id');
+            if (!cid) return;
+            var tray = document.querySelector('.timeline-comment-reaction-tray[data-comment-id="' + cid + '"]');
+            if (tray) tray.classList.toggle('d-none');
+        });
+
+        document.addEventListener('click', function (ev) {
+            var pick = ev.target && ev.target.closest ? ev.target.closest('.timeline-comment-reaction-pick') : null;
+            if (!pick) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            var cid = pick.getAttribute('data-comment-id');
+            var reaction = pick.getAttribute('data-reaction') || 'like';
+            if (!cid) return;
+            function sendCommentReaction(triesLeft) {
+                var form = new FormData();
+                form.append('comment_id', cid);
+                form.append('reaction', reaction);
+                form.append('csrf_token', timelineLikeCsrf);
+                return fetchJson(base + 'timeline-comment-like/' + cid, { method: 'POST', body: form })
+                    .then(function (data) {
+                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                            timelineLikeCsrf = data.csrf_token;
+                            return sendCommentReaction(triesLeft - 1);
+                        }
+                        if (data && data.csrf_token) {
+                            timelineLikeCsrf = data.csrf_token;
+                        }
+                        if (data && data.success) {
+                            updateCommentReactionUI(cid, data);
+                            var tray = document.querySelector('.timeline-comment-reaction-tray[data-comment-id="' + cid + '"]');
+                            if (tray) tray.classList.add('d-none');
+                        } else if (data && data.message) {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        alert(err.message || 'Não foi possível registrar a reação no comentário.');
+                    });
+            }
+            sendCommentReaction(1);
+        });
+
+        document.addEventListener('click', function (ev) {
+            var openBtn = ev.target && ev.target.closest ? ev.target.closest('.timeline-comment-reactions-open') : null;
+            if (!openBtn) return;
+            ev.preventDefault();
+            var cid = openBtn.getAttribute('data-comment-id');
+            if (!cid) return;
+            var panels = document.getElementById('timelineReactionsTabPanels');
+            if (panels) panels.innerHTML = '<p class="text-muted small mb-0 px-2">Carregando…</p>';
+            fetchJson(base + 'timeline-comment-like/' + cid, {})
+                .then(function (data) {
+                    if (!data || !data.success) return;
+                    buildReactionsModal(data.reactions || []);
+                    var mEl = document.getElementById('modalTimelineReactions');
+                    if (mEl) {
+                        var m = bootstrap.Modal.getInstance(mEl) || new bootstrap.Modal(mEl);
+                        m.show();
+                    }
+                })
+                .catch(function (err) {
+                    console.error(err);
+                    alert(err.message || 'Não foi possível carregar as reações do comentário.');
+                });
+        });
+
         document.querySelectorAll('.btn-timeline-report').forEach(function (btn) {
             btn.onclick = function () {
                 const id = btn.getAttribute('data-post-id');
@@ -841,6 +1088,37 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 const m = new bootstrap.Modal(document.getElementById('modalDenunciaTimeline'));
                 m.show();
             };
+        });
+    }
+
+    function renderCommentReactionSummaryHtml(summary) {
+        summary = summary || {};
+        var total = 0;
+        Object.keys(summary).forEach(function (k) {
+            total += parseInt(summary[k] || 0, 10);
+        });
+        if (total <= 0) {
+            return '<span class="text-muted">0</span>';
+        }
+        return '<span class="text-body">' + total + '</span>';
+    }
+
+    function updateCommentReactionUI(commentId, data) {
+        var summary = (data && data.summary) ? data.summary : {};
+        var reaction = (data && data.reaction) ? data.reaction : null;
+        document.querySelectorAll('.timeline-comment-like-count[data-comment-id="' + commentId + '"]').forEach(function (el) {
+            el.innerHTML = renderCommentReactionSummaryHtml(summary);
+        });
+        document.querySelectorAll('.timeline-comment-react-main[data-comment-id="' + commentId + '"]').forEach(function (btn) {
+            var ic = btn.querySelector('i');
+            var lb = btn.querySelector('.timeline-comment-react-label');
+            if (reaction && reactionIconClasses[reaction]) {
+                if (ic) ic.className = reactionIconClasses[reaction];
+                if (lb) lb.textContent = reactionLabels[reaction] || 'Curtir';
+            } else {
+                if (ic) ic.className = 'far fa-thumbs-up';
+                if (lb) lb.textContent = 'Curtir';
+            }
         });
     }
 
@@ -852,9 +1130,138 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             const div = document.createElement('div');
             div.className = 'mb-2 small timeline-comment-line';
             const body = c.content_html ? c.content_html : escapeHtml(c.content || '');
-            div.innerHTML = '<strong>' + escapeHtml(c.author_name || '') + '</strong> · ' + escapeHtml(c.created_at || '') + '<br>' + body;
+            const cid = parseInt(c.id || 0, 10);
+            const myReaction = c.my_reaction || null;
+            const reactIcon = myReaction && reactionIconClasses[myReaction] ? reactionIconClasses[myReaction] : 'far fa-thumbs-up';
+            const reactLabel = myReaction && reactionLabels[myReaction] ? reactionLabels[myReaction] : 'Curtir';
+            const countHtml = renderCommentReactionSummaryHtml(c.reaction_summary || {});
+            const reactionsHtml = canLike ? (
+                '<div class="timeline-comment-actions mt-1" data-comment-id="' + cid + '">'
+                + '  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none timeline-comment-react-main" data-comment-id="' + cid + '">'
+                + '    <i class="' + reactIcon + '"></i> <span class="timeline-comment-react-label">' + escapeHtml(reactLabel) + '</span>'
+                + '  </button>'
+                + '  <span class="mx-2 text-muted">·</span>'
+                + '  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none timeline-comment-reactions-open" data-comment-id="' + cid + '">'
+                + '    <span class="timeline-comment-like-count" data-comment-id="' + cid + '">' + countHtml + '</span> reações'
+                + '  </button>'
+                + '  <span class="timeline-comment-reaction-tray d-none" data-comment-id="' + cid + '">'
+                +      reactionOrder.map(function (t) {
+                            var lab = reactionLabels[t] || 'Curtir';
+                            var ic = reactionIconClasses[t] || reactionIconClasses.like;
+                            return '<button type="button" class="btn btn-sm rounded-circle timeline-comment-reaction-pick border bg-white shadow-sm" data-comment-id="' + cid + '" data-reaction="' + t + '" title="' + escapeHtml(lab) + '"><i class="' + ic + '"></i></button>';
+                        }).join('')
+                + '  </span>'
+                + '</div>'
+            ) : '';
+            div.innerHTML = ''
+                + '<strong>' + escapeHtml(c.author_name || '') + '</strong> · ' + escapeHtml(c.created_at || '') + '<br>' + body
+                + reactionsHtml;
             wrap.appendChild(div);
         });
+    }
+
+    function formatDateTimeBr(input) {
+        if (!input) return '';
+        var iso = String(input).replace(' ', 'T');
+        var d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return String(input);
+        var dd = String(d.getDate()).padStart(2, '0');
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var yyyy = d.getFullYear();
+        var hh = String(d.getHours()).padStart(2, '0');
+        var min = String(d.getMinutes()).padStart(2, '0');
+        return dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + min;
+    }
+
+    function updatePollUI(postId, poll) {
+        if (!poll || !Array.isArray(poll.options)) return;
+        pollStateMap[String(postId)] = poll;
+        var card = document.querySelector('.timeline-poll-card[data-post-id="' + postId + '"]');
+        if (!card) return;
+
+        var optionsWrap = card.querySelector('.timeline-poll-options[data-post-id="' + postId + '"]');
+        if (optionsWrap) {
+            optionsWrap.querySelectorAll('.timeline-poll-option-btn').forEach(function (btn) {
+                var oid = parseInt(btn.getAttribute('data-option-id') || '0', 10);
+                var opt = poll.options.find(function (o) { return parseInt(o.id || 0, 10) === oid; });
+                if (!opt) return;
+
+                var votes = parseInt(opt.votes || 0, 10);
+                var pct = Math.max(0, Math.min(100, parseInt(opt.percent || 0, 10)));
+                var isMine = parseInt(poll.user_vote_option_id || 0, 10) === oid;
+                var isOpen = (poll.status || '') === 'open';
+
+                btn.classList.toggle('active', isMine);
+                btn.disabled = !isOpen;
+
+                var meta = btn.querySelector('.timeline-poll-option-meta');
+                if (meta) {
+                    meta.textContent = votes + ' voto' + (votes !== 1 ? 's' : '') + ' · ' + pct + '%';
+                }
+                var bar = btn.querySelector('.timeline-poll-option-bar');
+                if (bar) {
+                    bar.style.width = pct + '%';
+                }
+                btn.classList.remove('vote-updated');
+                void btn.offsetWidth;
+                btn.classList.add('vote-updated');
+            });
+        }
+
+        var totalEl = card.querySelector('[data-poll-total="' + postId + '"]');
+        if (totalEl) {
+            totalEl.textContent = String(parseInt(poll.total_votes || 0, 10));
+        }
+
+        var statusEl = card.querySelector('[data-poll-status-label="' + postId + '"]');
+        if (statusEl) {
+            if ((poll.status || '') === 'scheduled') {
+                statusEl.textContent = 'Inicia em ' + formatDateTimeBr(poll.starts_at || '');
+            } else if ((poll.status || '') === 'closed') {
+                statusEl.textContent = 'Encerrada em ' + formatDateTimeBr(poll.ends_at || '');
+            } else {
+                statusEl.textContent = 'Encerra em ' + formatDateTimeBr(poll.ends_at || '');
+            }
+        }
+    }
+
+    function buildPollVotesModalHtml(poll, term) {
+        if (!poll || !Array.isArray(poll.options)) {
+            return '<p class="text-muted mb-0">Nenhum dado de votação disponível.</p>';
+        }
+        term = (term || '').trim().toLowerCase();
+        var html = '';
+        var hasAny = false;
+        poll.options.forEach(function (opt) {
+            var voters = Array.isArray(opt.voters) ? opt.voters : [];
+            if (term) {
+                voters = voters.filter(function (v) {
+                    var n = ((v && v.name) ? String(v.name) : '').toLowerCase();
+                    var u = ((v && v.username) ? String(v.username) : '').toLowerCase();
+                    return n.indexOf(term) !== -1 || u.indexOf(term) !== -1;
+                });
+            }
+            var title = escapeHtml(opt.text || 'Opção');
+            html += '<div class="mb-3">';
+            html += '<div class="fw-semibold mb-1">' + title + ' <span class="text-muted">(' + (parseInt(opt.votes || 0, 10)) + ')</span></div>';
+            if (!voters.length) {
+                html += '<div class="text-muted">' + (term ? 'Nenhum voto para este filtro.' : 'Sem votos.') + '</div>';
+            } else {
+                hasAny = true;
+                html += '<ul class="mb-0 ps-3">';
+                voters.forEach(function (v) {
+                    var name = escapeHtml((v && v.name) ? v.name : 'Usuário');
+                    var uname = (v && v.username) ? ' <span class="text-muted">(@' + escapeHtml(v.username) + ')</span>' : '';
+                    html += '<li>' + name + uname + '</li>';
+                });
+                html += '</ul>';
+            }
+            html += '</div>';
+        });
+        if (term && !hasAny) {
+            return '<p class="text-muted mb-0">Nenhum votante encontrado para "<strong>' + escapeHtml(term) + '</strong>".</p>';
+        }
+        return html;
     }
 
     const btnDen = document.getElementById('btnEnviarDenuncia');
@@ -1002,6 +1409,12 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         if (els.imgEl) els.imgEl.src = '';
         if (els.countEl) els.countEl.textContent = '';
     }, true);
+    document.addEventListener('hidden.bs.modal', function (e) {
+        if (!e || !e.target || e.target.id !== 'modalTimelinePollVotes') return;
+        currentPollVotesPostId = '';
+        var search = document.getElementById('timelinePollVotesSearch');
+        if (search) search.value = '';
+    }, true);
 
     const imgIn = document.getElementById('timelineFileImage');
     const vidIn = document.getElementById('timelineFileVideo');
@@ -1145,6 +1558,39 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     }
 
     const ta = document.getElementById('timelineComposerText');
+    const pollTypeInput = document.getElementById('timelineComposerPostType');
+    const pollBlock = document.getElementById('timelineComposerPollBlock');
+    const btnPoll = document.getElementById('btnTimelinePoll');
+    const btnPollClear = document.getElementById('timelineComposerPollClear');
+    const btnPollAdd = document.getElementById('timelinePollAddOption');
+    const pollOptionsWrap = document.getElementById('timelinePollOptionsWrap');
+    function setPollMode(on) {
+        if (!pollTypeInput || !pollBlock) return;
+        pollTypeInput.value = on ? 'poll' : 'regular';
+        pollBlock.classList.toggle('d-none', !on);
+    }
+    if (btnPoll) {
+        btnPoll.addEventListener('click', function () {
+            setPollMode(!(pollTypeInput && pollTypeInput.value === 'poll'));
+        });
+    }
+    if (btnPollClear) {
+        btnPollClear.addEventListener('click', function () {
+            setPollMode(false);
+        });
+    }
+    if (btnPollAdd && pollOptionsWrap) {
+        btnPollAdd.addEventListener('click', function () {
+            var count = pollOptionsWrap.querySelectorAll('input[name="poll_options[]"]').length;
+            if (count >= 5) return;
+            var inp = document.createElement('input');
+            inp.type = 'text';
+            inp.name = 'poll_options[]';
+            inp.className = 'form-control form-control-sm';
+            inp.placeholder = 'Opção ' + (count + 1);
+            pollOptionsWrap.appendChild(inp);
+        });
+    }
     const charLeftEl = document.getElementById('timelineComposerCharLeft');
     if (ta && charLeftEl) {
         const maxLen = parseInt(ta.getAttribute('maxlength') || '2000', 10);

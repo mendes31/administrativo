@@ -87,6 +87,14 @@
 .timeline-post-text a {
     color: #0d6efd;
 }
+.timeline-hashtag {
+    color: #6f42c1;
+    font-weight: 600;
+    text-decoration: none;
+}
+.timeline-hashtag:hover {
+    text-decoration: underline;
+}
 .timeline-post-text.timeline-post-text-collapsed {
     position: relative;
     max-height: 4.4em; /* ~3 linhas (mobile-first) */
@@ -131,6 +139,130 @@
     border-radius: 12px;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
+}
+.timeline-comment-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.timeline-comment-actions .btn {
+    line-height: 1.1;
+}
+.timeline-comment-reaction-tray {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-left: 0.25rem;
+}
+.timeline-comment-reaction-tray .btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+}
+.timeline-share-preview {
+    border-color: rgba(13, 110, 253, 0.25) !important;
+}
+.timeline-poll-editor {
+    border-color: rgba(25, 135, 84, 0.25) !important;
+}
+.timeline-poll-card {
+    border-color: #dfe3e8 !important;
+    background: #fff;
+}
+.timeline-poll-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.timeline-poll-option-btn {
+    position: relative;
+    width: 100%;
+    border: 1px solid #dfe3e8;
+    border-radius: 10px;
+    background: #f8f9fa;
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+    overflow: hidden;
+}
+.timeline-poll-option-btn[disabled] {
+    opacity: 0.92;
+    cursor: default;
+}
+.timeline-poll-option-static {
+    cursor: default;
+}
+.timeline-poll-option-btn.active {
+    border-color: #198754;
+}
+.timeline-poll-option-label,
+.timeline-poll-option-meta {
+    position: relative;
+    z-index: 2;
+    display: block;
+}
+.timeline-poll-option-meta {
+    font-size: 0.78rem;
+    color: #6c757d;
+}
+.timeline-poll-option-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(25, 135, 84, 0.16);
+    z-index: 1;
+    transition: width 0.35s ease;
+}
+.timeline-poll-option-btn.vote-updated {
+    animation: timelinePollPulse 0.45s ease;
+}
+@keyframes timelinePollPulse {
+    0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.25); }
+    100% { box-shadow: 0 0 0 8px rgba(25, 135, 84, 0); }
+}
+.timeline-shared-shell {
+    margin-top: 0.15rem;
+}
+.timeline-shared-meta {
+    line-height: 1.2;
+}
+.timeline-shared-card {
+    border-color: #dfe3e8 !important;
+    border-left: 3px solid #1877f2 !important;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.015);
+}
+.timeline-shared-media-link {
+    display: block;
+    text-decoration: none;
+}
+.timeline-shared-media-thumb {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e4e6eb;
+    display: block;
+}
+.timeline-shared-media-video {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.82rem;
+    color: #1c1e21;
+    background: #f0f2f5;
+    border: 1px solid #e4e6eb;
+    border-radius: 999px;
+    padding: 0.3rem 0.55rem;
+}
+.timeline-shared-link {
+    color: #1877f2;
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 0.82rem;
+}
+.timeline-shared-link:hover {
+    text-decoration: underline;
 }
 .timeline-mention {
     font-weight: 600;
@@ -388,6 +520,19 @@ video.timeline-post-media {
 .timeline-action-bar .btn-timeline-comments-toggle {
     white-space: nowrap;
 }
+.timeline-action-row {
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+.timeline-action-row > .timeline-action-item {
+    min-width: 0;
+    flex: 1 1 0;
+}
+.timeline-action-row.timeline-primary-actions-2 > .btn-timeline-report,
+.timeline-action-row.timeline-primary-actions-3 > .btn-timeline-report {
+    flex: 0 0 44px;
+    min-width: 44px;
+}
 .timeline-action-bar .timeline-reaction-fb-more {
     width: 32px;
     min-width: 32px;
@@ -395,12 +540,29 @@ video.timeline-post-media {
     padding-right: 0;
 }
 @media (max-width: 576px) {
+    .timeline-action-row .btn {
+        font-size: 0.93rem;
+        padding-left: 0.35rem;
+        padding-right: 0.35rem;
+    }
+    .timeline-action-row .btn i {
+        margin-right: 0.2rem !important;
+    }
     .timeline-post-header {
         gap: 0.5rem;
     }
     .timeline-post-header-actions .btn {
         width: 34px;
         height: 34px;
+    }
+}
+@media (max-width: 380px) {
+    .timeline-action-row {
+        flex-wrap: wrap;
+    }
+    .timeline-action-row > .timeline-action-item {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 0;
     }
 }
 

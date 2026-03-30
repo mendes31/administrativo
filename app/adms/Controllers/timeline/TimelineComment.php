@@ -7,6 +7,7 @@ namespace App\adms\Controllers\timeline;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Helpers\TimelineMentionHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -33,8 +34,18 @@ class TimelineComment
             return;
         }
 
+        $permRepo = new ButtonPermissionUserRepository();
+        $perms = $permRepo->buttonPermission(['TimelineComment']);
+        $canComment = is_array($perms) && in_array('TimelineComment', $perms, true);
+        $canViewComments = $canComment;
+
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $comments = $repo->getCommentsForPost($pid);
+            if (!$canViewComments) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Sem permissão para visualizar comentários.']);
+                return;
+            }
+            $comments = $repo->getCommentsForPost($pid, 50, (int)($_SESSION['user_id'] ?? 0));
             $this->attachCommentsHtml($comments);
             echo json_encode(['success' => true, 'comments' => $comments]);
             return;
@@ -51,6 +62,11 @@ class TimelineComment
             echo json_encode(['success' => false, 'message' => 'Não autenticado']);
             return;
         }
+        if (!$canComment) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Sem permissão para interagir nesta publicação.']);
+            return;
+        }
 
         if (!CSRFHelper::validateCSRFToken('timeline_comment_post', $_POST['csrf_token'] ?? '')) {
             http_response_code(422);
@@ -65,6 +81,18 @@ class TimelineComment
 
         $userRepo = new UsersRepository();
         $text = trim(TextEncodingHelper::decodeEntities((string)($_POST['content'] ?? '')));
+        $pollOptionId = (int)($_POST['poll_option_id'] ?? 0);
+        if ($pollOptionId > 0) {
+            $actorId = (int)($_SESSION['user_id'] ?? 0);
+            $poll = $repo->voteOnPollForPost($pid, $actorId, $pollOptionId);
+            if ($poll === null) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => 'Não foi possível registrar o voto.']);
+                return;
+            }
+            echo json_encode(['success' => true, 'poll' => $poll, 'csrf_token' => CSRFHelper::generateCSRFToken('timeline_comment_post')]);
+            return;
+        }
         if ($text === '') {
             http_response_code(422);
             echo json_encode(['success' => false, 'message' => 'Comentário vazio']);
@@ -114,7 +142,7 @@ class TimelineComment
             ]);
         }
 
-        $comments = $repo->getCommentsForPost($pid);
+        $comments = $repo->getCommentsForPost($pid, 50, (int)($_SESSION['user_id'] ?? 0));
         $this->attachCommentsHtml($comments);
         echo json_encode(['success' => true, 'comments' => $comments]);
     }

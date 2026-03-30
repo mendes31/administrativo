@@ -21,8 +21,10 @@ class CreateTimelinePost
         }
 
         $permRepo = new ButtonPermissionUserRepository();
-        $perms = $permRepo->buttonPermission(['CreateTimelinePost']);
-        if (!is_array($perms) || !in_array('CreateTimelinePost', $perms, true)) {
+        $perms = $permRepo->buttonPermission(['CreateTimelinePost', 'TimelineShare']);
+        $canCreate = is_array($perms) && in_array('CreateTimelinePost', $perms, true);
+        $canShare = is_array($perms) && in_array('TimelineShare', $perms, true);
+        if (!$canCreate) {
             $this->failAndExit('Sem permissão para publicar na timeline.', 'error');
         }
 
@@ -42,6 +44,15 @@ class CreateTimelinePost
 
         $userRepo = new UsersRepository();
         $content = trim(TextEncodingHelper::decodeEntities((string)($_POST['content'] ?? '')));
+        $postType = (string)($_POST['post_type'] ?? 'regular');
+        $postType = $postType === 'poll' ? 'poll' : 'regular';
+        $sharedFromPostId = (int)($_POST['shared_from_post_id'] ?? 0);
+        if ($sharedFromPostId <= 0) {
+            $sharedFromPostId = null;
+        }
+        if ($sharedFromPostId !== null && !$canShare) {
+            $this->failAndExit('Sem permissão para repostar publicações.', 'error');
+        }
         $imagePaths = null; // array<string>
         $videoPath = null;
 
@@ -55,11 +66,31 @@ class CreateTimelinePost
         $imagesProvided = false;
         $uploadedImageFiles = [];
         if (!empty($_FILES['images']) && is_array($_FILES['images']['tmp_name'] ?? null)) {
-            $imagesProvided = true;
-            $uploadedImageFiles = $this->normalizeUploadedFilesArray($_FILES['images']);
+            $normalized = $this->normalizeUploadedFilesArray($_FILES['images']);
+            foreach ($normalized as $f) {
+                $err = (int)($f['error'] ?? UPLOAD_ERR_NO_FILE);
+                if ($err === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                if ($err !== UPLOAD_ERR_OK) {
+                    $this->failAndExit($this->mapUploadErrorToMessage($err), 'msg_warning');
+                }
+                $uploadedImageFiles[] = $f;
+            }
+            $imagesProvided = $uploadedImageFiles !== [];
         } elseif (!empty($_FILES['image']) && is_array($_FILES['image']['tmp_name'] ?? null)) {
-            $imagesProvided = true;
-            $uploadedImageFiles = $this->normalizeUploadedFilesArray($_FILES['image']);
+            $normalized = $this->normalizeUploadedFilesArray($_FILES['image']);
+            foreach ($normalized as $f) {
+                $err = (int)($f['error'] ?? UPLOAD_ERR_NO_FILE);
+                if ($err === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                if ($err !== UPLOAD_ERR_OK) {
+                    $this->failAndExit($this->mapUploadErrorToMessage($err), 'msg_warning');
+                }
+                $uploadedImageFiles[] = $f;
+            }
+            $imagesProvided = $uploadedImageFiles !== [];
         } elseif (!empty($_FILES['image']['tmp_name'] ?? null) && (int)($_FILES['image']['error'] ?? 0) === UPLOAD_ERR_OK) {
             $imagesProvided = true;
             $uploadedImageFiles = [$_FILES['image']];
@@ -67,6 +98,15 @@ class CreateTimelinePost
 
         if ($videoProvided && $imagesProvided && $uploadedImageFiles !== []) {
             $this->failAndExit('Não é permitido enviar vídeo e fotos no mesmo post.', 'msg_warning');
+        }
+        if ($postType === 'poll' && ($videoProvided || ($imagesProvided && $uploadedImageFiles !== []))) {
+            $this->failAndExit('Enquete não aceita mídia anexada neste momento.', 'msg_warning');
+        }
+        if ($postType === 'poll' && $sharedFromPostId !== null) {
+            $this->failAndExit('Enquete não pode ser criada como repost.', 'msg_warning');
+        }
+        if ($sharedFromPostId !== null && ($videoProvided || ($imagesProvided && $uploadedImageFiles !== []))) {
+            $this->failAndExit('Compartilhamento aceita apenas comentário (sem nova mídia).', 'msg_warning');
         }
 
         if ($videoProvided) {
@@ -91,17 +131,70 @@ class CreateTimelinePost
             }
         }
 
-        if ($content === '' && ($imagePaths === null || $imagePaths === []) && $videoPath === null) {
+        if ($content === '' && ($imagePaths === null || $imagePaths === []) && $videoPath === null && $sharedFromPostId === null && $postType !== 'poll') {
             $this->failAndExit('Escreva algo ou anexe uma imagem ou vídeo.', 'msg_warning');
+        }
+
+        $pollQuestion = trim(TextEncodingHelper::decodeEntities((string)($_POST['poll_question'] ?? '')));
+        $pollStartsAt = trim((string)($_POST['poll_starts_at'] ?? ''));
+        $pollEndsAt = trim((string)($_POST['poll_ends_at'] ?? ''));
+        $pollOptionsRaw = $_POST['poll_options'] ?? [];
+        $pollOptions = [];
+        if (is_array($pollOptionsRaw)) {
+            foreach ($pollOptionsRaw as $op) {
+                $t = trim(TextEncodingHelper::decodeEntities((string)$op));
+                if ($t !== '') {
+                    $pollOptions[] = $t;
+                }
+            }
+            $pollOptions = array_values(array_unique($pollOptions));
+        }
+        if ($postType === 'poll') {
+            if ($pollQuestion === '') {
+                $this->failAndExit('Informe a pergunta da enquete.', 'msg_warning');
+            }
+            if (count($pollOptions) < 2 || count($pollOptions) > 5) {
+                $this->failAndExit('A enquete deve ter entre 2 e 5 opções.', 'msg_warning');
+            }
+            if ($pollEndsAt === '') {
+                $this->failAndExit('Informe o período de encerramento da enquete.', 'msg_warning');
+            }
+            $endTs = strtotime(str_replace('T', ' ', $pollEndsAt) . ':00');
+            if ($endTs === false) {
+                $this->failAndExit('Data/hora de encerramento inválida.', 'msg_warning');
+            }
+            $startTs = null;
+            if ($pollStartsAt !== '') {
+                $startTs = strtotime(str_replace('T', ' ', $pollStartsAt) . ':00');
+                if ($startTs === false) {
+                    $this->failAndExit('Data/hora de início inválida.', 'msg_warning');
+                }
+            }
+            if ($startTs !== null && $startTs >= $endTs) {
+                $this->failAndExit('A data de início deve ser menor que a data de encerramento.', 'msg_warning');
+            }
         }
 
         $repo = new TimelineRepository();
         $authorId = (int)($_SESSION['user_id'] ?? 0);
-        $postId = $repo->createPost($authorId, $content !== '' ? $content : ' ', $imagePaths, $videoPath);
+        $sharedPost = null;
+        if ($sharedFromPostId !== null) {
+            $sharedPost = $repo->getPostById($sharedFromPostId);
+            if (!$sharedPost || (string)($sharedPost['status'] ?? '') !== 'active') {
+                $this->failAndExit('A publicação que você tentou compartilhar não está mais disponível.', 'msg_warning');
+            }
+        }
+        $postId = $repo->createPost($authorId, $content !== '' ? $content : ' ', $imagePaths, $videoPath, $sharedFromPostId, $postType);
+        if ($postType === 'poll') {
+            $starts = $pollStartsAt !== '' ? str_replace('T', ' ', $pollStartsAt) . ':00' : null;
+            $ends = str_replace('T', ' ', $pollEndsAt) . ':00';
+            $repo->createPollForPost($postId, $pollQuestion, $pollOptions, $starts, $ends);
+        }
 
         $mentionIds = TimelineMentionHelper::extractMentionedUserIds($content, $userRepo, $authorId);
         $validIds = array_keys($userRepo->getIdNameMapForIds($mentionIds));
         $repo->replaceMentions('post', $postId, $validIds);
+        $repo->syncPostTags($postId, $content);
 
         // Notifica usuários mencionados no post.
         $authorName = (string)($_SESSION['user_name'] ?? 'Alguém');
@@ -118,6 +211,22 @@ class CreateTimelinePost
                     'type' => 'timeline_mention',
                     'title' => $authorName . ' mencionou você em uma publicação',
                     'message' => mb_substr($content, 0, 180),
+                    'link_url' => $base . 'timeline?post=' . $postId,
+                    'entity_type' => 'timeline_post',
+                    'entity_id' => $postId,
+                ]);
+            }
+        }
+        if ($sharedPost !== null) {
+            $sharedAuthorId = (int)($sharedPost['user_id'] ?? 0);
+            if ($sharedAuthorId > 0 && $sharedAuthorId !== $authorId) {
+                $notifRepo = $notifRepo ?? new NotificationsRepository();
+                $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+                $notifRepo->create([
+                    'user_id' => $sharedAuthorId,
+                    'type' => 'timeline_share',
+                    'title' => $authorName . ' fez repost da sua publicação',
+                    'message' => mb_substr($content !== '' ? $content : 'Seu post recebeu um repost na timeline.', 0, 180),
                     'link_url' => $base . 'timeline?post=' . $postId,
                     'entity_type' => 'timeline_post',
                     'entity_id' => $postId,
