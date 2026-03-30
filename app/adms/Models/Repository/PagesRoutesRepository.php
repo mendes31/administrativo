@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -39,6 +40,10 @@ class PagesRoutesRepository extends DbConnection
 
     public function checkUserPagePermission(int $pageId)
     {
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            return true;
+        }
+
         // QUERY para verificar a permissão do usuário em relação à página
         $sql = 'SELECT 
                     CASE

@@ -26,7 +26,7 @@ class ViewEmployeeTicket
 
         // Verificar se o chamado pertence ao usuário logado
         $employeeId = $_SESSION['user_id'] ?? 0;
-        if ($ticket['employee_id'] != $employeeId && ($_SESSION['user_access_level_id'] ?? 0) != 1) {
+        if ($ticket['employee_id'] != $employeeId && !\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Você não tem permissão para visualizar este chamado!</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-employee-tickets');
             exit;

@@ -13,7 +13,7 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
         <div>
             <?php 
             // Verificar permissão (seguindo padrão do projeto)
-            $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+            $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
             $isCreator = $dashboard['created_by'] == ($_SESSION['user_id'] ?? 0);
             $canEdit = $isSuperAdmin || $isCreator;
             

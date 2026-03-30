@@ -110,7 +110,7 @@ class EmployeeRequestsRepository extends DbConnection
         }
         
         // Permissões: colaborador vê apenas suas solicitações, gestor vê da equipe
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
         
         if (!$isSuperAdmin) {
@@ -360,7 +360,7 @@ class EmployeeRequestsRepository extends DbConnection
         // Permissões: colaborador vê apenas suas solicitações, gestor vê da equipe
         // NOTA: Se employee_ids foi passado, não aplicar filtro de user_id
         if (empty($filters['employee_ids'])) {
-            $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+            $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
             $userId = $_SESSION['user_id'] ?? 0;
             
             if (!$isSuperAdmin && empty($filters['employee_id'])) {

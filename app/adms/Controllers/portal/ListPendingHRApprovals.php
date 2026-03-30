@@ -26,7 +26,7 @@ class ListPendingHRApprovals
         }
 
         // Verificar se é super admin ou RH
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         if (!$isSuperAdmin) {
             // TODO: Verificar se tem permissão de RH

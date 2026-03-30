@@ -77,7 +77,7 @@ class ListPerformanceReviews
 
         // Buscar usuários para filtro (apenas gestores e super admin)
         $usersRepo = new \App\adms\Models\Repository\UsersRepository();
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         if ($isSuperAdmin) {
             $this->data['employees'] = $usersRepo->getAllUsers(1, 1000);

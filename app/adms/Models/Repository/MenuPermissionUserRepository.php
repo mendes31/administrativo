@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -14,8 +15,7 @@ class MenuPermissionUserRepository extends DbConnection
             return [];
         }
 
-        // Se for super admin (nível 1)
-        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+        if (UserAccessHelper::hasFullSystemAccess()) {
             $placeholders = implode(', ', array_fill(0, count($menu), '?'));
             $sql = "SELECT controller FROM adms_pages WHERE controller IN ($placeholders) AND page_status = 1";
             $stmt = $this->getConnection()->prepare($sql);

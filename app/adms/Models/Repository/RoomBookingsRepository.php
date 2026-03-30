@@ -98,7 +98,7 @@ class RoomBookingsRepository extends DbConnection
         }
         
         // Super admin vê tudo, usuário comum vê apenas suas reservas
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
         
         if (!$isSuperAdmin && empty($filters['user_id'])) {
@@ -152,7 +152,7 @@ class RoomBookingsRepository extends DbConnection
             $params[':status'] = $filters['status'];
         }
         
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
         
         if (!$isSuperAdmin && empty($filters['user_id'])) {

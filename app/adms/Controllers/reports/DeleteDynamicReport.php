@@ -25,7 +25,7 @@ class DeleteDynamicReport
         
         // Verificar se o usuário é o criador ou super admin
         $userId = $_SESSION['user_id'] ?? 0;
-        if ($report['created_by'] != $userId && !in_array(1, $_SESSION['user_access_levels'] ?? [])) {
+        if ($report['created_by'] != $userId && !\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             $_SESSION['error'] = 'Você não tem permissão para deletar este relatório';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
             exit;

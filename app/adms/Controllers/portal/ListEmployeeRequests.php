@@ -45,7 +45,7 @@ class ListEmployeeRequests
         }
 
         // Colaborador vê apenas suas solicitações
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         if (!$isSuperAdmin) {
             $filters['employee_id'] = $_SESSION['user_id'] ?? 0;
         } elseif (isset($_GET['employee_id']) && !empty($_GET['employee_id'])) {

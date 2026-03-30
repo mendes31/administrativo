@@ -108,7 +108,7 @@ class ListPolicies
 
         // Garantir que Super Administrador (nível 1) enxergue todas as ações,
         // mesmo se houver alguma inconsistência de configuração.
-        if (isset($_SESSION['user_access_level_id']) && (int) $_SESSION['user_access_level_id'] === 1) {
+        if (\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             $this->data['buttonPermission'] = ['CreatePolicy', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy'];
         }
 

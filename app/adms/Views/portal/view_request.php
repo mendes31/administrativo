@@ -147,7 +147,7 @@ use App\adms\Helpers\FormatHelper;
             <?php
             $request = $this->data['request'];
             $userId = $_SESSION['user_id'] ?? 0;
-            $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+            $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
             $isManager = !$isSuperAdmin && !empty($request['immediate_supervisor_id']) && $request['immediate_supervisor_id'] == $userId;
             $canApproveAsManager = ($request['status'] === 'pending_manager_approval') && ($isSuperAdmin || $isManager);
             $canApproveAsHR = ($request['status'] === 'pending_hr_approval') && $isSuperAdmin; // TODO: Adicionar verificação de permissão RH

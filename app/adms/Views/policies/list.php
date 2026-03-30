@@ -102,7 +102,7 @@ use App\adms\Helpers\FormatHelper;
             <span><i class="fas fa-file-contract me-2"></i>Listar Políticas Internas</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
                 <?php
-                $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+                $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
                 if ($isSuperAdmin || in_array('CreatePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>create-policy" class="btn btn-success btn-sm mb-1">
                         <i class="fa-solid fa-plus"></i> Cadastrar
@@ -286,7 +286,7 @@ use App\adms\Helpers\FormatHelper;
                                         <div class="btn-group btn-group-sm" role="group">
                                             <?php
                                             // Super administrador (nível 1) enxerga sempre todas as ações
-                                            $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+                                            $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
 
                                             if ($isSuperAdmin): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>view-policy/<?php echo (int) $policy['id']; ?>"
@@ -363,7 +363,7 @@ use App\adms\Helpers\FormatHelper;
                         $isAckPendingAlert = $requiresAck && $isUnread;
 
                         $buttonPermission = $this->data['buttonPermission'] ?? [];
-                        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1;
+                        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
                         $canViewPolicy = $isSuperAdmin || in_array('ViewPolicy', $buttonPermission, true);
                         $cardClickable = (!$isEditor) || $canViewPolicy;
 

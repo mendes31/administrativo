@@ -41,7 +41,7 @@ class ListBookings
         }
 
         // Super admin vê todas as reservas, usuário comum vê apenas as suas
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         if (!$isSuperAdmin && empty($filters['user_id'])) {
             $filters['user_id'] = $_SESSION['user_id'] ?? 0;
         }

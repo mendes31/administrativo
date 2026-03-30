@@ -71,7 +71,7 @@ class SpreadsheetsRepository extends DbConnection
     public function getUserSpreadsheets(int $userId, bool $includePublic = true): array
     {
         // Super administrador (nível 1) tem acesso a todas as planilhas
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         if ($isSuperAdmin) {
             // Super admin vê todas as planilhas ativas

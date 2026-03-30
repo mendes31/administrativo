@@ -198,6 +198,9 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dt class="col-sm-3">Status: </dt>
                     <dd class="col-sm-9"><?php echo $status; ?></dd>
 
+                    <dt class="col-sm-3">Super usuário: </dt>
+                    <dd class="col-sm-9"><?php echo !empty($this->data['user']['super_usuario']) ? 'Sim' : 'Não'; ?></dd>
+
                     <dt class="col-sm-3">Bloqueado: </dt>
                     <dd class="col-sm-9"><?php echo $bloqueado; ?></dd>
 

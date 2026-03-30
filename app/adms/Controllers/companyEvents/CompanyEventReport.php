@@ -25,7 +25,7 @@ class CompanyEventReport
             exit;
         }
         $uid = (int)($_SESSION['user_id'] ?? 0);
-        if ((int)($event['created_by'] ?? 0) !== $uid && (int)($_SESSION['user_access_level_id'] ?? 0) !== 1) {
+        if ((int)($event['created_by'] ?? 0) !== $uid && !\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             $_SESSION['msg'] = '<div class="alert alert-danger">Apenas o criador do evento ou administrador pode ver o relatório.</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
             exit;

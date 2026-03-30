@@ -17,7 +17,7 @@ class EditDashboard
     private function hasFullAccess(): bool
     {
         // Super administrador (nível 1) tem acesso total
-        return isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        return \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
     }
 
     public function index(?string $id = null): void

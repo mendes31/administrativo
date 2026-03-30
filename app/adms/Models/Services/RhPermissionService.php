@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\RhVagasRepository;
 
 /**
@@ -19,7 +20,7 @@ class RhPermissionService extends DbConnection
      */
     public static function isSuperAdmin(): bool
     {
-        return (int)($_SESSION['user_access_level_id'] ?? 0) === 1;
+        return UserAccessHelper::hasFullSystemAccess();
     }
 
     /**

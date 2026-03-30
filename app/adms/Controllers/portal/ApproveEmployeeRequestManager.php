@@ -31,7 +31,7 @@ class ApproveEmployeeRequestManager
 
         // Verificar se o usuário é o gestor do colaborador
         $userId = $_SESSION['user_id'] ?? 0;
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         if (!$isSuperAdmin && $request['immediate_supervisor_id'] != $userId) {
             $_SESSION['error'] = 'Você não tem permissão para aprovar esta solicitação.';

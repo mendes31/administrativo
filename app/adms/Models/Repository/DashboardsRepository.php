@@ -356,7 +356,7 @@ class DashboardsRepository extends DbConnection
     public function canAccess(int $dashboardId, int $userId): bool
     {
         // Super admin tem acesso a tudo
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         if ($isSuperAdmin) {
             $sql = "SELECT id FROM adms_dashboards WHERE id = :id AND status = 1";

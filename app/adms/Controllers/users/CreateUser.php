@@ -138,6 +138,7 @@ class CreateUser
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
         $form['modificar_senha_proximo_logon'] = isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] === 'Sim' ? 'Sim' : 'Não';
+        $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
 
         // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas

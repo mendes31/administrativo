@@ -32,8 +32,8 @@ if (!empty($_SESSION['user_id'])) {
         $mcpEnabled = !empty($mcpConfig) && !empty($mcpConfig['is_active']) && !empty($mcpConfig['base_url']);
         $userCanMcpChat = false;
 
-        // Super Administrador (nível 1) sempre pode usar o chat MCP se a integração estiver ativa
-        if (isset($_SESSION['user_access_level_id']) && (int)$_SESSION['user_access_level_id'] === 1) {
+        // Super Administrador ou Super usuário: mesmo acesso ao chat MCP se a integração estiver ativa
+        if (\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             $userCanMcpChat = true;
         } elseif (!empty($this->data['menuPermission'] ?? [])) {
             // Demais níveis dependem da permissão configurada para a página lógica "McpChat"

@@ -21,7 +21,7 @@ class DeleteCompanyEvent
             exit;
         }
         if ((int)($ev['created_by'] ?? 0) !== (int)($_SESSION['user_id'] ?? 0)
-            && (int)($_SESSION['user_access_level_id'] ?? 0) !== 1) {
+            && !\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             $_SESSION['msg'] = '<div class="alert alert-danger">Sem permissão para excluir.</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
             exit;

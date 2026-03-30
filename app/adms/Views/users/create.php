@@ -223,6 +223,31 @@ use App\adms\Helpers\CSRFHelper;
                     </div>
                 </div>
 
+                <div class="col-12 mt-2">
+                    <div class="row g-2 align-items-stretch">
+                        <div class="col-md-3">
+                            <label class="form-label" for="super_usuario">Super usuário <i class="fas fa-user-shield text-warning" title="Acesso total ao sistema, como Super Administrador"></i></label><br>
+                            <input type="hidden" name="super_usuario" value="0">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="super_usuario" name="super_usuario" value="1"
+                                    <?php echo !empty($this->data['form']['super_usuario']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="super_usuario">Sim</label>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="alert alert-warning border py-2 px-3 mb-0 small h-100 rounded-1" role="note" aria-label="Explicação do campo Super usuário">
+                                <div class="d-flex gap-2 align-items-start">
+                                    <i class="fas fa-exclamation-triangle text-dark mt-1 flex-shrink-0" aria-hidden="true"></i>
+                                    <div class="text-body">
+                                        <div class="fw-semibold text-dark mb-1">Referente ao interruptor <span class="text-nowrap">«Super usuário»</span> ao lado</div>
+                                        <p class="mb-0">Ao marcar <strong>Sim</strong>, este colaborador recebe <strong>acesso total ao sistema</strong>, no mesmo nível do <strong>Super Administrador</strong>, mesmo que o nível de permissão vinculado ao cadastro seja outro. Use somente quando for indispensável.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-6">
                     <label class="form-label">Mensagem de boas-vindas</label>
                     <div class="form-text mb-1">

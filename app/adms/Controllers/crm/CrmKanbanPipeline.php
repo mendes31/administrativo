@@ -24,7 +24,7 @@ class CrmKanbanPipeline
         // Usar CrmPermissionService para verificar hierarquia
         $permissionService = new \App\adms\Models\Services\CrmPermissionService();
         $isManager = $permissionService::isManager();
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         // Obter IDs permitidos (usuário + subordinados do departamento comercial)
         $allowedUserIds = $permissionService::getAllowedUserIds();

@@ -30,7 +30,7 @@ class ApproveEmployeeRequestHR
 
         // Verificar se o usuário tem permissão (super admin ou RH)
         $userId = $_SESSION['user_id'] ?? 0;
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         // TODO: Adicionar verificação de permissão específica para RH
         if (!$isSuperAdmin) {

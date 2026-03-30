@@ -96,7 +96,7 @@ $dashboards = $this->data['dashboards'] ?? [];
                                            class="btn btn-primary btn-sm flex-fill">
                                             <i class="fas fa-eye"></i> Abrir
                                         </a>
-                                        <?php if ($dashboard['created_by'] == ($_SESSION['user_id'] ?? 0) || ($_SESSION['user_access_level_id'] ?? 0) == 1): 
+                                        <?php if ($dashboard['created_by'] == ($_SESSION['user_id'] ?? 0) || \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()): 
                                             // Gerar token único para este formulário
                                             $delete_token = CSRFHelper::generateCSRFToken('form_delete_dashboard_' . $dashboard['id']);
                                         ?>

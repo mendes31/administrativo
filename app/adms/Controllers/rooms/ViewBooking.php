@@ -36,7 +36,7 @@ class ViewBooking
         }
 
         // Verificar permissão (usuário comum só vê suas próprias reservas, exceto super admin)
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
 
         if (!$isSuperAdmin && (int)$booking['user_id'] !== $userId) {

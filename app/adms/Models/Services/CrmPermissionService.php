@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use PDO;
@@ -88,8 +89,8 @@ class CrmPermissionService extends DbConnection
             return false;
         }
         
-        // Super Admin sempre é considerado gerente
-        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+        // Super Administrador ou Super usuário (cadastro): tratados como gerente para o CRM
+        if (UserAccessHelper::hasFullSystemAccess()) {
             return true;
         }
         
@@ -227,8 +228,8 @@ class CrmPermissionService extends DbConnection
             return [];
         }
         
-        // Super Admin vê todos do departamento comercial
-        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+        // Super Administrador ou Super usuário: vê todos do departamento comercial
+        if (UserAccessHelper::hasFullSystemAccess()) {
             return self::getCommercialDepartmentUserIds();
         }
         

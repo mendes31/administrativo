@@ -27,7 +27,7 @@ class DeletePerformanceReview
         }
 
         // Verificar permissão
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
         
         if (!$isSuperAdmin && $review['created_by'] != $userId) {

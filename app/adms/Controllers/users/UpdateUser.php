@@ -185,6 +185,7 @@ class UpdateUser
         $form['status'] = isset($form['status']) && $form['status'] === 'Ativo' ? 'Ativo' : 'Inativo';
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
+        $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
         $this->data['form'] = $form;
         $result = $userUpdate->updateUser($this->data['form']);
 
@@ -199,6 +200,9 @@ class UpdateUser
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
+            if ((int)($form['id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0)) {
+                $_SESSION['user_super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
+            }
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
             
             // Verificar mudanças de status do usuário

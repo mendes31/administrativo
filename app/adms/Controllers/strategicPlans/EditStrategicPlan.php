@@ -102,7 +102,7 @@ class EditStrategicPlan
     private function canManageOtherDepartments(): bool
     {
         // Super administrador pode gerenciar todos os departamentos
-        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+        if (\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             return true;
         }
 
@@ -183,7 +183,7 @@ class EditStrategicPlan
     private function hasFullAccess(): bool
     {
         // Super administrador (nível 1) tem acesso total
-        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
+        if (\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
             return true;
         }
 

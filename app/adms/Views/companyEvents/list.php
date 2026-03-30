@@ -34,7 +34,7 @@
                                 <a class="btn btn-sm btn-warning" href="<?php echo $_ENV['URL_ADM']; ?>update-company-event/<?php echo (int)$ev['id']; ?>">Editar</a>
                             <?php endif; ?>
                             <?php if (in_array('DeleteCompanyEvent', $this->data['buttonPermission'] ?? [], true)
-                                && ((int)($ev['created_by'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) || (int)($_SESSION['user_access_level_id'] ?? 0) === 1)): ?>
+                                && ((int)($ev['created_by'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) || \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess())): ?>
                                 <a class="btn btn-sm btn-outline-danger" href="<?php echo $_ENV['URL_ADM']; ?>delete-company-event/<?php echo (int)$ev['id']; ?>" onclick="return confirm('Excluir este evento?');">Excluir</a>
                             <?php endif; ?>
                         </td>

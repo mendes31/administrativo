@@ -473,6 +473,7 @@ class UsersRepository extends DbConnection
                     t0.tentativas_login,
                     t0.senha_nunca_expira,
                     t0.modificar_senha_proximo_logon,
+                    t0.super_usuario,
                     t1.name dep_name, 
                     t2.name pos_name
                 FROM adms_users t0
@@ -560,9 +561,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, super_usuario
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -585,6 +586,7 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':image', $data['image'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':data_nascimento', $data['data_nascimento'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':data_admissao', $data['data_admissao'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':super_usuario', !empty($data['super_usuario']) ? 1 : 0, PDO::PARAM_INT);
             $stmt->execute();
             $novoId = $this->getConnection()->lastInsertId();
             // Log de inserção
@@ -601,6 +603,7 @@ class UsersRepository extends DbConnection
                     'tentativas_login' => $data['tentativas_login'] ?? 0,
                     'senha_nunca_expira' => $data['senha_nunca_expira'] ?? 'Não',
                     'modificar_senha_proximo_logon' => $data['modificar_senha_proximo_logon'] ?? 'Não',
+                    'super_usuario' => !empty($data['super_usuario']) ? 1 : 0,
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',
@@ -768,6 +771,9 @@ class UsersRepository extends DbConnection
 
             // QUERY para atualizar o usuário
             $sql = 'UPDATE adms_users SET name = :name, email = :email, username = :username, cpf = :cpf, celular = :celular, user_department_id = :user_department_id, user_position_id = :user_position_id, immediate_supervisor_id = :immediate_supervisor_id, updated_at = :updated_at';
+            if (array_key_exists('super_usuario', $data)) {
+                $sql .= ', super_usuario = :super_usuario';
+            }
             if (isset($data['status'])) {
                 $sql .= ', status = :status';
             }
@@ -829,6 +835,9 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':user_position_id', (int)$data['user_position_id'], PDO::PARAM_INT);
             $stmt->bindValue(':immediate_supervisor_id', (!empty($data['immediate_supervisor_id']) && is_numeric($data['immediate_supervisor_id'])) ? (int)$data['immediate_supervisor_id'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
+            if (array_key_exists('super_usuario', $data)) {
+                $stmt->bindValue(':super_usuario', !empty($data['super_usuario']) ? 1 : 0, PDO::PARAM_INT);
+            }
             if (isset($data['status'])) {
                 $stmt->bindValue(':status', $data['status'], PDO::PARAM_STR);
             }
@@ -880,6 +889,9 @@ class UsersRepository extends DbConnection
                     'tentativas_login' => isset($data['tentativas_login']) ? $data['tentativas_login'] : ($dadosAntes['tentativas_login'] ?? null),
                     'senha_nunca_expira' => $data['senha_nunca_expira'] ?? $dadosAntes['senha_nunca_expira'] ?? null,
                     'modificar_senha_proximo_logon' => $data['modificar_senha_proximo_logon'] ?? $dadosAntes['modificar_senha_proximo_logon'] ?? null,
+                    'super_usuario' => array_key_exists('super_usuario', $data)
+                        ? (!empty($data['super_usuario']) ? 1 : 0)
+                        : ($dadosAntes['super_usuario'] ?? null),
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',

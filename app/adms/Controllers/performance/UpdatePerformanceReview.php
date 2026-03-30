@@ -32,7 +32,7 @@ class UpdatePerformanceReview
         }
 
         // Verificar permissão
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
         
         if (!$isSuperAdmin && 
@@ -56,7 +56,7 @@ class UpdatePerformanceReview
 
         // Buscar usuários
         $usersRepo = new UsersRepository();
-        $isSuperAdmin = isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1;
+        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         
         if ($isSuperAdmin) {
             $this->data['employees'] = $usersRepo->getAllUsers(1, 1000);

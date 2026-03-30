@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -34,10 +35,8 @@ class ButtonPermissionUserRepository extends DbConnection
             return [];
         }
 
-        // Se for super admin (nível 1)
-        if (isset($_SESSION['user_access_level_id']) && $_SESSION['user_access_level_id'] == 1) {
-            // Super Admin tem acesso a todos os botões solicitados
-            // Retorna todos os botões sem verificar permissões no banco
+        // Super Administrador (nível 1) ou Super usuário (flag no cadastro): acesso total aos botões solicitados
+        if (UserAccessHelper::hasFullSystemAccess()) {
             return $button;
         }
 
