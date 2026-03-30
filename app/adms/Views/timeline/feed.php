@@ -9,19 +9,35 @@ if (!empty($_SESSION['user_image']) && $_SESSION['user_image'] !== 'icon_user.pn
 }
 $composerName = trim((string)($_SESSION['user_name'] ?? ''));
 $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0] : 'você';
+$timelineSearchQuery = isset($this->data['search_query']) ? (string)$this->data['search_query'] : '';
+$timelineActiveTag = isset($this->data['active_tag']) ? (string)$this->data['active_tag'] : '';
+$timelineProfileUid = (int)($this->data['timeline_profile_user_id'] ?? 0);
+$timelineProfile = isset($this->data['timeline_profile']) && is_array($this->data['timeline_profile']) ? $this->data['timeline_profile'] : null;
+$timelineProfileIsOwn = !empty($this->data['timeline_profile_is_own']);
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=29">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=36">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
     <div class="row justify-content-center">
         <div class="col-12">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3 mt-3">
-                <h2 class="mb-0 mobile-hide-page-title"><i class="fas fa-stream text-info me-2"></i>Timeline</h2>
+                <h2 class="mb-0 mobile-hide-page-title">
+                    <?php if ($timelineProfileUid > 0 && $timelineProfile): ?>
+                        <i class="fas fa-user text-info me-2"></i><?php echo htmlspecialchars((string)($timelineProfile['name'] ?? 'Perfil')); ?>
+                    <?php else: ?>
+                        <i class="fas fa-stream text-info me-2"></i>Timeline
+                    <?php endif; ?>
+                </h2>
                 <nav aria-label="breadcrumb" class="ms-md-auto mobile-hide-breadcrumb">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="<?php echo htmlspecialchars($urlAdm); ?>dashboard">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Timeline</li>
+                        <?php if ($timelineProfileUid > 0): ?>
+                            <li class="breadcrumb-item"><a href="<?php echo htmlspecialchars($urlAdm); ?>timeline">Timeline</a></li>
+                            <li class="breadcrumb-item active">Perfil</li>
+                        <?php else: ?>
+                            <li class="breadcrumb-item active">Timeline</li>
+                        <?php endif; ?>
                     </ol>
                 </nav>
             </div>
@@ -30,7 +46,61 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 
     <div class="timeline-layout">
         <div class="timeline-main">
-            <?php if (!empty($this->data['can_create'])): ?>
+            <?php if ($timelineProfileUid > 0 && $timelineProfile): ?>
+            <div class="card border-0 shadow-sm mb-3 timeline-profile-header-card">
+                <div class="card-body">
+                    <div class="d-flex flex-column flex-sm-row gap-3 align-items-start">
+                        <?php
+                        $tpAvatar = null;
+                        if (!empty($timelineProfile['image']) && $timelineProfile['image'] !== 'icon_user.png') {
+                            $tpAvatar = 'users/' . $timelineProfileUid . '/' . $timelineProfile['image'];
+                        }
+                        echo \App\adms\Helpers\ImageHelper::displayImage($tpAvatar, [
+                            'class' => 'rounded-circle flex-shrink-0 timeline-profile-header-avatar',
+                            'alt' => '',
+                            'width' => '96',
+                            'height' => '96',
+                        ], 'icon_user.png', 'users');
+                        ?>
+                        <div class="flex-grow-1 min-w-0">
+                            <h3 class="h5 mb-1"><?php echo htmlspecialchars((string)($timelineProfile['name'] ?? '')); ?></h3>
+                            <div class="text-muted small mb-2">
+                                @<?php echo htmlspecialchars((string)($timelineProfile['username'] ?? '')); ?>
+                                <?php if (!empty($timelineProfile['dep_name']) || !empty($timelineProfile['pos_name'])): ?>
+                                    <span class="d-block mt-1">
+                                        <?php echo htmlspecialchars(trim((string)($timelineProfile['pos_name'] ?? ''))); ?>
+                                        <?php if (!empty($timelineProfile['dep_name'])): ?>
+                                            <span class="text-muted"> · </span><?php echo htmlspecialchars((string)($timelineProfile['dep_name'] ?? '')); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($timelineProfileIsOwn): ?>
+                            <form method="post" action="" class="mb-0">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string)($this->data['csrf_timeline_profile_bio'] ?? '')); ?>">
+                                <label for="timelineBioInput" class="form-label small mb-1">Apresentação <span class="text-muted">(visível para quem visita seu perfil)</span></label>
+                                <textarea name="timeline_bio" id="timelineBioInput" class="form-control form-control-sm" rows="3" maxlength="500" placeholder="Uma frase sobre você, time ou área…"><?php echo htmlspecialchars((string)($timelineProfile['timeline_bio'] ?? '')); ?></textarea>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                    <button type="submit" class="btn btn-primary btn-sm">Salvar apresentação</button>
+                                    <span class="small text-muted">Máx. 500 caracteres</span>
+                                </div>
+                            </form>
+                            <?php else: ?>
+                                <?php $bioShow = trim((string)($timelineProfile['timeline_bio'] ?? '')); ?>
+                                <?php if ($bioShow !== ''): ?>
+                                    <p class="mb-0 small text-body-secondary"><?php echo nl2br(htmlspecialchars($bioShow)); ?></p>
+                                <?php else: ?>
+                                    <p class="mb-0 small text-muted fst-italic">Sem apresentação.</p>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline" class="btn btn-outline-secondary btn-sm mt-3"><i class="fas fa-stream me-1"></i>Voltar ao feed</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (empty($this->data['timeline_profile_user_id']) && !empty($this->data['can_create'])): ?>
             <div class="card timeline-composer-card timeline-composer-fb mb-3" id="timelineComposerCard">
                 <div class="card-body py-2 px-3">
                     <form method="post" action="<?php echo htmlspecialchars($urlAdm); ?>create-timeline-post" enctype="multipart/form-data" class="timeline-composer-form" id="timelineComposerForm" novalidate>
@@ -163,6 +233,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             </div>
             <?php endif; ?>
 
+            <?php if (empty($this->data['timeline_profile_user_id'])): ?>
             <div class="timeline-search-fb mb-3">
                 <div class="d-flex align-items-stretch gap-2 flex-wrap">
                     <div class="btn-group btn-group-sm timeline-search-mode flex-shrink-0" role="group" aria-label="Tipo de busca">
@@ -174,7 +245,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                     </span>
                     <div class="timeline-search-field-wrap flex-grow-1 min-w-0">
                         <div id="timelineSearchPanelPosts">
-                            <input type="text" id="timelineSearchPostsInput" class="form-control form-control-sm timeline-search-pill" placeholder="Buscar nesta página…" autocomplete="off" aria-label="Buscar postagens">
+                            <input type="text" id="timelineSearchPostsInput" class="form-control form-control-sm timeline-search-pill" placeholder="Buscar no feed (Enter) ou nesta página…" autocomplete="off" aria-label="Buscar postagens" value="<?php echo htmlspecialchars($timelineSearchQuery); ?>">
                         </div>
                         <div id="timelineSearchPanelPeople" class="d-none">
                             <input type="text" id="timelineSearchPeopleInput" class="form-control form-control-sm timeline-search-pill" placeholder="Nome ou e-mail…" autocomplete="off" aria-label="Buscar pessoas">
@@ -183,10 +254,28 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 </div>
                 <div id="timelineSearchPeopleResults" class="list-group timeline-mention-results mt-2 d-none timeline-search-people-results" style="max-height: 220px; overflow-y: auto;"></div>
             </div>
+            <?php endif; ?>
+
             <?php if (!empty($this->data['active_tag'])): ?>
                 <div class="alert alert-info py-2 px-3 small mb-3">
                     Exibindo publicações com <strong>#<?php echo htmlspecialchars($this->data['active_tag']); ?></strong>.
                     <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline" class="ms-2">Limpar filtro</a>
+                </div>
+            <?php endif; ?>
+            <?php if ($timelineSearchQuery !== ''): ?>
+                <?php
+                $clearSearchHref = $urlAdm . 'timeline';
+                $clearQs = [];
+                if (!empty($this->data['active_tag'])) {
+                    $clearQs[] = 'tag=' . rawurlencode((string)$this->data['active_tag']);
+                }
+                if ($clearQs !== []) {
+                    $clearSearchHref .= '?' . implode('&', $clearQs);
+                }
+                ?>
+                <div class="alert alert-secondary py-2 px-3 small mb-3">
+                    Resultados da busca por <strong><?php echo htmlspecialchars($timelineSearchQuery); ?></strong>.
+                    <a href="<?php echo htmlspecialchars($clearSearchHref); ?>" class="ms-2">Limpar busca</a>
                 </div>
             <?php endif; ?>
 
@@ -396,6 +485,9 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 <script>
 (function () {
     const base = <?php echo json_encode($urlAdm); ?>;
+    const timelineResolvedPostId = <?php echo (int)($this->data['resolved_focus_post_id'] ?? 0); ?>;
+    const timelineResolvedCommentId = <?php echo (int)($this->data['resolved_focus_comment_id'] ?? 0); ?>;
+    const timelineActiveTagJs = <?php echo json_encode($timelineActiveTag); ?>;
     const canReport = <?php echo !empty($this->data['can_report']) ? 'true' : 'false'; ?>;
     const canCreate = <?php echo !empty($this->data['can_create']) ? 'true' : 'false'; ?>;
     const canLike = <?php echo !empty($this->data['can_like']) ? 'true' : 'false'; ?>;
@@ -422,15 +514,76 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
     (function focusPostFromQuery() {
         try {
             var params = new URLSearchParams(window.location.search || '');
-            var postId = params.get('post');
+            var postId = timelineResolvedPostId > 0 ? String(timelineResolvedPostId) : params.get('post');
             if (!postId) return;
-            var target = document.getElementById('timeline-post-' + postId);
-            if (!target) return;
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.add('timeline-post-focus');
-            setTimeout(function () {
-                target.classList.remove('timeline-post-focus');
-            }, 2200);
+            var commentId = timelineResolvedCommentId > 0 ? String(timelineResolvedCommentId) : params.get('comment');
+            var focusBody = params.get('focus') === 'body';
+
+            function focusPostCard() {
+                var target = document.getElementById('timeline-post-' + postId);
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('timeline-post-focus');
+                setTimeout(function () {
+                    target.classList.remove('timeline-post-focus');
+                }, 2200);
+            }
+
+            function focusPostBody() {
+                setTimeout(function () {
+                    var bodyEl = document.getElementById('timeline-post-body-' + postId);
+                    if (!bodyEl) {
+                        focusPostCard();
+                        return;
+                    }
+                    bodyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    bodyEl.classList.add('timeline-post-body-focus');
+                    setTimeout(function () {
+                        bodyEl.classList.remove('timeline-post-body-focus');
+                    }, 2200);
+                }, 80);
+            }
+
+            if (commentId) {
+                focusPostCard();
+            } else if (focusBody) {
+                focusPostBody();
+                return;
+            } else {
+                focusPostCard();
+                return;
+            }
+
+            if (!commentId) return;
+
+            var box = document.getElementById('comments-' + postId);
+            if (!box) return;
+            box.classList.remove('d-none');
+
+            function scrollToCommentLine() {
+                var el = document.getElementById('timeline-comment-' + commentId);
+                if (!el) return;
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                el.classList.add('timeline-comment-focus');
+                setTimeout(function () {
+                    el.classList.remove('timeline-comment-focus');
+                }, 2200);
+            }
+
+            if (box.getAttribute('data-loaded') === '1') {
+                setTimeout(scrollToCommentLine, 80);
+            } else {
+                fetchJson(base + 'timeline-comment/' + postId, {})
+                    .then(function (data) {
+                        if (!data || !data.success) return;
+                        renderComments(postId, data.comments || []);
+                        box.setAttribute('data-loaded', '1');
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(scrollToCommentLine);
+                        });
+                    })
+                    .catch(function () { /* sem permissão ou erro: post já foi destacado */ });
+            }
         } catch (e) {
             // ignore
         }
@@ -518,13 +671,20 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
             list.forEach(function (row) {
                 var rt = row.reaction_type || 'like';
                 var ic = reactionIconClasses[rt] || reactionIconClasses.like;
+                var uid = parseInt(row.user_id || 0, 10);
                 var un = row.username ? '@' + escapeHtml(row.username) : '';
+                var nameHtml = escapeHtml(row.name || '');
+                if (uid > 0) {
+                    nameHtml = '<a href="' + base + 'timeline-profile/' + uid + '" class="text-reset text-decoration-none timeline-reaction-user-link fw-semibold">' + escapeHtml(row.name || '') + '</a>';
+                } else {
+                    nameHtml = '<span class="fw-semibold">' + nameHtml + '</span>';
+                }
                 h += '<li class="list-group-item d-flex align-items-center gap-3 py-2 px-0 border-0 border-bottom">';
                 h += '<span class="position-relative d-inline-flex timeline-react-avatar-wrap">';
                 h += '<span class="rounded-circle bg-light d-flex align-items-center justify-content-center timeline-react-avatar-fallback" style="width:40px;height:40px"><i class="fas fa-user text-muted"></i></span>';
                 h += '<span class="position-absolute bottom-0 end-0 rounded-circle bg-white border p-1" style="line-height:1"><i class="' + ic + '" style="font-size:0.65rem"></i></span>';
                 h += '</span>';
-                h += '<span class="flex-grow-1 min-w-0"><span class="fw-semibold d-block">' + escapeHtml(row.name || '') + '</span>';
+                h += '<span class="flex-grow-1 min-w-0"><span class="d-block">' + nameHtml + '</span>';
                 if (un) h += '<span class="text-muted small">' + un + '</span>';
                 h += '</span></li>';
             });
@@ -704,7 +864,7 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         });
 
         document.addEventListener('click', function (ev) {
-            if (ev.target.closest && (ev.target.closest('.timeline-reaction-tray-mobile') || ev.target.closest('.timeline-reaction-fb-more'))) {
+            if (ev.target.closest && (ev.target.closest('.timeline-reaction-tray-mobile') || ev.target.closest('.timeline-reaction-fb-more') || ev.target.closest('.timeline-comment-reaction-tray'))) {
                 return;
             }
             document.querySelectorAll('.timeline-reaction-tray-mobile.is-open').forEach(function (t) {
@@ -1010,54 +1170,6 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         }
 
         document.addEventListener('click', function (ev) {
-            var mainBtn = ev.target && ev.target.closest ? ev.target.closest('.timeline-comment-react-main') : null;
-            if (!mainBtn) return;
-            ev.preventDefault();
-            var cid = mainBtn.getAttribute('data-comment-id');
-            if (!cid) return;
-            var tray = document.querySelector('.timeline-comment-reaction-tray[data-comment-id="' + cid + '"]');
-            if (tray) tray.classList.toggle('d-none');
-        });
-
-        document.addEventListener('click', function (ev) {
-            var pick = ev.target && ev.target.closest ? ev.target.closest('.timeline-comment-reaction-pick') : null;
-            if (!pick) return;
-            ev.preventDefault();
-            ev.stopPropagation();
-            var cid = pick.getAttribute('data-comment-id');
-            var reaction = pick.getAttribute('data-reaction') || 'like';
-            if (!cid) return;
-            function sendCommentReaction(triesLeft) {
-                var form = new FormData();
-                form.append('comment_id', cid);
-                form.append('reaction', reaction);
-                form.append('csrf_token', timelineLikeCsrf);
-                return fetchJson(base + 'timeline-comment-like/' + cid, { method: 'POST', body: form })
-                    .then(function (data) {
-                        if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
-                            timelineLikeCsrf = data.csrf_token;
-                            return sendCommentReaction(triesLeft - 1);
-                        }
-                        if (data && data.csrf_token) {
-                            timelineLikeCsrf = data.csrf_token;
-                        }
-                        if (data && data.success) {
-                            updateCommentReactionUI(cid, data);
-                            var tray = document.querySelector('.timeline-comment-reaction-tray[data-comment-id="' + cid + '"]');
-                            if (tray) tray.classList.add('d-none');
-                        } else if (data && data.message) {
-                            alert(data.message);
-                        }
-                    })
-                    .catch(function (err) {
-                        console.error(err);
-                        alert(err.message || 'Não foi possível registrar a reação no comentário.');
-                    });
-            }
-            sendCommentReaction(1);
-        });
-
-        document.addEventListener('click', function (ev) {
             var openBtn = ev.target && ev.target.closest ? ev.target.closest('.timeline-comment-reactions-open') : null;
             if (!openBtn) return;
             ev.preventDefault();
@@ -1122,6 +1234,58 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         });
     }
 
+    function sendCommentReactionRequest(cid, reaction, triesLeft) {
+        triesLeft = typeof triesLeft === 'number' ? triesLeft : 1;
+        var form = new FormData();
+        form.append('comment_id', cid);
+        form.append('reaction', reaction || 'like');
+        form.append('csrf_token', timelineLikeCsrf);
+        return fetchJson(base + 'timeline-comment-like/' + cid, { method: 'POST', body: form })
+            .then(function (data) {
+                if (data && data.csrf_expired && data.csrf_token && triesLeft > 0) {
+                    timelineLikeCsrf = data.csrf_token;
+                    return sendCommentReactionRequest(cid, reaction, triesLeft - 1);
+                }
+                if (data && data.csrf_token) {
+                    timelineLikeCsrf = data.csrf_token;
+                }
+                if (data && data.success) {
+                    updateCommentReactionUI(cid, data);
+                    var tray = document.querySelector('.timeline-comment-reaction-tray[data-comment-id="' + cid + '"]');
+                    if (tray) tray.classList.add('d-none');
+                } else if (data && data.message) {
+                    alert(data.message);
+                }
+            })
+            .catch(function (err) {
+                console.error(err);
+                alert(err.message || 'Não foi possível registrar a reação no comentário.');
+            });
+    }
+
+    function bindCommentReactionControls(div) {
+        if (!div) return;
+        var mainBtn = div.querySelector('.timeline-comment-react-main');
+        if (mainBtn) {
+            mainBtn.onclick = function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                var tray = div.querySelector('.timeline-comment-reaction-tray');
+                if (tray) tray.classList.toggle('d-none');
+            };
+        }
+        div.querySelectorAll('.timeline-comment-reaction-pick').forEach(function (pick) {
+            pick.onclick = function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                var cid = pick.getAttribute('data-comment-id');
+                var reaction = pick.getAttribute('data-reaction') || 'like';
+                if (!cid) return;
+                sendCommentReactionRequest(cid, reaction, 1);
+            };
+        });
+    }
+
     function renderComments(postId, comments) {
         const wrap = document.querySelector('.timeline-comments-list[data-post-id="' + postId + '"]');
         if (!wrap) return;
@@ -1129,8 +1293,11 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
         comments.forEach(function (c) {
             const div = document.createElement('div');
             div.className = 'mb-2 small timeline-comment-line';
-            const body = c.content_html ? c.content_html : escapeHtml(c.content || '');
             const cid = parseInt(c.id || 0, 10);
+            if (cid > 0) {
+                div.id = 'timeline-comment-' + cid;
+            }
+            const body = c.content_html ? c.content_html : escapeHtml(c.content || '');
             const myReaction = c.my_reaction || null;
             const reactIcon = myReaction && reactionIconClasses[myReaction] ? reactionIconClasses[myReaction] : 'far fa-thumbs-up';
             const reactLabel = myReaction && reactionLabels[myReaction] ? reactionLabels[myReaction] : 'Curtir';
@@ -1153,9 +1320,15 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 + '  </span>'
                 + '</div>'
             ) : '';
+            var authorUid = parseInt(c.user_id || 0, 10);
+            var authorLine = '<strong>' + escapeHtml(c.author_name || '') + '</strong>';
+            if (authorUid > 0) {
+                authorLine = '<strong><a href="' + base + 'timeline-profile/' + authorUid + '" class="text-reset text-decoration-none timeline-comment-author-link">' + escapeHtml(c.author_name || '') + '</a></strong>';
+            }
             div.innerHTML = ''
-                + '<strong>' + escapeHtml(c.author_name || '') + '</strong> · ' + escapeHtml(c.created_at || '') + '<br>' + body
+                + authorLine + ' · ' + escapeHtml(c.created_at || '') + '<br>' + body
                 + reactionsHtml;
+            bindCommentReactionControls(div);
             wrap.appendChild(div);
         });
     }
@@ -1250,9 +1423,14 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
                 hasAny = true;
                 html += '<ul class="mb-0 ps-3">';
                 voters.forEach(function (v) {
-                    var name = escapeHtml((v && v.name) ? v.name : 'Usuário');
+                    var vid = parseInt(v.user_id || 0, 10);
+                    var rawName = (v && v.name) ? v.name : 'Usuário';
+                    var nameHtml = escapeHtml(rawName);
+                    if (vid > 0) {
+                        nameHtml = '<a href="' + base + 'timeline-profile/' + vid + '" class="text-reset text-decoration-none timeline-poll-voter-link">' + escapeHtml(rawName) + '</a>';
+                    }
                     var uname = (v && v.username) ? ' <span class="text-muted">(@' + escapeHtml(v.username) + ')</span>' : '';
-                    html += '<li>' + name + uname + '</li>';
+                    html += '<li>' + nameHtml + uname + '</li>';
                 });
                 html += '</ul>';
             }
@@ -1690,6 +1868,16 @@ $composerFirst = $composerName !== '' ? preg_split('/\s+/', $composerName, 2)[0]
 
         searchPostsInput.addEventListener('input', function () {
             applyPostFilter(searchPostsInput.value);
+        });
+
+        searchPostsInput.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter') return;
+            ev.preventDefault();
+            var q = (searchPostsInput.value || '').trim();
+            var parts = [];
+            if (q) parts.push('q=' + encodeURIComponent(q));
+            if (timelineActiveTagJs) parts.push('tag=' + encodeURIComponent(timelineActiveTagJs));
+            window.location.href = base + 'timeline' + (parts.length ? '?' + parts.join('&') : '');
         });
 
         // inicial

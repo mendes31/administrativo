@@ -35,9 +35,10 @@ class TimelineComment
         }
 
         $permRepo = new ButtonPermissionUserRepository();
-        $perms = $permRepo->buttonPermission(['TimelineComment']);
+        $perms = $permRepo->buttonPermission(['TimelineComment', 'TimelineViewComments']);
         $canComment = is_array($perms) && in_array('TimelineComment', $perms, true);
-        $canViewComments = $canComment;
+        $canViewComments = is_array($perms)
+            && (in_array('TimelineComment', $perms, true) || in_array('TimelineViewComments', $perms, true));
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             if (!$canViewComments) {
@@ -121,7 +122,7 @@ class TimelineComment
                 'type' => 'timeline_comment',
                 'title' => $actorName . ' comentou na sua publicação',
                 'message' => mb_substr($text, 0, 180),
-                'link_url' => $base . 'timeline?post=' . $pid,
+                'link_url' => $base . 'timeline?comment=' . $cid,
                 'entity_type' => 'timeline_post',
                 'entity_id' => $pid,
             ]);
@@ -136,7 +137,7 @@ class TimelineComment
                 'type' => 'timeline_mention',
                 'title' => $actorName . ' mencionou você em um comentário',
                 'message' => mb_substr($text, 0, 180),
-                'link_url' => $base . 'timeline?post=' . $pid,
+                'link_url' => $base . 'timeline?comment=' . $cid,
                 'entity_type' => 'timeline_post',
                 'entity_id' => $pid,
             ]);

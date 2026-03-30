@@ -36,6 +36,18 @@
     box-shadow: 0 0 0 4px rgba(24, 119, 242, 0.18);
     transition: box-shadow 0.25s ease, outline-color 0.25s ease;
 }
+.timeline-comment-focus {
+    outline: 2px solid rgba(25, 135, 84, 0.75);
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.15);
+    border-radius: 8px;
+    transition: box-shadow 0.25s ease, outline-color 0.25s ease;
+}
+.timeline-post-body-focus {
+    outline: 2px solid rgba(13, 110, 253, 0.55);
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+    border-radius: 10px;
+    transition: box-shadow 0.25s ease, outline-color 0.25s ease;
+}
 .timeline-post-header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -151,13 +163,20 @@
 }
 .timeline-comment-reaction-tray {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
     margin-left: 0.25rem;
+    position: relative;
+    z-index: 4;
+    pointer-events: auto;
 }
 .timeline-comment-reaction-tray .btn {
     width: 28px;
     height: 28px;
     padding: 0;
+    position: relative;
+    z-index: 5;
+    pointer-events: auto;
 }
 .timeline-share-preview {
     border-color: rgba(13, 110, 253, 0.25) !important;
@@ -884,4 +903,26 @@ video.timeline-post-media {
     align-items: center;
     justify-content: center;
     color: #8a8d91;
+}
+
+.timeline-profile-header-avatar {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+}
+.timeline-author-profile-link:hover {
+    text-decoration: underline !important;
+    color: #1877f2 !important;
+}
+
+.timeline-comment-author-link:hover,
+.timeline-reaction-user-link:hover,
+.timeline-poll-voter-link:hover,
+.timeline-shared-author-link:hover {
+    text-decoration: underline !important;
+    color: #1877f2 !important;
+}
+
+a.timeline-mention:hover {
+    text-decoration: underline !important;
 }

@@ -457,7 +457,8 @@ class UsersRepository extends DbConnection
                     t0.username, 
                     t0.cpf,
                     t0.celular,
-                    t0.image, 
+                    t0.image,
+                    t0.timeline_bio,
                     t0.data_nascimento,
                     t0.data_admissao,
                     t0.data_desligamento,
@@ -491,6 +492,56 @@ class UsersRepository extends DbConnection
 
         // Ler o registro e retornar
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Perfil público para a timeline (departamento/cargo opcionais).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getUserForTimelineProfile(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $sql = 'SELECT  t0.id,
+                        t0.name,
+                        t0.username,
+                        t0.image,
+                        t0.timeline_bio,
+                        t0.status,
+                        t1.name AS dep_name,
+                        t2.name AS pos_name
+                FROM adms_users t0
+                LEFT JOIN adms_departments t1 ON t0.user_department_id = t1.id
+                LEFT JOIN adms_positions t2 ON t0.user_position_id = t2.id
+                WHERE t0.id = :id
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Atualiza texto curto exibido no perfil da timeline (apenas o próprio usuário deve chamar).
+     */
+    public function updateTimelineBio(int $userId, string $bio): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        $bio = trim(mb_substr(strip_tags($bio), 0, 500));
+        $sql = 'UPDATE adms_users SET timeline_bio = :bio, updated_at = NOW() WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        if ($bio === '') {
+            $stmt->bindValue(':bio', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':bio', $bio, PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+        return $stmt->execute();
     }
 
     /**

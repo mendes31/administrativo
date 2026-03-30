@@ -49,10 +49,16 @@ use App\adms\Helpers\ImageHelper;
                         <?php echo htmlspecialchars($this->data['form']['dep_name'] ?? ''); ?>
                     </p>
                     
-                                         <a href="<?php echo $_ENV['URL_ADM']; ?>update-password" class="btn btn-warning btn-sm">
-                        <i class="fas fa-key me-1"></i>
-                        Alterar Senha
-                    </a>
+                    <div class="d-flex flex-column gap-2 align-items-stretch">
+                        <a href="<?php echo htmlspecialchars($_ENV['URL_ADM'] ?? ''); ?>update-password" class="btn btn-warning btn-sm">
+                            <i class="fas fa-key me-1"></i>
+                            Alterar Senha
+                        </a>
+                        <a href="<?php echo htmlspecialchars($_ENV['URL_ADM'] ?? ''); ?>timeline-profile/<?php echo (int)($_SESSION['user_id'] ?? 0); ?>" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-stream me-1"></i>
+                            Perfil na Timeline
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -142,6 +142,19 @@ if (!empty($_SESSION['user_id'])) {
                 <?php endif; ?>
                 <?php if (!empty($navbarInternalList)): ?>
                     <li class="dropdown-header small text-muted">Atribuições e avisos</li>
+                    <?php
+                    $navbarNotifIcon = static function (string $type): string {
+                        return match ($type) {
+                            'timeline_mention' => 'fas fa-at text-warning',
+                            'timeline_comment' => 'far fa-comment text-primary',
+                            'timeline_comment_reaction' => 'fas fa-heart text-danger',
+                            'timeline_reaction' => 'fas fa-heart text-danger',
+                            'timeline_share' => 'fas fa-retweet text-success',
+                            'projeto_etapa' => 'fas fa-tasks text-primary',
+                            default => 'far fa-bell text-secondary',
+                        };
+                    };
+                    ?>
                     <?php foreach ($navbarInternalList as $intNotif): ?>
                     <li>
                         <?php
@@ -149,9 +162,10 @@ if (!empty($_SESSION['user_id'])) {
                         if (!empty($intNotif['link_url']) && strpos($intNotif['link_url'], 'notificacoes') === false) {
                             $intLink .= (strpos($intLink, '?') !== false ? '&' : '?') . 'mark_notification=' . (int)($intNotif['id'] ?? 0);
                         }
+                        $nType = (string)($intNotif['type'] ?? '');
                         ?>
                         <a class="dropdown-item py-2 d-block" href="<?php echo htmlspecialchars($intLink); ?>">
-                            <span class="d-block fw-semibold small"><?php if (($intNotif['type'] ?? '') === 'projeto_etapa'): ?><i class="fas fa-tasks text-primary me-1"></i><?php endif; ?><?php echo htmlspecialchars($intNotif['title'] ?? ''); ?></span>
+                            <span class="d-block fw-semibold small"><i class="<?php echo htmlspecialchars($navbarNotifIcon($nType)); ?> me-1"></i><?php echo htmlspecialchars($intNotif['title'] ?? ''); ?></span>
                             <span class="d-block text-muted" style="font-size: 0.8rem;"><?php echo date('d/m/Y H:i', strtotime($intNotif['created_at'] ?? 'now')); ?></span>
                         </a>
                     </li>

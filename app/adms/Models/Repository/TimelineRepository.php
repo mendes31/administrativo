@@ -142,11 +142,15 @@ class TimelineRepository extends DbConnection
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function getFeedPosts(int $page, int $perPage, ?string $tag = null): array
+    public function getFeedPosts(int $page, int $perPage, ?string $tag = null, ?string $searchQuery = null): array
     {
         $page = max(1, $page);
         $offset = ($page - 1) * $perPage;
         $tag = TimelineHashtagHelper::normalizeTag((string) $tag);
+        $searchQuery = $searchQuery !== null ? trim($searchQuery) : '';
+        if (mb_strlen($searchQuery) > 200) {
+            $searchQuery = mb_substr($searchQuery, 0, 200);
+        }
         $sql = 'SELECT p.*, u.name AS author_name, u.image AS author_image,
                        (SELECT COUNT(*) FROM adms_timeline_likes l WHERE l.post_id = p.id) AS likes_count,
                        (SELECT COUNT(*) FROM adms_timeline_comments c WHERE c.post_id = p.id AND c.status = "active") AS comments_count
@@ -161,6 +165,9 @@ class TimelineRepository extends DbConnection
                         WHERE pt.post_id = p.id AND t.tag = :tag
                       )';
         }
+        if ($searchQuery !== '') {
+            $sql .= ' AND p.content LIKE :qsearch';
+        }
         $sql .= '
                 ORDER BY p.created_at DESC
                 LIMIT :lim OFFSET :off';
@@ -168,15 +175,63 @@ class TimelineRepository extends DbConnection
         if ($tag !== '') {
             $stmt->bindValue(':tag', $tag, PDO::PARAM_STR);
         }
+        if ($searchQuery !== '') {
+            $stmt->bindValue(':qsearch', '%' . $searchQuery . '%', PDO::PARAM_STR);
+        }
         $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function countActivePosts(?string $tag = null): int
+    /**
+     * Feed apenas com publicações de um usuário (perfil na timeline).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getFeedPostsByUserId(int $userId, int $page, int $perPage): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $page = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+        $sql = 'SELECT p.*, u.name AS author_name, u.image AS author_image,
+                       (SELECT COUNT(*) FROM adms_timeline_likes l WHERE l.post_id = p.id) AS likes_count,
+                       (SELECT COUNT(*) FROM adms_timeline_comments c WHERE c.post_id = p.id AND c.status = "active") AS comments_count
+                FROM adms_timeline_posts p
+                INNER JOIN adms_users u ON u.id = p.user_id
+                WHERE p.status = "active" AND p.user_id = :uid
+                ORDER BY p.created_at DESC
+                LIMIT :lim OFFSET :off';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function countActivePostsByUserId(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COUNT(*) AS c FROM adms_timeline_posts p WHERE p.status = "active" AND p.user_id = :uid'
+        );
+        $stmt->execute([':uid' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['c'] ?? 0);
+    }
+
+    public function countActivePosts(?string $tag = null, ?string $searchQuery = null): int
     {
         $tag = TimelineHashtagHelper::normalizeTag((string) $tag);
+        $searchQuery = $searchQuery !== null ? trim($searchQuery) : '';
+        if (mb_strlen($searchQuery) > 200) {
+            $searchQuery = mb_substr($searchQuery, 0, 200);
+        }
         $sql = 'SELECT COUNT(*) AS c FROM adms_timeline_posts p WHERE p.status = "active"';
         if ($tag !== '') {
             $sql .= ' AND EXISTS (
@@ -186,13 +241,38 @@ class TimelineRepository extends DbConnection
                         WHERE pt.post_id = p.id AND t.tag = :tag
                       )';
         }
+        if ($searchQuery !== '') {
+            $sql .= ' AND p.content LIKE :qsearch';
+        }
         $stmt = $this->getConnection()->prepare($sql);
         if ($tag !== '') {
             $stmt->bindValue(':tag', $tag, PDO::PARAM_STR);
         }
+        if ($searchQuery !== '') {
+            $stmt->bindValue(':qsearch', '%' . $searchQuery . '%', PDO::PARAM_STR);
+        }
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['c'] ?? 0);
+    }
+
+    /**
+     * Indica se o post possui a hashtag normalizada (filtro ativo na timeline).
+     */
+    public function postHasNormalizedTag(int $postId, string $normalizedTag): bool
+    {
+        $normalizedTag = TimelineHashtagHelper::normalizeTag($normalizedTag);
+        if ($postId <= 0 || $normalizedTag === '') {
+            return false;
+        }
+        $sql = 'SELECT 1
+                FROM adms_timeline_post_tags pt
+                INNER JOIN adms_timeline_tags t ON t.id = pt.tag_id
+                WHERE pt.post_id = :p AND t.tag = :tag
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':p' => $postId, ':tag' => $normalizedTag]);
+        return (bool) $stmt->fetchColumn();
     }
 
     /**
@@ -294,7 +374,7 @@ class TimelineRepository extends DbConnection
     }
 
     /**
-     * @return array<int, array{name: string, username: string, reaction_type: string, created_at: string}>
+     * @return array<int, array{user_id: int, name: string, username: string, reaction_type: string, created_at: string}>
      */
     public function listReactionsForPost(int $postId): array
     {
@@ -309,6 +389,7 @@ class TimelineRepository extends DbConnection
         $out = [];
         foreach ($rows as $r) {
             $out[] = [
+                'user_id' => (int)($r['user_id'] ?? 0),
                 'name' => (string)($r['name'] ?? ''),
                 'username' => (string)($r['username'] ?? ''),
                 'reaction_type' => TimelineReactionHelper::normalize((string)($r['reaction_type'] ?? 'like')),
@@ -382,8 +463,10 @@ class TimelineRepository extends DbConnection
 
     public function getCommentById(int $commentId): ?array
     {
+        // Não usar "p.id AS post_id": em alguns drivers c.post_id pode ser sobrescrito
+        // por p.id em arrays associativos, gerando link errado em notificações.
         $stmt = $this->getConnection()->prepare(
-            'SELECT c.*, p.status AS post_status, p.id AS post_id
+            'SELECT c.*, p.status AS post_status
              FROM adms_timeline_comments c
              INNER JOIN adms_timeline_posts p ON p.id = c.post_id
              WHERE c.id = :id
@@ -493,7 +576,7 @@ class TimelineRepository extends DbConnection
     }
 
     /**
-     * @return array<int, array<string, string>>
+     * @return array<int, array{user_id: int, name: string, username: string, reaction_type: string, created_at: string}>
      */
     public function listReactionsForComment(int $commentId): array
     {
@@ -508,6 +591,7 @@ class TimelineRepository extends DbConnection
         $out = [];
         foreach ($rows as $r) {
             $out[] = [
+                'user_id' => (int)($r['user_id'] ?? 0),
                 'name' => (string)($r['name'] ?? ''),
                 'username' => (string)($r['username'] ?? ''),
                 'reaction_type' => TimelineReactionHelper::normalize((string)($r['reaction_type'] ?? 'like')),

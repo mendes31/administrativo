@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\TimelineReactionHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 
 class TimelineCommentLike
@@ -69,7 +71,28 @@ class TimelineCommentLike
         }
 
         $reaction = (string)($_POST['reaction'] ?? $_GET['reaction'] ?? 'like');
-        $result = $repo->setCommentReaction($commentId, (int)$_SESSION['user_id'], $reaction);
+        $actorId = (int)$_SESSION['user_id'];
+        $result = $repo->setCommentReaction($commentId, $actorId, $reaction);
+
+        // Notifica o autor do comentário quando outra pessoa reage (mesmo fluxo do post).
+        $commentOwnerId = (int)($comment['user_id'] ?? 0);
+        $postIdForLink = (int)($comment['post_id'] ?? 0);
+        if ($result['liked'] && $commentOwnerId > 0 && $commentOwnerId !== $actorId) {
+            $notifRepo = new NotificationsRepository();
+            $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+            $actorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+            $reactionLabel = TimelineReactionHelper::label((string)($result['reaction'] ?? 'like'));
+            $notifRepo->create([
+                'user_id' => $commentOwnerId,
+                'type' => 'timeline_comment_reaction',
+                'title' => $actorName . ' reagiu ao seu comentário',
+                'message' => 'Reação: ' . $reactionLabel,
+                // comment= define o post correto no servidor (getCommentById); post= redundante e pode divergir.
+                'link_url' => $base . 'timeline?comment=' . $commentId,
+                'entity_type' => 'timeline_comment',
+                'entity_id' => $commentId,
+            ]);
+        }
 
         echo json_encode([
             'success' => true,

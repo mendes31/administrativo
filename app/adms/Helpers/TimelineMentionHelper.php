@@ -111,7 +111,7 @@ final class TimelineMentionHelper
                 $id = (int) $mm[1];
                 $label = $idToName[$id] ?? ('#' . $id);
                 $safeLabel = TextEncodingHelper::escape('@' . $label);
-                $safeUrl = TextEncodingHelper::escape($urlAdm . 'view-user/' . $id);
+                $safeUrl = TextEncodingHelper::escape($urlAdm . 'timeline-profile/' . $id);
                 $out .= '<a href="' . $safeUrl . '" class="timeline-mention">' . $safeLabel . '</a>';
                 continue;
             }
@@ -127,7 +127,7 @@ final class TimelineMentionHelper
                 if (isset($map[$uname])) {
                     $id = $map[$uname]['id'];
                     $safeUser = TextEncodingHelper::escape($uname);
-                    $safeUrl = TextEncodingHelper::escape($urlAdm . 'view-user/' . $id);
+                    $safeUrl = TextEncodingHelper::escape($urlAdm . 'timeline-profile/' . $id);
                     $out .= '<a href="' . $safeUrl . '" class="timeline-mention">@' . $safeUser . '</a>';
                     continue;
                 }

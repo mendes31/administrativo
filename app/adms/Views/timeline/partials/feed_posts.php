@@ -67,7 +67,17 @@ $usersRepoMention = new UsersRepository();
                 ], 'icon_user.png', 'users');
                 ?>
                 <div class="flex-grow-1 min-w-0">
-                    <div class="fw-bold text-truncate"><?php echo htmlspecialchars($postRow['author_name'] ?? 'Usuário'); ?></div>
+                    <?php
+                    $authorUserId = (int)($postRow['user_id'] ?? 0);
+                    $authorLabel = htmlspecialchars($postRow['author_name'] ?? 'Usuário');
+                    ?>
+                    <div class="fw-bold text-truncate">
+                        <?php if ($authorUserId > 0): ?>
+                            <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline-profile/<?php echo $authorUserId; ?>" class="text-reset text-decoration-none timeline-author-profile-link"><?php echo $authorLabel; ?></a>
+                        <?php else: ?>
+                            <?php echo $authorLabel; ?>
+                        <?php endif; ?>
+                    </div>
                     <div class="text-muted small">
                         <?php echo date('d/m/Y H:i', strtotime($postRow['created_at'] ?? 'now')); ?>
                         <?php if (!empty($postRow['edited_at'])): ?>
@@ -153,6 +163,7 @@ $usersRepoMention = new UsersRepository();
             <?php if (is_array($sharedPost)): ?>
                 <?php
                 $sharedAuthorName = (string)($sharedPost['author_name'] ?? 'Usuário');
+                $sharedAuthorUid = (int)($sharedPost['user_id'] ?? 0);
                 $sharedTxt = trim((string)($sharedPost['content'] ?? ''));
                 $sharedExcerpt = mb_substr($sharedTxt, 0, 260) . (mb_strlen($sharedTxt) > 260 ? '…' : '');
                 $sharedHasMedia = !empty($sharedPost['video_path']) || !empty($sharedPost['image_paths']);
@@ -162,10 +173,21 @@ $usersRepoMention = new UsersRepository();
                 ?>
                 <div class="timeline-shared-shell mb-2">
                     <div class="timeline-shared-meta small text-muted mb-1">
-                        <i class="fas fa-retweet me-1"></i>Você repostou uma publicação de <?php echo htmlspecialchars($sharedAuthorName); ?>.
+                        <i class="fas fa-retweet me-1"></i>Você repostou uma publicação de
+                        <?php if ($sharedAuthorUid > 0): ?>
+                            <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline-profile/<?php echo $sharedAuthorUid; ?>" class="text-reset fw-semibold text-decoration-none timeline-shared-author-link"><?php echo htmlspecialchars($sharedAuthorName); ?></a>.
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($sharedAuthorName); ?>.
+                        <?php endif; ?>
                     </div>
                     <div class="timeline-shared-card p-2 rounded border">
-                        <div class="small fw-semibold mb-1"><?php echo htmlspecialchars($sharedAuthorName); ?></div>
+                        <div class="small fw-semibold mb-1">
+                            <?php if ($sharedAuthorUid > 0): ?>
+                                <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline-profile/<?php echo $sharedAuthorUid; ?>" class="text-reset text-decoration-none timeline-shared-author-link"><?php echo htmlspecialchars($sharedAuthorName); ?></a>
+                            <?php else: ?>
+                                <?php echo htmlspecialchars($sharedAuthorName); ?>
+                            <?php endif; ?>
+                        </div>
                         <?php if ($sharedExcerpt !== ''): ?>
                             <div class="small"><?php echo TimelineMentionHelper::renderHtml($sharedExcerpt, $urlAdm, $mentionMap, $usersRepoMention); ?></div>
                         <?php else: ?>

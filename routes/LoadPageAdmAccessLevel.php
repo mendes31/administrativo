@@ -98,6 +98,8 @@ class LoadPageAdmAccessLevel
             'CreateTimelinePost' => "\\App\\adms\\Controllers\\timeline\\CreateTimelinePost",
             // JSON da timeline (curtidas, comentários, denúncia) — evita Erro 004/HTML quando adms_pages está inconsistente.
             'TimelineLike'    => "\\App\\adms\\Controllers\\timeline\\TimelineLike",
+            // Reações em comentário (JSON); mesmo motivo que TimelineLike/TimelineComment.
+            'TimelineCommentLike' => "\\App\\adms\\Controllers\\timeline\\TimelineCommentLike",
             'TimelinePostReactions' => "\\App\\adms\\Controllers\\timeline\\TimelinePostReactions",
             'UpdateTimelinePost' => "\\App\\adms\\Controllers\\timeline\\UpdateTimelinePost",
             'DeleteTimelinePost' => "\\App\\adms\\Controllers\\timeline\\DeleteTimelinePost",

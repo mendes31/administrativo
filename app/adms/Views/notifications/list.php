@@ -24,7 +24,9 @@ $iconByType = static function (string $type): string {
     return match ($type) {
         'timeline_mention' => 'fas fa-at text-warning',
         'timeline_comment' => 'far fa-comment text-primary',
+        'timeline_comment_reaction' => 'fas fa-heart text-danger',
         'timeline_reaction' => 'fas fa-heart text-danger',
+        'timeline_share' => 'fas fa-retweet text-success',
         'projeto_etapa' => 'fas fa-tasks text-primary',
         default => 'far fa-bell text-secondary',
     };
@@ -50,7 +52,7 @@ $reactionLabel = static function (?string $message): string {
 
 $isReactionNotification = static function (string $type, string $title, string $message): bool {
     $t = strtolower(trim($type));
-    if ($t === 'timeline_reaction' || $t === 'timeline_like' || $t === 'reaction') {
+    if ($t === 'timeline_reaction' || $t === 'timeline_comment_reaction' || $t === 'timeline_like' || $t === 'reaction') {
         return true;
     }
 
@@ -308,7 +310,10 @@ foreach ($notifications as $n) {
                                 if ($isReaction) {
                                     $displayTitle = preg_replace('/\s+reagiu\s+.+$/iu', '', $baseTitle) ?: $baseTitle;
                                     $displayTitle = $normalizeLegacyTitle($displayTitle);
-                                    $displayTitle = trim($displayTitle) . ' ' . $reactionLabel($baseMessage) . ' na sua publicação';
+                                    $reactionWhere = ($type === 'timeline_comment_reaction')
+                                        ? ' ao seu comentário'
+                                        : ' na sua publicação';
+                                    $displayTitle = trim($displayTitle) . ' ' . $reactionLabel($baseMessage) . $reactionWhere;
                                     $displayMessage = '';
                                 }
                             ?>
@@ -359,7 +364,10 @@ foreach ($notifications as $n) {
                                 if ($isReaction) {
                                     $displayTitle = preg_replace('/\s+reagiu\s+.+$/iu', '', $baseTitle) ?: $baseTitle;
                                     $displayTitle = $normalizeLegacyTitle($displayTitle);
-                                    $displayTitle = trim($displayTitle) . ' ' . $reactionLabel($baseMessage) . ' na sua publicação';
+                                    $reactionWhere = ($type === 'timeline_comment_reaction')
+                                        ? ' ao seu comentário'
+                                        : ' na sua publicação';
+                                    $displayTitle = trim($displayTitle) . ' ' . $reactionLabel($baseMessage) . $reactionWhere;
                                     $displayMessage = '';
                                 }
                             ?>

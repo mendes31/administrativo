@@ -211,7 +211,7 @@ class CreateTimelinePost
                     'type' => 'timeline_mention',
                     'title' => $authorName . ' mencionou você em uma publicação',
                     'message' => mb_substr($content, 0, 180),
-                    'link_url' => $base . 'timeline?post=' . $postId,
+                    'link_url' => $base . 'timeline?post=' . $postId . '&focus=body',
                     'entity_type' => 'timeline_post',
                     'entity_id' => $postId,
                 ]);
