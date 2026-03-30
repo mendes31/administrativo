@@ -185,4 +185,21 @@ class LoginRepository extends DbConnection
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Lê apenas o flag super_usuario (consulta leve para alinhar sessão ao cadastro).
+     */
+    public function getSuperUsuarioFlag(int $userId): bool
+    {
+        try {
+            $sql = 'SELECT super_usuario FROM adms_users WHERE id = :id LIMIT 1';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row !== false && !empty($row['super_usuario']);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
 }
