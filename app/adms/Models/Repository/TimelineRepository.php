@@ -58,6 +58,76 @@ class TimelineRepository extends DbConnection
     }
 
     /**
+     * Verifica se já existe, no dia atual, uma publicação de tempo de empresa
+     * feita por um autor para um destinatário específico (baseado em menção @username e anos).
+     */
+    public function hasTenureCongratsPostToday(int $authorUserId, int $targetUserId, ?int $years): bool
+    {
+        if ($authorUserId <= 0 || $targetUserId <= 0) {
+            return false;
+        }
+        $today = date('Y-m-d');
+        $sql = 'SELECT p.id, u.username
+                FROM adms_timeline_posts p
+                INNER JOIN adms_users u ON u.id = :target_id
+                WHERE p.user_id = :author_id
+                  AND p.status = "active"
+                  AND DATE(p.created_at) = :today
+                ORDER BY p.created_at DESC
+                LIMIT 20';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([
+            ':author_id' => $authorUserId,
+            ':target_id' => $targetUserId,
+            ':today' => $today,
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        if ($rows === []) {
+            return false;
+        }
+        $username = '';
+        foreach ($rows as $r) {
+            $username = (string)($r['username'] ?? '');
+            break;
+        }
+        if ($username === '') {
+            return false;
+        }
+        $needleBase = 'Parabéns pelos seus ';
+        $needleUser = '@' . $username;
+        foreach ($rows as $row) {
+            $pid = (int)($row['id'] ?? 0);
+            if ($pid <= 0) {
+                continue;
+            }
+            $pRow = $this->getPostById($pid);
+            if (!$pRow) {
+                continue;
+            }
+            $content = (string)($pRow['content'] ?? '');
+            if ($content === '') {
+                continue;
+            }
+            if (strpos($content, $needleUser) === false) {
+                continue;
+            }
+            if ($years !== null) {
+                $needleYears = $needleBase . $years . ' ano(s) de empresa';
+                if (strpos($content, $needleYears) !== false) {
+                    return true;
+                }
+            } else {
+                if (strpos($content, 'Parabéns pelo seu tempo de casa') !== false
+                    || strpos($content, 'Parabéns pelo seu tempo de empresa') !== false) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param array<int, string> $options
      */
     public function createPollForPost(int $postId, string $question, array $options, ?string $startsAt, string $endsAt): int
@@ -185,7 +255,10 @@ class TimelineRepository extends DbConnection
     }
 
     /**
-     * Feed apenas com publicações de um usuário (perfil na timeline).
+     * Feed do perfil na timeline.
+     * Inclui publicações:
+     * - criadas pelo próprio usuário; e
+     * - de terceiros que mencionam esse usuário no post.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -201,7 +274,12 @@ class TimelineRepository extends DbConnection
                        (SELECT COUNT(*) FROM adms_timeline_comments c WHERE c.post_id = p.id AND c.status = "active") AS comments_count
                 FROM adms_timeline_posts p
                 INNER JOIN adms_users u ON u.id = p.user_id
-                WHERE p.status = "active" AND p.user_id = :uid
+                LEFT JOIN adms_timeline_mentions m 
+                       ON m.entity_type = "post" 
+                      AND m.entity_id = p.id
+                WHERE p.status = "active"
+                  AND (p.user_id = :uid OR m.mentioned_user_id = :uid)
+                GROUP BY p.id
                 ORDER BY p.created_at DESC
                 LIMIT :lim OFFSET :off';
         $stmt = $this->getConnection()->prepare($sql);
@@ -217,9 +295,14 @@ class TimelineRepository extends DbConnection
         if ($userId <= 0) {
             return 0;
         }
-        $stmt = $this->getConnection()->prepare(
-            'SELECT COUNT(*) AS c FROM adms_timeline_posts p WHERE p.status = "active" AND p.user_id = :uid'
-        );
+        $sql = 'SELECT COUNT(DISTINCT p.id) AS c
+                FROM adms_timeline_posts p
+                LEFT JOIN adms_timeline_mentions m 
+                       ON m.entity_type = "post" 
+                      AND m.entity_id = p.id
+                WHERE p.status = "active"
+                  AND (p.user_id = :uid OR m.mentioned_user_id = :uid)';
+        $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':uid' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['c'] ?? 0);

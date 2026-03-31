@@ -11,6 +11,7 @@ use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\TimelineCelebrationsService;
 use App\adms\Views\Services\LoadViewService;
 
 class Timeline
@@ -23,6 +24,11 @@ class Timeline
         if ($userId > 0 && isset($_GET['mark_notification']) && is_numeric($_GET['mark_notification'])) {
             $notifRepo = new NotificationsRepository();
             $notifRepo->markAsRead((int)$_GET['mark_notification'], $userId);
+        }
+
+        // No primeiro acesso do dia à Timeline, gerar posts institucionais
+        if ($userId > 0) {
+            TimelineCelebrationsService::ensureTodayPostsCreated();
         }
 
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {

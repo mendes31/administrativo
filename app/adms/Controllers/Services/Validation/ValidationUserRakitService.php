@@ -34,7 +34,7 @@ class ValidationUserRakitService
 
         $validator->addValidator('uniqueInColumns', new UniqueInColumnsRule());
 
-        // Definir as regras de validação
+        // Definir as regras de validação (base)
         $rules = [
             'name'              => 'required',
             // Email passa a ser opcional; se informado, deve ser válido
@@ -47,6 +47,8 @@ class ValidationUserRakitService
         ];
 
         $isCreate = !isset($data['id']);
+        $usernameValue = isset($data['username']) ? strtolower(trim((string)$data['username'])) : '';
+        $isManagerUser = ($usernameValue === 'manager');
         $gerarSenha = !empty($data['gerar_senha']) && (string)$data['gerar_senha'] === '1';
 
         // Se estiver ausente o ID, então é uma criação (cadastrar)
@@ -80,6 +82,11 @@ class ValidationUserRakitService
             if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $rules['image'] = 'uploaded_file:0,2048K,png,jpg,jpeg,gif';
             }
+        }
+
+        // Exceção para o usuário técnico "manager": permitir ausência de CPF, celular e data de nascimento
+        if ($isManagerUser) {
+            unset($rules['cpf'], $rules['celular'], $rules['data_nascimento']);
         }
         
          // Definir mensagens personalizadas

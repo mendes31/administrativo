@@ -87,6 +87,34 @@ class TimelineProfile
         $this->data['resolved_focus_comment_id'] = 0;
         $this->data['active_tag'] = '';
         $this->data['search_query'] = '';
+        // Texto sugerido para o composer quando acessado a partir de widgets (aniversário/tempo de empresa)
+        $prefillSource = isset($_GET['from']) ? (string)$_GET['from'] : '';
+        $prefillYears = isset($_GET['years']) && is_numeric($_GET['years'])
+            ? max(0, (int)$_GET['years'])
+            : null;
+        $composerPrefill = '';
+        if ($prefillSource !== '' && !$this->data['timeline_profile_is_own']) {
+            $username = (string)($profile['username'] ?? '');
+            if ($username !== '') {
+                if ($prefillSource === 'birthday') {
+                    $composerPrefill = 'Feliz aniversário, @' . $username . '! ';
+                } elseif ($prefillSource === 'tenure') {
+                    if ($prefillYears === 0) {
+                        $composerPrefill = 'Bem-vindo(a) à empresa, @' . $username . '! Sucesso nessa nova etapa! ';
+                    } elseif ($prefillYears !== null) {
+                        $composerPrefill = 'Parabéns pelos seus ' . $prefillYears . ' ano(s) de empresa, @' . $username . '! ';
+                    } else {
+                        $composerPrefill = 'Parabéns pelo seu tempo de empresa, @' . $username . '! ';
+                    }
+                }
+            }
+        }
+        $this->data['timeline_composer_prefill'] = $composerPrefill;
+        $this->data['timeline_composer_context'] = [
+            'type' => $prefillSource,
+            'target_user_id' => $uid,
+            'years' => $prefillYears,
+        ];
         $this->data['csrf_timeline_profile_bio'] = CSRFHelper::generateCSRFToken('form_timeline_profile_bio');
         $this->data['csrf_timeline_edit'] = CSRFHelper::generateCSRFToken('timeline_edit_post');
         $this->data['csrf_timeline_comment'] = CSRFHelper::generateCSRFToken('timeline_comment_post');
@@ -113,7 +141,7 @@ class TimelineProfile
             'TimelinePostReactions',
             'TimelineShare',
         ]);
-        $this->data['can_create'] = false;
+        $this->data['can_create'] = is_array($perms) && in_array('CreateTimelinePost', $perms, true);
         $this->data['can_moderate'] = is_array($perms) && in_array('TimelineModerate', $perms, true);
         $this->data['can_report'] = is_array($perms) && in_array('TimelineReport', $perms, true);
         $this->data['can_comment'] = is_array($perms) && in_array('TimelineComment', $perms, true);

@@ -177,11 +177,23 @@ class CreateTimelinePost
 
         $repo = new TimelineRepository();
         $authorId = (int)($_SESSION['user_id'] ?? 0);
+        $contextType = isset($_POST['context_type']) ? (string)$_POST['context_type'] : '';
+        $contextTargetUserId = isset($_POST['context_target_user_id']) && is_numeric($_POST['context_target_user_id'])
+            ? (int)$_POST['context_target_user_id']
+            : 0;
+        $contextYears = isset($_POST['context_years']) && is_numeric($_POST['context_years'])
+            ? (int)$_POST['context_years']
+            : null;
         $sharedPost = null;
         if ($sharedFromPostId !== null) {
             $sharedPost = $repo->getPostById($sharedFromPostId);
             if (!$sharedPost || (string)($sharedPost['status'] ?? '') !== 'active') {
                 $this->failAndExit('A publicação que você tentou compartilhar não está mais disponível.', 'msg_warning');
+            }
+        }
+        if ($contextType === 'tenure' && $authorId > 0 && $contextTargetUserId > 0) {
+            if ($repo->hasTenureCongratsPostToday($authorId, $contextTargetUserId, $contextYears)) {
+                $this->failAndExit('Você já publicou uma mensagem de tempo de empresa para este colaborador hoje.', 'msg_warning');
             }
         }
         $postId = $repo->createPost($authorId, $content !== '' ? $content : ' ', $imagePaths, $videoPath, $sharedFromPostId, $postType);

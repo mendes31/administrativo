@@ -170,6 +170,12 @@
                                         <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
                                         <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
                                         <div class="text-muted small mt-1 birthday-date-pill"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
+                                        <div class="mt-2">
+                                            <a href="<?php echo htmlspecialchars($_ENV['URL_ADM']); ?>timeline-profile/<?php echo (int)$aniv['id']; ?>?from=birthday"
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-comment-dots me-1"></i>Parabenizar na Timeline
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -236,6 +242,12 @@
                                     <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
                                     <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
                                     <div class="text-muted small mt-1 birthday-date-pill"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
+                                    <div class="mt-2">
+                                        <a href="<?php echo htmlspecialchars($_ENV['URL_ADM']); ?>timeline-profile/<?php echo (int)$aniv['id']; ?>?from=birthday"
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-comment-dots me-1"></i>Parabenizar na Timeline
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -319,6 +331,12 @@
                                                 <?php echo $anosEmpresa; ?> ano(s) de casa
                                             </span>
                                         <?php endif; ?>
+                                        <div class="mt-2">
+                                            <a href="<?php echo htmlspecialchars($_ENV['URL_ADM']); ?>timeline-profile/<?php echo (int)$aniv['id']; ?>?from=tenure&years=<?php echo $anosEmpresa === null ? '' : (int)$anosEmpresa; ?>"
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-comment-dots me-1"></i>Reconhecer na Timeline
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

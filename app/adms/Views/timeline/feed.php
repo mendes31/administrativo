@@ -14,6 +14,11 @@ $timelineActiveTag = isset($this->data['active_tag']) ? (string)$this->data['act
 $timelineProfileUid = (int)($this->data['timeline_profile_user_id'] ?? 0);
 $timelineProfile = isset($this->data['timeline_profile']) && is_array($this->data['timeline_profile']) ? $this->data['timeline_profile'] : null;
 $timelineProfileIsOwn = !empty($this->data['timeline_profile_is_own']);
+$timelineComposerPrefill = isset($this->data['timeline_composer_prefill']) ? (string)$this->data['timeline_composer_prefill'] : '';
+/** @var array{type:string,target_user_id:int,years:?int}|array $timelineComposerContext */
+$timelineComposerContext = isset($this->data['timeline_composer_context']) && is_array($this->data['timeline_composer_context'])
+    ? $this->data['timeline_composer_context']
+    : ['type' => '', 'target_user_id' => 0, 'years' => null];
 ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=36">
 
@@ -100,13 +105,20 @@ $timelineProfileIsOwn = !empty($this->data['timeline_profile_is_own']);
             </div>
             <?php endif; ?>
 
-            <?php if (empty($this->data['timeline_profile_user_id']) && !empty($this->data['can_create'])): ?>
+            <?php if (!empty($this->data['can_create'])): ?>
             <div class="card timeline-composer-card timeline-composer-fb mb-3" id="timelineComposerCard">
                 <div class="card-body py-2 px-3">
                     <form method="post" action="<?php echo htmlspecialchars($urlAdm); ?>create-timeline-post" enctype="multipart/form-data" class="timeline-composer-form" id="timelineComposerForm" novalidate>
                         <input type="hidden" name="csrf_token" id="timelineComposerCsrfToken" value="<?php echo htmlspecialchars($csrfCreate); ?>">
                         <input type="hidden" name="shared_from_post_id" id="timelineComposerSharedFromPostId" value="">
                         <input type="hidden" name="post_type" id="timelineComposerPostType" value="regular">
+                        <?php if (!empty($timelineComposerContext['type']) && !$timelineProfileIsOwn && $timelineProfileUid > 0): ?>
+                            <input type="hidden" name="context_type" value="<?php echo htmlspecialchars((string)$timelineComposerContext['type']); ?>">
+                            <input type="hidden" name="context_target_user_id" value="<?php echo (int)$timelineComposerContext['target_user_id']; ?>">
+                            <?php if ($timelineComposerContext['years'] !== null): ?>
+                                <input type="hidden" name="context_years" value="<?php echo (int)$timelineComposerContext['years']; ?>">
+                            <?php endif; ?>
+                        <?php endif; ?>
                         <div id="timelineComposerCreateHead" class="timeline-composer-create-head d-none mb-2 pb-2 border-bottom">
                             <div class="d-flex align-items-center justify-content-between gap-2">
                                 <div class="d-flex flex-column min-w-0">
@@ -129,7 +141,7 @@ $timelineProfileIsOwn = !empty($this->data['timeline_profile_is_own']);
                             </div>
                             <div class="timeline-composer-input-wrap flex-grow-1 min-w-0">
                                 <label for="timelineComposerText" class="visually-hidden">Texto da publicação</label>
-                                <textarea name="content" id="timelineComposerText" class="form-control timeline-mention-field timeline-composer-pill" rows="1" placeholder="No que você está pensando, <?php echo htmlspecialchars($composerFirst); ?>?" autocomplete="off" maxlength="2000"></textarea>
+                                <textarea name="content" id="timelineComposerText" class="form-control timeline-mention-field timeline-composer-pill" rows="1" placeholder="No que você está pensando, <?php echo htmlspecialchars($composerFirst); ?>?" autocomplete="off" maxlength="2000"><?php echo htmlspecialchars($timelineComposerPrefill); ?></textarea>
                             </div>
                         </div>
                         <div class="timeline-composer-options d-flex align-items-center gap-1 mt-2">
