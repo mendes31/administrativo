@@ -1,0 +1,17 @@
+{
+  "name": "Portal Interno Grupo Tiaraju",
+  "short_name": "Tiaraju",
+  "start_url": "/administrativo/dashboard",
+  "scope": "/administrativo/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#198754",
+  "icons": [
+    {
+      "src": "image/icon/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
+

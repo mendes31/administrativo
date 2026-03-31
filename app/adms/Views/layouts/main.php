@@ -194,6 +194,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
+    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json">
+    <meta name="theme-color" content="#198754">
 
     
 
@@ -346,6 +348,20 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
     <!-- Responsividade genÃ©rica de listas (desktop x mobile) -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
+
+    <script>
+    // Registro básico do Service Worker para PWA
+    (function() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                const swUrl = '<?php echo $_ENV['URL_ADM']; ?>public/adms/service-worker.js';
+                navigator.serviceWorker.register(swUrl).catch(function(error) {
+                    console.warn('Falha ao registrar Service Worker:', error);
+                });
+            });
+        }
+    })();
+    </script>
 
     <!-- JavaScript especÃ­fico para pÃ¡gina de permissÃµes -->
     <?php if (strpos($this->view, 'permission/list.php') !== false): ?>
