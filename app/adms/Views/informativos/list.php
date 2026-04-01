@@ -627,15 +627,11 @@ function showImageModal(url) {
 function openInformativoAttachment(event, informativoId, requiresAck, url) {
     event.stopPropagation();
 
-    // Se exige ciência, não marca como lido automaticamente.
-    if (requiresAck) {
-        return true;
-    }
-
     event.preventDefault();
 
-    try {
-        window.open(url, '_blank', 'noopener,noreferrer');
+    // Se não exige ciência, marca como lido em segundo plano
+    if (!requiresAck) {
+        try {
         fetch('<?php echo $_ENV['URL_ADM']; ?>read-informativo/' + informativoId, {
             method: 'POST',
             headers: {
@@ -643,11 +639,11 @@ function openInformativoAttachment(event, informativoId, requiresAck, url) {
             },
             credentials: 'same-origin'
         }).catch(function () {});
-    } catch (e) {}
+        } catch (e) {}
+    }
 
-    setTimeout(function () {
-        window.location.reload();
-    }, 250);
+    // Navega para o anexo na MESMA aba; o botão Voltar retorna para a listagem
+    window.location.href = url;
 
     return false;
 }

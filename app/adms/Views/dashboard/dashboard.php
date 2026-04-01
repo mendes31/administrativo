@@ -1092,20 +1092,18 @@ function openDashboardInformativoAttachment(event, informativoId, requiresAck, u
     event.preventDefault();
     event.stopPropagation();
 
-    if (requiresAck) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-        return false;
+    if (!requiresAck) {
+        fetch(`${window.location.origin}/administrativo/read-informativo/${informativoId}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        }).catch(function () {});
     }
 
-    fetch(`${window.location.origin}/administrativo/read-informativo/${informativoId}`, {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin'
-    }).catch(function () {});
-
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Abrir anexo na mesma aba: botão Voltar retorna para o dashboard
+    window.location.href = url;
 
     return false;
 }
