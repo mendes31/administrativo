@@ -194,8 +194,12 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
+    <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/pwa-icon-192.png">
     <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json">
     <meta name="theme-color" content="#198754">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Tiaraju">
 
     
 
@@ -442,11 +446,11 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     </script>
 
     <script>
-    // Registro básico do Service Worker para PWA
+    // Registro do Service Worker raiz para PWA (cobre /administrativo/)
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                const swUrl = '<?php echo $_ENV['URL_ADM']; ?>public/adms/service-worker.js';
+                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js';
                 navigator.serviceWorker.register(swUrl).catch(function(error) {
                     console.warn('Falha ao registrar Service Worker:', error);
                 });

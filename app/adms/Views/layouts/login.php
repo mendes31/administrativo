@@ -17,8 +17,12 @@ if (!isset($_ENV['DB_HOST'])) {
     <meta http-equiv="Expires" content="0">
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/logo/logo.ico">
+    <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/pwa-icon-192.png">
     <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json">
     <meta name="theme-color" content="#198754">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Tiaraju">
 
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/sbadmin.css">
 
@@ -54,16 +58,16 @@ if (!isset($_ENV['DB_HOST'])) {
         </div>
     </div>
 
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min"></script>
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min.js"></script>
 
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
 
     <script>
-    // Registro básico do Service Worker também na tela de login
+    // Registro do Service Worker raiz para PWA (cobre /administrativo/)
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                const swUrl = '<?php echo $_ENV['URL_ADM']; ?>public/adms/service-worker.js';
+                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js';
                 navigator.serviceWorker.register(swUrl).catch(function(error) {
                     console.warn('Falha ao registrar Service Worker (login):', error);
                 });
