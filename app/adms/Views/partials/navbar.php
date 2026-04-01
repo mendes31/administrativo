@@ -235,11 +235,16 @@ if (!empty($_SESSION['user_id'])) {
                         <i class="fa-solid fa-key me-2"></i> Alterar Senha
                     </a>
                 </li>
+                <?php
+                $menuPermsNavbar = $this->data['menuPermission'] ?? [];
+                if (in_array('MyEvaluations', $menuPermsNavbar, true)) :
+                ?>
                 <li>
                     <a class="dropdown-item" href="<?php echo $_ENV['URL_ADM']; ?>minhas-avaliacoes">
                         <i class="fas fa-clipboard-list me-2"></i>Minhas Avaliações
                     </a>
                 </li>
+                <?php endif; ?>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
                     <a class="dropdown-item" href="<?php echo $_ENV['URL_ADM']; ?>logout">
