@@ -18,19 +18,15 @@ class TimelineCelebrationsService
      */
     public static function ensureTodayPostsCreated(): void
     {
-        $sessionKey = 'timeline_celebrations_last_run';
-        $today = date('Y-m-d');
-        if (!empty($_SESSION[$sessionKey]) && $_SESSION[$sessionKey] === $today) {
-            return;
-        }
-
         $usersRepo = new UsersRepository();
         $timelineRepo = new TimelineRepository();
         $institutionalUserId = self::resolveInstitutionalUserId($usersRepo);
 
+        $baseUrl = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/');
+
         // Aniversariantes do dia (data_nascimento)
         $hojeDM = date('d/m');
-        $sqlBirthday = 'SELECT u.id, u.name, d.name AS departamento
+        $sqlBirthday = 'SELECT u.id, u.name, u.username, d.name AS departamento
                         FROM adms_users u
                         LEFT JOIN adms_departments d ON u.user_department_id = d.id
                         WHERE u.status = 1
@@ -41,22 +37,25 @@ class TimelineCelebrationsService
         $birthdaysToday = $stmtB->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
         if ($birthdaysToday !== []) {
+            // Se já existir um post institucional de aniversário hoje, não cria outro.
+            if (self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '👏 Parabéns para:')) {
+                return;
+            }
             $lines = [];
             foreach ($birthdaysToday as $item) {
-                $name = (string)($item['name'] ?? '');
-                $dept = trim((string)($item['departamento'] ?? ''));
-                $label = $name;
-                if ($dept !== '') {
-                    $label .= ' (' . $dept . ')';
+                $username = trim((string)($item['username'] ?? ''));
+                if ($username === '') {
+                    continue;
                 }
-                $lines[] = $label;
+                $lines[] = '@' . $username;
             }
             $countBirthdays = count($lines);
-            if ($countBirthdays === 1) {
-                $content = "🎉 Hoje é aniversário de:\n- " . $lines[0] . "\n\nParabéns!";
-            } else {
-                $content = "🎉 Hoje é aniversário de:\n- " . implode("\n- ", $lines) . "\n\nParabéns a todos!";
-            }
+            $intro  = "🎉🎂 Hoje é dia de celebrar! 🎂🎉\n\n";
+            $intro .= "👏 Parabéns para:\n";
+            $bulletList = '🔹 ' . implode("\n🔹 ", $lines);
+            $footer  = "\n\n💚 Desejamos um dia incrível, cheio de alegrias e conquistas!\n\n";
+            $footer .= "🚀 Que este novo ciclo venha com ainda mais sucesso!";
+            $content = $intro . $bulletList . $footer;
 
             if ($institutionalUserId > 0) {
                 $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
@@ -64,7 +63,7 @@ class TimelineCelebrationsService
         }
 
         // Tempo de empresa do dia (data_admissao)
-        $sqlTenure = 'SELECT u.id, u.name, u.data_admissao, d.name AS departamento
+        $sqlTenure = 'SELECT u.id, u.name, u.username, u.data_admissao, d.name AS departamento
                       FROM adms_users u
                       LEFT JOIN adms_departments d ON u.user_department_id = d.id
                       WHERE u.status = 1
@@ -78,8 +77,8 @@ class TimelineCelebrationsService
             $anoAtual = (int)date('Y');
             $lines = [];
             foreach ($tenureToday as $item) {
-                $name = (string)($item['name'] ?? '');
-                $dept = trim((string)($item['departamento'] ?? ''));
+                $username = trim((string)($item['username'] ?? ''));
+                $dept     = trim((string)($item['departamento'] ?? ''));
                 $anos = null;
                 if (!empty($item['data_admissao'])) {
                     $anoAdm = (int)date('Y', strtotime((string)$item['data_admissao']));
@@ -87,28 +86,69 @@ class TimelineCelebrationsService
                         $anos = max(0, $anoAtual - $anoAdm);
                     }
                 }
-                $label = $name;
+                if ($username === '') {
+                    continue;
+                }
+                $label = '@' . $username;
                 if ($dept !== '') {
                     $label .= ' (' . $dept . ')';
                 }
                 if ($anos !== null) {
-                    $label .= ' – ' . $anos . ' ano(s) de empresa';
+                    $label .= ' — ' . $anos . ' ano(s)';
                 }
+
                 $lines[] = $label;
             }
             $countTenure = count($lines);
-            if ($countTenure === 1) {
-                $content = "👏 Hoje completa tempo de empresa:\n- " . $lines[0] . "\n\nParabéns pelo compromisso e dedicação!";
-            } else {
-                $content = "👏 Hoje completam tempo de empresa:\n- " . implode("\n- ", $lines) . "\n\nParabéns pelo compromisso e dedicação de todos!";
-            }
+            $intro  = "🎉🎂 Hoje é dia de comemorar! 🎂🎉\n\n";
+            $intro .= "Tem gente fazendo história por aqui 👏\n\n";
+            $intro .= "🔥 Tempo de empresa:\n";
+            $bulletList = '🔹 ' . implode("\n🔹 ", $lines);
+            $footer = "\n\n💚 Valeu demais pela parceria, dedicação e por fazerem parte do time!\n\n🚀 Bora pra mais anos juntos!";
+            $content = $intro . $bulletList . $footer;
 
             if ($institutionalUserId > 0) {
+                // Se já existir um post institucional de tempo de empresa hoje, não cria outro.
+                if (self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '🔥 Tempo de empresa:')) {
+                    return;
+                }
                 $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
             }
         }
+    }
 
-        $_SESSION[$sessionKey] = $today;
+    /**
+     * Verifica se já existe hoje um post institucional do usuário informado
+     * cujo conteúdo comece com o marcador passado.
+     */
+    private static function hasInstitutionalPostToday(
+        TimelineRepository $timelineRepo,
+        int $authorUserId,
+        string $contentPrefix
+    ): bool {
+        if ($authorUserId <= 0 || $contentPrefix === '') {
+            return false;
+        }
+
+        $today = date('Y-m-d');
+        $sql = 'SELECT 1
+                FROM adms_timeline_posts
+                WHERE user_id = :uid
+                  AND status = "active"
+                  AND DATE(created_at) = :today
+                  AND content LIKE :prefix
+                LIMIT 1';
+
+        $stmt = $timelineRepo->getConnection()->prepare($sql);
+        $stmt->execute([
+            ':uid'    => $authorUserId,
+            ':today'  => $today,
+            // Procura o marcador em qualquer parte do conteúdo,
+            // não apenas no início da mensagem.
+            ':prefix' => '%' . $contentPrefix . '%',
+        ]);
+
+        return (bool)$stmt->fetchColumn();
     }
 
     /**
