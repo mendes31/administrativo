@@ -354,10 +354,19 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
 
     <script>
-    // Controle global de histórico para modais (PWA / mobile / desktop)
+    // Controle global de histórico para modais (apenas mobile/PWA em Android/iOS)
     (function() {
         // Dependemos de Bootstrap 5 estar carregado
         if (typeof bootstrap === 'undefined') {
+            return;
+        }
+
+        // Em desktop (navegação web ou PWA desktop) não usamos history para modais,
+        // pois o botão "Voltar" do navegador já é acessível e o comportamento
+        // automático estava fechando janelas indevidamente.
+        var ua = navigator.userAgent || '';
+        var isMobileLike = /Android|iPhone|iPad|iPod/i.test(ua);
+        if (!isMobileLike) {
             return;
         }
 
