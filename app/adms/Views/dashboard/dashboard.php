@@ -1168,15 +1168,8 @@ function confirmarCiencia(informativoId) {
 // Registrar leitura ao abrir o modal
 document.addEventListener('DOMContentLoaded', function() {
     const currentMonthNumber = <?php echo (int)date('n'); ?>;
-    /**
-     * Modais da dashboard: backdrop suave + histórico (Fechar / Voltar do navegador ou navbar
-     * fecham o overlay e mantêm o usuário na própria página da dashboard).
-     * Um push no histórico por abertura (dataset.historyPushed) evita duplicar entradas se shown.bs.modal disparar mais de uma vez.
-     */
-    let closingFromPopstate = false;
-    /** Evita fechar o modal “de baixo” quando history.back() veio do próprio script (fechar com X). */
-    let ignoreNextPopstate = false;
-
+    // Modais da dashboard: apenas aplica backdrop suave; o controle de histórico
+    // (botão Voltar fechando modais) é feito pelo script global em layouts/main.php.
     const dashboardManagedModalIds = [
         'imageModal',
         <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
@@ -1187,75 +1180,13 @@ document.addEventListener('DOMContentLoaded', function() {
         'modalAniversariantesEmpresa'
     ];
 
-    function getTopmostDashboardModalEl() {
-        const order = [
-            'imageModal',
-            <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
-            'informativoModal<?php echo (int)$info['id']; ?>',
-            <?php endforeach; ?>
-            'modalAniversariantesDia',
-            'modalAniversariantesMes',
-            'modalAniversariantesEmpresa'
-        ];
-        for (let i = 0; i < order.length; i++) {
-            const el = document.getElementById(order[i]);
-            if (el && el.classList.contains('show')) {
-                return el;
-            }
-        }
-        return null;
-    }
-
-    function wireDashboardModal(el) {
+    dashboardManagedModalIds.forEach(function (id) {
+        const el = document.getElementById(id);
         if (!el) return;
-
         el.addEventListener('shown.bs.modal', function () {
             applyDashboardSoftBackdropToAll();
             setTimeout(applyDashboardSoftBackdropToAll, 50);
-            if (!el.dataset.historyPushed) {
-                history.pushState({ dashboardModal: true }, '', window.location.href);
-                el.dataset.historyPushed = '1';
-            }
         });
-
-        el.addEventListener('hidden.bs.modal', function () {
-            if (closingFromPopstate) {
-                closingFromPopstate = false;
-                if (el.dataset.historyPushed) {
-                    delete el.dataset.historyPushed;
-                }
-                return;
-            }
-            if (el.dataset.historyPushed) {
-                delete el.dataset.historyPushed;
-                ignoreNextPopstate = true;
-                history.back();
-                setTimeout(function () {
-                    if (ignoreNextPopstate) {
-                        ignoreNextPopstate = false;
-                    }
-                }, 400);
-            }
-        });
-    }
-
-    dashboardManagedModalIds.forEach(function (id) {
-        wireDashboardModal(document.getElementById(id));
-    });
-
-    window.addEventListener('popstate', function () {
-        if (ignoreNextPopstate) {
-            ignoreNextPopstate = false;
-            return;
-        }
-        const openModalEl = getTopmostDashboardModalEl();
-        if (!openModalEl) {
-            return;
-        }
-        closingFromPopstate = true;
-        const inst = bootstrap.Modal.getInstance(openModalEl)
-            || bootstrap.Modal.getOrCreateInstance(openModalEl);
-        inst.hide();
     });
 
     // Calendário de aniversariantes por mês (modal do mês)
