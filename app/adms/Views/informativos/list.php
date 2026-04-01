@@ -459,9 +459,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
                                             <div class="d-flex align-items-center gap-2 mb-2">
                                                 <?php if (!empty($informativo['imagem'])): ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>"
-                                                       target="_blank"
-                                                       onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                    <a href="#"
+                                                       onclick="return openInformativoImageMobile(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>');">
                                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>"
                                                              alt="Imagem"
                                                              style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
@@ -586,18 +585,41 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
 </div> 
 
 <script>
+// Modal de imagem compatível com Bootstrap (participa do controle global de histórico)
 function showImageModal(url) {
-    let modal = document.getElementById('imageModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'imageModal';
-        modal.innerHTML = `
-        <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">
-            <img src="${url}" style="max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 4px 32px rgba(0,0,0,0.25);background:#fff;">
-        </div>
-        `;
-        document.body.appendChild(modal);
+    var modalEl = document.getElementById('informativoImageModal');
+    var imgEl;
+
+    if (!modalEl) {
+        modalEl = document.createElement('div');
+        modalEl.id = 'informativoImageModal';
+        modalEl.className = 'modal fade';
+        modalEl.setAttribute('tabindex', '-1');
+        modalEl.setAttribute('aria-hidden', 'true');
+        modalEl.innerHTML = ''
+            + '<div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down modal-xl">'
+            + '  <div class="modal-content border-0 bg-dark bg-opacity-75">'
+            + '    <div class="modal-header border-0">'
+            + '      <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>'
+            + '    </div>'
+            + '    <div class="modal-body d-flex align-items-center justify-content-center p-1 p-md-3">'
+            + '      <img id="informativoImageModalImg" src="" alt="Imagem" class="img-fluid" style="max-height:90vh;object-fit:contain;">'
+            + '    </div>'
+            + '  </div>'
+            + '</div>';
+        document.body.appendChild(modalEl);
     }
+
+    imgEl = document.getElementById('informativoImageModalImg');
+    if (imgEl) {
+        imgEl.src = url;
+    }
+
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+        backdrop: 'static',
+        keyboard: true
+    });
+    modal.show();
 }
 
 // Etapa 3/4 (Informativos): ao clicar em imagem/anexo do card mobile,
@@ -658,6 +680,27 @@ function openInformativoImageDesktop(event, informativoId, requiresAck, imageUrl
         window.location.reload();
     }, 250);
 
+    return false;
+}
+
+// Mobile: abre a imagem em modal Bootstrap, evitando navegação de página
+function openInformativoImageMobile(event, informativoId, requiresAck, imageUrl) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!requiresAck) {
+        try {
+            fetch('<?php echo $_ENV['URL_ADM']; ?>read-informativo/' + informativoId, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            }).catch(function () {});
+        } catch (e) {}
+    }
+
+    showImageModal(imageUrl);
     return false;
 }
 </script> 
