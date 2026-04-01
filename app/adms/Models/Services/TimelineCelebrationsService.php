@@ -22,8 +22,6 @@ class TimelineCelebrationsService
         $timelineRepo = new TimelineRepository();
         $institutionalUserId = self::resolveInstitutionalUserId($usersRepo);
 
-        $baseUrl = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/');
-
         // Aniversariantes do dia (data_nascimento)
         $hojeDM = date('d/m');
         $sqlBirthday = 'SELECT u.id, u.name, u.username, d.name AS departamento
@@ -42,12 +40,15 @@ class TimelineCelebrationsService
                 return;
             }
             $lines = [];
+            $birthdayUserIds = [];
             foreach ($birthdaysToday as $item) {
+                $uid = (int)($item['id'] ?? 0);
                 $username = trim((string)($item['username'] ?? ''));
-                if ($username === '') {
+                if ($uid <= 0 || $username === '') {
                     continue;
                 }
                 $lines[] = '@' . $username;
+                $birthdayUserIds[] = $uid;
             }
             $countBirthdays = count($lines);
             $intro  = "🎉🎂 Hoje é dia de celebrar! 🎂🎉\n\n";
@@ -58,7 +59,10 @@ class TimelineCelebrationsService
             $content = $intro . $bulletList . $footer;
 
             if ($institutionalUserId > 0) {
-                $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                if ($postId > 0 && $birthdayUserIds !== []) {
+                    $timelineRepo->replaceMentions('post', $postId, $birthdayUserIds);
+                }
             }
         }
 
@@ -76,7 +80,9 @@ class TimelineCelebrationsService
         if ($tenureToday !== []) {
             $anoAtual = (int)date('Y');
             $lines = [];
+            $tenureUserIds = [];
             foreach ($tenureToday as $item) {
+                $uid      = (int)($item['id'] ?? 0);
                 $username = trim((string)($item['username'] ?? ''));
                 $dept     = trim((string)($item['departamento'] ?? ''));
                 $anos = null;
@@ -86,7 +92,7 @@ class TimelineCelebrationsService
                         $anos = max(0, $anoAtual - $anoAdm);
                     }
                 }
-                if ($username === '') {
+                if ($uid <= 0 || $username === '') {
                     continue;
                 }
                 $label = '@' . $username;
@@ -98,6 +104,7 @@ class TimelineCelebrationsService
                 }
 
                 $lines[] = $label;
+                $tenureUserIds[] = $uid;
             }
             $countTenure = count($lines);
             $intro  = "🎉🎂 Hoje é dia de comemorar! 🎂🎉\n\n";
@@ -112,7 +119,10 @@ class TimelineCelebrationsService
                 if (self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '🔥 Tempo de empresa:')) {
                     return;
                 }
-                $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                if ($postId > 0 && $tenureUserIds !== []) {
+                    $timelineRepo->replaceMentions('post', $postId, $tenureUserIds);
+                }
             }
         }
     }
