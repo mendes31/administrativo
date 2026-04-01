@@ -358,9 +358,14 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         }
 
         let closingFromPopstate = false;
+        let hasSeenFirstPopstate = false;
 
         function getOpenModalsInOrder() {
             return Array.from(document.querySelectorAll('.modal.show'));
+        }
+
+        function isModalState(state) {
+            return state && (state.modal === true || state.dashboardModal === true);
         }
 
         // Quando uma modal é aberta, empilha uma entrada no histórico
@@ -404,7 +409,18 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         });
 
         // Botão físico "Voltar" (PWA / mobile) → fecha apenas a modal do topo
-        window.addEventListener('popstate', function () {
+        window.addEventListener('popstate', function (event) {
+            // Alguns navegadores disparam um popstate inicial na carga; ignoramos o primeiro.
+            if (!hasSeenFirstPopstate) {
+                hasSeenFirstPopstate = true;
+                return;
+            }
+
+            // Só reagir a entradas de histórico criadas pelo próprio controle de modais
+            if (!isModalState(event.state)) {
+                return;
+            }
+
             const openModals = getOpenModalsInOrder();
             if (openModals.length === 0) {
                 // Sem modais abertas → deixar o navegador seguir o fluxo normal
