@@ -304,5 +304,3 @@ git push origin dev-master
 003 - LoadPageAdm.php - Não encontrou a controller  
 004 - LoadPageAdm.php - Não encontrou o método  
 005 - LoadViewService.php - Não encontrou a VIEW
-006 - teste branch 1
-0007 - 

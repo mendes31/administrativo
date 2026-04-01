@@ -350,6 +350,82 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
 
     <script>
+    // Controle global de histórico para modais (PWA / mobile / desktop)
+    (function() {
+        // Dependemos de Bootstrap 5 estar carregado
+        if (typeof bootstrap === 'undefined') {
+            return;
+        }
+
+        let closingFromPopstate = false;
+
+        function getOpenModalsInOrder() {
+            return Array.from(document.querySelectorAll('.modal.show'));
+        }
+
+        // Quando uma modal é aberta, empilha uma entrada no histórico
+        document.addEventListener('shown.bs.modal', function (event) {
+            const el = event.target;
+            if (!el || el.dataset.historyPushed === '1') {
+                return;
+            }
+            try {
+                history.pushState(
+                    { modal: true, modalId: el.id || null },
+                    '',
+                    window.location.href
+                );
+                el.dataset.historyPushed = '1';
+            } catch (e) {
+                console.warn('pushState modal falhou:', e);
+            }
+        });
+
+        // Quando uma modal é fechada normalmente (botão X, etc.)
+        document.addEventListener('hidden.bs.modal', function (event) {
+            const el = event.target;
+            if (!el || el.dataset.historyPushed !== '1') {
+                return;
+            }
+
+            if (closingFromPopstate) {
+                // Fechamento já veio de um popstate; não chamar history.back de novo
+                delete el.dataset.historyPushed;
+                closingFromPopstate = false;
+                return;
+            }
+
+            delete el.dataset.historyPushed;
+            try {
+                history.back();
+            } catch (e) {
+                console.warn('history.back ao fechar modal falhou:', e);
+            }
+        });
+
+        // Botão físico "Voltar" (PWA / mobile) → fecha apenas a modal do topo
+        window.addEventListener('popstate', function () {
+            const openModals = getOpenModalsInOrder();
+            if (openModals.length === 0) {
+                // Sem modais abertas → deixar o navegador seguir o fluxo normal
+                return;
+            }
+
+            const topModal = openModals[openModals.length - 1];
+            closingFromPopstate = true;
+            try {
+                const inst = bootstrap.Modal.getInstance(topModal)
+                    || bootstrap.Modal.getOrCreateInstance(topModal);
+                inst.hide();
+            } catch (e) {
+                console.warn('Erro ao fechar modal via popstate:', e);
+                closingFromPopstate = false;
+            }
+        });
+    })();
+    </script>
+
+    <script>
     // Registro básico do Service Worker para PWA
     (function() {
         if ('serviceWorker' in navigator) {
