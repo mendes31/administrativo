@@ -278,7 +278,6 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                 <?php endif; ?>
                                                 <?php if (!empty($informativo['anexo'])): ?>
                                                     <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>"
-                                                       target="_blank"
                                                        title="Baixar anexo"
                                                        onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
                                                         <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'fa-2x'); ?>
@@ -468,7 +467,6 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                 <?php endif; ?>
                                                 <?php if (!empty($informativo['anexo'])): ?>
                                                     <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>"
-                                                       target="_blank"
                                                        class="mobile-anexo-icon-thumb text-decoration-none"
                                                        onclick="return openInformativoAttachment(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
                                                         <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'fa-2x'); ?>

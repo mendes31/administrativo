@@ -442,7 +442,6 @@ use App\adms\Helpers\FormatHelper;
                                                 <?php endif; ?>
                                                 <?php if (!empty($policy['anexo'])): ?>
                                                     <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['anexo']); ?>"
-                                                       target="_blank"
                                                        class="mobile-anexo-icon-thumb text-decoration-none"
                                                        onclick="return openPolicyAttachment(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
                                                         <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($policy['anexo'], 'fa-2x'); ?>
