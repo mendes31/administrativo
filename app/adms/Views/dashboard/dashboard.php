@@ -464,7 +464,6 @@
                                 <?php endif; ?>
                                 <?php if (!empty($info['anexo'])): ?>
                                     <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>"
-                                       target="_blank"
                                        title="Baixar anexo"
                                        onclick="return openDashboardInformativoAttachment(event, <?php echo (int)$infoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
                                         <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($info['anexo'], 'fa-2x'); ?>
@@ -548,7 +547,6 @@
                                                 <?php if (!empty($info['anexo'])): ?>
                                                     <div class="informativo-anexo-item">
                                                         <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($info['anexo']); ?>" 
-                                                           target="_blank" 
                                                            class="informativo-pdf-link">
                                                             <i class="fas fa-file-pdf fa-3x mb-2"></i>
                                                             <span class="d-block fw-bold">Baixar PDF</span>

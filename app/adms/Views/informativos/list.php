@@ -670,10 +670,6 @@ function openInformativoImageDesktop(event, informativoId, requiresAck, imageUrl
 
     showImageModal(imageUrl);
 
-    setTimeout(function () {
-        window.location.reload();
-    }, 250);
-
     return false;
 }
 
