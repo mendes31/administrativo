@@ -433,9 +433,8 @@ use App\adms\Helpers\FormatHelper;
                                         <?php if (!empty($policy['imagem']) || !empty($policy['anexo'])): ?>
                                             <div class="d-flex align-items-center gap-2 mb-2">
                                                 <?php if (!empty($policy['imagem'])): ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
-                                                       target="_blank"
-                                                       onclick="return openPolicyAttachment(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                    <a href="#"
+                                                       onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>'); return false;">
                                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
                                                              alt="Imagem"
                                                              style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer;">
@@ -544,32 +543,23 @@ use App\adms\Helpers\FormatHelper;
     // marcar como "lido" via endpoint read-policy apenas quando requires_ack=0.
     function openPolicyAttachment(event, policyId, requiresAck, url) {
         event.stopPropagation();
-
-        // Se exige ciência, não marcar como lido automaticamente.
-        if (requiresAck) {
-            return true;
-        }
-
         event.preventDefault();
 
-        try {
-            // Abre o anexo/ imagem em nova aba.
-            window.open(url, '_blank', 'noopener,noreferrer');
+        // Se não exige ciência, marca como lida em segundo plano
+        if (!requiresAck) {
+            try {
+                fetch('<?php echo $_ENV['URL_ADM']; ?>read-policy/' + policyId, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                }).catch(function () {});
+            } catch (e) {}
+        }
 
-            // Marca como lida para atualizar sino/badge.
-            fetch('<?php echo $_ENV['URL_ADM']; ?>read-policy/' + policyId, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            }).catch(function () {});
-        } catch (e) {}
-
-        // Recarregar para refletir "Novo" removido / sino atualizado.
-        setTimeout(function () {
-            window.location.reload();
-        }, 250);
+        // Abre o anexo na MESMA aba; botão Voltar retorna para a listagem
+        window.location.href = url;
 
         return false;
     }
