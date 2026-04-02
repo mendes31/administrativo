@@ -178,6 +178,7 @@ class PageLayoutService
             'TimelineShare',
             'TimelineSearchUsers',
             'ListCompanyEvents',
+            'ViewCompanyEvent',
             'CreateCompanyEvent',
             'UpdateCompanyEvent',
             'DeleteCompanyEvent',

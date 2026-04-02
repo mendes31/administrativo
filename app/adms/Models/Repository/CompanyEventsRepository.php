@@ -196,6 +196,55 @@ class CompanyEventsRepository extends DbConnection
     }
 
     /**
+     * Evento com criador e departamento (tela de visualização).
+     */
+    public function getByIdWithDisplayContext(int $id): ?array
+    {
+        $sql = 'SELECT e.*, u.name AS creator_name, d.name AS department_name
+                FROM adms_company_events e
+                INNER JOIN adms_users u ON u.id = e.created_by
+                LEFT JOIN adms_departments d ON d.id = e.department_id
+                WHERE e.id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * Evento ativo e dentro da janela de publicação/expiração (colaborador com permissão só de visualizar).
+     */
+    public function isEventVisibleToCollaborators(array $event): bool
+    {
+        if (empty($event['ativo'])) {
+            return false;
+        }
+        $now = time();
+        if (!empty($event['publish_at']) && strtotime((string)$event['publish_at']) > $now) {
+            return false;
+        }
+        if (!empty($event['expire_at']) && strtotime((string)$event['expire_at']) <= $now) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getGuestsForRsvpId(int $rsvpId): array
+    {
+        if ($rsvpId <= 0) {
+            return [];
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_company_event_guests WHERE rsvp_id = :r ORDER BY id ASC'
+        );
+        $stmt->execute([':r' => $rsvpId]);
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
      * Eventos visíveis e com período intersectando o mês informado.
      *
      * @return array<int, array<string, mixed>>

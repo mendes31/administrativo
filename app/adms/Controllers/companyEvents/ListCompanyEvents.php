@@ -27,7 +27,13 @@ class ListCompanyEvents
         $pageElements = [
             'title_head' => 'Eventos corporativos',
             'menu' => 'list-company-events',
-            'buttonPermission' => ['CreateCompanyEvent', 'UpdateCompanyEvent', 'DeleteCompanyEvent', 'CompanyEventReport'],
+            'buttonPermission' => [
+                'ViewCompanyEvent',
+                'CreateCompanyEvent',
+                'UpdateCompanyEvent',
+                'DeleteCompanyEvent',
+                'CompanyEventReport',
+            ],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

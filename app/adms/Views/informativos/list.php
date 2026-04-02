@@ -20,6 +20,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         vertical-align: middle;
     }
 
+    /* Cabeçalho desktop com gradiente nas cores principais */
+    .table-informativos thead th {
+        background: linear-gradient(135deg, #2E9263 0%, #2C844B 55%, #236D3D 100%) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
+        font-weight: 600;
+    }
+
     /* Larguras FIXAS em pixels para cada coluna (desktop) */
     .table-informativos th.col-titulo,
     .table-informativos td.col-titulo {

@@ -18,6 +18,14 @@ use App\adms\Helpers\FormatHelper;
         vertical-align: middle;
     }
 
+    /* Cabeçalho desktop com gradiente nas cores principais */
+    .table-policies thead th {
+        background: linear-gradient(135deg, #2E9263 0%, #2C844B 55%, #236D3D 100%) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
+        font-weight: 600;
+    }
+
     .table-policies th.col-id,
     .table-policies td.col-id {
         width: 60px;
@@ -62,6 +70,14 @@ use App\adms\Helpers\FormatHelper;
     .table-policies .badge {
         white-space: normal;
         word-wrap: break-word;
+    }
+
+    /* Miniatura e ícone de anexo na coluna Título (desktop), alinhado a Informativos */
+    .table-policies .policy-media {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
     }
 
     .policy-card-alert {
@@ -245,19 +261,40 @@ use App\adms\Helpers\FormatHelper;
                                 <tr>
                                     <td class="col-id"><?php echo (int) $policy['id']; ?></td>
                                     <td class="col-titulo">
-                                        <?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?>
+                                        <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['titulo'] ?? ''); ?></strong>
                                         <?php if ($requiresAck): ?>
                                             <?php if ($isUnread): ?>
                                                 <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
-                                                    Ciência pendente
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Ciência pendente
                                                 </span>
                                             <?php else: ?>
-                                                <span class="badge bg-success ms-1">Ciente</span>
+                                                <span class="badge bg-success ms-1">
+                                                    <i class="fa-solid fa-circle-check me-1"></i>Ciente
+                                                </span>
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <?php if ($isUnread): ?>
                                                 <span class="badge bg-primary ms-1">Novo</span>
                                             <?php endif; ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($policy['imagem']) || !empty($policy['anexo'])): ?>
+                                            <div class="policy-media">
+                                                <?php if (!empty($policy['imagem'])): ?>
+                                                    <a href="#"
+                                                       onclick="return openPolicyImageDesktop(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>');">
+                                                        <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
+                                                             alt="Imagem"
+                                                             style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e9ecef; cursor: pointer;">
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if (!empty($policy['anexo'])): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['anexo']); ?>"
+                                                       title="Abrir anexo"
+                                                       onclick="return openPolicyAttachment(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, this.href);">
+                                                        <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($policy['anexo'], 'fa-2x'); ?>
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="col-categoria"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($policy['categoria_nome'] ?? $policy['categoria'] ?? ''); ?></td>
@@ -434,7 +471,7 @@ use App\adms\Helpers\FormatHelper;
                                             <div class="d-flex align-items-center gap-2 mb-2">
                                                 <?php if (!empty($policy['imagem'])): ?>
                                                     <a href="#"
-                                                       onclick="showImageModal('<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>'); return false;">
+                                                       onclick="return openPolicyImageMobile(event, <?php echo (int)$policyId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>');">
                                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['imagem']); ?>"
                                                              alt="Imagem"
                                                              style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer;">
@@ -538,13 +575,73 @@ use App\adms\Helpers\FormatHelper;
 </div>
 
 <script>
-    // Etapa 2 (Políticas): ao clicar em imagem/anexo do card (mobile),
-    // marcar como "lido" via endpoint read-policy apenas quando requires_ack=0.
-    function openPolicyAttachment(event, policyId, requiresAck, url) {
-        event.stopPropagation();
-        event.preventDefault();
+    // Modal de imagem (Bootstrap; coerente com list-informativos)
+    function showPolicyListImageModal(url) {
+        var modalEl = document.getElementById('policyListImageModal');
+        var imgEl;
 
-        // Se não exige ciência, marca como lida em segundo plano
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = 'policyListImageModal';
+            modalEl.className = 'modal fade';
+            modalEl.setAttribute('tabindex', '-1');
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.innerHTML = ''
+                + '<div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down modal-xl">'
+                + '  <div class="modal-content border-0 bg-dark bg-opacity-75">'
+                + '    <div class="modal-header border-0">'
+                + '      <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>'
+                + '    </div>'
+                + '    <div class="modal-body d-flex align-items-center justify-content-center p-1 p-md-3">'
+                + '      <img id="policyListImageModalImg" src="" alt="Imagem" class="img-fluid" style="max-height:90vh;object-fit:contain;">'
+                + '    </div>'
+                + '  </div>'
+                + '</div>';
+            document.body.appendChild(modalEl);
+        }
+
+        imgEl = document.getElementById('policyListImageModalImg');
+        if (imgEl) {
+            imgEl.src = url;
+        }
+
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+            backdrop: 'static',
+            keyboard: true
+        });
+        modal.show();
+    }
+
+    // Desktop: abre modal da imagem e, quando requires_ack=0, marca como lida.
+    function openPolicyImageDesktop(event, policyId, requiresAck, imageUrl) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (requiresAck) {
+            showPolicyListImageModal(imageUrl);
+            return false;
+        }
+
+        try {
+            fetch('<?php echo $_ENV['URL_ADM']; ?>read-policy/' + policyId, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            }).catch(function () {});
+        } catch (e) {}
+
+        showPolicyListImageModal(imageUrl);
+
+        return false;
+    }
+
+    // Mobile: mesma lógica do desktop (modal + read-policy quando aplicável)
+    function openPolicyImageMobile(event, policyId, requiresAck, imageUrl) {
+        event.preventDefault();
+        event.stopPropagation();
+
         if (!requiresAck) {
             try {
                 fetch('<?php echo $_ENV['URL_ADM']; ?>read-policy/' + policyId, {
@@ -557,7 +654,31 @@ use App\adms\Helpers\FormatHelper;
             } catch (e) {}
         }
 
-        // Abre o anexo na MESMA aba; botão Voltar retorna para a listagem
+        showPolicyListImageModal(imageUrl);
+        return false;
+    }
+
+    // Ao clicar em anexo: marcar como lido via read-policy quando requires_ack=0.
+    function openPolicyAttachment(event, policyId, requiresAck, url) {
+        if (typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
+        }
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+
+        if (!requiresAck) {
+            try {
+                fetch('<?php echo $_ENV['URL_ADM']; ?>read-policy/' + policyId, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                }).catch(function () {});
+            } catch (e) {}
+        }
+
         window.location.href = url;
 
         return false;
