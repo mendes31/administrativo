@@ -231,7 +231,9 @@ class CreateTimelinePost
         }
         if ($sharedPost !== null) {
             $sharedAuthorId = (int)($sharedPost['user_id'] ?? 0);
-            if ($sharedAuthorId > 0 && $sharedAuthorId !== $authorId) {
+            // Se o autor do post original foi @mencionado no repost, prioriza só a menção (evita duplicata).
+            $sharedAuthorMentioned = $sharedAuthorId > 0 && in_array($sharedAuthorId, $validIds, true);
+            if ($sharedAuthorId > 0 && $sharedAuthorId !== $authorId && !$sharedAuthorMentioned) {
                 $notifRepo = $notifRepo ?? new NotificationsRepository();
                 $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
                 $notifRepo->create([

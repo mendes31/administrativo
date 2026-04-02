@@ -145,7 +145,7 @@ if (!empty($_SESSION['user_id'])) {
                     <?php
                     $navbarNotifIcon = static function (string $type): string {
                         return match ($type) {
-                            'timeline_mention' => 'fas fa-at text-warning',
+                            'timeline_mention', 'comentario_mencao' => 'fas fa-at text-warning',
                             'timeline_comment' => 'far fa-comment text-primary',
                             'timeline_comment_reaction' => 'fas fa-heart text-danger',
                             'timeline_reaction' => 'fas fa-heart text-danger',
@@ -163,8 +163,10 @@ if (!empty($_SESSION['user_id'])) {
                             $intLink .= (strpos($intLink, '?') !== false ? '&' : '?') . 'mark_notification=' . (int)($intNotif['id'] ?? 0);
                         }
                         $nType = (string)($intNotif['type'] ?? '');
+                        $isMentionNotif = $nType === 'timeline_mention' || $nType === 'comentario_mencao'
+                            || (int)($intNotif['priority'] ?? 0) >= 100;
                         ?>
-                        <a class="dropdown-item py-2 d-block" href="<?php echo htmlspecialchars($intLink); ?>">
+                        <a class="dropdown-item py-2 d-block<?php echo $isMentionNotif ? ' border-start border-warning border-3' : ''; ?>" href="<?php echo htmlspecialchars($intLink); ?>">
                             <span class="d-block fw-semibold small"><i class="<?php echo htmlspecialchars($navbarNotifIcon($nType)); ?> me-1"></i><?php echo htmlspecialchars($intNotif['title'] ?? ''); ?></span>
                             <span class="d-block text-muted" style="font-size: 0.8rem;"><?php echo date('d/m/Y H:i', strtotime($intNotif['created_at'] ?? 'now')); ?></span>
                         </a>

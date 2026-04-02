@@ -7,18 +7,25 @@ use PDO;
 
 class NotificationsRepository extends DbConnection
 {
+    /** Menções (@) e menções em projeto: ordenação e destaque na UI. */
+    public const PRIORITY_MENTION = 100;
+
+    public const PRIORITY_DEFAULT = 0;
+
     /**
      * Cria uma notificação para um usuário.
      *
-     * @param array $data [ user_id, type, title, message?, link_url?, entity_type?, entity_id? ]
+     * @param array $data [ user_id, type, title, message?, link_url?, entity_type?, entity_id?, priority? ]
      * @return int|false ID da notificação ou false
      */
     public function create(array $data)
     {
+        $priority = $this->resolvePriority($data);
+
         $sql = 'INSERT INTO adms_notifications
-                    (user_id, type, title, message, link_url, entity_type, entity_id, created_at)
+                    (user_id, type, title, message, link_url, entity_type, entity_id, priority, created_at)
                 VALUES
-                    (:user_id, :type, :title, :message, :link_url, :entity_type, :entity_id, NOW())';
+                    (:user_id, :type, :title, :message, :link_url, :entity_type, :entity_id, :priority, NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', (int)$data['user_id'], PDO::PARAM_INT);
         $stmt->bindValue(':type', $data['type'] ?? 'info', PDO::PARAM_STR);
@@ -27,10 +34,30 @@ class NotificationsRepository extends DbConnection
         $stmt->bindValue(':link_url', $data['link_url'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':entity_type', $data['entity_type'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':entity_id', isset($data['entity_id']) ? (int)$data['entity_id'] : null, PDO::PARAM_INT);
+        $stmt->bindValue(':priority', $priority, PDO::PARAM_INT);
         if (!$stmt->execute()) {
             return false;
         }
         return (int)$this->getConnection()->lastInsertId();
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function resolvePriority(array $data): int
+    {
+        if (array_key_exists('priority', $data)) {
+            $p = (int)$data['priority'];
+
+            return max(0, min(255, $p));
+        }
+
+        $type = (string)($data['type'] ?? 'info');
+
+        return match ($type) {
+            'timeline_mention', 'comentario_mencao' => self::PRIORITY_MENTION,
+            default => self::PRIORITY_DEFAULT,
+        };
     }
 
     /**
@@ -79,10 +106,10 @@ class NotificationsRepository extends DbConnection
      */
     public function listForUser(int $userId, int $limit = 20): array
     {
-        $sql = 'SELECT id, type, title, message, link_url, read_at, created_at
+        $sql = 'SELECT id, type, title, message, link_url, read_at, created_at, priority
                 FROM adms_notifications
                 WHERE user_id = :user_id
-                ORDER BY read_at IS NULL DESC, created_at DESC
+                ORDER BY read_at IS NULL DESC, priority DESC, created_at DESC
                 LIMIT :limit';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
@@ -96,10 +123,10 @@ class NotificationsRepository extends DbConnection
      */
     public function listUnreadForUser(int $userId, int $limit = 15): array
     {
-        $sql = 'SELECT id, type, title, message, link_url, created_at
+        $sql = 'SELECT id, type, title, message, link_url, created_at, priority
                 FROM adms_notifications
                 WHERE user_id = :user_id AND read_at IS NULL
-                ORDER BY created_at DESC
+                ORDER BY priority DESC, created_at DESC
                 LIMIT :limit';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);

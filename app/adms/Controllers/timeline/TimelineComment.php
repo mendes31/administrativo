@@ -115,8 +115,10 @@ class TimelineComment
         $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 
         // Notifica o autor do post quando outra pessoa comenta.
+        // Se o autor foi @mencionado, só a notificação de menção (prioridade maior) — evita duplicata.
         $postOwnerId = (int)($post['user_id'] ?? 0);
-        if ($postOwnerId > 0 && $postOwnerId !== $actorId) {
+        $postOwnerMentioned = $postOwnerId > 0 && in_array($postOwnerId, $validIds, true);
+        if ($postOwnerId > 0 && $postOwnerId !== $actorId && !$postOwnerMentioned) {
             $notifRepo->create([
                 'user_id' => $postOwnerId,
                 'type' => 'timeline_comment',

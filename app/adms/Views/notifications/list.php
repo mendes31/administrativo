@@ -22,7 +22,7 @@ $buildMarkedUrl = static function (?string $linkUrl, int $id, bool $unread): str
 
 $iconByType = static function (string $type): string {
     return match ($type) {
-        'timeline_mention' => 'fas fa-at text-warning',
+        'timeline_mention', 'comentario_mencao' => 'fas fa-at text-warning',
         'timeline_comment' => 'far fa-comment text-primary',
         'timeline_comment_reaction' => 'fas fa-heart text-danger',
         'timeline_reaction' => 'fas fa-heart text-danger',
@@ -30,6 +30,16 @@ $iconByType = static function (string $type): string {
         'projeto_etapa' => 'fas fa-tasks text-primary',
         default => 'far fa-bell text-secondary',
     };
+};
+
+/** Menções (@): prioridade alta na ordenação e destaque visual. */
+$isMentionHighPriority = static function (array $n): bool {
+    if ((int)($n['priority'] ?? 0) >= \App\adms\Models\Repository\NotificationsRepository::PRIORITY_MENTION) {
+        return true;
+    }
+    $t = (string)($n['type'] ?? '');
+
+    return $t === 'timeline_mention' || $t === 'comentario_mencao';
 };
 
 $reactionLabel = static function (?string $message): string {
@@ -190,6 +200,15 @@ foreach ($notifications as $n) {
                 padding-left: 0.35rem;
             }
 
+            .notifications-page .notif-item--mention-priority {
+                border-left: 3px solid #e8590c;
+                padding-left: 0.75rem;
+                margin-left: -0.25rem;
+                background: linear-gradient(90deg, rgba(232, 89, 12, 0.06) 0%, transparent 48%);
+            }
+            .notifications-page .notif-item--mention-priority .notif-item__title {
+                font-weight: 600;
+            }
             .notifications-page .notif-item--reaction .notif-item__title {
                 white-space: normal;
                 overflow: visible;
@@ -317,7 +336,7 @@ foreach ($notifications as $n) {
                                     $displayMessage = '';
                                 }
                             ?>
-                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?> <?= $isReaction ? 'notif-item--reaction' : ''; ?>">
+                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?> <?= $isReaction ? 'notif-item--reaction' : ''; ?> <?= $isMentionHighPriority($n) ? 'notif-item--mention-priority' : ''; ?>">
                                 <div class="notif-item__dot <?= $unread ? '' : 'is-hidden'; ?>"></div>
                                 <div class="notif-item__icon"><i class="<?= $iconByType($type); ?>"></i></div>
                                 <div class="notif-item__body">
@@ -331,6 +350,9 @@ foreach ($notifications as $n) {
                                         <span><?= htmlspecialchars($relativeTime((string)($n['created_at'] ?? ''))); ?></span>
                                         <span class="mx-1">·</span>
                                         <span><?= date('d/m/Y H:i', strtotime($n['created_at'] ?? 'now')); ?></span>
+                                        <?php if ($isMentionHighPriority($n)): ?>
+                                            <span class="badge bg-warning text-dark ms-2">Menção</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="notif-item__actions">
@@ -371,7 +393,7 @@ foreach ($notifications as $n) {
                                     $displayMessage = '';
                                 }
                             ?>
-                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?> <?= $isReaction ? 'notif-item--reaction' : ''; ?>">
+                            <article class="notif-item <?= $unread ? 'notif-item--unread' : ''; ?> <?= $isReaction ? 'notif-item--reaction' : ''; ?> <?= $isMentionHighPriority($n) ? 'notif-item--mention-priority' : ''; ?>">
                                 <div class="notif-item__dot <?= $unread ? '' : 'is-hidden'; ?>"></div>
                                 <div class="notif-item__icon"><i class="<?= $iconByType($type); ?>"></i></div>
                                 <div class="notif-item__body">
@@ -385,6 +407,9 @@ foreach ($notifications as $n) {
                                         <span><?= htmlspecialchars($relativeTime((string)($n['created_at'] ?? ''))); ?></span>
                                         <span class="mx-1">·</span>
                                         <span><?= date('d/m/Y H:i', strtotime($n['created_at'] ?? 'now')); ?></span>
+                                        <?php if ($isMentionHighPriority($n)): ?>
+                                            <span class="badge bg-warning text-dark ms-2">Menção</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="notif-item__actions">
