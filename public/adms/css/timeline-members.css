@@ -1,0 +1,51 @@
+/**
+ * Membros (timeline-members)
+ *
+ * menu-modern.css força em mobile/tablet:
+ *   #layoutSidenav_content * { position: relative; z-index: auto; }
+ * Isso ANULA position:sticky e o z-index do filtro — os cards (depois no DOM) ficam por cima.
+ * Aqui usamos #layoutSidenav_content + classe para vencer a especificidade.
+ */
+
+.timeline-members-page {
+    max-width: 100%;
+    isolation: isolate;
+}
+
+/* Filtro: sticky + camada acima da lista (abaixo do topnav 1051 e do menu 1050 no mobile) */
+#layoutSidenav_content .timeline-members-page .timeline-members-filter-bar {
+    position: sticky !important;
+    top: 56px !important;
+    z-index: 1046 !important;
+    padding-top: 0.35rem;
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.75rem !important;
+    background: var(--bs-body-bg, #fff) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+/* Filhos do filtro herdarem a pilha do bloco (evita form/input com auto “solto”) */
+#layoutSidenav_content .timeline-members-page .timeline-members-filter-bar form,
+#layoutSidenav_content .timeline-members-page .timeline-members-filter-bar input,
+#layoutSidenav_content .timeline-members-page .timeline-members-filter-bar button,
+#layoutSidenav_content .timeline-members-page .timeline-members-filter-bar .input-group-text,
+#layoutSidenav_content .timeline-members-page .timeline-members-filter-bar .card {
+    position: relative !important;
+    z-index: auto !important;
+}
+
+.timeline-members-list {
+    position: relative;
+    z-index: 0;
+    overflow-x: hidden;
+}
+
+.timeline-member-card {
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.timeline-members-list a:hover .timeline-member-card {
+    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-2px);
+}

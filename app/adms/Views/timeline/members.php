@@ -4,6 +4,7 @@ $members = isset($this->data['members']) && is_array($this->data['members']) ? $
 $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_query'] : '';
 ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=36">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-members.css?v=1">
 
 <div class="container-fluid px-3 px-md-4 timeline-members-page">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -120,36 +121,3 @@ $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_
         </a>
     </div>
 </div>
-
-<style>
-/* isolation: camada do filtro acima da lista; overflow só na lista (overflow no pai quebra sticky/stacking). */
-.timeline-members-page {
-    max-width: 100%;
-    isolation: isolate;
-}
-.timeline-members-filter-bar {
-    position: sticky;
-    top: 56px;
-    /* Abaixo do sb-topnav (1039) e do menu lateral (1038), acima dos cards */
-    z-index: 1037;
-    padding-top: 0.35rem;
-    padding-bottom: 0.65rem;
-    margin-bottom: 0.75rem !important;
-    background: var(--bs-body-bg, #fff);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
-}
-.timeline-members-filter-bar .card {
-    position: relative;
-    z-index: 1;
-}
-.timeline-members-list {
-    z-index: 0;
-    overflow-x: hidden;
-}
-.timeline-member-card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
-.timeline-members-list a:hover .timeline-member-card {
-    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.1) !important;
-    transform: translateY(-2px);
-}
-</style>
