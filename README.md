@@ -43,6 +43,8 @@ Executar as migrations:
 vendor/bin/phinx migrate -c database/phinx.php
 ```
 
+**Sessões (`adms_sessions`) e deploy:** em produção, execute as **migrations antes** (ou no mesmo release, antes de atender tráfego) quando houver mudanças no repositório de sessões ou na migration `20260402150000_adms_sessions_dedupe_and_unique.php`. Essa migration deduplica linhas, cria índice único `(user_id, session_id)` e remove registros antigos com `status = 'invalidada'`. O código usa `INSERT ... ON DUPLICATE KEY UPDATE` em `updateSessionActivity`, que depende desse índice. Invalidação de sessão **apaga** a linha no banco; auditoria de acessos segue em **`adms_log_acessos`**.
+
 > Nota (Gestão de Treinamentos): o fluxo oficial de hardening é via **migrations + validações PHP**.  
 > O arquivo `scripts/training_hardening_validacoes.sql` é **opcional (admin only)** e não deve ser o caminho padrão de deploy.
 

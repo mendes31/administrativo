@@ -5,6 +5,10 @@ namespace App\adms\Models\Repository;
 use PDO;
 use App\adms\Models\Services\DbConnection;
 
+/**
+ * Sessões no banco: apenas linhas "ativas" (registro vigente).
+ * Invalidação = DELETE (não mantém histórico em adms_sessions; log de acessos é adms_log_acessos).
+ */
 class AdmsSessionsRepository extends DbConnection
 {
     protected string $table = 'adms_sessions';
@@ -15,10 +19,8 @@ class AdmsSessionsRepository extends DbConnection
             date('Y-m-d H:i:s') . " [saveSession] user_id={$userId} session_id_param={$sessionId} php_session_id=" . session_id() . PHP_EOL,
             FILE_APPEND
         );
-        // Primeiro, invalidar todas as sessões antigas do usuário
         $this->invalidateAllSessionsByUserId($userId);
-        
-        // Depois, criar a nova sessão
+
         $sql = "INSERT INTO {$this->table} (user_id, session_id, status, created_at, updated_at)
                 VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())";
         $stmt = $this->getConnection()->prepare($sql);
@@ -69,10 +71,7 @@ class AdmsSessionsRepository extends DbConnection
             date('Y-m-d H:i:s') . " [invalidateSessionByUserId] user_id={$userId} php_session_id=" . session_id() . PHP_EOL,
             FILE_APPEND
         );
-        $sql = "UPDATE {$this->table} SET status = 'invalidada' WHERE user_id = :user_id";
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->execute();
+        $this->invalidateAllSessionsByUserId($userId);
     }
 
     public function invalidateAllSessionsByUserId(int $userId): void
@@ -81,7 +80,7 @@ class AdmsSessionsRepository extends DbConnection
             date('Y-m-d H:i:s') . " [invalidateAllSessionsByUserId] user_id={$userId} php_session_id=" . session_id() . PHP_EOL,
             FILE_APPEND
         );
-        $sql = "UPDATE {$this->table} SET status = 'invalidada' WHERE user_id = :user_id";
+        $sql = "DELETE FROM {$this->table} WHERE user_id = :user_id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
@@ -96,33 +95,15 @@ class AdmsSessionsRepository extends DbConnection
             );
             $conn = $this->getConnection();
 
-            // 1) Sessão já marcada como ativa
-            $sql = "UPDATE {$this->table} SET updated_at = NOW() WHERE user_id = :user_id AND session_id = :session_id AND status = 'ativa'";
+            $sql = "INSERT INTO {$this->table} (user_id, session_id, status, created_at, updated_at)
+                    VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        status = 'ativa',
+                        updated_at = NOW()";
             $stmt = $conn->prepare($sql);
             $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
             $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
             $stmt->execute();
-            if ($stmt->rowCount() > 0) {
-                return true;
-            }
-
-            // 2) Linha existe mas status != 'ativa' (ou drift) — reativa e atualiza
-            $sql2 = "UPDATE {$this->table} SET status = 'ativa', updated_at = NOW() WHERE user_id = :user_id AND session_id = :session_id";
-            $stmt2 = $conn->prepare($sql2);
-            $stmt2->bindValue(':user_id', $userId, PDO::PARAM_INT);
-            $stmt2->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
-            $stmt2->execute();
-            if ($stmt2->rowCount() > 0) {
-                return true;
-            }
-
-            // 3) Sem linha no BD: usuário autenticado no PHP mas registro ausente — insere
-            $sql3 = "INSERT INTO {$this->table} (user_id, session_id, status, created_at, updated_at)
-                     VALUES (:user_id, :session_id, 'ativa', NOW(), NOW())";
-            $stmt3 = $conn->prepare($sql3);
-            $stmt3->bindValue(':user_id', $userId, PDO::PARAM_INT);
-            $stmt3->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
-            $stmt3->execute();
 
             return true;
         } catch (\Exception $e) {
@@ -170,10 +151,10 @@ class AdmsSessionsRepository extends DbConnection
             date('Y-m-d H:i:s') . " [invalidateSessionByUserIdAndSessionId] user_id={$userId} session_id_param={$sessionId} php_session_id=" . session_id() . PHP_EOL,
             FILE_APPEND
         );
-        $sql = "UPDATE {$this->table} SET status = 'invalidada' WHERE user_id = :user_id AND session_id = :session_id";
+        $sql = "DELETE FROM {$this->table} WHERE user_id = :user_id AND session_id = :session_id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':session_id', $sessionId, PDO::PARAM_STR);
         $stmt->execute();
     }
-} 
+}
