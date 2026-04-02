@@ -242,6 +242,19 @@ class LoadPageAdmAccessLevel
     }
 
     /**
+     * Diretório físico em Linux (PSR-4) deve coincidir com a pasta em app/adms/Controllers/.
+     * Cadastros com "Logs" em vez de "logs" quebram o autoload em servidores case-sensitive.
+     */
+    private function normalizeControllerDirectory(string $directory): string
+    {
+        if ($directory !== '' && strcasecmp($directory, 'logs') === 0) {
+            return 'logs';
+        }
+
+        return $directory;
+    }
+
+    /**
      * Verificar se a controller existe.
      * 
      * Este método percorre os pacotes e diretórios definidos para verificar se a classe controller correspondente à página existe.
@@ -251,8 +264,11 @@ class LoadPageAdmAccessLevel
      */
     private function checkControllersExists(): bool
     {
-        // Criar o caminho da controller/classe
-        $this->classLoad = "\\App\\{$this->page['name_app']}\\Controllers\\{$this->page['directory']}\\" . $this->urlController;
+        // Nome da classe vem do cadastro (ap.controller); a URL pode ser slug ou PascalCase.
+        $controllerClass = (string)($this->page['controller'] ?? $this->urlController);
+        $directory = $this->normalizeControllerDirectory((string)($this->page['directory'] ?? ''));
+
+        $this->classLoad = "\\App\\{$this->page['name_app']}\\Controllers\\{$directory}\\{$controllerClass}";
 
         // Verificar se a classe existe
         if (class_exists($this->classLoad)) {
