@@ -24,7 +24,8 @@ final class AdmsSessionsDedupeAndUnique extends AbstractMigration
               AND t.id < t2.id'
         );
 
-        // 2) Índice único (user_id + session_id). session_id costuma ter ~32 chars; utf8mb4 ok em InnoDB recente.
+        // 2) Índice único (user_id + session_id). Prefixo em session_id: utf8mb4 × 255 excede 767 bytes
+        // em MySQL com limite antigo; (user_id 4B + session_id(190) 760B) = 764B ≤ 767B.
         $sm = $this->fetchRow(
             "SELECT COUNT(*) AS c FROM information_schema.statistics
              WHERE table_schema = DATABASE()
@@ -34,7 +35,7 @@ final class AdmsSessionsDedupeAndUnique extends AbstractMigration
         if ((int)($sm['c'] ?? 0) === 0) {
             $this->execute(
                 'ALTER TABLE adms_sessions
-                 ADD UNIQUE INDEX uq_adms_sessions_user_session (user_id, session_id)'
+                 ADD UNIQUE INDEX uq_adms_sessions_user_session (user_id, session_id(190))'
             );
         }
 

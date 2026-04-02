@@ -48,7 +48,7 @@ php vendor/bin/phinx migrate -c database/phinx.php -e production
 
 Em releases que alterem `app/adms/Models/Repository/AdmsSessionsRepository.php` ou migrations de sessão:
 
-1. **Rodar as migrations antes** (ou no mesmo deploy, antes de liberar tráfego), para aplicar deduplicação, índice único `(user_id, session_id)` e limpeza de linhas antigas com `status = 'invalidada'`. Ex.: migration `20260402150000_adms_sessions_dedupe_and_unique.php`.
+1. **Rodar as migrations antes** (ou no mesmo deploy, antes de liberar tráfego), para aplicar deduplicação, índice único `(user_id, session_id(190))` (compatível com limite de 767 bytes do InnoDB/`utf8mb4`) e limpeza de linhas antigas com `status = 'invalidada'`. Ex.: migration `20260402150000_adms_sessions_dedupe_and_unique.php`.
 2. Só então o código que usa `INSERT ... ON DUPLICATE KEY UPDATE` em `updateSessionActivity` fica consistente com o banco.
 
 **Observação:** invalidação de sessão no banco passou a ser **remoção da linha** (`DELETE`). O histórico de login/logout e eventos relacionados continua em **`adms_log_acessos`**, não em `adms_sessions`.
