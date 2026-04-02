@@ -210,6 +210,7 @@ class CreateTimelinePost
 
         // Notifica usuários mencionados no post.
         $authorName = (string)($_SESSION['user_name'] ?? 'Alguém');
+        $sharedAuthorIdForMention = $sharedPost !== null ? (int)($sharedPost['user_id'] ?? 0) : 0;
         if ($validIds !== []) {
             $notifRepo = new NotificationsRepository();
             $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
@@ -218,10 +219,14 @@ class CreateTimelinePost
                 if ($mentionedUserId <= 0 || $mentionedUserId === $authorId) {
                     continue;
                 }
+                $isMentionToOriginalAuthor = $sharedAuthorIdForMention > 0 && $mentionedUserId === $sharedAuthorIdForMention;
+                $mentionTitle = $isMentionToOriginalAuthor
+                    ? $authorName . ' mencionou você ao republicar sua publicação'
+                    : $authorName . ' mencionou você em uma publicação';
                 $notifRepo->create([
                     'user_id' => $mentionedUserId,
                     'type' => 'timeline_mention',
-                    'title' => $authorName . ' mencionou você em uma publicação',
+                    'title' => $mentionTitle,
                     'message' => mb_substr($content, 0, 180),
                     'link_url' => $base . 'timeline?post=' . $postId . '&focus=body',
                     'entity_type' => 'timeline_post',

@@ -133,11 +133,17 @@ class TimelineComment
         // Notifica menções no comentário (exceto o próprio autor da ação).
         foreach ($validIds as $mentionedUserId) {
             $mentionedUserId = (int)$mentionedUserId;
-            if ($mentionedUserId <= 0 || $mentionedUserId === $actorId) continue;
+            if ($mentionedUserId <= 0 || $mentionedUserId === $actorId) {
+                continue;
+            }
+            $isMentionToPostAuthor = $postOwnerId > 0 && $mentionedUserId === $postOwnerId;
+            $mentionTitle = $isMentionToPostAuthor
+                ? $actorName . ' comentou e mencionou você na sua publicação'
+                : $actorName . ' mencionou você em um comentário';
             $notifRepo->create([
                 'user_id' => $mentionedUserId,
                 'type' => 'timeline_mention',
-                'title' => $actorName . ' mencionou você em um comentário',
+                'title' => $mentionTitle,
                 'message' => mb_substr($text, 0, 180),
                 'link_url' => $base . 'timeline?comment=' . $cid,
                 'entity_type' => 'timeline_post',

@@ -84,15 +84,25 @@ class UpdateTimelinePost
             $notifRepo = new NotificationsRepository();
             $authorName = (string)($_SESSION['user_name'] ?? 'Alguém');
             $base = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+            $sharedFromPostId = (int)($post['shared_from_post_id'] ?? 0);
+            $originalPostAuthorId = 0;
+            if ($sharedFromPostId > 0) {
+                $originalPost = $repo->getPostById($sharedFromPostId);
+                $originalPostAuthorId = (int)($originalPost['user_id'] ?? 0);
+            }
             foreach ($newMentionIds as $mentionedUserId) {
                 $mentionedUserId = (int)$mentionedUserId;
                 if ($mentionedUserId <= 0 || $mentionedUserId === $uid) {
                     continue;
                 }
+                $isMentionToOriginalAuthor = $originalPostAuthorId > 0 && $mentionedUserId === $originalPostAuthorId;
+                $mentionTitle = $isMentionToOriginalAuthor
+                    ? $authorName . ' mencionou você ao republicar sua publicação'
+                    : $authorName . ' mencionou você em uma publicação';
                 $notifRepo->create([
                     'user_id' => $mentionedUserId,
                     'type' => 'timeline_mention',
-                    'title' => $authorName . ' mencionou você em uma publicação',
+                    'title' => $mentionTitle,
                     'message' => mb_substr($content, 0, 180),
                     'link_url' => $base . 'timeline?post=' . $postId . '&focus=body',
                     'entity_type' => 'timeline_post',
