@@ -546,6 +546,88 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Diretório de colaboradores na timeline: usuários ativos com cargo/depto/bio.
+     */
+    public function countActiveUsersForTimelineDirectory(?string $search = null): int
+    {
+        $bind = [];
+        $whereSearch = $this->buildTimelineDirectorySearchClause($search, $bind);
+        $sql = "SELECT COUNT(*) AS c
+                FROM adms_users t0
+                LEFT JOIN adms_departments t1 ON t0.user_department_id = t1.id
+                LEFT JOIN adms_positions t2 ON t0.user_position_id = t2.id
+                WHERE t0.status = 'Ativo'
+                {$whereSearch}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($bind as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['c'] ?? 0);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listActiveUsersForTimelineDirectory(int $limit, int $offset, ?string $search = null): array
+    {
+        $limit = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+        $bind = [];
+        $whereSearch = $this->buildTimelineDirectorySearchClause($search, $bind);
+        $sql = "SELECT t0.id,
+                       t0.name,
+                       t0.username,
+                       t0.image,
+                       t0.timeline_bio,
+                       t1.name AS dep_name,
+                       t2.name AS pos_name
+                FROM adms_users t0
+                LEFT JOIN adms_departments t1 ON t0.user_department_id = t1.id
+                LEFT JOIN adms_positions t2 ON t0.user_position_id = t2.id
+                WHERE t0.status = 'Ativo'
+                {$whereSearch}
+                ORDER BY t0.name ASC
+                LIMIT {$limit} OFFSET {$offset}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($bind as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * @param array<string, string> $bind
+     */
+    private function buildTimelineDirectorySearchClause(?string $search, array &$bind): string
+    {
+        $q = trim((string)$search);
+        if ($q !== '' && mb_strlen($q) > 200) {
+            $q = mb_substr($q, 0, 200);
+        }
+        if ($q === '') {
+            return '';
+        }
+        $term = '%' . $q . '%';
+        $bind[':td_s1'] = $term;
+        $bind[':td_s2'] = $term;
+        $bind[':td_s3'] = $term;
+        $bind[':td_s4'] = $term;
+        $bind[':td_s5'] = $term;
+
+        return ' AND (
+            t0.name LIKE :td_s1 OR t0.username LIKE :td_s2
+            OR t1.name LIKE :td_s3 OR t2.name LIKE :td_s4
+            OR t0.timeline_bio LIKE :td_s5
+        )';
+    }
+
+    /**
      * Cadastrar um novo usuário.
      *
      * Este método insere um novo usuário na tabela `adms_users`. Em caso de erro, um log é gerado.

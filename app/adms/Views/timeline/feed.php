@@ -27,13 +27,18 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
     <div class="row justify-content-center">
         <div class="col-12">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3 mt-3">
-                <h2 class="mb-0 mobile-hide-page-title">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <h2 class="mb-0 mobile-hide-page-title">
                     <?php if ($timelineProfileUid > 0 && $timelineProfile): ?>
                         <i class="fas fa-user text-info me-2"></i><?php echo htmlspecialchars((string)($timelineProfile['name'] ?? 'Perfil')); ?>
                     <?php else: ?>
                         <i class="fas fa-stream text-info me-2"></i>Timeline
                     <?php endif; ?>
-                </h2>
+                    </h2>
+                    <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline-members" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-users me-1"></i>Membros
+                    </a>
+                </div>
                 <nav aria-label="breadcrumb" class="ms-md-auto mobile-hide-breadcrumb">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="<?php echo htmlspecialchars($urlAdm); ?>dashboard">Dashboard</a></li>
@@ -98,7 +103,10 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
                                     <p class="mb-0 small text-muted fst-italic">Sem apresentação.</p>
                                 <?php endif; ?>
                             <?php endif; ?>
-                            <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline" class="btn btn-outline-secondary btn-sm mt-3"><i class="fas fa-stream me-1"></i>Voltar ao feed</a>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline-members" class="btn btn-outline-primary btn-sm"><i class="fas fa-users me-1"></i>Membros</a>
+                                <a href="<?php echo htmlspecialchars($urlAdm); ?>timeline" class="btn btn-outline-secondary btn-sm"><i class="fas fa-stream me-1"></i>Voltar ao feed</a>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -166,6 +166,7 @@ class PageLayoutService
             'ListInformativos',
             'Timeline',
             'TimelineProfile',
+            'TimelineMembers',
             'CreateTimelinePost',
             'TimelineModerate',
             'TimelineReport',
