@@ -105,6 +105,7 @@ class PageLayoutService
             'LgpdInventoryEdit',
             'LgpdInventoryView',
             'ListLogAcessos',
+            'ListConnectedUsers',
             'ListLogAlteracoes',
             'LgpdRipd',
             'LgpdRipdCreate',
