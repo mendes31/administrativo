@@ -88,6 +88,12 @@ $menus = [
                             'url' => $_ENV['URL_ADM'] . 'list-log-alteracoes',
                             'permission' => 'ListLogAlteracoes'
                         ],
+                        [
+                            'label' => 'Usuários conectados',
+                            'url' => $_ENV['URL_ADM'] . 'list-connected-users',
+                            'permission' => 'ListConnectedUsers',
+                            'icon' => 'fas fa-user-check'
+                        ],
                     ]
                 ],
                 [
