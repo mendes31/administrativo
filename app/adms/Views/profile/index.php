@@ -32,11 +32,14 @@ use App\adms\Helpers\ImageHelper;
                         $profileImagePath = 'users/' . ($_SESSION['user_id'] ?? 0) . '/' . $this->data['form']['image'];
                     }
 
+                    echo '<button type="button" class="btn p-0 border-0 bg-transparent" style="cursor: zoom-in;" onclick="openProfilePhotoModal();">';
                     echo ImageHelper::displayImage($profileImagePath, [
                         'alt' => 'Foto do usuário',
+                        'id' => 'profileAvatarImg',
                         'class' => 'img-fluid rounded-circle mb-3',
                         'style' => 'width: 150px; height: 150px; object-fit: cover;',
                     ], 'icon_user.png', 'users');
+                    echo '</button>';
                     ?>
                     
                     <h5 class="card-title"><?php echo htmlspecialchars($this->data['form']['name'] ?? ''); ?></h5>
@@ -54,6 +57,34 @@ use App\adms\Helpers\ImageHelper;
                             <i class="fas fa-key me-1"></i>
                             Alterar Senha
                         </a>
+                        <form action="" method="POST" enctype="multipart/form-data" class="d-flex flex-column gap-2">
+                            <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_profile'); ?>">
+                            <input type="file"
+                                   name="image"
+                                   class="form-control d-none"
+                                   id="profilePhotoInput"
+                                   accept="image/*">
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="triggerProfilePhotoPicker();">
+                                <i class="fas fa-camera me-1"></i>
+                                Alterar Foto
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm d-none" id="profilePhotoSaveBtn">
+                                <i class="fas fa-save me-1"></i>
+                                Salvar Foto
+                            </button>
+                            <?php if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png'): ?>
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#removePhotoModal">
+                                    <i class="fas fa-trash me-1"></i>
+                                    Remover Foto
+                                </button>
+                            <?php endif; ?>
+                            <small class="form-text text-muted d-block">
+                                Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 2MB.
+                            </small>
+                        </form>
                         <a href="<?php echo htmlspecialchars($_ENV['URL_ADM'] ?? ''); ?>timeline-profile/<?php echo (int)($_SESSION['user_id'] ?? 0); ?>" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-stream me-1"></i>
                             Perfil na Timeline
@@ -72,9 +103,7 @@ use App\adms\Helpers\ImageHelper;
                 </div>
                 <div class="card-body">
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
-
-                    <form action="" method="POST" enctype="multipart/form-data" class="row g-3">
-                        <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_profile'); ?>">
+                    <div class="row g-3">
 
                         <div class="col-md-6">
                             <label for="name" class="form-label">Nome Completo</label>
@@ -137,42 +166,12 @@ use App\adms\Helpers\ImageHelper;
                         </div>
 
                         <div class="col-12">
-                            <label for="image" class="form-label">Foto do Perfil</label>
-                            <input type="file" 
-                                   name="image" 
-                                   class="form-control mb-2" 
-                                   id="image" 
-                                   accept="image/*">
-                            <small class="form-text text-muted mb-3 d-block">
-                                Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 2MB.
-                            </small>
-                            
-                            <?php if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'users/icon_user.png'): ?>
-                                <div class="d-flex align-items-center gap-2">
-                                    <button type="button" 
-                                            class="btn btn-outline-danger btn-sm" 
-                                            id="removePhotoBtn"
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#removePhotoModal">
-                                        <i class="fas fa-trash me-1"></i>
-                                        Remover Foto
-                                    </button>
-                                    <small class="text-muted">Clique para remover a foto atual</small>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>
-                                Salvar Foto
-                            </button>
                             <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>
                                 Voltar
                             </a>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
@@ -204,6 +203,20 @@ use App\adms\Helpers\ImageHelper;
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ampliar foto do perfil -->
+<div class="modal fade" id="profilePhotoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down modal-lg">
+        <div class="modal-content border-0 bg-dark bg-opacity-75">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body d-flex align-items-center justify-content-center p-2 p-md-3">
+                <img id="profilePhotoModalImg" src="" alt="Foto do perfil" class="img-fluid" style="max-height:90vh;object-fit:contain;">
             </div>
         </div>
     </div>
@@ -241,3 +254,34 @@ use App\adms\Helpers\ImageHelper;
         </div>
     </div>
 </div>
+
+<script>
+function triggerProfilePhotoPicker() {
+    var input = document.getElementById('profilePhotoInput');
+    if (!input) return;
+    input.click();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var input = document.getElementById('profilePhotoInput');
+    var saveBtn = document.getElementById('profilePhotoSaveBtn');
+    if (!input || !saveBtn) return;
+    input.addEventListener('change', function () {
+        if (input.files && input.files.length > 0) {
+            saveBtn.classList.remove('d-none');
+        } else {
+            saveBtn.classList.add('d-none');
+        }
+    });
+});
+
+function openProfilePhotoModal() {
+    var img = document.getElementById('profileAvatarImg');
+    var modalImg = document.getElementById('profilePhotoModalImg');
+    var modalEl = document.getElementById('profilePhotoModal');
+    if (!img || !modalImg || !modalEl) return;
+    modalImg.src = img.getAttribute('src') || '';
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: true, keyboard: true });
+    modal.show();
+}
+</script>
