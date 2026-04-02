@@ -245,16 +245,12 @@ class CompanyEventsRepository extends DbConnection
     }
 
     /**
-     * Eventos visíveis e com período intersectando o mês informado.
+     * Eventos ativos/publicados visíveis ao colaborador no intervalo [start, end] (interseção de período).
      *
      * @return array<int, array<string, mixed>>
      */
-    public function getEventsIntersectingMonth(int $year, int $month): array
+    private function getDashboardVisibleEventsBetween(string $start, string $end): array
     {
-        $month = max(1, min(12, $month));
-        $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
-        $end = date('Y-m-t 23:59:59', strtotime($start));
-
         $sql = 'SELECT e.*, u.name AS creator_name
                 FROM adms_company_events e
                 INNER JOIN adms_users u ON u.id = e.created_by
@@ -267,6 +263,36 @@ class CompanyEventsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end]);
         return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
+     * Eventos visíveis com período intersectando o ano civil informado (dashboard / modal “todos os meses”).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getEventsIntersectingYear(int $year): array
+    {
+        if ($year < 2000 || $year > 2100) {
+            return [];
+        }
+        $start = sprintf('%04d-01-01 00:00:00', $year);
+        $end = sprintf('%04d-12-31 23:59:59', $year);
+
+        return $this->getDashboardVisibleEventsBetween($start, $end);
+    }
+
+    /**
+     * Eventos visíveis e com período intersectando o mês informado.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getEventsIntersectingMonth(int $year, int $month): array
+    {
+        $month = max(1, min(12, $month));
+        $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
+        $end = date('Y-m-t 23:59:59', strtotime($start));
+
+        return $this->getDashboardVisibleEventsBetween($start, $end);
     }
 
     /**
@@ -353,6 +379,117 @@ class CompanyEventsRepository extends DbConnection
     }
 
     /**
+     * Após o prazo de RSVP: quem ficou em "pending" ou sem registro passa a "declined"
+     * (ausência de resposta tratada como recusa para relatórios e contagem de não lidos).
+     */
+    public function autoDeclineRsvpIfDeadlinePassed(int $eventId, int $userId): void
+    {
+        if ($userId <= 0 || $eventId <= 0) {
+            return;
+        }
+        $event = $this->getById($eventId);
+        if (!$event || empty($event['ativo'])) {
+            return;
+        }
+        if (empty($event['requires_rsvp']) || empty($event['rsvp_deadline'])) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        if ($now <= $event['rsvp_deadline']) {
+            return;
+        }
+
+        $rsvp = $this->getRsvpForUser($eventId, $userId);
+        if ($rsvp) {
+            if (($rsvp['status'] ?? '') === 'pending') {
+                $stmt = $this->getConnection()->prepare(
+                    'UPDATE adms_company_event_rsvps SET status = :st, responded_at = COALESCE(responded_at, NOW()), updated_at = NOW() WHERE id = :id'
+                );
+                $stmt->execute([':st' => 'declined', ':id' => (int)$rsvp['id']]);
+            }
+            return;
+        }
+
+        $ins = $this->getConnection()->prepare(
+            'INSERT INTO adms_company_event_rsvps (event_id, user_id, status, responded_at, created_at, updated_at)
+             VALUES (:e, :u, :st, NOW(), NOW(), NOW())'
+        );
+        try {
+            $ins->execute([':e' => $eventId, ':u' => $userId, ':st' => 'declined']);
+        } catch (\Throwable $e) {
+            $again = $this->getRsvpForUser($eventId, $userId);
+            if ($again && (($again['status'] ?? '') === 'pending')) {
+                $this->getConnection()->prepare(
+                    'UPDATE adms_company_event_rsvps SET status = :st, responded_at = COALESCE(responded_at, NOW()), updated_at = NOW() WHERE id = :id'
+                )->execute([':st' => 'declined', ':id' => (int)$again['id']]);
+            }
+        }
+    }
+
+    /**
+     * Após o prazo de RSVP: cria linhas "declined" para colaboradores elegíveis sem registro
+     * e atualiza "pending" → "declined", para o relatório listar todos (incl. quem nunca acessou o sistema).
+     * Público: usuários ativos do departamento do evento, ou todos se departamento não informado.
+     * O criador do evento é excluído (mesma ideia da contagem de não lidos).
+     */
+    public function syncAutoDeclineForAllEligibleUsersAfterDeadline(int $eventId): void
+    {
+        if ($eventId <= 0) {
+            return;
+        }
+        $event = $this->getById($eventId);
+        if (!$event || empty($event['ativo'])) {
+            return;
+        }
+        if (empty($event['requires_rsvp']) || empty($event['rsvp_deadline'])) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        if ($now <= $event['rsvp_deadline']) {
+            return;
+        }
+
+        $creatorId = (int)($event['created_by'] ?? 0);
+        $deptId = isset($event['department_id']) ? (int)$event['department_id'] : 0;
+        $deptFilter = $deptId > 0
+            ? ' AND u.user_department_id = :dept'
+            : '';
+
+        $eidInt = (int)$eventId;
+        $paramsIns = [':eid' => $eidInt, ':creator' => $creatorId];
+        if ($deptId > 0) {
+            $paramsIns[':dept'] = $deptId;
+        }
+
+        $sqlInsert = 'INSERT INTO adms_company_event_rsvps (event_id, user_id, status, responded_at, created_at, updated_at)
+            SELECT :eid, u.id, \'declined\', NOW(), NOW(), NOW()
+            FROM adms_users u
+            WHERE u.status = \'Ativo\'
+              AND u.id <> :creator
+              ' . $deptFilter . '
+              AND NOT EXISTS (
+                SELECT 1 FROM adms_company_event_rsvps r
+                WHERE r.event_id = ' . $eidInt . ' AND r.user_id = u.id
+              )';
+        $this->getConnection()->prepare($sqlInsert)->execute($paramsIns);
+
+        $paramsUpd = [':eid' => $eventId, ':creator' => $creatorId];
+        if ($deptId > 0) {
+            $paramsUpd[':dept'] = $deptId;
+        }
+        $sqlUpdate = 'UPDATE adms_company_event_rsvps r
+            INNER JOIN adms_users u ON u.id = r.user_id AND u.status = \'Ativo\'
+            SET r.status = \'declined\',
+                r.responded_at = COALESCE(r.responded_at, NOW()),
+                r.updated_at = NOW()
+            WHERE r.event_id = :eid
+              AND r.user_id <> :creator
+              AND r.status = \'pending\'
+              ' . ($deptId > 0 ? ' AND u.user_department_id = :dept' : '');
+        $this->getConnection()->prepare($sqlUpdate)->execute($paramsUpd);
+    }
+
+    /**
      * @param array<int, array{full_name: string, relationship?: string, age?: int, notes?: string}> $guests
      */
     public function saveRsvpWithGuests(
@@ -376,7 +513,7 @@ class CompanyEventsRepository extends DbConnection
         }
 
         $newStatus = $status === 'declined' ? 'declined' : 'confirmed';
-        if ($newStatus === 'confirmed' && !empty($event['rsvp_deadline']) && $now > $event['rsvp_deadline']) {
+        if (!empty($event['rsvp_deadline']) && $now > $event['rsvp_deadline']) {
             return false;
         }
 
@@ -410,6 +547,81 @@ class CompanyEventsRepository extends DbConnection
         }
 
         return true;
+    }
+
+    /**
+     * RSVP para outro usuário: ignora prazo de confirmação/recusa (uso por criador/gestão).
+     *
+     * @param array<int, array{full_name: string, relationship?: string, age?: int, notes?: string}> $guests
+     */
+    public function adminSaveRsvpWithGuestsBypassDeadlines(
+        int $eventId,
+        int $targetUserId,
+        string $status,
+        array $guests,
+        bool $allowsGuests,
+        int $maxGuests
+    ): bool {
+        $event = $this->getById($eventId);
+        if (!$event || empty($event['ativo']) || empty($event['requires_rsvp'])) {
+            return false;
+        }
+        $newStatus = $status === 'declined' ? 'declined' : 'confirmed';
+        $rsvp = $this->getOrCreateRsvp($eventId, $targetUserId);
+        $rsvpId = (int)($rsvp['id'] ?? 0);
+        if ($rsvpId <= 0) {
+            return false;
+        }
+
+        $upd = $this->getConnection()->prepare(
+            'UPDATE adms_company_event_rsvps SET status = :st, responded_at = NOW(), updated_at = NOW(), cancelled_at = NULL
+             WHERE id = :id'
+        );
+        $upd->execute([':st' => $newStatus, ':id' => $rsvpId]);
+
+        $this->getConnection()->prepare('DELETE FROM adms_company_event_guests WHERE rsvp_id = :r')->execute([':r' => $rsvpId]);
+
+        if ($allowsGuests && $newStatus === 'confirmed' && $maxGuests > 0) {
+            $guests = array_slice($guests, 0, $maxGuests);
+            $insG = $this->getConnection()->prepare(
+                'INSERT INTO adms_company_event_guests (rsvp_id, full_name, relationship, age, notes, created_at)
+                 VALUES (:r, :fn, :rel, :age, :notes, NOW())'
+            );
+            foreach ($guests as $g) {
+                $name = trim((string)($g['full_name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+                $insG->execute([
+                    ':r' => $rsvpId,
+                    ':fn' => mb_substr($name, 0, 200),
+                    ':rel' => isset($g['relationship']) ? mb_substr((string)$g['relationship'], 0, 100) : null,
+                    ':age' => isset($g['age']) ? (int)$g['age'] : null,
+                    ':notes' => isset($g['notes']) ? mb_substr((string)$g['notes'], 0, 500) : null,
+                ]);
+            }
+        }
+
+        return true;
+    }
+
+    /** Cancela presença de outro usuário ignorando prazo (após confirmação). */
+    public function adminCancelRsvpBypassDeadlines(int $eventId, int $targetUserId): bool
+    {
+        $event = $this->getById($eventId);
+        if (!$event || empty($event['ativo'])) {
+            return false;
+        }
+        $rsvp = $this->getRsvpForUser($eventId, $targetUserId);
+        if (!$rsvp || ($rsvp['status'] ?? '') !== 'confirmed') {
+            return false;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_company_event_rsvps SET status = "cancelled", cancelled_at = NOW(), updated_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute([':id' => (int)$rsvp['id']]);
+        $this->getConnection()->prepare('DELETE FROM adms_company_event_guests WHERE rsvp_id = :r')->execute([':r' => (int)$rsvp['id']]);
+        return $stmt->rowCount() > 0;
     }
 
     public function cancelRsvp(int $eventId, int $userId): bool

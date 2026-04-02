@@ -125,10 +125,10 @@
                             </div>
                             <h5 class="fw-bold mb-1 text-center group-title">Eventos</h5>
                             <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
-                                <?php echo (int)($this->data['company_events_month_count'] ?? 0); ?> ativos neste mês
+                                <?php echo (int)($this->data['company_events_year_count'] ?? 0); ?> ativos no ano
                             </div>
                             <div class="text-muted text-center small fw-semibold">
-                                <?php echo (int)($this->data['company_events_year_count'] ?? 0); ?> no ano
+                                <?php echo (int)($this->data['company_events_month_count'] ?? 0); ?> neste mês
                             </div>
                             <div class="text-success text-center small fw-semibold" id="dashboardEventsUnreadCount">
                                 <?php echo (int)($this->data['company_events_unread_count'] ?? 0); ?> não lidos no ano

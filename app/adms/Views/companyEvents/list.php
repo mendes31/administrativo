@@ -16,6 +16,28 @@
 $btnPerms = $this->data['buttonPermission'] ?? [];
 // Mesmo padrão de ViewPolicy / ViewInformativo: só exibe "Visualizar" com permissão explícita da página.
 $canVisualizar = in_array('ViewCompanyEvent', $btnPerms, true);
+$sessionUid = (int)($_SESSION['user_id'] ?? 0);
+
+/** @param array<string, mixed>|null $myRsvp */
+$rsvpListBadge = static function (?array $myRsvp, bool $requiresRsvp): string {
+    if (!$requiresRsvp) {
+        return '<span class="text-muted small">Não exige</span>';
+    }
+    $st = is_array($myRsvp) ? (string)($myRsvp['status'] ?? '') : '';
+    if ($st === '' || $st === 'pending') {
+        return '<span class="badge bg-warning text-dark">Pendente</span>';
+    }
+    if ($st === 'confirmed') {
+        return '<span class="badge bg-success">Confirmado</span>';
+    }
+    if ($st === 'declined') {
+        return '<span class="badge bg-secondary">Recusado</span>';
+    }
+    if ($st === 'cancelled') {
+        return '<span class="badge bg-light text-dark border">Cancelado</span>';
+    }
+    return '<span class="badge bg-light text-dark">' . htmlspecialchars($st) . '</span>';
+};
 ?>
 
 <div class="container-fluid px-4">
@@ -34,6 +56,7 @@ $canVisualizar = in_array('ViewCompanyEvent', $btnPerms, true);
                     <th>Título</th>
                     <th>Início</th>
                     <th>Fim</th>
+                    <th>Sua resposta</th>
                     <th>Ativo</th>
                     <th class="text-end">Ações</th>
                 </tr>
@@ -41,12 +64,10 @@ $canVisualizar = in_array('ViewCompanyEvent', $btnPerms, true);
             <tbody>
                 <?php foreach (($this->data['events'] ?? []) as $ev): ?>
                     <?php
-                    $sessionUid = (int)($_SESSION['user_id'] ?? 0);
                     $isCreator = (int)($ev['created_by'] ?? 0) === $sessionUid;
                     $isSuper = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
                     $canEdit = in_array('UpdateCompanyEvent', $btnPerms, true);
-                    $canReport = in_array('CompanyEventReport', $btnPerms, true)
-                        && ($isCreator || $isSuper);
+                    $canReport = \App\adms\Helpers\CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($ev, $sessionUid, $btnPerms);
                     $canDelete = in_array('DeleteCompanyEvent', $btnPerms, true)
                         && ($isCreator || $isSuper);
                     ?>
@@ -54,6 +75,7 @@ $canVisualizar = in_array('ViewCompanyEvent', $btnPerms, true);
                         <td><?php echo \App\adms\Helpers\TextEncodingHelper::escape($ev['title'] ?? ''); ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($ev['starts_at'] ?? '')); ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($ev['ends_at'] ?? '')); ?></td>
+                        <td><?php echo $rsvpListBadge($ev['my_rsvp'] ?? null, !empty($ev['requires_rsvp'])); ?></td>
                         <td><?php echo !empty($ev['ativo']) ? 'Sim' : 'Não'; ?></td>
                         <td class="text-end text-nowrap">
                             <?php if ($canVisualizar): ?>
@@ -80,12 +102,10 @@ $canVisualizar = in_array('ViewCompanyEvent', $btnPerms, true);
     <div class="d-md-none">
         <?php foreach (($this->data['events'] ?? []) as $ev): ?>
             <?php
-            $sessionUid = (int)($_SESSION['user_id'] ?? 0);
             $isCreator = (int)($ev['created_by'] ?? 0) === $sessionUid;
             $isSuper = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
             $canEdit = in_array('UpdateCompanyEvent', $btnPerms, true);
-            $canReport = in_array('CompanyEventReport', $btnPerms, true)
-                && ($isCreator || $isSuper);
+            $canReport = \App\adms\Helpers\CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($ev, $sessionUid, $btnPerms);
             $canDelete = in_array('DeleteCompanyEvent', $btnPerms, true)
                 && ($isCreator || $isSuper);
             ?>
@@ -95,6 +115,7 @@ $canVisualizar = in_array('ViewCompanyEvent', $btnPerms, true);
                     <div class="small text-muted mb-2">
                         <?php echo date('d/m/Y H:i', strtotime($ev['starts_at'] ?? '')); ?> — <?php echo date('d/m/Y H:i', strtotime($ev['ends_at'] ?? '')); ?>
                     </div>
+                    <div class="mb-2"><?php echo $rsvpListBadge($ev['my_rsvp'] ?? null, !empty($ev['requires_rsvp'])); ?></div>
                     <div class="d-grid gap-2">
                         <?php if ($canVisualizar): ?>
                             <a class="btn btn-sm btn-primary" href="<?php echo $_ENV['URL_ADM']; ?>view-company-event/<?php echo (int)$ev['id']; ?>">

@@ -184,6 +184,7 @@ class PageLayoutService
             'DeleteCompanyEvent',
             'CompanyEventReport',
             'EventRsvp',
+            'CompanyEventsSearchUsers',
             'CompanyEventsMonth',
             // Dashboard - visibilidade de cards
             'DashboardCardInformativos',

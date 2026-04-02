@@ -3,6 +3,8 @@
 namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\CompanyEventRsvpAccessHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -25,14 +27,26 @@ class CompanyEventReport
             exit;
         }
         $uid = (int)($_SESSION['user_id'] ?? 0);
-        if ((int)($event['created_by'] ?? 0) !== $uid && !\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
-            $_SESSION['msg'] = '<div class="alert alert-danger">Apenas o criador do evento ou administrador pode ver o relatório.</div>';
+        $permRepo = new ButtonPermissionUserRepository();
+        $raw = $permRepo->buttonPermission([
+            'UpdateCompanyEvent',
+            'DeleteCompanyEvent',
+            'CreateCompanyEvent',
+            'CompanyEventReport',
+        ]);
+        $btnPerms = is_array($raw) ? $raw : [];
+        if (!CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $uid, $btnPerms)) {
+            $_SESSION['msg'] = '<div class="alert alert-danger">Apenas o criador do evento ou a equipe autorizada pode ver o relatório.</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
             exit;
         }
 
         $this->data['event'] = $event;
+        // Após o prazo: garante linhas "declined" para quem não respondeu (incl. quem nunca acessou o sistema).
+        $repo->syncAutoDeclineForAllEligibleUsersAfterDeadline($eventId);
         $this->data['rows'] = $repo->getReportRowsForEvent($eventId);
+        $this->data['can_edit_rsvp_responses'] = !empty($event['requires_rsvp'])
+            && CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $uid, $btnPerms);
 
         if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $this->exportCsv($event['title'] ?? 'evento', $this->data['rows']);

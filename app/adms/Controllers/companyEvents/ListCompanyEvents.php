@@ -20,7 +20,17 @@ class ListCompanyEvents
         $perPage = 15;
 
         $repo = new CompanyEventsRepository();
-        $this->data['events'] = $repo->listAllForAdmin($page, $perPage);
+        $events = $repo->listAllForAdmin($page, $perPage);
+        $uid = (int)($_SESSION['user_id'] ?? 0);
+        foreach ($events as &$ev) {
+            $eid = (int)($ev['id'] ?? 0);
+            if ($eid > 0 && $uid > 0) {
+                $repo->autoDeclineRsvpIfDeadlinePassed($eid, $uid);
+            }
+            $ev['my_rsvp'] = ($uid > 0 && $eid > 0) ? $repo->getRsvpForUser($eid, $uid) : null;
+        }
+        unset($ev);
+        $this->data['events'] = $events;
         $total = $repo->countAll();
         $this->data['pagination'] = PaginationService::generatePagination($total, $perPage, $page, 'list-company-events', []);
 

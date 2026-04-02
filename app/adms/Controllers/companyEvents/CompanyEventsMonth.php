@@ -5,7 +5,9 @@ namespace App\adms\Controllers\companyEvents;
 use App\adms\Models\Repository\CompanyEventsRepository;
 
 /**
- * JSON para filtro ano/mês no card de eventos do dashboard (AJAX).
+ * JSON para o modal de eventos do dashboard (AJAX).
+ * month=0 ou ausente: todos os eventos ativos do ano, ordenados por data.
+ * month=1–12: restringe ao mês.
  */
 class CompanyEventsMonth
 {
@@ -18,20 +20,35 @@ class CompanyEventsMonth
             return;
         }
         $y = (int)($_GET['year'] ?? date('Y'));
-        $m = (int)($_GET['month'] ?? date('n'));
-        if ($y < 2000 || $y > 2100 || $m < 1 || $m > 12) {
+        $monthRaw = $_GET['month'] ?? '0';
+        $allYear = ($monthRaw === '' || $monthRaw === null || (string)$monthRaw === '0');
+        if ($y < 2000 || $y > 2100) {
             http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Período inválido']);
+            echo json_encode(['success' => false, 'message' => 'Ano inválido']);
             return;
+        }
+        if (!$allYear) {
+            $m = (int)$monthRaw;
+            if ($m < 1 || $m > 12) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => 'Mês inválido']);
+                return;
+            }
         }
         try {
             $repo = new CompanyEventsRepository();
-            $events = $repo->getEventsIntersectingMonth($y, $m);
+            $events = $allYear
+                ? $repo->getEventsIntersectingYear($y)
+                : $repo->getEventsIntersectingMonth($y, (int)$monthRaw);
+            $m = $allYear ? 0 : (int)$monthRaw;
             $uid = (int)$_SESSION['user_id'];
             $eventIdsToMarkAsRead = [];
             foreach ($events as &$ev) {
-                $ev['rsvp'] = $repo->getRsvpForUser((int)$ev['id'], $uid);
                 $eid = (int)($ev['id'] ?? 0);
+                if ($eid > 0) {
+                    $repo->autoDeclineRsvpIfDeadlinePassed($eid, $uid);
+                }
+                $ev['rsvp'] = $repo->getRsvpForUser($eid, $uid);
                 if ($eid <= 0) {
                     continue;
                 }

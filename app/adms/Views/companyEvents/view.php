@@ -3,6 +3,8 @@ $ev = $this->data['event'] ?? [];
 $rsvp = $this->data['rsvp'] ?? null;
 $guests = $this->data['rsvp_guests'] ?? [];
 $canEdit = !empty($this->data['can_edit']);
+$canAdminRsvpOthers = !empty($this->data['can_admin_rsvp_others']);
+$prefillManageRsvp = $this->data['prefill_manage_rsvp'] ?? null;
 $eventId = (int)($this->data['event_id'] ?? 0);
 $st = is_array($rsvp) ? (string)($rsvp['status'] ?? '') : '';
 $requiresRsvp = !empty($ev['requires_rsvp']);
@@ -23,6 +25,12 @@ $statusLabel = [
     'declined' => 'Recusado',
     'cancelled' => 'Cancelado',
 ][$st] ?? ($st !== '' ? $st : '—');
+
+$nowTs = time();
+$rsvpDeadlineTs = !empty($ev['rsvp_deadline']) ? strtotime((string)$ev['rsvp_deadline']) : false;
+$cancelDeadlineTs = !empty($ev['cancellation_deadline']) ? strtotime((string)$ev['cancellation_deadline']) : false;
+$rsvpDeadlinePassed = ($rsvpDeadlineTs !== false && $rsvpDeadlineTs < $nowTs);
+$cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $nowTs);
 ?>
 <style>
     /* Alinhado ao cabeçalho das listagens de informativos/políticas (identidade verde) */
@@ -230,37 +238,98 @@ $statusLabel = [
                                     <i class="fas fa-user-check text-success me-2"></i>Sua participação
                                 </h5>
                                 <p class="small text-muted mb-3">
-                                    Status atual: <strong class="text-body"><?php echo htmlspecialchars($statusLabel); ?></strong>
+                                    Status atual:
+                                    <?php if ($st === 'confirmed'): ?>
+                                        <span class="badge bg-success">Confirmado</span>
+                                    <?php elseif ($st === 'declined'): ?>
+                                        <span class="badge bg-secondary">Recusado</span>
+                                    <?php elseif ($st === 'cancelled'): ?>
+                                        <span class="badge bg-warning text-dark">Presença cancelada</span>
+                                    <?php elseif ($st === 'pending' || $st === ''): ?>
+                                        <span class="badge bg-light text-dark border">Pendente</span>
+                                    <?php else: ?>
+                                        <strong class="text-body"><?php echo htmlspecialchars($statusLabel); ?></strong>
+                                    <?php endif; ?>
                                 </p>
+
+                                <?php if ($st === 'declined' && !$rsvpDeadlinePassed): ?>
+                                    <p class="small text-muted mb-3">
+                                        <i class="fas fa-info-circle me-1"></i>Você recusou participar; ainda pode confirmar dentro do prazo de confirmação.
+                                    </p>
+                                <?php endif; ?>
 
                                 <div class="d-flex flex-wrap gap-2 mb-3" id="companyEventRsvpActions">
                                     <?php if ($st === 'confirmed'): ?>
-                                        <button type="button" class="btn btn-outline-danger btn-sm" data-rsvp-action="cancel">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" data-rsvp-action="cancel"
+                                            <?php echo $cancelDeadlinePassed ? 'disabled title="' . htmlspecialchars('Prazo de cancelamento encerrado.', ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
                                             <i class="fas fa-times me-1"></i>Cancelar presença
                                         </button>
-                                    <?php elseif ($st !== 'declined'): ?>
+                                    <?php elseif ($st === 'declined' && !$rsvpDeadlinePassed): ?>
                                         <button type="button" class="btn btn-success btn-sm" data-rsvp-action="confirm">
                                             <i class="fas fa-check me-1"></i>Confirmar presença
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rsvp-action="decline">
+                                    <?php elseif ($st !== 'declined'): ?>
+                                        <button type="button" class="btn btn-success btn-sm" data-rsvp-action="confirm"
+                                            <?php echo $rsvpDeadlinePassed ? 'disabled title="' . htmlspecialchars('Prazo de confirmação encerrado.', ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+                                            <i class="fas fa-check me-1"></i>Confirmar presença
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rsvp-action="decline"
+                                            <?php echo $rsvpDeadlinePassed ? 'disabled title="' . htmlspecialchars('Prazo de confirmação encerrado.', ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
                                             Recusar
                                         </button>
                                     <?php else: ?>
-                                        <span class="text-muted small">Você recusou participar deste evento.</span>
+                                        <span class="text-muted small">Prazo de confirmação encerrado — resposta mantida como recusada.</span>
                                     <?php endif; ?>
                                 </div>
 
-                                <?php if ($allowsGuests && $maxG > 0 && $st !== 'declined'): ?>
+                                <?php if ($allowsGuests && $maxG > 0 && $st !== 'confirmed' && !$rsvpDeadlinePassed): ?>
                                     <div class="border rounded p-3 bg-light mt-3" id="guestBlock">
                                         <div class="fw-semibold small mb-2">Convidados (máx. <?php echo $maxG; ?>)</div>
                                         <p class="small text-muted mb-2">Informe ao confirmar presença. Você pode ajustar antes de enviar.</p>
                                         <div id="guestRows" class="mb-2"></div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" id="addGuestRow" <?php echo $st === 'declined' ? 'disabled' : ''; ?>>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="addGuestRow">
                                             <i class="fas fa-plus me-1"></i>Adicionar convidado
                                         </button>
                                     </div>
                                 <?php endif; ?>
                             </div>
+
+                            <?php if ($canAdminRsvpOthers): ?>
+                            <div class="mb-4 border border-warning rounded p-3 p-md-4 bg-white shadow-sm" id="adminRsvpPanel">
+                                <h5 class="mb-2">
+                                    <i class="fas fa-user-shield text-warning me-2"></i>Outro colaborador (gestão)
+                                </h5>
+                                <p class="small text-muted mb-3">
+                                    Registre confirmação ou recusa para quem não respondeu a tempo. Se o evento permitir convidados, informe-os ao confirmar.
+                                </p>
+                                <div class="position-relative mb-3" id="adminRsvpSearchWrap">
+                                    <label class="form-label small mb-1" for="adminRsvpUserSearch">Buscar colaborador</label>
+                                    <input type="text" class="form-control form-control-sm" id="adminRsvpUserSearch" autocomplete="off" placeholder="Nome ou e-mail (mín. 2 caracteres)">
+                                    <input type="hidden" id="adminRsvpTargetUserId" value="">
+                                    <div id="adminRsvpSearchResults" class="list-group position-absolute w-100 shadow-sm mt-1" style="z-index: 20; max-height: 220px; overflow-y: auto; display: none;"></div>
+                                </div>
+                                <p class="small mb-2" id="adminRsvpSelectedLabel"><span class="text-muted">Nenhum colaborador selecionado.</span></p>
+                                <div class="d-flex flex-wrap gap-2 mb-3" id="companyEventAdminRsvpActions">
+                                    <button type="button" class="btn btn-success btn-sm" data-admin-rsvp-action="confirm">
+                                        <i class="fas fa-check me-1"></i>Confirmar presença
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" data-admin-rsvp-action="decline">Recusar</button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" data-admin-rsvp-action="cancel">
+                                        <i class="fas fa-times me-1"></i>Cancelar presença
+                                    </button>
+                                </div>
+                                <?php if ($allowsGuests && $maxG > 0): ?>
+                                <div class="border rounded p-3 bg-light mt-2" id="adminGuestBlock">
+                                    <div class="fw-semibold small mb-2">Convidados do colaborador (máx. <?php echo $maxG; ?>)</div>
+                                    <div id="adminGuestRows" class="mb-2"></div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addAdminGuestRow">
+                                        <i class="fas fa-plus me-1"></i>Adicionar convidado
+                                    </button>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+
                         <?php endif; ?>
                     </div>
                 </div>
@@ -403,6 +472,7 @@ $statusLabel = [
 
     document.querySelectorAll('#companyEventRsvpActions [data-rsvp-action]').forEach(function (btn) {
         btn.addEventListener('click', function () {
+            if (btn.disabled) return;
             var act = btn.getAttribute('data-rsvp-action');
             if (act === 'cancel') {
                 if (!confirm('Cancelar sua presença neste evento?')) return;
@@ -417,7 +487,7 @@ $statusLabel = [
         });
     });
 
-    <?php if ($allowsGuests && $maxG > 0): ?>
+    <?php if ($allowsGuests && $maxG > 0 && $st !== 'confirmed' && !$rsvpDeadlinePassed): ?>
     var guestRows = document.getElementById('guestRows');
     var addBtn = document.getElementById('addGuestRow');
     if (guestRows && addBtn) {
@@ -430,6 +500,139 @@ $statusLabel = [
             guestRows.appendChild(guestRow('', ''));
         });
     }
+    <?php endif; ?>
+
+    <?php if ($canAdminRsvpOthers): ?>
+    (function () {
+        var prefillManage = <?php echo json_encode($prefillManageRsvp, JSON_UNESCAPED_UNICODE); ?>;
+        var searchIn = document.getElementById('adminRsvpUserSearch');
+        var resultsEl = document.getElementById('adminRsvpSearchResults');
+        var wrap = document.getElementById('adminRsvpSearchWrap');
+        var hid = document.getElementById('adminRsvpTargetUserId');
+        var label = document.getElementById('adminRsvpSelectedLabel');
+        var tmo = null;
+        if (!searchIn || !resultsEl || !hid || !label) return;
+
+        function esc(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        }
+        function selectUser(u) {
+            hid.value = String(u.id);
+            label.innerHTML = '<strong>' + esc(u.name) + '</strong> <span class="text-muted">(' + esc(u.email || '') + ')</span>';
+            resultsEl.style.display = 'none';
+            resultsEl.innerHTML = '';
+            searchIn.value = '';
+        }
+        function runSearch() {
+            var q = searchIn.value.trim();
+            if (q.length < 2) {
+                resultsEl.style.display = 'none';
+                resultsEl.innerHTML = '';
+                return;
+            }
+            fetch(base + 'company-events-search-users?event_id=' + encodeURIComponent(String(eventId)) + '&q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.success || !data.users) {
+                        resultsEl.innerHTML = '';
+                        resultsEl.style.display = 'none';
+                        return;
+                    }
+                    resultsEl.innerHTML = '';
+                    data.users.forEach(function (u) {
+                        var a = document.createElement('button');
+                        a.type = 'button';
+                        a.className = 'list-group-item list-group-item-action py-2 text-start';
+                        a.innerHTML = '<span class="fw-semibold">' + esc(u.name) + '</span><br><span class="small text-muted">' + esc(u.email || '') + '</span>';
+                        a.addEventListener('click', function () { selectUser(u); });
+                        resultsEl.appendChild(a);
+                    });
+                    resultsEl.style.display = data.users.length ? 'block' : 'none';
+                })
+                .catch(function () {});
+        }
+        searchIn.addEventListener('input', function () {
+            clearTimeout(tmo);
+            tmo = setTimeout(runSearch, 350);
+        });
+        document.addEventListener('click', function (e) {
+            if (wrap && !wrap.contains(e.target)) {
+                resultsEl.style.display = 'none';
+            }
+        });
+
+        function collectAdminGuests() {
+            var out = [];
+            document.querySelectorAll('#adminGuestRows .guest-row').forEach(function (row) {
+                var n = row.querySelector('.guest-name');
+                var r = row.querySelector('.guest-rel');
+                var name = n ? n.value.trim() : '';
+                if (name !== '') {
+                    out.push({ full_name: name, relationship: r ? r.value.trim() : '' });
+                }
+            });
+            return out.slice(0, maxG);
+        }
+        function postAdminRsvp(action, guestsPayload) {
+            if (!hid.value) {
+                alert('Selecione um colaborador na lista.');
+                return;
+            }
+            var fd = new FormData();
+            fd.append('event_id', String(eventId));
+            fd.append('target_user_id', hid.value);
+            fd.append('action', action);
+            if (guestsPayload && guestsPayload.length) {
+                fd.append('guests', JSON.stringify(guestsPayload));
+            }
+            fetch(base + 'event-rsvp', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        window.location.reload();
+                    } else {
+                        alert((data && data.message) ? data.message : 'Não foi possível atualizar.');
+                    }
+                })
+                .catch(function () { alert('Erro de rede.'); });
+        }
+        document.querySelectorAll('#companyEventAdminRsvpActions [data-admin-rsvp-action]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var act = btn.getAttribute('data-admin-rsvp-action');
+                if (act === 'cancel') {
+                    if (!confirm('Cancelar a presença confirmada deste colaborador?')) return;
+                    postAdminRsvp('cancel', null);
+                    return;
+                }
+                var guests = [];
+                if (allowsGuests && act === 'confirm') {
+                    guests = collectAdminGuests();
+                }
+                postAdminRsvp(act === 'decline' ? 'decline' : 'confirm', guests);
+            });
+        });
+        var adminGuestRows = document.getElementById('adminGuestRows');
+        var addAdminBtn = document.getElementById('addAdminGuestRow');
+        if (adminGuestRows && addAdminBtn) {
+            addAdminBtn.addEventListener('click', function () {
+                var n = adminGuestRows.querySelectorAll('.guest-row').length;
+                if (n >= maxG) return;
+                adminGuestRows.appendChild(guestRow('', ''));
+            });
+        }
+        if (prefillManage && prefillManage.id) {
+            selectUser({
+                id: prefillManage.id,
+                name: prefillManage.name || '',
+                email: prefillManage.email || ''
+            });
+            var pan = document.getElementById('adminRsvpPanel');
+            if (pan) {
+                pan.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    })();
     <?php endif; ?>
 })();
 </script>

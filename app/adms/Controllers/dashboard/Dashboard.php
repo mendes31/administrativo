@@ -166,18 +166,22 @@ class Dashboard
             $eventsRepo = new \App\adms\Models\Repository\CompanyEventsRepository();
             $y = (int)date('Y');
             $m = (int)date('n');
-            $companyEvents = $eventsRepo->getEventsIntersectingMonth($y, $m);
+            $companyEvents = $eventsRepo->getEventsIntersectingYear($y);
             $uid = $userId;
             foreach ($companyEvents as &$ce) {
-                $ce['rsvp'] = $uid > 0 ? $eventsRepo->getRsvpForUser((int)$ce['id'], $uid) : null;
+                $ceId = (int)($ce['id'] ?? 0);
+                if ($uid > 0 && $ceId > 0) {
+                    $eventsRepo->autoDeclineRsvpIfDeadlinePassed($ceId, $uid);
+                }
+                $ce['rsvp'] = $uid > 0 ? $eventsRepo->getRsvpForUser($ceId, $uid) : null;
             }
             unset($ce);
-            $this->data['company_events_month'] = $companyEvents;
-            $this->data['company_events_month_count'] = count($companyEvents);
+            $this->data['company_events_dashboard'] = $companyEvents;
+            $this->data['company_events_month_count'] = count($eventsRepo->getEventsIntersectingMonth($y, $m));
             $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
             $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $uid);
         } catch (\Throwable $e) {
-            $this->data['company_events_month'] = [];
+            $this->data['company_events_dashboard'] = [];
             $this->data['company_events_month_count'] = 0;
             $this->data['company_events_year_count'] = 0;
             $this->data['company_events_unread_count'] = 0;

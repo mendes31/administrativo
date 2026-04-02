@@ -2271,4 +2271,63 @@ class UsersRepository extends DbConnection
         return $out;
     }
 
+    public function existsActiveUser(int $id): bool
+    {
+        if ($id <= 0) {
+            return false;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM adms_users WHERE id = :id AND status = :st LIMIT 1'
+        );
+        $stmt->execute([':id' => $id, ':st' => 'Ativo']);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{id: int, name: string, email: string}|null
+     */
+    public function getActiveUserBasics(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT id, name, email FROM adms_users WHERE id = :id AND status = "Ativo" LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
+        return [
+            'id' => (int)($row['id'] ?? 0),
+            'name' => (string)($row['name'] ?? ''),
+            'email' => (string)($row['email'] ?? ''),
+        ];
+    }
+
+    /**
+     * Autocomplete para gestores registrarem RSVP de terceiros (sem entradas especiais da timeline).
+     *
+     * @return array<int, array{id: int, name: string, email: string}>
+     */
+    public function searchActiveUsersForAutocomplete(string $q, int $limit = 15): array
+    {
+        $q = trim($q);
+        $limit = max(1, min(30, $limit));
+        if (mb_strlen($q) < 2) {
+            return [];
+        }
+        $like = '%' . $q . '%';
+        $sql = 'SELECT id, name, email FROM adms_users
+                WHERE status = "Ativo"
+                  AND (name LIKE :q OR email LIKE :q OR username LIKE :q)
+                ORDER BY name ASC
+                LIMIT ' . $limit;
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':q' => $like]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return $rows;
+    }
+
 }

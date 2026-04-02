@@ -3,8 +3,10 @@
 namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\CompanyEventRsvpAccessHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
+use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewCompanyEvent
@@ -62,6 +64,9 @@ class ViewCompanyEvent
             $repo->upsertRead($eventId, $userId);
         }
 
+        if ($userId > 0) {
+            $repo->autoDeclineRsvpIfDeadlinePassed($eventId, $userId);
+        }
         $rsvp = $userId > 0 ? $repo->getRsvpForUser($eventId, $userId) : null;
         $rsvpId = (int)($rsvp['id'] ?? 0);
         $guests = $rsvpId > 0 ? $repo->getGuestsForRsvpId($rsvpId) : [];
@@ -70,7 +75,20 @@ class ViewCompanyEvent
         $this->data['rsvp'] = $rsvp;
         $this->data['rsvp_guests'] = $guests;
         $this->data['can_edit'] = in_array('UpdateCompanyEvent', $btnPerms, true);
+        $this->data['can_admin_rsvp_others'] = CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $userId, $btnPerms);
         $this->data['event_id'] = $eventId;
+
+        $this->data['prefill_manage_rsvp'] = null;
+        if (!empty($event['requires_rsvp']) && CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $userId, $btnPerms)) {
+            $manageUid = (int)($_GET['manage_rsvp'] ?? 0);
+            if ($manageUid > 0) {
+                $usersRepo = new UsersRepository();
+                $basics = $usersRepo->getActiveUserBasics($manageUid);
+                if ($basics !== null) {
+                    $this->data['prefill_manage_rsvp'] = $basics;
+                }
+            }
+        }
 
         $loadView = new LoadViewService('adms/Views/companyEvents/view', $this->data);
         $loadView->loadView();
