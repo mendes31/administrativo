@@ -300,9 +300,35 @@ git push origin dev-master
 ---
 
 ## Lista de erros
-
 001 - DBConnection.php - Erro de conexão com o banco de dados  
 002 - LoadPageAdm.php - Não encontrou a página  
 003 - LoadPageAdm.php - Não encontrou a controller  
 004 - LoadPageAdm.php - Não encontrou o método  
 005 - LoadViewService.php - Não encontrou a VIEW
+
+
+O `index.php` principal usa **`LoadPageAdmAccessLevel`** (rotas e permissões em `adms_pages`). A lista antiga referia **`LoadPageAdm`** (lista fixa de controllers); os códigos **002/003** não são os mesmos entre os dois roteadores.
+
+### Fluxo atual (`LoadPageAdmAccessLevel` + `PagesRoutesRepository`)
+
+| Código | Origem | Significado |
+|--------|--------|-------------|
+| **001** | `DbConnection` / conexão | Falha de conexão com o banco de dados. |
+| **003** | `LoadPageAdmAccessLevel` | Página/rota **não cadastrada** em `adms_pages` (ou `page_status` ≠ 1), ou pacote inexistente no `JOIN`. |
+| **004** | `LoadPageAdmAccessLevel` | Método da controller não invocável ou exceção ao executar a action. |
+| **005** | `LoadViewService` | Arquivo da view (`.php`) não encontrado no caminho sob `app/`. |
+| **006** | `LoadPageAdmAccessLevel` | Classe da controller **não carregada pelo autoload** (mensagem longa no navegador). Em **Linux** o PSR-4 é sensível à caixa: `adms_pages.directory` e `adms_packages_pages.name` devem coincidir com as pastas reais (`logs`, `adms`, `accessLevels`, etc.). No Windows isso às vezes “passa” com cadastro inconsistente. |
+
+### Roteador legado (`LoadPageAdm` — lista branca de controllers)
+
+| Código | Significado |
+|--------|-------------|
+| **002** | Página não está na lista permitida do roteador. |
+| **003** | Controller não encontrada (resolução antiga por diretório). |
+| **004** | Método não encontrado. |
+
+### Produção Linux — checklist se aparecer **006**
+
+1. Conferir deploy do arquivo PHP da controller (ex.: `app/adms/Controllers/logs/ListConnectedUsers.php`).
+2. No banco: `SELECT controller, directory, adms_packages_page_id FROM adms_pages WHERE controller_url = '...'` — `directory` igual à pasta em disco; pacote apontando para `adms_packages_pages.name = 'adms'`.
+3. Rodar `composer dump-autoload -o` no servidor após deploy, se o autoload estiver desatualizado.

@@ -242,13 +242,44 @@ class LoadPageAdmAccessLevel
     }
 
     /**
-     * Diretório físico em Linux (PSR-4) deve coincidir com a pasta em app/adms/Controllers/.
-     * Cadastros com "Logs" em vez de "logs" quebram o autoload em servidores case-sensitive.
+     * Pacote vindo de adms_packages_pages.name deve coincidir com o namespace (PSR-4).
+     * No Linux, "Adms" ≠ "adms" — a pasta real é app/adms/ (minúsculo).
      */
-    private function normalizeControllerDirectory(string $directory): string
+    private function normalizeAppPackageName(string $name): string
     {
-        if ($directory !== '' && strcasecmp($directory, 'logs') === 0) {
-            return 'logs';
+        if ($name !== '' && strcasecmp($name, 'adms') === 0) {
+            return 'adms';
+        }
+
+        return $name;
+    }
+
+    /**
+     * Diretório em adms_pages.directory deve coincidir com a pasta em app/adms/Controllers/ (PSR-4).
+     * No Windows costuma funcionar com caixa errada; no Linux o autoload falha.
+     */
+    private function canonicalizeControllerDirectory(string $directory): string
+    {
+        if ($directory === '') {
+            return $directory;
+        }
+
+        static $knownOnDisk = [
+            'accessLevels', 'accountsPlan', 'analytics', 'banks', 'branches', 'companyEvents',
+            'costCenter', 'crm', 'customer', 'dashboard', 'dashboards', 'departments',
+            'documents', 'errors', 'evaluations', 'financialReports', 'frequency',
+            'groupsPages', 'informativos', 'inventory', 'lgpd', 'login', 'logs',
+            'movement', 'notifications', 'packages', 'pages', 'pay', 'paymentMethod',
+            'performance', 'permission', 'policies', 'portal', 'positions', 'projects',
+            'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
+            'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline',
+            'trainings', 'users',
+        ];
+
+        foreach ($knownOnDisk as $canonical) {
+            if (strcasecmp($directory, $canonical) === 0) {
+                return $canonical;
+            }
         }
 
         return $directory;
@@ -266,9 +297,10 @@ class LoadPageAdmAccessLevel
     {
         // Nome da classe vem do cadastro (ap.controller); a URL pode ser slug ou PascalCase.
         $controllerClass = (string)($this->page['controller'] ?? $this->urlController);
-        $directory = $this->normalizeControllerDirectory((string)($this->page['directory'] ?? ''));
+        $pkg = $this->normalizeAppPackageName((string)($this->page['name_app'] ?? 'adms'));
+        $directory = $this->canonicalizeControllerDirectory((string)($this->page['directory'] ?? ''));
 
-        $this->classLoad = "\\App\\{$this->page['name_app']}\\Controllers\\{$directory}\\{$controllerClass}";
+        $this->classLoad = "\\App\\{$pkg}\\Controllers\\{$directory}\\{$controllerClass}";
 
         // Verificar se a classe existe
         if (class_exists($this->classLoad)) {
@@ -280,8 +312,10 @@ class LoadPageAdmAccessLevel
         GenerateLog::generateLog("error", "Classe da controller não encontrada pelo autoload.", [
             'class' => $this->classLoad,
             'pagina' => $this->urlController,
+            'directory_cadastro' => $this->page['directory'] ?? null,
+            'name_app_cadastro' => $this->page['name_app'] ?? null,
         ]);
-        die("Erro: controller não encontrada. Verifique o cadastro da página (diretório/pacote) ou o namespace da classe.");
+        die("Erro 006: controller não encontrada pelo autoload (Linux: confira caixa de directory/pacote em adms_pages e se o .php existe no deploy). Contato: {$_ENV['EMAIL_ADM']}");
     }
 
     /**
