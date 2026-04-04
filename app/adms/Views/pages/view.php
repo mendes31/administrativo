@@ -83,11 +83,11 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                     <dt class="col-sm-3">Nome: </dt>
                     <dd class="col-sm-9"><?php echo $name; ?></dd>
 
-                    <dt class="col-sm-3">Controller: </dt>
-                    <dd class="col-sm-9"><?php echo $controller; ?></dd>
+                    <dt class="col-sm-3">Classe (PHP): </dt>
+                    <dd class="col-sm-9"><code><?php echo htmlspecialchars($controller); ?></code></dd>
 
-                    <dt class="col-sm-3">URL: </dt>
-                    <dd class="col-sm-9"><?php echo $controller_url; ?></dd>
+                    <dt class="col-sm-3">URL (slug): </dt>
+                    <dd class="col-sm-9"><code><?php echo htmlspecialchars($controller_url); ?></code></dd>
 
                     <dt class="col-sm-3">Diretório: </dt>
                     <dd class="col-sm-9"><?php echo $directory; ?></dd>

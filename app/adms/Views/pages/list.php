@@ -120,7 +120,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                 <th scope="col">ID</th>
                                 <th scope="col">Nome</th>
                                 <th scope="col">Grupo</th>
-                                <th scope="col">Controller</th>
+                                <th scope="col">Classe (PHP)</th>
+                                <th scope="col">URL (slug)</th>
                                 <th scope="col" class="d-none d-md-table-cell">Status</th>
                                 <th scope="col" class="d-none d-md-table-cell">Pública</th>
                                 <th scope="col" class="d-none d-md-table-cell">Padrão</th>
@@ -140,7 +141,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                     <td><?php echo $id; ?></td>
                                     <td><?php echo $name; ?></td>
                                     <td><?php echo htmlspecialchars($group_name ?? ''); ?></td>
-                                    <td><?php echo $controller_url; ?></td>
+                                    <td><code class="small"><?php echo htmlspecialchars($controller ?? ''); ?></code></td>
+                                    <td><code class="small"><?php echo htmlspecialchars($controller_url ?? ''); ?></code></td>
                                     <td class="d-none d-md-table-cell">
                                         <?php echo $page_status ? "<span class='badge text-bg-success'>Ativa</span>" : "<span class='badge text-bg-danger'>Inativa</span>"; ?>
                                     </td>
@@ -197,7 +199,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_page');
                                     <div class="collapse mt-2" id="cardPageDetails<?= $i ?>">
                                         <div><b>ID:</b> <?= $page['id'] ?></div>
                                         <div><b>Grupo:</b> <?= htmlspecialchars($page['group_name'] ?? '') ?></div>
-                                        <div><b>Controller:</b> <?= htmlspecialchars($page['controller_url']) ?></div>
+                                        <div><b>Classe:</b> <code><?= htmlspecialchars($page['controller'] ?? '') ?></code></div>
+                                        <div><b>URL:</b> <code><?= htmlspecialchars($page['controller_url'] ?? '') ?></code></div>
                                         <div><b>Pública:</b> <?= $page['public_page'] ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-danger">Não</span>' ?></div>
                                         <div><b>Padrão:</b> <?= !empty($page['default_page']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>
                                         <div class="mt-2">

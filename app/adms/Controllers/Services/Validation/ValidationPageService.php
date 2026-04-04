@@ -23,19 +23,26 @@ class ValidationPageService
      * @param array $data Dados do formulário.
      * @return array Lista de erros. Se não houver erros, o array será vazio.
      */
-    public function validate(array $data): array
+    public function validate(array &$data): array
     {
         // Criar o array para receber as mensagens de erro
         $errors = [];
 
+        foreach (['name', 'controller', 'controller_url', 'directory', 'obs'] as $key) {
+            if (isset($data[$key]) && is_string($data[$key])) {
+                $data[$key] = trim($data[$key]);
+            }
+        }
+
         // Instanciar a classe Validator para validar o formulário
         $validator = new Validator();
 
-        // Definir as regras de validação
+        // Controller = nome da classe PHP (PascalCase), igual aos arquivos em app/adms/Controllers/{directory}/.
+        // controller_url = slug na URL (kebab-case), gerado pelo SlugController a partir do primeiro segmento.
         $rules = [
             'name' => 'required',
-            'controller' => 'required',
-            'controller_url' => 'required',
+            'controller' => 'required|regex:/^[A-Z][a-zA-Z0-9]*$/',
+            'controller_url' => 'required|regex:/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/',
             'directory' => 'required',
             'page_status' => 'required|boolean',
             'public_page' => 'required|boolean',
@@ -55,7 +62,9 @@ class ValidationPageService
             'id:integer' => 'Dados inválidos.',
             'name:required' => 'O campo nome é obrigatório.',
             'controller:required' => 'O campo controller é obrigatório.',
+            'controller:regex' => 'Use o nome da classe PHP em PascalCase (ex.: ListUsers, CreateAccessLevel), igual ao arquivo em Controllers/. Sem hífens.',
             'controller_url:required' => 'O campo URL é obrigatório.',
+            'controller_url:regex' => 'Use o slug da URL em kebab-case minúsculo (ex.: list-users, create-access-level).',
             'directory:required' => 'O campo diretório é obrigatório.',
             'page_status:required' => 'O campo status é obrigatório.',
             'page_status:boolean' => 'O campo status deve ser true ou false.',

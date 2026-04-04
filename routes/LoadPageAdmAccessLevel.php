@@ -286,6 +286,24 @@ class LoadPageAdmAccessLevel
     }
 
     /**
+     * `adms_pages.controller` deve ser o nome da classe PHP (PascalCase), ex.: ListConnectedUsers.
+     * O slug da URL fica em `controller_url` (ex.: list-connected-users). Se o slug foi gravado no
+     * campo errado, o autoload monta um identificador inválido e falha no Linux.
+     */
+    private function resolvePhpControllerClassName(string $fromDb, string $fromUrl): string
+    {
+        $fromDb = trim($fromDb);
+        if ($fromDb === '') {
+            return $fromUrl;
+        }
+        if (str_contains($fromDb, '-')) {
+            return SlugController::slugController($fromDb);
+        }
+
+        return $fromDb;
+    }
+
+    /**
      * Verificar se a controller existe.
      * 
      * Este método percorre os pacotes e diretórios definidos para verificar se a classe controller correspondente à página existe.
@@ -295,8 +313,11 @@ class LoadPageAdmAccessLevel
      */
     private function checkControllersExists(): bool
     {
-        // Nome da classe vem do cadastro (ap.controller); a URL pode ser slug ou PascalCase.
-        $controllerClass = (string)($this->page['controller'] ?? $this->urlController);
+        // Nome da classe: cadastro (ap.controller), corrigindo slug no lugar do nome da classe.
+        $controllerClass = $this->resolvePhpControllerClassName(
+            (string)($this->page['controller'] ?? ''),
+            $this->urlController
+        );
         $pkg = $this->normalizeAppPackageName((string)($this->page['name_app'] ?? 'adms'));
         $directory = $this->canonicalizeControllerDirectory((string)($this->page['directory'] ?? ''));
 

@@ -317,7 +317,7 @@ O `index.php` principal usa **`LoadPageAdmAccessLevel`** (rotas e permissões em
 | **003** | `LoadPageAdmAccessLevel` | Página/rota **não cadastrada** em `adms_pages` (ou `page_status` ≠ 1), ou pacote inexistente no `JOIN`. |
 | **004** | `LoadPageAdmAccessLevel` | Método da controller não invocável ou exceção ao executar a action. |
 | **005** | `LoadViewService` | Arquivo da view (`.php`) não encontrado no caminho sob `app/`. |
-| **006** | `LoadPageAdmAccessLevel` | Classe da controller **não carregada pelo autoload** (mensagem longa no navegador). Em **Linux** o PSR-4 é sensível à caixa: `adms_pages.directory` e `adms_packages_pages.name` devem coincidir com as pastas reais (`logs`, `adms`, `accessLevels`, etc.). No Windows isso às vezes “passa” com cadastro inconsistente. |
+| **006** | `LoadPageAdmAccessLevel` | Classe da controller **não carregada pelo autoload**. Causas comuns: (1) em **Linux**, caixa de `directory` / pacote diferente das pastas; (2) **`adms_pages.controller` com slug** em vez de PascalCase. Em *list-pages* há colunas **Classe (PHP)** e **URL (slug)**. |
 
 ### Roteador legado (`LoadPageAdm` — lista branca de controllers)
 
@@ -332,3 +332,13 @@ O `index.php` principal usa **`LoadPageAdmAccessLevel`** (rotas e permissões em
 1. Conferir deploy do arquivo PHP da controller (ex.: `app/adms/Controllers/logs/ListConnectedUsers.php`).
 2. No banco: `SELECT controller, directory, adms_packages_page_id FROM adms_pages WHERE controller_url = '...'` — `directory` igual à pasta em disco; pacote apontando para `adms_packages_pages.name = 'adms'`.
 3. Rodar `composer dump-autoload -o` no servidor após deploy, se o autoload estiver desatualizado.
+
+### Padrão de cadastro em `adms_pages`
+
+| Campo | Formato | Exemplo |
+|-------|---------|---------|
+| `controller` | Nome da classe PHP (**PascalCase**), igual ao arquivo em `Controllers/{directory}/` | `ListUsers`, `ListConnectedUsers` |
+| `controller_url` | Slug da rota (**kebab-case** minúsculo) | `list-users`, `list-connected-users` |
+| `directory` | Pasta real em disco (camelCase ou minúsculo, ex.: `users`, `accessLevels`, `logs`) | `logs` |
+
+O cadastro via **Cadastrar/Editar página** valida esses formatos (`ValidationPageService`).

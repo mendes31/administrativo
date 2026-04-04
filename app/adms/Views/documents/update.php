@@ -60,18 +60,21 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
 
                 <div class="col-md-6 col-sm-12">
-                    <label for="controller" class="form-label">Controller</label>
-                    <input type="text" name="controller" class="form-control" id="controller" placeholder="Nome do método ou controller" value="<?php echo $this->data['form']['controller'] ?? ''; ?>">
+                    <label for="controller" class="form-label">Classe (controller PHP)</label>
+                    <input type="text" name="controller" class="form-control" id="controller" placeholder="Ex.: ListUsers, CreateAccessLevel" value="<?php echo $this->data['form']['controller'] ?? ''; ?>" autocomplete="off" spellcheck="false">
+                    <div class="form-text">PascalCase, igual ao arquivo em <code>app/adms/Controllers/{diretório}/</code>.</div>
                 </div>
 
                 <div class="col-md-6 col-sm-12">
-                    <label for="controller_url" class="form-label">URL</label>
-                    <input type="text" name="controller_url" class="form-control" id="controller_url" placeholder="Nome do método ou controller na URL" value="<?php echo $this->data['form']['controller_url'] ?? ''; ?>">
+                    <label for="controller_url" class="form-label">URL (slug)</label>
+                    <input type="text" name="controller_url" class="form-control" id="controller_url" placeholder="Ex.: list-users, create-access-level" value="<?php echo $this->data['form']['controller_url'] ?? ''; ?>" autocomplete="off" spellcheck="false">
+                    <div class="form-text">Kebab-case minúsculo (primeiro segmento da rota).</div>
                 </div>
 
                 <div class="col-12">
                     <label for="directory" class="form-label">Diretório</label>
-                    <input type="text" name="directory" class="form-control" id="directory" placeholder="Nome do diretório da controller" value="<?php echo $this->data['form']['directory'] ?? ''; ?>">
+                    <input type="text" name="directory" class="form-control" id="directory" placeholder="Ex.: users, accessLevels, logs" value="<?php echo $this->data['form']['directory'] ?? ''; ?>" autocomplete="off" spellcheck="false">
+                    <div class="form-text">Pasta sob <code>Controllers/</code> (mesma caixa do disco no Linux).</div>
                 </div>
 
                 <div class="col-12">
