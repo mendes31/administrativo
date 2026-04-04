@@ -4,6 +4,33 @@ $sessions = $this->data['sessions'] ?? [];
 $currentUserId = (int)($this->data['current_user_id'] ?? 0);
 $idleDescription = (string)($this->data['idle_description'] ?? '');
 $consultedAt = (string)($this->data['consulted_at'] ?? '');
+
+$renderConnectedUserAvatar = function (array $row, int $sizePx): string {
+    $uid = (int)($row['user_id'] ?? 0);
+    $name = (string)($row['user_name'] ?? '—');
+    $img = (string)($row['user_image'] ?? '');
+    $hasCustom = $img !== '' && strcasecmp($img, 'icon_user.png') !== 0;
+    $style = sprintf('width:%dpx;height:%dpx;object-fit:cover;', $sizePx, $sizePx);
+    if ($hasCustom) {
+        return \App\adms\Helpers\ImageHelper::displayImage(
+            'users/' . $uid . '/' . $img,
+            [
+                'class' => 'rounded-circle flex-shrink-0 connected-user-thumb',
+                'style' => $style,
+                'alt' => 'Foto de ' . $name,
+            ],
+            'icon_user.png',
+            'users'
+        );
+    }
+    $uaSize = max(64, $sizePx * 2);
+    $url = 'https://ui-avatars.com/api/?name=' . rawurlencode($name) . '&background=ececec&color=6c757d&size=' . $uaSize;
+
+    return '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
+        . '" class="rounded-circle flex-shrink-0 connected-user-thumb" style="'
+        . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '" width="' . (int) $sizePx . '" height="' . (int) $sizePx
+        . '" alt="">';
+};
 ?>
 <style>
     /* Mobile: cartões em largura total; evita tabela cortada */
@@ -31,6 +58,9 @@ $consultedAt = (string)($this->data['consulted_at'] ?? '');
     }
     .connected-users-desktop.table-responsive {
         -webkit-overflow-scrolling: touch;
+    }
+    .connected-user-thumb {
+        display: block;
     }
 </style>
 <div class="container-fluid px-2 px-sm-3 px-md-4">
@@ -94,10 +124,15 @@ $consultedAt = (string)($this->data['consulted_at'] ?? '');
                                 ?>
                                 <tr class="<?= $isSelf ? 'table-primary' : ''; ?>">
                                     <td class="text-start ps-2">
-                                        <?= htmlspecialchars((string)($row['user_name'] ?? '—')); ?>
-                                        <?php if ($isSelf): ?>
-                                            <span class="badge bg-primary ms-1">Você</span>
-                                        <?php endif; ?>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <?= $renderConnectedUserAvatar($row, 36); ?>
+                                            <span class="text-break">
+                                                <?= htmlspecialchars((string)($row['user_name'] ?? '—')); ?>
+                                                <?php if ($isSelf): ?>
+                                                    <span class="badge bg-primary ms-1">Você</span>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
                                     </td>
                                     <td class="text-start ps-2 small"><?= htmlspecialchars((string)($row['user_email'] ?? '')); ?></td>
                                     <td class="text-start ps-2 small text-muted"><?= htmlspecialchars((string)($row['user_username'] ?? '')); ?></td>
@@ -124,7 +159,7 @@ $consultedAt = (string)($this->data['consulted_at'] ?? '');
                         <div class="card mb-3 shadow-sm border <?= $isSelf ? 'border-primary border-2' : ''; ?>">
                             <div class="card-header py-2 <?= $isSelf ? 'bg-primary bg-opacity-10' : 'bg-light'; ?>">
                                 <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-user-circle text-success"></i>
+                                    <?= $renderConnectedUserAvatar($row, 44); ?>
                                     <span class="fw-semibold text-break"><?= htmlspecialchars((string)($row['user_name'] ?? '—')); ?></span>
                                     <?php if ($isSelf): ?>
                                         <span class="badge bg-primary">Você</span>
