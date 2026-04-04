@@ -9,6 +9,11 @@ session_start(); // Iniciar a sessão
 
 ob_start(); // Limpar o Buffer de saída
 
+// Raiz do projeto (deploy/Linux: rotas usam isto para require_once de controllers).
+if (!defined('APP_ROOT')) {
+    define('APP_ROOT', __DIR__);
+}
+
 // Carregar o Composer
 require './vendor/autoload.php';
 

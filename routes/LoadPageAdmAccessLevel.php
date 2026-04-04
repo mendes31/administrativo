@@ -310,22 +310,56 @@ class LoadPageAdmAccessLevel
         return $fromDb;
     }
 
+    private function projectRoot(): string
+    {
+        return defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__);
+    }
+
     /**
-     * Garante que a classe exista: primeiro PSR-4 (Composer), depois require_once do arquivo em app/.
-     * Em alguns deploys o autoload não resolve a tempo; o arquivo físico existe.
+     * Garante que a classe exista: Composer, depois require_once em app/ (vários caminhos no Linux).
      */
     private function ensureControllerClassLoaded(): bool
     {
+        if (class_exists($this->classLoad, false)) {
+            return true;
+        }
         if (class_exists($this->classLoad)) {
             return true;
         }
 
-        $file = $this->resolveControllerFilePathFromFqcn();
-        if ($file !== null && is_readable($file)) {
+        foreach ($this->candidateControllerPhpFiles() as $file) {
+            if ($file === '' || !is_readable($file)) {
+                continue;
+            }
             require_once $file;
+            if (class_exists($this->classLoad, false)) {
+                return true;
+            }
         }
 
         return class_exists($this->classLoad);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function candidateControllerPhpFiles(): array
+    {
+        $root = $this->projectRoot();
+        $out = [];
+
+        $primary = $this->resolveControllerFilePathFromFqcn();
+        if ($primary !== null) {
+            $out[] = $primary;
+        }
+
+        $fqcn = ltrim($this->classLoad, '\\');
+        if (str_ends_with($fqcn, 'ListConnectedUsers')) {
+            $out[] = $root . '/app/adms/Controllers/logs/ListConnectedUsers.php';
+            $out[] = $root . '/app/adms/Controllers/Logs/ListConnectedUsers.php';
+        }
+
+        return array_values(array_unique(array_filter($out)));
     }
 
     /**
@@ -339,7 +373,7 @@ class LoadPageAdmAccessLevel
             return null;
         }
 
-        return dirname(__DIR__) . '/app/' . implode('/', array_slice($parts, 1)) . '.php';
+        return $this->projectRoot() . '/app/' . implode('/', array_slice($parts, 1)) . '.php';
     }
 
     /**
@@ -362,9 +396,12 @@ class LoadPageAdmAccessLevel
 
         $this->classLoad = "\\App\\{$pkg}\\Controllers\\{$directory}\\{$controllerClass}";
 
-        // Slug conhecido → FQN fixo (evita cadastro/pacote divergente e falha do autoload em alguns hosts).
+        // Rota conhecida → FQN fixo (não depender só de controller_url no array PDO / cadastro).
         $slug = (string)($this->page['controller_url'] ?? '');
-        if ($slug === 'list-connected-users') {
+        $uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+        if ($slug === 'list-connected-users'
+            || $this->urlController === 'ListConnectedUsers'
+            || preg_match('#list-connected-users#i', $uri)) {
             $this->classLoad = \App\adms\Controllers\logs\ListConnectedUsers::class;
         }
 
@@ -379,7 +416,8 @@ class LoadPageAdmAccessLevel
             'pagina' => $this->urlController,
             'directory_cadastro' => $this->page['directory'] ?? null,
             'name_app_cadastro' => $this->page['name_app'] ?? null,
-            'tentativa_arquivo' => $this->resolveControllerFilePathFromFqcn(),
+            'app_root' => $this->projectRoot(),
+            'candidatos_arquivo' => $this->candidateControllerPhpFiles(),
         ]);
         die("Erro 006: controller não encontrada pelo autoload (Linux: confira caixa de directory/pacote em adms_pages e se o .php existe no deploy). Contato: {$_ENV['EMAIL_ADM']}");
     }
