@@ -4,6 +4,7 @@ namespace Routes;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\SlugController;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\PagesRoutesRepository;
 
 class LoadPageAdmAccessLevel
@@ -418,8 +419,14 @@ class LoadPageAdmAccessLevel
             'name_app_cadastro' => $this->page['name_app'] ?? null,
             'app_root' => $this->projectRoot(),
             'candidatos_arquivo' => $this->candidateControllerPhpFiles(),
+            'acesso_total_sistema' => UserAccessHelper::hasFullSystemAccess(),
         ]);
-        die("Erro 006: controller não encontrada pelo autoload (Linux: confira caixa de directory/pacote em adms_pages e se o .php existe no deploy). Contato: {$_ENV['EMAIL_ADM']}");
+        die(
+            'Erro 006: arquivo da controller não carregado (classe PHP ausente ou caminho incorreto no servidor). '
+            . 'Não é falta de permissão: super administrador já tem acesso total na ACL. '
+            . 'Verifique no deploy: app/adms/Controllers/logs/ListConnectedUsers.php (veja candidatos_arquivo no log). '
+            . 'Contato: ' . ($_ENV['EMAIL_ADM'] ?? '')
+        );
     }
 
     /**

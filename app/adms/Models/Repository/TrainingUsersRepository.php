@@ -599,7 +599,8 @@ class TrainingUsersRepository extends DbConnection
                     SELECT 
                         ta1.adms_user_id,
                         ta1.adms_training_id,
-                        ta1.data_realizacao
+                        ta1.data_realizacao,
+                        ta1.created_at
                     FROM adms_training_applications ta1
                     INNER JOIN (
                         SELECT 
