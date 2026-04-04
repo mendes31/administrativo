@@ -146,22 +146,25 @@ class AdmsSessionsRepository extends DbConnection
     }
 
     /**
-     * Sessões ativas com dados básicos do usuário (monitoramento / usuários conectados).
+     * Sessões com heartbeat recente + dados básicos do usuário (usuários “online” na consulta).
+     * Linhas antigas com status ativa mas sem atualização há mais de $maxIdleSeconds segundos não entram.
      *
+     * @param int $maxIdleSeconds Janela máxima desde a última atividade (updated_at), mínimo 60.
      * @return array<int, array<string, mixed>>
      */
-    public function listActiveSessionsWithUsers(): array
+    public function listActiveSessionsWithUsers(int $maxIdleSeconds = 1800): array
     {
+        $maxIdleSeconds = max(60, $maxIdleSeconds);
         $sql = "SELECT s.id AS session_row_id, s.user_id, s.session_id, s.status, s.created_at, s.updated_at,
                        u.name AS user_name, u.email AS user_email, u.username AS user_username
                 FROM {$this->table} s
                 INNER JOIN adms_users u ON u.id = s.user_id
                 WHERE s.status = 'ativa'
+                  AND s.updated_at >= DATE_SUB(NOW(), INTERVAL :idle SECOND)
                 ORDER BY s.updated_at DESC";
-        $stmt = $this->getConnection()->query($sql);
-        if ($stmt === false) {
-            return [];
-        }
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':idle', $maxIdleSeconds, PDO::PARAM_INT);
+        $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return is_array($rows) ? $rows : [];
