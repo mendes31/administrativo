@@ -377,10 +377,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
             return Array.from(document.querySelectorAll('.modal.show'));
         }
 
-        function isModalState(state) {
-            return state && (state.modal === true || state.dashboardModal === true);
-        }
-
         // Quando uma modal é aberta, empilha uma entrada no histórico
         document.addEventListener('shown.bs.modal', function (event) {
             const el = event.target;
@@ -423,24 +419,26 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
         // Botão físico "Voltar" (PWA / mobile) → fecha apenas a modal do topo
         window.addEventListener('popstate', function (event) {
-            // Alguns navegadores disparam um popstate inicial na carga; ignoramos o primeiro.
+            // Alguns WebViews disparam um popstate “fantasma” na carga (state null, sem modais).
+            // Não ignorar o primeiro evento se já houver modal aberta: ao voltar, o estado
+            // ativo costuma ser null (entrada anterior ao pushState), não { modal: true }.
             if (!hasSeenFirstPopstate) {
                 hasSeenFirstPopstate = true;
-                return;
-            }
-
-            // Só reagir a entradas de histórico criadas pelo próprio controle de modais
-            if (!isModalState(event.state)) {
-                return;
+                if (event.state == null && getOpenModalsInOrder().length === 0) {
+                    return;
+                }
             }
 
             const openModals = getOpenModalsInOrder();
             if (openModals.length === 0) {
-                // Sem modais abertas → deixar o navegador seguir o fluxo normal
                 return;
             }
 
             const topModal = openModals[openModals.length - 1];
+            if (topModal.dataset.historyPushed !== '1') {
+                return;
+            }
+
             closingFromPopstate = true;
             try {
                 const inst = bootstrap.Modal.getInstance(topModal)

@@ -85,6 +85,12 @@ class LgpdConsentimentoLogin
             exit;
         }
 
+        // Já aceitou o termo vigente (ex.: utilizador usou "Voltar" do navegador após o dashboard)
+        if ($this->userHasValidLoginConsent($userId)) {
+            header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
+            exit;
+        }
+
         $this->data['title_head'] = 'Uso de Dados Pessoais - LGPD';
 
         $termo = $this->getLoginTermo();
@@ -186,8 +192,42 @@ class LgpdConsentimentoLogin
         $repoConsent->create($consentData);
 
         $_SESSION['success'] = 'Consentimento registrado com sucesso. Obrigado!';
-        header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
+        // 303: resposta ao POST não deve ser reutilizada como "página anterior" típica (PRG)
+        header('Location: ' . $_ENV['URL_ADM'] . 'dashboard', true, 303);
         exit;
+    }
+
+    /**
+     * Mesma regra que {@see Login} ao decidir se precisa da tela de consentimento.
+     */
+    private function userHasValidLoginConsent(int $userId): bool
+    {
+        $lgpdTermosRepo = new LgpdTermosRepository();
+        $termoLogin = $lgpdTermosRepo->getTermoAtivoPorTipo('login');
+        if (!$termoLogin) {
+            $termoLogin = $lgpdTermosRepo->getLastActiveTerm();
+        }
+        if (!$termoLogin) {
+            return true;
+        }
+
+        $consentVersionAtual = $termoLogin['versao'] ?? ($_ENV['LGPD_CONSENT_VERSION'] ?? self::DEFAULT_VERSION);
+        $consentRepo = new LgpdConsentimentosRepository();
+        $conn = $consentRepo->getConnection();
+        $stmt = $conn->prepare('SELECT email FROM adms_users WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $userId, \PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $emailLogin = (string)($row['email'] ?? '');
+
+        $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorUsuario($userId, 'sistema_login');
+        if (!$ultimoConsent && $emailLogin !== '') {
+            $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
+        }
+
+        return $ultimoConsent
+            && !empty($ultimoConsent['versao_termo'])
+            && $ultimoConsent['versao_termo'] === $consentVersionAtual;
     }
 
     public function recusar(): void
