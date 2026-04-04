@@ -10,9 +10,9 @@ app/storage/cache/
 storage/logs/
 app/storage/logs/
 
-# Logs da aplicação
-logs/
-app/logs/
+# Logs da aplicação (só na raiz — não usar "logs/" solto: ignoraria app/adms/Views/logs e Controllers/logs)
+/logs/
+/app/logs/
 
 # Cache JSON (relatórios, previews, dashboards)
 storage/cache/**/*.json
@@ -22,7 +22,7 @@ app/storage/cache/**/*.json
 app/adms/Controllers/serveFile/*.txt
 
 # Manter diretório logs vazio (opcional)
-!logs/.empty
+!/logs/.empty
 
 
 

@@ -138,6 +138,25 @@ php vendor/bin/phinx status -c database/phinx.php -e production
 
 Se o `phinx status` listar **outras** linhas `MISSING` para timestamps antigos (LGPD, índices de training, etc.), use o script SQL completo `scripts/ajustar_phinxlog_apos_reorganizacao.sql` ou leia `docs/REORGANIZACAO_MIGRATIONS.md`.
 
+### **6. `fatal: not a git repository` (ao rodar `git pull`)**
+
+**Causa:** o site em produção foi publicado por **FTP/upload** ou cópia de ficheiros. Nessa pasta **não existe** a pasta oculta `.git`, portanto não é um clone — o Git não sabe qual remoto puxar.
+
+**O que fazer:**
+
+| Situação | Ação |
+|----------|------|
+| Continuar sem Git no servidor | Atualizar código só por **FTP / gerenciador de ficheiros** (Kinghost), enviando os mesmos caminhos do teu PC. |
+| Passar a usar `git pull` no servidor | Uma vez: `git clone https://github.com/.../administrativo.git` noutra pasta (ou backup da atual), configurar o domínio para essa pasta, `.env`, `vendor` com `composer install`, permissões. **Não é só copiar `.git` para dentro da pasta antiga** sem planeamento. |
+| CI/CD (GitHub Actions → FTP) | O deploy já envia ficheiros; SSH serve para `phinx migrate`, não para `git pull`. |
+
+Para confirmar no SSH:
+
+```bash
+ls -la ~/www/administrativo/.git
+# Se "No such file or directory" → não há repositório Git aí.
+```
+
 ## 📋 **CHECKLIST RÁPIDO**
 
 Execute na ordem:

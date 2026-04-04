@@ -1,11 +1,14 @@
 {
+    "intelephense.environment.phpVersion": "8.0.0",
     "intelephense.diagnostics.undefinedFunctions": false,
     "intelephense.diagnostics.undefinedTypes": false,
     "intelephense.files.exclude": [
         "**/node_modules/**",
         "**/.cursor/**",
+        "**/.cursor/extensions/**",
         "**/vendor/**",
-        "**/intelephense/lib/stub/**"
+        "**/intelephense/lib/stub/**",
+        "**/node_modules/intelephense/**"
     ],
     "intelephense.diagnostics.undefinedSymbols": false,
     "intelephense.diagnostics.run": "onSave",
