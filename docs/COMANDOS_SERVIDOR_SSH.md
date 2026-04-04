@@ -112,6 +112,32 @@ curl -sS https://getcomposer.org/installer | php
 php composer.phar install --no-dev --optimize-autoloader
 ```
 
+### **5. Phinx `status`: `MISSING MIGRATION FILE` (ex.: `20250120130000` / `CreateAdmsStrategicPlanObservations`)**
+
+**Causa:** essa migration foi **renomeada/reordenada** no Git (passou a existir só como `20250710160010_create_adms_strategic_plan_observations.php`). No servidor, o `phinxlog` ainda tem a versão **antiga** (`20250120130000`) marcada como executada, mas o ficheiro `.php` com esse timestamp **já não está** no repositório — o Phinx acusa ficheiro em falta.
+
+**Não é falha da app:** o schema já foi aplicado quando a migration antiga correu; só o registo no `phinxlog` ficou desalinhado do nome atual do ficheiro.
+
+**Solução (MySQL / phpMyAdmin)** — alinhar o log à migration nova (igual ao script completo em `scripts/ajustar_phinxlog_apos_reorganizacao.sql` e `docs/AJUSTAR_PHINXLOG_SERVIDOR.md`):
+
+```sql
+-- Remove o registo da versão antiga (ficheiro já não existe no repo)
+DELETE FROM phinxlog WHERE version = 20250120130000;
+
+-- Regista a versão nova, só se ainda não existir (evita duplicar)
+INSERT INTO phinxlog (version, migration_name, start_time, end_time, breakpoint)
+SELECT 20250710160010, 'CreateAdmsStrategicPlanObservations', NOW(), NOW(), 0
+WHERE NOT EXISTS (SELECT 1 FROM phinxlog WHERE version = 20250710160010);
+```
+
+Depois confira:
+
+```bash
+php vendor/bin/phinx status -c database/phinx.php -e production
+```
+
+Se o `phinx status` listar **outras** linhas `MISSING` para timestamps antigos (LGPD, índices de training, etc.), use o script SQL completo `scripts/ajustar_phinxlog_apos_reorganizacao.sql` ou leia `docs/REORGANIZACAO_MIGRATIONS.md`.
+
 ## 📋 **CHECKLIST RÁPIDO**
 
 Execute na ordem:
