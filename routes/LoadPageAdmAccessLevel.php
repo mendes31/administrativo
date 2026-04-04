@@ -304,6 +304,38 @@ class LoadPageAdmAccessLevel
     }
 
     /**
+     * Garante que a classe exista: primeiro PSR-4 (Composer), depois require_once do arquivo em app/.
+     * Em alguns deploys o autoload não resolve a tempo; o arquivo físico existe.
+     */
+    private function ensureControllerClassLoaded(): bool
+    {
+        if (class_exists($this->classLoad)) {
+            return true;
+        }
+
+        $file = $this->resolveControllerFilePathFromFqcn();
+        if ($file !== null && is_readable($file)) {
+            require_once $file;
+        }
+
+        return class_exists($this->classLoad);
+    }
+
+    /**
+     * FQN App\adms\Controllers\logs\ListConnectedUsers → app/adms/Controllers/logs/ListConnectedUsers.php
+     */
+    private function resolveControllerFilePathFromFqcn(): ?string
+    {
+        $fqcn = ltrim($this->classLoad, '\\');
+        $parts = explode('\\', $fqcn);
+        if (count($parts) < 2 || ($parts[0] ?? '') !== 'App') {
+            return null;
+        }
+
+        return dirname(__DIR__) . '/app/' . implode('/', array_slice($parts, 1)) . '.php';
+    }
+
+    /**
      * Verificar se a controller existe.
      * 
      * Este método percorre os pacotes e diretórios definidos para verificar se a classe controller correspondente à página existe.
@@ -323,10 +355,15 @@ class LoadPageAdmAccessLevel
 
         $this->classLoad = "\\App\\{$pkg}\\Controllers\\{$directory}\\{$controllerClass}";
 
-        // Verificar se a classe existe
-        if (class_exists($this->classLoad)) {
-            // Verificar se o método existe na classe
+        // Slug conhecido → FQN fixo (evita cadastro/pacote divergente e falha do autoload em alguns hosts).
+        $slug = (string)($this->page['controller_url'] ?? '');
+        if ($slug === 'list-connected-users') {
+            $this->classLoad = \App\adms\Controllers\logs\ListConnectedUsers::class;
+        }
+
+        if ($this->ensureControllerClassLoaded()) {
             $this->loadMetodo();
+
             return true;
         }
 
@@ -335,6 +372,7 @@ class LoadPageAdmAccessLevel
             'pagina' => $this->urlController,
             'directory_cadastro' => $this->page['directory'] ?? null,
             'name_app_cadastro' => $this->page['name_app'] ?? null,
+            'tentativa_arquivo' => $this->resolveControllerFilePathFromFqcn(),
         ]);
         die("Erro 006: controller não encontrada pelo autoload (Linux: confira caixa de directory/pacote em adms_pages e se o .php existe no deploy). Contato: {$_ENV['EMAIL_ADM']}");
     }

@@ -14,7 +14,7 @@ class PagesRoutesRepository extends DbConnection
         
         // QUERY para recuperar o registro do banco de dados sobre a página
         // Busca primeiro pelo campo 'controller' (nome da classe), depois pelo 'controller_url' (slug)
-        $sql = 'SELECT ap.id AS id_ap, ap.controller, ap.directory, ap.public_page, app.name AS name_app
+        $sql = 'SELECT ap.id AS id_ap, ap.controller, ap.controller_url, ap.directory, ap.public_page, app.name AS name_app
                 FROM adms_pages AS ap
                 INNER JOIN adms_packages_pages AS app ON app.id=ap.adms_packages_page_id
                 WHERE (ap.controller = :controller OR ap.controller_url = :controller_url)
