@@ -11,31 +11,46 @@ class PagesRoutesRepository extends DbConnection
 
     public function getPage(string $controller): array|bool
     {
-        
         // QUERY para recuperar o registro do banco de dados sobre a página
-        // Busca primeiro pelo campo 'controller' (nome da classe), depois pelo 'controller_url' (slug)
-        $sql = 'SELECT ap.id AS id_ap, ap.controller, ap.controller_url, ap.directory, ap.public_page, app.name AS name_app
+        // Busca pelo campo 'controller' (nome da classe) ou pelo 'controller_url' (slug)
+        // LEFT JOIN: pacote órfão ou FK inválida não pode esconder a página (produção).
+        $sql = 'SELECT ap.id AS id_ap, ap.controller, ap.controller_url, ap.directory, ap.public_page,
+                       COALESCE(app.name, \'adms\') AS name_app
                 FROM adms_pages AS ap
-                INNER JOIN adms_packages_pages AS app ON app.id=ap.adms_packages_page_id
+                LEFT JOIN adms_packages_pages AS app ON app.id = ap.adms_packages_page_id
                 WHERE (ap.controller = :controller OR ap.controller_url = :controller_url)
                 AND ap.page_status = 1
                 LIMIT 1';
 
-        // Preparar a QUERY
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':controller', $controller, PDO::PARAM_STR);
-        
-        // Converter controller de PascalCase para slug (kebab-case) para buscar pelo controller_url
-        // Ex: UpdateEmploymentHistory -> update-employment-history
+
         $controllerUrl = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $controller));
         $stmt->bindValue(':controller_url', $controllerUrl, PDO::PARAM_STR);
 
-        // Executar a QUERY
         $stmt->execute();
 
-        // Ler o registro e retornar
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
+    /**
+     * Busca página só pelo slug (controller_url), com o mesmo JOIN tolerante a pacote.
+     */
+    public function getPageByControllerUrl(string $controllerUrl): array|bool
+    {
+        $sql = 'SELECT ap.id AS id_ap, ap.controller, ap.controller_url, ap.directory, ap.public_page,
+                       COALESCE(app.name, \'adms\') AS name_app
+                FROM adms_pages AS ap
+                LEFT JOIN adms_packages_pages AS app ON app.id = ap.adms_packages_page_id
+                WHERE ap.controller_url = :controller_url
+                AND ap.page_status = 1
+                LIMIT 1';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':controller_url', $controllerUrl, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function checkUserPagePermission(int $pageId)

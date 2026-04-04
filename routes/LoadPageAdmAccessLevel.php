@@ -126,7 +126,14 @@ class LoadPageAdmAccessLevel
         }
 
         $accessLevelPage = new PagesRoutesRepository();
-        $this->page = $accessLevelPage->getPage($this->urlController);
+        $this->page = $accessLevelPage->getPage($this->urlController ?? '');
+        // URI pode trazer o slug mesmo se o primeiro segmento vier vazio/corrompido em alguns hosts.
+        if (!$this->page && preg_match('#list-connected-users#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
+            $this->page = $accessLevelPage->getPageByControllerUrl('list-connected-users');
+            if ($this->page) {
+                $this->urlController = 'ListConnectedUsers';
+            }
+        }
 
         // 1) Página não encontrada no cadastro de rotas/páginas
         if (!$this->page) {
