@@ -1,0 +1,178 @@
+/**
+ * Reserva de Salas — layout mobile alinhado ao padrão do admin (ex.: logs, dashboard).
+ * Incluído via app/adms/Views/rooms/partials/module_head.php
+ */
+
+.rooms-module-page .table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+.rooms-module-page .rooms-page-title {
+    font-size: clamp(1.15rem, 4vw, 1.75rem);
+    line-height: 1.25;
+}
+
+.rooms-module-page .rooms-card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.rooms-module-page .rooms-card-header .ms-auto,
+.rooms-module-page .rooms-card-header .rooms-card-header-actions {
+    width: 100%;
+}
+
+@media (min-width: 576px) {
+    .rooms-module-page .rooms-card-header .ms-auto,
+    .rooms-module-page .rooms-card-header .rooms-card-header-actions {
+        width: auto;
+        margin-left: auto !important;
+    }
+}
+
+/* Cartões lista (mobile) */
+.rooms-module-page .rooms-mobile-card {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.rooms-module-page .rooms-mobile-card .rooms-mobile-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.rooms-module-page .rooms-mobile-card .rooms-mobile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.rooms-module-page .rooms-mobile-card .rooms-mobile-actions .btn {
+    flex: 1 1 auto;
+    min-width: 2.5rem;
+}
+
+/* Calendário / grade de horários: rolagem horizontal em telas estreitas */
+.rooms-module-page .rooms-calendar-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    touch-action: pan-x pan-y;
+}
+
+/**
+ * Calendário mensal (grid 7 colunas): sem minmax(0,1fr) o conteúdo (ex.: prévia de reserva)
+ * define min-width da célula e quebra a largura das colunas no mobile.
+ */
+.rooms-module-page .calendar-grid-outlook {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.rooms-module-page .calendar-day-header-outlook,
+.rooms-module-page .calendar-day-outlook {
+    min-width: 0;
+}
+
+.rooms-module-page .calendar-bookings-preview {
+    min-width: 0;
+}
+
+.rooms-module-page .booking-preview-item {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Semana: coluna de horas + 7 dias — mesmo problema de min-width nas colunas fr */
+.rooms-module-page .week-calendar-grid,
+.rooms-module-page .week-calendar-grid-simple {
+    grid-template-columns: minmax(56px, 100px) repeat(7, minmax(0, 1fr));
+}
+
+.rooms-module-page .week-day-column-week,
+.rooms-module-page .week-day-column-simple {
+    min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+    .rooms-module-page .outlook-calendar {
+        padding: 0.5rem !important;
+    }
+
+    .rooms-module-page .calendar-day-header-outlook {
+        font-size: 0.62rem;
+        padding: 0.35rem 0.2rem;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .rooms-module-page .calendar-day-outlook {
+        min-height: 76px;
+        padding: 0.3rem;
+    }
+
+    .rooms-module-page .calendar-day-number-outlook {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .rooms-module-page .calendar-day-outlook.today .calendar-day-number-outlook {
+        font-size: 0.9rem;
+    }
+
+    .rooms-module-page .calendar-bookings-preview {
+        font-size: 0.65rem;
+        line-height: 1.25;
+    }
+
+    .rooms-module-page .booking-preview-item {
+        padding: 0.15rem 0.25rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .rooms-module-page .booking-title {
+        font-size: 0.6rem;
+    }
+
+    .rooms-module-page .booking-user {
+        font-size: 0.58rem;
+    }
+
+    .rooms-module-page .calendar-day-empty {
+        font-size: 0.65rem;
+        margin-top: 0.35rem;
+    }
+
+    .rooms-module-page .rooms-calendar-scroll {
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Grade semanal: cabeçalhos e slots mais densos */
+    .rooms-module-page .week-day-header-week,
+    .rooms-module-page .week-day-header-simple {
+        font-size: 0.65rem;
+        padding: 0.35rem 0.2rem !important;
+    }
+
+    .rooms-module-page .time-slot-week-simple,
+    .rooms-module-page .time-slot-week {
+        font-size: 0.65rem;
+        padding: 0.35rem 0.25rem;
+    }
+}
+
+/* Formulários longos: botões fixos em coluna no mobile */
+@media (max-width: 575.98px) {
+    .rooms-module-page .rooms-form-actions .btn {
+        width: 100%;
+    }
+}

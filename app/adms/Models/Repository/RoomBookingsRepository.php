@@ -151,6 +151,16 @@ class RoomBookingsRepository extends DbConnection
             $where[] = "status = :status";
             $params[':status'] = $filters['status'];
         }
+
+        if (!empty($filters['start_date'])) {
+            $where[] = "DATE(start_datetime) >= :start_date";
+            $params[':start_date'] = $filters['start_date'];
+        }
+
+        if (!empty($filters['end_date'])) {
+            $where[] = "DATE(end_datetime) <= :end_date";
+            $params[':end_date'] = $filters['end_date'];
+        }
         
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;

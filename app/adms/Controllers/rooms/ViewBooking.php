@@ -5,6 +5,7 @@ namespace App\adms\Controllers\rooms;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
+use App\adms\Models\Repository\RoomServiceRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -49,9 +50,13 @@ class ViewBooking
         $this->data['booking'] = $booking;
         $this->data['participants'] = $bookingsRepo->getParticipantsByBookingId($id);
 
-        // Buscar solicitações adicionais
+        // Solicitações adicionais (modelo legado em adms_booking_additional_requests)
         $requestsRepo = new BookingAdditionalRequestsRepository();
         $this->data['additionalRequests'] = $requestsRepo->getByBookingId($id);
+
+        // Solicitações de serviço (tipos / equipes — adms_room_service_requests, opcionalmente vinculadas)
+        $serviceReqRepo = new RoomServiceRequestsRepository();
+        $this->data['serviceRequests'] = $serviceReqRepo->getByBookingId($id);
 
         $pageElements = [
             'title_head' => 'Visualizar Reserva',
@@ -60,6 +65,8 @@ class ViewBooking
                 'ListBookings',
                 'UpdateBooking',
                 'CancelBooking',
+                'RoomsCreateServiceRequest',
+                'RoomsViewServiceRequest',
             ],
         ];
         

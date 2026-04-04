@@ -86,10 +86,11 @@ foreach ($bookings as $date => $dateBookings) {
     }
 }
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Reservar Sala: <?= htmlspecialchars($room['name'] ?? '') ?></h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+<?php include __DIR__ . '/partials/module_head.php'; ?>
+<div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
+    <div class="mb-2 mb-md-1 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+        <h2 class="rooms-page-title mt-2 mt-md-3 mb-0">Reservar Sala: <?= htmlspecialchars($room['name'] ?? '') ?></h2>
+        <ol class="breadcrumb mb-0 mt-1 mt-md-3 ms-md-auto small">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -165,9 +166,12 @@ foreach ($bookings as $date => $dateBookings) {
 
             <?php if ($view === 'week'): ?>
                 <!-- Calendário Semanal -->
+                <div class="rooms-calendar-scroll">
                 <?php include './app/adms/Views/rooms/book_room_week.php'; ?>
+                </div>
             <?php else: ?>
                 <!-- Calendário Mensal Estilo Outlook -->
+            <div class="rooms-calendar-scroll">
             <div class="outlook-calendar p-3">
                 <div class="calendar-grid-outlook">
                     <!-- Cabeçalho dos dias da semana -->
@@ -235,6 +239,7 @@ foreach ($bookings as $date => $dateBookings) {
                     }
                     ?>
                 </div>
+            </div>
             </div>
             <?php endif; ?>
         </div>

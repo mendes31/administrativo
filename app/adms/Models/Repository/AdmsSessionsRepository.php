@@ -156,7 +156,8 @@ class AdmsSessionsRepository extends DbConnection
     {
         $maxIdleSeconds = max(60, $maxIdleSeconds);
         $sql = "SELECT s.id AS session_row_id, s.user_id, s.session_id, s.status, s.created_at, s.updated_at,
-                       u.name AS user_name, u.email AS user_email, u.username AS user_username
+                       u.name AS user_name, u.email AS user_email, u.username AS user_username,
+                       u.image AS user_image
                 FROM {$this->table} s
                 INNER JOIN adms_users u ON u.id = s.user_id
                 WHERE s.status = 'ativa'

@@ -10,10 +10,11 @@ $recentBookings = $this->data['recent_bookings'] ?? [];
 $occupancyRate = $this->data['occupancy_rate'] ?? 0;
 $totalHours = $this->data['total_hours'] ?? 0;
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Dashboard de Reservas</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+<?php include __DIR__ . '/partials/module_head.php'; ?>
+<div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
+    <div class="mb-2 mb-md-1 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+        <h2 class="rooms-page-title mt-2 mt-md-3 mb-0">Dashboard de Reservas</h2>
+        <ol class="breadcrumb mb-0 mt-1 mt-md-3 ms-md-auto small">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -167,7 +168,7 @@ $totalHours = $this->data['total_hours'] ?? 0;
                     <h6 class="m-0 font-weight-bold text-primary">Reservas por Sala</h6>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="d-none d-md-block table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -221,6 +222,32 @@ $totalHours = $this->data['total_hours'] ?? 0;
                             </tbody>
                         </table>
                     </div>
+                    <?php if (!empty($bookingsByRoom)): ?>
+                        <div class="d-md-none">
+                            <?php foreach ($bookingsByRoom as $roomData):
+                                $room = $roomData['room'];
+                            ?>
+                                <div class="card rooms-mobile-card shadow-sm mb-3">
+                                    <div class="card-body py-3">
+                                        <div class="fw-semibold mb-2"><i class="fas fa-door-open me-2 text-muted"></i><?= htmlspecialchars($room['name']) ?></div>
+                                        <div class="small mb-1"><span class="rooms-mobile-label">Local</span><br><?= htmlspecialchars($room['location'] ?? '—') ?></div>
+                                        <div class="small mb-2"><?= (int)$room['capacity'] ?> pessoas &middot;
+                                            <span class="badge bg-primary"><?= (int)$roomData['count'] ?></span> total
+                                            <span class="badge bg-info"><?= (int)$roomData['month_count'] ?></span> no mês
+                                        </div>
+                                        <div class="rooms-mobile-actions">
+                                            <?php if (in_array('BookRoom', $this->data['buttonPermission'] ?? [])): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>book-room?room_id=<?= $room['id'] ?>" class="btn btn-sm btn-success"><i class="fas fa-calendar-plus me-1"></i>Reservar</a>
+                                            <?php endif; ?>
+                                            <?php if (in_array('ViewMeetingRoom', $this->data['buttonPermission'] ?? [])): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-meeting-room/<?= $room['id'] ?>" class="btn btn-sm btn-info"><i class="fas fa-eye me-1"></i>Ver sala</a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -234,7 +261,7 @@ $totalHours = $this->data['total_hours'] ?? 0;
                     <h6 class="m-0 font-weight-bold text-primary">Reservas Recentes</h6>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="d-none d-md-block table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -288,6 +315,36 @@ $totalHours = $this->data['total_hours'] ?? 0;
                             </tbody>
                         </table>
                     </div>
+                    <?php if (!empty($recentBookings)): ?>
+                        <div class="d-md-none">
+                            <?php foreach ($recentBookings as $booking): ?>
+                                <?php
+                                $statusClass = match($booking['status']) {
+                                    'confirmed' => 'success',
+                                    'pending' => 'warning',
+                                    'cancelled' => 'danger',
+                                    default => 'secondary'
+                                };
+                                ?>
+                                <div class="card rooms-mobile-card shadow-sm mb-3">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                            <div class="fw-semibold"><?= htmlspecialchars($booking['title']) ?></div>
+                                            <span class="badge bg-<?= $statusClass ?>"><?= ucfirst($booking['status']) ?></span>
+                                        </div>
+                                        <div class="small mb-1"><?= date('d/m/Y H:i', strtotime($booking['start_datetime'])) ?> – <?= date('H:i', strtotime($booking['end_datetime'])) ?></div>
+                                        <div class="small mb-1"><span class="rooms-mobile-label">Sala</span><br><?= htmlspecialchars($booking['room_name'] ?? '—') ?></div>
+                                        <div class="small mb-2"><span class="rooms-mobile-label">Responsável</span><br><?= htmlspecialchars($booking['user_name'] ?? '—') ?></div>
+                                        <div class="rooms-mobile-actions">
+                                            <?php if (in_array('ViewBooking', $this->data['buttonPermission'] ?? [])): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-booking/<?= $booking['id'] ?>" class="btn btn-sm btn-info"><i class="fas fa-eye me-1"></i>Abrir</a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

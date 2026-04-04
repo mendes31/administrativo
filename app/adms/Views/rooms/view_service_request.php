@@ -3,10 +3,11 @@ use App\adms\Helpers\CSRFHelper;
 
 $r = $this->data['request'] ?? [];
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Solicitação #<?php echo (int)($r['id'] ?? 0); ?> (Salas)</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+<?php include __DIR__ . '/partials/module_head.php'; ?>
+<div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
+    <div class="mb-2 mb-md-1 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+        <h2 class="rooms-page-title mt-2 mt-md-3 mb-0">Solicitação #<?php echo (int)($r['id'] ?? 0); ?> (Salas)</h2>
+        <ol class="breadcrumb mb-0 mt-1 mt-md-3 ms-md-auto small">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -21,15 +22,15 @@ $r = $this->data['request'] ?? [];
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
     <div class="card border-light shadow mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header rooms-card-header d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
             <span><i class="fas fa-eye me-2"></i>Detalhes</span>
-            <div class="d-flex gap-2">
+            <div class="rooms-card-header-actions d-flex flex-wrap gap-2">
                 <?php if (in_array('RoomsUpdateServiceRequest', $this->data['buttonPermission'] ?? [])) { ?>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>rooms-update-service-request/<?php echo (int)($r['id'] ?? 0); ?>" class="btn btn-sm btn-warning">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>rooms-update-service-request/<?php echo (int)($r['id'] ?? 0); ?>" class="btn btn-sm btn-warning w-100 w-sm-auto">
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php } ?>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>rooms-list-service-requests" class="btn btn-sm btn-secondary">Voltar</a>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>rooms-list-service-requests" class="btn btn-sm btn-secondary w-100 w-sm-auto">Voltar</a>
             </div>
         </div>
         <div class="card-body">
@@ -68,6 +69,24 @@ $r = $this->data['request'] ?? [];
                     <div><strong><?php echo htmlspecialchars($r['location'] ?? ''); ?></strong></div>
                 </div>
 
+                <?php if (!empty($r['booking_id'])): ?>
+                    <div class="col-12">
+                        <div class="mb-1 text-muted small">Reserva vinculada</div>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="badge bg-info text-dark">Reserva #<?php echo (int)$r['booking_id']; ?></span>
+                            <?php if (!empty($r['booking_title'])): ?>
+                                <span><strong><?php echo htmlspecialchars((string)$r['booking_title']); ?></strong></span>
+                            <?php endif; ?>
+                            <?php if (!empty($r['booking_room_name'])): ?>
+                                <span class="text-muted">(<?php echo htmlspecialchars((string)$r['booking_room_name']); ?>)</span>
+                            <?php endif; ?>
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-booking/<?php echo (int)$r['booking_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-calendar-check me-1"></i>Abrir reserva
+                            </a>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <div class="col-md-6">
                     <div class="mb-1 text-muted small">Equipe responsável</div>
                     <div>
@@ -100,15 +119,15 @@ $r = $this->data['request'] ?? [];
 
             <hr class="my-4">
 
-            <div class="d-flex gap-2 flex-wrap">
+            <div class="rooms-form-actions d-flex gap-2 flex-wrap">
                 <?php
                 $canClaim = empty($r['claimed_by_user_id']) && !empty($r['responsible_group_id']);
                 ?>
                 <?php if ($canClaim): ?>
-                    <form method="POST" class="d-inline">
+                    <form method="POST" class="d-inline flex-grow-1 flex-sm-grow-0">
                         <input type="hidden" name="action" value="claim">
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_claim_room_service_request'); ?>">
-                        <button type="submit" class="btn btn-outline-primary">
+                        <button type="submit" class="btn btn-outline-primary w-100 w-sm-auto">
                             <i class="fas fa-hand-paper me-1"></i>Assumir solicitação
                         </button>
                     </form>

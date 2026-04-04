@@ -421,10 +421,14 @@ class LoadPageAdmAccessLevel
             'candidatos_arquivo' => $this->candidateControllerPhpFiles(),
             'acesso_total_sistema' => UserAccessHelper::hasFullSystemAccess(),
         ]);
+        $hintPath = $this->resolveControllerFilePathFromFqcn();
+        $hint = $hintPath !== null
+            ? ('Esperado (PSR-4): ' . str_replace($this->projectRoot() . '/', '', $hintPath))
+            : ('Classe: ' . $this->classLoad);
         die(
             'Erro 006: arquivo da controller não carregado (classe PHP ausente ou caminho incorreto no servidor). '
             . 'Não é falta de permissão: super administrador já tem acesso total na ACL. '
-            . 'Verifique no deploy: app/adms/Controllers/logs/ListConnectedUsers.php (veja candidatos_arquivo no log). '
+            . $hint . '. Veja candidatos_arquivo no log. '
             . 'Contato: ' . ($_ENV['EMAIL_ADM'] ?? '')
         );
     }

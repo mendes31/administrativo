@@ -9,7 +9,7 @@ use App\adms\Models\Repository\RoomServiceRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
- * Listar solicitações avulsas (sem reserva) - Reserva de Salas
+ * Gerenciador de solicitações de serviço (com ou sem reserva vinculada).
  */
 class RoomsListServiceRequests
 {
@@ -28,6 +28,9 @@ class RoomsListServiceRequests
         }
         if (!empty($_GET['responsible_group_id'])) {
             $filters['responsible_group_id'] = (int)$_GET['responsible_group_id'];
+        }
+        if (isset($_GET['has_booking']) && $_GET['has_booking'] !== '') {
+            $filters['has_booking'] = $_GET['has_booking'];
         }
 
         $repo = new RoomServiceRequestsRepository();

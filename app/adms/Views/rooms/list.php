@@ -2,10 +2,11 @@
 use App\adms\Helpers\FormatHelper;
 use App\adms\Helpers\ImageHelper;
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Salas de Reunião</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+<?php include __DIR__ . '/partials/module_head.php'; ?>
+<div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
+    <div class="mb-2 mb-md-1 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+        <h2 class="rooms-page-title mt-2 mt-md-3 mb-0">Salas de Reunião</h2>
+        <ol class="breadcrumb mb-0 mt-1 mt-md-3 ms-md-auto small">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -15,9 +16,9 @@ use App\adms\Helpers\ImageHelper;
     </div>
     
     <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2 flex-wrap">
+        <div class="card-header rooms-card-header d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
             <span><i class="fas fa-door-open me-2"></i>Listar Salas de Reunião</span>
-            <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
+            <span class="rooms-card-header-actions d-flex flex-row flex-wrap gap-1">
                 <?php if (in_array('CreateMeetingRoom', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>create-meeting-room" class="btn btn-success btn-sm mb-1"><i class="fa-solid fa-plus"></i> Nova Sala</a>
                 <?php } ?>

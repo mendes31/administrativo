@@ -6,9 +6,9 @@ use App\adms\Models\Services\DbConnection;
 use PDO;
 
 /**
- * Solicitações avulsas (sem reserva) - Reserva de Salas
+ * Solicitações de serviço do módulo de salas — com ou sem reserva vinculada.
  *
- * Tabela: adms_room_service_requests
+ * Tabela: adms_room_service_requests (booking_id NULL = avulsa)
  */
 class RoomServiceRequestsRepository extends DbConnection
 {
@@ -30,6 +30,14 @@ class RoomServiceRequestsRepository extends DbConnection
         if (!empty($filters['requester_user_id'])) {
             $where[] = 'sr.requester_user_id = :requester_user_id';
             $params[':requester_user_id'] = (int)$filters['requester_user_id'];
+        }
+
+        if (isset($filters['has_booking'])) {
+            if ($filters['has_booking'] === true || $filters['has_booking'] === '1' || $filters['has_booking'] === 1) {
+                $where[] = 'sr.booking_id IS NOT NULL';
+            } elseif ($filters['has_booking'] === false || $filters['has_booking'] === '0' || $filters['has_booking'] === 0) {
+                $where[] = 'sr.booking_id IS NULL';
+            }
         }
 
         $sql = "SELECT COUNT(*) AS total
@@ -71,17 +79,29 @@ class RoomServiceRequestsRepository extends DbConnection
             $params[':requester_user_id'] = (int)$filters['requester_user_id'];
         }
 
+        if (isset($filters['has_booking'])) {
+            if ($filters['has_booking'] === true || $filters['has_booking'] === '1' || $filters['has_booking'] === 1) {
+                $where[] = 'sr.booking_id IS NOT NULL';
+            } elseif ($filters['has_booking'] === false || $filters['has_booking'] === '0' || $filters['has_booking'] === 0) {
+                $where[] = 'sr.booking_id IS NULL';
+            }
+        }
+
         $sql = "SELECT sr.*,
                        rt.code AS request_type_code,
                        rt.name AS request_type_name,
                        rg.name AS responsible_group_name,
                        u.name AS requester_name,
-                       cu.name AS claimed_by_name
+                       cu.name AS claimed_by_name,
+                       rb.title AS booking_title,
+                       mr.name AS booking_room_name
                 FROM adms_room_service_requests sr
                 INNER JOIN adms_room_request_types rt ON sr.request_type_id = rt.id
                 INNER JOIN adms_users u ON sr.requester_user_id = u.id
                 LEFT JOIN adms_room_request_groups rg ON sr.responsible_group_id = rg.id
-                LEFT JOIN adms_users cu ON sr.claimed_by_user_id = cu.id";
+                LEFT JOIN adms_users cu ON sr.claimed_by_user_id = cu.id
+                LEFT JOIN adms_room_bookings rb ON sr.booking_id = rb.id
+                LEFT JOIN adms_meeting_rooms mr ON rb.room_id = mr.id";
 
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -109,12 +129,16 @@ class RoomServiceRequestsRepository extends DbConnection
                        rg.name AS responsible_group_name,
                        u.name AS requester_name,
                        u.email AS requester_email,
-                       cu.name AS claimed_by_name
+                       cu.name AS claimed_by_name,
+                       rb.title AS booking_title,
+                       mr.name AS booking_room_name
                 FROM adms_room_service_requests sr
                 INNER JOIN adms_room_request_types rt ON sr.request_type_id = rt.id
                 INNER JOIN adms_users u ON sr.requester_user_id = u.id
                 LEFT JOIN adms_room_request_groups rg ON sr.responsible_group_id = rg.id
                 LEFT JOIN adms_users cu ON sr.claimed_by_user_id = cu.id
+                LEFT JOIN adms_room_bookings rb ON sr.booking_id = rb.id
+                LEFT JOIN adms_meeting_rooms mr ON rb.room_id = mr.id
                 WHERE sr.id = :id";
 
         $stmt = $this->getConnection()->prepare($sql);
@@ -127,16 +151,23 @@ class RoomServiceRequestsRepository extends DbConnection
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_room_service_requests
-                (requester_user_id, request_type_id, request_description, quantity, status,
+                (requester_user_id, booking_id, request_type_id, request_description, quantity, status,
                  service_date, start_time, end_time, location, priority,
                  responsible_group_id, created_at, updated_at)
                 VALUES
-                (:requester_user_id, :request_type_id, :request_description, :quantity, :status,
+                (:requester_user_id, :booking_id, :request_type_id, :request_description, :quantity, :status,
                  :service_date, :start_time, :end_time, :location, :priority,
                  :responsible_group_id, NOW(), NOW())";
 
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':requester_user_id', (int)$data['requester_user_id'], PDO::PARAM_INT);
+        $bookingId = isset($data['booking_id']) && $data['booking_id'] !== '' && $data['booking_id'] !== null
+            ? (int)$data['booking_id'] : null;
+        if ($bookingId !== null && $bookingId > 0) {
+            $stmt->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':booking_id', null, PDO::PARAM_NULL);
+        }
         $stmt->bindValue(':request_type_id', (int)$data['request_type_id'], PDO::PARAM_INT);
         $stmt->bindValue(':request_description', $data['request_description'] ?? null);
         $stmt->bindValue(':quantity', $data['quantity'] ?? null, PDO::PARAM_INT);
@@ -152,9 +183,42 @@ class RoomServiceRequestsRepository extends DbConnection
         return (int)$this->getConnection()->lastInsertId();
     }
 
+    /**
+     * Solicitações de serviço vinculadas a uma reserva.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getByBookingId(int $bookingId): array
+    {
+        $sql = "SELECT sr.*,
+                       rt.code AS request_type_code,
+                       rt.name AS request_type_name,
+                       rg.name AS responsible_group_name,
+                       u.name AS requester_name,
+                       cu.name AS claimed_by_name,
+                       rb.title AS booking_title,
+                       mr.name AS booking_room_name
+                FROM adms_room_service_requests sr
+                INNER JOIN adms_room_request_types rt ON sr.request_type_id = rt.id
+                INNER JOIN adms_users u ON sr.requester_user_id = u.id
+                LEFT JOIN adms_room_request_groups rg ON sr.responsible_group_id = rg.id
+                LEFT JOIN adms_users cu ON sr.claimed_by_user_id = cu.id
+                INNER JOIN adms_room_bookings rb ON sr.booking_id = rb.id
+                INNER JOIN adms_meeting_rooms mr ON rb.room_id = mr.id
+                WHERE sr.booking_id = :booking_id
+                ORDER BY sr.created_at ASC";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function update(int $id, array $data): bool
     {
         $allowed = [
+            'booking_id',
             'request_type_id',
             'request_description',
             'quantity',

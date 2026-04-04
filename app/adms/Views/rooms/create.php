@@ -2,10 +2,11 @@
 use App\adms\Helpers\CSRFHelper;
 $csrfToken = CSRFHelper::generateCSRFToken('form_create_meeting_room');
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Criar Sala de Reunião</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+<?php include __DIR__ . '/partials/module_head.php'; ?>
+<div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
+    <div class="mb-2 mb-md-1 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+        <h2 class="rooms-page-title mt-2 mt-md-3 mb-0">Criar Sala de Reunião</h2>
+        <ol class="breadcrumb mb-0 mt-1 mt-md-3 ms-md-auto small">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -17,7 +18,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_meeting_room');
     </div>
     
     <div class="card mb-4 border-light shadow">
-        <div class="card-header">
+        <div class="card-header rooms-card-header">
             <span><i class="fas fa-door-open me-2"></i>Nova Sala de Reunião</span>
         </div>
         <div class="card-body">
@@ -111,7 +112,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_meeting_room');
                 </div>
                 
                 <div class="col-12">
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2 rooms-form-actions">
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-save me-2"></i>Salvar
                         </button>

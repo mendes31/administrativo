@@ -738,6 +738,11 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'list-bookings',
                         'permission' => 'ListBookings'
                     ],
+                    [
+                        'label' => 'Lista de Espera',
+                        'url' => $_ENV['URL_ADM'] . 'booking-waitlist',
+                        'permission' => 'BookingWaitlist'
+                    ],
                 ]
             ],
             [
