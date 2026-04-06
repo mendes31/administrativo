@@ -24,7 +24,11 @@ class BookingAdditionalRequestsRepository extends DbConnection
         $stmt->bindValue(':booking_id', $data['booking_id'], PDO::PARAM_INT);
         $stmt->bindValue(':request_type', $data['request_type']);
         $stmt->bindValue(':request_description', $data['request_description']);
-        $stmt->bindValue(':quantity', $data['quantity'] ?? null, PDO::PARAM_INT);
+        if (($data['quantity'] ?? null) === null || $data['quantity'] === '') {
+            $stmt->bindValue(':quantity', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':quantity', (int)$data['quantity'], PDO::PARAM_INT);
+        }
         $stmt->bindValue(':responsible_user_id', $data['responsible_user_id'], PDO::PARAM_INT);
         $stmt->bindValue(':status', $data['status'] ?? 'pending');
         

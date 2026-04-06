@@ -5,8 +5,10 @@ namespace App\adms\Controllers\rooms;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
+use App\adms\Helpers\RoomWaitlistService;
+use App\adms\Models\Repository\BookingWaitlistRepository;
 use App\adms\Models\Repository\MeetingRoomsRepository;
-use App\adms\Models\Repository\RequestTypesRepository;
+use App\adms\Models\Repository\RoomRequestTypesRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -20,20 +22,32 @@ class UpdateBooking
 
     public function index(string|int|null $id = null): void
     {
-        $this->data = [];
+        $resolvedId = $id ? (int)$id : 0;
 
-        $id = $id ? (int)$id : 0;
+        try {
+            $this->data = [];
 
-        if ($id === 0) {
-            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">ID da reserva não informado!</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'list-bookings');
+            if ($resolvedId === 0) {
+                $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">ID da reserva não informado!</div>';
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-bookings');
+                exit;
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->update($resolvedId);
+            } else {
+                $this->showForm($resolvedId);
+            }
+        } catch (\Throwable $e) {
+            \App\adms\Helpers\GenerateLog::generateLog('error', 'UpdateBooking falhou: ' . $e->getMessage(), [
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível processar o editor de reserva. Se o problema continuar, contacte o administrador (detalhe registado no log).</div>';
+            $adm = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
+            header('Location: ' . ($resolvedId > 0 ? $adm . 'view-booking/' . $resolvedId : $adm . 'dashboard'));
             exit;
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->update($id);
-        } else {
-            $this->showForm($id);
         }
     }
 
@@ -67,7 +81,7 @@ class UpdateBooking
 
         $roomsRepo = new MeetingRoomsRepository();
         $usersRepo = new UsersRepository();
-        $requestTypesRepo = new RequestTypesRepository();
+        $requestTypesRepo = new RoomRequestTypesRepository();
 
         // Buscar participantes atuais
         $this->data['participants'] = $bookingsRepo->getParticipantsByBookingId($id);
@@ -81,7 +95,7 @@ class UpdateBooking
         $this->data['form']['participant_ids'] = $participantIds;
         $this->data['rooms'] = $roomsRepo->getAll(['status' => 'active'], 1, 1000);
         $this->data['users'] = $usersRepo->getAllUsers(1, 1000, ['bloqueado' => false]);
-        $this->data['requestTypes'] = $requestTypesRepo->getAllActive();
+        $this->data['requestTypes'] = $requestTypesRepo->getAll(true);
 
         $pageElements = [
             'title_head' => 'Editar Reserva',
@@ -171,40 +185,139 @@ class UpdateBooking
             exit;
         }
 
-        // Verificar conflito de horário (excluindo a própria reserva)
-        if ($bookingsRepo->hasConflict($roomId, $startDatetime, $endDatetime, $id)) {
-            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Atenção: A sala já está reservada neste horário!</div>';
+        $roomsRepo = new MeetingRoomsRepository();
+        $room = $roomsRepo->getById($roomId);
+
+        if (!$room || ($room['status'] ?? '') !== 'active') {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: Sala não encontrada ou inativa!</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
             exit;
         }
 
-        // Atualizar reserva
+        $now = time();
+        $hoursUntilStart = ($startTimestamp - $now) / 3600;
+        $daysUntilStart = ($startTimestamp - $now) / 86400;
+        $durationHours = ($endTimestamp - $startTimestamp) / 3600;
+
+        if (!empty($room['min_advance_booking_hours']) && $hoursUntilStart < $room['min_advance_booking_hours']) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: A reserva deve ser feita com pelo menos ' . $room['min_advance_booking_hours'] . ' horas de antecedência!</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
+            exit;
+        }
+
+        if (!empty($room['max_advance_booking_days']) && $daysUntilStart > $room['max_advance_booking_days']) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: A reserva não pode ser feita com mais de ' . $room['max_advance_booking_days'] . ' dias de antecedência!</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
+            exit;
+        }
+
+        if (!empty($room['booking_duration_limit_hours']) && $durationHours > $room['booking_duration_limit_hours']) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: A duração máxima permitida é de ' . $room['booking_duration_limit_hours'] . ' horas!</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
+            exit;
+        }
+
+        $startSql = date('Y-m-d H:i:s', $startTimestamp);
+        $endSql = date('Y-m-d H:i:s', $endTimestamp);
+        $pdo = $bookingsRepo->getConnection();
+        $waitlistRepo = new BookingWaitlistRepository();
+        $waitlistService = new RoomWaitlistService($waitlistRepo);
+        $currentUserId = (int)($_SESSION['user_id'] ?? 0);
+
+        $gotLock = RoomWaitlistService::acquireRoomBookingLock($pdo, $roomId);
+        if (!$gotLock) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Não foi possível validar o horário neste momento. Tente novamente em instantes.</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
+            exit;
+        }
+
         $updateData = [
             'room_id' => $roomId,
             'title' => $title,
             'description' => $description,
-            'start_datetime' => date('Y-m-d H:i:s', $startTimestamp),
-            'end_datetime' => date('Y-m-d H:i:s', $endTimestamp),
+            'start_datetime' => $startSql,
+            'end_datetime' => $endSql,
             'has_additional_requests' => !empty($additionalRequests),
         ];
 
+        $conflictRedirect = false;
+        $updateError = '';
+
         try {
-            $bookingsRepo->update($id, $updateData);
+            if ($bookingsRepo->hasConflict($roomId, $startSql, $endSql, $id)) {
+                if ($waitlistRepo->hasNotifiedOverlap($roomId, $currentUserId, $startSql, $endSql)) {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Este horário já foi reservado por outro utilizador. A vaga foi preenchida — escolha outro intervalo ou entre novamente na lista de espera.</div>';
+                } else {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Atenção: a sala já está reservada neste horário. Pode entrar na lista de espera pelo calendário da sala.</div>';
+                }
+                $conflictRedirect = true;
+            } else {
+                $bookingsRepo->update($id, $updateData);
 
-            // Atualizar participantes
-            $this->updateParticipants($id, $participants);
+                // Reagendamento: o intervalo antigo fica livre — notificar lista de espera (opção B), como no cancelamento
+                $prevRoomId = (int)($booking['room_id'] ?? 0);
+                $slotChanged = $prevRoomId !== $roomId
+                    || strtotime((string)($booking['start_datetime'] ?? '')) !== strtotime($startSql)
+                    || strtotime((string)($booking['end_datetime'] ?? '')) !== strtotime($endSql);
+                if ($slotChanged) {
+                    try {
+                        $waitlistService->notifyAllWaitingOnCancellation([
+                            'room_id' => $prevRoomId,
+                            'start_datetime' => (string)($booking['start_datetime'] ?? ''),
+                            'end_datetime' => (string)($booking['end_datetime'] ?? ''),
+                            'room_name' => (string)($booking['room_name'] ?? 'Sala'),
+                        ]);
+                    } catch (\Throwable) {
+                        // não bloquear a edição da reserva
+                    }
+                }
 
-            // Atualizar solicitações adicionais
-            $this->updateAdditionalRequests($id, $additionalRequests);
+                $postUpdateFailed = false;
+                try {
+                    $this->updateParticipants($id, $participants);
+                    $this->updateAdditionalRequests($id, $additionalRequests);
 
-            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva atualizada com sucesso!</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $id);
-            exit;
-        } catch (\Exception $e) {
-            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao atualizar reserva: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                    $roomLabel = (string)($room['name'] ?? 'Sala');
+                    $waitlistService->finalizeAfterBookingCreated(
+                        $roomId,
+                        $startSql,
+                        $endSql,
+                        $currentUserId,
+                        $id,
+                        $roomLabel
+                    );
+                } catch (\Throwable $e) {
+                    $postUpdateFailed = true;
+                    \App\adms\Helpers\GenerateLog::generateLog('error', 'UpdateBooking: UPDATE da reserva OK; falha nos passos seguintes: ' . $e->getMessage(), [
+                        'booking_id' => $id,
+                        'exception' => $e::class,
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]);
+                }
+
+                if ($postUpdateFailed) {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">A reserva foi atualizada, mas participantes, solicitações ou lista de espera não ficaram totalmente sincronizados. Pode editar de novo ou contactar o administrador (detalhe no log).</div>';
+                } else {
+                    $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva atualizada com sucesso!</div>';
+                }
+                header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $id);
+                exit;
+            }
+        } catch (\Throwable $e) {
+            $updateError = $e->getMessage();
+        } finally {
+            RoomWaitlistService::releaseRoomBookingLock($pdo, $roomId);
+        }
+
+        if ($conflictRedirect) {
             header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
             exit;
         }
+
+        $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao atualizar reserva: ' . htmlspecialchars($updateError) . '</div>';
+        header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
+        exit;
     }
 
     /**
@@ -248,7 +361,7 @@ class UpdateBooking
 
         // Adicionar novas solicitações
         if (!empty($requests) && is_array($requests)) {
-            $requestTypesRepo = new RequestTypesRepository();
+            $requestTypesRepo = new RoomRequestTypesRepository();
 
             foreach ($requests as $request) {
                 if (empty($request['type']) || empty($request['responsible_user_id'])) {

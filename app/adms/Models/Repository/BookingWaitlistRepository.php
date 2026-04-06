@@ -157,4 +157,151 @@ class BookingWaitlistRepository extends DbConnection
 
         return (int)$stmt->fetchColumn();
     }
+
+    /**
+     * Entradas em espera cujo intervalo desejado sobrepõe [start, end] na sala.
+     *
+     * @param list<string> $statuses
+     * @return list<array<string, mixed>>
+     */
+    public function findOverlappingByStatuses(
+        int $roomId,
+        string $startDatetime,
+        string $endDatetime,
+        array $statuses
+    ): array {
+        if ($statuses === []) {
+            return [];
+        }
+        $placeholders = [];
+        $params = [
+            ':room_id' => $roomId,
+            ':start_dt' => $startDatetime,
+            ':end_dt' => $endDatetime,
+        ];
+        foreach ($statuses as $i => $st) {
+            $k = ':st' . $i;
+            $placeholders[] = $k;
+            $params[$k] = (string)$st;
+        }
+        $inList = implode(', ', $placeholders);
+        $sql = "SELECT w.* FROM adms_booking_waitlist w
+                WHERE w.room_id = :room_id
+                  AND w.status IN ($inList)
+                  AND w.desired_start_datetime < :end_dt
+                  AND w.desired_end_datetime > :start_dt
+                ORDER BY w.priority ASC, w.id ASC";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            if (is_int($v)) {
+                $stmt->bindValue($k, $v, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($k, $v, PDO::PARAM_STR);
+            }
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Usuário tem entrada notified (avisado de vaga) sobrepondo o horário — perdeu a corrida se der conflito na reserva.
+     */
+    public function hasNotifiedOverlap(int $roomId, int $userId, string $startDatetime, string $endDatetime): bool
+    {
+        $sql = 'SELECT COUNT(*) FROM adms_booking_waitlist
+                WHERE room_id = :room_id
+                  AND user_id = :user_id
+                  AND status = :status
+                  AND desired_start_datetime < :end_dt
+                  AND desired_end_datetime > :start_dt';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':status', 'notified', PDO::PARAM_STR);
+        $stmt->bindValue(':start_dt', $startDatetime, PDO::PARAM_STR);
+        $stmt->bindValue(':end_dt', $endDatetime, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Marca várias entradas como notificadas (vaga liberada — opção B: todos avisados).
+     *
+     * @param list<int> $ids
+     */
+    public function markAsNotifiedByIds(array $ids): void
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids), static fn (int $id) => $id > 0));
+        if ($ids === []) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "UPDATE adms_booking_waitlist
+                SET status = 'notified', notified_at = NOW(), updated_at = NOW()
+                WHERE id IN ($placeholders) AND status = 'waiting'";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($ids as $i => $id) {
+            $stmt->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+    }
+
+    /**
+     * Após criar reserva: quem tinha waiting/notified sobreposto — um vencedor (user_id) fica accepted; demais expired.
+     */
+    public function resolveAfterBookingWon(
+        int $roomId,
+        string $startDatetime,
+        string $endDatetime,
+        int $winnerUserId,
+        int $bookingId
+    ): array {
+        $losers = $this->findLoserUserIds($roomId, $startDatetime, $endDatetime, $winnerUserId);
+        $sql = 'UPDATE adms_booking_waitlist SET
+                    status = IF(user_id = :winner, \'accepted\', \'expired\'),
+                    booking_id = IF(user_id = :winner2, :booking_id, NULL),
+                    updated_at = NOW()
+                WHERE room_id = :room_id
+                  AND status IN (\'waiting\', \'notified\')
+                  AND desired_start_datetime < :end_dt
+                  AND desired_end_datetime > :start_dt';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':winner', $winnerUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':winner2', $winnerUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+        $stmt->bindValue(':room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue(':start_dt', $startDatetime, PDO::PARAM_STR);
+        $stmt->bindValue(':end_dt', $endDatetime, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $losers;
+    }
+
+    /**
+     * @return list<int> user_ids que perderam a vaga (exclui o vencedor)
+     */
+    public function findLoserUserIds(
+        int $roomId,
+        string $startDatetime,
+        string $endDatetime,
+        int $winnerUserId
+    ): array {
+        $sql = 'SELECT DISTINCT user_id FROM adms_booking_waitlist
+                WHERE room_id = :room_id
+                  AND user_id != :winner
+                  AND status IN (\'waiting\', \'notified\')
+                  AND desired_start_datetime < :end_dt
+                  AND desired_end_datetime > :start_dt';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':room_id', $roomId, PDO::PARAM_INT);
+        $stmt->bindValue(':winner', $winnerUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':start_dt', $startDatetime, PDO::PARAM_STR);
+        $stmt->bindValue(':end_dt', $endDatetime, PDO::PARAM_STR);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(static fn (array $r) => (int)$r['user_id'], $rows);
+    }
 }

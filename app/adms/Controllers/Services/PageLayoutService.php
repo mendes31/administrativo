@@ -458,6 +458,7 @@ class PageLayoutService
             'RoomCalendar',
             'BookRoom',
             'CreateBooking',
+            'ListBookings',
             'ViewBooking',
             'UpdateBooking',
             'CancelBooking',

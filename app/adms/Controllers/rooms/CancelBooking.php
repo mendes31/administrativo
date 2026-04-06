@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\rooms;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomWaitlistService;
 use App\adms\Models\Repository\RoomBookingsRepository;
 
 /**
@@ -65,8 +66,12 @@ class CancelBooking
 
                 $bookingsRepo->update($id, $updateData);
 
-                // TODO: Notificar participantes sobre o cancelamento
-                // TODO: Verificar lista de espera e notificar próximo da fila
+                // Lista de espera (opção B): notificar todos com horário sobreposto à vaga libertada
+                try {
+                    (new RoomWaitlistService())->notifyAllWaitingOnCancellation($booking);
+                } catch (\Throwable) {
+                    // não bloquear cancelamento se notificação falhar
+                }
 
                 $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva cancelada com sucesso!</div>';
                 header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $id);

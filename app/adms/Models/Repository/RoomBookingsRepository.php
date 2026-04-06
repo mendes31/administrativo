@@ -228,6 +228,7 @@ class RoomBookingsRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $allowedFields = [
+            'room_id',
             'title', 'description', 'start_datetime', 'end_datetime', 'status',
             'requires_approval', 'approved_by', 'approved_at', 'cancelled_by',
             'cancelled_at', 'cancellation_reason', 'reminder_sent', 'reminder_sent_at',

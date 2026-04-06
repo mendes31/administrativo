@@ -573,7 +573,8 @@ class UsersRepository extends DbConnection
      */
     public function listActiveUsersForTimelineDirectory(int $limit, int $offset, ?string $search = null): array
     {
-        $limit = max(1, min(100, $limit));
+        // Alinhar ao TimelineMembers (listagem completa sem paginação). Não usar 100 aqui — cortava o diretório no ~100.º nome (ex.: só até "J").
+        $limit = max(1, min(5000, $limit));
         $offset = max(0, $offset);
         $bind = [];
         $whereSearch = $this->buildTimelineDirectorySearchClause($search, $bind);

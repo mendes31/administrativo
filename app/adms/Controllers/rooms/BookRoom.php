@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\MeetingRoomsRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -115,6 +116,7 @@ class BookRoom
                 'start_datetime' => $booking['start_datetime'],
                 'end_datetime' => $booking['end_datetime'],
                 'user_name' => $booking['user_name'],
+                'user_id' => (int)($booking['user_id'] ?? 0),
                 'status' => $booking['status'],
             ];
         }
@@ -128,11 +130,16 @@ class BookRoom
             'buttonPermission' => [
                 'ListMeetingRooms',
                 'ViewMeetingRoom',
+                'ViewBooking',
+                'UpdateBooking',
+                'CancelBooking',
             ],
         ];
         
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+        $this->data['book_room_current_user_id'] = (int)($_SESSION['user_id'] ?? 0);
+        $this->data['book_room_is_super_admin'] = UserAccessHelper::hasFullSystemAccess();
         
         $loadView = new LoadViewService('adms/Views/rooms/book_room', $this->data);
         $loadView->loadView();

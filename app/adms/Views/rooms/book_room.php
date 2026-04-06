@@ -587,6 +587,10 @@ foreach ($bookings as $date => $dateBookings) {
     font-size: 0.85rem;
     color: #6c757d;
 }
+
+.day-booking-actions .btn-action {
+    font-size: 0.75rem;
+}
 </style>
 
 <script>
@@ -595,6 +599,25 @@ const bookingsData = <?= json_encode($bookingsByDate) ?>;
 const bookedSlotsData = <?= json_encode($bookedSlots) ?>;
 const timeSlots = <?= json_encode($timeSlots) ?>;
 const roomId = <?= $room['id'] ?>;
+const urlAdm = <?= json_encode(rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/') ?>;
+const bookRoomCurrentUserId = <?= (int)($this->data['book_room_current_user_id'] ?? 0) ?>;
+const bookRoomIsSuperAdmin = <?= !empty($this->data['book_room_is_super_admin']) ? 'true' : 'false' ?>;
+<?php
+$bpBookRoom = $this->data['buttonPermission'] ?? [];
+$permUpdateBookRoom = in_array('UpdateBooking', $bpBookRoom, true);
+$permCancelBookRoom = in_array('CancelBooking', $bpBookRoom, true);
+?>
+const permUpdateBooking = <?= $permUpdateBookRoom ? 'true' : 'false' ?>;
+const permCancelBooking = <?= $permCancelBookRoom ? 'true' : 'false' ?>;
+
+function canManageOwnBooking(booking) {
+    const st = booking.status || '';
+    if (st === 'cancelled' || st === 'completed') {
+        return false;
+    }
+    const uid = booking.user_id ? parseInt(booking.user_id, 10) : 0;
+    return bookRoomIsSuperAdmin || (uid > 0 && uid === bookRoomCurrentUserId);
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     let clickTimer = null;
@@ -722,7 +745,18 @@ function openDayTimeSlotsModal(date) {
         dayBookings.forEach(booking => {
             const startTime = new Date(booking.start_datetime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             const endTime = new Date(booking.end_datetime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
+            const manage = canManageOwnBooking(booking);
+            let actionsHtml = '';
+            if (manage) {
+                actionsHtml += `<a href="${urlAdm}view-booking/${booking.id}" class="btn btn-sm btn-outline-primary btn-action"><i class="fas fa-eye me-1"></i>Ver</a>`;
+                if (permUpdateBooking) {
+                    actionsHtml += `<a href="${urlAdm}update-booking/${booking.id}" class="btn btn-sm btn-outline-warning btn-action"><i class="fas fa-edit me-1"></i>Editar</a>`;
+                }
+                if (permCancelBooking) {
+                    actionsHtml += `<a href="${urlAdm}cancel-booking/${booking.id}" class="btn btn-sm btn-outline-danger btn-action" onclick="return confirm('Cancelar esta reserva?');"><i class="fas fa-times me-1"></i>Cancelar</a>`;
+                }
+            }
+
             const bookingDiv = document.createElement('div');
             bookingDiv.className = 'day-booking-item';
             bookingDiv.innerHTML = `
@@ -731,6 +765,7 @@ function openDayTimeSlotsModal(date) {
                 </div>
                 <div class="day-booking-title">${escapeHtml(booking.title)}</div>
                 <div class="day-booking-user">Por: ${escapeHtml(booking.user_name)}</div>
+                ${actionsHtml ? `<div class="day-booking-actions mt-2 d-flex flex-wrap gap-1">${actionsHtml}</div>` : ''}
             `;
             bookingsList.appendChild(bookingDiv);
         });

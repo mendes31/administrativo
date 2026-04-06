@@ -6,6 +6,8 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\MeetingRoomsRepository;
+use App\adms\Helpers\RoomWaitlistService;
+use App\adms\Models\Repository\BookingWaitlistRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
 use App\adms\Models\Repository\RoomRequestTypesRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -129,16 +131,7 @@ class CreateBooking
             exit;
         }
 
-        // Verificar conflito de horário
-        $bookingsRepo = new RoomBookingsRepository();
-        if ($bookingsRepo->hasConflict($roomId, $startDatetime, $endDatetime)) {
-            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Atenção: A sala já está reservada neste horário. Deseja entrar na lista de espera?</div>';
-            // TODO: Implementar redirecionamento para lista de espera
-            header('Location: ' . $_ENV['URL_ADM'] . $redirectTo);
-            exit;
-        }
-
-        // Verificar regras da sala (antecedência mínima/máxima, duração máxima)
+        // Verificar regras da sala (antecedência mínima/máxima, duração máxima) antes do lock
         $now = time();
         $hoursUntilStart = ($startTimestamp - $now) / 3600;
         $daysUntilStart = ($startTimestamp - $now) / 86400;
@@ -162,6 +155,21 @@ class CreateBooking
             exit;
         }
 
+        $bookingsRepo = new RoomBookingsRepository();
+        $pdo = $bookingsRepo->getConnection();
+        $waitlistRepo = new BookingWaitlistRepository();
+        $waitlistService = new RoomWaitlistService($waitlistRepo);
+        $currentUserId = (int)($_SESSION['user_id'] ?? 0);
+        $startSql = date('Y-m-d H:i:s', $startTimestamp);
+        $endSql = date('Y-m-d H:i:s', $endTimestamp);
+
+        $gotLock = RoomWaitlistService::acquireRoomBookingLock($pdo, $roomId);
+        if (!$gotLock) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Não foi possível validar o horário neste momento. Tente novamente em instantes.</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . $redirectTo);
+            exit;
+        }
+
         // Determinar status inicial
         $status = 'confirmed';
         $requiresApproval = false;
@@ -171,46 +179,74 @@ class CreateBooking
             $requiresApproval = true;
         }
 
-        // Criar reserva
         $bookingData = [
             'room_id' => $roomId,
             'user_id' => $_SESSION['user_id'] ?? 0,
             'title' => $title,
             'description' => $description,
-            'start_datetime' => date('Y-m-d H:i:s', $startTimestamp),
-            'end_datetime' => date('Y-m-d H:i:s', $endTimestamp),
+            'start_datetime' => $startSql,
+            'end_datetime' => $endSql,
             'status' => $status,
             'requires_approval' => $requiresApproval,
             'has_additional_requests' => !empty($additionalRequests),
         ];
 
+        $bookingId = 0;
+        $createError = '';
+        $conflictRedirect = false;
+
         try {
-            $bookingId = $bookingsRepo->create($bookingData);
-
-            // Adicionar participantes (se houver)
-            if (!empty($participants) && is_array($participants)) {
-                $this->addParticipants($bookingId, $participants);
-            }
-
-            // Adicionar solicitações adicionais (se houver)
-            if (!empty($additionalRequests) && is_array($additionalRequests)) {
-                $this->addAdditionalRequests($bookingId, $additionalRequests);
-            }
-
-            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva criada com sucesso!</div>';
-            
-            // Se veio do modal rápido, redirecionar de volta para o calendário da sala
-            if ($fromQuickBooking) {
-                header('Location: ' . $_ENV['URL_ADM'] . 'book-room?room_id=' . $roomId);
+            if ($bookingsRepo->hasConflict($roomId, $startSql, $endSql)) {
+                if ($waitlistRepo->hasNotifiedOverlap($roomId, $currentUserId, $startSql, $endSql)) {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Este horário já foi reservado por outro utilizador. A vaga foi preenchida — escolha outro intervalo ou entre novamente na lista de espera.</div>';
+                } else {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Atenção: a sala já está reservada neste horário. Pode entrar na lista de espera pelo calendário da sala.</div>';
+                }
+                $conflictRedirect = true;
             } else {
-                header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $bookingId);
+                $bookingId = $bookingsRepo->create($bookingData);
+
+                if (!empty($participants) && is_array($participants)) {
+                    $this->addParticipants($bookingId, $participants);
+                }
+
+                if (!empty($additionalRequests) && is_array($additionalRequests)) {
+                    $this->addAdditionalRequests($bookingId, $additionalRequests);
+                }
+
+                $roomLabel = (string)($room['name'] ?? 'Sala');
+                $waitlistService->finalizeAfterBookingCreated(
+                    $roomId,
+                    $startSql,
+                    $endSql,
+                    $currentUserId,
+                    $bookingId,
+                    $roomLabel
+                );
+
+                $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva criada com sucesso!</div>';
+
+                if ($fromQuickBooking) {
+                    header('Location: ' . $_ENV['URL_ADM'] . 'book-room?room_id=' . $roomId);
+                } else {
+                    header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $bookingId);
+                }
+                exit;
             }
-            exit;
         } catch (\Exception $e) {
-            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao criar reserva: ' . htmlspecialchars($e->getMessage()) . '</div>';
+            $createError = $e->getMessage();
+        } finally {
+            RoomWaitlistService::releaseRoomBookingLock($pdo, $roomId);
+        }
+
+        if ($conflictRedirect) {
             header('Location: ' . $_ENV['URL_ADM'] . $redirectTo);
             exit;
         }
+
+        $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao criar reserva: ' . htmlspecialchars($createError) . '</div>';
+        header('Location: ' . $_ENV['URL_ADM'] . $redirectTo);
+        exit;
     }
 
     /**
