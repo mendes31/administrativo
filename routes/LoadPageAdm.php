@@ -50,7 +50,7 @@ class LoadPageAdm
 
     private array $listPgPrivate = [
         "Dashboard",
-        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf",
+        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "MyPayrollDocuments", "ViewPayrollDocument", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf",
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
         "ListDepartments",  "CreateDepartment",  "ViewDepartment", "UpdateDepartments", "DeleteDepartment", "ImportDepartments",
@@ -210,6 +210,8 @@ class LoadPageAdm
         "reports",
         "dashboards",
         "rh",
+        // Portal do Colaborador / folha de pagamento (PSR-4: app/adms/Controllers/portal)
+        "portal",
         // Diretório para controllers de permissões (ListAccessLevelsPermissions, CopyAccessLevelPermissions, etc.)
         "permission",
         "notifications"

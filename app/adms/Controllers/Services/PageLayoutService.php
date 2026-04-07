@@ -421,6 +421,9 @@ class PageLayoutService
             'ExportAnalysisInfo',
             // Portal do Colaborador
             'EmployeePortal',
+            'ImportPayrollDocuments',
+            'MyPayrollDocuments',
+            'ViewPayrollDocument',
             'ListEmployeeRequests',
             'CreateEmployeeRequest',
             'ViewEmployeeRequest',

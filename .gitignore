@@ -24,5 +24,9 @@ app/adms/Controllers/serveFile/*.txt
 # Manter diretório logs vazio (opcional)
 !/logs/.empty
 
+# Folhas de pagamento (PDF) — dados sensíveis (LGPD)
+storage/private/payroll/*
+!storage/private/payroll/.gitkeep
+
 
 

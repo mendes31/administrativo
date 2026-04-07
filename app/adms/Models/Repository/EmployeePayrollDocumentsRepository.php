@@ -1,0 +1,245 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\adms\Models\Repository;
+
+use App\adms\Models\Services\DbConnection;
+use PDO;
+
+/**
+ * Documentos de folha/recibos por colaborador (armazenamento privado + metadados).
+ */
+class EmployeePayrollDocumentsRepository extends DbConnection
+{
+    public function createBatch(array $row): int
+    {
+        $sql = 'INSERT INTO adms_payroll_import_batches
+            (original_filename, document_type, reference_year, reference_month, pages_total, pages_matched, pages_unmatched, log_json, created_by_user_id, created_at)
+            VALUES (:original_filename, :document_type, :reference_year, :reference_month, :pages_total, :pages_matched, :pages_unmatched, :log_json, :created_by_user_id, NOW())';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':original_filename', $row['original_filename'], PDO::PARAM_STR);
+        $stmt->bindValue(':document_type', $row['document_type'], PDO::PARAM_STR);
+        $stmt->bindValue(':reference_year', (int)$row['reference_year'], PDO::PARAM_INT);
+        if (($row['reference_month'] ?? null) === null || $row['reference_month'] === '') {
+            $stmt->bindValue(':reference_month', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':reference_month', (int)$row['reference_month'], PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':pages_total', (int)($row['pages_total'] ?? 0), PDO::PARAM_INT);
+        $stmt->bindValue(':pages_matched', (int)($row['pages_matched'] ?? 0), PDO::PARAM_INT);
+        $stmt->bindValue(':pages_unmatched', (int)($row['pages_unmatched'] ?? 0), PDO::PARAM_INT);
+        $stmt->bindValue(':log_json', $row['log_json'] ?? null, PDO::PARAM_STR);
+        $stmt->bindValue(':created_by_user_id', (int)$row['created_by_user_id'], PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int)$this->getConnection()->lastInsertId();
+    }
+
+    public function updateBatchStats(int $batchId, int $matched, int $unmatched, ?string $logJson): void
+    {
+        $sql = 'UPDATE adms_payroll_import_batches SET pages_matched = :m, pages_unmatched = :u, log_json = :log WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':m', $matched, PDO::PARAM_INT);
+        $stmt->bindValue(':u', $unmatched, PDO::PARAM_INT);
+        $stmt->bindValue(':log', $logJson, PDO::PARAM_STR);
+        $stmt->bindValue(':id', $batchId, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
+    /**
+     * Remove documento anterior do mesmo tipo/ref (substituição na reimportação).
+     */
+    public function deleteExistingForUserRef(int $userId, string $documentType, int $year, ?int $month): void
+    {
+        $sql = 'SELECT id, storage_path FROM adms_employee_payroll_documents
+                WHERE user_id = :uid AND document_type = :dt AND reference_year = :y
+                AND (reference_month <=> :m)';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':dt', $documentType, PDO::PARAM_STR);
+        $stmt->bindValue(':y', $year, PDO::PARAM_INT);
+        if ($month === null) {
+            $stmt->bindValue(':m', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':m', $month, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as $r) {
+            $path = (string)($r['storage_path'] ?? '');
+            if ($path !== '') {
+                $full = $this->absoluteStoragePath($path);
+                if (is_file($full)) {
+                    @unlink($full);
+                }
+            }
+        }
+        if ($rows !== []) {
+            $del = $this->getConnection()->prepare(
+                'DELETE FROM adms_employee_payroll_documents WHERE user_id = :uid AND document_type = :dt AND reference_year = :y AND (reference_month <=> :m)'
+            );
+            $del->bindValue(':uid', $userId, PDO::PARAM_INT);
+            $del->bindValue(':dt', $documentType, PDO::PARAM_STR);
+            $del->bindValue(':y', $year, PDO::PARAM_INT);
+            if ($month === null) {
+                $del->bindValue(':m', null, PDO::PARAM_NULL);
+            } else {
+                $del->bindValue(':m', $month, PDO::PARAM_INT);
+            }
+            $del->execute();
+        }
+    }
+
+    public function insertDocument(array $row): int
+    {
+        $sql = 'INSERT INTO adms_employee_payroll_documents
+            (user_id, import_batch_id, document_type, reference_year, reference_month, title, storage_path, file_size, cpf_normalized, page_from, page_to, created_at)
+            VALUES (:user_id, :import_batch_id, :document_type, :reference_year, :reference_month, :title, :storage_path, :file_size, :cpf_normalized, :page_from, :page_to, NOW())';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', (int)$row['user_id'], PDO::PARAM_INT);
+        if (!empty($row['import_batch_id'])) {
+            $stmt->bindValue(':import_batch_id', (int)$row['import_batch_id'], PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':import_batch_id', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':document_type', $row['document_type'], PDO::PARAM_STR);
+        $stmt->bindValue(':reference_year', (int)$row['reference_year'], PDO::PARAM_INT);
+        if (($row['reference_month'] ?? null) === null || $row['reference_month'] === '') {
+            $stmt->bindValue(':reference_month', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':reference_month', (int)$row['reference_month'], PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':title', $row['title'], PDO::PARAM_STR);
+        $stmt->bindValue(':storage_path', $row['storage_path'], PDO::PARAM_STR);
+        $stmt->bindValue(':file_size', (int)($row['file_size'] ?? 0), PDO::PARAM_INT);
+        $stmt->bindValue(':cpf_normalized', $row['cpf_normalized'] ?? null, PDO::PARAM_STR);
+        $stmt->bindValue(':page_from', (int)($row['page_from'] ?? 1), PDO::PARAM_INT);
+        $stmt->bindValue(':page_to', (int)($row['page_to'] ?? 1), PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int)$this->getConnection()->lastInsertId();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listForUser(int $userId, array $filters = []): array
+    {
+        $where = ['d.user_id = :uid'];
+        $params = [':uid' => $userId];
+        if (!empty($filters['document_type'])) {
+            $where[] = 'd.document_type = :dt';
+            $params[':dt'] = (string)$filters['document_type'];
+        }
+        if (!empty($filters['year'])) {
+            $where[] = 'd.reference_year = :y';
+            $params[':y'] = (int)$filters['year'];
+        }
+        if (array_key_exists('month', $filters) && $filters['month'] !== '' && $filters['month'] !== null) {
+            $where[] = 'd.reference_month = :mo';
+            $params[':mo'] = (int)$filters['month'];
+        }
+        $sql = 'SELECT d.* FROM adms_employee_payroll_documents d WHERE ' . implode(' AND ', $where) . ' ORDER BY d.reference_year DESC, d.reference_month DESC, d.id DESC';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function getByIdForUser(int $id, int $userId): ?array
+    {
+        $sql = 'SELECT * FROM adms_employee_payroll_documents WHERE id = :id AND user_id = :uid LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function getById(int $id): ?array
+    {
+        $sql = 'SELECT * FROM adms_employee_payroll_documents WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function absoluteStoragePath(string $relativeFromProjectRoot): string
+    {
+        $root = defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__, 4);
+
+        return $root . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($relativeFromProjectRoot, '/\\'));
+    }
+
+    /**
+     * Lotes recentes para ecrã de importação (RH).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listBatches(int $limit = 50): array
+    {
+        $limit = max(1, min(200, $limit));
+        $sql = 'SELECT b.*,
+                (SELECT COUNT(*) FROM adms_employee_payroll_documents d WHERE d.import_batch_id = b.id) AS documents_count,
+                u.name AS created_by_name
+            FROM adms_payroll_import_batches b
+            LEFT JOIN adms_users u ON u.id = b.created_by_user_id
+            ORDER BY b.id DESC
+            LIMIT ' . $limit;
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Remove PDFs em disco, linhas em adms_employee_payroll_documents e o lote.
+     */
+    public function deleteBatchCascade(int $batchId): bool
+    {
+        if ($batchId <= 0) {
+            return false;
+        }
+
+        $conn = $this->getConnection();
+        $stmt = $conn->prepare('SELECT id, storage_path FROM adms_employee_payroll_documents WHERE import_batch_id = :bid');
+        $stmt->bindValue(':bid', $batchId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $conn->beginTransaction();
+        try {
+            foreach ($rows as $r) {
+                $path = (string)($r['storage_path'] ?? '');
+                if ($path !== '') {
+                    $full = $this->absoluteStoragePath($path);
+                    if (is_file($full)) {
+                        @unlink($full);
+                    }
+                }
+            }
+            if ($rows !== []) {
+                $delDocs = $conn->prepare('DELETE FROM adms_employee_payroll_documents WHERE import_batch_id = :bid');
+                $delDocs->bindValue(':bid', $batchId, PDO::PARAM_INT);
+                $delDocs->execute();
+            }
+            $delBatch = $conn->prepare('DELETE FROM adms_payroll_import_batches WHERE id = :id');
+            $delBatch->bindValue(':id', $batchId, PDO::PARAM_INT);
+            $delBatch->execute();
+            $conn->commit();
+
+            return $delBatch->rowCount() > 0;
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
+        }
+    }
+}

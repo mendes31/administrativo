@@ -30,6 +30,12 @@ class CSRFHelper
             $_SESSION['csrf_tokens'] = [];
         }
         
+        // Reutilizar token ainda válido (não consumido) para o mesmo formulário.
+        // Evita invalidar o envio quando o utilizador tem várias abas abertas ou recarrega a página.
+        if (!empty($_SESSION['csrf_tokens'][$formIdentifier])) {
+            return $_SESSION['csrf_tokens'][$formIdentifier];
+        }
+
         // A função random_bytes gera uma sequência de 32 bytes aleatórios.
         // A função bin2hex converte os bytes binários gerados pela random_bytes em uma representação hexadecimal.
         $token = bin2hex(random_bytes(32));

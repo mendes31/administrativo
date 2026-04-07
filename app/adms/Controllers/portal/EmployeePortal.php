@@ -53,6 +53,7 @@ class EmployeePortal
                 'CreateEmployeeRequest',
                 'ListEmployeeTickets',
                 'CreateEmployeeTicket',
+                'MyPayrollDocuments',
             ],
         ];
         

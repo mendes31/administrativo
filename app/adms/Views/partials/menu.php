@@ -581,6 +581,18 @@ $menus = [
                 'icon' => 'fas fa-user-circle'
             ],
             [
+                'label' => 'Meus documentos (folha)',
+                'url' => $_ENV['URL_ADM'] . 'my-payroll-documents',
+                'permission' => 'MyPayrollDocuments',
+                'icon' => 'fas fa-file-invoice-dollar'
+            ],
+            [
+                'label' => 'Importar folhas / recibos (PDF)',
+                'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
+                'permission' => 'ImportPayrollDocuments',
+                'icon' => 'fas fa-file-pdf'
+            ],
+            [
                 'label' => 'Desempenho',
                 'icon' => 'fa-solid fa-chart-line',
                 'submenu' => [

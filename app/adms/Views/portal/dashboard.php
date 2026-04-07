@@ -234,6 +234,13 @@ use App\adms\Helpers\FormatHelper;
                         </a>
                     </div>
                 <?php } ?>
+                <?php if (in_array('MyPayrollDocuments', $this->data['buttonPermission'] ?? [])) { ?>
+                    <div class="col-md-3">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>my-payroll-documents" class="btn btn-outline-dark w-100">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>Meus documentos (folha)
+                        </a>
+                    </div>
+                <?php } ?>
             </div>
         </div>
     </div>

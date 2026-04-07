@@ -496,6 +496,28 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Localiza colaborador ativo pelo CPF apenas com dígitos (11).
+     */
+    public function findActiveUserIdByNormalizedCpf(string $cpf11): ?int
+    {
+        if (strlen($cpf11) !== 11 || !ctype_digit($cpf11)) {
+            return null;
+        }
+        $sql = "SELECT id FROM adms_users
+                WHERE status = 'Ativo'
+                  AND cpf IS NOT NULL
+                  AND TRIM(cpf) <> ''
+                  AND REPLACE(REPLACE(REPLACE(REPLACE(TRIM(cpf), '.', ''), '-', ''), ' ', ''), '/', '') = :cpf
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':cpf', $cpf11, PDO::PARAM_STR);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+
+        return $id !== false ? (int)$id : null;
+    }
+
+    /**
      * Perfil público para a timeline (departamento/cargo opcionais).
      *
      * @return array<string, mixed>|null
