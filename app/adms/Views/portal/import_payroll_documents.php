@@ -26,6 +26,9 @@ $typeLabels = [
         identifica o <strong>CPF</strong> e gera um PDF por colaborador que exista no cadastro como <strong>utilizador ativo</strong> com o mesmo CPF;
         CPFs sem correspondência são ignorados (os demais são processados).
         Páginas sem texto selecionável (scan sem OCR) podem não ser identificadas.
+        <span class="d-block mt-2"><strong>Mesmo período, vários ficheiros:</strong> com <strong>nome diferente</strong> ou <strong>referência (ano/mês) diferente</strong>,
+        os documentos <strong>acumulam</strong> (ex.: quinzenal e mensal no mesmo mês).
+        A <strong>substituição</strong> só ocorre ao reenviar o <strong>mesmo nome de ficheiro</strong> para o <strong>mesmo tipo, ano e mês de referência</strong> (correção do mesmo PDF naquele período).</span>
     </div>
 
     <div class="card mb-4 border-light shadow">

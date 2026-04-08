@@ -37,11 +37,9 @@ final class PayrollPdfSplitService
 {
 
     /**
-
+     * @param string $originalFilename Nome do PDF; substituição só se nome + referência do lote coincidirem com a importação atual (tipo/ano/mês).
      * @return array{matched: int, unmatched_pages: list<int>, errors: list<string>, skipped_no_user: list<string>, documents_created: int}
-
      */
-
     public static function processUploadedFile(
 
         string $absolutePdfPath,
@@ -56,7 +54,9 @@ final class PayrollPdfSplitService
 
         string $titlePrefix,
 
-        int $createdByUserId
+        int $createdByUserId,
+
+        string $originalFilename
 
     ): array {
 
@@ -64,7 +64,10 @@ final class PayrollPdfSplitService
 
         $usersRepo = new UsersRepository();
 
-
+        $originalFilename = trim($originalFilename);
+        if ($originalFilename === '') {
+            $originalFilename = 'documento.pdf';
+        }
 
         $parser = new Parser();
 
@@ -122,7 +125,7 @@ final class PayrollPdfSplitService
         try {
             $pageTextByNum = [];
 
-            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, &$skippedNoUser, &$pageTextByNum, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths) {
+            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, &$skippedNoUser, &$pageTextByNum, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths, $originalFilename) {
 
                 if ($currentCpf === null || $currentPageNums === []) {
 
@@ -183,7 +186,7 @@ final class PayrollPdfSplitService
 
 
 
-                $repo->deleteExistingForUserRef($userId, $documentType, $referenceYear, $referenceMonth);
+                $repo->deleteExistingForUserRefSameOriginalFilename($userId, $documentType, $referenceYear, $referenceMonth, $originalFilename);
 
                 $repo->insertDocument([
 

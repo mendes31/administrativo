@@ -91,6 +91,85 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
     }
 
+    /**
+     * Remove apenas documentos cujo lote tenha o mesmo nome de ficheiro original **e** a mesma
+     * referência (ano/mês) no lote — reimportação/correção do mesmo PDF para o mesmo período.
+     * Nome igual com referência diferente não substitui; nome diferente acumula (ex.: quinzenal + mensal).
+     */
+    public function deleteExistingForUserRefSameOriginalFilename(
+        int $userId,
+        string $documentType,
+        int $year,
+        ?int $month,
+        string $originalFilename
+    ): void {
+        $orig = trim($originalFilename);
+        if ($orig === '') {
+            $orig = 'documento.pdf';
+        }
+        $sql = 'SELECT d.id, d.storage_path FROM adms_employee_payroll_documents d
+                INNER JOIN adms_payroll_import_batches b ON b.id = d.import_batch_id
+                WHERE d.user_id = :uid AND d.document_type = :dt AND d.reference_year = :y
+                AND (d.reference_month <=> :m)
+                AND b.reference_year = :by
+                AND (b.reference_month <=> :bm)
+                AND LOWER(TRIM(b.original_filename)) = LOWER(TRIM(:orig))';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':dt', $documentType, PDO::PARAM_STR);
+        $stmt->bindValue(':y', $year, PDO::PARAM_INT);
+        if ($month === null) {
+            $stmt->bindValue(':m', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':m', $month, PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':by', $year, PDO::PARAM_INT);
+        if ($month === null) {
+            $stmt->bindValue(':bm', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':bm', $month, PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':orig', $orig, PDO::PARAM_STR);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as $r) {
+            $path = (string)($r['storage_path'] ?? '');
+            if ($path !== '') {
+                $full = $this->absoluteStoragePath($path);
+                if (is_file($full)) {
+                    @unlink($full);
+                }
+            }
+        }
+        if ($rows !== []) {
+            $del = $this->getConnection()->prepare(
+                'DELETE d FROM adms_employee_payroll_documents d
+                INNER JOIN adms_payroll_import_batches b ON b.id = d.import_batch_id
+                WHERE d.user_id = :uid AND d.document_type = :dt AND d.reference_year = :y
+                AND (d.reference_month <=> :m)
+                AND b.reference_year = :by
+                AND (b.reference_month <=> :bm)
+                AND LOWER(TRIM(b.original_filename)) = LOWER(TRIM(:orig))'
+            );
+            $del->bindValue(':uid', $userId, PDO::PARAM_INT);
+            $del->bindValue(':dt', $documentType, PDO::PARAM_STR);
+            $del->bindValue(':y', $year, PDO::PARAM_INT);
+            if ($month === null) {
+                $del->bindValue(':m', null, PDO::PARAM_NULL);
+            } else {
+                $del->bindValue(':m', $month, PDO::PARAM_INT);
+            }
+            $del->bindValue(':by', $year, PDO::PARAM_INT);
+            if ($month === null) {
+                $del->bindValue(':bm', null, PDO::PARAM_NULL);
+            } else {
+                $del->bindValue(':bm', $month, PDO::PARAM_INT);
+            }
+            $del->bindValue(':orig', $orig, PDO::PARAM_STR);
+            $del->execute();
+        }
+    }
+
     public function insertDocument(array $row): int
     {
         $sql = 'INSERT INTO adms_employee_payroll_documents

@@ -235,7 +235,8 @@ class ImportPayrollDocuments
                 $year,
                 $month,
                 $titlePrefix,
-                $uid
+                $uid,
+                $originalName
             );
         } catch (\Throwable $e) {
             @unlink($absoluteDest);
