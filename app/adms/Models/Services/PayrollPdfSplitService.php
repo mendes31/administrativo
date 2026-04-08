@@ -641,13 +641,13 @@ final class PayrollPdfSplitService
 
         if ($imagick !== null) {
 
-            GenerateLog::generateLog('info', 'PayrollPdfSplitService: páginas extraídas via Imagick (alternativa a qpdf na hospedagem)');
+            GenerateLog::generateLog('info', 'PayrollPdfSplitService: páginas extraídas via Imagick (alternativa a qpdf na hospedagem)', []);
 
             return $imagick;
 
         }
 
-        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: sem qpdf nem Imagick para dividir páginas; será tentado FPDI no PDF completo');
+        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: sem qpdf nem Imagick para dividir páginas; será tentado FPDI no PDF completo', []);
 
         return null;
 
@@ -866,7 +866,7 @@ final class PayrollPdfSplitService
 
         if (!function_exists('exec')) {
 
-            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: função exec() indisponível (PHP disable_functions); instale qpdf e não desative exec para PDFs multi-página.');
+            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: função exec() indisponível (PHP disable_functions); instale qpdf e não desative exec para PDFs multi-página.', []);
 
             return null;
 
@@ -920,7 +920,7 @@ final class PayrollPdfSplitService
 
         }
 
-        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf não encontrado. Coloque qpdf em bin/qpdf.exe (ou bin/qpdf no Linux), ou defina QPDF_PATH no .env, ou instale qpdf no sistema.');
+        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf não encontrado. Coloque qpdf em bin/qpdf.exe (ou bin/qpdf no Linux), ou defina QPDF_PATH no .env, ou instale qpdf no sistema.', []);
 
         return null;
 
