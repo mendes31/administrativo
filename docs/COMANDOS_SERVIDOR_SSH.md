@@ -64,6 +64,24 @@ php vendor/bin/phinx seed:run -c database/phinx.php -e production -s AddAdmsPage
 php vendor/bin/phinx seed:run -c database/phinx.php -e production -s AddDepartments
 ```
 
+## ⏱️ **Importação de folha PDF (pedido “cai” / browser fecha em produção)**
+
+PDFs com **muitas páginas** podem demorar vários minutos. O PHP já chama `set_time_limit(0)`, `ignore_user_abort(true)` e, por defeito, `memory_limit` **512M** (sobrescrevível com `PAYROLL_IMPORT_MEMORY_LIMIT` no `.env`).
+
+Se o **browser** mostrar erro de rede, página em branco ou fechar sozinho **antes** de aparecer a mensagem de sucesso, o problema costuma ser **timeout à frente do PHP**:
+
+| Camada | O que ajustar (exemplo) |
+|--------|-------------------------|
+| **Nginx** (PHP-FPM) | `fastcgi_read_timeout 900s;`, `client_max_body_size` ≥ tamanho do PDF |
+| **Apache** | `TimeOut 900` (ou valor alto no vhost) |
+| **PHP-FPM** | `request_terminate_timeout = 900` (ou `0` com cuidado) |
+| **Cloudflare** (se usar) | timeout do plano (ex.: ~100 s no gratuito) — pedidos longos podem falhar; testar sem proxy ou subir timeout |
+| **Hosting** | painel (Kinghost, etc.) pode ter limite de execução; abrir chamado para aumentar |
+
+Depois de alterar o servidor, **reinicie** Nginx/Apache e PHP-FPM. Confira também `upload_max_filesize` e `post_max_size` no `php.ini` ≥ ao PDF.
+
+---
+
 ## ⚠️ **PROBLEMAS COMUNS**
 
 ### **1. "Could not open input file: vendor/bin/phinx"**

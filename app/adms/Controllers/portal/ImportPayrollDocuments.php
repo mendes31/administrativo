@@ -144,8 +144,6 @@ class ImportPayrollDocuments
         }
         unset($_SESSION['payroll_import_nonce']);
 
-        @set_time_limit(0);
-
         $docType = preg_replace('/[^a-z_]/', '', strtolower((string)($_POST['document_type'] ?? 'payroll')));
         $allowed = ['payroll', 'vacation_receipt', 'ir_statement', 'time_bank', 'other'];
         if (!in_array($docType, $allowed, true)) {
@@ -200,6 +198,8 @@ class ImportPayrollDocuments
             header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
             exit;
         }
+
+        self::applyLongRunningImportRuntime();
 
         $originalName = (string)($_FILES['pdf_file']['name'] ?? 'documento.pdf');
         $pageCount = 0;
@@ -334,6 +334,21 @@ class ImportPayrollDocuments
         $_SESSION['msg'] = $msg;
         header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
         exit;
+    }
+
+    /**
+     * PDFs grandes (100+ páginas) excedem o tempo/memória padrão e o pedido pode ser cortado
+     * pelo Nginx/Apache/Cloudflare antes do PHP terminar — ver docs/COMANDOS_SERVIDOR_SSH.md.
+     */
+    private static function applyLongRunningImportRuntime(): void
+    {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', '0');
+        $mem = trim((string)($_ENV['PAYROLL_IMPORT_MEMORY_LIMIT'] ?? '512M'));
+        if ($mem !== '') {
+            @ini_set('memory_limit', $mem);
+        }
+        @ignore_user_abort(true);
     }
 
     private static function parseIniSizeToBytes(string $value): int
