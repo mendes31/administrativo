@@ -80,6 +80,12 @@ Se o **browser** mostrar erro de rede, página em branco ou fechar sozinho **ant
 
 Depois de alterar o servidor, **reinicie** Nginx/Apache e PHP-FPM. Confira também `upload_max_filesize` e `post_max_size` no `php.ini` ≥ ao PDF.
 
+### **404 do WordPress (“Epic 404”) após processar o PDF**
+
+**Causa:** no `.env`, `URL_ADM` está só na **raiz do site** (onde está o WordPress), por exemplo `https://www.tiaraju.com.br/`, em vez do caminho da app (`.../administrativo/`). O redirect pós-importação vai para `https://www.tiaraju.com.br/import-payroll-documents`, que o WordPress não reconhece.
+
+**Solução:** em produção, defina `URL_ADM` com o URL completo do módulo, **incluindo** `/administrativo/` no fim, ex.: `https://www.tiaraju.com.br/administrativo/` (ajuste domínio e HTTPS). O código também tenta corrigir automaticamente hosts `*.tiaraju.com.br` e `*.administrativotiaraju.kinghost.net` quando falta esse segmento (`UrlAdmHelper`).
+
 ---
 
 ## ⚠️ **PROBLEMAS COMUNS**

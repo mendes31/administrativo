@@ -7,6 +7,7 @@ namespace App\adms\Controllers\portal;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UrlAdmHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Services\PayrollPdfSplitService;
 use App\adms\Views\Services\LoadViewService;
@@ -38,7 +39,7 @@ class ImportPayrollDocuments
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao carregar a página de importação. '
                 . htmlspecialchars($e->getMessage())
                 . '</div>';
-            header('Location: ' . ($_ENV['URL_ADM'] ?? '') . 'dashboard');
+            header('Location: ' . UrlAdmHelper::to('dashboard'));
             exit;
         }
     }
@@ -70,7 +71,7 @@ class ImportPayrollDocuments
         if ($postMax > 0 && $contentLength > $postMax) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">O envio excede o limite <code>post_max_size</code> do PHP ('
                 . htmlspecialchars(ini_get('post_max_size')) . '). Reduza o PDF ou peça ao administrador para aumentar esse limite no <code>php.ini</code>.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -81,13 +82,13 @@ class ImportPayrollDocuments
             && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
         ) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Nenhum dado recebido no envio. Normalmente indica ficheiro acima do limite do servidor (<code>post_max_size</code> / <code>upload_max_filesize</code>). Verifique o tamanho do PDF e a configuração do PHP.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
         if (!CSRFHelper::validateCSRFToken('form_import_payroll_pdf', (string)($_POST['csrf_token'] ?? ''))) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Token de segurança inválido ou sessão expirada. Atualize a página e tente de novo (evite várias abas a competir pelo mesmo formulário).</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -102,7 +103,7 @@ class ImportPayrollDocuments
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível processar o envio. '
                 . htmlspecialchars($e->getMessage())
                 . ' Verifique se executou as migrações da base de dados (tabelas de folha) e se o Composer tem as bibliotecas PDF instaladas no servidor.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
     }
@@ -111,7 +112,7 @@ class ImportPayrollDocuments
     {
         $uid = (int)($_SESSION['user_id'] ?? 0);
         if ($uid <= 0) {
-            header('Location: ' . $_ENV['URL_ADM'] . 'login');
+            header('Location: ' . UrlAdmHelper::to('login'));
             exit;
         }
 
@@ -131,7 +132,7 @@ class ImportPayrollDocuments
                     $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível remover o lote. ' . htmlspecialchars($e->getMessage()) . '</div>';
                 }
             }
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -139,7 +140,7 @@ class ImportPayrollDocuments
         $sessionNonce = (string)($_SESSION['payroll_import_nonce'] ?? '');
         if ($postedNonce === '' || $sessionNonce === '' || !hash_equals($sessionNonce, $postedNonce)) {
             $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Este envio já foi processado ou a página expirou. <strong>Atualize a página</strong> e envie o PDF uma única vez; não clique duas vezes em «Processar PDF».</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
         unset($_SESSION['payroll_import_nonce']);
@@ -168,7 +169,7 @@ class ImportPayrollDocuments
 
         if (empty($_FILES['pdf_file']['tmp_name']) || (int)($_FILES['pdf_file']['error'] ?? 0) !== UPLOAD_ERR_OK) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Envie um ficheiro PDF válido.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -179,7 +180,7 @@ class ImportPayrollDocuments
         }
         if ($mime !== 'application/pdf' && !str_ends_with(strtolower((string)$_FILES['pdf_file']['name']), '.pdf')) {
             $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">O ficheiro deve ser PDF.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -187,7 +188,7 @@ class ImportPayrollDocuments
         $importDir = $root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'payroll' . DIRECTORY_SEPARATOR . '_imports';
         if (!is_dir($importDir) && !mkdir($importDir, 0770, true) && !is_dir($importDir)) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível criar pasta de importação no servidor.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -195,7 +196,7 @@ class ImportPayrollDocuments
         $absoluteDest = $importDir . DIRECTORY_SEPARATOR . $destName;
         if (!move_uploaded_file($tmp, $absoluteDest)) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Falha ao guardar o upload.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -210,7 +211,7 @@ class ImportPayrollDocuments
         } catch (\Throwable $e) {
             @unlink($absoluteDest);
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível ler o PDF. Verifique se o ficheiro não está corrompido ou protegido por senha. Detalhe: ' . htmlspecialchars($e->getMessage()) . '</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -241,7 +242,7 @@ class ImportPayrollDocuments
         } catch (\Throwable $e) {
             @unlink($absoluteDest);
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao processar: ' . htmlspecialchars($e->getMessage()) . '</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
 
@@ -332,7 +333,7 @@ class ImportPayrollDocuments
         }
         $msg .= '</div>';
         $_SESSION['msg'] = $msg;
-        header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+        header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
         exit;
     }
 
