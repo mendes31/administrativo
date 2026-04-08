@@ -31,6 +31,8 @@ storage/private/payroll/*
 # qpdf portátil (opcional — binário grande; copiar manualmente em cada servidor)
 /bin/qpdf.exe
 /bin/qpdf
+/bin/*.exe
+/bin/*.dll
 
 
 
