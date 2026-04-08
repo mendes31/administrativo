@@ -34,5 +34,8 @@ storage/private/payroll/*
 /bin/*.exe
 /bin/*.dll
 
+# Bibliotecas locais do qpdf em Linux (manter fora do Git/deploy automático)
+/lib/
+
 
 
