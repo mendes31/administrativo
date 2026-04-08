@@ -14,6 +14,20 @@ if (!defined('APP_ROOT')) {
     define('APP_ROOT', __DIR__);
 }
 
+// PHP 8+ removeu magic_quotes_*; setasign/fpdf ainda invoca (ex.: FPDI / folha PDF).
+if (!function_exists('get_magic_quotes_runtime')) {
+    function get_magic_quotes_runtime(): bool
+    {
+        return false;
+    }
+}
+if (!function_exists('set_magic_quotes_runtime')) {
+    function set_magic_quotes_runtime($new_setting): bool
+    {
+        return false;
+    }
+}
+
 // Carregar o Composer
 require './vendor/autoload.php';
 

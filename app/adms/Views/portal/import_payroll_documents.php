@@ -22,7 +22,8 @@ $typeLabels = [
 
     <div class="alert alert-info border-0 shadow-sm">
         <strong>Como funciona:</strong> envie o PDF único recebido do escritório. O sistema lê o texto de cada página,
-        identifica o <strong>CPF</strong> e gera um PDF por colaborador, associando ao cadastro de usuário ativo com o mesmo CPF.
+        identifica o <strong>CPF</strong> e gera um PDF por colaborador que exista no cadastro como <strong>utilizador ativo</strong> com o mesmo CPF;
+        CPFs sem correspondência são ignorados (os demais são processados).
         Páginas sem texto selecionável (scan sem OCR) podem não ser identificadas.
     </div>
 

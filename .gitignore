@@ -28,5 +28,9 @@ app/adms/Controllers/serveFile/*.txt
 storage/private/payroll/*
 !storage/private/payroll/.gitkeep
 
+# qpdf portátil (opcional — binário grande; copiar manualmente em cada servidor)
+/bin/qpdf.exe
+/bin/qpdf
+
 
 

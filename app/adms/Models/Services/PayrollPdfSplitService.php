@@ -36,7 +36,7 @@ final class PayrollPdfSplitService
 
     /**
 
-     * @return array{matched: int, unmatched_pages: list<int>, errors: list<string>, documents_created: int}
+     * @return array{matched: int, unmatched_pages: list<int>, errors: list<string>, skipped_no_user: list<string>, documents_created: int}
 
      */
 
@@ -78,6 +78,9 @@ final class PayrollPdfSplitService
 
         $errors = [];
 
+        /** @var list<string> CPF sem utilizador ativo — ignorado de propósito (não é falha técnica) */
+        $skippedNoUser = [];
+
         $documentsCreated = 0;
 
         $matched = 0;
@@ -116,7 +119,7 @@ final class PayrollPdfSplitService
 
         try {
 
-            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths) {
+            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, &$skippedNoUser, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths) {
 
                 if ($currentCpf === null || $currentPageNums === []) {
 
@@ -128,7 +131,7 @@ final class PayrollPdfSplitService
 
                 if ($userId === null) {
 
-                    $errors[] = 'CPF sem usuário ativo no cadastro: ' . $currentCpf . ' (páginas ' . implode(',', array_map('strval', $currentPageNums)) . ')';
+                    $skippedNoUser[] = 'CPF sem usuário ativo no cadastro (páginas ignoradas): ' . $currentCpf . ' — páginas ' . implode(',', array_map('strval', $currentPageNums));
 
 
 
@@ -150,7 +153,9 @@ final class PayrollPdfSplitService
 
                     $errors[] = 'Falha ao gerar PDF para CPF ' . $currentCpf;
 
+                    $currentCpf = null;
 
+                    $currentPageNums = [];
 
                     return;
 
@@ -287,6 +292,8 @@ final class PayrollPdfSplitService
             'unmatched_pages' => $unmatchedPages,
 
             'errors' => $errors,
+
+            'skipped_no_user' => $skippedNoUser,
 
             'documents_created' => $documentsCreated,
 
@@ -494,7 +501,8 @@ final class PayrollPdfSplitService
 
         @exec($cmd . ' 2>&1', $out, $code);
 
-        if ($code !== 0) {
+        // qpdf: 0 = OK; 3 = concluído com avisos (ex.: chaves duplicadas no PDF) — ainda gera ficheiros.
+        if (!self::qpdfExitMeansSuccess($code)) {
 
             GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf --split-pages falhou', [
 
@@ -592,6 +600,12 @@ final class PayrollPdfSplitService
 
         }
 
+        // Executável portátil na raiz do projeto (deploy por cópia, sem instalador no servidor — licença Apache do qpdf).
+
+        $root = defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__, 4);
+
+        $candidates[] = $root . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'qpdf.exe' : 'qpdf');
+
         $candidates[] = 'qpdf';
 
         if (PHP_OS_FAMILY === 'Windows') {
@@ -624,9 +638,25 @@ final class PayrollPdfSplitService
 
         }
 
-        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf não encontrado. Instale qpdf e/ou defina QPDF_PATH no .env (caminho completo para qpdf.exe).');
+        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf não encontrado. Coloque qpdf em bin/qpdf.exe (ou bin/qpdf no Linux), ou defina QPDF_PATH no .env, ou instale qpdf no sistema.');
 
         return null;
+
+    }
+
+
+
+    /**
+
+     * CLI qpdf: 0 = sucesso; 3 = sucesso com avisos (ex.: dicionários com chaves repetidas — ainda gera saída).
+
+     */
+
+    private static function qpdfExitMeansSuccess(int $code): bool
+
+    {
+
+        return $code === 0 || $code === 3;
 
     }
 
@@ -704,6 +734,28 @@ final class PayrollPdfSplitService
 
         if (!is_dir($dir) && !mkdir($dir, 0770, true) && !is_dir($dir)) {
 
+            GenerateLog::generateLog('error', 'PayrollPdfSplitService: não foi possível criar pasta de destino do PDF', [
+
+                'dir' => $dir,
+
+                'user_id' => $userId,
+
+            ]);
+
+            return null;
+
+        }
+
+        if (!is_writable($dir)) {
+
+            GenerateLog::generateLog('error', 'PayrollPdfSplitService: pasta de destino do PDF não é gravável', [
+
+                'dir' => $dir,
+
+                'user_id' => $userId,
+
+            ]);
+
             return null;
 
         }
@@ -736,7 +788,19 @@ final class PayrollPdfSplitService
 
 
 
-        if ($singlePagePaths !== null && self::pagePathsCover($singlePagePaths, $pageNumbers)) {
+        if ($singlePagePaths !== null) {
+
+            if (!self::pagePathsCover($singlePagePaths, $pageNumbers)) {
+
+                GenerateLog::generateLog('warning', 'PayrollPdfSplitService: ficheiros qpdf por página inacessíveis ou incompletos', [
+
+                    'pages' => $pageNumbers,
+
+                    'keys_sample' => array_slice(array_keys($singlePagePaths), 0, 5),
+
+                ]);
+
+            } elseif (self::pagePathsCover($singlePagePaths, $pageNumbers)) {
 
             if (count($pageNumbers) === 1) {
 
@@ -747,6 +811,18 @@ final class PayrollPdfSplitService
                     return $relReturn;
 
                 }
+
+                GenerateLog::generateLog('warning', 'PayrollPdfSplitService: copy() falhou ao gravar página única (origem qpdf)', [
+
+                    'page' => $p,
+
+                    'from' => $singlePagePaths[$p],
+
+                    'to' => $absoluteOut,
+
+                    'from_readable' => is_readable($singlePagePaths[$p]),
+
+                ]);
 
             } elseif (($qpdfMerge = self::resolveQpdfBinary()) !== null) {
 
@@ -766,7 +842,7 @@ final class PayrollPdfSplitService
 
                 @exec($cmd . ' 2>&1', $o, $c);
 
-                if ($c === 0 && is_file($absoluteOut) && filesize($absoluteOut) > 0) {
+                if (self::qpdfExitMeansSuccess($c) && is_file($absoluteOut) && filesize($absoluteOut) > 0) {
 
                     return $relReturn;
 
@@ -781,6 +857,20 @@ final class PayrollPdfSplitService
                 ]);
 
             }
+
+            }
+
+        }
+
+
+
+        if ($totalPageCount > 1 && $singlePagePaths === null) {
+
+            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: PDF multi-página sem split qpdf — a tentar FPDI (pode falhar em PDFs compactados); confirme bin/qpdf.exe, QPDF_PATH e exec() no PHP do Apache', [
+
+                'pages' => $pageNumbers,
+
+            ]);
 
         }
 

@@ -234,6 +234,7 @@ class ImportPayrollDocuments
         $log = [
             'unmatched_pages' => $result['unmatched_pages'],
             'errors' => $result['errors'],
+            'skipped_no_user' => $result['skipped_no_user'],
             'documents_created' => $result['documents_created'],
         ];
         $repo->updateBatchStats(
@@ -246,21 +247,42 @@ class ImportPayrollDocuments
         @unlink($absoluteDest);
 
         $docCount = (int)$result['documents_created'];
+        $skippedUser = $result['skipped_no_user'];
+        $hasRealErrors = $result['errors'] !== [];
+        $onlySkippedUsers = $docCount === 0 && !$hasRealErrors && $skippedUser !== [] && $result['unmatched_pages'] === [];
         $alertClass = $docCount === 0 ? 'alert-warning' : 'alert-success';
         $msg = '<div class="alert ' . $alertClass . '" role="alert">Processamento concluído. Documentos gerados: <strong>' . $docCount . '</strong>. '
-            . 'Páginas associadas: <strong>' . (int)$result['matched'] . '</strong> de <strong>' . $pageCount . '</strong>.';
+            . 'Páginas associadas a documentos: <strong>' . (int)$result['matched'] . '</strong> de <strong>' . $pageCount . '</strong>.';
         if ($result['unmatched_pages'] !== []) {
             $msg .= ' Páginas não identificadas (sem CPF legível): <strong>' . count($result['unmatched_pages']) . '</strong>.';
         }
-        if ($result['errors'] !== []) {
+        if ($skippedUser !== []) {
+            $skipSlice = $docCount === 0 ? $skippedUser : array_slice($skippedUser, 0, 8);
+            $msg .= ' <span class="d-block mt-1 small text-muted"><strong>Ignorados (sem utilizador ativo com este CPF):</strong> '
+                . htmlspecialchars(implode(' | ', $skipSlice));
+            if ($docCount > 0 && count($skippedUser) > 8) {
+                $msg .= ' …';
+            }
+            $msg .= '</span>';
+        }
+        if ($hasRealErrors) {
             $errSlice = $docCount === 0 ? $result['errors'] : array_slice($result['errors'], 0, 5);
-            $msg .= ' <strong>Detalhe:</strong> ' . htmlspecialchars(implode(' | ', $errSlice));
+            $msg .= ' <strong class="text-danger">Erro:</strong> ' . htmlspecialchars(implode(' | ', $errSlice));
             if ($docCount > 0 && count($result['errors']) > 5) {
                 $msg .= ' …';
             }
+            $errs = $result['errors'];
+            $onlyPdfWriteFails = $pageCount >= 2 && $errs !== []
+                && count(array_filter($errs, static fn(string $e): bool => str_starts_with($e, 'Falha ao gerar PDF'))) === count($errs);
+            if ($onlyPdfWriteFails) {
+                $msg .= ' <span class="d-block mt-2 small text-secondary"><strong>Diagnóstico:</strong> estes CPFs existem no cadastro; a falha é ao criar o ficheiro. Confira (1) <code>bin/qpdf.exe</code> + DLLs ou <code>QPDF_PATH</code> no <code>.env</code> e <code>exec</code> ativo no PHP <em>do Apache</em> (não só no terminal); (2) permissões de escrita em <code>storage/private/payroll/</code>; (3) o log da aplicação (mensagens <code>PayrollPdfSplitService</code>).</span>';
+            }
         }
-        if ($docCount === 0) {
-            $msg .= ' <span class="d-block mt-2 small">PDF com várias páginas: instale <strong>qpdf</strong> no servidor e/ou defina <code>QPDF_PATH</code> no <code>.env</code> (caminho para <code>qpdf.exe</code>). Confirme também se cada CPF existe no cadastro de usuários ativos.</span>';
+        if ($docCount === 0 && !$onlySkippedUsers) {
+            $msg .= ' <span class="d-block mt-2 small">PDF com várias páginas: copie o executável <strong>qpdf</strong> para <code>bin/qpdf.exe</code> (ou <code>bin/qpdf</code> no Linux) na raiz do projeto, ou defina <code>QPDF_PATH</code> no <code>.env</code>. É necessário que o PHP possa executar comandos (<code>exec</code> não desativado).</span>';
+        }
+        if ($onlySkippedUsers) {
+            $msg .= ' <span class="d-block mt-2 small">Nenhum CPF identificado no PDF corresponde a um <strong>utilizador ativo</strong> com o mesmo documento; cadastre ou ative o utilizador para gerar recibos.</span>';
         }
         $msg .= '</div>';
         $_SESSION['msg'] = $msg;
