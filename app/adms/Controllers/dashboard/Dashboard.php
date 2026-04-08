@@ -8,6 +8,7 @@ use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
@@ -204,6 +205,16 @@ class Dashboard
         $this->data['show_eventos_card'] = in_array('DashboardCardEventos', $menuPermission, true);
         $this->data['show_aniversariantes_card'] = in_array('DashboardCardAniversariantes', $menuPermission, true);
         $this->data['show_tempo_empresa_card'] = in_array('DashboardCardTempoEmpresa', $menuPermission, true);
+        $this->data['show_payroll_documents_card'] = in_array('DashboardCardPayrollDocuments', $menuPermission, true);
+
+        $this->data['payroll_documents_total'] = 0;
+        $this->data['payroll_documents_latest'] = [];
+        if ($userId > 0 && $this->data['show_payroll_documents_card']) {
+            $payrollRepo = new EmployeePayrollDocumentsRepository();
+            $allDocs = $payrollRepo->listForUser($userId);
+            $this->data['payroll_documents_total'] = count($allDocs);
+            $this->data['payroll_documents_latest'] = array_slice($allDocs, 0, 3);
+        }
 
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/dashboard/dashboard", $this->data);

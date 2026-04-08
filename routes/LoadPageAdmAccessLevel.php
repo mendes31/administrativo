@@ -170,6 +170,22 @@ class LoadPageAdmAccessLevel
             return;
         }
 
+        // 2b) ServeFile: usuário autenticado pode acessar (FileServer restringe caminhos a public/adms/uploads).
+        // Sem isso, imagens/avatars na dashboard disparam negação de página, gravam $_SESSION['msg'] e o aviso
+        // aparece na próxima tela (ex.: Meus documentos), embora a lista carregue normalmente.
+        // Inclui fallbacks: cadastro local do banco pode divergir do seed (controller_url / nome da classe).
+        if ($this->isServeFileRoute() && !empty($_SESSION['user_id'])) {
+            $this->checkControllersExists();
+            return;
+        }
+
+        // 2c) Central de notificações do próprio usuário (dados filtrados por user_id na sessão).
+        // Sem isso, "Ver todas" no sino e itens sem link_url negam acesso por ACL indevidamente.
+        if ($this->isPersonalNotificationsCenterRoute() && !empty($_SESSION['user_id'])) {
+            $this->checkControllersExists();
+            return;
+        }
+
         // 3) Página restrita: precisa estar logado e ter permissão
         if ($this->verifyLogin()) {
             $this->checkControllersExists();
@@ -231,8 +247,17 @@ class LoadPageAdmAccessLevel
             exit;
         }
 
-        // Para requisições normais (navegador), manter a sessão ativa e apenas bloquear o acesso.
-        $_SESSION['msg'] = '<div class="alert alert-warning">Você não possui permissão para acessar esta página.</div>';
+        // Flash só em navegação “documento” (HTML). Imagens, fontes, scripts etc. podem passar
+        // pelo mesmo roteador; gravar msg aqui polui a próxima tela (ex.: dashboard) com aviso
+        // falso mesmo após corrigir ServeFile ou permissões pontuais.
+        $accept = (string)($_SERVER['HTTP_ACCEPT'] ?? '');
+        $dest = strtolower((string)($_SERVER['HTTP_SEC_FETCH_DEST'] ?? ''));
+        $isSubResource = in_array($dest, ['image', 'style', 'script', 'font', 'audio', 'video', 'track'], true);
+        $shouldFlashPermissionDenied = !$isSubResource && str_contains($accept, 'text/html');
+
+        if ($shouldFlashPermissionDenied) {
+            $_SESSION['msg'] = '<div class="alert alert-warning">Você não possui permissão para acessar esta página.</div>';
+        }
         header("Location: {$_ENV['URL_ADM']}dashboard");
         exit;
     }
@@ -246,6 +271,55 @@ class LoadPageAdmAccessLevel
                 return true;
             }
         }
+        return false;
+    }
+
+    /**
+     * Identifica a rota de arquivos em public/adms/uploads (evita depender só de adms_pages.controller).
+     */
+    private function isServeFileRoute(): bool
+    {
+        if (($this->urlController ?? '') === 'ServeFile') {
+            return true;
+        }
+        $ctrl = (string)($this->page['controller'] ?? '');
+        if ($ctrl === 'ServeFile') {
+            return true;
+        }
+        $slug = strtolower((string)($this->page['controller_url'] ?? ''));
+        if ($slug === 'serve-file' || $slug === 'servefile') {
+            return true;
+        }
+        $uri = strtolower((string)($_SERVER['REQUEST_URI'] ?? ''));
+        if (str_contains($uri, 'serve-file') || str_contains($uri, 'servefile')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Lista de notificações do colaborador (Notificacoes / list-notifications legado).
+     */
+    private function isPersonalNotificationsCenterRoute(): bool
+    {
+        $uc = (string)($this->urlController ?? '');
+        if ($uc === 'Notificacoes' || $uc === 'ListNotifications') {
+            return true;
+        }
+        $ctrl = (string)($this->page['controller'] ?? '');
+        if ($ctrl === 'Notificacoes' || $ctrl === 'ListNotifications') {
+            return true;
+        }
+        $slug = strtolower((string)($this->page['controller_url'] ?? ''));
+        if (in_array($slug, ['notificacoes', 'list-notifications'], true)) {
+            return true;
+        }
+        $uri = strtolower((string)($_SERVER['REQUEST_URI'] ?? ''));
+        if (preg_match('#/(notificacoes|list-notifications)(/|\\?|$)#', $uri)) {
+            return true;
+        }
+
         return false;
     }
 

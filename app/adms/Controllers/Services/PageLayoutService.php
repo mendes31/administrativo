@@ -195,6 +195,7 @@ class PageLayoutService
             'DashboardCardEventos',
             'DashboardCardAniversariantes',
             'DashboardCardTempoEmpresa',
+            'DashboardCardPayrollDocuments',
             'ListPolicies',
             'ListMovBetweenAccounts',
             'ListPages',

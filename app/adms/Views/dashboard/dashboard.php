@@ -137,6 +137,32 @@
                     </a>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($this->data['show_payroll_documents_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>my-payroll-documents" class="text-decoration-none flex-fill h-100">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-file-invoice-dollar fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Meus documentos</h5>
+                            <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
+                                <?php echo (int)($this->data['payroll_documents_total'] ?? 0); ?> disponíveis
+                            </div>
+                            <?php $latestDocs = $this->data['payroll_documents_latest'] ?? []; ?>
+                            <?php if (!empty($latestDocs)): ?>
+                                <div class="text-primary text-center small fw-semibold">
+                                    Último ref.: <?php
+                                        $d = $latestDocs[0];
+                                        $ry = (int)($d['reference_year'] ?? 0);
+                                        $rm = $d['reference_month'] ?? null;
+                                        echo htmlspecialchars($rm !== null && $rm !== '' ? str_pad((string)$rm, 2, '0', STR_PAD_LEFT) . '/' . $ry : (string)$ry);
+                                    ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

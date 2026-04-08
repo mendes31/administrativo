@@ -24,9 +24,11 @@ use Smalot\PdfParser\Parser;
 
 /**
 
- * Lê texto com PdfParser, agrupa páginas consecutivas com o mesmo CPF e gera PDFs (cópia, qpdf ou FPDI).
+ * Lê texto com PdfParser, agrupa páginas consecutivas com o mesmo CPF e gera PDFs (cópia, qpdf, Imagick ou FPDI).
 
  * PDFs só com imagem (sem texto) não terão CPF — ficam como página não identificada.
+
+ * Sem qpdf na hospedagem: tenta Imagick (PDF→página via delegate, ex. Ghostscript) e merge com FPDI; senão FPDI no ficheiro completo.
 
  */
 
@@ -118,8 +120,9 @@ final class PayrollPdfSplitService
 
 
         try {
+            $pageTextByNum = [];
 
-            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, &$skippedNoUser, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths) {
+            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, &$skippedNoUser, &$pageTextByNum, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths) {
 
                 if ($currentCpf === null || $currentPageNums === []) {
 
@@ -168,6 +171,15 @@ final class PayrollPdfSplitService
                 $size = is_file($full) ? (int)filesize($full) : 0;
 
                 $title = self::buildTitle($titlePrefix, $referenceYear, $referenceMonth);
+                $firstPageNum = $currentPageNums[0];
+                $netAmount = self::extractNetAmountFromText((string)($pageTextByNum[$firstPageNum] ?? ''));
+                if ($netAmount === null) {
+                    self::debugNetAmountExtraction(
+                        (string)($pageTextByNum[$firstPageNum] ?? ''),
+                        $currentCpf,
+                        $firstPageNum
+                    );
+                }
 
 
 
@@ -190,6 +202,7 @@ final class PayrollPdfSplitService
                     'storage_path' => $relPath,
 
                     'file_size' => $size,
+                    'net_amount' => $netAmount,
 
                     'cpf_normalized' => $currentCpf,
 
@@ -214,6 +227,7 @@ final class PayrollPdfSplitService
                 try {
 
                     $text = $pages[$i]->getText();
+                    $pageTextByNum[$pageNum] = $text;
 
                 } catch (\Throwable $e) {
 
@@ -405,6 +419,150 @@ final class PayrollPdfSplitService
 
     }
 
+    /**
+     * Extração simples de "Valor líquido" para exibição na lista do colaborador.
+     *
+     * @return string|null Formato decimal com ponto (ex.: 2993.34)
+     */
+    public static function extractNetAmountFromText(string $text): ?string
+    {
+        if ($text === '') {
+            return null;
+        }
+        $text = str_replace(["\xc2\xa0", "\r"], [' ', ''], $text);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        $patterns = [
+            '/Valor\s*l[ií]quido[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/iu',
+            '/L[ií]quido[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/iu',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $text, $m) && !empty($m[1])) {
+                $raw = (string)end($m[1]);
+                $normalized = str_replace('.', '', $raw);
+                $normalized = str_replace(',', '.', $normalized);
+                if (preg_match('/^\d+(?:\.\d{2})$/', $normalized)) {
+                    return $normalized;
+                }
+            }
+        }
+
+        // Layout comum de folha: "Total dos Vencimentos Total dos Descontos Valor Líquido"
+        // seguido por três valores monetários (nessa ordem). Neste caso, usa diretamente o 3º.
+        if (preg_match('/Total\s+dos\s+Vencimentos\s+Total\s+dos\s+Descontos\s+Valor\s+L[ií]quido(.{0,1600})/iu', $text, $mTotalsLine)) {
+            $window = (string)$mTotalsLine[1];
+            if (preg_match_all('/\d{1,3}(?:\.\d{3})*,\d{2}/', $window, $mSeq) && count($mSeq[0]) >= 3) {
+                $third = self::normalizeBrazilianMoney((string)$mSeq[0][2]);
+                if ($third !== null) {
+                    return $third;
+                }
+            }
+        }
+
+        // Busca tolerante: pega o primeiro valor monetário após "Valor líquido".
+        if (preg_match('/valor\s*l[ií]quido(.{0,1600})/iu', $text, $mTail)) {
+            if (preg_match('/(\d{1,3}(?:\.\d{3})*,\d{2})/', (string)$mTail[1], $mMoney)) {
+                $n = self::normalizeBrazilianMoney((string)$mMoney[1]);
+                if ($n !== null) {
+                    return $n;
+                }
+            }
+        }
+
+        // Fallback para PDFs com texto muito fragmentado (caracteres espaçados).
+        $folded = mb_strtolower(
+            strtr(
+                $text,
+                [
+                    'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A',
+                    'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a',
+                    'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+                    'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+                    'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+                    'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+                    'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+                    'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+                    'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
+                    'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+                    'Ç' => 'C', 'ç' => 'c',
+                ]
+            ),
+            'UTF-8'
+        );
+        $compact = preg_replace('/\s+/u', '', $folded) ?? $folded;
+        if (preg_match('/valorliquido(?:r\$)?([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/u', $compact, $m4)) {
+            $raw = (string)$m4[1];
+            $normalized = str_replace('.', '', $raw);
+            $normalized = str_replace(',', '.', $normalized);
+            if (preg_match('/^\d+(?:\.\d{2})$/', $normalized)) {
+                return $normalized;
+            }
+        }
+
+        // Fallback: alguns PDFs quebram "Valor Liquido", mas mantêm totais.
+        // Nesses casos, calcular: Total dos Vencimentos - Total dos Descontos.
+        $venc = null;
+        $desc = null;
+        if (preg_match('/Total\s+dos\s+Vencimentos(.{0,1600})/iu', $text, $mvTail)) {
+            if (preg_match('/(\d{1,3}(?:\.\d{3})*,\d{2})/', (string)$mvTail[1], $mv)) {
+                $venc = self::normalizeBrazilianMoney((string)$mv[1]);
+            }
+        }
+        if (preg_match('/Total\s+dos\s+Descontos(.{0,1600})/iu', $text, $mdTail)) {
+            if (preg_match('/(\d{1,3}(?:\.\d{3})*,\d{2})/', (string)$mdTail[1], $md)) {
+                $desc = self::normalizeBrazilianMoney((string)$md[1]);
+            }
+        }
+        if ($venc !== null && $desc !== null) {
+            $liquido = (float)$venc - (float)$desc;
+            if ($liquido > 0) {
+                return number_format($liquido, 2, '.', '');
+            }
+        }
+
+        return null;
+    }
+
+    private static function normalizeBrazilianMoney(string $raw): ?string
+    {
+        $n = str_replace('.', '', trim($raw));
+        $n = str_replace(',', '.', $n);
+        if (!preg_match('/^\d+(?:\.\d{2})$/', $n)) {
+            return null;
+        }
+        return $n;
+    }
+
+    /**
+     * Diagnóstico temporário para entender como o parser lê o "Valor líquido".
+     */
+    private static function debugNetAmountExtraction(string $text, ?string $cpf, int $pageNum): void
+    {
+        if ($text === '') {
+            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: net_amount null (texto vazio)', [
+                'cpf' => $cpf,
+                'page' => $pageNum,
+            ]);
+            return;
+        }
+
+        $flat = preg_replace('/\s+/u', ' ', str_replace(["\xc2\xa0", "\r"], [' ', ''], $text)) ?? $text;
+        $pos = mb_stripos($flat, 'valor', 0, 'UTF-8');
+        $snippet = $pos !== false ? mb_substr($flat, max(0, (int)$pos - 80), 260, 'UTF-8') : mb_substr($flat, 0, 260, 'UTF-8');
+        $moneyHits = [];
+        if (preg_match_all('/\d{1,3}(?:\.\d{3})*,\d{2}/', $flat, $m)) {
+            $moneyHits = array_slice($m[0], 0, 10);
+        }
+
+        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: net_amount não extraído', [
+            'cpf' => $cpf,
+            'page' => $pageNum,
+            'snippet' => $snippet,
+            'money_hits' => $moneyHits,
+        ]);
+    }
+
 
 
     private static function isValidCpfDigits(string $d): bool
@@ -471,6 +629,40 @@ final class PayrollPdfSplitService
 
     {
 
+        $qpdf = self::splitPdfIntoSinglePageFilesWithQpdf($absolutePdfPath, $pageCount);
+
+        if ($qpdf !== null) {
+
+            return $qpdf;
+
+        }
+
+        $imagick = self::splitPdfIntoSinglePageFilesViaImagick($absolutePdfPath, $pageCount);
+
+        if ($imagick !== null) {
+
+            GenerateLog::generateLog('info', 'PayrollPdfSplitService: páginas extraídas via Imagick (alternativa a qpdf na hospedagem)');
+
+            return $imagick;
+
+        }
+
+        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: sem qpdf nem Imagick para dividir páginas; será tentado FPDI no PDF completo');
+
+        return null;
+
+    }
+
+    /**
+
+     * @return array{dir: string, map: array<int, string>}|null
+
+     */
+
+    private static function splitPdfIntoSinglePageFilesWithQpdf(string $absolutePdfPath, int $pageCount): ?array
+
+    {
+
         $qpdfBin = self::resolveQpdfBinary();
 
         if ($qpdfBin === null) {
@@ -479,8 +671,6 @@ final class PayrollPdfSplitService
 
         }
 
-
-
         $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'payroll_qpdf_' . bin2hex(random_bytes(8));
 
         if (!@mkdir($dir, 0700, true) && !is_dir($dir)) {
@@ -488,8 +678,6 @@ final class PayrollPdfSplitService
             return null;
 
         }
-
-
 
         $pattern = $dir . DIRECTORY_SEPARATOR . 'p-%d.pdf';
 
@@ -514,13 +702,9 @@ final class PayrollPdfSplitService
 
             self::removeDirectoryRecursive($dir);
 
-
-
             return null;
 
         }
-
-
 
         $glob = glob($dir . DIRECTORY_SEPARATOR . 'p-*.pdf') ?: [];
 
@@ -538,8 +722,6 @@ final class PayrollPdfSplitService
 
             self::removeDirectoryRecursive($dir);
 
-
-
             return null;
 
         }
@@ -549,8 +731,6 @@ final class PayrollPdfSplitService
             preg_match('/(\d+)/', basename($a), $ma);
 
             preg_match('/(\d+)/', basename($b), $mb);
-
-
 
             return ((int)($ma[1] ?? 0)) <=> ((int)($mb[1] ?? 0));
 
@@ -564,10 +744,112 @@ final class PayrollPdfSplitService
 
         }
 
-
-
         return ['dir' => $dir, 'map' => $map];
 
+    }
+
+    /**
+     * Hospedagem sem qpdf: ImageMagick lê cada página do PDF (requer delegate PDF, p.ex. Ghostscript, comum no Linux).
+     * Gera um PDF de uma página por ficheiro, normalmente compatível com FPDI no merge.
+     *
+     * @return array{dir: string, map: array<int, string>}|null
+     */
+    private static function splitPdfIntoSinglePageFilesViaImagick(string $absolutePdfPath, int $pageCount): ?array
+    {
+        if ($pageCount < 1 || !is_readable($absolutePdfPath)) {
+            return null;
+        }
+        if (!extension_loaded('imagick') || !class_exists(\Imagick::class)) {
+            return null;
+        }
+
+        $normalized = self::normalizePathForImagickRead($absolutePdfPath);
+        if ($normalized === null) {
+            return null;
+        }
+
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'payroll_imagick_' . bin2hex(random_bytes(8));
+        if (!@mkdir($dir, 0700, true) && !is_dir($dir)) {
+            return null;
+        }
+
+        $map = [];
+        for ($i = 0; $i < $pageCount; $i++) {
+            $pageNum = $i + 1;
+            $out = $dir . DIRECTORY_SEPARATOR . 'p-' . $pageNum . '.pdf';
+            try {
+                $im = new \Imagick();
+                $im->setResolution(150, 150);
+                $im->readImage($normalized . '[' . $i . ']');
+                $im->setImageFormat('pdf');
+                $im->writeImage($out);
+                $im->clear();
+                $im->destroy();
+            } catch (\Throwable $e) {
+                GenerateLog::generateLog('warning', 'PayrollPdfSplitService: Imagick falhou ao extrair página', [
+                    'page' => $pageNum,
+                    'message' => $e->getMessage(),
+                ]);
+                self::removeDirectoryRecursive($dir);
+                return null;
+            }
+            if (!is_file($out) || (int)filesize($out) < 1) {
+                self::removeDirectoryRecursive($dir);
+                return null;
+            }
+            $map[$pageNum] = $out;
+        }
+
+        return ['dir' => $dir, 'map' => $map];
+    }
+
+    /**
+     * Imagick no Windows/Linux aceita path com seletor [n]; normaliza barras.
+     */
+    private static function normalizePathForImagickRead(string $absolutePdfPath): ?string
+    {
+        $rp = realpath($absolutePdfPath);
+        if ($rp === false || !is_readable($rp)) {
+            return null;
+        }
+        if (PHP_OS_FAMILY === 'Windows') {
+            return str_replace('\\', '/', $rp);
+        }
+        return $rp;
+    }
+
+    /**
+     * Junta PDFs de uma página (saída qpdf ou Imagick) com FPDI — cada ficheiro tem só a página 1.
+     */
+    private static function mergePdfPagesWithFpdi(array $singlePagePaths, array $pageNumbers, string $absoluteOut): bool
+    {
+        if ($pageNumbers === []) {
+            return false;
+        }
+        try {
+            $pdf = new Fpdi();
+            foreach ($pageNumbers as $p) {
+                if (!isset($singlePagePaths[$p]) || !is_readable($singlePagePaths[$p])) {
+                    return false;
+                }
+                $pdf->setSourceFile($singlePagePaths[$p]);
+                $tplId = $pdf->importPage(1);
+                $size = $pdf->getTemplateSize($tplId);
+                if ($size === false) {
+                    return false;
+                }
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($tplId);
+            }
+            $pdf->Output('F', $absoluteOut);
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: merge FPDI a partir de páginas isoladas falhou', [
+                'message' => $e->getMessage(),
+            ]);
+            return false;
+        }
+
+        return is_file($absoluteOut) && filesize($absoluteOut) > 0;
     }
 
 
@@ -802,61 +1084,79 @@ final class PayrollPdfSplitService
 
             } elseif (self::pagePathsCover($singlePagePaths, $pageNumbers)) {
 
-            if (count($pageNumbers) === 1) {
+                if (count($pageNumbers) === 1) {
 
-                $p = $pageNumbers[0];
+                    $p = $pageNumbers[0];
 
-                if (@copy($singlePagePaths[$p], $absoluteOut)) {
+                    if (@copy($singlePagePaths[$p], $absoluteOut)) {
 
-                    return $relReturn;
+                        return $relReturn;
+
+                    }
+
+                    GenerateLog::generateLog('warning', 'PayrollPdfSplitService: copy() falhou ao gravar página única (origem split)', [
+
+                        'page' => $p,
+
+                        'from' => $singlePagePaths[$p],
+
+                        'to' => $absoluteOut,
+
+                        'from_readable' => is_readable($singlePagePaths[$p]),
+
+                    ]);
+
+                } else {
+
+                    $qpdfMerge = self::resolveQpdfBinary();
+
+                    if ($qpdfMerge !== null) {
+
+                        $parts = [];
+
+                        foreach ($pageNumbers as $p) {
+
+                            $parts[] = escapeshellarg($singlePagePaths[$p]);
+
+                        }
+
+                        $cmd = escapeshellarg($qpdfMerge) . ' --empty --pages ' . implode(' ', $parts) . ' -- ' . escapeshellarg($absoluteOut);
+
+                        $o = [];
+
+                        $c = 1;
+
+                        @exec($cmd . ' 2>&1', $o, $c);
+
+                        if (self::qpdfExitMeansSuccess($c) && is_file($absoluteOut) && filesize($absoluteOut) > 0) {
+
+                            return $relReturn;
+
+                        }
+
+                        GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf merge falhou', [
+
+                            'code' => $c,
+
+                            'output' => implode("\n", array_slice($o, 0, 8)),
+
+                        ]);
+
+                    }
+
+                    if (self::mergePdfPagesWithFpdi($singlePagePaths, $pageNumbers, $absoluteOut)) {
+
+                        return $relReturn;
+
+                    }
+
+                    GenerateLog::generateLog('warning', 'PayrollPdfSplitService: merge via FPDI a partir de páginas isoladas falhou (qpdf indisponível ou merge anterior falhou)', [
+
+                        'pages' => $pageNumbers,
+
+                    ]);
 
                 }
-
-                GenerateLog::generateLog('warning', 'PayrollPdfSplitService: copy() falhou ao gravar página única (origem qpdf)', [
-
-                    'page' => $p,
-
-                    'from' => $singlePagePaths[$p],
-
-                    'to' => $absoluteOut,
-
-                    'from_readable' => is_readable($singlePagePaths[$p]),
-
-                ]);
-
-            } elseif (($qpdfMerge = self::resolveQpdfBinary()) !== null) {
-
-                $parts = [];
-
-                foreach ($pageNumbers as $p) {
-
-                    $parts[] = escapeshellarg($singlePagePaths[$p]);
-
-                }
-
-                $cmd = escapeshellarg($qpdfMerge) . ' --empty --pages ' . implode(' ', $parts) . ' -- ' . escapeshellarg($absoluteOut);
-
-                $o = [];
-
-                $c = 1;
-
-                @exec($cmd . ' 2>&1', $o, $c);
-
-                if (self::qpdfExitMeansSuccess($c) && is_file($absoluteOut) && filesize($absoluteOut) > 0) {
-
-                    return $relReturn;
-
-                }
-
-                GenerateLog::generateLog('warning', 'PayrollPdfSplitService: qpdf merge falhou', [
-
-                    'code' => $c,
-
-                    'output' => implode("\n", array_slice($o, 0, 8)),
-
-                ]);
-
-            }
 
             }
 
@@ -866,7 +1166,7 @@ final class PayrollPdfSplitService
 
         if ($totalPageCount > 1 && $singlePagePaths === null) {
 
-            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: PDF multi-página sem split qpdf — a tentar FPDI (pode falhar em PDFs compactados); confirme bin/qpdf.exe, QPDF_PATH e exec() no PHP do Apache', [
+            GenerateLog::generateLog('warning', 'PayrollPdfSplitService: PDF multi-página sem split (qpdf/Imagick) — a tentar FPDI no ficheiro completo (pode falhar em PDFs compactados). Ative extensão Imagick no PHP se possível.', [
 
                 'pages' => $pageNumbers,
 

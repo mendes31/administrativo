@@ -10,6 +10,15 @@ $typeLabels = $this->data['type_labels'] ?? [];
 
 $curYear = (int)date('Y');
 
+/** Classes Bootstrap 5 por código de tipo (badges coloridos). */
+$payrollDocBadgeClass = [
+    'payroll' => 'text-bg-primary',
+    'vacation_receipt' => 'text-bg-warning',
+    'ir_statement' => 'text-bg-info',
+    'time_bank' => 'text-bg-success',
+    'other' => 'text-bg-secondary',
+];
+
 ?>
 
 <div class="container-fluid px-3 px-md-4">
@@ -163,6 +172,11 @@ $curYear = (int)date('Y');
                                 $ref = $mo !== null && $mo !== '' ? str_pad((string)$mo, 2, '0', STR_PAD_LEFT) . '/' . $y : (string)$y;
 
                                 $title = (string)($d['title'] ?? '');
+                                $netAmount = isset($d['net_amount']) && $d['net_amount'] !== null && $d['net_amount'] !== ''
+                                    ? (float)$d['net_amount']
+                                    : null;
+
+                                $badgeClass = $payrollDocBadgeClass[$dt] ?? 'text-bg-light text-secondary border';
 
                                 ?>
 
@@ -175,10 +189,15 @@ $curYear = (int)date('Y');
                                             <div class="fw-semibold small text-break lh-sm"><?= htmlspecialchars($title) ?></div>
 
                                             <div class="text-muted mt-1" style="font-size: .72rem;">Ref. <?= htmlspecialchars($ref) ?></div>
+                                            <?php if ($netAmount !== null): ?>
+                                                <div class="text-success mt-1 fw-semibold" style="font-size: .76rem;">
+                                                    Valor líquido: R$ <?= htmlspecialchars(number_format($netAmount, 2, ',', '.')) ?>
+                                                </div>
+                                            <?php endif; ?>
 
                                         </div>
 
-                                        <span class="badge rounded-pill bg-light text-secondary border flex-shrink-0" style="font-size: .65rem; font-weight: 500;"><?= htmlspecialchars($label) ?></span>
+                                        <span class="badge rounded-pill <?= htmlspecialchars($badgeClass) ?> flex-shrink-0" style="font-size: .65rem; font-weight: 500;"><?= htmlspecialchars($label) ?></span>
 
                                     </div>
 
@@ -223,6 +242,7 @@ $curYear = (int)date('Y');
                                             <th class="py-2">Tipo</th>
 
                                             <th class="py-2">Referência</th>
+                                            <th class="py-2">Valor líquido</th>
 
                                             <th class="text-end pe-4 py-2" style="width: 1%;">Ações</th>
 
@@ -247,6 +267,11 @@ $curYear = (int)date('Y');
                                             $mo = $d['reference_month'] ?? null;
 
                                             $ref = $mo !== null && $mo !== '' ? str_pad((string)$mo, 2, '0', STR_PAD_LEFT) . '/' . $y : (string)$y;
+                                            $netAmount = isset($d['net_amount']) && $d['net_amount'] !== null && $d['net_amount'] !== ''
+                                                ? (float)$d['net_amount']
+                                                : null;
+
+                                            $badgeClass = $payrollDocBadgeClass[$dt] ?? 'text-bg-light text-secondary border';
 
                                             ?>
 
@@ -254,9 +279,12 @@ $curYear = (int)date('Y');
 
                                                 <td class="ps-4"><?= htmlspecialchars((string)($d['title'] ?? '')) ?></td>
 
-                                                <td><span class="badge rounded-pill bg-light text-secondary border"><?= htmlspecialchars($label) ?></span></td>
+                                                <td><span class="badge rounded-pill <?= htmlspecialchars($badgeClass) ?>"><?= htmlspecialchars($label) ?></span></td>
 
                                                 <td class="text-muted small"><?= htmlspecialchars($ref) ?></td>
+                                                <td class="text-success small fw-semibold">
+                                                    <?= $netAmount !== null ? 'R$ ' . htmlspecialchars(number_format($netAmount, 2, ',', '.')) : '—' ?>
+                                                </td>
 
                                                 <td class="text-end pe-4 text-nowrap">
 

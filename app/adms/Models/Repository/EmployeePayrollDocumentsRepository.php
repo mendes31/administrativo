@@ -94,8 +94,8 @@ class EmployeePayrollDocumentsRepository extends DbConnection
     public function insertDocument(array $row): int
     {
         $sql = 'INSERT INTO adms_employee_payroll_documents
-            (user_id, import_batch_id, document_type, reference_year, reference_month, title, storage_path, file_size, cpf_normalized, page_from, page_to, created_at)
-            VALUES (:user_id, :import_batch_id, :document_type, :reference_year, :reference_month, :title, :storage_path, :file_size, :cpf_normalized, :page_from, :page_to, NOW())';
+            (user_id, import_batch_id, document_type, reference_year, reference_month, title, storage_path, file_size, net_amount, cpf_normalized, page_from, page_to, created_at)
+            VALUES (:user_id, :import_batch_id, :document_type, :reference_year, :reference_month, :title, :storage_path, :file_size, :net_amount, :cpf_normalized, :page_from, :page_to, NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', (int)$row['user_id'], PDO::PARAM_INT);
         if (!empty($row['import_batch_id'])) {
@@ -113,6 +113,11 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':title', $row['title'], PDO::PARAM_STR);
         $stmt->bindValue(':storage_path', $row['storage_path'], PDO::PARAM_STR);
         $stmt->bindValue(':file_size', (int)($row['file_size'] ?? 0), PDO::PARAM_INT);
+        if (array_key_exists('net_amount', $row) && $row['net_amount'] !== null && $row['net_amount'] !== '') {
+            $stmt->bindValue(':net_amount', (string)$row['net_amount'], PDO::PARAM_STR);
+        } else {
+            $stmt->bindValue(':net_amount', null, PDO::PARAM_NULL);
+        }
         $stmt->bindValue(':cpf_normalized', $row['cpf_normalized'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':page_from', (int)($row['page_from'] ?? 1), PDO::PARAM_INT);
         $stmt->bindValue(':page_to', (int)($row['page_to'] ?? 1), PDO::PARAM_INT);
