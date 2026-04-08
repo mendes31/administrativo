@@ -1,6 +1,7 @@
 <?php
 $urlAdm = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $csrf = $this->data['csrf_token'] ?? '';
+$importNonce = (string)($this->data['import_nonce'] ?? '');
 $batches = $this->data['import_batches'] ?? [];
 $typeLabels = [
     'payroll' => 'Folha de pagamento',
@@ -31,8 +32,18 @@ $typeLabels = [
         <div class="card-header"><span><i class="fas fa-file-pdf me-2 text-danger"></i>Upload e parâmetros</span></div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
-            <form action="" method="post" enctype="multipart/form-data" class="row g-3">
+            <form id="formImportPayrollPdf" action="" method="post" enctype="multipart/form-data" class="row g-3 position-relative">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="import_nonce" value="<?= htmlspecialchars($importNonce) ?>">
+
+                <div id="importPayrollOverlay" class="d-none position-absolute top-0 start-0 w-100 h-100 rounded-3 bg-white bg-opacity-90 flex-column align-items-center justify-content-center p-4" style="z-index: 10; min-height: 220px;">
+                    <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
+                    <p class="fw-semibold text-center mb-2">A processar o PDF…</p>
+                    <p class="small text-muted text-center mb-3">Não feche esta página nem clique novamente. PDFs grandes (ex.: 100+ páginas) podem demorar vários minutos.</p>
+                    <div class="progress w-100" style="max-width: 420px;" role="progressbar" aria-label="Processamento em curso">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+                    </div>
+                </div>
 
                 <div class="col-md-6">
                     <label class="form-label" for="pdf_file">Arquivo PDF <span class="text-danger">*</span></label>
@@ -74,9 +85,29 @@ $typeLabels = [
                 </div>
 
                 <div class="col-12">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-cloud-upload-alt me-1"></i> Processar PDF</button>
+                    <button type="submit" id="btnProcessarPayrollPdf" class="btn btn-primary">
+                        <i class="fas fa-cloud-upload-alt me-1"></i> Processar PDF
+                    </button>
                 </div>
             </form>
+            <script>
+            (function () {
+                var form = document.getElementById('formImportPayrollPdf');
+                var btn = document.getElementById('btnProcessarPayrollPdf');
+                var overlay = document.getElementById('importPayrollOverlay');
+                var fileInput = document.getElementById('pdf_file');
+                if (!form || !btn || !overlay) return;
+                form.addEventListener('submit', function () {
+                    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                        return;
+                    }
+                    btn.disabled = true;
+                    btn.setAttribute('aria-busy', 'true');
+                    overlay.classList.remove('d-none');
+                    overlay.classList.add('d-flex');
+                });
+            })();
+            </script>
         </div>
     </div>
 

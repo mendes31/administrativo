@@ -46,6 +46,8 @@ class ImportPayrollDocuments
     private function renderForm(): void
     {
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('form_import_payroll_pdf');
+        $_SESSION['payroll_import_nonce'] = bin2hex(random_bytes(16));
+        $this->data['import_nonce'] = $_SESSION['payroll_import_nonce'];
         $repo = new EmployeePayrollDocumentsRepository();
         $this->data['import_batches'] = $repo->listBatches(50);
         $pageElements = [
@@ -132,6 +134,17 @@ class ImportPayrollDocuments
             header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
             exit;
         }
+
+        $postedNonce = (string)($_POST['import_nonce'] ?? '');
+        $sessionNonce = (string)($_SESSION['payroll_import_nonce'] ?? '');
+        if ($postedNonce === '' || $sessionNonce === '' || !hash_equals($sessionNonce, $postedNonce)) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Este envio já foi processado ou a página expirou. <strong>Atualize a página</strong> e envie o PDF uma única vez; não clique duas vezes em «Processar PDF».</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'import-payroll-documents');
+            exit;
+        }
+        unset($_SESSION['payroll_import_nonce']);
+
+        @set_time_limit(0);
 
         $docType = preg_replace('/[^a-z_]/', '', strtolower((string)($_POST['document_type'] ?? 'payroll')));
         $allowed = ['payroll', 'vacation_receipt', 'ir_statement', 'time_bank', 'other'];
@@ -250,39 +263,71 @@ class ImportPayrollDocuments
         $skippedUser = $result['skipped_no_user'];
         $hasRealErrors = $result['errors'] !== [];
         $onlySkippedUsers = $docCount === 0 && !$hasRealErrors && $skippedUser !== [] && $result['unmatched_pages'] === [];
+        $matched = (int)$result['matched'];
+        $unmatchedCount = count($result['unmatched_pages']);
+        $skippedCount = count($skippedUser);
         $alertClass = $docCount === 0 ? 'alert-warning' : 'alert-success';
-        $msg = '<div class="alert ' . $alertClass . '" role="alert">Processamento concluído. Documentos gerados: <strong>' . $docCount . '</strong>. '
-            . 'Páginas associadas a documentos: <strong>' . (int)$result['matched'] . '</strong> de <strong>' . $pageCount . '</strong>.';
-        if ($result['unmatched_pages'] !== []) {
-            $msg .= ' Páginas não identificadas (sem CPF legível): <strong>' . count($result['unmatched_pages']) . '</strong>.';
+
+        $msg = '<div class="alert ' . $alertClass . '" role="alert">';
+        $msg .= '<p class="mb-2 fw-semibold">Processamento concluído.</p>';
+        $msg .= '<ul class="small mb-2 ps-3">';
+        $msg .= '<li><strong>Páginas no PDF:</strong> ' . $pageCount . '</li>';
+        $msg .= '<li><strong>Documentos gerados (colaboradores):</strong> ' . $docCount . '</li>';
+        $msg .= '<li><strong>Páginas incluídas nos documentos:</strong> ' . $matched . ' de ' . $pageCount . '</li>';
+        if ($unmatchedCount > 0) {
+            $msg .= '<li class="text-warning"><strong>Páginas sem CPF identificado (scan/OCR ou texto ilegível):</strong> ' . $unmatchedCount . '</li>';
         }
+        if ($skippedCount > 0) {
+            $msg .= '<li class="text-secondary"><strong>CPFs ignorados (sem utilizador ativo com o mesmo CPF):</strong> ' . $skippedCount . '</li>';
+        }
+        $msg .= '</ul>';
+
+        if ($pageCount > $docCount) {
+            $msg .= '<div class="border rounded p-2 mb-2 bg-light small"><strong>Por que o número de páginas é maior que o de documentos?</strong><ul class="mb-0 mt-1 ps-3">';
+            $msg .= '<li>Cada <strong>colaborador</strong> recebe <strong>um</strong> PDF; esse PDF pode ter <strong>várias páginas</strong> (ex.: 2 páginas por holerite). Por isso <em>documentos ≤ páginas</em> é normal.</li>';
+            if ($unmatchedCount > 0) {
+                $msg .= '<li>Algumas páginas não geraram documento porque <strong>não foi encontrado CPF</strong> no texto extraído do PDF.</li>';
+            }
+            if ($skippedCount > 0) {
+                $msg .= '<li>Alguns CPFs foram <strong>ignorados</strong> por não haver utilizador ativo com o mesmo documento no cadastro.</li>';
+            }
+            if ($hasRealErrors) {
+                $msg .= '<li>Ocorreram <strong>erros técnicos</strong> ao gerar alguns ficheiros (ver abaixo).</li>';
+            }
+            if ($unmatchedCount === 0 && $skippedCount === 0 && !$hasRealErrors && $matched === $pageCount && $docCount > 0) {
+                $msg .= '<li>Todas as páginas foram associadas a documentos; a diferença para o total de páginas deve-se a <strong>várias páginas por colaborador</strong>.</li>';
+            }
+            $msg .= '</ul></div>';
+        }
+
         if ($skippedUser !== []) {
             $skipSlice = $docCount === 0 ? $skippedUser : array_slice($skippedUser, 0, 8);
-            $msg .= ' <span class="d-block mt-1 small text-muted"><strong>Ignorados (sem utilizador ativo com este CPF):</strong> '
+            $msg .= '<p class="small text-muted mb-2"><strong>Detalhe — ignorados:</strong> '
                 . htmlspecialchars(implode(' | ', $skipSlice));
             if ($docCount > 0 && count($skippedUser) > 8) {
                 $msg .= ' …';
             }
-            $msg .= '</span>';
+            $msg .= '</p>';
         }
         if ($hasRealErrors) {
-            $errSlice = $docCount === 0 ? $result['errors'] : array_slice($result['errors'], 0, 5);
-            $msg .= ' <strong class="text-danger">Erro:</strong> ' . htmlspecialchars(implode(' | ', $errSlice));
-            if ($docCount > 0 && count($result['errors']) > 5) {
+            $errSlice = $docCount === 0 ? $result['errors'] : array_slice($result['errors'], 0, 8);
+            $msg .= '<p class="small text-danger mb-2"><strong>Erros:</strong> ' . htmlspecialchars(implode(' | ', $errSlice));
+            if ($docCount > 0 && count($result['errors']) > 8) {
                 $msg .= ' …';
             }
+            $msg .= '</p>';
             $errs = $result['errors'];
             $onlyPdfWriteFails = $pageCount >= 2 && $errs !== []
                 && count(array_filter($errs, static fn(string $e): bool => str_starts_with($e, 'Falha ao gerar PDF'))) === count($errs);
             if ($onlyPdfWriteFails) {
-                $msg .= ' <span class="d-block mt-2 small text-secondary"><strong>Diagnóstico:</strong> estes CPFs existem no cadastro; a falha é ao criar o ficheiro. Confira (1) <code>bin/qpdf.exe</code> + DLLs ou <code>QPDF_PATH</code> no <code>.env</code> e <code>exec</code> ativo no PHP <em>do Apache</em> (não só no terminal); (2) permissões de escrita em <code>storage/private/payroll/</code>; (3) o log da aplicação (mensagens <code>PayrollPdfSplitService</code>).</span>';
+                $msg .= '<p class="small text-secondary mb-0"><strong>Diagnóstico:</strong> o CPF existe no cadastro; a falha é ao criar o ficheiro. Verifique extensão <strong>Imagick</strong> no PHP, permissões em <code>storage/private/payroll/</code>, e o log <code>PayrollPdfSplitService</code>. Em servidores sem <code>qpdf</code>, o sistema usa Imagick + FPDI.</p>';
             }
         }
         if ($docCount === 0 && !$onlySkippedUsers) {
-            $msg .= ' <span class="d-block mt-2 small">PDF com várias páginas: copie o executável <strong>qpdf</strong> para <code>bin/qpdf.exe</code> (ou <code>bin/qpdf</code> no Linux) na raiz do projeto, ou defina <code>QPDF_PATH</code> no <code>.env</code>. É necessário que o PHP possa executar comandos (<code>exec</code> não desativado).</span>';
+            $msg .= '<p class="small mb-0">PDF com várias páginas: em muitos servidores é necessário <strong>Imagick</strong> (PHP) ou o binário <strong>qpdf</strong> + <code>exec</code> permitido. Consulte o administrador.</p>';
         }
         if ($onlySkippedUsers) {
-            $msg .= ' <span class="d-block mt-2 small">Nenhum CPF identificado no PDF corresponde a um <strong>utilizador ativo</strong> com o mesmo documento; cadastre ou ative o utilizador para gerar recibos.</span>';
+            $msg .= '<p class="small mb-0">Nenhum CPF identificado no PDF corresponde a um <strong>utilizador ativo</strong> com o mesmo documento; cadastre ou ative o utilizador para gerar recibos.</p>';
         }
         $msg .= '</div>';
         $_SESSION['msg'] = $msg;
