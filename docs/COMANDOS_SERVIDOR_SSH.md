@@ -22,6 +22,36 @@ cd /var/www/administrativo
 ls -la
 ```
 
+## ⚙️ **Editar o `.env` no servidor**
+
+O ficheiro `.env` fica na **raiz do projeto** (mesmo nível que `index.php` e `vendor/`). Formato: uma variável por linha, `CHAVE=valor`, sem aspas exceto se o valor tiver espaços.
+
+### **Opção A — SSH (recomendado)**
+
+```bash
+cd /caminho/do/administrativo   # pasta onde está o .env
+cp .env .env.bak.$(date +%Y%m%d)   # backup antes de editar
+nano .env                          # ou: vim .env
+```
+
+- No **nano**: edite, depois `Ctrl+O` (guardar), Enter, `Ctrl+X` (sair).
+- No **vim**: `i` para inserir, `Esc`, `:wq` para guardar e sair.
+- Confirme que a linha existe, ex.: `URL_ADM=https://seu-dominio.com.br/administrativo/` (com barra final, caminho certo da app).
+
+**Nota:** em muitos hostings o PHP já lê o `.env` no próximo pedido; não é obrigatório reiniciar Apache, mas se usarem **OPcache** agressivo ou cache de config, pode ser preciso reiniciar PHP-FPM/Apache no painel.
+
+### **Opção B — FTP / SFTP / FileZilla**
+
+Ligue ao servidor, vá à pasta do projeto, **descarregue** o `.env`, edite no PC, **volte a enviar** (modo texto/ASCII). Faça backup do original no servidor antes.
+
+### **Opção C — Painel (Kinghost, cPanel, etc.)**
+
+Gestor de ficheiros → pasta do site → editar `.env` online. Guarde e teste o site.
+
+**Segurança:** não commite o `.env` no Git; não partilhe passwords em tickets com screenshot completo.
+
+---
+
 ## ✅ **PASSO 2: Verificar se o Vendor Existe**
 
 ```bash
