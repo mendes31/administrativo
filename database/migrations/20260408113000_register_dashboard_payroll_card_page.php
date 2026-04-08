@@ -17,12 +17,19 @@ final class RegisterDashboardPayrollCardPage extends AbstractMigration
             return;
         }
 
+        // Grupo visual no cadastro de páginas: mantém no mesmo grupo dos outros cards do dashboard.
         $ref = $this->fetchRow("SELECT id, adms_groups_page_id FROM adms_pages WHERE controller = 'DashboardCardTempoEmpresa' LIMIT 1");
         if (!$ref) {
             $ref = $this->fetchRow("SELECT id, adms_groups_page_id FROM adms_pages WHERE controller = 'Dashboard' LIMIT 1");
         }
         if (!$ref) {
             return;
+        }
+
+        // ACL: alinhar a "Meus documentos de folha" (não copiar Tempo de Empresa, que costuma estar mais aberto).
+        $refAcl = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = 'MyPayrollDocuments' LIMIT 1");
+        if (!$refAcl) {
+            $refAcl = $ref;
         }
 
         $gid = (int)($ref['adms_groups_page_id'] ?? 0);
@@ -52,12 +59,12 @@ final class RegisterDashboardPayrollCardPage extends AbstractMigration
             return;
         }
 
-        $refId = (int)$ref['id'];
+        $refAclId = (int)$refAcl['id'];
         $this->execute(
             "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
              SELECT permission, adms_access_level_id, {$newId}, '{$now}', '{$now}'
              FROM adms_access_levels_pages
-             WHERE adms_page_id = {$refId}"
+             WHERE adms_page_id = {$refAclId}"
         );
     }
 
