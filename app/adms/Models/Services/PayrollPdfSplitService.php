@@ -24,7 +24,8 @@ use Smalot\PdfParser\Parser;
 
 /**
 
- * Lê texto com PdfParser, agrupa páginas consecutivas com o mesmo CPF e gera PDFs (cópia, qpdf, Imagick ou FPDI).
+ * Lê texto com PdfParser e agrupa páginas por CPF + período + sequência de FLS
+ * (ex.: FLS 01, 02, 03) para gerar um único PDF por recibo.
 
  * PDFs só com imagem (sem texto) não terão CPF — ficam como página não identificada.
 
@@ -92,14 +93,6 @@ final class PayrollPdfSplitService
 
 
 
-        $currentCpf = null;
-
-        /** @var list<int> */
-
-        $currentPageNums = [];
-
-
-
         /** @var array<int, string>|null mapa página 1-based → ficheiro PDF de uma página (qpdf) */
 
         $singlePagePaths = null;
@@ -124,171 +117,139 @@ final class PayrollPdfSplitService
 
         try {
             $pageTextByNum = [];
+            /** @var array<int, array{cpf:string, period:string, fls:int|null}> $pageMetaByNum */
+            $pageMetaByNum = [];
 
-            $flushGroup = function () use (&$currentCpf, &$currentPageNums, &$matched, &$documentsCreated, &$errors, &$skippedNoUser, &$pageTextByNum, $absolutePdfPath, $batchId, $documentType, $referenceYear, $referenceMonth, $titlePrefix, $repo, $usersRepo, $pageCount, $singlePagePaths, $originalFilename) {
-
-                if ($currentCpf === null || $currentPageNums === []) {
-
-                    return;
-
+            for ($i = 0; $i < $pageCount; $i++) {
+                $pageNum = $i + 1;
+                try {
+                    $text = $pages[$i]->getText();
+                    $pageTextByNum[$pageNum] = $text;
+                } catch (\Throwable $e) {
+                    $unmatchedPages[] = $pageNum;
+                    $errors[] = 'Erro ao ler texto da página ' . $pageNum . ': ' . $e->getMessage();
+                    continue;
                 }
 
-                $userId = $usersRepo->findActiveUserIdByNormalizedCpf($currentCpf);
+                $cpf = self::extractCpfFromText($text);
+                if ($cpf === null) {
+                    $unmatchedPages[] = $pageNum;
+                    continue;
+                }
 
+                $period = self::extractPayrollPeriodFromText($text) ?? self::fallbackPeriodFromReference($referenceYear, $referenceMonth);
+                $pageMetaByNum[$pageNum] = [
+                    'cpf' => $cpf,
+                    'period' => $period,
+                    'fls' => self::extractFlsNumberFromText($text),
+                ];
+            }
+
+            /** @var array<int, array{cpf:string, period:string, pages:list<int>, last_fls:int|null}> $groups */
+            $groups = [];
+            /** @var array<string, int> $openGroupByKey */
+            $openGroupByKey = [];
+            foreach ($pageMetaByNum as $pageNum => $meta) {
+                $key = $meta['cpf'] . '|' . $meta['period'];
+                $fls = $meta['fls'];
+                if (!isset($openGroupByKey[$key])) {
+                    $groups[] = [
+                        'cpf' => $meta['cpf'],
+                        'period' => $meta['period'],
+                        'pages' => [$pageNum],
+                        'last_fls' => $fls,
+                    ];
+                    $openGroupByKey[$key] = count($groups) - 1;
+                    continue;
+                }
+
+                $idx = $openGroupByKey[$key];
+                $lastPage = $groups[$idx]['pages'][count($groups[$idx]['pages']) - 1];
+                $lastFls = $groups[$idx]['last_fls'];
+                $startNewGroup = false;
+
+                if ($fls !== null) {
+                    if ($fls === 1 || ($lastFls !== null && $fls <= $lastFls)) {
+                        $startNewGroup = true;
+                    }
+                } elseif ($pageNum !== ($lastPage + 1)) {
+                    // Sem FLS explícita: não juntar blocos separados por outras páginas.
+                    $startNewGroup = true;
+                }
+
+                if ($startNewGroup) {
+                    $groups[] = [
+                        'cpf' => $meta['cpf'],
+                        'period' => $meta['period'],
+                        'pages' => [$pageNum],
+                        'last_fls' => $fls,
+                    ];
+                    $openGroupByKey[$key] = count($groups) - 1;
+                    continue;
+                }
+
+                $groups[$idx]['pages'][] = $pageNum;
+                if ($fls !== null) {
+                    $groups[$idx]['last_fls'] = $fls;
+                }
+            }
+
+            /** @var array<int, true> $alreadyCleanedUserIds */
+            $alreadyCleanedUserIds = [];
+            foreach ($groups as $group) {
+                $groupPages = $group['pages'];
+                if ($groupPages === []) {
+                    continue;
+                }
+                $cpf = $group['cpf'];
+                $userId = $usersRepo->findActiveUserIdByNormalizedCpf($cpf);
                 if ($userId === null) {
-
-                    $skippedNoUser[] = 'CPF sem usuário ativo no cadastro (páginas ignoradas): ' . $currentCpf . ' — páginas ' . implode(',', array_map('strval', $currentPageNums));
-
-
-
-                    $currentCpf = null;
-
-                    $currentPageNums = [];
-
-
-
-                    return;
-
+                    $skippedNoUser[] = 'CPF sem usuário ativo no cadastro (páginas ignoradas): ' . $cpf . ' — páginas ' . implode(',', array_map('strval', $groupPages));
+                    continue;
                 }
 
+                if (!isset($alreadyCleanedUserIds[$userId])) {
+                    $repo->deleteExistingForUserRefSameOriginalFilename($userId, $documentType, $referenceYear, $referenceMonth, $originalFilename);
+                    $alreadyCleanedUserIds[$userId] = true;
+                }
 
-
-                $relPath = self::writePagesToNewPdf($absolutePdfPath, $currentPageNums, $userId, $pageCount, $singlePagePaths);
-
+                $relPath = self::writePagesToNewPdf($absolutePdfPath, $groupPages, $userId, $pageCount, $singlePagePaths);
                 if ($relPath === null) {
-
-                    $errors[] = 'Falha ao gerar PDF para CPF ' . $currentCpf;
-
-                    $currentCpf = null;
-
-                    $currentPageNums = [];
-
-                    return;
-
+                    $errors[] = 'Falha ao gerar PDF para CPF ' . $cpf;
+                    continue;
                 }
-
-
 
                 $full = $repo->absoluteStoragePath($relPath);
-
                 $size = is_file($full) ? (int)filesize($full) : 0;
-
                 $title = self::buildTitle($titlePrefix, $referenceYear, $referenceMonth);
-                $firstPageNum = $currentPageNums[0];
-                $netAmount = self::extractNetAmountFromText((string)($pageTextByNum[$firstPageNum] ?? ''));
+                $lastPageNum = $groupPages[count($groupPages) - 1];
+                $netAmount = self::extractNetAmountFromText((string)($pageTextByNum[$lastPageNum] ?? ''));
                 if ($netAmount === null) {
                     self::debugNetAmountExtraction(
-                        (string)($pageTextByNum[$firstPageNum] ?? ''),
-                        $currentCpf,
-                        $firstPageNum
+                        (string)($pageTextByNum[$lastPageNum] ?? ''),
+                        $cpf,
+                        $lastPageNum
                     );
                 }
 
-
-
-                $repo->deleteExistingForUserRefSameOriginalFilename($userId, $documentType, $referenceYear, $referenceMonth, $originalFilename);
-
                 $repo->insertDocument([
-
                     'user_id' => $userId,
-
                     'import_batch_id' => $batchId,
-
                     'document_type' => $documentType,
-
                     'reference_year' => $referenceYear,
-
                     'reference_month' => $referenceMonth,
-
                     'title' => $title,
-
                     'storage_path' => $relPath,
-
                     'file_size' => $size,
                     'net_amount' => $netAmount,
-
-                    'cpf_normalized' => $currentCpf,
-
-                    'page_from' => $currentPageNums[0],
-
-                    'page_to' => $currentPageNums[count($currentPageNums) - 1],
-
+                    'cpf_normalized' => $cpf,
+                    'page_from' => $groupPages[0],
+                    'page_to' => $groupPages[count($groupPages) - 1],
                 ]);
 
-                $matched += count($currentPageNums);
-
+                $matched += count($groupPages);
                 $documentsCreated++;
-
-            };
-
-
-
-            for ($i = 0; $i < $pageCount; $i++) {
-
-                $pageNum = $i + 1;
-
-                try {
-
-                    $text = $pages[$i]->getText();
-                    $pageTextByNum[$pageNum] = $text;
-
-                } catch (\Throwable $e) {
-
-                    $unmatchedPages[] = $pageNum;
-
-                    $errors[] = 'Erro ao ler texto da página ' . $pageNum . ': ' . $e->getMessage();
-
-                    $flushGroup();
-
-                    $currentCpf = null;
-
-                    $currentPageNums = [];
-
-
-
-                    continue;
-
-                }
-
-
-
-                $cpf = self::extractCpfFromText($text);
-
-                if ($cpf === null) {
-
-                    $flushGroup();
-
-                    $currentCpf = null;
-
-                    $currentPageNums = [];
-
-                    $unmatchedPages[] = $pageNum;
-
-
-
-                    continue;
-
-                }
-
-
-
-                if ($currentCpf === $cpf) {
-
-                    $currentPageNums[] = $pageNum;
-
-                } else {
-
-                    $flushGroup();
-
-                    $currentCpf = $cpf;
-
-                    $currentPageNums = [$pageNum];
-
-                }
-
             }
-
-            $flushGroup();
 
         } finally {
 
@@ -420,6 +381,57 @@ final class PayrollPdfSplitService
 
         return null;
 
+    }
+
+    /**
+     * Extração do período do recibo no formato AAAA-MM (ex.: 2026-03).
+     * Aceita textos como "Período: 01/03/2026 à 31/03/2026".
+     */
+    public static function extractPayrollPeriodFromText(string $text): ?string
+    {
+        if ($text === '') {
+            return null;
+        }
+        $text = str_replace(["\xc2\xa0", "\r"], [' ', ''], $text);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        if (preg_match('/Per[ií]odo[^\d]{0,30}\d{2}\/(\d{2})\/(\d{4})/iu', $text, $m)) {
+            $month = (int)($m[1] ?? 0);
+            $year = (int)($m[2] ?? 0);
+            if ($month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2200) {
+                return sprintf('%04d-%02d', $year, $month);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extração de número da folha/FLS (1, 2, 3...).
+     * Aceita padrões como "Fls 01" e "FLS: 02".
+     */
+    public static function extractFlsNumberFromText(string $text): ?int
+    {
+        if ($text === '') {
+            return null;
+        }
+        $text = str_replace(["\xc2\xa0", "\r"], [' ', ''], $text);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        if (!preg_match('/\bFLS?\b[^\d]{0,10}(\d{1,3})/iu', $text, $m)) {
+            return null;
+        }
+        $num = (int)($m[1] ?? 0);
+        if ($num < 1 || $num > 999) {
+            return null;
+        }
+        return $num;
+    }
+
+    private static function fallbackPeriodFromReference(int $referenceYear, ?int $referenceMonth): string
+    {
+        $month = ($referenceMonth !== null && $referenceMonth >= 1 && $referenceMonth <= 12) ? $referenceMonth : 0;
+        return sprintf('%04d-%02d', $referenceYear, $month);
     }
 
     /**
