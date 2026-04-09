@@ -39,7 +39,7 @@ final class PayrollPdfSplitService
 
     /**
      * @param string $originalFilename Nome do PDF; substituição só se nome + referência do lote coincidirem com a importação atual (tipo/ano/mês).
-     * @return array{matched: int, unmatched_pages: list<int>, errors: list<string>, skipped_no_user: list<string>, documents_created: int}
+     * @return array{matched: int, unmatched_pages: list<int>, errors: list<string>, skipped_no_user: list<string>, documents_created: int, merged_by_fls_documents: int}
      */
     public static function processUploadedFile(
 
@@ -90,6 +90,7 @@ final class PayrollPdfSplitService
         $documentsCreated = 0;
 
         $matched = 0;
+        $mergedByFlsDocuments = 0;
 
 
 
@@ -249,6 +250,9 @@ final class PayrollPdfSplitService
 
                 $matched += count($groupPages);
                 $documentsCreated++;
+                if (count($groupPages) > 1) {
+                    $mergedByFlsDocuments++;
+                }
             }
 
         } finally {
@@ -274,6 +278,8 @@ final class PayrollPdfSplitService
             'skipped_no_user' => $skippedNoUser,
 
             'documents_created' => $documentsCreated,
+
+            'merged_by_fls_documents' => $mergedByFlsDocuments,
 
         ];
 

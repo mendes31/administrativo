@@ -134,6 +134,7 @@ $typeLabels = [
                                 <th>Ref.</th>
                                 <th class="text-center">Pág.</th>
                                 <th class="text-center">Docs</th>
+                                <th class="text-center">Mesclados FLS</th>
                                 <th>Por</th>
                                 <th></th>
                             </tr>
@@ -150,6 +151,14 @@ $typeLabels = [
                                 $pm = (int)($row['pages_matched'] ?? 0);
                                 $pu = (int)($row['pages_unmatched'] ?? 0);
                                 $dc = (int)($row['documents_count'] ?? 0);
+                                $logRaw = (string)($row['log_json'] ?? '');
+                                $mergedByFls = 0;
+                                if ($logRaw !== '') {
+                                    $logData = json_decode($logRaw, true);
+                                    if (is_array($logData)) {
+                                        $mergedByFls = (int)($logData['merged_by_fls_documents'] ?? 0);
+                                    }
+                                }
                                 $by = (string)($row['created_by_name'] ?? '—');
                                 $ca = (string)($row['created_at'] ?? '');
                                 ?>
@@ -161,6 +170,7 @@ $typeLabels = [
                                     <td class="small"><?= htmlspecialchars($ref) ?></td>
                                     <td class="text-center small text-nowrap" title="total / associadas / não id."><?= $pt ?> / <span class="text-success"><?= $pm ?></span> / <span class="text-warning"><?= $pu ?></span></td>
                                     <td class="text-center"><?= $dc ?></td>
+                                    <td class="text-center"><?= $mergedByFls ?></td>
                                     <td class="small"><?= htmlspecialchars($by) ?></td>
                                     <td class="text-end pe-2">
                                         <form method="post" action="" class="d-inline" onsubmit="return confirm('Remover este lote e todos os documentos entregues aos colaboradores desta importação?');">

@@ -251,6 +251,7 @@ class ImportPayrollDocuments
             'errors' => $result['errors'],
             'skipped_no_user' => $result['skipped_no_user'],
             'documents_created' => $result['documents_created'],
+            'merged_by_fls_documents' => (int)($result['merged_by_fls_documents'] ?? 0),
         ];
         $repo->updateBatchStats(
             $batchId,
@@ -268,6 +269,7 @@ class ImportPayrollDocuments
         $matched = (int)$result['matched'];
         $unmatchedCount = count($result['unmatched_pages']);
         $skippedCount = count($skippedUser);
+        $mergedByFlsDocs = (int)($result['merged_by_fls_documents'] ?? 0);
         $alertClass = $docCount === 0 ? 'alert-warning' : 'alert-success';
 
         $msg = '<div class="alert ' . $alertClass . '" role="alert">';
@@ -276,6 +278,9 @@ class ImportPayrollDocuments
         $msg .= '<li><strong>Páginas no PDF:</strong> ' . $pageCount . '</li>';
         $msg .= '<li><strong>Documentos gerados (colaboradores):</strong> ' . $docCount . '</li>';
         $msg .= '<li><strong>Páginas incluídas nos documentos:</strong> ' . $matched . ' de ' . $pageCount . '</li>';
+        if ($mergedByFlsDocs > 0) {
+            $msg .= '<li class="text-info"><strong>Documentos mesclados por FLS (01, 02, ...):</strong> ' . $mergedByFlsDocs . '</li>';
+        }
         if ($unmatchedCount > 0) {
             $msg .= '<li class="text-warning"><strong>Páginas sem CPF identificado (scan/OCR ou texto ilegível):</strong> ' . $unmatchedCount . '</li>';
         }
