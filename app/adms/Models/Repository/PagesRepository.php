@@ -242,9 +242,10 @@ class PagesRepository extends DbConnection
                     $accessLevelsRepo = new AccessLevelsRepository();
                     $levels = $accessLevelsRepo->getAllAccessLevelsSelect();
                     $conn = $this->getConnection();
-                    $sqlPerm = 'INSERT IGNORE INTO adms_access_levels_pages 
+                    $sqlPerm = 'INSERT INTO adms_access_levels_pages 
                                 (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-                                VALUES (:permission, :level_id, :page_id, :created_at, :updated_at)';
+                                VALUES (:permission, :level_id, :page_id, :created_at, :updated_at)
+                                ON DUPLICATE KEY UPDATE permission = VALUES(permission), updated_at = VALUES(updated_at)';
                     $stmtPerm = $conn->prepare($sqlPerm);
                     $now = date('Y-m-d H:i:s');
                     foreach ($levels as $level) {
@@ -365,17 +366,13 @@ class PagesRepository extends DbConnection
                     $pageId = (int)$data['id'];
                     $now   = date('Y-m-d H:i:s');
 
-                    // Criar permissões onde ainda não existe linha
-                    $sqlInsert = 'INSERT IGNORE INTO adms_access_levels_pages
+                    // UPSERT por nível (exceto super admin): UNIQUE (nível, página) garante uma linha
+                    $sqlInsert = 'INSERT INTO adms_access_levels_pages
                                   (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
                                   SELECT 1, al.id, :page_id, :created_at, :updated_at
                                   FROM adms_access_levels al
                                   WHERE al.id <> 1
-                                    AND NOT EXISTS (
-                                      SELECT 1 FROM adms_access_levels_pages alp
-                                      WHERE alp.adms_access_level_id = al.id
-                                        AND alp.adms_page_id = :page_id
-                                  )';
+                                  ON DUPLICATE KEY UPDATE permission = 1, updated_at = VALUES(updated_at)';
                     $stmtInsert = $conn->prepare($sqlInsert);
                     $stmtInsert->bindValue(':page_id', $pageId, \PDO::PARAM_INT);
                     $stmtInsert->bindValue(':created_at', $now);

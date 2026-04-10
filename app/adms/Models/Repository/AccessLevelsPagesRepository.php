@@ -179,18 +179,22 @@ class AccessLevelsPagesRepository extends DbConnection
                         $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
                     }
 
+                    $now = date('Y-m-d H:i:s');
                     $values[] = $permission;
                     $values[] = $accessLevelId;
                     $values[] = $pageId;
-                    $values[] = date("Y-m-d H:i:s");
-                    $placeholders[] = "(?, ?, ?, ?)";
+                    $values[] = $now;
+                    $values[] = $now;
+                    $placeholders[] = '(?, ?, ?, ?, ?)';
                 }
 
                 // Criar QUERY somente se o nível de acesso não tem página cadastrada
                 if ($accessLevelPages ?? false) {
 
-                    // QUERY para cadastrar em massa as páginas para o nível de acesso
-                    $sql = "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at) VALUES " . implode(", ", $placeholders);
+                    // UPSERT: UNIQUE (adms_access_level_id, adms_page_id) evita duplicados; alinha permission se já existir
+                    $sql = 'INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at) VALUES '
+                        . implode(', ', $placeholders)
+                        . ' ON DUPLICATE KEY UPDATE permission = VALUES(permission), updated_at = VALUES(updated_at)';
 
                     // Preparar a QUERY
                     $stmt = $conn->prepare($sql);
@@ -262,9 +266,10 @@ class AccessLevelsPagesRepository extends DbConnection
                 return true;
             }
 
-            $sqlInsert = 'INSERT IGNORE INTO adms_access_levels_pages
+            $sqlInsert = 'INSERT INTO adms_access_levels_pages
                             (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-                          VALUES (:permission, :level_id, :page_id, :created_at, :updated_at)';
+                          VALUES (:permission, :level_id, :page_id, :created_at, :updated_at)
+                          ON DUPLICATE KEY UPDATE permission = VALUES(permission), updated_at = VALUES(updated_at)';
             $stmtInsert = $conn->prepare($sqlInsert);
 
             $now = date('Y-m-d H:i:s');
@@ -513,55 +518,21 @@ class AccessLevelsPagesRepository extends DbConnection
                 
                 error_log('Processando página ID: ' . $pageId . ' com permissão: ' . $permissionValue);
 
-                // Verificar se a página não está cadastrada para o nível de acesso
-                if (!in_array($pageId, $resultAccessLevelsPages)) {
-                    // QUERY para cadastrar página para o nível de acesso
-                    $sql = 'INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at) VALUES (:permission, :adms_access_level_id, :adms_page_id, :created_at)';
-                    $stmt = $this->getConnection()->prepare($sql);
-                    $stmt->bindValue(':permission', $permissionValue, PDO::PARAM_INT);
-                    $stmt->bindValue(':adms_access_level_id', $accessLevelId, PDO::PARAM_INT);
-                    $stmt->bindValue(':adms_page_id', $pageId, PDO::PARAM_INT);
-                    $stmt->bindValue(':created_at', date("Y-m-d H:i:s"));
-                    $stmt->execute();
-                    error_log('Página inserida: ' . $pageId . ' com permissão: ' . $permissionValue);
-                } else {
-                    // QUERY para atualizar página para o nível de acesso
-                    $sql = 'UPDATE adms_access_levels_pages SET permission = :permission, updated_at = :updated_at WHERE adms_access_level_id = :adms_access_level_id AND adms_page_id = :adms_page_id';
-                    $stmt = $this->getConnection()->prepare($sql);
-                    $stmt->bindValue(':permission', $permissionValue, PDO::PARAM_INT);
-                    $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
-                    $stmt->bindValue(':adms_access_level_id', $accessLevelId, PDO::PARAM_INT);
-                    $stmt->bindValue(':adms_page_id', $pageId, PDO::PARAM_INT);
-                    
-                    // Log detalhado da query
-                    error_log('🔍 EXECUTANDO UPDATE:');
-                    error_log('   SQL: ' . $sql);
-                    error_log('   Parâmetros: permission=' . $permissionValue . ', updated_at=' . date("Y-m-d H:i:s") . ', adms_access_level_id=' . $accessLevelId . ', pageId=' . $pageId);
-                    
-                    $stmt->execute();
-                    
-                    // Verificar se o UPDATE realmente alterou alguma linha
-                    $rowCount = $stmt->rowCount();
-                    error_log('   Linhas afetadas pelo UPDATE: ' . $rowCount);
-                    
-                    if ($rowCount === 0) {
-                        error_log('   ⚠️ ATENÇÃO: UPDATE não alterou nenhuma linha!');
-                        // Verificar o valor atual no banco
-                        $sqlCheck = "SELECT permission FROM adms_access_levels_pages WHERE adms_access_level_id = :adms_access_level_id AND adms_page_id = :pageId LIMIT 1";
-                        $stmtCheck = $this->getConnection()->prepare($sqlCheck);
-                        $stmtCheck->bindValue(':adms_access_level_id', $accessLevelId, PDO::PARAM_INT);
-                        $stmtCheck->bindValue(':pageId', $pageId, PDO::PARAM_INT);
-                        $stmtCheck->execute();
-                        $currentValue = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-                        error_log('   Valor atual no banco: ' . ($currentValue ? $currentValue['permission'] : 'não encontrado'));
-                    }
-                    
-                    error_log('Página atualizada: ' . $pageId . ' com permissão: ' . $permissionValue);
-                    
-                    // Remover da lista de permissões ativas se foi processada (é array [page_id => true])
-                    if (is_array($resultAccessLevelsPagesPermissions) && array_key_exists($pageId, $resultAccessLevelsPagesPermissions)) {
-                        unset($resultAccessLevelsPagesPermissions[$pageId]);
-                    }
+                $now = date('Y-m-d H:i:s');
+                $sql = 'INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                        VALUES (:permission, :adms_access_level_id, :adms_page_id, :created_at, :updated_at)
+                        ON DUPLICATE KEY UPDATE permission = VALUES(permission), updated_at = VALUES(updated_at)';
+                $stmt = $this->getConnection()->prepare($sql);
+                $stmt->bindValue(':permission', $permissionValue, PDO::PARAM_INT);
+                $stmt->bindValue(':adms_access_level_id', $accessLevelId, PDO::PARAM_INT);
+                $stmt->bindValue(':adms_page_id', $pageId, PDO::PARAM_INT);
+                $stmt->bindValue(':created_at', $now);
+                $stmt->bindValue(':updated_at', $now);
+                $stmt->execute();
+                error_log('Página gravada (upsert): ' . $pageId . ' com permissão: ' . $permissionValue);
+
+                if (is_array($resultAccessLevelsPagesPermissions) && array_key_exists($pageId, $resultAccessLevelsPagesPermissions)) {
+                    unset($resultAccessLevelsPagesPermissions[$pageId]);
                 }
             }
 
