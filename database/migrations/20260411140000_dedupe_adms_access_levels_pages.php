@@ -11,7 +11,8 @@ use Phinx\Migration\AbstractMigration;
  *
  * Criar um índice secundário numa tabela InnoDB enorme e cheia de duplicados pode demorar horas e parecer “travado”.
  * Em MySQL 8+ / MariaDB 10.2+ usa-se reconstrução: cópia estrutural, INSERT deduplicado numa tabela vazia, RENAME, DROP,
- * índice só no resultado já limpo. Em versões antigas mantém-se índice + DELETE em lotes.
+ * índice só no resultado já limpo. Em versões antigas mantém-se índice + DELETE em lotes
+ * (DELETE multi-tabela com LIMIT não é válido no MySQL; usa-se DELETE por id com subconsulta).
  *
  * O Phinx abre START TRANSACTION antes do up(): faz-se COMMIT no início para operações pesadas correrem com autocommit.
  */
@@ -125,17 +126,25 @@ final class DedupeAdmsAccessLevelsPages extends AbstractMigration
         $this->logProgress('Servidor sem funções de janela: a usar índice + DELETE em lotes (mais lento).');
         $this->ensureLevelPageIndex();
 
-        $sql = 'DELETE t1 FROM adms_access_levels_pages AS t1
-             INNER JOIN adms_access_levels_pages AS t2
-               ON t1.adms_access_level_id = t2.adms_access_level_id
-              AND t1.adms_page_id = t2.adms_page_id
-              AND (
-                    t2.permission > t1.permission
-                 OR (t2.permission = t1.permission AND t2.id < t1.id)
-              )
-             LIMIT ' . (int)self::BATCH;
+        $limit = (int)self::BATCH;
+        // MySQL: LIMIT em DELETE com várias tabelas não é suportado (erro 1064). Apaga por id em subconsulta.
+        $sql = 'DELETE FROM `adms_access_levels_pages`
+            WHERE `id` IN (
+                SELECT `id` FROM (
+                    SELECT `t1`.`id`
+                    FROM `adms_access_levels_pages` AS `t1`
+                    INNER JOIN `adms_access_levels_pages` AS `t2`
+                      ON `t1`.`adms_access_level_id` = `t2`.`adms_access_level_id`
+                     AND `t1`.`adms_page_id` = `t2`.`adms_page_id`
+                     AND (
+                           `t2`.`permission` > `t1`.`permission`
+                        OR (`t2`.`permission` = `t1`.`permission` AND `t2`.`id` < `t1`.`id`)
+                     )
+                    LIMIT ' . $limit . '
+                ) AS `batch_ids`
+            )';
 
-        $this->logProgress('Início da deduplicação em lotes (saída por lote em STDERR).');
+        $this->logProgress('Início da deduplicação em lotes.');
 
         $totalDeleted = 0;
         $batch = 0;
