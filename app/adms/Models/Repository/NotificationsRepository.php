@@ -171,4 +171,42 @@ class NotificationsRepository extends DbConnection
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    /**
+     * Primeira notificação interna de publicação (tipo payroll_document) por documento de folha.
+     *
+     * @param list<int> $documentIds
+     * @return array<int, string> entity_id => created_at (MySQL datetime)
+     */
+    public function findEarliestPayrollPublicationNotificationByDocumentIds(array $documentIds): array
+    {
+        if ($documentIds === []) {
+            return [];
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $documentIds), fn (int $i) => $i > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $in = implode(',', $ids);
+        $sql = "SELECT entity_id, MIN(created_at) AS ts FROM adms_notifications
+                WHERE entity_type = 'employee_payroll_document'
+                  AND type = 'payroll_document'
+                  AND entity_id IN ({$in})
+                GROUP BY entity_id";
+        try {
+            $stmt = $this->getConnection()->query($sql);
+        } catch (\Throwable) {
+            return [];
+        }
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $map = [];
+        foreach ($rows as $r) {
+            $eid = (int)($r['entity_id'] ?? 0);
+            if ($eid > 0 && !empty($r['ts'])) {
+                $map[$eid] = (string)$r['ts'];
+            }
+        }
+
+        return $map;
+    }
 }

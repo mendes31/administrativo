@@ -466,4 +466,78 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':ua', $ua, $ua === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmt->execute();
     }
+
+    public function getImportBatchById(int $batchId): ?array
+    {
+        if ($batchId <= 0) {
+            return null;
+        }
+        $sql = 'SELECT b.*, u.name AS created_by_name
+                FROM adms_payroll_import_batches b
+                LEFT JOIN adms_users u ON u.id = b.created_by_user_id
+                WHERE b.id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $batchId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Documentos gerados neste lote, com titular (para relatório RH).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listDocumentsWithOwnerForBatch(int $batchId): array
+    {
+        if ($batchId <= 0) {
+            return [];
+        }
+        $sql = 'SELECT d.*, u.name AS owner_name, u.email AS owner_email
+                FROM adms_employee_payroll_documents d
+                INNER JOIN adms_users u ON u.id = d.user_id
+                WHERE d.import_batch_id = :bid
+                ORDER BY u.name ASC, u.email ASC, d.id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':bid', $batchId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Registos de acesso ao PDF (stream) para trilha de auditoria.
+     *
+     * @param list<int> $documentIds
+     * @return list<array<string, mixed>>
+     */
+    public function listAccessLogsForDocumentIds(array $documentIds): array
+    {
+        if ($documentIds === [] || !$this->hasPayrollAccessLogsTable()) {
+            return [];
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $documentIds), fn (int $i) => $i > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $in = implode(',', $ids);
+        $sql = "SELECT * FROM adms_payroll_document_access_logs
+                WHERE employee_payroll_document_id IN ({$in})
+                ORDER BY created_at ASC, id ASC";
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function hasPayrollAccessLogsTable(): bool
+    {
+        try {
+            $this->getConnection()->query('SELECT 1 FROM adms_payroll_document_access_logs LIMIT 1');
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
 }

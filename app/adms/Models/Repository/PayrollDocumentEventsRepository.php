@@ -45,6 +45,64 @@ class PayrollDocumentEventsRepository extends DbConnection
         $stmt->execute();
     }
 
+    /**
+     * Primeira ocorrência de cada tipo de evento por documento (para relatórios por lote).
+     *
+     * @param list<int> $documentIds
+     * @return array<int, array<string, string>> doc_id => [ event_type => created_at mysql ]
+     */
+    public function aggregateFirstEventTimesByDocument(array $documentIds): array
+    {
+        if (!$this->hasTable() || $documentIds === []) {
+            return [];
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $documentIds), fn (int $i) => $i > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $in = implode(',', $ids);
+        $sql = "SELECT employee_payroll_document_id AS doc_id, event_type, MIN(created_at) AS ts
+                FROM adms_payroll_document_events
+                WHERE employee_payroll_document_id IN ({$in})
+                GROUP BY employee_payroll_document_id, event_type";
+        $stmt = $this->getConnection()->query($sql);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $out = [];
+        foreach ($rows as $r) {
+            $did = (int)($r['doc_id'] ?? 0);
+            $et = (string)($r['event_type'] ?? '');
+            if ($did > 0 && $et !== '') {
+                $out[$did][$et] = (string)($r['ts'] ?? '');
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Todos os eventos dos documentos indicados, ordenados cronologicamente (trilha de auditoria).
+     *
+     * @param list<int> $documentIds
+     * @return list<array<string, mixed>>
+     */
+    public function listEventsForDocumentIdsDetailed(array $documentIds): array
+    {
+        if (!$this->hasTable() || $documentIds === []) {
+            return [];
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $documentIds), fn (int $i) => $i > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $in = implode(',', $ids);
+        $sql = "SELECT * FROM adms_payroll_document_events
+                WHERE employee_payroll_document_id IN ({$in})
+                ORDER BY created_at ASC, id ASC";
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     private function hasTable(): bool
     {
         try {

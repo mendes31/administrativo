@@ -174,12 +174,18 @@ if (!is_array($typeLabels)) {
                                     <td class="text-center"><?= $dc ?></td>
                                     <td class="text-center"><?= $mergedByFls ?></td>
                                     <td class="small"><?= htmlspecialchars($by) ?></td>
-                                    <td class="text-end pe-2">
-                                        <form method="post" action="" class="d-inline" onsubmit="return confirm('Remover este lote e todos os documentos entregues aos colaboradores desta importação?');">
+                                    <td class="text-end pe-2 text-nowrap">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Ações do lote">
+                                            <a href="<?= htmlspecialchars($urlAdm) ?>payroll-import-batch-report/<?= $id ?>"
+                                               class="btn btn-outline-primary" title="Relatório (ciência, visualização, notificação)"><i class="fas fa-chart-bar"></i></a>
+                                            <a href="<?= htmlspecialchars($urlAdm) ?>payroll-import-batch-audit/<?= $id ?>"
+                                               class="btn btn-outline-secondary" title="Trilha de auditoria (eventos + acessos PDF)"><i class="fas fa-list-alt"></i></a>
+                                        </div>
+                                        <form method="post" action="" class="d-inline ms-1" onsubmit="return confirm('Remover este lote e todos os documentos entregues aos colaboradores desta importação?');">
                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                                             <input type="hidden" name="action" value="delete_batch">
                                             <input type="hidden" name="delete_batch_id" value="<?= $id ?>">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar lote"><i class="fas fa-trash-alt"></i></button>
                                         </form>
                                     </td>
                                 </tr>
