@@ -6,6 +6,7 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
+use App\adms\Models\Repository\PayrollDocumentTypesRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -24,12 +25,10 @@ class MyPayrollDocuments
         }
 
         $filters = [];
+        $allowedTypes = self::resolveAllowedPayrollTypeCodes();
         $type = preg_replace('/[^a-z_]/', '', strtolower((string)($_GET['document_type'] ?? '')));
-        if ($type !== '') {
-            $allowed = ['payroll', 'vacation_receipt', 'ir_statement', 'time_bank', 'other'];
-            if (in_array($type, $allowed, true)) {
-                $filters['document_type'] = $type;
-            }
+        if ($type !== '' && in_array($type, $allowedTypes, true)) {
+            $filters['document_type'] = $type;
         }
 
         if (!empty($_GET['year']) && is_numeric($_GET['year'])) {
@@ -53,7 +52,7 @@ class MyPayrollDocuments
             'year' => $filters['year'] ?? '',
             'month' => array_key_exists('month', $filters) ? (string)$filters['month'] : '',
         ];
-        $this->data['type_labels'] = self::typeLabels();
+        $this->data['type_labels'] = self::resolvePayrollTypeLabels();
 
         $pageElements = [
             'title_head' => 'Meus documentos de folha',
@@ -67,11 +66,35 @@ class MyPayrollDocuments
         $loadView->loadView();
     }
 
+    /** @return list<string> */
+    private static function resolveAllowedPayrollTypeCodes(): array
+    {
+        try {
+            $repo = new PayrollDocumentTypesRepository();
+            $codes = $repo->listActiveCodes();
+            if ($codes !== []) {
+                return $codes;
+            }
+        } catch (\Throwable) {
+        }
+
+        return ['payroll', 'vacation_receipt', 'ir_statement', 'time_bank', 'other'];
+    }
+
     /**
      * @return array<string, string>
      */
-    private static function typeLabels(): array
+    private static function resolvePayrollTypeLabels(): array
     {
+        try {
+            $repo = new PayrollDocumentTypesRepository();
+            $map = $repo->getLabelsMapActive();
+            if ($map !== []) {
+                return $map;
+            }
+        } catch (\Throwable) {
+        }
+
         return [
             'payroll' => 'Folha de pagamento',
             'vacation_receipt' => 'Recibo de férias',

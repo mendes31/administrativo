@@ -3,13 +3,11 @@ $urlAdm = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $csrf = $this->data['csrf_token'] ?? '';
 $importNonce = (string)($this->data['import_nonce'] ?? '');
 $batches = $this->data['import_batches'] ?? [];
-$typeLabels = [
-    'payroll' => 'Folha de pagamento',
-    'vacation_receipt' => 'Recibo de férias',
-    'ir_statement' => 'Informe de IR',
-    'time_bank' => 'Banco de horas',
-    'other' => 'Outros',
-];
+$typeRows = $this->data['payroll_document_types'] ?? [];
+$typeLabels = $this->data['type_labels'] ?? [];
+if (!is_array($typeLabels)) {
+    $typeLabels = [];
+}
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2 flex-wrap">
@@ -56,11 +54,15 @@ $typeLabels = [
                 <div class="col-md-3">
                     <label class="form-label" for="document_type">Tipo de documento</label>
                     <select name="document_type" id="document_type" class="form-select">
-                        <option value="payroll">Folha de pagamento</option>
-                        <option value="vacation_receipt">Recibo de férias</option>
-                        <option value="ir_statement">Informe de IR</option>
-                        <option value="time_bank">Banco de horas</option>
-                        <option value="other">Outros</option>
+                        <?php foreach ($typeRows as $trow) {
+                            $tc = (string)($trow['code'] ?? '');
+                            if ($tc === '') {
+                                continue;
+                            }
+                            $tname = (string)($trow['name'] ?? $typeLabels[$tc] ?? $tc);
+                            ?>
+                            <option value="<?= htmlspecialchars($tc) ?>"><?= htmlspecialchars($tname) ?></option>
+                        <?php } ?>
                     </select>
                 </div>
 

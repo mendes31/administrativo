@@ -423,6 +423,10 @@ class PageLayoutService
             // Portal do Colaborador
             'EmployeePortal',
             'ImportPayrollDocuments',
+            'ListPayrollDocumentTypes',
+            'CreatePayrollDocumentType',
+            'UpdatePayrollDocumentType',
+            'DeletePayrollDocumentType',
             'MyPayrollDocuments',
             'ViewPayrollDocument',
             'ListEmployeeRequests',

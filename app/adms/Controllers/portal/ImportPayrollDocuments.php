@@ -9,6 +9,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UrlAdmHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
+use App\adms\Models\Repository\PayrollDocumentTypesRepository;
 use App\adms\Models\Services\PayrollPdfSplitService;
 use App\adms\Views\Services\LoadViewService;
 use Smalot\PdfParser\Parser;
@@ -51,6 +52,9 @@ class ImportPayrollDocuments
         $this->data['import_nonce'] = $_SESSION['payroll_import_nonce'];
         $repo = new EmployeePayrollDocumentsRepository();
         $this->data['import_batches'] = $repo->listBatches(50);
+        $ctx = self::resolvePayrollTypesContext();
+        $this->data['payroll_document_types'] = $ctx['select_rows'];
+        $this->data['type_labels'] = $ctx['labels_map'];
         $pageElements = [
             'title_head' => 'Importar documentos de folha (PDF)',
             'menu' => 'import-payroll-documents',
@@ -145,10 +149,11 @@ class ImportPayrollDocuments
         }
         unset($_SESSION['payroll_import_nonce']);
 
+        $payrollTypesCtx = self::resolvePayrollTypesContext();
         $docType = preg_replace('/[^a-z_]/', '', strtolower((string)($_POST['document_type'] ?? 'payroll')));
-        $allowed = ['payroll', 'vacation_receipt', 'ir_statement', 'time_bank', 'other'];
+        $allowed = $payrollTypesCtx['allowed_codes'];
         if (!in_array($docType, $allowed, true)) {
-            $docType = 'payroll';
+            $docType = $allowed[0] ?? 'payroll';
         }
 
         $year = (int)($_POST['reference_year'] ?? date('Y'));
@@ -164,7 +169,7 @@ class ImportPayrollDocuments
 
         $titlePrefix = trim((string)($_POST['title_prefix'] ?? ''));
         if ($titlePrefix === '') {
-            $titlePrefix = self::defaultPrefix($docType);
+            $titlePrefix = self::defaultTitlePrefixForType($docType);
         }
 
         if (empty($_FILES['pdf_file']['tmp_name']) || (int)($_FILES['pdf_file']['error'] ?? 0) !== UPLOAD_ERR_OK) {
@@ -346,6 +351,95 @@ class ImportPayrollDocuments
      * PDFs grandes (100+ páginas) excedem o tempo/memória padrão e o pedido pode ser cortado
      * pelo Nginx/Apache/Cloudflare antes do PHP terminar — ver docs/COMANDOS_SERVIDOR_SSH.md.
      */
+    /**
+     * Tipos ativos na BD; se tabela vazia ou indisponível, mantém lista legada.
+     *
+     * @return array{select_rows: list<array<string, mixed>>, labels_map: array<string, string>, allowed_codes: list<string>}
+     */
+    private static function resolvePayrollTypesContext(): array
+    {
+        try {
+            $repo = new PayrollDocumentTypesRepository();
+            $rows = $repo->listActiveForSelect();
+            $labels = $repo->getLabelsMapActive();
+            if ($rows !== []) {
+                $codes = [];
+                foreach ($rows as $r) {
+                    $c = (string)($r['code'] ?? '');
+                    if ($c !== '') {
+                        $codes[] = $c;
+                    }
+                }
+
+                return [
+                    'select_rows' => $rows,
+                    'labels_map' => $labels !== [] ? $labels : self::legacyTypeLabelsMap(),
+                    'allowed_codes' => $codes,
+                ];
+            }
+        } catch (\Throwable) {
+            // fallback
+        }
+
+        return [
+            'select_rows' => self::legacyPayrollTypeSelectRows(),
+            'labels_map' => self::legacyTypeLabelsMap(),
+            'allowed_codes' => self::legacyPayrollTypeCodes(),
+        ];
+    }
+
+    /** @return list<string> */
+    private static function legacyPayrollTypeCodes(): array
+    {
+        return ['payroll', 'vacation_receipt', 'ir_statement', 'time_bank', 'other'];
+    }
+
+    /** @return array<string, string> */
+    private static function legacyTypeLabelsMap(): array
+    {
+        return [
+            'payroll' => 'Folha de pagamento',
+            'vacation_receipt' => 'Recibo de férias',
+            'ir_statement' => 'Informe de IR',
+            'time_bank' => 'Banco de horas',
+            'other' => 'Outros',
+        ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private static function legacyPayrollTypeSelectRows(): array
+    {
+        $out = [];
+        foreach (self::legacyPayrollTypeCodes() as $code) {
+            $out[] = [
+                'id' => 0,
+                'code' => $code,
+                'name' => self::legacyTypeLabelsMap()[$code] ?? $code,
+                'default_title_prefix' => self::defaultPrefix($code),
+                'icon' => null,
+            ];
+        }
+
+        return $out;
+    }
+
+    private static function defaultTitlePrefixForType(string $docType): string
+    {
+        try {
+            $repo = new PayrollDocumentTypesRepository();
+            $row = $repo->findActiveByCode($docType);
+            if ($row !== null) {
+                $p = trim((string)($row['default_title_prefix'] ?? ''));
+                if ($p !== '') {
+                    return $p;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return self::defaultPrefix($docType);
+    }
+
     private static function applyLongRunningImportRuntime(): void
     {
         @set_time_limit(0);

@@ -593,6 +593,12 @@ $menus = [
                 'icon' => 'fas fa-file-pdf'
             ],
             [
+                'label' => 'Tipos de documento (folha)',
+                'url' => $_ENV['URL_ADM'] . 'list-payroll-document-types',
+                'permission' => 'ListPayrollDocumentTypes',
+                'icon' => 'fas fa-tags'
+            ],
+            [
                 'label' => 'Desempenho',
                 'icon' => 'fa-solid fa-chart-line',
                 'submenu' => [
