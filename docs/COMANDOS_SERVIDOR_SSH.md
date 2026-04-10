@@ -83,6 +83,18 @@ Em releases que alterem `app/adms/Models/Repository/AdmsSessionsRepository.php` 
 
 **Observação:** invalidação de sessão no banco passou a ser **remoção da linha** (`DELETE`). O histórico de login/logout e eventos relacionados continua em **`adms_log_acessos`**, não em `adms_sessions`.
 
+### Permissões por nível (`adms_access_levels_pages`) — ordem no deploy
+
+Em releases que incluam deduplicação, índice único `(adms_access_level_id, adms_page_id)` e `INSERT ... ON DUPLICATE KEY UPDATE` nos repositórios de páginas/ACL:
+
+1. **Enviar o código** e **rodar as migrations antes** de liberar tráfego (ou numa janela com pouco uso), na ordem natural do Phinx:
+   - `20260411140000_dedupe_adms_access_levels_pages.php` — remove duplicados na tabela de permissões.
+   - `20260411160000_unique_adms_access_levels_pages_level_page.php` — garante unicidade e cria `uk_alp_access_level_page`.
+   - `20260412120000_remove_obsolete_apply_evaluation_page.php` — remove a página obsoleta **ApplyEvaluation** (`apply-evaluation`) e respetivas linhas em `adms_access_levels_pages` (e tabelas de escopo, se existirem).
+2. Só depois o código atualizado (`AccessLevelsPagesRepository`, `PagesRepository`, etc.) fica alinhado com o índice único.
+
+**Seeds:** a entrada **Aplicar Avaliação (OBSOLETO)** foi retirada de `AddAdmsPages`; voltar a correr essa seed **não** recria essa rota. Não é obrigatório correr seed só por causa desta alteração se a migration já limpou produção.
+
 ## 🌱 **PASSO 4: Executar as Seeds**
 
 ```bash
