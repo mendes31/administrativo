@@ -429,6 +429,7 @@ class PageLayoutService
             'DeletePayrollDocumentType',
             'MyPayrollDocuments',
             'ViewPayrollDocument',
+            'ConfirmPayrollDocumentDownload',
             'SignPayrollDocument',
             'PayrollSignatureReceipt',
             'ListPayrollSigningPendencies',

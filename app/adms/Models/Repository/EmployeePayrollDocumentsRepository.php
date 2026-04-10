@@ -168,10 +168,10 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $sql = 'INSERT INTO adms_employee_payroll_documents
             (user_id, import_batch_id, document_type, reference_year, reference_month, title, storage_path, file_size, net_amount, cpf_normalized, page_from, page_to,
              document_group_key, document_version, status_version, supersedes_document_id, file_hash_sha256,
-             signature_status, requires_signature_snapshot, signature_auth_snapshot, published_at, reminder_stage, created_at)
+             signature_status, requires_signature_snapshot, signature_auth_snapshot, require_auth_download_snapshot, published_at, reminder_stage, created_at)
             VALUES (:user_id, :import_batch_id, :document_type, :reference_year, :reference_month, :title, :storage_path, :file_size, :net_amount, :cpf_normalized, :page_from, :page_to,
              :dgk, :dver, :stver, :sup_id, :fhash,
-             :sigst, :req_sig, :sig_auth, :pub_at, 0, NOW())';
+             :sigst, :req_sig, :sig_auth, :req_dl, :pub_at, 0, NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', (int)$row['user_id'], PDO::PARAM_INT);
         if (!empty($row['import_batch_id'])) {
@@ -213,6 +213,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':sigst', (string)($row['signature_status'] ?? 'not_required'), PDO::PARAM_STR);
         $stmt->bindValue(':req_sig', !empty($row['requires_signature_snapshot']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':sig_auth', (string)($row['signature_auth_snapshot'] ?? 'none'), PDO::PARAM_STR);
+        $stmt->bindValue(':req_dl', !empty($row['require_auth_download_snapshot']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':pub_at', $row['published_at'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
         $stmt->execute();
 

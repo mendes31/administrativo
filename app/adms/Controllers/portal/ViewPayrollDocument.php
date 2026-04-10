@@ -6,7 +6,9 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\RequestHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\PayrollDocumentDownloadUnlock;
 use App\adms\Helpers\UserAccessHelper;
+use App\adms\Helpers\UrlAdmHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\PayrollDocumentEventsRepository;
 
@@ -56,6 +58,16 @@ class ViewPayrollDocument
         }
 
         $inline = ($_GET['inline'] ?? '1') !== '0';
+        $needsDownloadReauth = !$inline
+            && $ownerId === $sessionUid
+            && !UserAccessHelper::hasFullSystemAccess()
+            && !empty($doc['require_auth_download_snapshot'])
+            && !PayrollDocumentDownloadUnlock::isGranted($docId);
+        if ($needsDownloadReauth) {
+            header('Location: ' . UrlAdmHelper::to('confirm-payroll-document-download/' . $docId));
+            exit;
+        }
+
         $filename = 'documento.pdf';
 
         try {

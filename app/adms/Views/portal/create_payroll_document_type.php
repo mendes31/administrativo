@@ -115,7 +115,7 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="col-12">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="require_auth_download" id="require_auth_download" value="1">
-                        <label class="form-check-label" for="require_auth_download">Exigir reautenticação para download (futuro)</label>
+                        <label class="form-check-label" for="require_auth_download">Exigir palavra-passe antes do download do PDF (não aplica à visualização no browser)</label>
                     </div>
                 </div>
 

@@ -244,6 +244,7 @@ final class PayrollPdfSplitService
                 $typesRepo = new PayrollDocumentTypesRepository();
                 $typeRow = $typesRepo->findActiveByCode($documentType);
                 $reqSig = $typeRow !== null && !empty($typeRow['requires_signature']);
+                $reqAuthDl = $typeRow !== null && !empty($typeRow['require_auth_download']);
                 $authSnap = 'none';
                 if ($reqSig) {
                     $authSnap = strtolower(trim((string)($typeRow['signature_auth'] ?? 'none')));
@@ -289,6 +290,7 @@ final class PayrollPdfSplitService
                     'signature_status' => $sigStatus,
                     'requires_signature_snapshot' => $reqSig,
                     'signature_auth_snapshot' => $authSnap,
+                    'require_auth_download_snapshot' => $reqAuthDl,
                     'published_at' => date('Y-m-d H:i:s'),
                 ]);
 
