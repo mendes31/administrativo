@@ -326,4 +326,45 @@ class EmployeePayrollDocumentsRepository extends DbConnection
             throw $e;
         }
     }
+
+    /**
+     * Regista visualização ou download do PDF (LGPD: rastreio de acesso a dados sensíveis).
+     * Falhas de log não devem impedir a entrega do ficheiro ao utilizador.
+     */
+    public function logDocumentAccess(
+        ?int $documentId,
+        int $ownerUserId,
+        int $viewerUserId,
+        string $documentType,
+        int $referenceYear,
+        ?int $referenceMonth,
+        string $deliveryMode,
+        string $ip,
+        ?string $userAgent
+    ): void {
+        $mode = strtolower(trim($deliveryMode)) === 'attachment' ? 'attachment' : 'inline';
+        $ua = $userAgent !== null ? mb_substr($userAgent, 0, 512) : null;
+        $sql = 'INSERT INTO adms_payroll_document_access_logs
+            (employee_payroll_document_id, owner_user_id, viewer_user_id, document_type, reference_year, reference_month, delivery_mode, ip, user_agent, created_at)
+            VALUES (:doc_id, :owner, :viewer, :dtype, :ry, :rm, :mode, :ip, :ua, NOW())';
+        $stmt = $this->getConnection()->prepare($sql);
+        if ($documentId !== null && $documentId > 0) {
+            $stmt->bindValue(':doc_id', $documentId, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':doc_id', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':owner', $ownerUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':viewer', $viewerUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':dtype', $documentType, PDO::PARAM_STR);
+        $stmt->bindValue(':ry', $referenceYear, PDO::PARAM_INT);
+        if ($referenceMonth === null) {
+            $stmt->bindValue(':rm', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':rm', $referenceMonth, PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':mode', $mode, PDO::PARAM_STR);
+        $stmt->bindValue(':ip', mb_substr($ip, 0, 45), PDO::PARAM_STR);
+        $stmt->bindValue(':ua', $ua, $ua === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->execute();
+    }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\portal;
 
+use App\adms\Controllers\Services\RequestHelper;
+use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 
@@ -48,6 +50,27 @@ class ViewPayrollDocument
 
         $inline = ($_GET['inline'] ?? '1') !== '0';
         $filename = 'documento.pdf';
+
+        try {
+            $repo->logDocumentAccess(
+                $docId,
+                $ownerId,
+                $sessionUid,
+                (string)($doc['document_type'] ?? 'other'),
+                (int)($doc['reference_year'] ?? 0),
+                isset($doc['reference_month']) && $doc['reference_month'] !== '' && $doc['reference_month'] !== null
+                    ? (int)$doc['reference_month']
+                    : null,
+                $inline ? 'inline' : 'attachment',
+                RequestHelper::getClientIp(),
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            );
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('error', 'ViewPayrollDocument::logDocumentAccess — ' . $e->getMessage(), [
+                'document_id' => $docId,
+                'viewer_id' => $sessionUid,
+            ]);
+        }
 
         header('Content-Type: application/pdf');
         header('X-Content-Type-Options: nosniff');

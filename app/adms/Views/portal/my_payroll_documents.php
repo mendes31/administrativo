@@ -51,7 +51,30 @@ $payrollDocBadgeClass = [
 
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-
+            <div class="alert alert-info border-0 shadow-sm small mb-3 rounded-3" role="note">
+                <div class="d-flex gap-2">
+                    <span class="text-info flex-shrink-0" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+                    <div>
+                        <strong class="d-block mb-1">Documentos de RH e proteção de dados (LGPD)</strong>
+                        <p class="mb-2 mb-md-1">
+                            Esta área destina-se à <strong>disponibilização dos seus documentos trabalhistas e fiscais</strong>
+                            (por exemplo holerites, recibos e informes) pela empresa, em cumprimento de obrigações legais e contratuais.
+                            O tratamento dos dados observa a Lei nº 13.709/2018 (LGPD), em especial as bases legais de
+                            <strong>execução de contrato</strong> e de <strong>cumprimento de obrigação legal ou regulatória</strong>,
+                            conforme o tipo de documento.
+                        </p>
+                        <p class="mb-2 mb-md-1">
+                            Os ficheiros são entregues de forma <strong>privada</strong> (sem endereço público direto ao ficheiro).
+                            As <strong>visualizações e transferências</strong> podem ser <strong>registadas</strong> (por exemplo data e origem do acesso)
+                            para fins de segurança da informação, prevenção a incidentes e demonstração de disponibilização, quando aplicável.
+                        </p>
+                        <p class="mb-0">
+                            Para exercer direitos do titular (confirmação de tratamento, acesso, correção de dados cadastrais, entre outros previstos na LGPD),
+                            contacte o <strong>RH</strong> ou o <strong>encarregado de proteção de dados (DPO)</strong> da organização, nos canais oficiais.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
             <div class="card border-0 shadow-sm mb-3 rounded-3">
 
