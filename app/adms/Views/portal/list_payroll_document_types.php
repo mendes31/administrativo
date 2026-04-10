@@ -41,6 +41,7 @@
                                 <th>Ícone</th>
                                 <th>Prefixo título</th>
                                 <th>Assinatura / auth</th>
+                                <th>Lembretes cron</th>
                                 <th>Ordem</th>
                                 <th>Estado</th>
                                 <th class="text-center">Ações</th>
@@ -69,6 +70,14 @@
                                         <span class="badge bg-light text-dark border ms-1"><?= htmlspecialchars((string)($type['signature_auth'] ?? 'none')) ?></span>
                                         <?php if (!empty($type['require_auth_download'])): ?>
                                             <span class="badge bg-warning text-dark">Download auth</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="small">
+                                        <?php if (!empty($type['signature_reminders_enabled'])): ?>
+                                            <span class="badge bg-primary">Sim</span>
+                                            <span class="text-muted"><?= (int)($type['signature_reminder_day_1'] ?? 1) ?> / <?= (int)($type['signature_reminder_day_2'] ?? 3) ?> / <?= (int)($type['signature_reminder_day_3'] ?? 7) ?></span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Não</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= (int)($type['sort_order'] ?? 0) ?></td>

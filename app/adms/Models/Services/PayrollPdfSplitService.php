@@ -14,7 +14,13 @@ use App\adms\Helpers\GenerateLog;
 
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 
+use App\adms\Models\Repository\PayrollDocumentEventsRepository;
+
+use App\adms\Models\Repository\PayrollDocumentTypesRepository;
+
 use App\adms\Models\Repository\UsersRepository;
+
+use App\adms\Models\Services\PayrollDocumentPublishNotifier;
 
 use setasign\Fpdi\Fpdi;
 
@@ -197,6 +203,9 @@ final class PayrollPdfSplitService
 
             /** @var array<int, true> $alreadyCleanedUserIds */
             $alreadyCleanedUserIds = [];
+
+            /** @var array<int, list<int>> */
+            $alreadySupersededIds = [];
             foreach ($groups as $group) {
                 $groupPages = $group['pages'];
                 if ($groupPages === []) {
@@ -210,7 +219,13 @@ final class PayrollPdfSplitService
                 }
 
                 if (!isset($alreadyCleanedUserIds[$userId])) {
-                    $repo->deleteExistingForUserRefSameOriginalFilename($userId, $documentType, $referenceYear, $referenceMonth, $originalFilename);
+                    $alreadySupersededIds[$userId] = $repo->supersedeExistingForUserRefSameOriginalFilename(
+                        $userId,
+                        $documentType,
+                        $referenceYear,
+                        $referenceMonth,
+                        $originalFilename
+                    );
                     $alreadyCleanedUserIds[$userId] = true;
                 }
 
@@ -222,6 +237,23 @@ final class PayrollPdfSplitService
 
                 $full = $repo->absoluteStoragePath($relPath);
                 $size = is_file($full) ? (int)filesize($full) : 0;
+                $fileHash = (is_readable($full) && is_file($full)) ? hash_file('sha256', $full) : null;
+                $groupKey = EmployeePayrollDocumentsRepository::computeDocumentGroupKey($userId, $documentType, $referenceYear, $referenceMonth);
+                $nextVersion = $repo->getMaxVersionForGroupKey($groupKey) + 1;
+
+                $typesRepo = new PayrollDocumentTypesRepository();
+                $typeRow = $typesRepo->findActiveByCode($documentType);
+                $reqSig = $typeRow !== null && !empty($typeRow['requires_signature']);
+                $authSnap = 'none';
+                if ($reqSig) {
+                    $authSnap = strtolower(trim((string)($typeRow['signature_auth'] ?? 'none')));
+                    $allowedAuth = ['none', 'password', 'otp_whatsapp', 'otp_email', 'otp_whatsapp_fallback_email'];
+                    if (!in_array($authSnap, $allowedAuth, true)) {
+                        $authSnap = 'none';
+                    }
+                }
+                $sigStatus = $reqSig ? 'pending' : 'not_required';
+
                 $title = self::buildTitle($titlePrefix, $referenceYear, $referenceMonth);
                 $lastPageNum = $groupPages[count($groupPages) - 1];
                 $netAmount = self::extractNetAmountFromText((string)($pageTextByNum[$lastPageNum] ?? ''));
@@ -233,7 +265,10 @@ final class PayrollPdfSplitService
                     );
                 }
 
-                $repo->insertDocument([
+                $supersedesList = $alreadySupersededIds[$userId] ?? [];
+                $supersedesId = $supersedesList !== [] ? max($supersedesList) : null;
+
+                $newId = $repo->insertDocument([
                     'user_id' => $userId,
                     'import_batch_id' => $batchId,
                     'document_type' => $documentType,
@@ -246,7 +281,29 @@ final class PayrollPdfSplitService
                     'cpf_normalized' => $cpf,
                     'page_from' => $groupPages[0],
                     'page_to' => $groupPages[count($groupPages) - 1],
+                    'document_group_key' => $groupKey,
+                    'document_version' => $nextVersion,
+                    'status_version' => 'active',
+                    'supersedes_document_id' => $supersedesId,
+                    'file_hash_sha256' => $fileHash,
+                    'signature_status' => $sigStatus,
+                    'requires_signature_snapshot' => $reqSig,
+                    'signature_auth_snapshot' => $authSnap,
+                    'published_at' => date('Y-m-d H:i:s'),
                 ]);
+
+                try {
+                    $ev = new PayrollDocumentEventsRepository();
+                    $ev->insert($newId, $userId, 'document_published', [
+                        'version' => $nextVersion,
+                        'document_type' => $documentType,
+                        'batch_id' => $batchId,
+                        'file_hash_sha256' => $fileHash,
+                    ], null, null);
+                } catch (\Throwable) {
+                }
+
+                PayrollDocumentPublishNotifier::notifyPublished($userId, $newId, $title, $sigStatus === 'pending');
 
                 $matched += count($groupPages);
                 $documentsCreated++;

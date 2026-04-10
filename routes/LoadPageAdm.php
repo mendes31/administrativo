@@ -54,7 +54,7 @@ class LoadPageAdm
 
     private array $listPgPrivate = [
         "Dashboard",
-        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf",
+        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "SignPayrollDocument", "PayrollSignatureReceipt", "ListPayrollSigningPendencies", "PayrollRemindersCron", "PayrollCronConfig", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf",
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
         "ListDepartments",  "CreateDepartment",  "ViewDepartment", "UpdateDepartments", "DeleteDepartment", "ImportDepartments",

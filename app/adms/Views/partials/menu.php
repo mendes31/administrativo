@@ -593,6 +593,18 @@ $menus = [
                 'icon' => 'fas fa-file-pdf'
             ],
             [
+                'label' => 'Pendências de ciência (folha)',
+                'url' => $_ENV['URL_ADM'] . 'list-payroll-signing-pendencies',
+                'permission' => 'ListPayrollSigningPendencies',
+                'icon' => 'fas fa-user-clock'
+            ],
+            [
+                'label' => 'Cron lembretes folha (token)',
+                'url' => $_ENV['URL_ADM'] . 'payroll-cron-config',
+                'permission' => 'PayrollCronConfig',
+                'icon' => 'fas fa-clock'
+            ],
+            [
                 'label' => 'Tipos de documento (RH)',
                 'url' => $_ENV['URL_ADM'] . 'list-payroll-document-types',
                 'permission' => 'ListPayrollDocumentTypes',

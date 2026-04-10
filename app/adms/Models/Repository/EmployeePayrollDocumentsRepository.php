@@ -92,25 +92,27 @@ class EmployeePayrollDocumentsRepository extends DbConnection
     }
 
     /**
-     * Remove apenas documentos cujo lote tenha o mesmo nome de ficheiro original **e** a mesma
-     * referência (ano/mês) no lote — reimportação/correção do mesmo PDF para o mesmo período.
-     * Nome igual com referência diferente não substitui; nome diferente acumula (ex.: quinzenal + mensal).
+     * Marca como superseded (mantém PDF em disco) documentos do mesmo lógico com o mesmo nome de ficheiro
+     * original no lote — nova versão será inserida em seguida. Invalida OTPs abertos desses IDs.
+     *
+     * @return list<int> IDs tornados superseded
      */
-    public function deleteExistingForUserRefSameOriginalFilename(
+    public function supersedeExistingForUserRefSameOriginalFilename(
         int $userId,
         string $documentType,
         int $year,
         ?int $month,
         string $originalFilename
-    ): void {
+    ): array {
         $orig = trim($originalFilename);
         if ($orig === '') {
             $orig = 'documento.pdf';
         }
-        $sql = 'SELECT d.id, d.storage_path FROM adms_employee_payroll_documents d
+        $sql = 'SELECT d.id FROM adms_employee_payroll_documents d
                 INNER JOIN adms_payroll_import_batches b ON b.id = d.import_batch_id
                 WHERE d.user_id = :uid AND d.document_type = :dt AND d.reference_year = :y
                 AND (d.reference_month <=> :m)
+                AND d.status_version = \'active\'
                 AND b.reference_year = :by
                 AND (b.reference_month <=> :bm)
                 AND LOWER(TRIM(b.original_filename)) = LOWER(TRIM(:orig))';
@@ -131,50 +133,45 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
         $stmt->bindValue(':orig', $orig, PDO::PARAM_STR);
         $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        foreach ($rows as $r) {
-            $path = (string)($r['storage_path'] ?? '');
-            if ($path !== '') {
-                $full = $this->absoluteStoragePath($path);
-                if (is_file($full)) {
-                    @unlink($full);
-                }
-            }
+        $ids = array_map('intval', array_column($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'id'));
+        if ($ids === []) {
+            return [];
         }
-        if ($rows !== []) {
-            $del = $this->getConnection()->prepare(
-                'DELETE d FROM adms_employee_payroll_documents d
-                INNER JOIN adms_payroll_import_batches b ON b.id = d.import_batch_id
-                WHERE d.user_id = :uid AND d.document_type = :dt AND d.reference_year = :y
-                AND (d.reference_month <=> :m)
-                AND b.reference_year = :by
-                AND (b.reference_month <=> :bm)
-                AND LOWER(TRIM(b.original_filename)) = LOWER(TRIM(:orig))'
-            );
-            $del->bindValue(':uid', $userId, PDO::PARAM_INT);
-            $del->bindValue(':dt', $documentType, PDO::PARAM_STR);
-            $del->bindValue(':y', $year, PDO::PARAM_INT);
-            if ($month === null) {
-                $del->bindValue(':m', null, PDO::PARAM_NULL);
-            } else {
-                $del->bindValue(':m', $month, PDO::PARAM_INT);
-            }
-            $del->bindValue(':by', $year, PDO::PARAM_INT);
-            if ($month === null) {
-                $del->bindValue(':bm', null, PDO::PARAM_NULL);
-            } else {
-                $del->bindValue(':bm', $month, PDO::PARAM_INT);
-            }
-            $del->bindValue(':orig', $orig, PDO::PARAM_STR);
-            $del->execute();
-        }
+        (new PayrollDocumentOtpRepository())->invalidateOpenForDocumentIds($ids);
+        $in = implode(',', $ids);
+        $this->getConnection()->exec(
+            "UPDATE adms_employee_payroll_documents SET status_version = 'superseded' WHERE id IN ({$in})"
+        );
+
+        return $ids;
+    }
+
+    public static function computeDocumentGroupKey(int $userId, string $documentType, int $year, ?int $month): string
+    {
+        $m = $month === null ? '' : (string)(int)$month;
+
+        return hash('sha256', $userId . '|' . $documentType . '|' . $year . '|' . $m);
+    }
+
+    public function getMaxVersionForGroupKey(string $groupKey): int
+    {
+        $sql = 'SELECT COALESCE(MAX(document_version), 0) FROM adms_employee_payroll_documents WHERE document_group_key = :g';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':g', $groupKey, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn();
     }
 
     public function insertDocument(array $row): int
     {
         $sql = 'INSERT INTO adms_employee_payroll_documents
-            (user_id, import_batch_id, document_type, reference_year, reference_month, title, storage_path, file_size, net_amount, cpf_normalized, page_from, page_to, created_at)
-            VALUES (:user_id, :import_batch_id, :document_type, :reference_year, :reference_month, :title, :storage_path, :file_size, :net_amount, :cpf_normalized, :page_from, :page_to, NOW())';
+            (user_id, import_batch_id, document_type, reference_year, reference_month, title, storage_path, file_size, net_amount, cpf_normalized, page_from, page_to,
+             document_group_key, document_version, status_version, supersedes_document_id, file_hash_sha256,
+             signature_status, requires_signature_snapshot, signature_auth_snapshot, published_at, reminder_stage, created_at)
+            VALUES (:user_id, :import_batch_id, :document_type, :reference_year, :reference_month, :title, :storage_path, :file_size, :net_amount, :cpf_normalized, :page_from, :page_to,
+             :dgk, :dver, :stver, :sup_id, :fhash,
+             :sigst, :req_sig, :sig_auth, :pub_at, 0, NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', (int)$row['user_id'], PDO::PARAM_INT);
         if (!empty($row['import_batch_id'])) {
@@ -200,9 +197,107 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':cpf_normalized', $row['cpf_normalized'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':page_from', (int)($row['page_from'] ?? 1), PDO::PARAM_INT);
         $stmt->bindValue(':page_to', (int)($row['page_to'] ?? 1), PDO::PARAM_INT);
+        $stmt->bindValue(':dgk', (string)($row['document_group_key'] ?? ''), PDO::PARAM_STR);
+        $stmt->bindValue(':dver', (int)($row['document_version'] ?? 1), PDO::PARAM_INT);
+        $stmt->bindValue(':stver', (string)($row['status_version'] ?? 'active'), PDO::PARAM_STR);
+        if (!empty($row['supersedes_document_id'])) {
+            $stmt->bindValue(':sup_id', (int)$row['supersedes_document_id'], PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':sup_id', null, PDO::PARAM_NULL);
+        }
+        if (!empty($row['file_hash_sha256'])) {
+            $stmt->bindValue(':fhash', strtolower((string)$row['file_hash_sha256']), PDO::PARAM_STR);
+        } else {
+            $stmt->bindValue(':fhash', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':sigst', (string)($row['signature_status'] ?? 'not_required'), PDO::PARAM_STR);
+        $stmt->bindValue(':req_sig', !empty($row['requires_signature_snapshot']) ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':sig_auth', (string)($row['signature_auth_snapshot'] ?? 'none'), PDO::PARAM_STR);
+        $stmt->bindValue(':pub_at', $row['published_at'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
         $stmt->execute();
 
         return (int)$this->getConnection()->lastInsertId();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listPendingSignaturesForRh(int $limit = 500): array
+    {
+        $limit = max(1, min(2000, $limit));
+        $sql = 'SELECT d.*, u.name AS user_name, u.email AS user_email, u.celular AS user_celular,
+                dep.name AS department_name
+            FROM adms_employee_payroll_documents d
+            INNER JOIN adms_users u ON u.id = d.user_id
+            LEFT JOIN adms_departments dep ON dep.id = u.user_department_id
+            WHERE d.status_version = \'active\'
+              AND d.signature_status = \'pending\'
+              AND d.requires_signature_snapshot = 1
+            ORDER BY d.published_at ASC, d.id ASC
+            LIMIT ' . $limit;
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Pendentes de assinatura com publicação definida (para régua D+X no cron).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listPendingSignatureForReminders(int $limit = 2000): array
+    {
+        $limit = max(1, min(5000, $limit));
+        $sql = 'SELECT * FROM adms_employee_payroll_documents
+            WHERE status_version = \'active\'
+              AND signature_status = \'pending\'
+              AND requires_signature_snapshot = 1
+              AND published_at IS NOT NULL
+              AND reminder_stage < 3
+            ORDER BY published_at ASC
+            LIMIT ' . $limit;
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function recordSignature(
+        int $documentId,
+        int $userId,
+        string $ip,
+        ?string $userAgent,
+        string $authMethod,
+        string $documentHashAtSign
+    ): bool {
+        $ua = $userAgent !== null ? mb_substr($userAgent, 0, 512) : null;
+        $sql = 'UPDATE adms_employee_payroll_documents SET
+            signature_status = \'signed\',
+            signed_at = NOW(),
+            signed_ip = :ip,
+            signed_user_agent = :ua,
+            signed_auth_method = :am,
+            signed_document_hash_sha256 = :dh
+            WHERE id = :id AND user_id = :uid AND status_version = \'active\'
+              AND signature_status = \'pending\'';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':ip', mb_substr($ip, 0, 45), PDO::PARAM_STR);
+        $stmt->bindValue(':ua', $ua, $ua === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':am', mb_substr($authMethod, 0, 40), PDO::PARAM_STR);
+        $stmt->bindValue(':dh', strtolower($documentHashAtSign), PDO::PARAM_STR);
+        $stmt->bindValue(':id', $documentId, PDO::PARAM_INT);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateReminderStage(int $documentId, int $stage): void
+    {
+        $sql = 'UPDATE adms_employee_payroll_documents SET reminder_stage = :s WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':s', $stage, PDO::PARAM_INT);
+        $stmt->bindValue(':id', $documentId, PDO::PARAM_INT);
+        $stmt->execute();
     }
 
     /**
@@ -224,7 +319,8 @@ class EmployeePayrollDocumentsRepository extends DbConnection
             $where[] = 'd.reference_month = :mo';
             $params[':mo'] = (int)$filters['month'];
         }
-        $sql = 'SELECT d.* FROM adms_employee_payroll_documents d WHERE ' . implode(' AND ', $where) . ' ORDER BY d.reference_year DESC, d.reference_month DESC, d.id DESC';
+        $where[] = "d.status_version = 'active'";
+        $sql = 'SELECT d.* FROM adms_employee_payroll_documents d WHERE ' . implode(' AND ', $where) . ' ORDER BY d.reference_year DESC, d.reference_month DESC, d.document_version DESC, d.id DESC';
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);

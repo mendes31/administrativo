@@ -496,6 +496,25 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Hash de senha (password_hash) para reautenticação pontual (ex.: ciência de documento RH).
+     */
+    public function getPasswordHashById(int $id): ?string
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT password FROM adms_users WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $h = $stmt->fetchColumn();
+        if ($h === false || $h === null || $h === '') {
+            return null;
+        }
+
+        return (string)$h;
+    }
+
+    /**
      * Localiza colaborador ativo pelo CPF apenas com dígitos (11).
      */
     public function findActiveUserIdByNormalizedCpf(string $cpf11): ?int

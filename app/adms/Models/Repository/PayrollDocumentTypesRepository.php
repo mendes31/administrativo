@@ -94,10 +94,12 @@ class PayrollDocumentTypesRepository extends DbConnection
     {
         $sql = 'INSERT INTO adms_payroll_document_types
             (code, name, description, default_title_prefix, icon, requires_signature, signature_auth,
-             require_auth_download, rules_json, is_active, sort_order, created_at, updated_at)
+             require_auth_download, signature_reminders_enabled, signature_reminder_day_1, signature_reminder_day_2, signature_reminder_day_3,
+             rules_json, is_active, sort_order, created_at, updated_at)
             VALUES
             (:code, :name, :description, :default_title_prefix, :icon, :requires_signature, :signature_auth,
-             :require_auth_download, :rules_json, :is_active, :sort_order, NOW(), NOW())';
+             :require_auth_download, :signature_reminders_enabled, :signature_reminder_day_1, :signature_reminder_day_2, :signature_reminder_day_3,
+             :rules_json, :is_active, :sort_order, NOW(), NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':code', $data['code'], PDO::PARAM_STR);
         $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -107,6 +109,10 @@ class PayrollDocumentTypesRepository extends DbConnection
         $stmt->bindValue(':requires_signature', !empty($data['requires_signature']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':signature_auth', $data['signature_auth'] ?? 'none', PDO::PARAM_STR);
         $stmt->bindValue(':require_auth_download', !empty($data['require_auth_download']) ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminders_enabled', !empty($data['signature_reminders_enabled']) ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminder_day_1', max(0, min(365, (int)($data['signature_reminder_day_1'] ?? 1))), PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminder_day_2', max(0, min(365, (int)($data['signature_reminder_day_2'] ?? 3))), PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminder_day_3', max(0, min(365, (int)($data['signature_reminder_day_3'] ?? 7))), PDO::PARAM_INT);
         $stmt->bindValue(':rules_json', $data['rules_json'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':is_active', !empty($data['is_active']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':sort_order', (int)($data['sort_order'] ?? 0), PDO::PARAM_INT);
@@ -125,6 +131,10 @@ class PayrollDocumentTypesRepository extends DbConnection
             requires_signature = :requires_signature,
             signature_auth = :signature_auth,
             require_auth_download = :require_auth_download,
+            signature_reminders_enabled = :signature_reminders_enabled,
+            signature_reminder_day_1 = :signature_reminder_day_1,
+            signature_reminder_day_2 = :signature_reminder_day_2,
+            signature_reminder_day_3 = :signature_reminder_day_3,
             rules_json = :rules_json,
             is_active = :is_active,
             sort_order = :sort_order,
@@ -139,6 +149,10 @@ class PayrollDocumentTypesRepository extends DbConnection
         $stmt->bindValue(':requires_signature', !empty($data['requires_signature']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':signature_auth', $data['signature_auth'] ?? 'none', PDO::PARAM_STR);
         $stmt->bindValue(':require_auth_download', !empty($data['require_auth_download']) ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminders_enabled', !empty($data['signature_reminders_enabled']) ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminder_day_1', max(0, min(365, (int)($data['signature_reminder_day_1'] ?? 1))), PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminder_day_2', max(0, min(365, (int)($data['signature_reminder_day_2'] ?? 3))), PDO::PARAM_INT);
+        $stmt->bindValue(':signature_reminder_day_3', max(0, min(365, (int)($data['signature_reminder_day_3'] ?? 7))), PDO::PARAM_INT);
         $stmt->bindValue(':rules_json', $data['rules_json'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':is_active', !empty($data['is_active']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':sort_order', (int)($data['sort_order'] ?? 0), PDO::PARAM_INT);

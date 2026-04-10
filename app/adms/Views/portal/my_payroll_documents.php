@@ -19,13 +19,22 @@ $payrollDocBadgeClass = [
     'other' => 'text-bg-secondary',
 ];
 
+/** Ícones Font Awesome por código de tipo (fallback: documento genérico). */
+$payrollDocTypeIcon = [
+    'payroll' => 'fa-file-invoice-dollar',
+    'vacation_receipt' => 'fa-umbrella-beach',
+    'ir_statement' => 'fa-file-invoice',
+    'time_bank' => 'fa-business-time',
+    'other' => 'fa-file-alt',
+];
+
 ?>
 
 <div class="container-fluid px-3 px-md-4">
 
     <div class="row justify-content-center">
 
-        <div class="col-12 col-lg-10 col-xl-8 col-xxl-7">
+        <div class="col-12">
 
 
 
@@ -200,6 +209,28 @@ $payrollDocBadgeClass = [
                                     : null;
 
                                 $badgeClass = $payrollDocBadgeClass[$dt] ?? 'text-bg-light text-secondary border';
+                                $typeIcon = $payrollDocTypeIcon[$dt] ?? 'fa-file-alt';
+
+                                $ver = (int)($d['document_version'] ?? 1);
+                                $h = (string)($d['file_hash_sha256'] ?? '');
+                                $hashShort = $h !== '' ? substr($h, 0, 10) . '…' : '—';
+                                $sigSt = (string)($d['signature_status'] ?? 'not_required');
+                                $reqSig = !empty($d['requires_signature_snapshot']);
+                                $needSign = $sigSt === 'pending' && $reqSig;
+                                $signed = $sigSt === 'signed';
+                                if (!$reqSig) {
+                                    $cienciaLabel = 'N/A';
+                                    $cienciaClass = 'text-bg-secondary';
+                                } elseif ($signed) {
+                                    $cienciaLabel = 'Confirmada';
+                                    $cienciaClass = 'text-bg-success';
+                                } elseif ($needSign) {
+                                    $cienciaLabel = 'Pendente';
+                                    $cienciaClass = 'text-bg-warning text-dark';
+                                } else {
+                                    $cienciaLabel = $sigSt;
+                                    $cienciaClass = 'text-bg-light text-secondary border';
+                                }
 
                                 ?>
 
@@ -211,7 +242,8 @@ $payrollDocBadgeClass = [
 
                                             <div class="fw-semibold small text-break lh-sm"><?= htmlspecialchars($title) ?></div>
 
-                                            <div class="text-muted mt-1" style="font-size: .72rem;">Ref. <?= htmlspecialchars($ref) ?></div>
+                                            <div class="text-muted mt-1" style="font-size: .72rem;">Ref. <?= htmlspecialchars($ref) ?> · v.<?= $ver ?> · <code class="small"><?= htmlspecialchars($hashShort) ?></code></div>
+                                            <div class="mt-1"><span class="badge rounded-pill <?= htmlspecialchars($cienciaClass) ?>" style="font-size: .65rem;"><?= htmlspecialchars($cienciaLabel) ?></span></div>
                                             <?php if ($netAmount !== null): ?>
                                                 <div class="text-success mt-1 fw-semibold" style="font-size: .76rem;">
                                                     Valor líquido: R$ <?= htmlspecialchars(number_format($netAmount, 2, ',', '.')) ?>
@@ -220,23 +252,29 @@ $payrollDocBadgeClass = [
 
                                         </div>
 
-                                        <span class="badge rounded-pill <?= htmlspecialchars($badgeClass) ?> flex-shrink-0" style="font-size: .65rem; font-weight: 500;"><?= htmlspecialchars($label) ?></span>
+                                        <span class="badge rounded-pill <?= htmlspecialchars($badgeClass) ?> flex-shrink-0" style="font-size: .65rem; font-weight: 500;"><i class="fas <?= htmlspecialchars($typeIcon) ?> me-1" aria-hidden="true"></i><?= htmlspecialchars($label) ?></span>
 
                                     </div>
 
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex flex-wrap gap-2">
 
-                                        <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-document/<?= $id ?>" class="btn btn-sm btn-outline-primary flex-fill py-1" target="_blank" rel="noopener">
+                                        <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-document/<?= $id ?>" class="btn btn-sm btn-outline-primary flex-grow-1 py-1" style="min-width:44%;" target="_blank" rel="noopener">
 
                                             <i class="fas fa-eye me-1"></i> Visualizar
 
                                         </a>
 
-                                        <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-document/<?= $id ?>?inline=0" class="btn btn-sm btn-outline-secondary flex-fill py-1">
+                                        <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-document/<?= $id ?>?inline=0" class="btn btn-sm btn-outline-secondary flex-grow-1 py-1" style="min-width:44%;">
 
                                             <i class="fas fa-download me-1"></i> Download
 
                                         </a>
+                                        <?php if ($needSign): ?>
+                                            <a href="<?= htmlspecialchars($urlAdm) ?>sign-payroll-document/<?= $id ?>" class="btn btn-sm btn-primary flex-grow-1 py-1" style="min-width:44%;"><i class="fas fa-signature me-1"></i> Assinar</a>
+                                        <?php endif; ?>
+                                        <?php if ($signed): ?>
+                                            <a href="<?= htmlspecialchars($urlAdm) ?>payroll-signature-receipt/<?= $id ?>" class="btn btn-sm btn-outline-success flex-grow-1 py-1" style="min-width:44%;" target="_blank" rel="noopener"><i class="fas fa-file-pdf me-1"></i> Comprovante</a>
+                                        <?php endif; ?>
 
                                     </div>
 
@@ -252,9 +290,9 @@ $payrollDocBadgeClass = [
 
                         <div class="d-none d-md-block px-0">
 
-                            <div class="table-responsive">
+                            <div class="table-responsive-md">
 
-                                <table class="table table-sm table-hover mb-0 align-middle">
+                                <table class="table table-sm table-hover mb-0 align-middle payroll-docs-table">
 
                                     <thead class="table-light">
 
@@ -265,6 +303,9 @@ $payrollDocBadgeClass = [
                                             <th class="py-2">Tipo</th>
 
                                             <th class="py-2">Referência</th>
+                                            <th class="py-2 text-center">V.</th>
+                                            <th class="py-2">Hash</th>
+                                            <th class="py-2">Ciência</th>
                                             <th class="py-2">Valor líquido</th>
 
                                             <th class="text-end pe-4 py-2" style="width: 1%;">Ações</th>
@@ -295,16 +336,41 @@ $payrollDocBadgeClass = [
                                                 : null;
 
                                             $badgeClass = $payrollDocBadgeClass[$dt] ?? 'text-bg-light text-secondary border';
+                                            $typeIcon = $payrollDocTypeIcon[$dt] ?? 'fa-file-alt';
+
+                                            $ver = (int)($d['document_version'] ?? 1);
+                                            $h = (string)($d['file_hash_sha256'] ?? '');
+                                            $hashShort = $h !== '' ? substr($h, 0, 10) . '…' : '—';
+                                            $sigSt = (string)($d['signature_status'] ?? 'not_required');
+                                            $reqSig = !empty($d['requires_signature_snapshot']);
+                                            $needSign = $sigSt === 'pending' && $reqSig;
+                                            $signed = $sigSt === 'signed';
+                                            if (!$reqSig) {
+                                                $cienciaLabel = 'N/A';
+                                                $cienciaClass = 'text-bg-secondary';
+                                            } elseif ($signed) {
+                                                $cienciaLabel = 'OK';
+                                                $cienciaClass = 'text-bg-success';
+                                            } elseif ($needSign) {
+                                                $cienciaLabel = 'Pend.';
+                                                $cienciaClass = 'text-bg-warning text-dark';
+                                            } else {
+                                                $cienciaLabel = $sigSt;
+                                                $cienciaClass = 'text-bg-light text-secondary border';
+                                            }
 
                                             ?>
 
                                             <tr>
 
-                                                <td class="ps-4"><?= htmlspecialchars((string)($d['title'] ?? '')) ?></td>
+                                                <td class="ps-4 text-break"><?= htmlspecialchars((string)($d['title'] ?? '')) ?></td>
 
-                                                <td><span class="badge rounded-pill <?= htmlspecialchars($badgeClass) ?>"><?= htmlspecialchars($label) ?></span></td>
+                                                <td class="text-nowrap"><span class="badge rounded-pill <?= htmlspecialchars($badgeClass) ?>"><i class="fas <?= htmlspecialchars($typeIcon) ?> me-1" aria-hidden="true"></i><?= htmlspecialchars($label) ?></span></td>
 
                                                 <td class="text-muted small"><?= htmlspecialchars($ref) ?></td>
+                                                <td class="text-center small text-muted"><?= $ver ?></td>
+                                                <td class="small"><code class="small"><?= htmlspecialchars($hashShort) ?></code></td>
+                                                <td><span class="badge rounded-pill <?= htmlspecialchars($cienciaClass) ?>" style="font-size:.7rem;"><?= htmlspecialchars($cienciaLabel) ?></span></td>
                                                 <td class="text-success small fw-semibold">
                                                     <?= $netAmount !== null ? 'R$ ' . htmlspecialchars(number_format($netAmount, 2, ',', '.')) : '—' ?>
                                                 </td>
@@ -316,6 +382,12 @@ $payrollDocBadgeClass = [
                                                         <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-document/<?= $id ?>" class="btn btn-outline-primary" target="_blank" rel="noopener">Visualizar</a>
 
                                                         <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-document/<?= $id ?>?inline=0" class="btn btn-outline-secondary">Download</a>
+                                                        <?php if ($needSign): ?>
+                                                            <a href="<?= htmlspecialchars($urlAdm) ?>sign-payroll-document/<?= $id ?>" class="btn btn-primary">Assinar</a>
+                                                        <?php endif; ?>
+                                                        <?php if ($signed): ?>
+                                                            <a href="<?= htmlspecialchars($urlAdm) ?>payroll-signature-receipt/<?= $id ?>" class="btn btn-outline-success" target="_blank" rel="noopener" title="Comprovante PDF">PDF</a>
+                                                        <?php endif; ?>
 
                                                     </div>
 

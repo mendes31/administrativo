@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\RequestHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
+use App\adms\Models\Repository\PayrollDocumentEventsRepository;
 
 /**
  * Entrega o PDF por stream (nunca URL pública ao ficheiro em disco).
@@ -41,6 +42,12 @@ class ViewPayrollDocument
             exit;
         }
 
+        $statusVer = (string)($doc['status_version'] ?? 'active');
+        if ($statusVer !== 'active' && !UserAccessHelper::hasFullSystemAccess()) {
+            header('HTTP/1.0 410 Gone');
+            exit;
+        }
+
         $rel = (string)($doc['storage_path'] ?? '');
         $abs = $repo->absoluteStoragePath($rel);
         if ($rel === '' || !is_readable($abs)) {
@@ -70,6 +77,18 @@ class ViewPayrollDocument
                 'document_id' => $docId,
                 'viewer_id' => $sessionUid,
             ]);
+        }
+
+        try {
+            (new PayrollDocumentEventsRepository())->insert(
+                $docId,
+                $sessionUid,
+                $inline ? 'document_viewed' : 'document_downloaded',
+                ['delivery_mode' => $inline ? 'inline' : 'attachment'],
+                RequestHelper::getClientIp(),
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            );
+        } catch (\Throwable) {
         }
 
         header('Content-Type: application/pdf');

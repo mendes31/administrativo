@@ -12,6 +12,7 @@ use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Models\Services\TrainingStatusUpdaterService;
 use App\adms\Models\Services\CandidateRetentionService;
+use App\adms\Models\Services\PayrollDocumentRemindersService;
 
 /**
  * Controller login
@@ -209,8 +210,10 @@ class Login
             // Serviços diários disparados no primeiro login de qualquer usuário
             // - Atualização de status dinâmicos de treinamentos
             // - Retenção/anonimização de currículos (LGPD)
+            // - Lembretes de ciência em documentos de folha (RH), no máximo 1× por 24 h
             TrainingStatusUpdaterService::ensureUpdated(false);
             CandidateRetentionService::ensureUpdated(false);
+            PayrollDocumentRemindersService::ensureUpdated(false);
 
             // Verificar consentimento LGPD antes de liberar acesso
             // Exceções:

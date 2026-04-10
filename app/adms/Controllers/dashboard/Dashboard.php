@@ -12,6 +12,7 @@ use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
+use App\adms\Models\Services\PayrollDocumentRemindersService;
 
 class Dashboard
 {
@@ -22,6 +23,9 @@ class Dashboard
     {
         // Atualizar retenção/anomização de currículos (LGPD) no primeiro acesso do dia
         CandidateRetentionService::ensureUpdated();
+
+        // Lembretes de ciência em documentos de folha (RH), no máximo 1× por 24 h
+        PayrollDocumentRemindersService::ensureUpdated();
 
         // Atualizar status de informativos (publicação/expiração) no primeiro acesso (com janela de 10 minutos)
         InformativosStatusUpdaterService::ensureUpdated();

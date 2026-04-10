@@ -90,6 +90,28 @@ use App\adms\Helpers\CSRFHelper;
                     </select>
                 </div>
 
+                <div class="col-12"><hr class="my-2"><h6 class="mb-2">Lembretes automáticos (cron)</h6>
+                    <p class="small text-muted mb-2">Notificações internas ao colaborador enquanto a ciência estiver pendente. Desative para tipos que não precisam de régua (ex.: apenas informativos).</p>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="signature_reminders_enabled" id="signature_reminders_enabled" value="1">
+                        <label class="form-check-label" for="signature_reminders_enabled">Ativar lembretes D+X após publicação</label>
+                    </div>
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small" for="signature_reminder_day_1">D+ (1.º)</label>
+                    <input type="number" name="signature_reminder_day_1" id="signature_reminder_day_1" class="form-control form-control-sm" min="0" max="365" value="1">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small" for="signature_reminder_day_2">D+ (2.º)</label>
+                    <input type="number" name="signature_reminder_day_2" id="signature_reminder_day_2" class="form-control form-control-sm" min="0" max="365" value="3">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small" for="signature_reminder_day_3">D+ (3.º)</label>
+                    <input type="number" name="signature_reminder_day_3" id="signature_reminder_day_3" class="form-control form-control-sm" min="0" max="365" value="7">
+                </div>
+
                 <div class="col-12">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="require_auth_download" id="require_auth_download" value="1">

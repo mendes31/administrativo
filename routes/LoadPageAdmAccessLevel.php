@@ -140,6 +140,16 @@ class LoadPageAdmAccessLevel
 
         $accessLevelPage = new PagesRoutesRepository();
         $this->page = $accessLevelPage->getPage($this->urlController ?? '');
+        // Cron de lembretes folha: slug com underscores não mapeia para PayrollRemindersCron no SlugController.
+        if (!$this->page) {
+            $uriCron = (string)($_SERVER['REQUEST_URI'] ?? '');
+            if (str_contains($uriCron, 'payroll_reminders_cron') || str_contains($uriCron, 'payroll-reminders-cron')) {
+                $this->page = $accessLevelPage->getPageByControllerUrl('payroll-reminders-cron');
+                if ($this->page) {
+                    $this->urlController = 'PayrollRemindersCron';
+                }
+            }
+        }
         // URI pode trazer o slug mesmo se o primeiro segmento vier vazio/corrompido em alguns hosts.
         if (!$this->page && preg_match('#list-connected-users#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
             $this->page = $accessLevelPage->getPageByControllerUrl('list-connected-users');
