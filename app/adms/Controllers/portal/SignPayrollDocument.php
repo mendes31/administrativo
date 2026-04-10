@@ -50,7 +50,8 @@ class SignPayrollDocument
             $this->render($doc, 'Já confirmou o recebimento deste documento.');
             return;
         }
-        if ($sigStatus !== 'pending' || empty($doc['requires_signature_snapshot'])) {
+        $reqSnap = (int)($doc['requires_signature_snapshot'] ?? 0) === 1;
+        if ($sigStatus !== 'pending' || !$reqSnap) {
             $this->render($doc, 'Este documento não exige confirmação de recebimento no portal.');
             return;
         }

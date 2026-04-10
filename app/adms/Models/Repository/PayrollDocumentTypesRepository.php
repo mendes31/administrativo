@@ -90,6 +90,40 @@ class PayrollDocumentTypesRepository extends DbConnection
         return $row ?: null;
     }
 
+    /**
+     * Regras de ciência e download gravadas no documento no instante da importação (tipo ativo).
+     * Reflete "Exigir ciência / assinatura formal" e autenticação configuradas nesse momento.
+     *
+     * @return array{requires_signature: bool, signature_auth: string, require_auth_download: bool}
+     */
+    public function resolveRulesSnapshotForImport(string $code): array
+    {
+        $row = $this->findActiveByCode($code);
+        if ($row === null) {
+            return [
+                'requires_signature' => false,
+                'signature_auth' => 'none',
+                'require_auth_download' => false,
+            ];
+        }
+
+        $reqSig = (int)($row['requires_signature'] ?? 0) === 1;
+        $authSnap = 'none';
+        if ($reqSig) {
+            $authSnap = strtolower(trim((string)($row['signature_auth'] ?? 'none')));
+            $allowedAuth = ['none', 'password', 'otp_whatsapp', 'otp_email', 'otp_whatsapp_fallback_email'];
+            if (!in_array($authSnap, $allowedAuth, true)) {
+                $authSnap = 'none';
+            }
+        }
+
+        return [
+            'requires_signature' => $reqSig,
+            'signature_auth' => $authSnap,
+            'require_auth_download' => (int)($row['require_auth_download'] ?? 0) === 1,
+        ];
+    }
+
     public function create(array $data): int
     {
         $sql = 'INSERT INTO adms_payroll_document_types

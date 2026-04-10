@@ -215,7 +215,7 @@ $payrollDocTypeIcon = [
                                 $h = (string)($d['file_hash_sha256'] ?? '');
                                 $hashShort = $h !== '' ? substr($h, 0, 10) . '…' : '—';
                                 $sigSt = (string)($d['signature_status'] ?? 'not_required');
-                                $reqSig = !empty($d['requires_signature_snapshot']);
+                                $reqSig = (int)($d['requires_signature_snapshot'] ?? 0) === 1;
                                 $needSign = $sigSt === 'pending' && $reqSig;
                                 $signed = $sigSt === 'signed';
                                 if (!$reqSig) {
@@ -342,7 +342,7 @@ $payrollDocTypeIcon = [
                                             $h = (string)($d['file_hash_sha256'] ?? '');
                                             $hashShort = $h !== '' ? substr($h, 0, 10) . '…' : '—';
                                             $sigSt = (string)($d['signature_status'] ?? 'not_required');
-                                            $reqSig = !empty($d['requires_signature_snapshot']);
+                                            $reqSig = (int)($d['requires_signature_snapshot'] ?? 0) === 1;
                                             $needSign = $sigSt === 'pending' && $reqSig;
                                             $signed = $sigSt === 'signed';
                                             if (!$reqSig) {

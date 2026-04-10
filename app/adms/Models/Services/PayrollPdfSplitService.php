@@ -76,6 +76,13 @@ final class PayrollPdfSplitService
             $originalFilename = 'documento.pdf';
         }
 
+        $typesRepo = new PayrollDocumentTypesRepository();
+        $rulesAtImport = $typesRepo->resolveRulesSnapshotForImport($documentType);
+        $importReqSig = $rulesAtImport['requires_signature'];
+        $importAuthSnap = $rulesAtImport['signature_auth'];
+        $importReqAuthDl = $rulesAtImport['require_auth_download'];
+        $importSigStatus = $importReqSig ? 'pending' : 'not_required';
+
         $parser = new Parser();
 
         $pdf = $parser->parseFile($absolutePdfPath);
@@ -241,20 +248,6 @@ final class PayrollPdfSplitService
                 $groupKey = EmployeePayrollDocumentsRepository::computeDocumentGroupKey($userId, $documentType, $referenceYear, $referenceMonth);
                 $nextVersion = $repo->getMaxVersionForGroupKey($groupKey) + 1;
 
-                $typesRepo = new PayrollDocumentTypesRepository();
-                $typeRow = $typesRepo->findActiveByCode($documentType);
-                $reqSig = $typeRow !== null && !empty($typeRow['requires_signature']);
-                $reqAuthDl = $typeRow !== null && !empty($typeRow['require_auth_download']);
-                $authSnap = 'none';
-                if ($reqSig) {
-                    $authSnap = strtolower(trim((string)($typeRow['signature_auth'] ?? 'none')));
-                    $allowedAuth = ['none', 'password', 'otp_whatsapp', 'otp_email', 'otp_whatsapp_fallback_email'];
-                    if (!in_array($authSnap, $allowedAuth, true)) {
-                        $authSnap = 'none';
-                    }
-                }
-                $sigStatus = $reqSig ? 'pending' : 'not_required';
-
                 $title = self::buildTitle($titlePrefix, $referenceYear, $referenceMonth);
                 $lastPageNum = $groupPages[count($groupPages) - 1];
                 $netAmount = self::extractNetAmountFromText((string)($pageTextByNum[$lastPageNum] ?? ''));
@@ -287,10 +280,10 @@ final class PayrollPdfSplitService
                     'status_version' => 'active',
                     'supersedes_document_id' => $supersedesId,
                     'file_hash_sha256' => $fileHash,
-                    'signature_status' => $sigStatus,
-                    'requires_signature_snapshot' => $reqSig,
-                    'signature_auth_snapshot' => $authSnap,
-                    'require_auth_download_snapshot' => $reqAuthDl,
+                    'signature_status' => $importSigStatus,
+                    'requires_signature_snapshot' => $importReqSig,
+                    'signature_auth_snapshot' => $importAuthSnap,
+                    'require_auth_download_snapshot' => $importReqAuthDl,
                     'published_at' => date('Y-m-d H:i:s'),
                 ]);
 
@@ -305,7 +298,7 @@ final class PayrollPdfSplitService
                 } catch (\Throwable) {
                 }
 
-                PayrollDocumentPublishNotifier::notifyPublished($userId, $newId, $title, $sigStatus === 'pending');
+                PayrollDocumentPublishNotifier::notifyPublished($userId, $newId, $title, $importSigStatus === 'pending');
 
                 $matched += count($groupPages);
                 $documentsCreated++;

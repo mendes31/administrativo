@@ -2,92 +2,105 @@
 
 Documento único de referência para **RH, Jurídico, DPO e TI**: cruza o desenho alvo (trilha probatória, OTP, versionamento) com o **estado atual do código** e a **ordem sugerida de desenvolvimento**.
 
-**Última revisão:** consolidado a partir da análise funcional-jurídica e do repositório `administrativo`.
+**Última revisão:** 2026-04-10 — alinhado ao código em `administrativo` (versão, assinatura, OTP, lembretes, comprovante, download com reauth).
+
+---
+
+## 0. Pacote 1–5 (resumo executivo)
+
+| # | Entrega | Estado |
+|---|---------|--------|
+| 1 | Versão + hash no documento | **✓** — grupo lógico, `document_version`, `status_version`, `file_hash_sha256`, supersede na reimportação |
+| 2 | Botão Assinar + aceite + `signature_auth` | **✓** — `SignPayrollDocument`, `recordSignature`, snapshots por tipo |
+| 3 | OTP (tabelas + WhatsApp + e-mail) + eventos | **✓** — `adms_payroll_document_otp_challenges`, `adms_payroll_document_events` |
+| 4 | Notificação ao publicar + régua D+X + painel | **✓** — notificação interna, régua **por tipo**, `PayrollDocumentRemindersService` (1×/24h login/dashboard), painel pendentes |
+| 5 | Comprovante PDF (fase 2 básica) | **✓** — `PayrollSignatureReceipt` (mPDF); não inclui TSA / prova qualificada |
+
+*Pré-requisito:* migrations aplicadas (`phinx migrate`), incluindo páginas/ACL registadas nas migrations de payroll.
 
 ---
 
 ## 1. Mapa rápido: já temos | parcial | falta
 
-Legenda: **✓** implementado e operacional · **◐** existe base, incompleto ou não aplicado em runtime · **✗** não implementado
+Legenda: **✓** implementado e operacional · **◐** existe base, incompleto ou não formalizado · **✗** não implementado
 
 ### 1.1 Níveis de ciência / assinatura
 
 | Nível | Descrição | Situação |
 |--------|-----------|----------|
-| Ciência simples | Botão “li e estou ciente” + registo | **✗** fluxo e persistência de aceite; **◐** toggles no tipo de documento |
-| Assinatura avançada | Senha / OTP / reautenticação | **◐** `signature_auth` e campos em `adms_payroll_document_types` + CRUD; **✗** aplicação no fluxo Assinar |
+| Ciência simples | Botão + registo (`none`) | **✓** `SignPayrollDocument`, `signature_status`, lista “Meus documentos” |
+| Assinatura avançada | Senha / OTP / reautenticação | **✓** `signature_auth_snapshot` + `UsersRepository::getPasswordHashById`, OTP + fallback e-mail |
 | Assinatura qualificada (ICP-Brasil / provedor) | Certificado digital / Clicksign etc. | **✗** (fase futura) |
 
 ### 1.2 Trilha de evidências (audit trail)
 
 | Elemento | Situação |
 |----------|----------|
-| IP, user-agent, data/hora | **◐** — ao servir o PDF (`ViewPayrollDocument`), registo em `adms_payroll_document_access_logs` (modo inline vs attachment) |
-| Timezone UTC + local explícitos | **✗** |
-| Hash SHA-256 do PDF persistido | **✗** |
-| Hash do conteúdo aceite (termo + documento) | **✗** |
-| Versão documental (`active` / `superseded` / …) | **✗** |
-| Sequência: disponibilizado → notificado → visualizado → baixado → confirmado | **◐** / **✗** — só ramo de acesso ao stream |
+| IP, user-agent, data/hora | **✓** — `adms_payroll_document_access_logs` + eventos em `adms_payroll_document_events` (ex.: `document_viewed`, `document_downloaded`) |
+| Timezone UTC + local explícitos | **✗** — usar timezone da app; não há duplo carimbo no evento |
+| Hash SHA-256 do PDF persistido | **✓** `file_hash_sha256` por versão |
+| Hash na assinatura | **✓** `signed_document_hash_sha256` |
+| Hash do conteúdo aceite (termo + documento composto) | **✗** |
+| Versão documental (`active` / `superseded` / …) | **✓** `status_version`, `supersedes_document_id` |
+| Sequência publicado → visualizado → baixado → confirmado | **◐** — `document_published`, viewed/downloaded, OTP/*, `document_signed`; notificação ao publicar não gera evento `notified` dedicado (só notificação interna) |
 | `session_id` nos eventos | **✗** |
-| `batch_id` na trilha de acesso | **✗** (o documento tem `import_batch_id`; o log não duplica) |
+| `batch_id` na trilha de acesso | **◐** — no documento e em `meta_json` de `document_published`; não no log de stream |
 
 ### 1.3 Boas práticas (original intacto, comprovante, versionar)
 
 | Prática | Situação |
 |---------|----------|
-| Não sobrescrever PDF sem histórico comprovável | **◐** — lógica de substituição na importação; **✗** modelo formal de versão + hash |
-| PDF de comprovante / evidência anexa | **✗** |
-| Logs imutáveis (append-only) ou política explícita | **✗** — inserts atuais não substituem um modelo de eventos completo |
+| Não sobrescrever PDF sem histórico | **✓** supersede + nova versão (mesmo nome/original) |
+| PDF de comprovante | **✓** básico — `PayrollSignatureReceipt` |
+| Logs / eventos imutáveis | **◐** — inserts append-only em `adms_payroll_document_events`; política formal por escrito **✗** |
 
 ### 1.4 Modelo prático de compliance (login, eventos, confirmação, régua)
 
 | Item | Situação |
 |------|----------|
 | Login individual e sessão | **✓** |
-| Eventos: disponibilizado, notificado, visualizado, baixado, confirmado | **◐** / **✗** |
-| Metadados por evento (IP, UA, utilizador) | **◐** |
-| “Confirmar recebimento” com reautenticação (senha/OTP) | **✗** |
-| Relatório / dossiê de auditoria por documento | **✗** |
-| Régua D+3 / D+7 e contingência operacional | **✗** |
-| Política interna / termo na admissão | **Fora do código** — processo; o sistema pode suportar textos configuráveis depois |
+| Confirmar recebimento com senha/OTP | **✓** |
+| Relatório / dossiê de auditoria por documento (export) | **✗** |
+| Régua D+X | **✓** por tipo (`signature_reminders_*`) + job + `PayrollDocumentRemindersService` |
+| Token/cron HTTP opcional | **✓** — token em BD (`payroll-cron-config`); CLI `scripts/payroll_reminders_cron.php` força execução |
+| Política interna / termo na admissão | **Fora do código** |
 
 ### 1.5 Infraestrutura WhatsApp e OTP
 
 | Item | Situação |
 |------|----------|
-| Envio WhatsApp (Evolution / Twilio / Meta), config, teste | **✓** — ex.: `SendWhatsAppService`, `WhatsAppConfig`, `adms_whatsapp_config` |
-| Uso real (ex.: recuperação de senha) | **✓** |
-| OTP: gerar, armazenar hash, expirar, tentativas, cooldown, fallback e-mail, auditoria | **✗** |
-| `require_auth_download` no tipo de documento | **◐** campo existe; **✗** não aplicado no download |
+| Envio WhatsApp | **✓** `SendWhatsAppService` |
+| OTP folha: hash, expiração, tentativas, limite/hora, fallback e-mail | **✓** `PayrollDocumentOtpRepository` + `SignPayrollDocument` |
+| `require_auth_download` | **✓** snapshot + `ConfirmPayrollDocumentDownload` + desbloqueio temporário na sessão (só **download**; ver sem senha) |
 
-### 1.6 Fluxo UX recomendado (ver sem OTP · baixar com log · assinar com OTP)
+### 1.6 Fluxo UX (ver · baixar · assinar)
 
 | Etapa | Situação |
 |-------|----------|
-| Visualizar sem OTP + registo | **◐** — log ao servir PDF; **✗** hash no evento e tipo de evento explícito `viewed` |
-| Download sem OTP + log (ou com reauth se política exigir) | **◐** — `inline=0` força download; **✗** política por tipo e evento `downloaded` explícito |
-| Assinar ciência com OTP WhatsApp + fallback e-mail | **✗** |
+| Visualizar PDF (inline) + registo | **✓** |
+| Download com reauth se política | **✓** |
+| Assinar com OTP + fallback e-mail | **✓** |
 
-### 1.7 Estados do documento (máquina de estados)
-
-Exemplos alvo: `available` → `viewed` → `pending_signature` → `signed` / `expired_pending`.
+### 1.7 Estados do documento
 
 | Estado | Situação |
 |--------|----------|
-| Máquina de estados por documento ou por **versão** | **✗** |
+| Máquina de estados explícita (diagrama único) | **✗** |
+| Campos `signature_status`, `status_version`, `reminder_stage` | **✓** — cobrem o fluxo operacional |
 
 ### 1.8 Contingência RH e painel
 
 | Item | Situação |
 |------|----------|
-| Lembretes D+3 / D+5 / D+7, escalonamento, painel de pendentes | **✗** |
+| Lembretes configuráveis D+1/D+2/D+3 por tipo | **✓** |
+| Painel pendentes de ciência | **✓** `ListPayrollSigningPendencies` |
 
 ### 1.9 LGPD
 
 | Item | Situação |
 |------|----------|
-| Transparência na área “Meus documentos” | **✓** — bloco informativo na view do portal |
-| Consentimento ou registo explícito para trilha/OTP (se DPO exigir) | **✗** — avaliar com DPO (base legal contratual/obrigação legal muitas vezes basta) |
+| Transparência em “Meus documentos” | **✓** |
+| Consentimento específico trilha/OTP | **✗** — avaliar com DPO |
 
 ---
 
@@ -95,78 +108,78 @@ Exemplos alvo: `available` → `viewed` → `pending_signature` → `signed` / `
 
 ### A. Níveis de assinatura
 
-1. **Ciência simples** — [◐] config no tipo; [✗] botão Assinar e registo de aceite.  
-2. **Avançada** (senha/OTP) — [◐] `signature_auth`; [✗] implementação; [✓] WhatsApp como canal.  
-3. **Qualificada** — [✗].
+1. **Ciência simples** — **✓**  
+2. **Avançada** (senha/OTP) — **✓**  
+3. **Qualificada** — **✗**
 
 ### B. Trilha mínima desejável
 
 | Requisito | Tag |
 |-----------|-----|
-| IP, UA, timestamp | ◐ |
+| IP, UA, timestamp | ✓ |
 | UTC + local | ✗ |
-| `document_hash_sha256` | ✗ |
-| Versão documental | ✗ |
-| Eventos completos + OTP | ✗ / ◐ |
-| Tabela append-only ou política clara | ✗ |
+| `document_hash_sha256` | ✓ |
+| Versão documental | ✓ |
+| Eventos + OTP | ✓ |
+| Tabela append-only + política documentada | ◐ |
 
 ### C. Integridade e versionamento
 
-- Substituir sem histórico formal: **◐** → alvo **✓** com versões e `superseded`.  
-- Original + comprovante: **✗**.  
-- Hash por versão: **✗**.
+- Versões + `superseded`: **✓**  
+- Comprovante PDF simples: **✓**  
+- TSA / prova reforçada: **✗**
 
-### D. Fases de produto (alinhamento técnico)
+### D. Fases de produto
 
-| Fase | Conteúdo (resumo) | Apoio atual | Falta |
-|------|-------------------|-------------|--------|
-| **1** | Estados, reauth, evidência completa, comprovante PDF simples | Login, PDF privado, log parcial, tipos configuráveis | Estados, assinatura, hash, OTP, comprovante |
-| **2** | PDF com folha de evidências, hashes, ID assinatura; TSA se possível | — | Tudo |
-| **3** | Provedor externo / ICP-Brasil | — | Tudo |
+| Fase | Conteúdo | Estado |
+|------|-----------|--------|
+| **1** | Reauth, hash, versão, assinatura, OTP, notificações, régua, painel, comprovante básico | **◐/✓** — falta sobretudo formalização e export dossiê |
+| **2** | Folha de evidências reforçada, TSA | **✗** |
+| **3** | Provedor / ICP-Brasil | **✗** |
 
-### E. Requisitos de prova (evidência)
+### E. Requisitos de prova
 
 - Identificação individual: **✓**  
-- Eventos mínimos listados no desenho: **◐** / **✗**  
-- Metadados completos por evento: **◐**  
-- SHA-256 armazenado: **✗**  
-- Versionar correções: **✗**
+- Eventos principais: **✓** / **◐** (evento `notified` explícito opcional)  
+- SHA-256 armazenado: **✓**  
+- Versionar correções: **✓**
 
 ### F. Entrega e ciência
 
-- Publicação (importação RH): **✓**  
-- Notificação ao publicar com registo `notified`: **✗**  
-- Texto de aceite configurável no ato de assinar: **✗**  
-- Reauth no aceite: **✗**  
-- Régua D+X + contingência: **✗**
+- Publicação: **✓**  
+- Notificação ao publicar: **✓** (interna)  
+- Texto de aceite configurável no ecrã Assinar: **✗**  
+- Régua D+X: **✓**
 
-### G. OTP — segurança e eventos
+### G. OTP
 
-- Expiração curta, tentativas máximas, limite de OTP/hora, cooldown, hash, one-time, invalidar anterior: **✗**  
-- Eventos: `otp_requested`, `otp_sent_whatsapp`, `otp_sent_email_fallback`, `otp_validate_success`, `otp_validate_fail`, `document_signed`: **✗**
+- Segurança (expiração, tentativas, rate limit, hash): **✓**  
+- Eventos listados no desenho: **✓** (nomes podem variar ligeiramente; ver código)
 
 ### H. Contingência
 
-- D+3 / D+5 / D+7, alertas a gestor/RH, painel filtrado: **✗**
+- Régua por tipo + job + disparo em login/dashboard: **✓**  
+- Escalação para gestor (e-mail separado): **✗**
 
 ---
 
 ## 3. Síntese executiva
 
-O estudo jurídico-operacional e este mapa são **coerentes**: o sistema já oferece **canal autenticado**, **armazenamento privado de PDFs**, **importação em lote**, **tipos de documento configuráveis** (incluindo campos para assinatura/OTP futuros) e **primeiro tijolo de trilha** ao abrir/baixar o PDF.
+O portal cobre o **núcleo operacional** acordado: PDF privado por utilizador, **versionamento com hash**, **ciência com regras por tipo** (incluindo OTP e WhatsApp/e-mail), **notificação e lembretes**, **painel RH**, **comprovante PDF simples** e **download condicionado** quando o tipo exige.
 
-O **miolo probatório** que ainda falta — e que reduz risco quando o colaborador não assina ou nega ciência — é: **versionamento + hash**, **máquina de estados**, **eventos completos** (incluindo notificação e assinatura), **ação “Assinar” com regras por tipo**, **OTP** reutilizando `SendWhatsAppService`, **régua de lembretes e painel de pendentes**, e **comprovantes PDF** (fases 2–3).
+Para **reduzir risco jurídico residual**, os maiores buracos técnicos passam a ser: **export/dossiê** de trilha por documento, **texto de aceite configurável**, **metadados temporais explícitos (UTC)** e, se exigido, **prova qualificada / TSA / provedor** (fases 2–3).
 
 ---
 
-## 4. Ordem sugerida de desenvolvimento (backlog técnico)
+## 4. Backlog sugerido (próximos passos)
 
-1. **Modelo de versão** do documento lógico (competência + tipo + titular): `version`, `status_version`, `file_hash_sha256`, `supersedes_*`; ajustar importação para não “sumir” histórico.  
-2. **Botão Assinar / Confirmar recebimento** + persistência de aceite + aplicar `requires_signature` e `signature_auth` por `document_type`.  
-3. **Camada OTP** (tabelas, hash do código, limites, fallback e-mail) + eventos de auditoria específicos.  
-4. **Notificação** na publicação + **régua D+X** + **painel de pendentes** para RH.  
-5. **Comprovante PDF** de evidência (sem alterar o original).  
-6. **Integração** com provedor / ICP (se Jurídico exigir).
+1. **Dossiê / export** — CSV ou PDF com eventos + log de acesso por `employee_payroll_document_id` (RH com permissão).  
+2. **Texto de aceite** — campo no tipo de documento (HTML ou texto) exibido no ecrã Assinar antes de confirmar.  
+3. **Evento `notified`** ou equivalente — registo explícito quando `notifyPublished` corre (opcional, para relatórios).  
+4. **`session_id` / UTC** nos eventos — se DPO ou auditoria interna exigir.  
+5. **Integração ICP / Clicksign / TSA** — conforme parecer jurídico.
+
+Itens **1–5** do pacote inicial estão **entregues no código**; a lista acima é **evolução** pós-pacote.
 
 ---
 
@@ -174,13 +187,21 @@ O **miolo probatório** que ainda falta — e que reduz risco quando o colaborad
 
 | Tema | Onde |
 |------|------|
-| Documentos por colaborador | `adms_employee_payroll_documents`, `EmployeePayrollDocumentsRepository` |
-| Lotes de importação | `adms_payroll_import_batches` |
-| Tipos e regras (UI) | `adms_payroll_document_types`, `ListPayrollDocumentTypes`, `CreatePayrollDocumentType`, `UpdatePayrollDocumentType` |
-| Stream do PDF | `ViewPayrollDocument` |
-| Lista colaborador | `MyPayrollDocuments`, `my_payroll_documents.php` |
-| Log de acesso ao PDF | `adms_payroll_document_access_logs`, migration `20260413120000_create_payroll_document_access_logs.php` |
-| WhatsApp | `SendWhatsAppService`, `AdmsWhatsAppConfigRepository`, `WhatsAppConfig` |
+| Documentos + versão + hash | `adms_employee_payroll_documents`, `EmployeePayrollDocumentsRepository`, migrações `20260414120000_*` (versionamento/OTP/eventos) |
+| Importação / supersede | `PayrollPdfSplitService` |
+| Tipos (assinatura, OTP, lembretes, download) | `adms_payroll_document_types`, CRUD em `portal/` |
+| Stream PDF | `ViewPayrollDocument` |
+| Download com senha | `ConfirmPayrollDocumentDownload`, `PayrollDocumentDownloadUnlock`, coluna `require_auth_download_snapshot` |
+| Lista / Assinar | `MyPayrollDocuments`, `SignPayrollDocument`, views `my_payroll_documents.php`, `sign_payroll_document.php` |
+| OTP | `PayrollDocumentOtpRepository`, `adms_payroll_document_otp_challenges` |
+| Eventos | `PayrollDocumentEventsRepository`, `adms_payroll_document_events` |
+| Notificação publicação | `PayrollDocumentPublishNotifier` |
+| Lembretes | `PayrollDocumentReminderJob`, `PayrollDocumentRemindersService`, `storage/cache/system/payroll_reminders_last_run.json` |
+| Token cron (BD) | `adms_payroll_cron_config`, `PayrollCronConfig`, `PayrollRemindersCron` |
+| Painel pendentes | `ListPayrollSigningPendencies` |
+| Comprovante PDF | `PayrollSignatureReceipt` |
+| Log de acesso PDF | `adms_payroll_document_access_logs` |
+| WhatsApp / e-mail | `SendWhatsAppService`, `SendEmailService` |
 
 ---
 
@@ -193,4 +214,4 @@ O **miolo probatório** que ainda falta — e que reduz risco quando o colaborad
 
 ---
 
-*Documento gerado para acompanhamento de projeto. Atualizar após cada entrega relevante (migrations, fluxo Assinar, OTP, notificações).*
+*Atualizar este ficheiro após mudanças relevantes em migrations, fluxos de assinatura ou política de evidências.*

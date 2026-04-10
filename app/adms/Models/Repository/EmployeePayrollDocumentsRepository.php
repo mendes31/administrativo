@@ -211,9 +211,11 @@ class EmployeePayrollDocumentsRepository extends DbConnection
             $stmt->bindValue(':fhash', null, PDO::PARAM_NULL);
         }
         $stmt->bindValue(':sigst', (string)($row['signature_status'] ?? 'not_required'), PDO::PARAM_STR);
-        $stmt->bindValue(':req_sig', !empty($row['requires_signature_snapshot']) ? 1 : 0, PDO::PARAM_INT);
+        $reqSnap = $row['requires_signature_snapshot'] ?? false;
+        $stmt->bindValue(':req_sig', ($reqSnap === true || $reqSnap === 1 || $reqSnap === '1') ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':sig_auth', (string)($row['signature_auth_snapshot'] ?? 'none'), PDO::PARAM_STR);
-        $stmt->bindValue(':req_dl', !empty($row['require_auth_download_snapshot']) ? 1 : 0, PDO::PARAM_INT);
+        $reqDl = $row['require_auth_download_snapshot'] ?? false;
+        $stmt->bindValue(':req_dl', ($reqDl === true || $reqDl === 1 || $reqDl === '1') ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':pub_at', $row['published_at'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
         $stmt->execute();
 
