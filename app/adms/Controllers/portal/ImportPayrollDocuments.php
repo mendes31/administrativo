@@ -56,7 +56,7 @@ class ImportPayrollDocuments
         $this->data['payroll_document_types'] = $ctx['select_rows'];
         $this->data['type_labels'] = $ctx['labels_map'];
         $pageElements = [
-            'title_head' => 'Importar documentos de folha (PDF)',
+            'title_head' => 'Importar documentos de RH (PDF)',
             'menu' => 'import-payroll-documents',
             'buttonPermission' => ['ImportPayrollDocuments'],
         ];

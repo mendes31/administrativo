@@ -19,15 +19,21 @@ final class RegisterPayrollDocumentPages extends AbstractMigration
 
         $refImport = $this->fetchRow("SELECT id, adms_groups_page_id FROM adms_pages WHERE controller = 'ImportUsers' LIMIT 1");
         $refPortal = $this->fetchRow("SELECT id, adms_groups_page_id FROM adms_pages WHERE controller = 'EmployeePortal' LIMIT 1");
+        $gestao = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Gestão de Pessoas' LIMIT 1");
+        $gestaoGid = (int)($gestao['id'] ?? 0);
+        if ($gestaoGid <= 0 && $refImport) {
+            $gestaoGid = (int)($refImport['adms_groups_page_id'] ?? 0);
+        }
 
         $pages = [
             [
-                'name' => 'Importar documentos de folha (PDF)',
+                'name' => 'Importar documentos de RH (PDF)',
                 'controller' => 'ImportPayrollDocuments',
                 'controller_url' => 'import-payroll-documents',
                 'directory' => 'portal',
                 'obs' => 'Upload do PDF consolidado do escritório; separação por CPF e distribuição aos colaboradores.',
                 'ref' => $refImport,
+                'group_id' => $gestaoGid,
             ],
             [
                 'name' => 'Meus documentos de folha',
@@ -36,6 +42,7 @@ final class RegisterPayrollDocumentPages extends AbstractMigration
                 'directory' => 'portal',
                 'obs' => 'Lista folhas, recibos e informes disponibilizados pelo RH.',
                 'ref' => $refPortal,
+                'group_id' => 0,
             ],
             [
                 'name' => 'Visualizar documento de folha (PDF)',
@@ -44,12 +51,14 @@ final class RegisterPayrollDocumentPages extends AbstractMigration
                 'directory' => 'portal',
                 'obs' => 'Stream seguro de PDF (LGPD); não usar URL pública direta ao ficheiro.',
                 'ref' => $refPortal,
+                'group_id' => 0,
             ],
         ];
 
         foreach ($pages as $p) {
             $ref = $p['ref'];
-            unset($p['ref']);
+            $forcedGid = (int)($p['group_id'] ?? 0);
+            unset($p['ref'], $p['group_id']);
             if (!$ref) {
                 continue;
             }
@@ -59,7 +68,7 @@ final class RegisterPayrollDocumentPages extends AbstractMigration
             if ($exists) {
                 continue;
             }
-            $gid = (int)($ref['adms_groups_page_id'] ?? 0);
+            $gid = $forcedGid > 0 ? $forcedGid : (int)($ref['adms_groups_page_id'] ?? 0);
             if ($gid <= 0) {
                 continue;
             }
@@ -70,7 +79,7 @@ final class RegisterPayrollDocumentPages extends AbstractMigration
                 'directory' => $p['directory'],
                 'obs' => $p['obs'],
                 'public_page' => 0,
-                'default_page' => 1,
+                'default_page' => 0,
                 'page_status' => 1,
                 'adms_packages_page_id' => 1,
                 'adms_groups_page_id' => $gid,

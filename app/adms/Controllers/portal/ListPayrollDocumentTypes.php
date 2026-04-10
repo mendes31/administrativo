@@ -18,7 +18,7 @@ class ListPayrollDocumentTypes
         $this->data['types'] = $repo->listAll();
 
         $pageElements = [
-            'title_head' => 'Tipos de documento (folha)',
+            'title_head' => 'Tipos de documento (RH)',
             'menu' => 'list-payroll-document-types',
             'buttonPermission' => [
                 'CreatePayrollDocumentType',

@@ -7,6 +7,18 @@ use App\adms\Helpers\SlugController;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\PagesRoutesRepository;
 
+/**
+ * Roteador principal do administrativo com checagem de rota e permissão.
+ *
+ * Fluxo resumido:
+ * 1. Resolve a página em `adms_pages` (via {@see PagesRoutesRepository}) pelo controller ou slug.
+ * 2. Se `public_page = 1`: carrega a controller **sem** exigir login nem ACL.
+ * 3. Caso contrário: exige sessão e {@see PagesRoutesRepository::checkUserPagePermission} (matriz `adms_access_levels_pages`).
+ * Exceções pontuais: ServeFile e central de notificações com sessão, mapa AJAX interno, etc.
+ *
+ * Campos `default_page` / `basicControllers` **não** são consultados aqui; afetam só a inicialização da matriz
+ * de permissões (ver {@see \App\adms\Models\Repository\AccessLevelsPagesRepository::initializeForNewAccessLevel}).
+ */
 class LoadPageAdmAccessLevel
 {
 

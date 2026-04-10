@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Phinx\Migration\AbstractMigration;
 
 /**
- * Tipos de documento de folha (cadastro + regras futuras) e seeds iniciais.
- * Páginas CRUD com ACL copiada de ImportPayrollDocuments.
+ * Tipos de documento RH (cadastro + regras futuras) e seeds iniciais.
+ * Páginas CRUD no grupo Gestão de Pessoas; ACL copiada da página ImportPayrollDocuments.
  */
 final class CreatePayrollDocumentTypes extends AbstractMigration
 {
@@ -109,32 +109,41 @@ final class CreatePayrollDocumentTypes extends AbstractMigration
             return;
         }
 
-        $ref = $this->fetchRow("SELECT id, adms_groups_page_id FROM adms_pages WHERE controller = 'ImportPayrollDocuments' LIMIT 1");
-        if (!$ref) {
+        $refAcl = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = 'ImportPayrollDocuments' LIMIT 1");
+        if (!$refAcl) {
+            return;
+        }
+        $gestao = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Gestão de Pessoas' LIMIT 1");
+        $gid = (int)($gestao['id'] ?? 0);
+        if ($gid <= 0) {
+            $refImp = $this->fetchRow("SELECT adms_groups_page_id FROM adms_pages WHERE controller = 'ImportPayrollDocuments' LIMIT 1");
+            $gid = (int)($refImp['adms_groups_page_id'] ?? 0);
+        }
+        if ($gid <= 0) {
             return;
         }
 
         $pages = [
             [
-                'name' => 'Tipos de documento (folha)',
+                'name' => 'Tipos de documento (RH)',
                 'controller' => 'ListPayrollDocumentTypes',
                 'controller_url' => 'list-payroll-document-types',
-                'obs' => 'Cadastro de tipos para importação de folha/recibos e regras futuras (OTP, etc.).',
+                'obs' => 'Cadastro de tipos para importação de documentos RH e regras futuras (OTP, etc.).',
             ],
             [
-                'name' => 'Criar tipo de documento (folha)',
+                'name' => 'Criar tipo de documento (RH)',
                 'controller' => 'CreatePayrollDocumentType',
                 'controller_url' => 'create-payroll-document-type',
-                'obs' => 'Formulário para novo tipo de documento de folha.',
+                'obs' => 'Formulário para novo tipo de documento de RH.',
             ],
             [
-                'name' => 'Editar tipo de documento (folha)',
+                'name' => 'Editar tipo de documento (RH)',
                 'controller' => 'UpdatePayrollDocumentType',
                 'controller_url' => 'update-payroll-document-type',
-                'obs' => 'Formulário para editar tipo de documento de folha.',
+                'obs' => 'Formulário para editar tipo de documento de RH.',
             ],
             [
-                'name' => 'Apagar tipo de documento (folha)',
+                'name' => 'Apagar tipo de documento (RH)',
                 'controller' => 'DeletePayrollDocumentType',
                 'controller_url' => 'delete-payroll-document-type',
                 'obs' => 'Remove tipo de documento se não estiver em uso.',
@@ -148,10 +157,6 @@ final class CreatePayrollDocumentTypes extends AbstractMigration
             if ($exists) {
                 continue;
             }
-            $gid = (int)($ref['adms_groups_page_id'] ?? 0);
-            if ($gid <= 0) {
-                continue;
-            }
             $this->table('adms_pages')->insert([
                 'name' => $p['name'],
                 'controller' => $p['controller'],
@@ -159,7 +164,7 @@ final class CreatePayrollDocumentTypes extends AbstractMigration
                 'directory' => 'portal',
                 'obs' => $p['obs'],
                 'public_page' => 0,
-                'default_page' => 1,
+                'default_page' => 0,
                 'page_status' => 1,
                 'adms_packages_page_id' => 1,
                 'adms_groups_page_id' => $gid,
@@ -172,12 +177,12 @@ final class CreatePayrollDocumentTypes extends AbstractMigration
             if ($newId <= 0 || !$this->hasTable('adms_access_levels_pages')) {
                 continue;
             }
-            $refId = (int)$ref['id'];
+            $refAclId = (int)$refAcl['id'];
             $this->execute(
                 "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
                  SELECT permission, adms_access_level_id, {$newId}, '{$now}', '{$now}'
                  FROM adms_access_levels_pages
-                 WHERE adms_page_id = {$refId}"
+                 WHERE adms_page_id = {$refAclId}"
             );
         }
     }

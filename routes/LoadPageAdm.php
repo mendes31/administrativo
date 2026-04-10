@@ -39,7 +39,11 @@ class LoadPageAdm
     /** @var string $classLoad Controller que deve ser carregada */
     private string $classLoad;
 
-    /** @var array $listPgPublic Recebe a lista de paginas publicas */
+    /**
+     * Lista legada de controllers “públicos” para o fluxo antigo desta classe.
+     * Em produção o `PageController` usa {@see LoadPageAdmAccessLevel}, que lê `adms_pages.public_page`
+     * na base — não confundir estas listas com o cadastro de páginas.
+     */
     private array $listPgPublic = [
         "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin",
         // Servidor de arquivos foi tornado público para evitar problemas

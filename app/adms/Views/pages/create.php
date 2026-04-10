@@ -101,6 +101,13 @@ use App\adms\Helpers\CSRFHelper;
                     </select>
                 </div>
 
+                <div class="col-12">
+                    <div class="alert alert-light border small mb-0" role="note">
+                        <strong>Pública:</strong> a rota fica acessível <strong>sem login</strong>. Ao guardar, o sistema tende a conceder permissão na matriz para os níveis (exceto super admin, tratado à parte).<br>
+                        <strong>Página padrão:</strong> continua <strong>privada</strong> se não for pública (é preciso login), mas <strong>novos níveis de acesso</strong> recebem esta permissão automaticamente na matriz. Desmarcar padrão ou público <strong>não remove</strong> permissões já concedidas — ajuste na tela de permissões se necessário.
+                    </div>
+                </div>
+
                 <div class="col-md-6 col-sm-12">
                     <label for="adms_packages_page_id" class="form-label">Pacote</label>
                     <select name="adms_packages_page_id" class="form-select" id="adms_packages_page_id">

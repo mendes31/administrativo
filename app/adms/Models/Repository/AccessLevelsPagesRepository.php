@@ -11,9 +11,12 @@ use PDO;
 /**
  * Repositório responsável pelas operações relacionadas às páginas associadas aos níveis de acesso.
  *
- * Esta classe gerencia a recuperação e inserção de páginas associadas a níveis de acesso no banco de dados.
- * Ela oferece métodos para obter as páginas vinculadas a um determinado nível de acesso e para realizar 
- * a inserção em massa de novas associações entre níveis de acesso e páginas.
+ * **Regra de permission inicial** (novo nível ou inclusão em massa de linhas em `adms_access_levels_pages`):
+ * para cada página, `permission = 1` quando ocorre **qualquer** destes casos (e nível ≠ super admin id 1):
+ * - `adms_pages.public_page = 1` (pública no cadastro; lembrar que o roteador também dispensa login), ou
+ * - `adms_pages.default_page = 1` (página padrão: privada pode ser padrão — exige login, mas entra liberada na matriz), ou
+ * - `controller` está na propriedade `$basicControllers` (mínimos: dashboard, perfil, informativos, etc.).
+ * Caso contrário `permission = 0`. O nível 1 (super admin) recebe sempre 1 na lógica que aplica estas regras.
  *
  * @package App\adms\Models\Repository
  */
@@ -61,48 +64,49 @@ class AccessLevelsPagesRepository extends DbConnection
      * nível de acesso específico, retornando um array com os IDs das páginas.
      *
      * @param int $accessLevel ID do nível de acesso.
-     * @return array|bool Retorna um array com os IDs das páginas ou `false` se não houver resultados.
+     * @return array<int>|array<int, true> Lista de IDs (sem permission) ou mapa page_id => true (com permission).
      */
-    public function getPagesAccessLevelsArray(int $accessLevel, bool $permission = false): array|bool
+    public function getPagesAccessLevelsArray(int $accessLevel, bool $permission = false): array
     {
-        // QUERY para recuperar os registros do banco de dados
-        $sql = 'SELECT adms_page_id
-                FROM adms_access_levels_pages
-                WHERE adms_access_level_id = :adms_access_level_id';
-
-        // Acessa o if quando retornar somente as paginas que tiverem permissão 1
+        // DISTINCT / GROUP BY: a tabela pode acumular linhas duplicadas (mesmo nível + mesma página)
+        // por sincronizações e INSERTs repetidos; sem isso fetchAll estoura memória (ex.: sync de níveis).
         if ($permission) {
-            $sql .= " AND permission = 1";
+            $sql = 'SELECT adms_page_id
+                    FROM adms_access_levels_pages
+                    WHERE adms_access_level_id = :adms_access_level_id
+                      AND permission = 1
+                    GROUP BY adms_page_id';
+        } else {
+            $sql = 'SELECT DISTINCT adms_page_id
+                    FROM adms_access_levels_pages
+                    WHERE adms_access_level_id = :adms_access_level_id';
         }
 
-        // Preparar a QUERY
         $stmt = $this->getConnection()->prepare($sql);
-
-        // Substituir os parâmetros da QUERY pelos valores
         $stmt->bindValue(':adms_access_level_id', $accessLevel, PDO::PARAM_INT);
-
-        // Executar a QUERY
         $stmt->execute();
 
-        // Ler os registros
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Retornar array indexado para facilitar verificação de permissões
-        if ($result) {
-            if ($permission) {
-                // Para verificação de permissões, retornar array indexado
-                $indexedArray = [];
-                foreach ($result as $row) {
-                    $indexedArray[$row['adms_page_id']] = true;
-                }
-                return $indexedArray;
-            } else {
-                // Para operações de atualização, retornar array simples
-                return array_column($result, 'adms_page_id');
-            }
+        $ids = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        if (!is_array($ids)) {
+            return [];
         }
-        
-        return [];
+        $ids = array_values(array_filter(
+            array_map(static fn($v): int => (int)$v, $ids),
+            static fn(int $pid): bool => $pid > 0
+        ));
+
+        if ($permission) {
+            $indexed = [];
+            foreach ($ids as $pid) {
+                if ($pid > 0) {
+                    $indexed[$pid] = true;
+                }
+            }
+
+            return $indexed;
+        }
+
+        return $ids;
     }
 
     /**
@@ -227,9 +231,10 @@ class AccessLevelsPagesRepository extends DbConnection
      * - Garante que TODAS as páginas ativas existam em `adms_access_levels_pages`
      *   para o nível informado.
      * - Define permission = 1 para:
-     *     * páginas públicas (`public_page = 1`), e
+     *     * páginas públicas (`public_page = 1`),
+     *     * páginas padrão (`default_page = 1`) — normalmente privadas, mas liberadas na matriz para todo nível novo,
      *     * páginas cujos controllers estão em $basicControllers
-     * - Define permission = 0 para as demais páginas privadas.
+     * - Define permission = 0 para as demais.
      *
      * @param int $accessLevelId ID do nível de acesso recém-criado
      * @return bool

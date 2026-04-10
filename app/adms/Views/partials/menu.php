@@ -587,13 +587,13 @@ $menus = [
                 'icon' => 'fas fa-file-invoice-dollar'
             ],
             [
-                'label' => 'Importar folhas / recibos (PDF)',
+                'label' => 'Importar documentos RH (PDF)',
                 'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
                 'permission' => 'ImportPayrollDocuments',
                 'icon' => 'fas fa-file-pdf'
             ],
             [
-                'label' => 'Tipos de documento (folha)',
+                'label' => 'Tipos de documento (RH)',
                 'url' => $_ENV['URL_ADM'] . 'list-payroll-document-types',
                 'permission' => 'ListPayrollDocumentTypes',
                 'icon' => 'fas fa-tags'

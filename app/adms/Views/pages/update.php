@@ -110,6 +110,13 @@ use App\adms\Helpers\CSRFHelper;
                     </select>
                 </div>
 
+                <div class="col-12">
+                    <div class="alert alert-light border small mb-0" role="note">
+                        <strong>Pública:</strong> a rota fica acessível <strong>sem login</strong>. Se alterar de Não para Sim, o sistema alinha permissão = 1 para todos os níveis na matriz.<br>
+                        <strong>Página padrão:</strong> se privada, exige login; novos níveis recebem a permissão automaticamente. Ao marcar Padrão=Sim ou Público=Sim na edição, as permissões são alinhadas. Desmarcar <strong>não revoga</strong> o que já estava liberado.
+                    </div>
+                </div>
+
                 <div class="col-md-6 col-sm-12">
                     <label for="adms_packages_page_id" class="form-label">Pacote</label>
                     <select name="adms_packages_page_id" class="form-select" id="adms_packages_page_id">

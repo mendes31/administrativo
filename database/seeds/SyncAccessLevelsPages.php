@@ -9,9 +9,10 @@ class SyncAccessLevelsPages extends AbstractSeed
     /**
      * Sincroniza automaticamente as permissões de páginas com os níveis de acesso.
      *
-     * Este seed adiciona todas as páginas cadastradas a todos os níveis de acesso,
-     * mas sem permissão (permission = 0). Isso garante que todas as páginas apareçam
-     * na tela de permissões para serem liberadas manualmente.
+     * Insere pares (nível, página) em falta com INSERT IGNORE. Para níveis ≠ 1 usa permission = 0;
+     * o super admin (id 1) recebe 1. Isto **não** aplica as regras de `public_page` / `default_page` /
+     * `basicControllers` — essas são aplicadas em {@see \App\adms\Models\Repository\AccessLevelsPagesRepository::initializeForNewAccessLevel}
+     * ao criar um nível novo. Após este seed, páginas “padrão” ou “públicas” podem precisar de ajuste na matriz ou recriação de nível.
      *
      * @return void
      */

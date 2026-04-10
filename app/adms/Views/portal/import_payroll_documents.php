@@ -11,11 +11,11 @@ if (!is_array($typeLabels)) {
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2 flex-wrap">
-        <h2 class="mt-3">Importar documentos de folha (PDF)</h2>
+        <h2 class="mt-3">Importar documentos de RH (PDF)</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
             <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm) ?>dashboard" class="text-decoration-none">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm) ?>import-users" class="text-decoration-none">Usuários</a></li>
-            <li class="breadcrumb-item active">Importar folhas</li>
+            <li class="breadcrumb-item active">Importar RH</li>
         </ol>
     </div>
 

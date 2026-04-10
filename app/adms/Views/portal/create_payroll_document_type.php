@@ -3,13 +3,13 @@ use App\adms\Helpers\CSRFHelper;
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Novo tipo de documento (folha)</h2>
+        <h2 class="mt-3">Novo tipo de documento (RH)</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
             <li class="breadcrumb-item">
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-payroll-document-types" class="text-decoration-none">Tipos (folha)</a>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>list-payroll-document-types" class="text-decoration-none">Tipos (RH)</a>
             </li>
             <li class="breadcrumb-item">Criar</li>
         </ol>

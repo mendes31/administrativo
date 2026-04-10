@@ -2,13 +2,13 @@
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Tipos de documento (folha)</h2>
+        <h2 class="mt-3">Tipos de documento (RH)</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
             <li class="breadcrumb-item">Gestão de Pessoas</li>
-            <li class="breadcrumb-item">Tipos de documento (folha)</li>
+            <li class="breadcrumb-item">Tipos de documento (RH)</li>
         </ol>
     </div>
 

@@ -12,9 +12,14 @@ use PDO;
 /**
  * Repository responsável por buscar e manipular páginas no banco de dados.
  *
- * Esta classe fornece métodos para recuperar, criar, atualizar e deletar páginas no banco de dados.
- * Ela estende a classe `DbConnection` para gerenciar conexões com o banco de dados e utiliza o `GenerateLog`
- * para registrar erros que ocorrem durante as operações.
+ * Permissões e campos `adms_pages`:
+ * - **public_page**: se 1, o roteador (`LoadPageAdmAccessLevel`) permite acesso **sem login**.
+ *   Páginas privadas (0) exigem sessão e linha em `adms_access_levels_pages` com permission=1.
+ * - **default_page**: se 1, a página é tratada como “padrão” na **matriz de permissões**: ao criar um
+ *   novo nível de acesso (`AccessLevelsPagesRepository::initializeForNewAccessLevel`) ou ao associar
+ *   páginas em massa, recebe permission=1 automaticamente (exceto regras do super admin).
+ *   Continua **privada** para o roteador se `public_page=0` (exige login + ACL).
+ * - Ao **desmarcar** Padrão ou Público, este repositório **não revoga** permissões já gravadas; ajuste manual na tela de permissões.
  *
  * @package App\adms\Models\Repository
  * @author Cesar <cesar@celke.com.br>
@@ -344,11 +349,18 @@ class PagesRepository extends DbConnection
                     $newData
                 );
 
-                // Se a página passou a ser padrão (0 -> 1), garantir permissão = 1 para todos os níveis
+                // Página pública ou padrão: novos níveis já nascem com permissão (AccessLevelsPagesRepository).
+                // Ao marcar Padrão=Sim ou Público=Sim na edição, alinhar matriz: criar linhas em falta e permission=1
+                // para todos os níveis (exceto super admin, tratado à parte na verificação de rota).
                 $oldDefault = (int)($oldData['default_page'] ?? 0);
                 $newDefault = (int)($data['default_page'] ?? 0);
+                $oldPublic = (int)($oldData['public_page'] ?? 0);
+                $newPublic = (int)($data['public_page'] ?? 0);
 
-                if ($oldDefault === 0 && $newDefault === 1) {
+                $becameDefault = $oldDefault === 0 && $newDefault === 1;
+                $becamePublic = $oldPublic === 0 && $newPublic === 1;
+
+                if ($becameDefault || $becamePublic) {
                     $conn = $this->getConnection();
                     $pageId = (int)$data['id'];
                     $now   = date('Y-m-d H:i:s');
