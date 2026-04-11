@@ -57,7 +57,6 @@ class ListUsers
         // Tratar filtros - priorizar GET, senão usar sessão
         $filtros = [
             'nome' => $_GET['nome'] ?? $_SESSION['filtros_list_users']['nome'] ?? '',
-            'email' => $_GET['email'] ?? $_SESSION['filtros_list_users']['email'] ?? '',
             'usuario' => $_GET['usuario'] ?? $_SESSION['filtros_list_users']['usuario'] ?? '',
             'departamento_id' => $_GET['departamento_id'] ?? $_SESSION['filtros_list_users']['departamento_id'] ?? '',
             'cargo_id' => $_GET['cargo_id'] ?? $_SESSION['filtros_list_users']['cargo_id'] ?? '',
@@ -72,7 +71,7 @@ class ListUsers
         ];
         
         // Salvar filtros na sessão (apenas se vierem via GET)
-        if (isset($_GET['nome']) || isset($_GET['email']) || isset($_GET['usuario']) || 
+        if (isset($_GET['nome']) || isset($_GET['usuario']) || 
             isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || 
             isset($_GET['status']) || isset($_GET['bloqueado']) || isset($_GET['desligado']) ||
             isset($_GET['sexo']) || isset($_GET['filhos']) ||

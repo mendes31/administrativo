@@ -67,10 +67,6 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.name LIKE :nome';
             $params[':nome'] = '%' . $filtros['nome'] . '%';
         }
-        if (!empty($filtros['email'])) {
-            $where[] = 'usr.email LIKE :email';
-            $params[':email'] = '%' . $filtros['email'] . '%';
-        }
         if (!empty($filtros['usuario'])) {
             $where[] = 'usr.username LIKE :usuario';
             $params[':usuario'] = '%' . $filtros['usuario'] . '%';
@@ -187,10 +183,6 @@ class UsersRepository extends DbConnection
         if (!empty($filtros['nome'])) {
             $where[] = 'usr.name LIKE :nome';
             $params[':nome'] = '%' . $filtros['nome'] . '%';
-        }
-        if (!empty($filtros['email'])) {
-            $where[] = 'usr.email LIKE :email';
-            $params[':email'] = '%' . $filtros['email'] . '%';
         }
         if (!empty($filtros['usuario'])) {
             $where[] = 'usr.username LIKE :usuario';
@@ -344,10 +336,6 @@ class UsersRepository extends DbConnection
         if (!empty($filtros['nome'])) {
             $where[] = 'usr.name LIKE :nome';
             $params[':nome'] = '%' . $filtros['nome'] . '%';
-        }
-        if (!empty($filtros['email'])) {
-            $where[] = 'usr.email LIKE :email';
-            $params[':email'] = '%' . $filtros['email'] . '%';
         }
         if (!empty($filtros['usuario'])) {
             $where[] = 'usr.username LIKE :usuario';

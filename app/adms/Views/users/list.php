@@ -53,22 +53,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
             // Inclui o arquivo que exibe mensagens de sucesso e erro
             include './app/adms/Views/partials/alerts.php';
             ?>
-            <form method="get" class="row g-3 mb-3 align-items-end">
-                <div class="col-md-2">
-                    <label for="nome" class="form-label mb-1">Nome</label>
-                    <input type="text" name="nome" id="nome" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['nome'] ?? '') ?>">
+            <form method="get" class="row g-2 mb-2 align-items-end users-list-filters">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="nome" class="form-label users-list-filters-label">Nome</label>
+                    <input type="text" name="nome" id="nome" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['nome'] ?? '') ?>">
                 </div>
-                <div class="col-md-2">
-                    <label for="email" class="form-label mb-1">E-mail</label>
-                    <input type="text" name="email" id="email" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['email'] ?? '') ?>">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="usuario" class="form-label users-list-filters-label">Usuário</label>
+                    <input type="text" name="usuario" id="usuario" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['usuario'] ?? '') ?>">
                 </div>
-                <div class="col-md-2">
-                    <label for="usuario" class="form-label mb-1">Usuário</label>
-                    <input type="text" name="usuario" id="usuario" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['usuario'] ?? '') ?>">
-                </div>
-                <div class="col-md-2">
-                    <label for="departamento_id" class="form-label mb-1">Departamento</label>
-                    <select name="departamento_id" id="departamento_id" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="departamento_id" class="form-label users-list-filters-label">Departamento</label>
+                    <select name="departamento_id" id="departamento_id" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <?php foreach ($this->data['departments'] ?? [] as $dept): ?>
                             <option value="<?= $dept['id'] ?>" <?= ($this->data['filtros']['departamento_id'] ?? '') == $dept['id'] ? 'selected' : '' ?>>
@@ -77,9 +73,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="cargo_id" class="form-label mb-1">Cargo</label>
-                    <select name="cargo_id" id="cargo_id" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="cargo_id" class="form-label users-list-filters-label">Cargo</label>
+                    <select name="cargo_id" id="cargo_id" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <?php foreach ($this->data['positions'] ?? [] as $pos): ?>
                             <option value="<?= $pos['id'] ?>" <?= ($this->data['filtros']['cargo_id'] ?? '') == $pos['id'] ? 'selected' : '' ?>>
@@ -88,78 +84,78 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="status" class="form-label mb-1">Status</label>
-                    <select name="status" id="status" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="status" class="form-label users-list-filters-label">Status</label>
+                    <select name="status" id="status" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <option value="Ativo" <?= ($this->data['filtros']['status'] ?? '') == 'Ativo' ? 'selected' : '' ?>>Ativo</option>
                         <option value="Inativo" <?= ($this->data['filtros']['status'] ?? '') == 'Inativo' ? 'selected' : '' ?>>Inativo</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="bloqueado" class="form-label mb-1">Bloqueado</label>
-                    <select name="bloqueado" id="bloqueado" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="bloqueado" class="form-label users-list-filters-label">Bloqueado</label>
+                    <select name="bloqueado" id="bloqueado" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <option value="1" <?= ($this->data['filtros']['bloqueado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
                         <option value="0" <?= ($this->data['filtros']['bloqueado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="desligado" class="form-label mb-1">Desligado</label>
-                    <select name="desligado" id="desligado" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="desligado" class="form-label users-list-filters-label">Desligado</label>
+                    <select name="desligado" id="desligado" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <option value="1" <?= ($this->data['filtros']['desligado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
                         <option value="0" <?= ($this->data['filtros']['desligado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="sexo" class="form-label mb-1">Sexo</label>
-                    <select name="sexo" id="sexo" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="sexo" class="form-label users-list-filters-label">Sexo</label>
+                    <select name="sexo" id="sexo" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <option value="M" <?= ($this->data['filtros']['sexo'] ?? '') === 'M' ? 'selected' : '' ?>>Masculino</option>
                         <option value="F" <?= ($this->data['filtros']['sexo'] ?? '') === 'F' ? 'selected' : '' ?>>Feminino</option>
                         <option value="O" <?= ($this->data['filtros']['sexo'] ?? '') === 'O' ? 'selected' : '' ?>>Outros</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="filhos" class="form-label mb-1">Filho(s)</label>
-                    <select name="filhos" id="filhos" class="form-select form-select-sm">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="filhos" class="form-label users-list-filters-label">Filho(s)</label>
+                    <select name="filhos" id="filhos" class="form-select users-list-filters-control">
                         <option value="">Todos</option>
                         <option value="S" <?= ($this->data['filtros']['filhos'] ?? '') === 'S' ? 'selected' : '' ?>>Sim</option>
                         <option value="N" <?= ($this->data['filtros']['filhos'] ?? '') === 'N' ? 'selected' : '' ?>>Não</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="periodo_tipo" class="form-label mb-1">Selecionar</label>
-                    <select name="periodo_tipo" id="periodo_tipo" class="form-select form-select-sm">
+                <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                    <label for="periodo_tipo" class="form-label users-list-filters-label">Selecionar</label>
+                    <select name="periodo_tipo" id="periodo_tipo" class="form-select users-list-filters-control">
                         <option value="">-- Selecionar --</option>
                         <option value="admissao" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'admissao' ? 'selected' : '' ?>>Admissão</option>
                         <option value="desligamento" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'desligamento' ? 'selected' : '' ?>>Desligamento</option>
                         <option value="atualizacao_cargos" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'atualizacao_cargos' ? 'selected' : '' ?>>Atualização de Cargos</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="data_de" class="form-label mb-1">Data de</label>
-                    <input type="date" name="data_de" id="data_de" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['data_de'] ?? '') ?>">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="data_de" class="form-label users-list-filters-label">Data de</label>
+                    <input type="date" name="data_de" id="data_de" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['data_de'] ?? '') ?>">
                 </div>
-                <div class="col-md-2">
-                    <label for="data_ate" class="form-label mb-1">Data até</label>
-                    <input type="date" name="data_ate" id="data_ate" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filtros']['data_ate'] ?? '') ?>">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="data_ate" class="form-label users-list-filters-label">Data até</label>
+                    <input type="date" name="data_ate" id="data_ate" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['data_ate'] ?? '') ?>">
                 </div>
-                <div class="col-md-2">
-                    <label for="per_page" class="form-label mb-1">Mostrar</label>
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="per_page" class="form-label users-list-filters-label">Mostrar</label>
                     <div class="d-flex align-items-center">
-                        <select name="per_page" id="per_page" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+                        <select name="per_page" id="per_page" class="form-select users-list-filters-control me-2" onchange="this.form.submit()">
                             <?php foreach ([10, 20, 50, 100] as $opt): ?>
                                 <option value="<?= $opt ?>" <?= ($this->data['per_page'] ?? 10) == $opt ? 'selected' : '' ?>><?= $opt ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <span class="form-label mb-0 small">registros</span>
+                        <span class="form-label mb-0 users-list-filters-hint">registros</span>
                     </div>
                 </div>
-                <div class="col-md-4 d-flex gap-2 flex-nowrap align-items-end">
-                    <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Filtrar</button>
-                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm"><i class="fa fa-times"></i> Limpar</a>
+                <div class="col-12 col-sm-auto d-flex gap-2 flex-wrap align-items-end users-list-filters-actions">
+                    <button type="submit" class="btn btn-primary btn-sm users-list-filters-btn"><i class="fa fa-search"></i> Filtrar</button>
+                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm users-list-filters-btn"><i class="fa fa-times"></i> Limpar</a>
                 </div>
             </form>
             <?php
@@ -168,7 +164,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
             ?>
                 <!-- Tabela Desktop -->
                 <div class="table-responsive d-none d-md-block list-desktop">
-                    <table class="table table-striped table-hover table-users-desktop">
+                    <table class="table table-striped table-hover table-users-desktop table-users-desktop-header">
                         <thead>
                             <tr>
                                 <th scope="col" style="width: 4%;">ID</th>
@@ -342,41 +338,65 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
 </div>
 
 <style>
-/* Otimizações para os filtros */
-.form-control-sm, .form-select-sm {
-    height: calc(1.5em + 0.5rem + 2px);
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+/* Filtros compactos (listagem de usuários) */
+.users-list-filters .users-list-filters-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color, #6c757d);
+    margin-bottom: 0.125rem;
+    line-height: 1.2;
 }
 
-/* Botões de filtro com tamanhos iguais */
-.btn-filter-equal {
-    min-width: 100px;
-    width: 100px;
-    text-align: center;
-    justify-content: center;
+.users-list-filters .users-list-filters-control {
+    font-size: 0.75rem;
+    line-height: 1.25;
+    padding: 0.15rem 0.4rem;
+    min-height: calc(1.25em + 0.3rem + 2px);
 }
 
-/* Garantir alinhamento dos filtros */
-.row.g-3 > div {
+.users-list-filters .users-list-filters-hint {
+    font-size: 0.6875rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.users-list-filters .users-list-filters-btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.55rem;
+}
+
+.users-list-filters.row > div {
     display: flex;
     flex-direction: column;
 }
 
-.row.g-3 > div:last-child {
-    justify-content: flex-end;
+.users-list-filters.row > .users-list-filters-actions {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-end;
 }
 
-/* Responsividade dos filtros */
+@media (min-width: 768px) {
+    .users-list-filters.row > .users-list-filters-actions {
+        margin-left: auto;
+        justify-content: flex-end;
+    }
+}
+
 @media (max-width: 767.98px) {
-    .row.g-3 > div {
-        margin-bottom: 1rem;
+    .users-list-filters.row > div {
+        margin-bottom: 0.35rem;
     }
-    
-    .row.g-3 > div:last-child {
-        flex-direction: row;
-        gap: 0.5rem;
-    }
+}
+
+/* Cabeçalho da tabela (mesmo padrão visual da listagem de informativos) */
+.table-users-desktop-header > thead > tr > th {
+    background: linear-gradient(135deg, #2E9263 0%, #2C844B 55%, #236D3D 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
 }
 
 /* Otimizações específicas para a tabela de usuários no desktop */
@@ -385,8 +405,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     table-layout: fixed;
 }
 
-.table-users-desktop th,
-.table-users-desktop td {
+.table-users-desktop tbody th,
+.table-users-desktop tbody td {
     padding: 0.5rem 0.25rem;
     vertical-align: middle;
 }
@@ -429,9 +449,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     -webkit-overflow-scrolling: touch;
 }
 
-/* Ações: largura mínima + fixa à direita se houver scroll (menu lateral não é alterado) */
-.table-users-desktop th.table-users-desktop-actions,
-.table-users-desktop td.table-users-desktop-actions {
+/* Ações: coluna fixa à direita (cabeçalho mantém o verde; corpo com fundo da linha) */
+.table-users-desktop thead th.table-users-desktop-actions {
+    width: 1%;
+    min-width: 108px;
+    white-space: nowrap;
+    position: sticky;
+    right: 0;
+    z-index: 3;
+    box-shadow: -6px 0 10px -6px rgba(0, 0, 0, 0.2);
+}
+
+.table-users-desktop tbody td.table-users-desktop-actions {
     width: 1%;
     min-width: 108px;
     white-space: nowrap;
@@ -464,8 +493,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
         font-size: 0.85rem;
     }
     
-    .table-users-desktop th,
-    .table-users-desktop td {
+    .table-users-desktop tbody th,
+    .table-users-desktop tbody td {
         padding: 0.375rem 0.125rem;
     }
     
@@ -475,10 +504,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     }
 }
 
-/* Para telas muito grandes, aumentar um pouco o espaçamento */
+/* Para telas muito grandes, aumentar um pouco o espaçamento no corpo da tabela */
 @media (min-width: 1200px) {
-    .table-users-desktop th,
-    .table-users-desktop td {
+    .table-users-desktop tbody th,
+    .table-users-desktop tbody td {
         padding: 0.625rem 0.375rem;
     }
 }

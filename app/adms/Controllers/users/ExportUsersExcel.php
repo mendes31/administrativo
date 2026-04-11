@@ -22,7 +22,6 @@ class ExportUsersExcel
 
         $filtros = [
             'nome' => $_GET['nome'] ?? $_SESSION['filtros_list_users']['nome'] ?? '',
-            'email' => $_GET['email'] ?? $_SESSION['filtros_list_users']['email'] ?? '',
             'usuario' => $_GET['usuario'] ?? $_SESSION['filtros_list_users']['usuario'] ?? '',
             'departamento_id' => $_GET['departamento_id'] ?? $_SESSION['filtros_list_users']['departamento_id'] ?? '',
             'cargo_id' => $_GET['cargo_id'] ?? $_SESSION['filtros_list_users']['cargo_id'] ?? '',
