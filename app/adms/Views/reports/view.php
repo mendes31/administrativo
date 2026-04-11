@@ -104,10 +104,21 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                         <i class="fas fa-chart-bar"></i> Resultado
                     </h5>
                     <?php if ($result['success']): ?>
-                        <div>
-                            <button class="btn btn-sm btn-light" onclick="window.print()">
+                        <div class="d-flex flex-wrap gap-1 justify-content-end">
+                            <button type="button" class="btn btn-sm btn-light" onclick="window.print()">
                                 <i class="fas fa-print"></i> Imprimir
                             </button>
+                            <?php
+                            $canExportExcel = !empty($result['data'])
+                                && in_array('ExportDynamicReportExcel', $this->data['buttonPermission'] ?? [], true)
+                                && !empty($report['id']);
+                            if ($canExportExcel):
+                                $exportExcelUrl = $_ENV['URL_ADM'] . 'export-dynamic-report-excel/' . (int)$report['id'];
+                            ?>
+                                <a href="<?= htmlspecialchars($exportExcelUrl) ?>" class="btn btn-sm btn-success">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </a>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>

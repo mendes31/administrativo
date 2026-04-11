@@ -103,16 +103,40 @@ class DynamicQueryBuilderService
                 $forceRefresh = (bool)($config['force_refresh'] ?? false);
                 $incremental = (bool)($config['incremental'] ?? false);
                 $cacheNamespace = $config['cache_namespace'] ?? null;
+                $exportAll = !empty($config['export_all']);
                 
-                return $this->executeSapApiQuery($sql, $forceRefresh, $cacheNamespace, $page, $perPage, $incremental);
+                return $this->executeSapApiQuery($sql, $forceRefresh, $cacheNamespace, $page, $perPage, $incremental, $exportAll);
             }
             
             // Se for local, usar PDO com paginação
             $params = $this->extractParameters($config);
-            
+            $exportAll = !empty($config['export_all']);
+            $pdo = $this->getActiveConnection();
+
+            if ($exportAll) {
+                $stmt = $pdo->prepare($sql);
+                foreach ($params as $key => $value) {
+                    $stmt->bindValue($key, $value);
+                }
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $executionTime = microtime(true) - $startTime;
+                $n = count($results);
+
+                return [
+                    'success' => true,
+                    'data' => $results,
+                    'rows_count' => $n,
+                    'total_rows' => $n,
+                    'execution_time' => round($executionTime, 4),
+                    'connection_type' => $this->connectionType,
+                    'sql' => $sql,
+                    'export_all' => true,
+                ];
+            }
+
             // Contar total de registros
             $countSql = "SELECT COUNT(*) as total FROM ({$sql}) as count_query";
-            $pdo = $this->getActiveConnection();
             $countStmt = $pdo->prepare($countSql);
             foreach ($params as $key => $value) {
                 $countStmt->bindValue($key, $value);
@@ -222,20 +246,42 @@ class DynamicQueryBuilderService
         $cacheNamespace = $config['cache_namespace'] ?? null;
         $page = (int)($config['page'] ?? 1);
         $perPage = (int)($config['per_page'] ?? 25);
+        $exportAll = !empty($config['export_all']);
         
         try {
             // SEMPRE usar API para SAP (não mais conexão direta ODBC)
             if ($connectionType === 'sap_api') {
                 error_log("🔷 Connection type é sap_api - Chamando executeSapApiQuery (incremental: " . ($incremental ? 'true' : 'false') . ")");
-                return $this->executeSapApiQuery($sql, $forceRefresh, $cacheNamespace, $page, $perPage, $incremental);
+                return $this->executeSapApiQuery($sql, $forceRefresh, $cacheNamespace, $page, $perPage, $incremental, $exportAll);
             }
             
             // Se for local, usar PDO com paginação
             error_log("✅ Executando via PDO Local: $sql");
             
+            $pdo = $this->getActiveConnection();
+
+            if ($exportAll) {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $executionTime = microtime(true) - $startTime;
+                $n = count($results);
+
+                return [
+                    'success' => true,
+                    'data' => $results,
+                    'rows_count' => $n,
+                    'total_rows' => $n,
+                    'execution_time' => round($executionTime, 4),
+                    'connection_type' => 'local',
+                    'sql' => $sql,
+                    'query_mode' => 'custom_sql',
+                    'export_all' => true,
+                ];
+            }
+
             // Contar total de registros (sem LIMIT)
             $countSql = "SELECT COUNT(*) as total FROM ({$sql}) as count_query";
-            $pdo = $this->getActiveConnection();
             $countStmt = $pdo->prepare($countSql);
             $countStmt->execute();
             $totalRows = (int)$countStmt->fetchColumn();
@@ -320,7 +366,7 @@ class DynamicQueryBuilderService
         return false;
     }
 
-    private function executeSapApiQuery(string $sql, bool $forceRefresh, ?string $namespace, int $page = 1, int $perPage = 25, bool $incremental = false): array
+    private function executeSapApiQuery(string $sql, bool $forceRefresh, ?string $namespace, int $page = 1, int $perPage = 25, bool $incremental = false, bool $exportAll = false): array
     {
         try {
             error_log("🔷 DynamicQueryBuilderService::executeSapApiQuery - INÍCIO");
@@ -358,11 +404,15 @@ class DynamicQueryBuilderService
                             $existingCachedData = $allData;
                             error_log("🔄 Modo incremental: usando cache existente como base (" . count($allData) . " registros)");
                         } else {
-                            // Aplicar paginação apenas na leitura
-                            $offset = max(0, ($page - 1) * $perPage);
-                            $paginatedData = array_slice($allData, $offset, $perPage);
+                            // Aplicar paginação apenas na leitura (exportação: retorna todos do cache)
+                            if ($exportAll) {
+                                $paginatedData = $allData;
+                            } else {
+                                $offset = max(0, ($page - 1) * $perPage);
+                                $paginatedData = array_slice($allData, $offset, $perPage);
+                            }
                             
-                            error_log("✅ Cache: Total de registros: {$totalRows}, Página: {$page}, Mostrando: " . count($paginatedData));
+                            error_log("✅ Cache: Total de registros: {$totalRows}, Página: {$page}, Mostrando: " . count($paginatedData) . ($exportAll ? ' (export_all)' : ''));
                             
                             return [
                                 'success' => true,
@@ -604,9 +654,13 @@ class DynamicQueryBuilderService
                 error_log("❌ ERRO ao salvar cache!");
             }
             
-            // Aplicar paginação apenas para retorno (não salvar paginado)
-            $offset = max(0, ($page - 1) * $perPage);
-            $paginatedData = array_slice($allData, $offset, $perPage);
+            // Aplicar paginação apenas para retorno (não salvar paginado); export_all devolve tudo
+            if ($exportAll) {
+                $paginatedData = $allData;
+            } else {
+                $offset = max(0, ($page - 1) * $perPage);
+                $paginatedData = array_slice($allData, $offset, $perPage);
+            }
             
             $result = [
                 'success' => true,
@@ -625,7 +679,7 @@ class DynamicQueryBuilderService
                 ]
             ];
 
-            error_log("✅ executeSapApiQuery - SUCESSO - Retornando " . count($result['data'] ?? []) . " registros da página {$page} de {$totalRows} total");
+            error_log("✅ executeSapApiQuery - SUCESSO - Retornando " . count($result['data'] ?? []) . " registros" . ($exportAll ? ' (export_all)' : " da página {$page} de {$totalRows} total"));
             return $result;
         } catch (Exception $e) {
             error_log("❌ ERRO em executeSapApiQuery: " . $e->getMessage());
