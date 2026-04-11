@@ -103,6 +103,16 @@ class UsersRepository extends DbConnection
             }
         }
 
+        if (!empty($filtros['sexo']) && in_array($filtros['sexo'], ['M', 'F', 'O'], true)) {
+            $where[] = 'usr.sexo = :sexo';
+            $params[':sexo'] = $filtros['sexo'];
+        }
+        if (isset($filtros['filhos']) && $filtros['filhos'] !== '' && $filtros['filhos'] !== null
+            && in_array($filtros['filhos'], ['S', 'N'], true)) {
+            $where[] = 'usr.filhos = :filhos';
+            $params[':filhos'] = $filtros['filhos'];
+        }
+
         // Filtro de período (de/até) por tipo selecionado
         $periodoTipo = $filtros['periodo_tipo'] ?? '';
         $dataDe = $filtros['data_de'] ?? '';
@@ -209,6 +219,16 @@ class UsersRepository extends DbConnection
             } else {
                 $where[] = 'usr.data_desligamento IS NULL';
             }
+        }
+
+        if (!empty($filtros['sexo']) && in_array($filtros['sexo'], ['M', 'F', 'O'], true)) {
+            $where[] = 'usr.sexo = :sexo';
+            $params[':sexo'] = $filtros['sexo'];
+        }
+        if (isset($filtros['filhos']) && $filtros['filhos'] !== '' && $filtros['filhos'] !== null
+            && in_array($filtros['filhos'], ['S', 'N'], true)) {
+            $where[] = 'usr.filhos = :filhos';
+            $params[':filhos'] = $filtros['filhos'];
         }
 
         // Filtro de período (de/até) por tipo selecionado
@@ -359,6 +379,16 @@ class UsersRepository extends DbConnection
                 // Filtrar apenas não desligados (sem data_desligamento)
                 $where[] = 'usr.data_desligamento IS NULL';
             }
+        }
+
+        if (!empty($filtros['sexo']) && in_array($filtros['sexo'], ['M', 'F', 'O'], true)) {
+            $where[] = 'usr.sexo = :sexo';
+            $params[':sexo'] = $filtros['sexo'];
+        }
+        if (isset($filtros['filhos']) && $filtros['filhos'] !== '' && $filtros['filhos'] !== null
+            && in_array($filtros['filhos'], ['S', 'N'], true)) {
+            $where[] = 'usr.filhos = :filhos';
+            $params[':filhos'] = $filtros['filhos'];
         }
 
         // Filtro de período (de/até) por tipo selecionado

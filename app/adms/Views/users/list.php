@@ -112,6 +112,23 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                         <option value="0" <?= ($this->data['filtros']['desligado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <label for="sexo" class="form-label mb-1">Sexo</label>
+                    <select name="sexo" id="sexo" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="M" <?= ($this->data['filtros']['sexo'] ?? '') === 'M' ? 'selected' : '' ?>>Masculino</option>
+                        <option value="F" <?= ($this->data['filtros']['sexo'] ?? '') === 'F' ? 'selected' : '' ?>>Feminino</option>
+                        <option value="O" <?= ($this->data['filtros']['sexo'] ?? '') === 'O' ? 'selected' : '' ?>>Outros</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filhos" class="form-label mb-1">Filho(s)</label>
+                    <select name="filhos" id="filhos" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="S" <?= ($this->data['filtros']['filhos'] ?? '') === 'S' ? 'selected' : '' ?>>Sim</option>
+                        <option value="N" <?= ($this->data['filtros']['filhos'] ?? '') === 'N' ? 'selected' : '' ?>>Não</option>
+                    </select>
+                </div>
                 <div class="col-md-3">
                     <label for="periodo_tipo" class="form-label mb-1">Selecionar</label>
                     <select name="periodo_tipo" id="periodo_tipo" class="form-select form-select-sm">
