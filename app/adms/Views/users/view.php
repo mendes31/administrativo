@@ -2,7 +2,6 @@
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\ImageHelper;
-use App\adms\Helpers\UserFormHelper;
 
 // Gera o token CSRF para proteger o formulário de deleção
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
@@ -183,12 +182,6 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                         echo !empty($dataNasc) ? date('d/m/Y', strtotime($dataNasc)) : '<span class="text-muted">Não informado</span>'; 
                         ?>
                     </dd>
-
-                    <dt class="col-sm-3">Sexo: </dt>
-                    <dd class="col-sm-9"><?php echo htmlspecialchars(UserFormHelper::sexoLabel($this->data['user']['sexo'] ?? null)); ?></dd>
-
-                    <dt class="col-sm-3">Filho(s): </dt>
-                    <dd class="col-sm-9"><?php echo htmlspecialchars(UserFormHelper::filhosLabel($this->data['user']['filhos'] ?? null)); ?></dd>
 
                     <dt class="col-sm-3">Departamento: </dt>
                     <dd class="col-sm-9"><?php echo $dep_name; ?></dd>

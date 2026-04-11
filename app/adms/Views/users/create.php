@@ -188,14 +188,9 @@ use App\adms\Helpers\CSRFHelper;
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
                 </div>
-                <?php
-                $isManagerUsernameDraft = isset($this->data['form']['username'])
-                    && strtolower(trim((string) $this->data['form']['username'])) === 'manager';
-                $sexoFilhosRequiredAttr = $isManagerUsernameDraft ? '' : ' required';
-                ?>
                 <div class="col-md-4">
                     <label for="sexo" class="form-label">Sexo</label>
-                    <select name="sexo" id="sexo" class="form-select"<?php echo $sexoFilhosRequiredAttr; ?>>
+                    <select name="sexo" id="sexo" class="form-select">
                         <?php $sx = (string)($this->data['form']['sexo'] ?? ''); ?>
                         <option value="" <?php echo $sx === '' ? 'selected' : ''; ?>>Selecione</option>
                         <option value="M" <?php echo $sx === 'M' ? 'selected' : ''; ?>>Masculino</option>
@@ -205,7 +200,7 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
                 <div class="col-md-4">
                     <label for="filhos" class="form-label">Filho(s)</label>
-                    <select name="filhos" id="filhos" class="form-select"<?php echo $sexoFilhosRequiredAttr; ?>>
+                    <select name="filhos" id="filhos" class="form-select">
                         <?php $fh = (string)($this->data['form']['filhos'] ?? ''); ?>
                         <option value="" <?php echo $fh === '' ? 'selected' : ''; ?>>Selecione</option>
                         <option value="S" <?php echo $fh === 'S' ? 'selected' : ''; ?>>Sim</option>
