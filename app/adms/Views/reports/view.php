@@ -105,15 +105,23 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                     </h5>
                     <?php if ($result['success']): ?>
                         <div class="d-flex flex-wrap gap-1 justify-content-end">
-                            <button type="button" class="btn btn-sm btn-light" onclick="window.print()">
-                                <i class="fas fa-print"></i> Imprimir
-                            </button>
                             <?php
+                            $reportIdForExport = !empty($report['id']) ? (int)$report['id'] : 0;
+                            $perms = $this->data['buttonPermission'] ?? [];
+                            $canExportPdf = $reportIdForExport > 0
+                                && in_array('ExportDynamicReportPdf', $perms, true);
                             $canExportExcel = !empty($result['data'])
-                                && in_array('ExportDynamicReportExcel', $this->data['buttonPermission'] ?? [], true)
-                                && !empty($report['id']);
-                            if ($canExportExcel):
-                                $exportExcelUrl = $_ENV['URL_ADM'] . 'export-dynamic-report-excel/' . (int)$report['id'];
+                                && in_array('ExportDynamicReportExcel', $perms, true)
+                                && $reportIdForExport > 0;
+                            if ($canExportPdf):
+                                $exportPdfUrl = $_ENV['URL_ADM'] . 'export-dynamic-report-pdf/' . $reportIdForExport;
+                            ?>
+                                <a href="<?= htmlspecialchars($exportPdfUrl) ?>" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </a>
+                            <?php endif; ?>
+                            <?php if ($canExportExcel):
+                                $exportExcelUrl = $_ENV['URL_ADM'] . 'export-dynamic-report-excel/' . $reportIdForExport;
                             ?>
                                 <a href="<?= htmlspecialchars($exportExcelUrl) ?>" class="btn btn-sm btn-success">
                                     <i class="fas fa-file-excel"></i> Excel

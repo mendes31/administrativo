@@ -92,7 +92,7 @@ class ViewDynamicReport
         $pageElements = [
             'title_head' => $this->data['report']['name'],
             'menu' => $fromDashboard ? 'ListDashboards' : 'relatorios',
-            'buttonPermission' => ['ExportDynamicReportExcel'],
+            'buttonPermission' => ['ExportDynamicReportExcel', 'ExportDynamicReportPdf'],
         ];
         
         $pageLayoutService = new PageLayoutService();
