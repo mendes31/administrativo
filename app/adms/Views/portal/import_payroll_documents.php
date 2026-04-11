@@ -8,6 +8,12 @@ $typeLabels = $this->data['type_labels'] ?? [];
 if (!is_array($typeLabels)) {
     $typeLabels = [];
 }
+$buttonPermission = isset($this->data['buttonPermission']) && is_array($this->data['buttonPermission'])
+    ? $this->data['buttonPermission']
+    : [];
+$canImportPayroll = in_array('ImportPayrollDocuments', $buttonPermission, true);
+$canPayrollBatchReport = in_array('PayrollImportBatchReport', $buttonPermission, true);
+$canPayrollBatchAudit = in_array('PayrollImportBatchAudit', $buttonPermission, true);
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2 flex-wrap">
@@ -33,6 +39,7 @@ if (!is_array($typeLabels)) {
         <div class="card-header"><span><i class="fas fa-file-pdf me-2 text-danger"></i>Upload e parâmetros</span></div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
+            <?php if ($canImportPayroll): ?>
             <form id="formImportPayrollPdf" action="" method="post" enctype="multipart/form-data" class="row g-3 position-relative">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="import_nonce" value="<?= htmlspecialchars($importNonce) ?>">
@@ -113,6 +120,9 @@ if (!is_array($typeLabels)) {
                 });
             })();
             </script>
+            <?php else: ?>
+                <p class="text-muted small mb-0">Não tem permissão para importar ou processar PDFs. Contacte o administrador se precisar desta função.</p>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -175,18 +185,30 @@ if (!is_array($typeLabels)) {
                                     <td class="text-center"><?= $mergedByFls ?></td>
                                     <td class="small"><?= htmlspecialchars($by) ?></td>
                                     <td class="text-end pe-2 text-nowrap">
-                                        <div class="btn-group btn-group-sm" role="group" aria-label="Ações do lote">
-                                            <a href="<?= htmlspecialchars($urlAdm) ?>payroll-import-batch-report/<?= $id ?>"
-                                               class="btn btn-outline-primary" title="Relatório (ciência, visualização, notificação)"><i class="fas fa-chart-bar"></i></a>
-                                            <a href="<?= htmlspecialchars($urlAdm) ?>payroll-import-batch-audit/<?= $id ?>"
-                                               class="btn btn-outline-secondary" title="Trilha de auditoria (eventos + acessos PDF)"><i class="fas fa-list-alt"></i></a>
-                                        </div>
-                                        <form method="post" action="" class="d-inline ms-1" onsubmit="return confirm('Remover este lote e todos os documentos entregues aos colaboradores desta importação?');">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                            <input type="hidden" name="action" value="delete_batch">
-                                            <input type="hidden" name="delete_batch_id" value="<?= $id ?>">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar lote"><i class="fas fa-trash-alt"></i></button>
-                                        </form>
+                                        <?php if ($canPayrollBatchReport || $canPayrollBatchAudit || $canImportPayroll): ?>
+                                            <?php if ($canPayrollBatchReport || $canPayrollBatchAudit): ?>
+                                                <div class="btn-group btn-group-sm" role="group" aria-label="Ações do lote">
+                                                    <?php if ($canPayrollBatchReport): ?>
+                                                        <a href="<?= htmlspecialchars($urlAdm) ?>payroll-import-batch-report/<?= $id ?>"
+                                                           class="btn btn-outline-primary" title="Relatório (ciência, visualização, notificação)"><i class="fas fa-chart-bar"></i></a>
+                                                    <?php endif; ?>
+                                                    <?php if ($canPayrollBatchAudit): ?>
+                                                        <a href="<?= htmlspecialchars($urlAdm) ?>payroll-import-batch-audit/<?= $id ?>"
+                                                           class="btn btn-outline-secondary" title="Trilha de auditoria (eventos + acessos PDF)"><i class="fas fa-list-alt"></i></a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if ($canImportPayroll): ?>
+                                                <form method="post" action="" class="d-inline ms-1" onsubmit="return confirm('Remover este lote e todos os documentos entregues aos colaboradores desta importação?');">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                    <input type="hidden" name="action" value="delete_batch">
+                                                    <input type="hidden" name="delete_batch_id" value="<?= $id ?>">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar lote"><i class="fas fa-trash-alt"></i></button>
+                                                </form>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted small">—</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php } ?>

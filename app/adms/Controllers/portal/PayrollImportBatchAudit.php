@@ -93,7 +93,10 @@ class PayrollImportBatchAudit
         $pageElements = [
             'title_head' => 'Trilha de auditoria — lote de importação (RH)',
             'menu' => 'import-payroll-documents',
-            'buttonPermission' => ['PayrollImportBatchAudit'],
+            'buttonPermission' => [
+                'PayrollImportBatchAudit',
+                'PayrollImportBatchReport',
+            ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
 

@@ -13,6 +13,12 @@ $mo = $batch['reference_month'] ?? null;
 $ref = $mo !== null && $mo !== '' ? str_pad((string)(int)$mo, 2, '0', STR_PAD_LEFT) . '/' . $y : (string)$y;
 $csvUrl = $urlAdm . 'payroll-import-batch-report/' . $batchId . '?export=csv';
 
+$buttonPermission = isset($this->data['buttonPermission']) && is_array($this->data['buttonPermission'])
+    ? $this->data['buttonPermission']
+    : [];
+$canPayrollBatchAudit = in_array('PayrollImportBatchAudit', $buttonPermission, true);
+$canViewPayrollSignedBundle = in_array('ViewPayrollSignedBundle', $buttonPermission, true);
+
 $fmt = static function (?string $mysql): string {
     if ($mysql === null || $mysql === '') {
         return '—';
@@ -39,7 +45,9 @@ $fmt = static function (?string $mysql): string {
             <span class="fw-semibold"><i class="fas fa-file-import me-2"></i>Lote #<?= $batchId ?> — <?= htmlspecialchars(mb_strlen($fn) > 60 ? mb_substr($fn, 0, 57) . '…' : $fn) ?></span>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
                 <a href="<?= htmlspecialchars($csvUrl) ?>" class="btn btn-light btn-sm"><i class="fas fa-file-csv me-1"></i> CSV</a>
-                <a href="<?= htmlspecialchars($auditUrl) ?>" class="btn btn-outline-light btn-sm"><i class="fas fa-list-alt me-1"></i> Trilha de auditoria</a>
+                <?php if ($canPayrollBatchAudit): ?>
+                    <a href="<?= htmlspecialchars($auditUrl) ?>" class="btn btn-outline-light btn-sm"><i class="fas fa-list-alt me-1"></i> Trilha de auditoria</a>
+                <?php endif; ?>
                 <a href="<?= htmlspecialchars($urlAdm) ?>import-payroll-documents" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Voltar</a>
             </div>
         </div>
@@ -180,7 +188,7 @@ $fmt = static function (?string $mysql): string {
                                 <td class="small"><?php echo $cienciaBadge; ?><?php if ($cienciaDate !== '—') { ?><div class="text-muted mt-1" style="font-size:.7rem;"><?= $cienciaDate ?></div><?php } ?></td>
                                 <td class="small"><span class="badge text-bg-light text-secondary border"><?= htmlspecialchars($sv !== '' ? $sv : '—') ?></span></td>
                                 <td class="pe-3 small text-end">
-                                    <?php if (!empty($r['requires_signature']) && ($st === 'signed' || $st === 'pending')) { ?>
+                                    <?php if ($canViewPayrollSignedBundle && !empty($r['requires_signature']) && ($st === 'signed' || $st === 'pending')) { ?>
                                         <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-signed-bundle/<?= (int)$r['document_id'] ?>" class="btn btn-sm btn-outline-danger" title="Original + trilha (pendente ou completa)"><i class="fas fa-file-pdf me-1"></i>PDF</a>
                                     <?php } else { ?>
                                         <span class="text-muted">—</span>

@@ -7,6 +7,11 @@ $docMap = $this->data['doc_map'] ?? [];
 $reportUrl = (string)($this->data['report_url'] ?? '');
 $fn = (string)($batch['original_filename'] ?? '');
 
+$buttonPermission = isset($this->data['buttonPermission']) && is_array($this->data['buttonPermission'])
+    ? $this->data['buttonPermission']
+    : [];
+$canPayrollBatchReport = in_array('PayrollImportBatchReport', $buttonPermission, true);
+
 $labelEvent = static function (string $type, string $source): string {
     if ($source === 'acesso_pdf') {
         return $type === 'access_attachment' ? 'PDF baixado (attachment)' : 'PDF visualizado (inline)';
@@ -55,7 +60,9 @@ $fmt = static function (?string $mysql): string {
             <span class="fw-semibold"><i class="fas fa-shield-alt me-2"></i>Lote #<?= $batchId ?></span>
             <span class="small opacity-90 text-truncate" style="max-width:420px;"><?= htmlspecialchars($fn) ?></span>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
-                <a href="<?= htmlspecialchars($reportUrl) ?>" class="btn btn-light btn-sm"><i class="fas fa-chart-bar me-1"></i> Relatório resumido</a>
+                <?php if ($canPayrollBatchReport): ?>
+                    <a href="<?= htmlspecialchars($reportUrl) ?>" class="btn btn-light btn-sm"><i class="fas fa-chart-bar me-1"></i> Relatório resumido</a>
+                <?php endif; ?>
                 <a href="<?= htmlspecialchars($urlAdm) ?>import-payroll-documents" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Voltar</a>
             </div>
         </div>

@@ -8,6 +8,8 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UrlAdmHelper;
+use App\adms\Helpers\UserAccessHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\PayrollDocumentTypesRepository;
 use App\adms\Models\Services\PayrollPdfSplitService;
@@ -58,7 +60,11 @@ class ImportPayrollDocuments
         $pageElements = [
             'title_head' => 'Importar documentos de RH (PDF)',
             'menu' => 'import-payroll-documents',
-            'buttonPermission' => ['ImportPayrollDocuments'],
+            'buttonPermission' => [
+                'ImportPayrollDocuments',
+                'PayrollImportBatchReport',
+                'PayrollImportBatchAudit',
+            ],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
@@ -121,6 +127,11 @@ class ImportPayrollDocuments
         }
 
         if (($_POST['action'] ?? '') === 'delete_batch') {
+            if (!$this->userHasControllerPermission('ImportPayrollDocuments')) {
+                $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Não tem permissão para eliminar lotes de importação.</div>';
+                header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
+                exit;
+            }
             $bid = (int)($_POST['delete_batch_id'] ?? 0);
             if ($bid > 0) {
                 try {
@@ -136,6 +147,12 @@ class ImportPayrollDocuments
                     $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível remover o lote. ' . htmlspecialchars($e->getMessage()) . '</div>';
                 }
             }
+            header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
+            exit;
+        }
+
+        if (!$this->userHasControllerPermission('ImportPayrollDocuments')) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Não tem permissão para processar importações de RH.</div>';
             header('Location: ' . UrlAdmHelper::to('import-payroll-documents'));
             exit;
         }
@@ -465,6 +482,16 @@ class ImportPayrollDocuments
             'k' => (int)round($num * 1024),
             default => (int)round((float)$value),
         };
+    }
+
+    private function userHasControllerPermission(string $controller): bool
+    {
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            return true;
+        }
+        $allowed = (new ButtonPermissionUserRepository())->buttonPermission([$controller]);
+
+        return is_array($allowed) && in_array($controller, $allowed, true);
     }
 
     private static function defaultPrefix(string $docType): string

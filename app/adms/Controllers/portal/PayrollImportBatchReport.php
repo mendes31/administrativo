@@ -86,7 +86,11 @@ class PayrollImportBatchReport
         $pageElements = [
             'title_head' => 'Relatório do lote de importação (RH)',
             'menu' => 'import-payroll-documents',
-            'buttonPermission' => ['PayrollImportBatchReport'],
+            'buttonPermission' => [
+                'PayrollImportBatchReport',
+                'PayrollImportBatchAudit',
+                'ViewPayrollSignedBundle',
+            ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
 
