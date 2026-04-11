@@ -3,12 +3,15 @@
 namespace App\adms\Controllers\analytics;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\EmploymentHistoryRepository;
+use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PeopleAnalyticsMetricsService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
- * Controller para People Analytics
+ * Controller para People Analytics (KPIs de RH com filtros globais).
  */
 class PeopleAnalytics
 {
@@ -16,170 +19,33 @@ class PeopleAnalytics
 
     public function index(): void
     {
+        $filters = $this->parseFiltersFromRequest();
         $usersRepo = new UsersRepository();
-        
-        // Estatísticas básicas
-        $allUsers = $usersRepo->getAllUsers(1, 10000);
-        $this->data['total_employees'] = count($allUsers);
-        $this->data['active_employees'] = count(array_filter($allUsers, function($u) {
-            return ($u['status'] ?? '') === 'Ativo' && empty($u['data_desligamento']);
-        }));
-        
-        // Calcular Taxa de Rotatividade (últimos 12 meses)
-        $currentDate = date('Y-m-d');
-        $oneYearAgo = date('Y-m-d', strtotime('-12 months'));
-        
-        // Colaboradores desligados nos últimos 12 meses
-        $terminatedLastYear = array_filter($allUsers, function($u) use ($oneYearAgo, $currentDate) {
-            return !empty($u['data_desligamento']) && 
-                   $u['data_desligamento'] >= $oneYearAgo && 
-                   $u['data_desligamento'] <= $currentDate;
-        });
-        
-        // Média de colaboradores no período (simplificado: média entre início e fim)
-        $activeAtStart = count(array_filter($allUsers, function($u) use ($oneYearAgo) {
-            return ($u['status'] ?? '') === 'Ativo' && 
-                   (empty($u['data_admissao']) || $u['data_admissao'] <= $oneYearAgo) &&
-                   (empty($u['data_desligamento']) || $u['data_desligamento'] > $oneYearAgo);
-        }));
-        
-        $activeAtEnd = $this->data['active_employees'];
-        $averageEmployees = ($activeAtStart + $activeAtEnd) / 2;
-        
-        // Calcular taxa de rotatividade
-        if ($averageEmployees > 0) {
-            $turnoverRate = (count($terminatedLastYear) / $averageEmployees) * 100;
-            $this->data['turnover_rate'] = number_format($turnoverRate, 2);
-        } else {
-            $this->data['turnover_rate'] = '0.00';
-        }
-        
-        $this->data['terminated_last_year'] = count($terminatedLastYear);
-        
-        // Calcular tempo médio de permanência usando histórico completo
+        $users = $usersRepo->getUsersForPeopleAnalytics([
+            'departamento_ids' => $filters['departamento_ids'],
+            'cargo_ids' => $filters['cargo_ids'],
+        ]);
+
         $historyRepo = new EmploymentHistoryRepository();
-        $allHistory = [];
-        foreach ($allUsers as $user) {
-            $userHistory = $historyRepo->getByUserId($user['id']);
-            if (!empty($userHistory)) {
-                $allHistory = array_merge($allHistory, $userHistory);
-            }
-        }
-        
-        // Filtrar apenas períodos com desligamento para calcular média
-        $terminatedPeriods = array_filter($allHistory, function($period) {
-            return !empty($period['data_desligamento']);
-        });
-        
-        $totalTenureDays = 0;
-        $countWithTenure = count($terminatedPeriods);
-        
-        foreach ($terminatedPeriods as $period) {
-            $admission = new \DateTime($period['data_admissao']);
-            $termination = new \DateTime($period['data_desligamento']);
-            $diff = $admission->diff($termination);
-            $totalTenureDays += $diff->days;
-        }
-        
-        if ($countWithTenure > 0) {
-            $avgTenureDays = $totalTenureDays / $countWithTenure;
-            $avgTenureYears = floor($avgTenureDays / 365);
-            $avgTenureMonths = floor(($avgTenureDays % 365) / 30);
-            $this->data['avg_tenure'] = $avgTenureYears > 0 
-                ? "{$avgTenureYears} ano(s) e {$avgTenureMonths} mês(es)"
-                : "{$avgTenureMonths} mês(es)";
-        } else {
-            $this->data['avg_tenure'] = 'N/A';
-        }
-        
-        // Estatísticas de recontratações
-        $rehires = array_filter($allHistory, function($period) {
-            return $period['tipo_periodo'] === 'Recontratação';
-        });
-        $this->data['total_rehires'] = count($rehires);
-        
-        // Headcount mensal (últimos 12 meses)
-        $monthlyHeadcount = [];
-        $currentDate = new \DateTime();
-        for ($i = 11; $i >= 0; $i--) {
-            $monthDate = clone $currentDate;
-            $monthDate->modify("-$i months");
-            $monthKey = $monthDate->format('Y-m');
-            $monthLabel = $monthDate->format('M/Y');
-            
-            // Contar colaboradores ativos no início do mês
-            $monthStart = $monthDate->format('Y-m-01');
-            $monthEnd = $monthDate->format('Y-m-t');
-            
-            $activeInMonth = 0;
-            foreach ($allUsers as $user) {
-                $userAdmission = !empty($user['data_admissao']) ? new \DateTime($user['data_admissao']) : null;
-                $userTermination = !empty($user['data_desligamento']) ? new \DateTime($user['data_desligamento']) : null;
-                
-                // Verificar se estava ativo neste mês
-                if ($userAdmission && $userAdmission->format('Y-m-d') <= $monthEnd) {
-                    if (!$userTermination || $userTermination->format('Y-m-d') >= $monthStart) {
-                        $activeInMonth++;
-                    }
-                }
-            }
-            
-            $monthlyHeadcount[$monthLabel] = $activeInMonth;
-        }
-        $this->data['monthly_headcount'] = $monthlyHeadcount;
-        
-        // Turnover por departamento
-        $turnoverByDept = [];
-        foreach ($allUsers as $user) {
-            $deptName = $user['name_dep'] ?? 'Sem Departamento';
-            if (!isset($turnoverByDept[$deptName])) {
-                $turnoverByDept[$deptName] = [
-                    'total' => 0,
-                    'terminated' => 0,
-                    'active' => 0
-                ];
-            }
-            $turnoverByDept[$deptName]['total']++;
-            if (!empty($user['data_desligamento'])) {
-                $terminationDate = new \DateTime($user['data_desligamento']);
-                $oneYearAgo = new \DateTime('-12 months');
-                if ($terminationDate >= $oneYearAgo) {
-                    $turnoverByDept[$deptName]['terminated']++;
-                }
-            } else if (($user['status'] ?? '') === 'Ativo') {
-                $turnoverByDept[$deptName]['active']++;
-            }
-        }
-        
-        // Calcular taxa de turnover por departamento
-        foreach ($turnoverByDept as $dept => &$data) {
-            $avgEmployees = ($data['active'] + ($data['total'] - $data['active'])) / 2;
-            $data['turnover_rate'] = $avgEmployees > 0 
-                ? round(($data['terminated'] / $avgEmployees) * 100, 2)
-                : 0;
-        }
-        $this->data['turnover_by_department'] = $turnoverByDept;
-        
-        // Distribuição por cargo
-        $positionDistribution = [];
-        foreach ($allUsers as $user) {
-            if (($user['status'] ?? '') === 'Ativo' && empty($user['data_desligamento'])) {
-                $posName = $user['name_pos'] ?? 'Sem Cargo';
-                $positionDistribution[$posName] = ($positionDistribution[$posName] ?? 0) + 1;
-            }
-        }
-        $this->data['position_distribution'] = $positionDistribution;
-        
-        // Distribuição por departamento
-        $departmentDistribution = [];
-        foreach ($allUsers as $user) {
-            if (($user['status'] ?? '') === 'Ativo' && empty($user['data_desligamento'])) {
-                $deptName = $user['name_dep'] ?? 'Sem Departamento';
-                $departmentDistribution[$deptName] = ($departmentDistribution[$deptName] ?? 0) + 1;
-            }
-        }
-        $this->data['department_distribution'] = $departmentDistribution;
-        
+        $historyByUser = $historyRepo->getGroupedByUserIds(array_column($users, 'id'));
+
+        $metrics = (new PeopleAnalyticsMetricsService())->compute(
+            $users,
+            $historyByUser,
+            $filters['period_start'],
+            $filters['period_end']
+        );
+
+        $this->data = array_merge($metrics, [
+            'filter_period_start' => $filters['period_start'],
+            'filter_period_end' => $filters['period_end'],
+            'filter_departamento_ids' => $filters['departamento_ids'],
+            'filter_cargo_ids' => $filters['cargo_ids'],
+            'departments_options' => (new DepartmentsRepository())->getAllDepartmentsSelect(),
+            'positions_options' => (new PositionsRepository())->getAllPositionsSelect(),
+            'metrics_json_url' => ($_ENV['URL_ADM'] ?? '') . 'people-analytics/metrics',
+        ]);
+
         $pageElements = [
             'title_head' => 'People Analytics',
             'menu' => 'people-analytics',
@@ -187,12 +53,105 @@ class PeopleAnalytics
                 'PeopleReports',
             ],
         ];
-        
+
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
-        
+
         $loadView = new LoadViewService('adms/Views/analytics/people_analytics', $this->data);
         $loadView->loadView();
     }
-}
 
+    /**
+     * Endpoint JSON com os mesmos filtros da tela (GET), para integrações ou AJAX.
+     */
+    public function metrics(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $filters = $this->parseFiltersFromRequest();
+            $usersRepo = new UsersRepository();
+            $users = $usersRepo->getUsersForPeopleAnalytics([
+                'departamento_ids' => $filters['departamento_ids'],
+                'cargo_ids' => $filters['cargo_ids'],
+            ]);
+            $historyRepo = new EmploymentHistoryRepository();
+            $historyByUser = $historyRepo->getGroupedByUserIds(array_column($users, 'id'));
+            $metrics = (new PeopleAnalyticsMetricsService())->compute(
+                $users,
+                $historyByUser,
+                $filters['period_start'],
+                $filters['period_end']
+            );
+
+            echo json_encode(['success' => true, 'data' => $metrics], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
+
+        exit;
+    }
+
+    /**
+     * @return array{period_start: string, period_end: string, departamento_ids: int[], cargo_ids: int[]}
+     */
+    private function parseFiltersFromRequest(): array
+    {
+        $today = date('Y-m-d');
+        $defaultStart = date('Y-m-d', strtotime('-12 months'));
+
+        $de = isset($_GET['pa_de']) ? (string) $_GET['pa_de'] : $defaultStart;
+        $ate = isset($_GET['pa_ate']) ? (string) $_GET['pa_ate'] : $today;
+
+        $de = $this->normalizeDateOr($de, $defaultStart);
+        $ate = $this->normalizeDateOr($ate, $today);
+        if ($de > $ate) {
+            [$de, $ate] = [$ate, $de];
+        }
+
+        return [
+            'period_start' => $de,
+            'period_end' => $ate,
+            'departamento_ids' => $this->parseIdList($_GET['pa_dep'] ?? null),
+            'cargo_ids' => $this->parseIdList($_GET['pa_pos'] ?? null),
+        ];
+    }
+
+    private function normalizeDateOr(string $value, string $fallback): string
+    {
+        $d = \DateTime::createFromFormat('Y-m-d', $value);
+
+        return ($d && $d->format('Y-m-d') === $value) ? $value : $fallback;
+    }
+
+    /**
+     * @return int[]
+     */
+    private function parseIdList(mixed $raw): array
+    {
+        if ($raw === null || $raw === '' || $raw === []) {
+            return [];
+        }
+        if (!is_array($raw)) {
+            $raw = explode(',', (string) $raw);
+        }
+        $out = [];
+        foreach ($raw as $v) {
+            if (is_string($v)) {
+                $v = trim($v);
+            }
+            if ($v === '' || $v === null) {
+                continue;
+            }
+            if (is_numeric($v)) {
+                $id = (int) $v;
+                if ($id > 0) {
+                    $out[$id] = true;
+                }
+            }
+        }
+
+        return array_keys($out);
+    }
+}

@@ -282,6 +282,66 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Usuários para People Analytics: sem paginação, com filtro opcional por vários departamentos/cargos.
+     *
+     * @param array{departamento_ids?: int[], cargo_ids?: int[]} $filtros
+     * @return array<int, array<string, mixed>>
+     */
+    public function getUsersForPeopleAnalytics(array $filtros = []): array
+    {
+        $where = [];
+        $params = [
+            ':pa_excl_username' => self::ORGCHART_EXCLUDED_USERNAME,
+        ];
+        $where[] = 'usr.username <> :pa_excl_username';
+
+        $depIds = array_values(array_filter(
+            array_map('intval', $filtros['departamento_ids'] ?? []),
+            static fn (int $id): bool => $id > 0
+        ));
+        if ($depIds !== []) {
+            $ph = [];
+            foreach ($depIds as $i => $id) {
+                $key = ':pa_dep_' . $i;
+                $ph[] = $key;
+                $params[$key] = $id;
+            }
+            $where[] = 'usr.user_department_id IN (' . implode(',', $ph) . ')';
+        }
+
+        $posIds = array_values(array_filter(
+            array_map('intval', $filtros['cargo_ids'] ?? []),
+            static fn (int $id): bool => $id > 0
+        ));
+        if ($posIds !== []) {
+            $ph = [];
+            foreach ($posIds as $i => $id) {
+                $key = ':pa_pos_' . $i;
+                $ph[] = $key;
+                $params[$key] = $id;
+            }
+            $where[] = 'usr.user_position_id IN (' . implode(',', $ph) . ')';
+        }
+
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
+                FROM adms_users usr
+                LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
+                LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id
+                ' . $whereSql . '
+                ORDER BY usr.name ASC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $paramType = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $paramType);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Buscar usuário por username (chave única de importação)
      */
     public function getUserByUsername(string $username): array|false

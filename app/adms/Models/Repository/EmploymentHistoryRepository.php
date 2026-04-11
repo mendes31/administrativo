@@ -52,6 +52,56 @@ class EmploymentHistoryRepository extends DbConnection
     }
 
     /**
+     * Histórico de vínculos para vários usuários (uma consulta).
+     *
+     * @param int[] $userIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function getGroupedByUserIds(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter(
+            array_map('intval', $userIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $ph = [];
+        $params = [];
+        foreach ($userIds as $i => $id) {
+            $key = ':uid_' . $i;
+            $ph[] = $key;
+            $params[$key] = $id;
+        }
+
+        $sql = 'SELECT * FROM adms_employment_history
+                WHERE adms_user_id IN (' . implode(',', $ph) . ')
+                ORDER BY adms_user_id ASC, data_admissao DESC, created_at DESC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $byUser = [];
+        foreach ($rows as $row) {
+            $uid = (int) ($row['adms_user_id'] ?? 0);
+            if ($uid < 1) {
+                continue;
+            }
+            if (!isset($byUser[$uid])) {
+                $byUser[$uid] = [];
+            }
+            $byUser[$uid][] = $row;
+        }
+
+        return $byUser;
+    }
+
+    /**
      * Buscar período atual (sem data de desligamento)
      */
     public function getCurrentPeriod(int $userId): array|false
