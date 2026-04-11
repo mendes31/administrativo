@@ -214,6 +214,7 @@ class UpdateUser
         } else {
             $form['super_usuario'] = $postedWantsSuper ? 1 : 0;
         }
+        UserAccessHelper::applySuperUsuarioDefaultForManagerPosition($form, $canManageSuperForTarget);
 
         $this->data['form'] = $form;
         $result = $userUpdate->updateUser($this->data['form']);

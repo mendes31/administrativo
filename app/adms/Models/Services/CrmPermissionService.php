@@ -48,10 +48,10 @@ class CrmPermissionService extends DbConnection
     private const MANAGER_ACCESS_LEVELS = [1, 2];
     
     /**
-     * Cargos que são considerados gerentes
-     * Adicione aqui os nomes dos cargos que são gerentes
+     * Cargos que são considerados gerentes (substring case-insensitive no nome do cargo).
+     * Usado no CRM e na política de «Super usuário» por defeito em cadastro de utilizadores.
      */
-    private const MANAGER_POSITIONS = ['Gerente', 'Gerente Geral', 'Manager', 'Coordenador'];
+    private const MANAGER_POSITIONS = ['Gerente', 'Gerente Geral', 'Gestor', 'Manager', 'Coordenador', 'Diretor'];
     
     /**
      * Verificar se o usuário logado é do departamento comercial
@@ -105,14 +105,28 @@ class CrmPermissionService extends DbConnection
         }
         
         // Verificar por nome do cargo
-        if (isset($_SESSION['pos_name'])) {
-            foreach (self::MANAGER_POSITIONS as $managerPosition) {
-                if (stripos($_SESSION['pos_name'], $managerPosition) !== false) {
-                    return true;
-                }
+        if (isset($_SESSION['pos_name']) && self::positionNameIndicatesManagerRole((string) $_SESSION['pos_name'])) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Indica se o nome do cargo (ex.: «Analista Gestor Pl.») é tratado como função gerencial no sistema.
+     */
+    public static function positionNameIndicatesManagerRole(string $positionName): bool
+    {
+        $positionName = trim($positionName);
+        if ($positionName === '') {
+            return false;
+        }
+        foreach (self::MANAGER_POSITIONS as $managerPosition) {
+            if (stripos($positionName, $managerPosition) !== false) {
+                return true;
             }
         }
-        
+
         return false;
     }
     

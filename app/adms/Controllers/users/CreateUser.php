@@ -151,6 +151,7 @@ class CreateUser
         } else {
             $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
         }
+        UserAccessHelper::applySuperUsuarioDefaultForManagerPosition($form, UserAccessHelper::canManageSuperUsuarioForOthers());
 
         // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas

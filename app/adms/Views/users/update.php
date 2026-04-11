@@ -104,11 +104,11 @@ use App\adms\Helpers\ImageHelper;
                         if ($this->data['listPositions'] ?? false) {
                             // percorrer o array de cargo
                             foreach ($this->data['listPositions'] as $listPosition) {
-                                // Extrari as variáveis do array
                                 extract($listPosition);
-                                // Verificar se deve manter selecionado a opção
-                                $selected = isset($this->data['form']['user_position_id']) && $this->data['form']['user_position_id'] == $id ? 'selected' : '';
-                                echo "<option value='$id' $selected >$name</option>";
+                                $selected = isset($this->data['form']['user_position_id']) && (int)$this->data['form']['user_position_id'] === (int)$id ? 'selected' : '';
+                                $isMgr = \App\adms\Models\Services\CrmPermissionService::positionNameIndicatesManagerRole((string)$name) ? '1' : '0';
+                                echo '<option value="' . (int)$id . '" data-is-manager="' . $isMgr . '" ' . $selected . '>'
+                                    . htmlspecialchars((string)$name, ENT_QUOTES, 'UTF-8') . '</option>';
                             }
                         }
                         ?>
@@ -244,7 +244,7 @@ use App\adms\Helpers\ImageHelper;
                             <i class="fas fa-exclamation-triangle text-dark mt-1 flex-shrink-0" aria-hidden="true"></i>
                             <div class="text-body">
                                 <div class="fw-semibold text-dark mb-1">Sobre o perfil <span class="text-nowrap">«Super usuário»</span></div>
-                                <p class="mb-0">Quem o marca (em <strong>outro</strong> cadastro) concede <strong>acesso total ao sistema</strong>, equivalente ao <strong>Super Administrador</strong>, independentemente do nível de permissões associado. Só <strong>Super Administrador</strong> ou utilizador já <strong>Super usuário</strong> pode definir isto; <strong>não pode atribuir a si próprio</strong> ao editar o seu utilizador.</p>
+                                <p class="mb-0">Quem o marca (em <strong>outro</strong> cadastro) concede <strong>acesso total ao sistema</strong>, equivalente ao <strong>Super Administrador</strong>, independentemente do nível de permissões associado. Só <strong>Super Administrador</strong> ou utilizador já <strong>Super usuário</strong> pode definir isto; <strong>não pode atribuir a si próprio</strong> ao editar o seu utilizador. Cargos <strong>gerenciais</strong> (mesma lista do CRM: Gerente, Gestor, Coordenador, etc.) ficam <strong>Super usuário</strong> ao gravar.</p>
                             </div>
                         </div>
                     </div>
@@ -330,6 +330,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+<?php if (!empty($this->data['can_manage_super_usuario_for_this_user'])): ?>
+(function () {
+    function bindSuperUsuarioCargoGerencial() {
+        var sel = document.getElementById('user_position_id');
+        var cb = document.getElementById('super_usuario');
+        if (!sel || !cb) return;
+        function sync() {
+            var opt = sel.options[sel.selectedIndex];
+            if (!opt || opt.value === '') return;
+            cb.checked = opt.getAttribute('data-is-manager') === '1';
+        }
+        sync();
+        sel.addEventListener('change', sync);
+    }
+    document.addEventListener('DOMContentLoaded', bindSuperUsuarioCargoGerencial);
+})();
+<?php endif; ?>
 
 // Máscara para Celular
 document.getElementById('celular').addEventListener('input', function(e) {
