@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
 use Exception;
 use Generator;
@@ -173,7 +174,7 @@ class AccessLevelsPagesRepository extends DbConnection
                     $isDefault = $defaultPage === 1;
 
                     // Super admin (ID 1) sempre com permissão 1
-                    if ((int)$accessLevelId === 1) {
+                    if ((int) $accessLevelId === UserAccessHelper::SUPER_ADMIN_LEVEL_ID) {
                         $permission = 1;
                     } else {
                         $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
@@ -342,7 +343,8 @@ class AccessLevelsPagesRepository extends DbConnection
         }
 
         // Nunca permitir copiar para ou a partir do Super Admin (ID 1)
-        if ($sourceLevelId === 1 || $targetLevelId === 1) {
+        if ($sourceLevelId === UserAccessHelper::SUPER_ADMIN_LEVEL_ID
+            || $targetLevelId === UserAccessHelper::SUPER_ADMIN_LEVEL_ID) {
             self::$lastErrorMessage = 'Não é permitido copiar permissões envolvendo o Super Administrador.';
             return false;
         }
@@ -442,7 +444,7 @@ class AccessLevelsPagesRepository extends DbConnection
             self::$lastErrorMessage = 'Nível de acesso inválido (ID não informado).';
             return false;
         }
-        if ($accessLevelId === 1) {
+        if ($accessLevelId === UserAccessHelper::SUPER_ADMIN_LEVEL_ID) {
             self::$lastErrorMessage = 'Permissão para o Super Administrador não pode ser editada.';
             GenerateLog::generateLog("error", "Permissão para o Super Administrador não pode ser editada.", ['id' => $accessLevelId]);
             $_SESSION['error'] = "Permissão para o Super Administrador não pode ser editada!";

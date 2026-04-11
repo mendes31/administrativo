@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
+use App\adms\Models\Repository\UsersRepository;
 
 class UpdateUserAccessLevels
 {
@@ -56,6 +57,14 @@ class UpdateUserAccessLevels
         // Se houver erros de validação, recarregar a visualização
         if (!empty($_SESSION['errors'])) {
             $this->viewUserAccessLevel();
+            return;
+        }
+
+        $targetId = (int) ($this->data['form']['adms_user_id'] ?? 0);
+        $targetUser = (new UsersRepository())->getUser($targetId);
+        if ($targetUser && (int) ($targetUser['super_usuario'] ?? 0) === 1) {
+            $_SESSION['error'] = 'Usuários com super usuário têm acesso total. Remova o flag Super usuário no cadastro antes de alterar os níveis de acesso.';
+            header("Location: {$_ENV['URL_ADM']}view-user/{$targetId}");
             return;
         }
 

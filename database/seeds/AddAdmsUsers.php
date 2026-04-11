@@ -42,6 +42,7 @@ class AddAdmsUsers extends AbstractSeed
                 'user_department_id' => 1,
                 'user_position_id' => 1,
                 'password' => password_hash('B1admin*', PASSWORD_DEFAULT),
+                'super_usuario' => 1,
                 'created_at' => date("Y-m-d H:i:s"),
             ];
         }

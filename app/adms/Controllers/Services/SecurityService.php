@@ -337,6 +337,21 @@ class SecurityService
     }
 
     /**
+     * Recarrega dados de sessão (nível de acesso, super usuário, etc.) a partir do banco para o utilizador autenticado.
+     */
+    public function refreshSessionFromDatabase(int $userId): void
+    {
+        if (empty($_SESSION['user_id']) || (int) $_SESSION['user_id'] !== $userId) {
+            return;
+        }
+        $row = $this->loginRepo->getUserRowForSessionById($userId);
+        if (!is_array($row)) {
+            return;
+        }
+        $this->configurarSessao($row);
+    }
+
+    /**
      * Registra tentativa inválida
      */
     private function registrarTentativaInvalida(?int $userId, string $username, string $ip, string $userAgent, string $resultado): void

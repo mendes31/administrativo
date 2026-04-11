@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\AccessLevelsRepository;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
@@ -19,6 +20,8 @@ use PDO;
  *   novo nível de acesso (`AccessLevelsPagesRepository::initializeForNewAccessLevel`) ou ao associar
  *   páginas em massa, recebe permission=1 automaticamente (exceto regras do super admin).
  *   Continua **privada** para o roteador se `public_page=0` (exige login + ACL).
+ * - Página **ativa**: garante linha em `adms_access_levels_pages` para o nível Super Administrador (id 1)
+ *   com `permission = 1`, para a matriz e relatórios refletirem acesso total desse nível.
  * - Ao **desmarcar** Padrão ou Público, este repositório **não revoga** permissões já gravadas; ajuste manual na tela de permissões.
  *
  * @package App\adms\Models\Repository
@@ -250,8 +253,8 @@ class PagesRepository extends DbConnection
                     $now = date('Y-m-d H:i:s');
                     foreach ($levels as $level) {
                         $levelId = (int)($level['id'] ?? 0);
-                        // Ignorar IDs inválidos e o Super Administrador (ID 1 já é full por regra do sistema)
-                        if ($levelId <= 0 || $levelId === 1) {
+                        // Ignorar IDs inválidos; nível 1 é gravado abaixo para todas as páginas ativas
+                        if ($levelId <= 0 || $levelId === UserAccessHelper::SUPER_ADMIN_LEVEL_ID) {
                             continue;
                         }
                         $stmtPerm->bindValue(':permission', 1, PDO::PARAM_INT);
@@ -261,6 +264,10 @@ class PagesRepository extends DbConnection
                         $stmtPerm->bindValue(':updated_at', $now);
                         $stmtPerm->execute();
                     }
+                }
+
+                if ((int) ($data['page_status'] ?? 0) === 1) {
+                    $this->upsertSuperAdminLevelPagePermission((int) $pageId);
                 }
             }
 
@@ -389,6 +396,10 @@ class PagesRepository extends DbConnection
                     $stmtUpdatePerm->bindValue(':page_id', $pageId, \PDO::PARAM_INT);
                     $stmtUpdatePerm->execute();
                 }
+
+                if ((int) ($data['page_status'] ?? 0) === 1) {
+                    $this->upsertSuperAdminLevelPagePermission((int) $data['id']);
+                }
             }
 
             return $result;
@@ -499,5 +510,27 @@ class PagesRepository extends DbConnection
 
         // Ler os registros e retornar
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Garante permission=1 na matriz para o nível Super Administrador (nova página ativa).
+     */
+    private function upsertSuperAdminLevelPagePermission(int $pageId): void
+    {
+        if ($pageId <= 0) {
+            return;
+        }
+        $conn = $this->getConnection();
+        $sql = 'INSERT INTO adms_access_levels_pages
+                (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                VALUES (1, :level_id, :page_id, :created_at, :updated_at)
+                ON DUPLICATE KEY UPDATE permission = 1, updated_at = VALUES(updated_at)';
+        $stmt = $conn->prepare($sql);
+        $now = date('Y-m-d H:i:s');
+        $stmt->bindValue(':level_id', UserAccessHelper::SUPER_ADMIN_LEVEL_ID, PDO::PARAM_INT);
+        $stmt->bindValue(':page_id', $pageId, PDO::PARAM_INT);
+        $stmt->bindValue(':created_at', $now);
+        $stmt->bindValue(':updated_at', $now);
+        $stmt->execute();
     }
 }

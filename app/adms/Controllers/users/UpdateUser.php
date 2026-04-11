@@ -7,9 +7,11 @@ use App\adms\Controllers\Services\Validation\ValidationUserRakitService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
+use App\adms\Controllers\Services\SecurityService;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\SuperUsuarioAccessLevelsSyncService;
 use App\adms\Views\Services\LoadViewService;
 
 // Reforço do carregamento do .env
@@ -165,6 +167,7 @@ class UpdateUser
         $cargoAnterior = $userAntigo['user_position_id'] ?? null;
         $welcomeEmailAnterior = $userAntigo['enviar_boas_vindas_email'] ?? 0;
         $welcomeWhatsAnterior = $userAntigo['enviar_boas_vindas_whatsapp'] ?? 0;
+        $oldSuperFlag = (int)($userAntigo['super_usuario'] ?? 0) === 1 ? 1 : 0;
 
         $targetUserId = (int)($this->data['form']['id'] ?? 0);
         $sessionUid = (int)($_SESSION['user_id'] ?? 0);
@@ -214,7 +217,9 @@ class UpdateUser
         } else {
             $form['super_usuario'] = $postedWantsSuper ? 1 : 0;
         }
-        UserAccessHelper::applySuperUsuarioDefaultForManagerPosition($form, $canManageSuperForTarget);
+        $newSuperFlag = array_key_exists('super_usuario', $form)
+            ? (((int) $form['super_usuario'] === 1) ? 1 : 0)
+            : $oldSuperFlag;
 
         $this->data['form'] = $form;
         $result = $userUpdate->updateUser($this->data['form']);
@@ -230,8 +235,16 @@ class UpdateUser
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
-            if ((int)($form['id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) && array_key_exists('super_usuario', $form)) {
-                $_SESSION['user_super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
+            $superLevelsSyncFailed = false;
+            if ($oldSuperFlag !== $newSuperFlag) {
+                try {
+                    (new SuperUsuarioAccessLevelsSyncService())->sync($targetUserId, $oldSuperFlag, $newSuperFlag);
+                } catch (\Throwable $e) {
+                    $superLevelsSyncFailed = true;
+                }
+            }
+            if ($targetUserId > 0 && $targetUserId === (int) ($_SESSION['user_id'] ?? 0)) {
+                (new SecurityService())->refreshSessionFromDatabase($targetUserId);
             }
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
             
@@ -357,7 +370,9 @@ class UpdateUser
             }
             
             // Criar a mensagem de sucesso
-            $_SESSION['success'] = "Usuário editado com suscesso!";
+            $_SESSION['success'] = $superLevelsSyncFailed
+                ? 'Usuário atualizado, porém falhou a sincronização dos níveis de acesso (super usuário). Salve o cadastro novamente ou contacte o suporte.'
+                : 'Usuário editado com suscesso!';
 
             // Redirecionar o usuário para a pagina view - visualizar usuario
             header("Location: {$_ENV['URL_ADM']}view-user/{$form['id']}");

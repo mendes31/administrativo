@@ -106,8 +106,7 @@ use App\adms\Helpers\ImageHelper;
                             foreach ($this->data['listPositions'] as $listPosition) {
                                 extract($listPosition);
                                 $selected = isset($this->data['form']['user_position_id']) && (int)$this->data['form']['user_position_id'] === (int)$id ? 'selected' : '';
-                                $isMgr = \App\adms\Models\Services\CrmPermissionService::positionNameIndicatesManagerRole((string)$name) ? '1' : '0';
-                                echo '<option value="' . (int)$id . '" data-is-manager="' . $isMgr . '" ' . $selected . '>'
+                                echo '<option value="' . (int)$id . '" ' . $selected . '>'
                                     . htmlspecialchars((string)$name, ENT_QUOTES, 'UTF-8') . '</option>';
                             }
                         }
@@ -220,14 +219,15 @@ use App\adms\Helpers\ImageHelper;
                 <div class="col-md-3">
                     <label class="form-label" for="super_usuario">Super usuário <i class="fas fa-user-shield text-warning" title="Acesso total ao sistema, como Super Administrador"></i></label><br>
                     <?php if (!empty($this->data['can_manage_super_usuario_for_this_user'])): ?>
+                        <?php $superUsuarioAtivo = (int)($this->data['form']['super_usuario'] ?? 0) === 1; ?>
                         <input type="hidden" name="super_usuario" value="0">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="super_usuario" name="super_usuario" value="1"
-                                <?php echo !empty($this->data['form']['super_usuario']) ? 'checked' : ''; ?>>
+                                <?php echo $superUsuarioAtivo ? 'checked' : ''; ?>>
                             <label class="form-check-label" for="super_usuario">Sim</label>
                         </div>
                     <?php else: ?>
-                        <p class="mb-1 fw-semibold"><?php echo !empty($this->data['form']['super_usuario']) ? 'Sim' : 'Não'; ?></p>
+                        <p class="mb-1 fw-semibold"><?php echo (int)($this->data['form']['super_usuario'] ?? 0) === 1 ? 'Sim' : 'Não'; ?></p>
                         <p class="text-muted small mb-0">
                             <?php if (!empty($this->data['editing_own_user'])): ?>
                                 Não é possível alterar o seu próprio perfil <strong>Super usuário</strong> ao editar o seu cadastro. Peça a outro <strong>Super Administrador</strong> ou a outro utilizador já com este perfil.
@@ -330,24 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-<?php if (!empty($this->data['can_manage_super_usuario_for_this_user'])): ?>
-(function () {
-    function bindSuperUsuarioCargoGerencial() {
-        var sel = document.getElementById('user_position_id');
-        var cb = document.getElementById('super_usuario');
-        if (!sel || !cb) return;
-        function sync() {
-            var opt = sel.options[sel.selectedIndex];
-            if (!opt || opt.value === '') return;
-            cb.checked = opt.getAttribute('data-is-manager') === '1';
-        }
-        sync();
-        sel.addEventListener('change', sync);
-    }
-    document.addEventListener('DOMContentLoaded', bindSuperUsuarioCargoGerencial);
-})();
-<?php endif; ?>
 
 // Máscara para Celular
 document.getElementById('celular').addEventListener('input', function(e) {

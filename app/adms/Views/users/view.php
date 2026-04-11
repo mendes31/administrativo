@@ -199,7 +199,7 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dd class="col-sm-9"><?php echo $status; ?></dd>
 
                     <dt class="col-sm-3">Super usuário: </dt>
-                    <dd class="col-sm-9"><?php echo !empty($this->data['user']['super_usuario']) ? 'Sim' : 'Não'; ?></dd>
+                    <dd class="col-sm-9"><?php echo (int)($this->data['user']['super_usuario'] ?? 0) === 1 ? 'Sim' : 'Não'; ?></dd>
 
                     <dt class="col-sm-3">Bloqueado: </dt>
                     <dd class="col-sm-9"><?php echo $bloqueado; ?></dd>
@@ -369,6 +369,16 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
             <div class="card-body">
                 <?php
+                $viewUserIsSuper = (int)($this->data['user']['super_usuario'] ?? 0) === 1;
+                if ($viewUserIsSuper) { ?>
+                    <div class="alert alert-info mb-0" role="alert">
+                        <strong>Super usuário:</strong> acesso total ao sistema (equivalente ao nível Super Administrador).
+                        Os níveis de acesso não são editáveis aqui. Para ajustar perfis por nível, remova primeiro o flag
+                        <em>Super usuário</em> no cadastro do utilizador.
+                    </div>
+                <?php } ?>
+
+                <?php
 
                 // // Verifica se há niveis de acesso para o usuários no array
                 // if ($this->data['userAccessLevels'] ?? false) {
@@ -393,7 +403,9 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
                 // Verifica se há niveis de acesso para o usuários no array
 
-                if ($this->data['userAllAccessLevelsArray'] ?? false) { ?>
+                if ($viewUserIsSuper) {
+                    // formulário de níveis oculto para super usuário (alterações bloqueadas no controller)
+                } elseif ($this->data['userAllAccessLevelsArray'] ?? false) { ?>
 
                     <dl class='row'>
                         <dt class='col-sm-3'>Niveis de Acesso: </dt>
@@ -435,7 +447,7 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
                 <?php
                     // var_dump($userAccessLevels);
-                } else {
+                } elseif (!$viewUserIsSuper) {
                     // Acessa o ELSE quando o elemento não existir registros
                     echo "<div class='alert alert-danger' role='alert'>Usuário não possui nivel de acesso.</div>";
                 }

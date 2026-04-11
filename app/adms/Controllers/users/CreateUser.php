@@ -10,6 +10,7 @@ use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\SuperUsuarioAccessLevelsSyncService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -151,8 +152,6 @@ class CreateUser
         } else {
             $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
         }
-        UserAccessHelper::applySuperUsuarioDefaultForManagerPosition($form, UserAccessHelper::canManageSuperUsuarioForOthers());
-
         // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas
         $form['enviar_boas_vindas_email'] = !empty($form['enviar_boas_vindas_email']) ? 1 : 0;
@@ -202,6 +201,15 @@ class CreateUser
 
         // Acessa o IF se o repository retornou TRUE (retorna ID do novo usuário)
         if ($result) {
+            $newUserSuperFlag = ((int) ($form['super_usuario'] ?? 0) === 1) ? 1 : 0;
+            $superLevelsSyncFailed = false;
+            if ($newUserSuperFlag === 1) {
+                try {
+                    (new SuperUsuarioAccessLevelsSyncService())->sync((int) $result, 0, 1);
+                } catch (\Throwable $e) {
+                    $superLevelsSyncFailed = true;
+                }
+            }
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
             $matrixService->updateMatrixForUser($result);
 
@@ -228,7 +236,9 @@ class CreateUser
             }
 
             // Criar a mensagem de sucesso
-            $_SESSION['success'] = "Usuário cadastrado com suscesso!";
+            $_SESSION['success'] = $superLevelsSyncFailed
+                ? 'Usuário cadastrado, porém falhou a sincronização dos níveis de acesso (super usuário). Ajuste manualmente na visualização do usuário ou contacte o suporte.'
+                : 'Usuário cadastrado com sucesso!';
 
             // Redirecionar o usuário para a pagina listar
             header("Location: {$_ENV['URL_ADM']}view-user/$result");

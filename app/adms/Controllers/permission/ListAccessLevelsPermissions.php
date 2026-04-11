@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationAccessLevelPermissionService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\AccessLevelsPagesRepository;
 use App\adms\Models\Repository\AccessLevelsRepository;
 use App\adms\Models\Repository\PagesRepository;
@@ -157,6 +158,9 @@ class ListAccessLevelsPermissions
         // Recuperar as permissões do nível de acesso
         $listAccessLevelsPages = new AccessLevelsPagesRepository();
         $this->data['accessLevelsPages'] = $listAccessLevelsPages->getPagesAccessLevelsArray($this->id, true);
+
+        $this->data['super_admin_level_permissions_locked'] =
+            (int) $this->id === UserAccessHelper::SUPER_ADMIN_LEVEL_ID;
         
         // Gerar token CSRF para o formulário
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('form_update_access_level_permissions');
@@ -212,6 +216,19 @@ class ListAccessLevelsPermissions
         } else {
             error_log('❌ ERRO: Campo permissions não encontrado ou não é array');
             error_log('Tipo de permissions: ' . gettype($this->data['form']['permissions'] ?? 'não definido'));
+        }
+
+        if ((int) ($this->data['form']['adms_access_level_id'] ?? 0) === UserAccessHelper::SUPER_ADMIN_LEVEL_ID) {
+            $msg = 'As permissões do nível Super Administrador não podem ser alteradas: o nível tem acesso total ao sistema.';
+            if ($isAjax) {
+                $this->returnJsonResponse(false, $msg, [
+                    'csrf_token' => CSRFHelper::generateCSRFToken('form_update_access_level_permissions'),
+                ]);
+                return;
+            }
+            $_SESSION['error'] = $msg;
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-access-levels-permissions/' . UserAccessHelper::SUPER_ADMIN_LEVEL_ID);
+            return;
         }
         
         // Validar os dados do formulário 

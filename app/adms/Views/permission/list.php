@@ -5,6 +5,8 @@
 <!-- CSS separado para permissões -->
 <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>css/permission-list.css?v=<?php echo time(); ?>">
 
+<?php $permMatrixLocked = !empty($this->data['super_admin_level_permissions_locked']); ?>
+
 <div class="container-fluid px-4">
     
     <!-- Cabeçalho da página -->
@@ -37,6 +39,12 @@
             <?php echo htmlspecialchars($this->data['accessLevel']['name'] ?? 'Nível de Acesso'); ?>
         </span>
     </div>
+
+    <?php if ($permMatrixLocked): ?>
+    <div class="alert alert-info" role="alert">
+        <strong>Nível Super Administrador:</strong> acesso total ao sistema. A matriz de permissões deste nível é só leitura e não pode ser gravada.
+    </div>
+    <?php endif; ?>
 
     <!-- Barra de controles -->
 
@@ -81,9 +89,11 @@
                             <a target="_blank" href="<?php echo $_ENV['URL_ADM']; ?>export-access-level-permissions-pdf/<?php echo $this->data['accessLevel']['id'] ?? 0; ?>" class="btn btn-outline-success btn-sm">
                                 <i class="fas fa-file-pdf me-1"></i> Exportar PDF
                             </a>
+                            <?php if (!$permMatrixLocked): ?>
                             <button type="button" class="btn btn-primary btn-sm" id="savePermissionsBtn">
                                 <i class="fas fa-save me-1"></i> Salvar
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -124,18 +134,21 @@
                             <i class="fas fa-file-pdf me-1"></i> PDF
                         </a>
                     </div>
+                    <?php if (!$permMatrixLocked): ?>
                     <div class="col-6">
                         <button type="button" class="btn btn-primary btn-sm w-100" id="savePermissionsBtnMobile">
                             <i class="fas fa-save me-1"></i> Salvar
                         </button>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Formulário de permissões -->
-    <form id="permissionsForm" method="POST" action="<?php echo $_ENV['URL_ADM'] . 'list-access-levels-permissions/' . ($this->data['accessLevel']['id'] ?? ''); ?>">
+    <form id="permissionsForm" method="POST" action="<?php echo $_ENV['URL_ADM'] . 'list-access-levels-permissions/' . ($this->data['accessLevel']['id'] ?? ''); ?>"
+          data-permissions-locked="<?php echo $permMatrixLocked ? '1' : '0'; ?>">
         <input type="hidden" name="csrf_token" value="<?php echo $this->data['csrf_token'] ?? ''; ?>">
         <input type="hidden" name="adms_access_level_id" value="<?php echo ($this->data['accessLevel']['id'] ?? ''); ?>">
         
@@ -214,12 +227,14 @@
                             echo '<span class="badge bg-danger">Revogadas: ' . $revokedCount . '</span>';
                             echo '</div>';
                             echo '<div class="group-actions">';
+                            if (!$permMatrixLocked) {
                             echo '<button type="button" class="btn btn-success btn-sm me-2 btn-group-action" onclick="event.stopPropagation(); authorizeGroup(\'' . htmlspecialchars($groupId) . '\')">';
                             echo '<i class="fas fa-check-double"></i> Autorizar Grupo';
                             echo '</button>';
                             echo '<button type="button" class="btn btn-danger btn-sm btn-group-action" onclick="event.stopPropagation(); revokeGroup(\'' . htmlspecialchars($groupId) . '\')">';
                             echo '<i class="fas fa-times"></i> Revogar Grupo';
                             echo '</button>';
+                            }
                             echo '</div>';
                             echo '</div>';
                             echo '</div>';
@@ -240,6 +255,7 @@
                                 echo 'data-page-id="' . $page['id'] . '" ';
                                 echo 'data-group="' . htmlspecialchars($groupId) . '"';
                                 if ($isAllowed) echo ' checked';
+                                if ($permMatrixLocked) echo ' disabled';
                                 echo ' onchange="updateGroupCounters(\'' . htmlspecialchars($groupId) . '\')">';
                                 echo '</div>';
                                 echo '</td>';
@@ -308,6 +324,7 @@
                                 <span class="badge bg-danger">Revogadas: <?= $revokedCount ?></span>
                             </div>
                             
+                            <?php if (!$permMatrixLocked): ?>
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-success btn-sm btn-group-action" onclick="authorizeGroup('<?= htmlspecialchars($groupId) ?>')">
                                     <i class="fas fa-check-double"></i> Autorizar Grupo
@@ -316,6 +333,7 @@
                                     <i class="fas fa-times"></i> Revogar Grupo
                                 </button>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
@@ -337,6 +355,7 @@
                                                            data-page-id="<?= $page['id'] ?>" 
                                                            data-group="<?= htmlspecialchars($groupId) ?>"
                                                            <?= $isAllowed ? 'checked' : '' ?>
+                                                           <?= $permMatrixLocked ? 'disabled' : '' ?>
                                                            onchange="updateGroupCounters('<?= htmlspecialchars($groupId) ?>')">
                                                 </div>
                                             </div>

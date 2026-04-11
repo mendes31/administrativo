@@ -416,6 +416,12 @@ function filterGroups(searchTerm) {
 // Confirmar e salvar permissões
 function confirmAndSavePermissions() {
     console.log('🚀 confirmAndSavePermissions chamada!');
+
+    const permFormCheck = document.getElementById('permissionsForm');
+    if (permFormCheck && permFormCheck.getAttribute('data-permissions-locked') === '1') {
+        showError('As permissões do nível Super Administrador não podem ser alteradas.');
+        return;
+    }
     
     const confirmMessage = 'Deseja realmente salvar as alterações nas permissões?';
     if (confirm(confirmMessage)) {
@@ -447,6 +453,11 @@ function savePermissions() {
     if (!form) {
         console.error('Formulário não encontrado');
         showError('Formulário não encontrado');
+        return;
+    }
+
+    if (form.getAttribute('data-permissions-locked') === '1') {
+        showError('As permissões do nível Super Administrador não podem ser alteradas.');
         return;
     }
     

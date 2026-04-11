@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\adms\Helpers;
 
 use App\adms\Models\Repository\LoginRepository;
-use App\adms\Models\Repository\PositionsRepository;
-use App\adms\Models\Services\CrmPermissionService;
 
 /**
  * Acesso total ao sistema: nível "Super Administrador" (id 1) ou flag "Super usuário" no cadastro.
@@ -46,41 +44,12 @@ final class UserAccessHelper
 
     /**
      * Pode atribuir ou revogar o flag «super usuário» no cadastro de **outro** utilizador.
-     * No produto isto corresponde a quem já tem acesso de gestão total: Super Administrador (nível 1)
-     * ou utilizador já marcado como super usuário. Quem só tem perfis normais de «gestor» sem estes
-     * privilégios não passa aqui.
+     * Apenas quem já tem acesso total (nível Super Administrador ou flag super usuário no cadastro).
+     * Não depende do nome do cargo.
      */
     public static function canManageSuperUsuarioForOthers(): bool
     {
         return self::hasFullSystemAccess();
-    }
-
-    /**
-     * Cargos gerenciais (mesma regra do CRM) passam a ter super_usuario = 1 ao gravar, quando quem grava pode atribuir o flag.
-     *
-     * @param array<string, mixed> $form
-     */
-    public static function applySuperUsuarioDefaultForManagerPosition(array &$form, bool $editorCanAssignSuperUsuarioFlag): void
-    {
-        if (!$editorCanAssignSuperUsuarioFlag) {
-            return;
-        }
-        $pid = (int)($form['user_position_id'] ?? 0);
-        if ($pid <= 0) {
-            return;
-        }
-        try {
-            $row = (new PositionsRepository())->getPosition($pid);
-        } catch (\Throwable) {
-            return;
-        }
-        if (!is_array($row)) {
-            return;
-        }
-        $name = (string)($row['name'] ?? '');
-        if (CrmPermissionService::positionNameIndicatesManagerRole($name)) {
-            $form['super_usuario'] = 1;
-        }
     }
 
     /**
