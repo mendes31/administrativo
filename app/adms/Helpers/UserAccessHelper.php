@@ -43,6 +43,17 @@ final class UserAccessHelper
     }
 
     /**
+     * Pode atribuir ou revogar o flag «super usuário» no cadastro de **outro** utilizador.
+     * No produto isto corresponde a quem já tem acesso de gestão total: Super Administrador (nível 1)
+     * ou utilizador já marcado como super usuário. Quem só tem perfis normais de «gestor» sem estes
+     * privilégios não passa aqui.
+     */
+    public static function canManageSuperUsuarioForOthers(): bool
+    {
+        return self::hasFullSystemAccess();
+    }
+
+    /**
      * Alinha $_SESSION['user_super_usuario'] ao valor atual em adms_users.
      * Necessário após alterar o cadastro em outro ambiente, deploy ou sessão antiga sem a chave.
      * Uma consulta leve por requisição (apenas quem não é nível 1).

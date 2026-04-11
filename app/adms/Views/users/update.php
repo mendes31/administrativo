@@ -219,12 +219,23 @@ use App\adms\Helpers\ImageHelper;
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="super_usuario">Super usuário <i class="fas fa-user-shield text-warning" title="Acesso total ao sistema, como Super Administrador"></i></label><br>
-                    <input type="hidden" name="super_usuario" value="0">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="super_usuario" name="super_usuario" value="1"
-                            <?php echo !empty($this->data['form']['super_usuario']) ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="super_usuario">Sim</label>
-                    </div>
+                    <?php if (!empty($this->data['can_manage_super_usuario_for_this_user'])): ?>
+                        <input type="hidden" name="super_usuario" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="super_usuario" name="super_usuario" value="1"
+                                <?php echo !empty($this->data['form']['super_usuario']) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="super_usuario">Sim</label>
+                        </div>
+                    <?php else: ?>
+                        <p class="mb-1 fw-semibold"><?php echo !empty($this->data['form']['super_usuario']) ? 'Sim' : 'Não'; ?></p>
+                        <p class="text-muted small mb-0">
+                            <?php if (!empty($this->data['editing_own_user'])): ?>
+                                Não é possível alterar o seu próprio perfil <strong>Super usuário</strong> ao editar o seu cadastro. Peça a outro <strong>Super Administrador</strong> ou a outro utilizador já com este perfil.
+                            <?php else: ?>
+                                Apenas <strong>Super Administrador</strong> ou utilizador com perfil <strong>Super usuário</strong> pode alterar esta opção em cadastros de terceiros.
+                            <?php endif; ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="col-12 mt-2">
@@ -232,8 +243,8 @@ use App\adms\Helpers\ImageHelper;
                         <div class="d-flex gap-2 align-items-start">
                             <i class="fas fa-exclamation-triangle text-dark mt-1 flex-shrink-0" aria-hidden="true"></i>
                             <div class="text-body">
-                                <div class="fw-semibold text-dark mb-1">Referente ao interruptor <span class="text-nowrap">«Super usuário»</span> acima</div>
-                                <p class="mb-0">Ao marcar <strong>Sim</strong>, este colaborador recebe <strong>acesso total ao sistema</strong>, no mesmo nível do <strong>Super Administrador</strong>, mesmo que o nível de permissão vinculado ao cadastro seja outro. Use somente quando for indispensável.</p>
+                                <div class="fw-semibold text-dark mb-1">Sobre o perfil <span class="text-nowrap">«Super usuário»</span></div>
+                                <p class="mb-0">Quem o marca (em <strong>outro</strong> cadastro) concede <strong>acesso total ao sistema</strong>, equivalente ao <strong>Super Administrador</strong>, independentemente do nível de permissões associado. Só <strong>Super Administrador</strong> ou utilizador já <strong>Super usuário</strong> pode definir isto; <strong>não pode atribuir a si próprio</strong> ao editar o seu utilizador.</p>
                             </div>
                         </div>
                     </div>

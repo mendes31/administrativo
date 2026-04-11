@@ -227,20 +227,24 @@ use App\adms\Helpers\CSRFHelper;
                     <div class="row g-2 align-items-stretch">
                         <div class="col-md-3">
                             <label class="form-label" for="super_usuario">Super usuário <i class="fas fa-user-shield text-warning" title="Acesso total ao sistema, como Super Administrador"></i></label><br>
-                            <input type="hidden" name="super_usuario" value="0">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="super_usuario" name="super_usuario" value="1"
-                                    <?php echo !empty($this->data['form']['super_usuario']) ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="super_usuario">Sim</label>
-                            </div>
+                            <?php if (!empty($this->data['can_manage_super_usuario_on_create'])): ?>
+                                <input type="hidden" name="super_usuario" value="0">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="super_usuario" name="super_usuario" value="1"
+                                        <?php echo !empty($this->data['form']['super_usuario']) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="super_usuario">Sim</label>
+                                </div>
+                            <?php else: ?>
+                                <p class="mb-0 small text-muted">Novo utilizador será criado <strong>sem</strong> perfil Super usuário. Apenas <strong>Super Administrador</strong> ou utilizador já com este perfil pode marcar a opção ao cadastrar.</p>
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-9">
                             <div class="alert alert-warning border py-2 px-3 mb-0 small h-100 rounded-1" role="note" aria-label="Explicação do campo Super usuário">
                                 <div class="d-flex gap-2 align-items-start">
                                     <i class="fas fa-exclamation-triangle text-dark mt-1 flex-shrink-0" aria-hidden="true"></i>
                                     <div class="text-body">
-                                        <div class="fw-semibold text-dark mb-1">Referente ao interruptor <span class="text-nowrap">«Super usuário»</span> ao lado</div>
-                                        <p class="mb-0">Ao marcar <strong>Sim</strong>, este colaborador recebe <strong>acesso total ao sistema</strong>, no mesmo nível do <strong>Super Administrador</strong>, mesmo que o nível de permissão vinculado ao cadastro seja outro. Use somente quando for indispensável.</p>
+                                        <div class="fw-semibold text-dark mb-1">Sobre o perfil <span class="text-nowrap">«Super usuário»</span></div>
+                                        <p class="mb-0">Concede <strong>acesso total ao sistema</strong>, como <strong>Super Administrador</strong>. Só pode ser definido no cadastro por <strong>Super Administrador</strong> ou por utilizador já com este perfil; não se aplica ao seu próprio utilizador ao editar o seu perfil (use outro administrador).</p>
                                     </div>
                                 </div>
                             </div>

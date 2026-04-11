@@ -6,7 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationUserRakitService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
-use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -125,6 +125,12 @@ class UpdateUser
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
+        $targetId = (int)($this->data['form']['id'] ?? 0);
+        $sessionUid = (int)($_SESSION['user_id'] ?? 0);
+        $this->data['editing_own_user'] = $targetId > 0 && $targetId === $sessionUid;
+        $this->data['can_manage_super_usuario_for_this_user'] = UserAccessHelper::canManageSuperUsuarioForOthers()
+            && !$this->data['editing_own_user'];
+
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/users/update", $this->data);
         $loadView->loadView();
@@ -160,6 +166,10 @@ class UpdateUser
         $welcomeEmailAnterior = $userAntigo['enviar_boas_vindas_email'] ?? 0;
         $welcomeWhatsAnterior = $userAntigo['enviar_boas_vindas_whatsapp'] ?? 0;
 
+        $targetUserId = (int)($this->data['form']['id'] ?? 0);
+        $sessionUid = (int)($_SESSION['user_id'] ?? 0);
+        $canManageSuperForTarget = UserAccessHelper::canManageSuperUsuarioForOthers() && $targetUserId !== $sessionUid;
+
         // Instanciar Repository para editar o usuário
         $form = $this->data['form'];
         $form['data_nascimento'] = !empty($_POST['data_nascimento']) ? $_POST['data_nascimento'] : null;
@@ -185,7 +195,26 @@ class UpdateUser
         $form['status'] = isset($form['status']) && $form['status'] === 'Ativo' ? 'Ativo' : 'Inativo';
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
-        $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
+
+        $postedWantsSuper = !empty($form['super_usuario']);
+        if (!$canManageSuperForTarget) {
+            if ($postedWantsSuper) {
+                if (UserAccessHelper::canManageSuperUsuarioForOthers() && $targetUserId === $sessionUid) {
+                    GenerateLog::generateLog('warning', 'UpdateUser: tentativa de ativar super_usuario no próprio cadastro (ignorado).', [
+                        'user_id' => $sessionUid,
+                    ]);
+                } elseif (!UserAccessHelper::canManageSuperUsuarioForOthers()) {
+                    GenerateLog::generateLog('warning', 'UpdateUser: POST super_usuario sem privilégio de gestão total (ignorado).', [
+                        'actor_id' => $sessionUid,
+                        'target_id' => $targetUserId,
+                    ]);
+                }
+            }
+            unset($form['super_usuario']);
+        } else {
+            $form['super_usuario'] = $postedWantsSuper ? 1 : 0;
+        }
+
         $this->data['form'] = $form;
         $result = $userUpdate->updateUser($this->data['form']);
 
@@ -200,7 +229,7 @@ class UpdateUser
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
-            if ((int)($form['id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0)) {
+            if ((int)($form['id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) && array_key_exists('super_usuario', $form)) {
                 $_SESSION['user_super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
             }
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();

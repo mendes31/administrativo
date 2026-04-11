@@ -5,7 +5,8 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationUserRakitService;
 use App\adms\Helpers\CSRFHelper;
-use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -84,6 +85,8 @@ class CreateUser
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
+        $this->data['can_manage_super_usuario_on_create'] = UserAccessHelper::canManageSuperUsuarioForOthers();
+
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/users/create", $this->data);
         $loadView->loadView();
@@ -138,7 +141,16 @@ class CreateUser
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
         $form['modificar_senha_proximo_logon'] = isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] === 'Sim' ? 'Sim' : 'Não';
-        $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
+        if (!UserAccessHelper::canManageSuperUsuarioForOthers()) {
+            if (!empty($form['super_usuario'])) {
+                GenerateLog::generateLog('warning', 'CreateUser: POST super_usuario sem privilégio de gestão total (forçado a 0).', [
+                    'actor_id' => (int)($_SESSION['user_id'] ?? 0),
+                ]);
+            }
+            $form['super_usuario'] = 0;
+        } else {
+            $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
+        }
 
         // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas
