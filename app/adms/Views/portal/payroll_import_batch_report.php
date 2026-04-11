@@ -123,7 +123,8 @@ $fmt = static function (?string $mysql): string {
                             <th>Visualizou</th>
                             <th>Baixou</th>
                             <th>Ciência</th>
-                            <th class="pe-3">Estado doc.</th>
+                            <th>Estado doc.</th>
+                            <th class="pe-3 text-end">PDF unificado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -177,7 +178,14 @@ $fmt = static function (?string $mysql): string {
                                     <?php } ?>
                                 </td>
                                 <td class="small"><?php echo $cienciaBadge; ?><?php if ($cienciaDate !== '—') { ?><div class="text-muted mt-1" style="font-size:.7rem;"><?= $cienciaDate ?></div><?php } ?></td>
-                                <td class="pe-3 small"><span class="badge text-bg-light text-secondary border"><?= htmlspecialchars($sv !== '' ? $sv : '—') ?></span></td>
+                                <td class="small"><span class="badge text-bg-light text-secondary border"><?= htmlspecialchars($sv !== '' ? $sv : '—') ?></span></td>
+                                <td class="pe-3 small text-end">
+                                    <?php if (!empty($r['requires_signature']) && ($st === 'signed' || $st === 'pending')) { ?>
+                                        <a href="<?= htmlspecialchars($urlAdm) ?>view-payroll-signed-bundle/<?= (int)$r['document_id'] ?>" class="btn btn-sm btn-outline-danger" title="Original + trilha (pendente ou completa)"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+                                    <?php } else { ?>
+                                        <span class="text-muted">—</span>
+                                    <?php } ?>
+                                </td>
                             </tr>
                         <?php } ?>
                     </tbody>

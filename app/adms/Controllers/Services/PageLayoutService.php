@@ -431,6 +431,7 @@ class PageLayoutService
             'DeletePayrollDocumentType',
             'MyPayrollDocuments',
             'ViewPayrollDocument',
+            'ViewPayrollSignedBundle',
             'ConfirmPayrollDocumentDownload',
             'SignPayrollDocument',
             'PayrollSignatureReceipt',

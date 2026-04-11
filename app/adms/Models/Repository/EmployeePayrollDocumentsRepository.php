@@ -294,6 +294,19 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         return $stmt->rowCount() > 0;
     }
 
+    public function updateSignedBundleStoragePath(int $documentId, ?string $relativePath): void
+    {
+        $sql = 'UPDATE adms_employee_payroll_documents SET signed_bundle_storage_path = :p WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        if ($relativePath !== null && $relativePath !== '') {
+            $stmt->bindValue(':p', $relativePath, PDO::PARAM_STR);
+        } else {
+            $stmt->bindValue(':p', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':id', $documentId, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
     public function updateReminderStage(int $documentId, int $stage): void
     {
         $sql = 'UPDATE adms_employee_payroll_documents SET reminder_stage = :s WHERE id = :id';
@@ -393,7 +406,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
 
         $conn = $this->getConnection();
-        $stmt = $conn->prepare('SELECT id, storage_path FROM adms_employee_payroll_documents WHERE import_batch_id = :bid');
+        $stmt = $conn->prepare('SELECT id, storage_path, signed_bundle_storage_path FROM adms_employee_payroll_documents WHERE import_batch_id = :bid');
         $stmt->bindValue(':bid', $batchId, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -401,11 +414,13 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $conn->beginTransaction();
         try {
             foreach ($rows as $r) {
-                $path = (string)($r['storage_path'] ?? '');
-                if ($path !== '') {
-                    $full = $this->absoluteStoragePath($path);
-                    if (is_file($full)) {
-                        @unlink($full);
+                foreach (['storage_path', 'signed_bundle_storage_path'] as $col) {
+                    $path = (string)($r[$col] ?? '');
+                    if ($path !== '') {
+                        $full = $this->absoluteStoragePath($path);
+                        if (is_file($full)) {
+                            @unlink($full);
+                        }
                     }
                 }
             }

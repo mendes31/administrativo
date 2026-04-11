@@ -11,6 +11,7 @@ use App\adms\Helpers\UserAccessHelper;
 use App\adms\Helpers\UrlAdmHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\PayrollDocumentEventsRepository;
+use App\adms\Models\Services\PayrollSignedBundlePdfService;
 
 /**
  * Entrega o PDF por stream (nunca URL pública ao ficheiro em disco).
@@ -101,6 +102,13 @@ class ViewPayrollDocument
                 $_SERVER['HTTP_USER_AGENT'] ?? null
             );
         } catch (\Throwable) {
+        }
+
+        if ($ownerId === $sessionUid
+            && (int)($doc['requires_signature_snapshot'] ?? 0) === 1
+            && in_array((string)($doc['signature_status'] ?? ''), ['pending', 'signed'], true)
+        ) {
+            PayrollSignedBundlePdfService::scheduleRegenerateAfterResponse($docId);
         }
 
         header('Content-Type: application/pdf');

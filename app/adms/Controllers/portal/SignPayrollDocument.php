@@ -13,6 +13,7 @@ use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\PayrollDocumentEventsRepository;
 use App\adms\Models\Repository\PayrollDocumentOtpRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PayrollSignedBundlePdfService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -262,6 +263,13 @@ class SignPayrollDocument
                 'auth_method' => $authMethod,
                 'document_hash_sha256' => $hash,
             ], $ip, $ua);
+            $signedRow = $repo->getById($docId);
+            if (is_array($signedRow)) {
+                try {
+                    (new PayrollSignedBundlePdfService())->regenerateForDocumentId($repo, $docId);
+                } catch (\Throwable) {
+                }
+            }
         }
 
         return $ok;
