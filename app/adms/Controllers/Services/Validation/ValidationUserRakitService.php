@@ -87,6 +87,9 @@ class ValidationUserRakitService
         // Exceção para o usuário técnico "manager": permitir ausência de CPF, celular e data de nascimento
         if ($isManagerUser) {
             unset($rules['cpf'], $rules['celular'], $rules['data_nascimento']);
+        } else {
+            $rules['sexo'] = 'required|in:M,F,O';
+            $rules['filhos'] = 'required|in:S,N';
         }
         
          // Definir mensagens personalizadas
@@ -126,6 +129,10 @@ class ValidationUserRakitService
             'user_position_id:required'   => 'O campo cargo é obrigatório.',
             'user_position_id:integer'    => 'Cargo inválido.',
             'user_position_id:min'        => 'Selecione um cargo válido.',
+            'sexo:required'               => 'Selecione o sexo.',
+            'sexo:in'                     => 'Valor de sexo inválido.',
+            'filhos:required'             => 'Informe se possui filhos.',
+            'filhos:in'                   => 'Valor inválido para filhos.',
         ];
 
         // Criar o validador com os dados e regras fornecidas

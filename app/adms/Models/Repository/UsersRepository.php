@@ -460,6 +460,8 @@ class UsersRepository extends DbConnection
                     t0.image,
                     t0.timeline_bio,
                     t0.data_nascimento,
+                    t0.sexo,
+                    t0.filhos,
                     t0.data_admissao,
                     t0.data_desligamento,
                     t0.motivo_desligamento,
@@ -685,9 +687,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, super_usuario
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, super_usuario
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :super_usuario
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -710,6 +712,10 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':image', $data['image'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':data_nascimento', $data['data_nascimento'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':data_admissao', $data['data_admissao'] ?? null, PDO::PARAM_STR);
+            $sexoIns = $data['sexo'] ?? null;
+            $filhosIns = $data['filhos'] ?? null;
+            $stmt->bindValue(':sexo', $sexoIns !== null && $sexoIns !== '' ? $sexoIns : null, $sexoIns !== null && $sexoIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':filhos', $filhosIns !== null && $filhosIns !== '' ? $filhosIns : null, $filhosIns !== null && $filhosIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':super_usuario', !empty($data['super_usuario']) ? 1 : 0, PDO::PARAM_INT);
             $stmt->execute();
             $novoId = $this->getConnection()->lastInsertId();
@@ -728,6 +734,8 @@ class UsersRepository extends DbConnection
                     'senha_nunca_expira' => $data['senha_nunca_expira'] ?? 'Não',
                     'modificar_senha_proximo_logon' => $data['modificar_senha_proximo_logon'] ?? 'Não',
                     'super_usuario' => !empty($data['super_usuario']) ? 1 : 0,
+                    'sexo' => $data['sexo'] ?? null,
+                    'filhos' => $data['filhos'] ?? null,
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',
@@ -945,6 +953,12 @@ class UsersRepository extends DbConnection
             // Sempre incluir data_desligamento e motivo_desligamento para permitir limpar valores
             $sql .= ', data_desligamento = :data_desligamento';
             $sql .= ', motivo_desligamento = :motivo_desligamento';
+            if (array_key_exists('sexo', $data)) {
+                $sql .= ', sexo = :sexo';
+            }
+            if (array_key_exists('filhos', $data)) {
+                $sql .= ', filhos = :filhos';
+            }
             if (isset($data['bloqueado']) && $data['bloqueado'] === 'Não' && isset($dadosAntes['bloqueado']) && $dadosAntes['bloqueado'] === 'Sim') {
                 $sql .= ', tentativas_login = 0, data_bloqueio_temporario = NULL';
             }
@@ -986,6 +1000,22 @@ class UsersRepository extends DbConnection
             // Sempre bindar data_desligamento e motivo_desligamento (podem ser null)
             $stmt->bindValue(':data_desligamento', !empty($data['data_desligamento']) ? $data['data_desligamento'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':motivo_desligamento', !empty($data['motivo_desligamento']) ? $data['motivo_desligamento'] : null, PDO::PARAM_STR);
+            if (array_key_exists('sexo', $data)) {
+                $vSexo = $data['sexo'];
+                $stmt->bindValue(
+                    ':sexo',
+                    $vSexo !== null && $vSexo !== '' ? $vSexo : null,
+                    $vSexo !== null && $vSexo !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            if (array_key_exists('filhos', $data)) {
+                $vFilhos = $data['filhos'];
+                $stmt->bindValue(
+                    ':filhos',
+                    $vFilhos !== null && $vFilhos !== '' ? $vFilhos : null,
+                    $vFilhos !== null && $vFilhos !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
             if (!empty($data['password'])) {
                 $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
@@ -1016,6 +1046,8 @@ class UsersRepository extends DbConnection
                     'super_usuario' => array_key_exists('super_usuario', $data)
                         ? (!empty($data['super_usuario']) ? 1 : 0)
                         : ($dadosAntes['super_usuario'] ?? null),
+                    'sexo' => array_key_exists('sexo', $data) ? $data['sexo'] : ($dadosAntes['sexo'] ?? null),
+                    'filhos' => array_key_exists('filhos', $data) ? $data['filhos'] : ($dadosAntes['filhos'] ?? null),
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',

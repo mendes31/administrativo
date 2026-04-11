@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\Validation\ValidationUserRakitService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -152,6 +153,8 @@ class CreateUser
         } else {
             $form['super_usuario'] = !empty($form['super_usuario']) ? 1 : 0;
         }
+        $form['sexo'] = UserFormHelper::normalizeSexo($form['sexo'] ?? '');
+        $form['filhos'] = UserFormHelper::normalizeFilhos($form['filhos'] ?? '');
         // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas
         $form['enviar_boas_vindas_email'] = !empty($form['enviar_boas_vindas_email']) ? 1 : 0;

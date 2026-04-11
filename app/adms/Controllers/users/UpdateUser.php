@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\Validation\ValidationUserRakitService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Controllers\Services\SecurityService;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -217,6 +218,8 @@ class UpdateUser
         } else {
             $form['super_usuario'] = $postedWantsSuper ? 1 : 0;
         }
+        $form['sexo'] = UserFormHelper::normalizeSexo($form['sexo'] ?? '');
+        $form['filhos'] = UserFormHelper::normalizeFilhos($form['filhos'] ?? '');
         $newSuperFlag = array_key_exists('super_usuario', $form)
             ? (((int) $form['super_usuario'] === 1) ? 1 : 0)
             : $oldSuperFlag;

@@ -188,6 +188,30 @@ use App\adms\Helpers\CSRFHelper;
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
                 </div>
+                <?php
+                $isManagerUsernameDraft = isset($this->data['form']['username'])
+                    && strtolower(trim((string) $this->data['form']['username'])) === 'manager';
+                $sexoFilhosRequiredAttr = $isManagerUsernameDraft ? '' : ' required';
+                ?>
+                <div class="col-md-4">
+                    <label for="sexo" class="form-label">Sexo</label>
+                    <select name="sexo" id="sexo" class="form-select"<?php echo $sexoFilhosRequiredAttr; ?>>
+                        <?php $sx = (string)($this->data['form']['sexo'] ?? ''); ?>
+                        <option value="" <?php echo $sx === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <option value="M" <?php echo $sx === 'M' ? 'selected' : ''; ?>>Masculino</option>
+                        <option value="F" <?php echo $sx === 'F' ? 'selected' : ''; ?>>Feminino</option>
+                        <option value="O" <?php echo $sx === 'O' ? 'selected' : ''; ?>>Outros</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="filhos" class="form-label">Filho(s)</label>
+                    <select name="filhos" id="filhos" class="form-select"<?php echo $sexoFilhosRequiredAttr; ?>>
+                        <?php $fh = (string)($this->data['form']['filhos'] ?? ''); ?>
+                        <option value="" <?php echo $fh === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <option value="S" <?php echo $fh === 'S' ? 'selected' : ''; ?>>Sim</option>
+                        <option value="N" <?php echo $fh === 'N' ? 'selected' : ''; ?>>Não</option>
+                    </select>
+                </div>
                 <div class="col-md-4">
                     <label for="data_admissao" class="form-label">Data de Admissão</label>
                     <input type="date" name="data_admissao" class="form-control" id="data_admissao" value="<?php echo $this->data['form']['data_admissao'] ?? ''; ?>">

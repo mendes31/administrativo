@@ -176,6 +176,30 @@ use App\adms\Helpers\ImageHelper;
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
                 </div>
+                <?php
+                $isManagerUserEdit = isset($this->data['form']['username'])
+                    && strtolower(trim((string) $this->data['form']['username'])) === 'manager';
+                $sexoFilhosRequiredAttrEdit = $isManagerUserEdit ? '' : ' required';
+                ?>
+                <div class="col-md-4">
+                    <label for="sexo" class="form-label">Sexo</label>
+                    <select name="sexo" id="sexo" class="form-select"<?php echo $sexoFilhosRequiredAttrEdit; ?>>
+                        <?php $sx = (string)($this->data['form']['sexo'] ?? ''); ?>
+                        <option value="" <?php echo $sx === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <option value="M" <?php echo $sx === 'M' ? 'selected' : ''; ?>>Masculino</option>
+                        <option value="F" <?php echo $sx === 'F' ? 'selected' : ''; ?>>Feminino</option>
+                        <option value="O" <?php echo $sx === 'O' ? 'selected' : ''; ?>>Outros</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="filhos" class="form-label">Filho(s)</label>
+                    <select name="filhos" id="filhos" class="form-select"<?php echo $sexoFilhosRequiredAttrEdit; ?>>
+                        <?php $fh = (string)($this->data['form']['filhos'] ?? ''); ?>
+                        <option value="" <?php echo $fh === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <option value="S" <?php echo $fh === 'S' ? 'selected' : ''; ?>>Sim</option>
+                        <option value="N" <?php echo $fh === 'N' ? 'selected' : ''; ?>>Não</option>
+                    </select>
+                </div>
 
                 <div class="col-md-4">
                     <label for="data_admissao" class="form-label">Data de Admissão</label>
@@ -244,7 +268,7 @@ use App\adms\Helpers\ImageHelper;
                             <i class="fas fa-exclamation-triangle text-dark mt-1 flex-shrink-0" aria-hidden="true"></i>
                             <div class="text-body">
                                 <div class="fw-semibold text-dark mb-1">Sobre o perfil <span class="text-nowrap">«Super usuário»</span></div>
-                                <p class="mb-0">Quem o marca (em <strong>outro</strong> cadastro) concede <strong>acesso total ao sistema</strong>, equivalente ao <strong>Super Administrador</strong>, independentemente do nível de permissões associado. Só <strong>Super Administrador</strong> ou utilizador já <strong>Super usuário</strong> pode definir isto; <strong>não pode atribuir a si próprio</strong> ao editar o seu utilizador. Cargos <strong>gerenciais</strong> (mesma lista do CRM: Gerente, Gestor, Coordenador, etc.) ficam <strong>Super usuário</strong> ao gravar.</p>
+                                <p class="mb-0">Quem o marca (em <strong>outro</strong> cadastro) concede <strong>acesso total ao sistema</strong>, equivalente ao <strong>Super Administrador</strong>, independentemente do nível de permissões associado. Só <strong>Super Administrador</strong> ou utilizador já <strong>Super usuário</strong> pode definir isto; <strong>não pode atribuir a si próprio</strong> ao editar o seu utilizador.</p>
                             </div>
                         </div>
                     </div>
