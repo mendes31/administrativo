@@ -241,6 +241,86 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         </div>
     </div>
 
+    <!-- Demografia e classificação de desligamentos (agregados) -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <p class="text-muted small mb-0">
+                <i class="fas fa-shield-alt me-1"></i><?= htmlspecialchars((string)($this->data['demographics_note'] ?? 'Indicadores demográficos agregados.')) ?>
+                Data de referência (ativos): <strong><?= htmlspecialchars((string)($this->data['demographics_ref_date'] ?? '')) ?></strong>.
+            </p>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Desligamentos no período — impacto (RH)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="impactChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-venus-mars me-2"></i>Ativos (ref. final) — sexo</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="activeSexChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-12">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-user-minus me-2"></i>Desligamentos no período — sexo</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="termSexChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-birthday-cake me-2"></i>Ativos (ref. final) — faixa etária</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="activeAgeChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-birthday-cake me-2"></i>Desligamentos no período — faixa etária</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="termAgeChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-child me-2"></i>Ativos (ref. final) — filhos (cadastro)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="activeFilhosChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-child me-2"></i>Desligamentos no período — filhos (cadastro)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="termFilhosChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Informações -->
     <div class="card mb-4 border-light shadow">
         <div class="card-header">
@@ -267,6 +347,18 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                         <li><strong>Headcount atual (ativos sem desligamento):</strong> <?= (int)($this->data['active_employees'] ?? 0) ?></li>
                         <li><strong>Total no universo filtrado:</strong> <?= (int)($this->data['total_employees'] ?? 0) ?></li>
                     </ul>
+
+                    <div class="mt-3">
+                        <h6>Desligamentos no período — por impacto (RH)</h6>
+                        <ul class="list-unstyled small">
+                            <?php foreach (($this->data['terminations_in_period_by_impact'] ?? []) as $lbl => $cnt): ?>
+                                <li><?= htmlspecialchars((string)$lbl) ?>: <strong><?= (int)$cnt ?></strong></li>
+                            <?php endforeach; ?>
+                            <?php if (empty($this->data['terminations_in_period_by_impact'])): ?>
+                                <li class="text-muted">Nenhum desligamento no período ou dados ainda não classificados.</li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
 
                     <div class="mt-3">
                         <h6>Distribuição por departamento (ativos)</h6>
@@ -571,5 +663,68 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    function paBarChart(canvasId, datasetLabel, dataObj, barColor) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || !dataObj || Object.keys(dataObj).length === 0) {
+            return;
+        }
+        const labels = Object.keys(dataObj);
+        const values = Object.values(dataObj);
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: datasetLabel,
+                    data: values,
+                    backgroundColor: barColor,
+                    borderColor: barColor,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    const impactData = <?= json_encode($this->data['terminations_in_period_by_impact'] ?? []) ?>;
+    const impactCtx = document.getElementById('impactChart');
+    if (impactCtx && Object.keys(impactData).length > 0) {
+        const impactSum = Object.values(impactData).reduce(function (a, b) { return a + b; }, 0);
+        if (impactSum > 0) {
+            const ic = Object.values(chartColors);
+            new Chart(impactCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(impactData),
+                    datasets: [{
+                        data: Object.values(impactData),
+                        backgroundColor: Object.keys(impactData).map(function (_, i) { return ic[i % ic.length]; }),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, position: 'bottom' } }
+                }
+            });
+        }
+    }
+
+    paBarChart('activeSexChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_sex'] ?? []) ?>, chartColors.primary);
+    paBarChart('termSexChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_sex'] ?? []) ?>, chartColors.warning);
+    paBarChart('activeAgeChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_age_band'] ?? []) ?>, chartColors.primary);
+    paBarChart('termAgeChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_age_band'] ?? []) ?>, chartColors.warning);
+    paBarChart('activeFilhosChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_filhos'] ?? []) ?>, chartColors.primary);
+    paBarChart('termFilhosChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_filhos'] ?? []) ?>, chartColors.warning);
 });
 </script>

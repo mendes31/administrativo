@@ -182,6 +182,11 @@ class UpdateUser
         $form['data_desligamento'] = !empty($_POST['data_desligamento']) ? $_POST['data_desligamento'] : null;
         // Se data_desligamento for null, motivo também deve ser null
         $form['motivo_desligamento'] = (!empty($form['data_desligamento']) && !empty($_POST['motivo_desligamento'])) ? $_POST['motivo_desligamento'] : null;
+        if (!empty($form['data_desligamento'])) {
+            $form['tipo_impacto_desligamento'] = UserFormHelper::normalizeTipoImpactoDesligamento($_POST['tipo_impacto_desligamento'] ?? null);
+        } else {
+            $form['tipo_impacto_desligamento'] = null;
+        }
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK && !empty($form['id'])) {
             $uploadDir = 'public/adms/uploads/users/' . $form['id'] . '/';
             if (!is_dir($uploadDir)) {
@@ -197,6 +202,10 @@ class UpdateUser
         $this->data['form'] = $form;
         // Normalização dos campos booleanos
         $form['status'] = isset($form['status']) && $form['status'] === 'Ativo' ? 'Ativo' : 'Inativo';
+        // Com data de desligamento, o colaborador não pode permanecer "Ativo" (evita erro operacional do RH).
+        if (!empty($form['data_desligamento'])) {
+            $form['status'] = 'Inativo';
+        }
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
 

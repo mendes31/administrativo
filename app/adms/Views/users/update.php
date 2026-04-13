@@ -210,8 +210,17 @@ use App\adms\Helpers\ImageHelper;
 
                 <div class="col-md-12" id="motivo_desligamento_container" style="display: <?php echo !empty($this->data['form']['data_desligamento']) ? 'block' : 'none'; ?>;">
                     <label for="motivo_desligamento" class="form-label">Motivo do Desligamento</label>
-                    <input type="text" name="motivo_desligamento" class="form-control" id="motivo_desligamento" placeholder="Ex: Pedido de demissão, Demissão sem justa causa, Aposentadoria, etc." value="<?php echo $this->data['form']['motivo_desligamento'] ?? ''; ?>" maxlength="255">
+                    <input type="text" name="motivo_desligamento" class="form-control" id="motivo_desligamento" placeholder="Ex: Pedido de demissão, Demissão sem justa causa, Aposentadoria, etc." value="<?php echo htmlspecialchars($this->data['form']['motivo_desligamento'] ?? ''); ?>" maxlength="255">
                     <div class="form-text">Informe o motivo do desligamento (opcional)</div>
+                    <?php $ti = $this->data['form']['tipo_impacto_desligamento'] ?? ''; ?>
+                    <label for="tipo_impacto_desligamento" class="form-label mt-3">Classificação do desligamento (People Analytics)</label>
+                    <select name="tipo_impacto_desligamento" id="tipo_impacto_desligamento" class="form-select">
+                        <option value="" <?php echo $ti === '' || $ti === null ? 'selected' : ''; ?>>Não informado</option>
+                        <option value="regrettable" <?php echo $ti === 'regrettable' ? 'selected' : ''; ?>>Regrettable (desejável reter)</option>
+                        <option value="non_regrettable" <?php echo $ti === 'non_regrettable' ? 'selected' : ''; ?>>Non-regrettable</option>
+                        <option value="nao_classificado" <?php echo $ti === 'nao_classificado' ? 'selected' : ''; ?>>Não classificado (explícito)</option>
+                    </select>
+                    <div class="form-text">Usado em indicadores de turnover. Opcional; preencha quando houver data de desligamento.</div>
                 </div>
 
                 <div class="col-md-3">
@@ -297,26 +306,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const dataDesligamentoInput = document.getElementById('data_desligamento');
     const motivoContainer = document.getElementById('motivo_desligamento_container');
     const motivoInput = document.getElementById('motivo_desligamento');
+    const tipoImpactoSelect = document.getElementById('tipo_impacto_desligamento');
     const dataAdmissaoInput = document.getElementById('data_admissao');
     const statusCheckbox = document.getElementById('status');
+    const clearTipoImpacto = function () { if (tipoImpactoSelect) tipoImpactoSelect.value = ''; };
     
     if (dataDesligamentoInput && motivoContainer) {
         // Verificar estado inicial
         if (dataDesligamentoInput.value) {
             motivoContainer.style.display = 'block';
+            if (statusCheckbox && statusCheckbox.checked) {
+                statusCheckbox.checked = false;
+            }
         }
         
         // Evento de mudança na data de desligamento
         dataDesligamentoInput.addEventListener('change', function(e) {
             if (e.target.value) {
-                // Data de desligamento preenchida - mostrar campo motivo
                 motivoContainer.style.display = 'block';
+                if (statusCheckbox) {
+                    statusCheckbox.checked = false;
+                }
             } else {
                 // Data de desligamento removida - ocultar e limpar motivo (recontratação)
                 motivoContainer.style.display = 'none';
                 if (motivoInput) {
                     motivoInput.value = '';
                 }
+                clearTipoImpacto();
                 
                 // Se havia data de desligamento antes, é uma recontratação
                 // Ativar status automaticamente
@@ -342,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         dataDesligamentoInput.value = '';
                         if (motivoContainer) motivoContainer.style.display = 'none';
                         if (motivoInput) motivoInput.value = '';
+                        clearTipoImpacto();
                         if (statusCheckbox) statusCheckbox.checked = true;
                     }
                 }

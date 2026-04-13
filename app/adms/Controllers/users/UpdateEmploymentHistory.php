@@ -5,6 +5,7 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\EmploymentHistoryRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -74,10 +75,14 @@ class UpdateEmploymentHistory
             return;
         }
 
+        $dataDesl = !empty($_POST['data_desligamento']) ? $_POST['data_desligamento'] : null;
         $data = [
             'data_admissao' => $_POST['data_admissao'] ?? '',
-            'data_desligamento' => !empty($_POST['data_desligamento']) ? $_POST['data_desligamento'] : null,
+            'data_desligamento' => $dataDesl,
             'motivo_desligamento' => !empty($_POST['motivo_desligamento']) ? $_POST['motivo_desligamento'] : null,
+            'tipo_impacto_desligamento' => $dataDesl
+                ? UserFormHelper::normalizeTipoImpactoDesligamento($_POST['tipo_impacto_desligamento'] ?? null)
+                : null,
             'tipo_periodo' => $_POST['tipo_periodo'] ?? 'Admissão',
             'observacoes' => !empty($_POST['observacoes']) ? $_POST['observacoes'] : null,
         ];

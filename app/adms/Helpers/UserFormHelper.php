@@ -41,4 +41,25 @@ final class UserFormHelper
             default => 'Não informado',
         };
     }
+
+    /** @return 'regrettable'|'non_regrettable'|'nao_classificado'|null */
+    public static function normalizeTipoImpactoDesligamento(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtolower(trim((string) $value));
+
+        return in_array($v, ['regrettable', 'non_regrettable', 'nao_classificado'], true) ? $v : null;
+    }
+
+    public static function tipoImpactoDesligamentoLabel(?string $code): string
+    {
+        return match ($code) {
+            'regrettable' => 'Regrettable (desejável reter)',
+            'non_regrettable' => 'Non-regrettable',
+            'nao_classificado' => 'Não classificado',
+            default => 'Não informado',
+        };
+    }
 }

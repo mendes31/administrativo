@@ -72,6 +72,18 @@ use App\adms\Helpers\CSRFHelper;
                     <div class="form-text">Preencha apenas se houver data de desligamento</div>
                 </div>
 
+                <div class="col-md-6">
+                    <?php $hti = $this->data['history']['tipo_impacto_desligamento'] ?? ''; ?>
+                    <label for="tipo_impacto_desligamento" class="form-label">Classificação do desligamento</label>
+                    <select name="tipo_impacto_desligamento" id="tipo_impacto_desligamento" class="form-select">
+                        <option value="" <?= ($hti === '' || $hti === null) ? 'selected' : '' ?>>Não informado</option>
+                        <option value="regrettable" <?= $hti === 'regrettable' ? 'selected' : '' ?>>Regrettable (desejável reter)</option>
+                        <option value="non_regrettable" <?= $hti === 'non_regrettable' ? 'selected' : '' ?>>Non-regrettable</option>
+                        <option value="nao_classificado" <?= $hti === 'nao_classificado' ? 'selected' : '' ?>>Não classificado (explícito)</option>
+                    </select>
+                    <div class="form-text">Para People Analytics / turnover. Opcional se não houver desligamento.</div>
+                </div>
+
                 <div class="col-md-12">
                     <label for="observacoes" class="form-label">Observações</label>
                     <textarea name="observacoes" class="form-control" id="observacoes" rows="3" 

@@ -221,6 +221,8 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <?php if (!empty($this->data['user']['data_desligamento'])): ?>
                         <dt class="col-sm-3">Data de Desligamento: </dt>
                         <dd class="col-sm-9"><?php echo date('d/m/Y', strtotime($this->data['user']['data_desligamento'])); ?></dd>
+                        <dt class="col-sm-3">Classificação do desligamento: </dt>
+                        <dd class="col-sm-9"><?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::tipoImpactoDesligamentoLabel($this->data['user']['tipo_impacto_desligamento'] ?? null)); ?></dd>
                     <?php endif; ?>
 
                     <?php if (!empty($this->data['totalTenure'])): ?>
@@ -257,6 +259,7 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                                 <th>Data de Admissão</th>
                                 <th>Data de Desligamento</th>
                                 <th>Motivo do Desligamento</th>
+                                <th>Impacto (RH)</th>
                                 <th>Duração</th>
                                 <th>Observações</th>
                                 <th class="text-center">Ações</th>
@@ -281,6 +284,12 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                                         ?>
                                     </td>
                                     <td><?php echo !empty($period['motivo_desligamento']) ? htmlspecialchars($period['motivo_desligamento']) : '-'; ?></td>
+                                    <td>
+                                        <?php
+                                        $ti = $period['tipo_impacto_desligamento'] ?? null;
+                                        echo $ti ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::tipoImpactoDesligamentoLabel((string) $ti)) : '-';
+                                        ?>
+                                    </td>
                                     <td>
                                         <?php
                                         $admissao = new \DateTime($period['data_admissao']);

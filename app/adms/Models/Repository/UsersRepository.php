@@ -324,7 +324,7 @@ class UsersRepository extends DbConnection
         }
 
         $whereSql = 'WHERE ' . implode(' AND ', $where);
-        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, usr.tipo_impacto_desligamento, usr.data_nascimento, usr.sexo, usr.filhos, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
                 LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
                 LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id
@@ -543,6 +543,7 @@ class UsersRepository extends DbConnection
                     t0.data_admissao,
                     t0.data_desligamento,
                     t0.motivo_desligamento,
+                    t0.tipo_impacto_desligamento,
                     t0.user_department_id, 
                     t0.user_position_id,
                     t0.immediate_supervisor_id,
@@ -869,7 +870,8 @@ class UsersRepository extends DbConnection
                     $historyRepo->updateTermination(
                         $data['id'],
                         $data['data_desligamento'],
-                        $data['motivo_desligamento'] ?? null
+                        $data['motivo_desligamento'] ?? null,
+                        $data['tipo_impacto_desligamento'] ?? null
                     );
                 } else {
                     // Criar novo registro histórico (caso não exista)
@@ -878,6 +880,7 @@ class UsersRepository extends DbConnection
                         'data_admissao' => $dadosAntes['data_admissao'] ?? $data['data_admissao'] ?? date('Y-m-d'),
                         'data_desligamento' => $data['data_desligamento'],
                         'motivo_desligamento' => $data['motivo_desligamento'] ?? null,
+                        'tipo_impacto_desligamento' => $data['tipo_impacto_desligamento'] ?? null,
                         'tipo_periodo' => 'Admissão',
                         'observacoes' => 'Desligamento registrado'
                     ]);
@@ -890,6 +893,7 @@ class UsersRepository extends DbConnection
                 // É uma recontratação - criar novo período no histórico
                 // Manter os campos atuais (data_admissao nova, sem desligamento)
                 $data['motivo_desligamento'] = null; // Limpar motivo apenas do registro atual
+                $data['tipo_impacto_desligamento'] = null;
                 
                 // Criar novo registro histórico para a recontratação
                 $historyRepo->create([
@@ -897,6 +901,7 @@ class UsersRepository extends DbConnection
                     'data_admissao' => $data['data_admissao'] ?? date('Y-m-d'),
                     'data_desligamento' => null, // Ainda ativo
                     'motivo_desligamento' => null,
+                    'tipo_impacto_desligamento' => null,
                     'tipo_periodo' => 'Recontratação',
                     'observacoes' => 'Colaborador recontratado'
                 ]);
@@ -920,6 +925,7 @@ class UsersRepository extends DbConnection
                         'data_admissao' => $data['data_admissao'],
                         'data_desligamento' => null, // Ainda ativo
                         'motivo_desligamento' => null,
+                        'tipo_impacto_desligamento' => null,
                         'tipo_periodo' => 'Recontratação',
                         'observacoes' => 'Colaborador recontratado - nova admissão posterior ao desligamento'
                     ]);
@@ -927,6 +933,7 @@ class UsersRepository extends DbConnection
                     // Limpar desligamento do registro atual
                     $data['data_desligamento'] = null;
                     $data['motivo_desligamento'] = null;
+                    $data['tipo_impacto_desligamento'] = null;
                     if (!isset($data['status'])) {
                         $data['status'] = 'Ativo';
                     }
@@ -944,6 +951,7 @@ class UsersRepository extends DbConnection
                         'data_admissao' => $data['data_admissao'],
                         'data_desligamento' => null,
                         'motivo_desligamento' => null,
+                        'tipo_impacto_desligamento' => null,
                         'tipo_periodo' => 'Admissão',
                         'observacoes' => 'Primeira admissão do colaborador'
                     ]);
@@ -1031,6 +1039,7 @@ class UsersRepository extends DbConnection
             // Sempre incluir data_desligamento e motivo_desligamento para permitir limpar valores
             $sql .= ', data_desligamento = :data_desligamento';
             $sql .= ', motivo_desligamento = :motivo_desligamento';
+            $sql .= ', tipo_impacto_desligamento = :tipo_impacto_desligamento';
             if (array_key_exists('sexo', $data)) {
                 $sql .= ', sexo = :sexo';
             }
@@ -1078,6 +1087,15 @@ class UsersRepository extends DbConnection
             // Sempre bindar data_desligamento e motivo_desligamento (podem ser null)
             $stmt->bindValue(':data_desligamento', !empty($data['data_desligamento']) ? $data['data_desligamento'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':motivo_desligamento', !empty($data['motivo_desligamento']) ? $data['motivo_desligamento'] : null, PDO::PARAM_STR);
+            $tipoImp = null;
+            if (!empty($data['data_desligamento'])) {
+                $tipoImp = \App\adms\Helpers\UserFormHelper::normalizeTipoImpactoDesligamento($data['tipo_impacto_desligamento'] ?? null);
+            }
+            $stmt->bindValue(
+                ':tipo_impacto_desligamento',
+                $tipoImp,
+                $tipoImp !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
             if (array_key_exists('sexo', $data)) {
                 $vSexo = $data['sexo'];
                 $stmt->bindValue(

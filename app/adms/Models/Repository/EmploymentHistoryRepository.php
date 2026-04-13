@@ -16,10 +16,10 @@ class EmploymentHistoryRepository extends DbConnection
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_employment_history 
-                (adms_user_id, data_admissao, data_desligamento, motivo_desligamento, 
+                (adms_user_id, data_admissao, data_desligamento, motivo_desligamento, tipo_impacto_desligamento,
                  tipo_periodo, observacoes, created_at, updated_at)
                 VALUES 
-                (:adms_user_id, :data_admissao, :data_desligamento, :motivo_desligamento,
+                (:adms_user_id, :data_admissao, :data_desligamento, :motivo_desligamento, :tipo_impacto_desligamento,
                  :tipo_periodo, :observacoes, NOW(), NOW())";
         
         $stmt = $this->getConnection()->prepare($sql);
@@ -27,6 +27,12 @@ class EmploymentHistoryRepository extends DbConnection
         $stmt->bindValue(':data_admissao', $data['data_admissao']);
         $stmt->bindValue(':data_desligamento', $data['data_desligamento'] ?? null);
         $stmt->bindValue(':motivo_desligamento', $data['motivo_desligamento'] ?? null);
+        $ti = $data['tipo_impacto_desligamento'] ?? null;
+        $stmt->bindValue(
+            ':tipo_impacto_desligamento',
+            $ti !== null && $ti !== '' ? $ti : null,
+            $ti !== null && $ti !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+        );
         $stmt->bindValue(':tipo_periodo', $data['tipo_periodo'] ?? 'Admissão');
         $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);
         
@@ -122,11 +128,12 @@ class EmploymentHistoryRepository extends DbConnection
     /**
      * Atualizar data de desligamento no período atual
      */
-    public function updateTermination(int $userId, string $dataDesligamento, ?string $motivo = null): bool
+    public function updateTermination(int $userId, string $dataDesligamento, ?string $motivo = null, ?string $tipoImpactoDesligamento = null): bool
     {
         $sql = "UPDATE adms_employment_history 
                 SET data_desligamento = :data_desligamento,
                     motivo_desligamento = :motivo_desligamento,
+                    tipo_impacto_desligamento = :tipo_impacto_desligamento,
                     updated_at = NOW()
                 WHERE adms_user_id = :user_id 
                 AND data_desligamento IS NULL
@@ -136,6 +143,11 @@ class EmploymentHistoryRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':data_desligamento', $dataDesligamento);
         $stmt->bindValue(':motivo_desligamento', $motivo);
+        $stmt->bindValue(
+            ':tipo_impacto_desligamento',
+            $tipoImpactoDesligamento !== null && $tipoImpactoDesligamento !== '' ? $tipoImpactoDesligamento : null,
+            $tipoImpactoDesligamento !== null && $tipoImpactoDesligamento !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+        );
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         
         return $stmt->execute();
@@ -166,6 +178,7 @@ class EmploymentHistoryRepository extends DbConnection
                 SET data_admissao = :data_admissao,
                     data_desligamento = :data_desligamento,
                     motivo_desligamento = :motivo_desligamento,
+                    tipo_impacto_desligamento = :tipo_impacto_desligamento,
                     tipo_periodo = :tipo_periodo,
                     observacoes = :observacoes,
                     updated_at = NOW()
@@ -176,6 +189,12 @@ class EmploymentHistoryRepository extends DbConnection
         $stmt->bindValue(':data_admissao', $data['data_admissao']);
         $stmt->bindValue(':data_desligamento', !empty($data['data_desligamento']) ? $data['data_desligamento'] : null);
         $stmt->bindValue(':motivo_desligamento', !empty($data['motivo_desligamento']) ? $data['motivo_desligamento'] : null);
+        $ti = $data['tipo_impacto_desligamento'] ?? null;
+        $stmt->bindValue(
+            ':tipo_impacto_desligamento',
+            $ti !== null && $ti !== '' ? $ti : null,
+            $ti !== null && $ti !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+        );
         $stmt->bindValue(':tipo_periodo', $data['tipo_periodo'] ?? 'Admissão');
         $stmt->bindValue(':observacoes', !empty($data['observacoes']) ? $data['observacoes'] : null);
         
