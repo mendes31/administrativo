@@ -85,6 +85,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                     </select>
                 </div>
                 <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                    <label for="turno_id" class="form-label users-list-filters-label">Turno</label>
+                    <select name="turno_id" id="turno_id" class="form-select users-list-filters-control">
+                        <option value="">Todos</option>
+                        <option value="0" <?= ($this->data['filtros']['turno_id'] ?? '') !== '' && (string) ($this->data['filtros']['turno_id'] ?? '') === '0' ? 'selected' : '' ?>>Sem turno</option>
+                        <?php foreach ($this->data['work_shifts'] ?? [] as $ws): ?>
+                            <option value="<?= (int) $ws['id'] ?>" <?= ($this->data['filtros']['turno_id'] ?? '') == $ws['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($ws['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <label for="status" class="form-label users-list-filters-label">Status</label>
                     <select name="status" id="status" class="form-select users-list-filters-control">
                         <option value="">Todos</option>

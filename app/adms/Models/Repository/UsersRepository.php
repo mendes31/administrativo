@@ -95,6 +95,14 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.user_position_id = :cargo_id';
             $params[':cargo_id'] = (int)$filtros['cargo_id'];
         }
+        if (isset($filtros['turno_id']) && $filtros['turno_id'] !== '' && $filtros['turno_id'] !== null) {
+            if ($filtros['turno_id'] === '0' || $filtros['turno_id'] === 0) {
+                $where[] = 'usr.adms_work_shift_id IS NULL';
+            } elseif (is_numeric($filtros['turno_id']) && (int) $filtros['turno_id'] > 0) {
+                $where[] = 'usr.adms_work_shift_id = :turno_id';
+                $params[':turno_id'] = (int) $filtros['turno_id'];
+            }
+        }
         if (!empty($filtros['status']) && in_array($filtros['status'], ['Ativo', 'Inativo'])) {
             $where[] = 'usr.status = :status';
             $params[':status'] = $filtros['status'];
@@ -211,6 +219,14 @@ class UsersRepository extends DbConnection
         if (!empty($filtros['cargo_id']) && is_numeric($filtros['cargo_id'])) {
             $where[] = 'usr.user_position_id = :cargo_id';
             $params[':cargo_id'] = (int)$filtros['cargo_id'];
+        }
+        if (isset($filtros['turno_id']) && $filtros['turno_id'] !== '' && $filtros['turno_id'] !== null) {
+            if ($filtros['turno_id'] === '0' || $filtros['turno_id'] === 0) {
+                $where[] = 'usr.adms_work_shift_id IS NULL';
+            } elseif (is_numeric($filtros['turno_id']) && (int) $filtros['turno_id'] > 0) {
+                $where[] = 'usr.adms_work_shift_id = :turno_id';
+                $params[':turno_id'] = (int) $filtros['turno_id'];
+            }
         }
         if (!empty($filtros['status']) && in_array($filtros['status'], ['Ativo', 'Inativo'])) {
             $where[] = 'usr.status = :status';
@@ -455,6 +471,14 @@ class UsersRepository extends DbConnection
         if (!empty($filtros['cargo_id']) && is_numeric($filtros['cargo_id'])) {
             $where[] = 'usr.user_position_id = :cargo_id';
             $params[':cargo_id'] = (int)$filtros['cargo_id'];
+        }
+        if (isset($filtros['turno_id']) && $filtros['turno_id'] !== '' && $filtros['turno_id'] !== null) {
+            if ($filtros['turno_id'] === '0' || $filtros['turno_id'] === 0) {
+                $where[] = 'usr.adms_work_shift_id IS NULL';
+            } elseif (is_numeric($filtros['turno_id']) && (int) $filtros['turno_id'] > 0) {
+                $where[] = 'usr.adms_work_shift_id = :turno_id';
+                $params[':turno_id'] = (int) $filtros['turno_id'];
+            }
         }
         if (!empty($filtros['status']) && in_array($filtros['status'], ['Ativo', 'Inativo'])) {
             $where[] = 'usr.status = :status';

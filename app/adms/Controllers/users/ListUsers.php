@@ -5,6 +5,7 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Repository\WorkShiftsRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -60,6 +61,7 @@ class ListUsers
             'usuario' => $_GET['usuario'] ?? $_SESSION['filtros_list_users']['usuario'] ?? '',
             'departamento_id' => $_GET['departamento_id'] ?? $_SESSION['filtros_list_users']['departamento_id'] ?? '',
             'cargo_id' => $_GET['cargo_id'] ?? $_SESSION['filtros_list_users']['cargo_id'] ?? '',
+            'turno_id' => $_GET['turno_id'] ?? $_SESSION['filtros_list_users']['turno_id'] ?? '',
             'status' => $_GET['status'] ?? $_SESSION['filtros_list_users']['status'] ?? '',
             'bloqueado' => $_GET['bloqueado'] ?? $_SESSION['filtros_list_users']['bloqueado'] ?? '',
             'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
@@ -72,7 +74,7 @@ class ListUsers
         
         // Salvar filtros na sessão (apenas se vierem via GET)
         if (isset($_GET['nome']) || isset($_GET['usuario']) || 
-            isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || 
+            isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || isset($_GET['turno_id']) ||
             isset($_GET['status']) || isset($_GET['bloqueado']) || isset($_GET['desligado']) ||
             isset($_GET['sexo']) || isset($_GET['filhos']) ||
             isset($_GET['periodo_tipo']) || isset($_GET['data_de']) || isset($_GET['data_ate'])) {
@@ -93,6 +95,8 @@ class ListUsers
         // Carregar departamentos e cargos para os filtros
         $this->data['departments'] = $listUsers->getDepartmentsForFilter();
         $this->data['positions'] = $listUsers->getPositionsForFilter();
+        $workShiftsRepo = new WorkShiftsRepository();
+        $this->data['work_shifts'] = $workShiftsRepo->getAllWorkShiftsSelect();
         
         $totalUsers = $listUsers->getAmountUsers($filtros);
         $this->data['users'] = $listUsers->getAllUsers((int) $page, (int) $this->limitResult, $filtros);

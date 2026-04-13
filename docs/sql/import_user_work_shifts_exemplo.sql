@@ -1,0 +1,219 @@
+-- =============================================================================
+-- Atualizar turno dos utilizadores: adms_users.adms_work_shift_id
+-- =============================================================================
+--
+-- Erro #1452 (foreign key): algum id de turno no CASE não existe em adms_work_shifts
+-- NA MESMA BASE onde corre o UPDATE. Confirme no phpMyAdmin que está em administrativo1
+-- (ou o schema certo) e que existem linhas com id 1..11 em adms_work_shifts.
+--
+-- 1) Verificar turnos existentes (deve incluir todos os ids usados abaixo: 1 a 11)
+-- 2) Executar o UPDATE único (pode usar START TRANSACTION + ROLLBACK para testar)
+-- =============================================================================
+
+-- Passo A — conferir turnos (ajuste se a sua lista for outra)
+SELECT id, description FROM adms_work_shifts WHERE id BETWEEN 1 AND 11 ORDER BY id;
+
+-- Passo B — turnos referenciados no script mas em falta (resultado vazio = OK)
+SELECT v.need_id AS shift_id_em_falta
+FROM (
+  SELECT 1 AS need_id UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6
+  UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11
+) v
+LEFT JOIN adms_work_shifts w ON w.id = v.need_id
+WHERE w.id IS NULL;
+
+-- Passo C — UPDATE direto (utilizador id 1 fica sem turno: NULL)
+START TRANSACTION;
+
+UPDATE adms_users
+SET
+  adms_work_shift_id = CASE id
+    WHEN 1 THEN NULL
+    WHEN 2 THEN 5
+    WHEN 5 THEN 2
+    WHEN 6 THEN 3
+    WHEN 7 THEN 6
+    WHEN 8 THEN 3
+    WHEN 9 THEN 7
+    WHEN 10 THEN 5
+    WHEN 11 THEN 5
+    WHEN 12 THEN 5
+    WHEN 13 THEN 2
+    WHEN 14 THEN 2
+    WHEN 15 THEN 5
+    WHEN 16 THEN 5
+    WHEN 17 THEN 2
+    WHEN 18 THEN 11
+    WHEN 19 THEN 6
+    WHEN 20 THEN 1
+    WHEN 22 THEN 5
+    WHEN 24 THEN 5
+    WHEN 25 THEN 2
+    WHEN 26 THEN 5
+    WHEN 27 THEN 2
+    WHEN 28 THEN 1
+    WHEN 29 THEN 2
+    WHEN 30 THEN 1
+    WHEN 31 THEN 1
+    WHEN 32 THEN 1
+    WHEN 33 THEN 2
+    WHEN 34 THEN 8
+    WHEN 35 THEN 5
+    WHEN 36 THEN 3
+    WHEN 37 THEN 1
+    WHEN 38 THEN 5
+    WHEN 39 THEN 5
+    WHEN 40 THEN 1
+    WHEN 41 THEN 2
+    WHEN 42 THEN 5
+    WHEN 43 THEN 1
+    WHEN 44 THEN 4
+    WHEN 45 THEN 1
+    WHEN 46 THEN 2
+    WHEN 47 THEN 5
+    WHEN 48 THEN 5
+    WHEN 49 THEN 5
+    WHEN 50 THEN 1
+    WHEN 52 THEN 5
+    WHEN 53 THEN 1
+    WHEN 55 THEN 1
+    WHEN 56 THEN 7
+    WHEN 57 THEN 6
+    WHEN 58 THEN 1
+    WHEN 59 THEN 8
+    WHEN 60 THEN 5
+    WHEN 61 THEN 5
+    WHEN 62 THEN 1
+    WHEN 63 THEN 2
+    WHEN 64 THEN 5
+    WHEN 65 THEN 5
+    WHEN 66 THEN 5
+    WHEN 68 THEN 1
+    WHEN 69 THEN 5
+    WHEN 70 THEN 7
+    WHEN 71 THEN 3
+    WHEN 72 THEN 5
+    WHEN 73 THEN 1
+    WHEN 75 THEN 1
+    WHEN 76 THEN 4
+    WHEN 77 THEN 2
+    WHEN 78 THEN 2
+    WHEN 80 THEN 6
+    WHEN 81 THEN 5
+    WHEN 82 THEN 1
+    WHEN 83 THEN 1
+    WHEN 84 THEN 3
+    WHEN 85 THEN 2
+    WHEN 86 THEN 1
+    WHEN 87 THEN 1
+    WHEN 88 THEN 1
+    WHEN 89 THEN 2
+    WHEN 90 THEN 5
+    WHEN 91 THEN 9
+    WHEN 92 THEN 5
+    WHEN 93 THEN 5
+    WHEN 94 THEN 5
+    WHEN 95 THEN 2
+    WHEN 96 THEN 5
+    WHEN 97 THEN 5
+    WHEN 98 THEN 5
+    WHEN 99 THEN 2
+    WHEN 100 THEN 1
+    WHEN 101 THEN 5
+    WHEN 102 THEN 1
+    WHEN 103 THEN 1
+    WHEN 104 THEN 2
+    WHEN 105 THEN 1
+    WHEN 106 THEN 5
+    WHEN 107 THEN 1
+    WHEN 109 THEN 5
+    WHEN 110 THEN 5
+    WHEN 112 THEN 5
+    WHEN 113 THEN 2
+    WHEN 114 THEN 5
+    WHEN 115 THEN 2
+    WHEN 116 THEN 5
+    WHEN 118 THEN 1
+    WHEN 119 THEN 1
+    WHEN 120 THEN 2
+    WHEN 121 THEN 1
+    WHEN 122 THEN 5
+    WHEN 123 THEN 5
+    WHEN 124 THEN 2
+    WHEN 125 THEN 5
+    WHEN 126 THEN 5
+    WHEN 127 THEN 1
+    WHEN 128 THEN 2
+    WHEN 129 THEN 2
+    WHEN 131 THEN 5
+    WHEN 133 THEN 5
+    WHEN 134 THEN 7
+    WHEN 136 THEN 5
+    WHEN 137 THEN 4
+    WHEN 138 THEN 5
+    WHEN 139 THEN 5
+    WHEN 140 THEN 2
+    WHEN 141 THEN 2
+    WHEN 142 THEN 2
+    WHEN 143 THEN 1
+    WHEN 144 THEN 2
+    WHEN 145 THEN 5
+    WHEN 146 THEN 2
+    WHEN 147 THEN 1
+    WHEN 148 THEN 5
+    WHEN 149 THEN 5
+    WHEN 150 THEN 5
+    WHEN 151 THEN 5
+    WHEN 154 THEN 1
+    WHEN 155 THEN 5
+    WHEN 157 THEN 5
+    WHEN 158 THEN 1
+    WHEN 159 THEN 5
+    WHEN 160 THEN 5
+    WHEN 162 THEN 1
+    WHEN 163 THEN 5
+    WHEN 164 THEN 5
+    WHEN 165 THEN 1
+    WHEN 168 THEN 2
+    WHEN 169 THEN 1
+    WHEN 170 THEN 1
+    WHEN 171 THEN 2
+    WHEN 172 THEN 1
+    WHEN 173 THEN 5
+    WHEN 174 THEN 5
+    WHEN 175 THEN 5
+    WHEN 176 THEN 5
+    WHEN 177 THEN 5
+    WHEN 178 THEN 5
+    WHEN 179 THEN 5
+    WHEN 180 THEN 5
+    WHEN 181 THEN 5
+    WHEN 182 THEN 5
+    WHEN 183 THEN 5
+    WHEN 184 THEN 3
+    WHEN 185 THEN 2
+    WHEN 186 THEN 10
+    WHEN 187 THEN 2
+    WHEN 188 THEN 7
+    WHEN 189 THEN 2
+    WHEN 190 THEN 5
+    WHEN 191 THEN 5
+    WHEN 192 THEN 5
+    WHEN 193 THEN 1
+    WHEN 194 THEN 1
+    WHEN 195 THEN 5
+    WHEN 196 THEN 1
+    WHEN 197 THEN 1
+    WHEN 198 THEN 5
+    WHEN 199 THEN 2
+    WHEN 200 THEN 7
+    WHEN 201 THEN 1
+    WHEN 202 THEN 5
+    WHEN 203 THEN 2
+    WHEN 204 THEN 7
+  END,
+  updated_at = NOW()
+WHERE id IN (1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,52,53,55,56,57,58,59,60,61,62,63,64,65,66,68,69,70,71,72,73,75,76,77,78,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,109,110,112,113,114,115,116,118,119,120,121,122,123,124,125,126,127,128,129,131,133,134,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,154,155,157,158,159,160,162,163,164,165,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204);
+
+-- Se estiver correto: COMMIT;
+-- Se quiser desfazer: ROLLBACK;
