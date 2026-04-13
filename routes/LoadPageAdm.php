@@ -58,6 +58,7 @@ class LoadPageAdm
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
         "ListDepartments",  "CreateDepartment",  "ViewDepartment", "UpdateDepartments", "DeleteDepartment", "ImportDepartments",
+        "ListWorkShifts", "CreateWorkShift", "ViewWorkShift", "UpdateWorkShift", "DeleteWorkShift",
         "UpdateUserAccessLevels",
         "AccessLevelPageSync", "ListPackages", "CreatePackage", "ViewPackage", "UpdatePackage", "DeletePackage",
         "ListGroupsPages", "ViewGroupPage", "CreateGroupPage", "UpdateGroupPage", "DeleteGroupPage",

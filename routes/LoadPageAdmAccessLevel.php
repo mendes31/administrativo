@@ -377,7 +377,7 @@ class LoadPageAdmAccessLevel
             'performance', 'permission', 'policies', 'portal', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
             'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline',
-            'trainings', 'users',
+            'trainings', 'users', 'workShifts',
         ];
 
         foreach ($knownOnDisk as $canonical) {

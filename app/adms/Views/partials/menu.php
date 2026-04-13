@@ -149,6 +149,11 @@ $menus = [
                 'permission' => 'ListDepartments'
             ],
             [
+                'label' => 'Turnos de trabalho',
+                'url' => $_ENV['URL_ADM'] . 'list-work-shifts',
+                'permission' => 'ListWorkShifts'
+            ],
+            [
                 'label' => 'Níveis de Acesso',
                 'url' => $_ENV['URL_ADM'] . 'list-access-levels',
                 'permission' => 'ListAccessLevels'

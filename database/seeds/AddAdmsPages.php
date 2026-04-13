@@ -136,6 +136,13 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Apagar Departamento', 'controller' => 'DeleteDepartment', 'controller_url' => 'delete-department', 'directory' => 'departments', 'obs' => 'Página para apagar o Departamento do banco de dados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 8],
             ['name'=> 'Importar Departamentos', 'controller' => 'ImportDepartments', 'controller_url' => 'import-departments', 'directory' => 'departments', 'obs' => 'Página para importar Departamentos via CSV.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 8],
 
+            // Turnos de trabalho (grupo Gestão de Pessoas — id 36 no seed de grupos)
+            ['name'=> 'Listar Turnos de Trabalho', 'controller' => 'ListWorkShifts', 'controller_url' => 'list-work-shifts', 'directory' => 'workShifts', 'obs' => 'Listagem de turnos de trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Cadastrar Turno de Trabalho', 'controller' => 'CreateWorkShift', 'controller_url' => 'create-work-shift', 'directory' => 'workShifts', 'obs' => 'Cadastro de turno de trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Visualizar Turno de Trabalho', 'controller' => 'ViewWorkShift', 'controller_url' => 'view-work-shift', 'directory' => 'workShifts', 'obs' => 'Visualização de turno de trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Editar Turno de Trabalho', 'controller' => 'UpdateWorkShift', 'controller_url' => 'update-work-shift', 'directory' => 'workShifts', 'obs' => 'Edição de turno de trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Apagar Turno de Trabalho', 'controller' => 'DeleteWorkShift', 'controller_url' => 'delete-work-shift', 'directory' => 'workShifts', 'obs' => 'Exclusão de turno de trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+
             // ===== GRUPO 9: ERROS =====
             ['name'=> 'Erro 403', 'controller' => 'Error403', 'controller_url' => 'logout', 'directory' => 'errors', 'obs' => 'Erro que deve apresentado quando não encontrar a página.', 'public_page' => 1, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 9],
 
