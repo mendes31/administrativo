@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\UserFormHelper;
 use DateInterval;
 use DateTime;
 use DateTimeImmutable;
@@ -54,6 +55,8 @@ final class PeopleAnalyticsMetricsService
         $refDemo = $periodEnd;
         $activeDemo = $this->buildActiveDemographics($users, $refDemo);
         $termDemo = $this->buildTerminationDemographics($users, $historyByUserId, $periodStart, $periodEnd);
+        $activeDeptSegments = $this->buildActiveDepartmentSegments($users);
+        $activePosSegments = $this->buildActivePositionTopSegments($users, 10);
 
         return [
             'total_employees' => count($users),
@@ -81,8 +84,16 @@ final class PeopleAnalyticsMetricsService
             'terminations_in_period_by_sex' => $termDemo['by_sex'],
             'terminations_in_period_by_age_band' => $termDemo['by_age_band'],
             'terminations_in_period_by_filhos' => $termDemo['by_filhos'],
+            'active_headcount_by_estado_civil' => $activeDemo['by_estado_civil'],
+            'active_headcount_by_pais' => $activeDemo['by_pais'],
+            'terminations_in_period_by_estado_civil' => $termDemo['by_estado_civil'],
+            'terminations_in_period_by_pais' => $termDemo['by_pais'],
+            'terminations_in_period_by_impact_code' => $termDemo['by_impact_code'],
+            'active_department_segments' => $activeDeptSegments,
+            'active_position_top_segments' => $activePosSegments,
+            'estado_civil_labels' => UserFormHelper::estadoCivilOptions(),
             'demographics_ref_date' => $refDemo,
-            'demographics_note' => 'Indicadores por sexo, idade e filhos são agregados (LGPD). Ativos: snapshot na data final do período filtrado. Desligamentos: somente no período. Classificação regrettable/non: cadastro ou histórico de vínculo.',
+            'demographics_note' => 'Indicadores por sexo, idade, filhos, estado civil e país são agregados (LGPD). Ativos: snapshot na data final do período filtrado. Desligamentos: somente no período. Classificação regrettable/non: cadastro ou histórico de vínculo. País: lista alinhada ao cadastro (ISO2).',
         ];
     }
 
@@ -179,15 +190,19 @@ final class PeopleAnalyticsMetricsService
 
     /**
      * @param array<int, array<string, mixed>> $users
-     * @return array<string, array{total: int, terminated: int, active: int, turnover_rate: float}>
+     * @return array<string, array{department_id: int|null, total: int, terminated: int, active: int, turnover_rate: float}>
      */
     private function buildTurnoverByDepartment(array $users, string $periodStart, string $periodEnd): array
     {
         $byDept = [];
         foreach ($users as $u) {
             $dept = $u['name_dep'] ?? 'Sem Departamento';
+            $deptIdInit = (int) ($u['user_department_id'] ?? 0);
             if (!isset($byDept[$dept])) {
-                $byDept[$dept] = ['uids' => []];
+                $byDept[$dept] = [
+                    'uids' => [],
+                    'department_id' => $deptIdInit > 0 ? $deptIdInit : null,
+                ];
             }
             $byDept[$dept]['uids'][] = $u;
         }
@@ -206,7 +221,10 @@ final class PeopleAnalyticsMetricsService
             $end = $this->countActiveAtSnapshot($list, $periodEnd);
             $avg = ($start + $end) / 2.0;
             $rate = $avg > 0 ? round(($terminated / $avg) * 100, 2) : 0.0;
+            $deptId = (int) ($pack['department_id'] ?? 0);
+
             $out[$dept] = [
+                'department_id' => $deptId > 0 ? $deptId : null,
                 'total' => count($list),
                 'terminated' => $terminated,
                 'active' => count(array_filter($list, static fn (array $x): bool => ($x['status'] ?? '') === 'Ativo' && empty($x['data_desligamento']))),
@@ -215,6 +233,70 @@ final class PeopleAnalyticsMetricsService
         }
 
         return $out;
+    }
+
+    /**
+     * Departamentos com ativos (para gráfico e drill por id).
+     *
+     * @param array<int, array<string, mixed>> $users
+     * @return list<array{department_id: int, name: string, count: int}>
+     */
+    private function buildActiveDepartmentSegments(array $users): array
+    {
+        $map = [];
+        foreach ($users as $u) {
+            if (($u['status'] ?? '') !== 'Ativo' || !empty($u['data_desligamento'])) {
+                continue;
+            }
+            $id = (int) ($u['user_department_id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            if (!isset($map[$id])) {
+                $map[$id] = [
+                    'department_id' => $id,
+                    'name' => (string) ($u['name_dep'] ?? 'Departamento'),
+                    'count' => 0,
+                ];
+            }
+            $map[$id]['count']++;
+        }
+        $list = array_values($map);
+        usort($list, static fn (array $a, array $b): int => strcmp($a['name'], $b['name']));
+
+        return $list;
+    }
+
+    /**
+     * Cargos com mais ativos (top N) para gráfico e drill por id.
+     *
+     * @param array<int, array<string, mixed>> $users
+     * @return list<array{position_id: int, name: string, count: int}>
+     */
+    private function buildActivePositionTopSegments(array $users, int $limit): array
+    {
+        $map = [];
+        foreach ($users as $u) {
+            if (($u['status'] ?? '') !== 'Ativo' || !empty($u['data_desligamento'])) {
+                continue;
+            }
+            $id = (int) ($u['user_position_id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            if (!isset($map[$id])) {
+                $map[$id] = [
+                    'position_id' => $id,
+                    'name' => (string) ($u['name_pos'] ?? 'Cargo'),
+                    'count' => 0,
+                ];
+            }
+            $map[$id]['count']++;
+        }
+        $list = array_values($map);
+        usort($list, static fn (array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return array_slice($list, 0, max(1, $limit));
     }
 
     /**
@@ -301,13 +383,21 @@ final class PeopleAnalyticsMetricsService
 
     /**
      * @param array<int, array<string, mixed>> $users
-     * @return array{by_sex: array<string, int>, by_age_band: array<string, int>, by_filhos: array<string, int>}
+     * @return array{
+     *     by_sex: array<string, int>,
+     *     by_age_band: array<string, int>,
+     *     by_filhos: array<string, int>,
+     *     by_estado_civil: array<string, int>,
+     *     by_pais: array<string, int>
+     * }
      */
     private function buildActiveDemographics(array $users, string $refDateYmd): array
     {
         $bySex = [];
         $byAge = [];
         $byFilhos = [];
+        $byEstado = [];
+        $byPais = [];
         foreach ($users as $u) {
             if (!$this->isActiveOnRefDate($u, $refDateYmd)) {
                 continue;
@@ -315,15 +405,35 @@ final class PeopleAnalyticsMetricsService
             $this->bucketIncr($bySex, $this->sexLabel($u['sexo'] ?? null));
             $this->bucketIncr($byAge, $this->ageBand($u['data_nascimento'] ?? null, $refDateYmd));
             $this->bucketIncr($byFilhos, $this->filhosLabelBucket($u['filhos'] ?? null));
+            $ec = $u['estado_civil'] ?? null;
+            $ecKey = is_string($ec) && $ec !== '' ? $ec : '_empty';
+            $this->bucketIncr($byEstado, $ecKey);
+            $pi = $u['pais_residencia_iso'] ?? null;
+            $piKey = is_string($pi) && $pi !== '' ? strtoupper($pi) : '_empty';
+            $this->bucketIncr($byPais, $piKey);
         }
 
-        return ['by_sex' => $bySex, 'by_age_band' => $byAge, 'by_filhos' => $byFilhos];
+        return [
+            'by_sex' => $bySex,
+            'by_age_band' => $byAge,
+            'by_filhos' => $byFilhos,
+            'by_estado_civil' => $byEstado,
+            'by_pais' => $byPais,
+        ];
     }
 
     /**
      * @param array<int, array<string, mixed>> $users
      * @param array<int, list<array<string, mixed>>> $historyByUserId
-     * @return array{by_impact: array<string, int>, by_sex: array<string, int>, by_age_band: array<string, int>, by_filhos: array<string, int>}
+     * @return array{
+     *     by_impact: array<string, int>,
+     *     by_impact_code: array<string, int>,
+     *     by_sex: array<string, int>,
+     *     by_age_band: array<string, int>,
+     *     by_filhos: array<string, int>,
+     *     by_estado_civil: array<string, int>,
+     *     by_pais: array<string, int>
+     * }
      */
     private function buildTerminationDemographics(
         array $users,
@@ -332,9 +442,12 @@ final class PeopleAnalyticsMetricsService
         string $periodEnd
     ): array {
         $byImpact = [];
+        $byImpactCode = [];
         $bySex = [];
         $byAge = [];
         $byFilhos = [];
+        $byEstado = [];
+        $byPais = [];
         foreach ($users as $u) {
             $td = $u['data_desligamento'] ?? null;
             if (empty($td) || $td < $periodStart || $td > $periodEnd) {
@@ -342,16 +455,26 @@ final class PeopleAnalyticsMetricsService
             }
             $impact = $this->resolveTerminationImpact($u, $historyByUserId);
             $this->bucketIncr($byImpact, $this->impactLabel($impact));
+            $this->bucketIncr($byImpactCode, $impact);
             $this->bucketIncr($bySex, $this->sexLabel($u['sexo'] ?? null));
             $this->bucketIncr($byAge, $this->ageBand($u['data_nascimento'] ?? null, $td));
             $this->bucketIncr($byFilhos, $this->filhosLabelBucket($u['filhos'] ?? null));
+            $ec = $u['estado_civil'] ?? null;
+            $ecKey = is_string($ec) && $ec !== '' ? $ec : '_empty';
+            $this->bucketIncr($byEstado, $ecKey);
+            $pi = $u['pais_residencia_iso'] ?? null;
+            $piKey = is_string($pi) && $pi !== '' ? strtoupper($pi) : '_empty';
+            $this->bucketIncr($byPais, $piKey);
         }
 
         return [
             'by_impact' => $byImpact,
+            'by_impact_code' => $byImpactCode,
             'by_sex' => $bySex,
             'by_age_band' => $byAge,
             'by_filhos' => $byFilhos,
+            'by_estado_civil' => $byEstado,
+            'by_pais' => $byPais,
         ];
     }
 

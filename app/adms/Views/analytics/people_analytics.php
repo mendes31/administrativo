@@ -6,6 +6,10 @@ $periodLabel = ($fs !== '' && $fe !== '')
     : '';
 $selDep = $this->data['filter_departamento_ids'] ?? [];
 $selPos = $this->data['filter_cargo_ids'] ?? [];
+$fSexo = $this->data['filter_sexo'] ?? null;
+$fEstadoCivil = $this->data['filter_estado_civil'] ?? null;
+$fPaisIso = $this->data['filter_pais_iso'] ?? null;
+$fFilhos = $this->data['filter_filhos'] ?? null;
 $turnoverFormula = $this->data['turnover_formula'] ?? '';
 ?>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -31,8 +35,23 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
 @media (max-width: 575.98px) {
     .people-analytics-filters .select2-container { font-size: 16px; }
 }
+/* Altura fixa do bloco do gráfico: evita canvas gigante e ajuda o Chart.js */
+.people-analytics-page .people-analytics-chart-body {
+    position: relative;
+    min-height: 220px;
+    height: min(300px, 42vh);
+    max-height: 340px;
+}
+@media (min-width: 1200px) {
+    .people-analytics-page .people-analytics-chart-body {
+        height: min(280px, 36vh);
+    }
+}
+.people-analytics-page .people-analytics-chart-body > canvas {
+    max-width: 100%;
+}
 </style>
-<div class="container-fluid px-4">
+<div class="container-fluid px-4 people-analytics-page">
     <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3">People Analytics</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
@@ -51,7 +70,7 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
             <div class="d-flex align-items-center gap-2">
                 <span class="fw-semibold"><i class="fas fa-filter text-primary me-1"></i>Filtros globais</span>
             </div>
-            <small class="text-muted lh-sm ms-lg-auto">Período, departamento e cargo aplicam-se a todos os indicadores e gráficos abaixo. Em departamentos e cargos, use a busca e selecione quantos precisar; vazio significa <strong>todos</strong>.</small>
+            <small class="text-muted lh-sm ms-lg-auto">Período, departamento, cargo, sexo, estado civil, país e filhos aplicam-se a todo o painel. Nos gráficos de barras e rosca de departamentos, <strong>clique num segmento</strong> para aplicar o filtro correspondente (nova carga da página). Faixa etária ainda não tem filtro por clique.</small>
         </div>
         <div class="card-body pt-0">
             <form method="get" action="<?php echo htmlspecialchars($_ENV['URL_ADM'] . 'people-analytics'); ?>" id="people-analytics-filter-form" class="row g-4">
@@ -106,6 +125,47 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                         <?php endforeach; ?>
                     </select>
                     <div id="pa_pos_help" class="form-text">Digite para filtrar a lista. Nenhuma seleção = todos os cargos.</div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold mb-0" for="pa_sexo">Sexo</label>
+                    <select class="form-select" name="pa_sexo" id="pa_sexo" aria-describedby="pa_demo_help">
+                        <option value="" <?= ($fSexo === null || $fSexo === '') ? 'selected' : '' ?>>Todos</option>
+                        <option value="M" <?= $fSexo === 'M' ? 'selected' : '' ?>>Masculino</option>
+                        <option value="F" <?= $fSexo === 'F' ? 'selected' : '' ?>>Feminino</option>
+                        <option value="O" <?= $fSexo === 'O' ? 'selected' : '' ?>>Outros</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold mb-0" for="pa_estado_civil">Estado civil</label>
+                    <select class="form-select" name="pa_estado_civil" id="pa_estado_civil">
+                        <option value="" <?= ($fEstadoCivil === null || $fEstadoCivil === '') ? 'selected' : '' ?>>Todos</option>
+                        <?php foreach (\App\adms\Helpers\UserFormHelper::estadoCivilOptions() as $slug => $lbl): ?>
+                            <option value="<?= htmlspecialchars($slug) ?>" <?= $fEstadoCivil === $slug ? 'selected' : '' ?>><?= htmlspecialchars($lbl) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold mb-0" for="pa_pais">País (residência)</label>
+                    <select class="form-select" name="pa_pais" id="pa_pais">
+                        <option value="" <?= ($fPaisIso === null || $fPaisIso === '') ? 'selected' : '' ?>>Todos</option>
+                        <?php foreach (($this->data['countries_options_pa'] ?? []) as $code => $info): ?>
+                            <option value="<?= htmlspecialchars($code) ?>" <?= strtoupper((string) $fPaisIso) === $code ? 'selected' : '' ?>>
+                                <?= htmlspecialchars(($info['flag'] ?? '') . ' ' . ($info['name'] ?? $code)) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold mb-0" for="pa_filhos">Filhos (cadastro)</label>
+                    <select class="form-select" name="pa_filhos" id="pa_filhos">
+                        <option value="" <?= ($fFilhos === null || $fFilhos === '') ? 'selected' : '' ?>>Todos</option>
+                        <option value="S" <?= $fFilhos === 'S' ? 'selected' : '' ?>>Sim</option>
+                        <option value="N" <?= $fFilhos === 'N' ? 'selected' : '' ?>>Não</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <p id="pa_demo_help" class="form-text mb-0">Demografia e Power BI: use os mesmos parâmetros GET na URL <code>people-analytics/metrics</code> (<code>pa_sexo</code>, <code>pa_estado_civil</code>, <code>pa_pais</code>, <code>pa_filhos</code> além de <code>pa_de</code>, <code>pa_ate</code>, <code>pa_dep[]</code>, <code>pa_pos[]</code>). No gateway Power BI, aponte para a mesma base após executar as migrações.</p>
                 </div>
 
                 <div class="col-12">
@@ -201,8 +261,8 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                 <div class="card-header bg-primary text-white">
                     <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Headcount mensal (período filtrado)</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="headcountChart" height="250"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="headcountChart" aria-label="Gráfico headcount mensal"></canvas>
                 </div>
             </div>
         </div>
@@ -210,10 +270,10 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         <div class="col-md-6">
             <div class="card border-light shadow">
                 <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribuição por departamento (ativos)</h6>
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribuição por departamento (ativos) <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="departmentChart" height="250"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="departmentChart" aria-label="Gráfico por departamento"></canvas>
                 </div>
             </div>
         </div>
@@ -221,10 +281,10 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         <div class="col-md-6">
             <div class="card border-light shadow">
                 <div class="card-header bg-danger text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Turnover por departamento (período filtrado)</h6>
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Turnover por departamento (período filtrado) <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="turnoverChart" height="250"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="turnoverChart" aria-label="Gráfico turnover por departamento"></canvas>
                 </div>
             </div>
         </div>
@@ -232,10 +292,10 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         <div class="col-md-6">
             <div class="card border-light shadow">
                 <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="fas fa-briefcase me-2"></i>Distribuição por cargo (ativos, top 10)</h6>
+                    <h6 class="mb-0"><i class="fas fa-briefcase me-2"></i>Distribuição por cargo (ativos, top 10) <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="positionChart" height="250"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="positionChart" aria-label="Gráfico por cargo"></canvas>
                 </div>
             </div>
         </div>
@@ -254,28 +314,28 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                 <div class="card-header bg-secondary text-white">
                     <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Desligamentos no período — impacto (RH)</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="impactChart" height="220"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="impactChart" aria-label="Gráfico impacto desligamentos"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-lg-4 col-md-6">
             <div class="card border-light shadow h-100">
                 <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0"><i class="fas fa-venus-mars me-2"></i>Ativos (ref. final) — sexo</h6>
+                    <h6 class="mb-0"><i class="fas fa-venus-mars me-2"></i>Ativos (ref. final) — sexo <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="activeSexChart" height="220"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="activeSexChart" aria-label="Gráfico ativos por sexo"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-lg-4 col-md-12">
             <div class="card border-light shadow h-100">
                 <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0"><i class="fas fa-user-minus me-2"></i>Desligamentos no período — sexo</h6>
+                    <h6 class="mb-0"><i class="fas fa-user-minus me-2"></i>Desligamentos no período — sexo <small class="fw-normal">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="termSexChart" height="220"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="termSexChart" aria-label="Gráfico desligamentos por sexo"></canvas>
                 </div>
             </div>
         </div>
@@ -284,8 +344,8 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                 <div class="card-header bg-primary text-white">
                     <h6 class="mb-0"><i class="fas fa-birthday-cake me-2"></i>Ativos (ref. final) — faixa etária</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="activeAgeChart" height="260"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="activeAgeChart" aria-label="Gráfico ativos por idade"></canvas>
                 </div>
             </div>
         </div>
@@ -294,28 +354,68 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                 <div class="card-header bg-warning text-dark">
                     <h6 class="mb-0"><i class="fas fa-birthday-cake me-2"></i>Desligamentos no período — faixa etária</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="termAgeChart" height="260"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="termAgeChart" aria-label="Gráfico desligamentos por idade"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card border-light shadow h-100">
                 <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0"><i class="fas fa-child me-2"></i>Ativos (ref. final) — filhos (cadastro)</h6>
+                    <h6 class="mb-0"><i class="fas fa-child me-2"></i>Ativos (ref. final) — filhos (cadastro) <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="activeFilhosChart" height="220"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="activeFilhosChart" aria-label="Gráfico ativos filhos"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card border-light shadow h-100">
                 <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0"><i class="fas fa-child me-2"></i>Desligamentos no período — filhos (cadastro)</h6>
+                    <h6 class="mb-0"><i class="fas fa-child me-2"></i>Desligamentos no período — filhos (cadastro) <small class="fw-normal">(clique para filtrar)</small></h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="termFilhosChart" height="220"></canvas>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="termFilhosChart" aria-label="Gráfico desligamentos filhos"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-ring me-2"></i>Ativos (ref. final) — estado civil <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
+                </div>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="activeEstadoCivilChart" aria-label="Gráfico ativos estado civil"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-ring me-2"></i>Desligamentos no período — estado civil <small class="fw-normal">(clique para filtrar)</small></h6>
+                </div>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="termEstadoCivilChart" aria-label="Gráfico desligamentos estado civil"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-globe me-2"></i>Ativos (ref. final) — país <small class="fw-normal opacity-75">(clique para filtrar)</small></h6>
+                </div>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="activePaisChart" aria-label="Gráfico ativos país"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-globe me-2"></i>Desligamentos no período — país <small class="fw-normal">(clique para filtrar)</small></h6>
+                </div>
+                <div class="card-body people-analytics-chart-body">
+                    <canvas id="termPaisChart" aria-label="Gráfico desligamentos país"></canvas>
                 </div>
             </div>
         </div>
@@ -409,7 +509,7 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                     <?php endif; ?>
 
                     <p class="small text-muted mt-3 mb-0">
-                        API JSON (mesmos parâmetros <code>pa_de</code>, <code>pa_ate</code>, <code>pa_dep[]</code>, <code>pa_pos[]</code>):
+                        API JSON (GET): <code>pa_de</code>, <code>pa_ate</code>, <code>pa_dep[]</code>, <code>pa_pos[]</code>, <code>pa_sexo</code>, <code>pa_estado_civil</code>, <code>pa_pais</code> (ISO2), <code>pa_filhos</code>.
                         <a href="<?= htmlspecialchars((string)($this->data['metrics_json_url'] ?? '')) ?>?<?= htmlspecialchars(http_build_query($_GET)) ?>" target="_blank" rel="noopener">people-analytics/metrics</a>
                     </p>
                 </div>
@@ -495,17 +595,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const chartColors = {
-        primary: '#0d6efd',
-        success: '#198754',
-        info: '#0dcaf0',
-        warning: '#ffc107',
-        danger: '#dc3545',
-        purple: '#6f42c1',
-        orange: '#fd7e14',
-        pink: '#d63384',
-        teal: '#20c997'
-    };
+    /** Paleta ampla e contrastada (evita repetir só azul/amarelo) */
+    const paPalette = [
+        '#4e79a7', '#f28e2b', '#59a14f', '#e15759', '#b07aa1',
+        '#9c755f', '#edc948', '#bab0ab', '#76b7b2', '#ff9da7',
+        '#b6992d', '#499894', '#79706e', '#d37295', '#fabfd2',
+        '#b07f3e'
+    ];
+
+    function paColors(count) {
+        const n = Math.max(0, count | 0);
+        const out = [];
+        for (let i = 0; i < n; i++) {
+            out.push(paPalette[i % paPalette.length]);
+        }
+        return out;
+    }
+
+    /** Poucas fatias: pizza; muitas categorias: barras com uma cor por série */
+    const PA_PIE_MAX_SLICES = 7;
+
+    if (typeof Chart !== 'undefined') {
+        Chart.defaults.animation = false;
+    }
+
+    /**
+     * Eixo para contagens inteiras: stepSize 1 só quando o máximo é baixo.
+     * Com max alto, stepSize: 1 gera centenas de ticks no eixo Y e trava a página.
+     */
+    function paCountAxisTicks(numericValues) {
+        const vals = (numericValues || []).map(function (v) { return Number(v) || 0; });
+        let max = 0;
+        for (let i = 0; i < vals.length; i++) {
+            if (vals[i] > max) {
+                max = vals[i];
+            }
+        }
+        if (max <= 12) {
+            return {
+                beginAtZero: true,
+                ticks: { stepSize: 1, precision: 0 }
+            };
+        }
+        return {
+            beginAtZero: true,
+            ticks: { maxTicksLimit: 8, precision: 0 }
+        };
+    }
+
+    function paDrill(overrides) {
+        const u = new URL(window.location.href);
+        const sp = u.searchParams;
+        Object.keys(overrides).forEach(function (key) {
+            var val = overrides[key];
+            if (key === 'pa_dep') {
+                sp.delete('pa_dep[]');
+                sp.delete('pa_dep');
+                if (val !== null && val !== undefined && String(val) !== '') {
+                    sp.append('pa_dep[]', String(val));
+                }
+                return;
+            }
+            if (key === 'pa_pos') {
+                sp.delete('pa_pos[]');
+                sp.delete('pa_pos');
+                if (val !== null && val !== undefined && String(val) !== '') {
+                    sp.append('pa_pos[]', String(val));
+                }
+                return;
+            }
+            if (val === null || val === undefined || String(val) === '') {
+                sp.delete(key);
+            } else {
+                sp.set(key, String(val));
+            }
+        });
+        window.location.href = u.toString();
+    }
 
     const headcountData = <?= json_encode($this->data['monthly_headcount'] ?? []) ?>;
     const headcountCtx = document.getElementById('headcountChart');
@@ -517,8 +683,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Colaboradores (regra mensal)',
                     data: Object.values(headcountData),
-                    borderColor: chartColors.primary,
-                    backgroundColor: chartColors.primary + '20',
+                    borderColor: paPalette[0],
+                    backgroundColor: paPalette[0] + '33',
                     borderWidth: 2,
                     fill: true,
                     tension: 0.4
@@ -538,175 +704,50 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
+                    y: paCountAxisTicks(Object.values(headcountData))
                 }
             }
         });
     }
 
+    const deptSeg = <?= json_encode($this->data['active_department_segments'] ?? []) ?>;
     const deptData = <?= json_encode($this->data['department_distribution'] ?? []) ?>;
     const deptCtx = document.getElementById('departmentChart');
-    if (deptCtx && Object.keys(deptData).length > 0) {
-        const colors = Object.keys(deptData).map((_, i) => {
-            const colorArray = Object.values(chartColors);
-            return colorArray[i % colorArray.length];
-        });
-        new Chart(deptCtx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(deptData),
-                datasets: [{
-                    data: Object.values(deptData),
-                    backgroundColor: colors,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, position: 'bottom' }
-                }
-            }
-        });
-    }
-
-    const turnoverData = <?= json_encode($this->data['turnover_by_department'] ?? []) ?>;
-    const turnoverCtx = document.getElementById('turnoverChart');
-    if (turnoverCtx && Object.keys(turnoverData).length > 0) {
-        const deptLabels = Object.keys(turnoverData);
-        const turnoverRates = deptLabels.map(dept => turnoverData[dept]['turnover_rate'] || 0);
-        new Chart(turnoverCtx, {
-            type: 'bar',
-            data: {
-                labels: deptLabels,
-                datasets: [{
-                    label: 'Taxa de turnover (%)',
-                    data: turnoverRates,
-                    backgroundColor: turnoverRates.map(rate =>
-                        rate > 15 ? chartColors.danger :
-                        rate > 10 ? chartColors.warning :
-                        chartColors.success
-                    ),
-                    borderColor: turnoverRates.map(rate =>
-                        rate > 15 ? chartColors.danger :
-                        rate > 10 ? chartColors.warning :
-                        chartColors.success
-                    ),
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'Turnover: ' + context.parsed.y.toFixed(2) + '%';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    const positionData = <?= json_encode($this->data['position_distribution'] ?? []) ?>;
-    const positionCtx = document.getElementById('positionChart');
-    if (positionCtx && Object.keys(positionData).length > 0) {
-        const sortedPositions = Object.entries(positionData)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10);
-        const posLabels = sortedPositions.map(([pos]) => pos);
-        const posValues = sortedPositions.map(([, count]) => count);
-        new Chart(positionCtx, {
-            type: 'bar',
-            data: {
-                labels: posLabels,
-                datasets: [{
-                    label: 'Colaboradores',
-                    data: posValues,
-                    backgroundColor: chartColors.info,
-                    borderColor: chartColors.info,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-    }
-
-    function paBarChart(canvasId, datasetLabel, dataObj, barColor) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx || !dataObj || Object.keys(dataObj).length === 0) {
-            return;
-        }
-        const labels = Object.keys(dataObj);
-        const values = Object.values(dataObj);
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: datasetLabel,
-                    data: values,
-                    backgroundColor: barColor,
-                    borderColor: barColor,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                }
-            }
-        });
-    }
-
-    const impactData = <?= json_encode($this->data['terminations_in_period_by_impact'] ?? []) ?>;
-    const impactCtx = document.getElementById('impactChart');
-    if (impactCtx && Object.keys(impactData).length > 0) {
-        const impactSum = Object.values(impactData).reduce(function (a, b) { return a + b; }, 0);
-        if (impactSum > 0) {
-            const ic = Object.values(chartColors);
-            new Chart(impactCtx, {
+    if (deptCtx) {
+        if (deptSeg.length > 0) {
+            const sliceColors = paColors(deptSeg.length);
+            new Chart(deptCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(impactData),
+                    labels: deptSeg.map(function (s) { return s.name; }),
                     datasets: [{
-                        data: Object.values(impactData),
-                        backgroundColor: Object.keys(impactData).map(function (_, i) { return ic[i % ic.length]; }),
+                        data: deptSeg.map(function (s) { return s.count; }),
+                        backgroundColor: sliceColors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) {
+                        if (!els.length) return;
+                        var s = deptSeg[els[0].index];
+                        if (s && s.department_id) paDrill({ pa_dep: s.department_id });
+                    },
+                    plugins: { legend: { display: true, position: 'bottom' } }
+                }
+            });
+        } else if (Object.keys(deptData).length > 0) {
+            const dk = Object.keys(deptData);
+            const colors = paColors(dk.length);
+            new Chart(deptCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(deptData),
+                    datasets: [{
+                        data: Object.values(deptData),
+                        backgroundColor: colors,
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
@@ -720,11 +761,441 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    paBarChart('activeSexChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_sex'] ?? []) ?>, chartColors.primary);
-    paBarChart('termSexChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_sex'] ?? []) ?>, chartColors.warning);
-    paBarChart('activeAgeChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_age_band'] ?? []) ?>, chartColors.primary);
-    paBarChart('termAgeChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_age_band'] ?? []) ?>, chartColors.warning);
-    paBarChart('activeFilhosChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_filhos'] ?? []) ?>, chartColors.primary);
-    paBarChart('termFilhosChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_filhos'] ?? []) ?>, chartColors.warning);
+    const turnoverData = <?= json_encode($this->data['turnover_by_department'] ?? []) ?>;
+    const turnoverCtx = document.getElementById('turnoverChart');
+    if (turnoverCtx && Object.keys(turnoverData).length > 0) {
+        const deptLabels = Object.keys(turnoverData);
+        const turnoverRates = deptLabels.map(function (dept) { return turnoverData[dept].turnover_rate || 0; });
+        const turnoverPie = deptLabels.length > 0 && deptLabels.length <= PA_PIE_MAX_SLICES;
+        const turnoverColors = paColors(deptLabels.length);
+
+        function turnoverTooltipLabel(context) {
+            var i = context.dataIndex;
+            var name = deptLabels[i];
+            var rate = turnoverRates[i];
+            var row = turnoverData[name] || {};
+            var t = (row.terminated != null) ? row.terminated : '—';
+            var a = (row.active != null) ? row.active : '—';
+            return [
+                'Turnover: ' + Number(rate).toFixed(2) + '%',
+                'Desligamentos (período): ' + t,
+                'Ativos (hoje): ' + a
+            ];
+        }
+
+        if (turnoverPie) {
+            new Chart(turnoverCtx, {
+                type: 'pie',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        data: turnoverRates,
+                        backgroundColor: turnoverColors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) {
+                        if (!els.length) return;
+                        var name = deptLabels[els[0].index];
+                        var row = turnoverData[name];
+                        if (row && row.department_id) paDrill({ pa_dep: row.department_id });
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: { callbacks: { label: turnoverTooltipLabel } }
+                    }
+                }
+            });
+        } else {
+            new Chart(turnoverCtx, {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        label: 'Taxa de turnover (%)',
+                        data: turnoverRates,
+                        backgroundColor: turnoverColors,
+                        borderColor: turnoverColors.map(function (c) { return c; }),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) {
+                        if (!els.length) return;
+                        var name = deptLabels[els[0].index];
+                        var row = turnoverData[name];
+                        if (row && row.department_id) paDrill({ pa_dep: row.department_id });
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: turnoverTooltipLabel } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                maxTicksLimit: 8,
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    const posSeg = <?= json_encode($this->data['active_position_top_segments'] ?? []) ?>;
+    const positionData = <?= json_encode($this->data['position_distribution'] ?? []) ?>;
+    const positionCtx = document.getElementById('positionChart');
+    if (positionCtx) {
+        if (posSeg.length > 0) {
+            const posPie = posSeg.length <= PA_PIE_MAX_SLICES;
+            const posLabels = posSeg.map(function (s) { return s.name; });
+            const posCounts = posSeg.map(function (s) { return s.count; });
+            const posCols = paColors(posSeg.length);
+            if (posPie) {
+                new Chart(positionCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: posLabels,
+                        datasets: [{
+                            data: posCounts,
+                            backgroundColor: posCols,
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: function (_evt, els) {
+                            if (!els.length) return;
+                            var s = posSeg[els[0].index];
+                            if (s && s.position_id) paDrill({ pa_pos: s.position_id });
+                        },
+                        plugins: { legend: { display: true, position: 'bottom' } }
+                    }
+                });
+            } else {
+                new Chart(positionCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: posLabels,
+                        datasets: [{
+                            label: 'Colaboradores',
+                            data: posCounts,
+                            backgroundColor: posCols,
+                            borderColor: posCols,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        onClick: function (_evt, els) {
+                            if (!els.length) return;
+                            var s = posSeg[els[0].index];
+                            if (s && s.position_id) paDrill({ pa_pos: s.position_id });
+                        },
+                        plugins: { legend: { display: false } },
+                        scales: { x: paCountAxisTicks(posCounts) }
+                    }
+                });
+            }
+        } else if (Object.keys(positionData).length > 0) {
+            const sortedPositions = Object.entries(positionData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const posLabels = sortedPositions.map(function (r) { return r[0]; });
+            const posValues = sortedPositions.map(function (r) { return r[1]; });
+            const posCols = paColors(posLabels.length);
+            new Chart(positionCtx, {
+                type: 'bar',
+                data: {
+                    labels: posLabels,
+                    datasets: [{
+                        label: 'Colaboradores',
+                        data: posValues,
+                        backgroundColor: posCols,
+                        borderColor: posCols,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: paCountAxisTicks(posValues) }
+                }
+            });
+        }
+    }
+
+    function paBarChart(canvasId, datasetLabel, dataObj) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || !dataObj || Object.keys(dataObj).length === 0) {
+            return;
+        }
+        const labels = Object.keys(dataObj);
+        const values = Object.values(dataObj);
+        const n = labels.length;
+        const colors = paColors(n);
+        const usePie = n <= PA_PIE_MAX_SLICES;
+
+        if (usePie) {
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (c) {
+                                    var v = c.raw != null ? c.raw : c.parsed;
+                                    return (c.label || '') + ': ' + v;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: paCountAxisTicks(values) }
+                }
+            });
+        }
+    }
+
+    function paBarChartDrill(canvasId, datasetLabel, dataObj, paramName, labelToCode) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || !dataObj || Object.keys(dataObj).length === 0) return;
+        const labels = Object.keys(dataObj);
+        const values = Object.values(dataObj);
+        const n = labels.length;
+        const colors = paColors(n);
+        const usePie = n <= PA_PIE_MAX_SLICES;
+
+        function doDrill(els) {
+            if (!els.length) return;
+            var lbl = labels[els[0].index];
+            if (!Object.prototype.hasOwnProperty.call(labelToCode, lbl)) return;
+            var code = labelToCode[lbl];
+            var o = {};
+            o[paramName] = code === null || code === '' ? '' : code;
+            paDrill(o);
+        }
+
+        if (usePie) {
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) { doDrill(els); },
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (c) {
+                                    var v = c.raw != null ? c.raw : c.parsed;
+                                    return (c.label || '') + ': ' + v;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) { doDrill(els); },
+                    plugins: { legend: { display: false } },
+                    scales: { y: paCountAxisTicks(values) }
+                }
+            });
+        }
+    }
+
+    const paSexMap = { 'Masculino': 'M', 'Feminino': 'F', 'Outros': 'O', 'Sexo não informado': '' };
+    const paFilhosMap = { 'Com filhos (cadastro)': 'S', 'Sem filhos (cadastro)': 'N', 'Filhos não informado': '' };
+
+    const estadoCivilLabels = <?= json_encode($this->data['estado_civil_labels'] ?? []) ?>;
+    const countryNamesPa = <?= json_encode(array_map(static fn ($i) => $i['name'] ?? '', $this->data['countries_options_pa'] ?? [])) ?>;
+
+    function paBarChartDrillSlug(canvasId, datasetLabel, slugData, mode) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || !slugData || Object.keys(slugData).length === 0) return;
+        const slugs = Object.keys(slugData);
+        const labels = slugs.map(function (s) {
+            if (s === '_empty') return 'Não informado';
+            if (mode === 'estado') return estadoCivilLabels[s] || s;
+            if (mode === 'pais') return countryNamesPa[s] || s;
+            return s;
+        });
+        const values = slugs.map(function (s) { return slugData[s]; });
+        const n = slugs.length;
+        const colors = paColors(n);
+        const usePie = n <= PA_PIE_MAX_SLICES;
+
+        function doDrillSlug(els) {
+            if (!els.length) return;
+            var slug = slugs[els[0].index];
+            if (mode === 'estado') {
+                paDrill({ pa_estado_civil: slug === '_empty' ? '' : slug });
+            } else {
+                paDrill({ pa_pais: slug === '_empty' ? '' : slug });
+            }
+        }
+
+        if (usePie) {
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) { doDrillSlug(els); },
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (c) {
+                                    var v = c.raw != null ? c.raw : c.parsed;
+                                    return (c.label || '') + ': ' + v;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function (_evt, els) { doDrillSlug(els); },
+                    plugins: { legend: { display: false } },
+                    scales: { y: paCountAxisTicks(values) }
+                }
+            });
+        }
+    }
+
+    const impactData = <?= json_encode($this->data['terminations_in_period_by_impact'] ?? []) ?>;
+    const impactCtx = document.getElementById('impactChart');
+    if (impactCtx && Object.keys(impactData).length > 0) {
+        const impactSum = Object.values(impactData).reduce(function (a, b) { return a + b; }, 0);
+        if (impactSum > 0) {
+            const ik = Object.keys(impactData);
+            const impactCols = paColors(ik.length);
+            new Chart(impactCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ik,
+                    datasets: [{
+                        data: Object.values(impactData),
+                        backgroundColor: impactCols,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, position: 'bottom' } }
+                }
+            });
+        }
+    }
+
+    paBarChartDrill('activeSexChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_sex'] ?? []) ?>, 'pa_sexo', paSexMap);
+    paBarChartDrill('termSexChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_sex'] ?? []) ?>, 'pa_sexo', paSexMap);
+    paBarChart('activeAgeChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_age_band'] ?? []) ?>);
+    paBarChart('termAgeChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_age_band'] ?? []) ?>);
+    paBarChartDrill('activeFilhosChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_filhos'] ?? []) ?>, 'pa_filhos', paFilhosMap);
+    paBarChartDrill('termFilhosChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_filhos'] ?? []) ?>, 'pa_filhos', paFilhosMap);
+    paBarChartDrillSlug('activeEstadoCivilChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_estado_civil'] ?? []) ?>, 'estado');
+    paBarChartDrillSlug('termEstadoCivilChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_estado_civil'] ?? []) ?>, 'estado');
+    paBarChartDrillSlug('activePaisChart', 'Ativos', <?= json_encode($this->data['active_headcount_by_pais'] ?? []) ?>, 'pais');
+    paBarChartDrillSlug('termPaisChart', 'Desligamentos', <?= json_encode($this->data['terminations_in_period_by_pais'] ?? []) ?>, 'pais');
 });
 </script>

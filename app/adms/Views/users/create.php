@@ -208,6 +208,34 @@ use App\adms\Helpers\CSRFHelper;
                     </select>
                 </div>
                 <div class="col-md-4">
+                    <label for="estado_civil" class="form-label">Estado civil</label>
+                    <select name="estado_civil" id="estado_civil" class="form-select">
+                        <?php $ecVal = (string)($this->data['form']['estado_civil'] ?? ''); ?>
+                        <option value="" <?php echo $ecVal === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <?php foreach (\App\adms\Helpers\UserFormHelper::estadoCivilOptions() as $slug => $ecLabel): ?>
+                            <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $ecVal === $slug ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($ecLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="pais_residencia_iso" class="form-label">País de residência</label>
+                    <select name="pais_residencia_iso" id="pais_residencia_iso" class="form-select">
+                        <?php
+                        $paisVal = (string)($this->data['form']['pais_residencia_iso'] ?? '');
+                        $countries = \App\adms\Helpers\CountryHelper::getCountries();
+                        uasort($countries, static fn ($a, $b) => strcmp($a['name'] ?? '', $b['name'] ?? ''));
+                        ?>
+                        <option value="" <?php echo $paisVal === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <?php foreach ($countries as $code => $info): ?>
+                            <option value="<?php echo htmlspecialchars($code); ?>" <?php echo strtoupper($paisVal) === $code ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars(($info['flag'] ?? '') . ' ' . ($info['name'] ?? $code)); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
                     <label for="data_admissao" class="form-label">Data de Admissão</label>
                     <input type="date" name="data_admissao" class="form-control" id="data_admissao" value="<?php echo $this->data['form']['data_admissao'] ?? ''; ?>">
                     <div class="form-text">Data em que o colaborador foi admitido na empresa</div>

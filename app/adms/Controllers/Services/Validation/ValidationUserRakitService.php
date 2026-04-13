@@ -3,6 +3,8 @@
 
 namespace App\adms\Controllers\Services\Validation;
 
+use App\adms\Helpers\CountryHelper;
+use App\adms\Helpers\UserFormHelper;
 use Rakit\Validation\Validator;
 
 /**
@@ -91,6 +93,8 @@ class ValidationUserRakitService
         // Sexo e filhos: opcionais; se enviados, devem ser valores permitidos
         $rules['sexo'] = 'nullable|in:M,F,O';
         $rules['filhos'] = 'nullable|in:S,N';
+        $rules['estado_civil'] = 'nullable|in:' . implode(',', UserFormHelper::ESTADO_CIVIL_SLUGS);
+        $rules['pais_residencia_iso'] = 'nullable|in:' . implode(',', array_keys(CountryHelper::getCountries()));
         
          // Definir mensagens personalizadas
          $messages = [
@@ -131,6 +135,8 @@ class ValidationUserRakitService
             'user_position_id:min'        => 'Selecione um cargo válido.',
             'sexo:in'                     => 'Valor de sexo inválido.',
             'filhos:in'                   => 'Valor inválido para filhos.',
+            'estado_civil:in'             => 'Estado civil inválido.',
+            'pais_residencia_iso:in'      => 'País inválido.',
         ];
 
         // Criar o validador com os dados e regras fornecidas

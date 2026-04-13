@@ -9,6 +9,17 @@ namespace App\adms\Helpers;
  */
 final class UserFormHelper
 {
+    /** @var list<string> */
+    public const ESTADO_CIVIL_SLUGS = [
+        'solteiro',
+        'casado',
+        'uniao_estavel',
+        'divorciado',
+        'viuvo',
+        'separado',
+        'outro',
+    ];
+
     public static function normalizeSexo(mixed $value): ?string
     {
         $v = strtoupper(trim((string) $value));
@@ -61,5 +72,67 @@ final class UserFormHelper
             'nao_classificado' => 'Não classificado',
             default => 'Não informado',
         };
+    }
+
+    public static function normalizeEstadoCivil(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtolower(trim((string) $value));
+
+        return in_array($v, self::ESTADO_CIVIL_SLUGS, true) ? $v : null;
+    }
+
+    public static function estadoCivilLabel(?string $code): string
+    {
+        return match ($code) {
+            'solteiro' => 'Solteiro(a)',
+            'casado' => 'Casado(a)',
+            'uniao_estavel' => 'União estável',
+            'divorciado' => 'Divorciado(a)',
+            'viuvo' => 'Viúvo(a)',
+            'separado' => 'Separado(a)',
+            'outro' => 'Outro',
+            default => 'Estado civil não informado',
+        };
+    }
+
+    /** @return array<string, string> slug => rótulo para selects e gráficos */
+    public static function estadoCivilOptions(): array
+    {
+        $out = [];
+        foreach (self::ESTADO_CIVIL_SLUGS as $slug) {
+            $out[$slug] = self::estadoCivilLabel($slug);
+        }
+
+        return $out;
+    }
+
+    public static function normalizePaisResidenciaIso(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtoupper(trim((string) $value));
+        if (strlen($v) !== 2 || !ctype_alpha($v)) {
+            return null;
+        }
+        $countries = CountryHelper::getCountries();
+
+        return isset($countries[$v]) ? $v : null;
+    }
+
+    public static function paisResidenciaLabel(?string $iso): string
+    {
+        if ($iso === null || $iso === '') {
+            return 'País não informado';
+        }
+        $countries = CountryHelper::getCountries();
+        if (isset($countries[$iso]['name'])) {
+            return (string) $countries[$iso]['name'];
+        }
+
+        return 'País (' . $iso . ')';
     }
 }

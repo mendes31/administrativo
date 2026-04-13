@@ -284,7 +284,14 @@ class UsersRepository extends DbConnection
     /**
      * Usuários para People Analytics: sem paginação, com filtro opcional por vários departamentos/cargos.
      *
-     * @param array{departamento_ids?: int[], cargo_ids?: int[]} $filtros
+     * @param array{
+     *     departamento_ids?: int[],
+     *     cargo_ids?: int[],
+     *     sexo?: string|null,
+     *     estado_civil?: string|null,
+     *     pais_residencia_iso?: string|null,
+     *     filhos?: string|null
+     * } $filtros
      * @return array<int, array<string, mixed>>
      */
     public function getUsersForPeopleAnalytics(array $filtros = []): array
@@ -323,8 +330,32 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.user_position_id IN (' . implode(',', $ph) . ')';
         }
 
+        $sexoF = $filtros['sexo'] ?? null;
+        if ($sexoF !== null && $sexoF !== '' && in_array(strtoupper($sexoF), ['M', 'F', 'O'], true)) {
+            $where[] = 'usr.sexo = :pa_sexo';
+            $params[':pa_sexo'] = strtoupper($sexoF);
+        }
+
+        $ecF = $filtros['estado_civil'] ?? null;
+        if ($ecF !== null && $ecF !== '') {
+            $where[] = 'usr.estado_civil = :pa_estado_civil';
+            $params[':pa_estado_civil'] = $ecF;
+        }
+
+        $paisF = $filtros['pais_residencia_iso'] ?? null;
+        if ($paisF !== null && $paisF !== '') {
+            $where[] = 'usr.pais_residencia_iso = :pa_pais';
+            $params[':pa_pais'] = strtoupper((string) $paisF);
+        }
+
+        $filhosF = $filtros['filhos'] ?? null;
+        if ($filhosF !== null && $filhosF !== '' && in_array(strtoupper($filhosF), ['S', 'N'], true)) {
+            $where[] = 'usr.filhos = :pa_filhos';
+            $params[':pa_filhos'] = strtoupper($filhosF);
+        }
+
         $whereSql = 'WHERE ' . implode(' AND ', $where);
-        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, usr.tipo_impacto_desligamento, usr.data_nascimento, usr.sexo, usr.filhos, dep.name name_dep, pos.name name_pos
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, usr.tipo_impacto_desligamento, usr.data_nascimento, usr.sexo, usr.filhos, usr.estado_civil, usr.pais_residencia_iso, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
                 LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
                 LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id
@@ -540,6 +571,8 @@ class UsersRepository extends DbConnection
                     t0.data_nascimento,
                     t0.sexo,
                     t0.filhos,
+                    t0.estado_civil,
+                    t0.pais_residencia_iso,
                     t0.data_admissao,
                     t0.data_desligamento,
                     t0.motivo_desligamento,
@@ -766,9 +799,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, super_usuario
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, pais_residencia_iso, super_usuario
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :super_usuario
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :pais_residencia_iso, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -795,6 +828,18 @@ class UsersRepository extends DbConnection
             $filhosIns = $data['filhos'] ?? null;
             $stmt->bindValue(':sexo', $sexoIns !== null && $sexoIns !== '' ? $sexoIns : null, $sexoIns !== null && $sexoIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':filhos', $filhosIns !== null && $filhosIns !== '' ? $filhosIns : null, $filhosIns !== null && $filhosIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $ecIns = $data['estado_civil'] ?? null;
+            $stmt->bindValue(
+                ':estado_civil',
+                $ecIns !== null && $ecIns !== '' ? $ecIns : null,
+                $ecIns !== null && $ecIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
+            $paisIns = $data['pais_residencia_iso'] ?? null;
+            $stmt->bindValue(
+                ':pais_residencia_iso',
+                $paisIns !== null && $paisIns !== '' ? strtoupper((string) $paisIns) : null,
+                $paisIns !== null && $paisIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
             $stmt->bindValue(':super_usuario', !empty($data['super_usuario']) ? 1 : 0, PDO::PARAM_INT);
             $stmt->execute();
             $novoId = $this->getConnection()->lastInsertId();
@@ -1046,6 +1091,12 @@ class UsersRepository extends DbConnection
             if (array_key_exists('filhos', $data)) {
                 $sql .= ', filhos = :filhos';
             }
+            if (array_key_exists('estado_civil', $data)) {
+                $sql .= ', estado_civil = :estado_civil';
+            }
+            if (array_key_exists('pais_residencia_iso', $data)) {
+                $sql .= ', pais_residencia_iso = :pais_residencia_iso';
+            }
             if (isset($data['bloqueado']) && $data['bloqueado'] === 'Não' && isset($dadosAntes['bloqueado']) && $dadosAntes['bloqueado'] === 'Sim') {
                 $sql .= ', tentativas_login = 0, data_bloqueio_temporario = NULL';
             }
@@ -1112,6 +1163,22 @@ class UsersRepository extends DbConnection
                     $vFilhos !== null && $vFilhos !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
                 );
             }
+            if (array_key_exists('estado_civil', $data)) {
+                $vEc = $data['estado_civil'];
+                $stmt->bindValue(
+                    ':estado_civil',
+                    $vEc !== null && $vEc !== '' ? $vEc : null,
+                    $vEc !== null && $vEc !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            if (array_key_exists('pais_residencia_iso', $data)) {
+                $vPais = $data['pais_residencia_iso'];
+                $stmt->bindValue(
+                    ':pais_residencia_iso',
+                    $vPais !== null && $vPais !== '' ? strtoupper((string) $vPais) : null,
+                    $vPais !== null && $vPais !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
             if (!empty($data['password'])) {
                 $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
@@ -1144,6 +1211,8 @@ class UsersRepository extends DbConnection
                         : ($dadosAntes['super_usuario'] ?? null),
                     'sexo' => array_key_exists('sexo', $data) ? $data['sexo'] : ($dadosAntes['sexo'] ?? null),
                     'filhos' => array_key_exists('filhos', $data) ? $data['filhos'] : ($dadosAntes['filhos'] ?? null),
+                    'estado_civil' => array_key_exists('estado_civil', $data) ? $data['estado_civil'] : ($dadosAntes['estado_civil'] ?? null),
+                    'pais_residencia_iso' => array_key_exists('pais_residencia_iso', $data) ? $data['pais_residencia_iso'] : ($dadosAntes['pais_residencia_iso'] ?? null),
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',

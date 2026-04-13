@@ -3,6 +3,8 @@
 namespace App\adms\Controllers\analytics;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\CountryHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\EmploymentHistoryRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -24,6 +26,10 @@ class PeopleAnalytics
         $users = $usersRepo->getUsersForPeopleAnalytics([
             'departamento_ids' => $filters['departamento_ids'],
             'cargo_ids' => $filters['cargo_ids'],
+            'sexo' => $filters['sexo'],
+            'estado_civil' => $filters['estado_civil'],
+            'pais_residencia_iso' => $filters['pais_residencia_iso'],
+            'filhos' => $filters['filhos'],
         ]);
 
         $historyRepo = new EmploymentHistoryRepository();
@@ -36,13 +42,21 @@ class PeopleAnalytics
             $filters['period_end']
         );
 
+        $countries = CountryHelper::getCountries();
+        uasort($countries, static fn ($a, $b) => strcmp($a['name'] ?? '', $b['name'] ?? ''));
+
         $this->data = array_merge($metrics, [
             'filter_period_start' => $filters['period_start'],
             'filter_period_end' => $filters['period_end'],
             'filter_departamento_ids' => $filters['departamento_ids'],
             'filter_cargo_ids' => $filters['cargo_ids'],
+            'filter_sexo' => $filters['sexo'],
+            'filter_estado_civil' => $filters['estado_civil'],
+            'filter_pais_iso' => $filters['pais_residencia_iso'],
+            'filter_filhos' => $filters['filhos'],
             'departments_options' => (new DepartmentsRepository())->getAllDepartmentsSelect(),
             'positions_options' => (new PositionsRepository())->getAllPositionsSelect(),
+            'countries_options_pa' => $countries,
             'metrics_json_url' => ($_ENV['URL_ADM'] ?? '') . 'people-analytics/metrics',
         ]);
 
@@ -74,6 +88,10 @@ class PeopleAnalytics
             $users = $usersRepo->getUsersForPeopleAnalytics([
                 'departamento_ids' => $filters['departamento_ids'],
                 'cargo_ids' => $filters['cargo_ids'],
+                'sexo' => $filters['sexo'],
+                'estado_civil' => $filters['estado_civil'],
+                'pais_residencia_iso' => $filters['pais_residencia_iso'],
+                'filhos' => $filters['filhos'],
             ]);
             $historyRepo = new EmploymentHistoryRepository();
             $historyByUser = $historyRepo->getGroupedByUserIds(array_column($users, 'id'));
@@ -94,7 +112,16 @@ class PeopleAnalytics
     }
 
     /**
-     * @return array{period_start: string, period_end: string, departamento_ids: int[], cargo_ids: int[]}
+     * @return array{
+     *     period_start: string,
+     *     period_end: string,
+     *     departamento_ids: int[],
+     *     cargo_ids: int[],
+     *     sexo: string|null,
+     *     estado_civil: string|null,
+     *     pais_residencia_iso: string|null,
+     *     filhos: string|null
+     * }
      */
     private function parseFiltersFromRequest(): array
     {
@@ -115,6 +142,10 @@ class PeopleAnalytics
             'period_end' => $ate,
             'departamento_ids' => $this->parseIdList($_GET['pa_dep'] ?? null),
             'cargo_ids' => $this->parseIdList($_GET['pa_pos'] ?? null),
+            'sexo' => UserFormHelper::normalizeSexo($_GET['pa_sexo'] ?? null),
+            'estado_civil' => UserFormHelper::normalizeEstadoCivil($_GET['pa_estado_civil'] ?? null),
+            'pais_residencia_iso' => UserFormHelper::normalizePaisResidenciaIso($_GET['pa_pais'] ?? null),
+            'filhos' => UserFormHelper::normalizeFilhos($_GET['pa_filhos'] ?? null),
         ];
     }
 
