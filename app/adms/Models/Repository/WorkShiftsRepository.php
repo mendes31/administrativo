@@ -50,6 +50,19 @@ class WorkShiftsRepository extends DbConnection
         return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['amount_records'] ?? 0);
     }
 
+    /**
+     * Lista id + descrição para selects (mesmo formato que departamentos/cargos).
+     *
+     * @return array<int, array{id: int, name: string}>
+     */
+    public function getAllWorkShiftsSelect(): array
+    {
+        $sql = 'SELECT id, description AS name FROM adms_work_shifts ORDER BY description ASC';
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function getWorkShift(int $id): array|bool
     {
         $sql = 'SELECT id, description, entry_1, exit_1, entry_2, exit_2, entry_3, exit_3,

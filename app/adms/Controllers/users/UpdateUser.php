@@ -12,6 +12,7 @@ use App\adms\Controllers\Services\SecurityService;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Repository\WorkShiftsRepository;
 use App\adms\Models\Services\SuperUsuarioAccessLevelsSyncService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -110,7 +111,10 @@ class UpdateUser
         // Lista de usuários ativos para selecionar como supervisor
         $usersRepo = new UsersRepository();
         $this->data['listSupervisors'] = $usersRepo->getAllUsersSelect();
-        
+
+        $listWorkShifts = new WorkShiftsRepository();
+        $this->data['listWorkShifts'] = $listWorkShifts->getAllWorkShiftsSelect();
+
         // Contar quantos subordinados este usuário tem
         $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
         $subordinatesInfo = $hierarchyService::checkSubordinates((int)$this->data['form']['id']);
@@ -150,6 +154,11 @@ class UpdateUser
      */
     private function editUser(): void 
     {
+        if (array_key_exists('adms_work_shift_id', $this->data['form'])) {
+            $ws = $this->data['form']['adms_work_shift_id'];
+            $this->data['form']['adms_work_shift_id'] = ($ws !== null && $ws !== '' && $ws !== false) ? $ws : null;
+        }
+
         // Instanciar a classe validar os dados do formulário
         $validationUser = new ValidationUserRakitService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);

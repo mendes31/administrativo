@@ -48,6 +48,22 @@ class UsersRepository extends DbConnection
     private array|string|null $dataImage = null;
 
     /**
+     * FK opcional (ex.: turno): vazio ou inválido → null.
+     */
+    private function normalizeOptionalAdmsWorkShiftId(mixed $value): ?int
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return null;
+        }
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $id = (int) $value;
+
+        return $id > 0 ? $id : null;
+    }
+
+    /**
      * Recuperar todos os usuários com paginação.
      *
      * Este método retorna uma lista de usuários da tabela `adms_users`, com suporte à paginação.
@@ -580,6 +596,7 @@ class UsersRepository extends DbConnection
                     t0.user_department_id, 
                     t0.user_position_id,
                     t0.immediate_supervisor_id,
+                    t0.adms_work_shift_id,
                     t0.created_at, 
                     t0.updated_at, 
                     t0.status,
@@ -589,10 +606,12 @@ class UsersRepository extends DbConnection
                     t0.modificar_senha_proximo_logon,
                     t0.super_usuario,
                     t1.name dep_name, 
-                    t2.name pos_name
+                    t2.name pos_name,
+                    ws.description AS work_shift_description
                 FROM adms_users t0
                 INNER JOIN adms_departments t1 ON t0.user_department_id = t1.id
                 INNER JOIN adms_positions t2 ON t0.user_position_id = t2.id
+                LEFT JOIN adms_work_shifts ws ON t0.adms_work_shift_id = ws.id
                 WHERE t0.id = :id
                 ORDER BY t0.id DESC';
 
@@ -799,9 +818,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, pais_residencia_iso, super_usuario
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, pais_residencia_iso, super_usuario
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :pais_residencia_iso, :super_usuario
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :pais_residencia_iso, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -812,6 +831,8 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':user_department_id', $data['user_department_id'], PDO::PARAM_INT);
             $stmt->bindValue(':user_position_id', $data['user_position_id'], PDO::PARAM_INT);
             $stmt->bindValue(':immediate_supervisor_id', (!empty($data['immediate_supervisor_id']) && is_numeric($data['immediate_supervisor_id'])) ? (int)$data['immediate_supervisor_id'] : null, PDO::PARAM_INT);
+            $wsIns = $this->normalizeOptionalAdmsWorkShiftId($data['adms_work_shift_id'] ?? null);
+            $stmt->bindValue(':adms_work_shift_id', $wsIns, $wsIns !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
             $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
             $stmt->bindValue(':bloqueado', $data['bloqueado'] ?? 'Não', PDO::PARAM_STR);
@@ -852,6 +873,7 @@ class UsersRepository extends DbConnection
                     'username' => $data['username'],
                     'user_department_id' => $data['user_department_id'],
                     'user_position_id' => $data['user_position_id'],
+                    'adms_work_shift_id' => $this->normalizeOptionalAdmsWorkShiftId($data['adms_work_shift_id'] ?? null),
                     'status' => $data['status'] ?? 'Ativo',
                     'bloqueado' => $data['bloqueado'] ?? 'Não',
                     'tentativas_login' => $data['tentativas_login'] ?? 0,
@@ -1097,6 +1119,9 @@ class UsersRepository extends DbConnection
             if (array_key_exists('pais_residencia_iso', $data)) {
                 $sql .= ', pais_residencia_iso = :pais_residencia_iso';
             }
+            if (array_key_exists('adms_work_shift_id', $data)) {
+                $sql .= ', adms_work_shift_id = :adms_work_shift_id';
+            }
             if (isset($data['bloqueado']) && $data['bloqueado'] === 'Não' && isset($dadosAntes['bloqueado']) && $dadosAntes['bloqueado'] === 'Sim') {
                 $sql .= ', tentativas_login = 0, data_bloqueio_temporario = NULL';
             }
@@ -1110,6 +1135,10 @@ class UsersRepository extends DbConnection
             $stmt->bindValue(':user_department_id', (int)$data['user_department_id'], PDO::PARAM_INT);
             $stmt->bindValue(':user_position_id', (int)$data['user_position_id'], PDO::PARAM_INT);
             $stmt->bindValue(':immediate_supervisor_id', (!empty($data['immediate_supervisor_id']) && is_numeric($data['immediate_supervisor_id'])) ? (int)$data['immediate_supervisor_id'] : null, PDO::PARAM_INT);
+            if (array_key_exists('adms_work_shift_id', $data)) {
+                $wsUp = $this->normalizeOptionalAdmsWorkShiftId($data['adms_work_shift_id']);
+                $stmt->bindValue(':adms_work_shift_id', $wsUp, $wsUp !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            }
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
             if (array_key_exists('super_usuario', $data)) {
                 $stmt->bindValue(':super_usuario', !empty($data['super_usuario']) ? 1 : 0, PDO::PARAM_INT);
@@ -1201,6 +1230,9 @@ class UsersRepository extends DbConnection
                     'username' => $data['username'],
                     'user_department_id' => $data['user_department_id'],
                     'user_position_id' => $data['user_position_id'],
+                    'adms_work_shift_id' => array_key_exists('adms_work_shift_id', $data)
+                        ? $this->normalizeOptionalAdmsWorkShiftId($data['adms_work_shift_id'])
+                        : ($dadosAntes['adms_work_shift_id'] ?? null),
                     'status' => $data['status'] ?? $dadosAntes['status'] ?? null,
                     'bloqueado' => $data['bloqueado'] ?? $dadosAntes['bloqueado'] ?? null,
                     'tentativas_login' => isset($data['tentativas_login']) ? $data['tentativas_login'] : ($dadosAntes['tentativas_login'] ?? null),

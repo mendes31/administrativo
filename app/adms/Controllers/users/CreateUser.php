@@ -11,6 +11,7 @@ use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Repository\WorkShiftsRepository;
 use App\adms\Models\Services\SuperUsuarioAccessLevelsSyncService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -74,7 +75,10 @@ class CreateUser
         // Lista de usuários ativos para selecionar como supervisor
         $usersRepo = new UsersRepository();
         $this->data['listSupervisors'] = $usersRepo->getAllUsersSelect();
- 
+
+        $listWorkShifts = new WorkShiftsRepository();
+        $this->data['listWorkShifts'] = $listWorkShifts->getAllWorkShiftsSelect();
+
         // Definir o título da página
         // Ativar o item de menu
         // Apresentar ou ocultar botão 
@@ -121,6 +125,11 @@ class CreateUser
                 $form['password'] = $plainPassword;
                 $form['confirm_password'] = $plainPassword;
             }
+        }
+
+        if (array_key_exists('adms_work_shift_id', $form)) {
+            $ws = $form['adms_work_shift_id'];
+            $form['adms_work_shift_id'] = ($ws !== null && $ws !== '' && $ws !== false) ? $ws : null;
         }
 
         $this->data['form'] = $form;

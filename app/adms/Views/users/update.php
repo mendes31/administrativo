@@ -149,6 +149,24 @@ use App\adms\Helpers\ImageHelper;
                     </div>
                 </div>
 
+                <div class="col-md-6">
+                    <label for="adms_work_shift_id" class="form-label">Turno de trabalho</label>
+                    <select name="adms_work_shift_id" class="form-select" id="adms_work_shift_id">
+                        <option value="">Selecione</option>
+                        <?php
+                        if ($this->data['listWorkShifts'] ?? false) {
+                            foreach ($this->data['listWorkShifts'] as $listWorkShift) {
+                                $wid = (int) ($listWorkShift['id'] ?? 0);
+                                $wname = (string) ($listWorkShift['name'] ?? '');
+                                $selected = isset($this->data['form']['adms_work_shift_id']) && (int) $this->data['form']['adms_work_shift_id'] === $wid ? 'selected' : '';
+                                echo '<option value="' . $wid . '" ' . $selected . '>'
+                                    . htmlspecialchars($wname, ENT_QUOTES, 'UTF-8') . '</option>';
+                            }
+                        }
+                        ?>
+                    </select>
+                </div>
+
                 <div class="col-md-4">
                     <label for="tentativas_login" class="form-label">Tentativas de Login</label>
                     <input type="number" name="tentativas_login" class="form-control" id="tentativas_login" value="<?php echo $this->data['form']['tentativas_login'] ?? '0'; ?>" readonly>

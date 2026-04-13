@@ -95,7 +95,10 @@ class ValidationUserRakitService
         $rules['filhos'] = 'nullable|in:S,N';
         $rules['estado_civil'] = 'nullable|in:' . implode(',', UserFormHelper::ESTADO_CIVIL_SLUGS);
         $rules['pais_residencia_iso'] = 'nullable|in:' . implode(',', array_keys(CountryHelper::getCountries()));
-        
+        if (array_key_exists('adms_work_shift_id', $data)) {
+            $rules['adms_work_shift_id'] = 'nullable|integer|min:1';
+        }
+
          // Definir mensagens personalizadas
          $messages = [
             'id:required'                   => 'Dados inválidos.',
@@ -137,6 +140,8 @@ class ValidationUserRakitService
             'filhos:in'                   => 'Valor inválido para filhos.',
             'estado_civil:in'             => 'Estado civil inválido.',
             'pais_residencia_iso:in'      => 'País inválido.',
+            'adms_work_shift_id:integer' => 'Turno de trabalho inválido.',
+            'adms_work_shift_id:min'     => 'Selecione um turno de trabalho válido.',
         ];
 
         // Criar o validador com os dados e regras fornecidas

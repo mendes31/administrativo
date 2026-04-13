@@ -132,6 +132,24 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
 
                 <div class="col-md-6">
+                    <label for="adms_work_shift_id" class="form-label">Turno de trabalho</label>
+                    <select name="adms_work_shift_id" class="form-select" id="adms_work_shift_id">
+                        <option value="">Selecione</option>
+                        <?php
+                        if ($this->data['listWorkShifts'] ?? false) {
+                            foreach ($this->data['listWorkShifts'] as $listWorkShift) {
+                                $wid = (int) ($listWorkShift['id'] ?? 0);
+                                $wname = (string) ($listWorkShift['name'] ?? '');
+                                $selected = isset($this->data['form']['adms_work_shift_id']) && (int) $this->data['form']['adms_work_shift_id'] === $wid ? 'selected' : '';
+                                echo '<option value="' . $wid . '" ' . $selected . '>'
+                                    . htmlspecialchars($wname, ENT_QUOTES, 'UTF-8') . '</option>';
+                            }
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
                     <label for="password" class="form-label">Senha</label>
                     <input type="password" name="password" class="form-control" id="password" placeholder="Senha minímo 6 caracteres e deve conter letra, número e caractere especial." value="<?php echo $this->data['form']['password'] ?? ''; ?>"
                        oninput="this.value = this.value.replace(/\s/g, '')" 

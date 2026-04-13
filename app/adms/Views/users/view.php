@@ -189,6 +189,14 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dt class="col-sm-3">Cargo|Função: </dt>
                     <dd class="col-sm-9"><?php echo $pos_name; ?></dd>
 
+                    <dt class="col-sm-3">Turno de trabalho: </dt>
+                    <dd class="col-sm-9"><?php
+                        $wsLabel = $work_shift_description ?? ($this->data['user']['work_shift_description'] ?? '');
+                        echo $wsLabel !== '' && $wsLabel !== null
+                            ? htmlspecialchars((string) $wsLabel, ENT_QUOTES, 'UTF-8')
+                            : '<span class="text-muted">Não definido</span>';
+                    ?></dd>
+
                     <dt class="col-sm-3">Cadastrado: </dt>
                     <dd class="col-sm-9"><?php echo ($created_at ? date('d/m/Y H:i:s', strtotime($created_at)) : ""); ?></dd>
 
