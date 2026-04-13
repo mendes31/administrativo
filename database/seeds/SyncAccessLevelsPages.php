@@ -11,9 +11,10 @@ class SyncAccessLevelsPages extends AbstractSeed
      *
      * Insere pares (nível, página) com INSERT IGNORE (respeita UNIQUE em adms_access_level_id + adms_page_id
      * após a migration uk_alp_access_level_page). Para níveis ≠ 1 usa permission = 0;
-     * o super admin (id 1) recebe 1. Isto **não** aplica as regras de `public_page` / `default_page` /
-     * `basicControllers` — essas são aplicadas em {@see \App\adms\Models\Repository\AccessLevelsPagesRepository::initializeForNewAccessLevel}
-     * ao criar um nível novo. Após este seed, páginas “padrão” ou “públicas” podem precisar de ajuste na matriz ou recriação de nível.
+     * o super admin (id 1) recebe 1.
+     *
+     * Em seguida, alinha com a migration {@see SyncPublicDefaultPagesPermissionsAllLevels}:
+     * páginas ativas com `public_page = 1` ou `default_page = 1` recebem permission = 1 em **todos** os níveis.
      *
      * @return void
      */
@@ -52,6 +53,42 @@ class SyncAccessLevelsPages extends AbstractSeed
             }
         }
 
-        echo "✅ Sincronização automática concluída (INSERT IGNORE aplicado).\n";
+        $this->applyPublicAndDefaultPagePermissionsToAllLevels();
+
+        echo "✅ Sincronização automática concluída (INSERT IGNORE + públicas/padrão em todos os níveis).\n";
+    }
+
+    /**
+     * Garante permission = 1 para todas as páginas ativas públicas ou marcadas como padrão na matriz,
+     * em todos os níveis (inclui id 1). Idempotente com UNIQUE (nível, página).
+     */
+    private function applyPublicAndDefaultPagePermissionsToAllLevels(): void
+    {
+        if (
+            !$this->hasTable('adms_access_levels_pages')
+            || !$this->hasTable('adms_pages')
+            || !$this->hasTable('adms_access_levels')
+        ) {
+            return;
+        }
+
+        $hasDefaultPage = $this->table('adms_pages')->hasColumn('default_page');
+        $pageCond = $hasDefaultPage
+            ? '(p.public_page = 1 OR p.default_page = 1)'
+            : '(p.public_page = 1)';
+
+        $sql = <<<SQL
+INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+SELECT 1, al.id, p.id, NOW(), NOW()
+FROM adms_access_levels al
+CROSS JOIN adms_pages p
+WHERE p.page_status = 1
+  AND {$pageCond}
+ON DUPLICATE KEY UPDATE
+  permission = 1,
+  updated_at = NOW()
+SQL;
+
+        $this->execute($sql);
     }
 } 
