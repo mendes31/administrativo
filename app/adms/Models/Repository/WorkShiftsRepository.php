@@ -5,7 +5,6 @@ namespace App\adms\Models\Repository;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
-use DateTimeImmutable;
 use Exception;
 use PDO;
 
@@ -165,7 +164,8 @@ class WorkShiftsRepository extends DbConnection
     }
 
     /**
-     * Soma os intervalos (entrada/saída) em minutos. Meia-noite cruzada não suportada nesta versão.
+     * Soma os intervalos (entrada/saída) em minutos.
+     * Cada intervalo pode atravessar meia-noite: se a saída for ≤ entrada no relógio, considera-se saída no dia seguinte.
      */
     public static function computeTotalMinutes(array $data): int
     {
@@ -254,19 +254,43 @@ class WorkShiftsRepository extends DbConnection
         return null;
     }
 
+    /**
+     * Duração em minutos entre dois horários.
+     * Se a saída for estritamente anterior à entrada no relógio, assume-se saída no dia seguinte (turno noturno).
+     */
     private static function diffMinutes(string $startHms, string $endHms): int
     {
-        try {
-            $d0 = new DateTimeImmutable('2000-01-01 ' . $startHms);
-            $d1 = new DateTimeImmutable('2000-01-01 ' . $endHms);
-            if ($d1 <= $d0) {
-                return 0;
-            }
-
-            return (int) round(($d1->getTimestamp() - $d0->getTimestamp()) / 60);
-        } catch (Exception) {
+        $start = self::timeHmsToSecondsSinceMidnight($startHms);
+        $end = self::timeHmsToSecondsSinceMidnight($endHms);
+        if ($start === null || $end === null) {
             return 0;
         }
+        $day = 86400;
+        if ($end > $start) {
+            return (int) round(($end - $start) / 60);
+        }
+        if ($end < $start) {
+            return (int) round(($day - $start + $end) / 60);
+        }
+
+        // Horários iguais: duração zero (turno de 24h exigiria outro cadastro).
+        return 0;
+    }
+
+    /** @return int|null segundos desde 00:00:00 do mesmo dia */
+    private static function timeHmsToSecondsSinceMidnight(string $hms): ?int
+    {
+        if (!preg_match('/^(\d{2}):(\d{2}):(\d{2})$/', $hms, $m)) {
+            return null;
+        }
+        $h = (int) $m[1];
+        $min = (int) $m[2];
+        $s = (int) $m[3];
+        if ($h > 23 || $min > 59 || $s > 59) {
+            return null;
+        }
+
+        return $h * 3600 + $min * 60 + $s;
     }
 
     private function logChange(int $id, int $userId, string $op, array $old, array $new): void

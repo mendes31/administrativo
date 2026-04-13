@@ -6,7 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Cadastro de turnos de trabalho (jornada única, sem dias da semana).
- * Registra páginas do CRUD e copia permissões a partir de ListDepartments (Cadastros).
+ * Registra páginas do CRUD; matriz de permissões inicia com permission = 0 em todos os níveis (páginas privadas).
  */
 final class CreateAdmsWorkShiftsAndPages extends AbstractMigration
 {
@@ -98,22 +98,14 @@ final class CreateAdmsWorkShiftsAndPages extends AbstractMigration
             return;
         }
 
-        $ref = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = 'ListDepartments' LIMIT 1");
-        $refId = (int) ($ref['id'] ?? 0);
-        if ($refId <= 0) {
-            return;
-        }
-
         foreach ($newIds as $pid) {
             if ($pid <= 0) {
                 continue;
             }
             $this->execute(
-                "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-                 SELECT permission, adms_access_level_id, {$pid}, '{$now}', '{$now}'
-                 FROM adms_access_levels_pages
-                 WHERE adms_page_id = {$refId}
-                 ON DUPLICATE KEY UPDATE permission = VALUES(permission), updated_at = VALUES(updated_at)"
+                "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                 SELECT 0, al.id, {$pid}, '{$now}', '{$now}'
+                 FROM adms_access_levels al"
             );
         }
     }

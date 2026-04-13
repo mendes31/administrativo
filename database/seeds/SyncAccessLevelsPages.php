@@ -9,12 +9,14 @@ class SyncAccessLevelsPages extends AbstractSeed
     /**
      * Sincroniza automaticamente as permissões de páginas com os níveis de acesso.
      *
-     * Insere pares (nível, página) com INSERT IGNORE (respeita UNIQUE em adms_access_level_id + adms_page_id
-     * após a migration uk_alp_access_level_page). Para níveis ≠ 1 usa permission = 0;
-     * o super admin (id 1) recebe 1.
+     * Insere pares (nível, página) em falta com INSERT IGNORE, sempre com permission = 0.
+     * Páginas **privadas** (sem público nem padrão na matriz) permanecem 0 em todos os níveis até liberação manual.
      *
      * Em seguida, alinha com a migration {@see SyncPublicDefaultPagesPermissionsAllLevels}:
      * páginas ativas com `public_page = 1` ou `default_page = 1` recebem permission = 1 em **todos** os níveis.
+     *
+     * Nota: em bases já populadas com a regra antiga (super admin = 1 em todas as páginas), linhas existentes
+     * não são alteradas por este seed; use migrações pontuais ou ajuste manual na matriz de permissões.
      *
      * @return void
      */
@@ -35,7 +37,7 @@ class SyncAccessLevelsPages extends AbstractSeed
                 $pageId = $page['id'];
                 
                 // Idempotente: com UNIQUE (nível, página) o IGNORE evita erro em reexecução
-                $permission = $accessLevelId == 1 ? 1 : 0; // Super Admin tem permissão total
+                $permission = 0;
                 $createdAt  = date("Y-m-d H:i:s");
 
                 $sql = sprintf(
@@ -55,7 +57,7 @@ class SyncAccessLevelsPages extends AbstractSeed
 
         $this->applyPublicAndDefaultPagePermissionsToAllLevels();
 
-        echo "✅ Sincronização automática concluída (INSERT IGNORE + públicas/padrão em todos os níveis).\n";
+        echo "✅ Sincronização automática concluída (INSERT IGNORE com 0 + públicas/padrão = 1 em todos os níveis).\n";
     }
 
     /**

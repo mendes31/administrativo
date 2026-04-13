@@ -13,7 +13,7 @@ $v = static function (string $key, string $default = '') use ($form): string {
 </div>
 
 <div class="col-12 mt-2">
-    <h6 class="text-muted mb-2">Intervalos de trabalho <small>(mesmo dia; opcionais além do 1.º)</small></h6>
+    <h6 class="text-muted mb-2">Intervalos de trabalho <small>(cada par pode atravessar meia-noite: saída &lt; entrada no relógio = saída no dia seguinte; 2.º e 3.º opcionais)</small></h6>
 </div>
 
 <?php for ($i = 1; $i <= 3; $i++): ?>
@@ -61,7 +61,10 @@ $v = static function (string $key, string $default = '') use ($form): string {
             if (!a || !b) continue;
             var ta = parseTime(a.value);
             var tb = parseTime(b.value);
-            if (ta !== null && tb !== null && tb > ta) total += (tb - ta);
+            if (ta !== null && tb !== null) {
+                if (tb > ta) total += (tb - ta);
+                else if (tb < ta) total += (24 * 60 - ta) + tb;
+            }
         }
         var el = document.getElementById('work_shift_total_preview');
         if (!el) return;

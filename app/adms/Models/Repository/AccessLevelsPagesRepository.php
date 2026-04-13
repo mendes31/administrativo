@@ -13,11 +13,12 @@ use PDO;
  * Repositório responsável pelas operações relacionadas às páginas associadas aos níveis de acesso.
  *
  * **Regra de permission inicial** (novo nível ou inclusão em massa de linhas em `adms_access_levels_pages`):
- * para cada página, `permission = 1` quando ocorre **qualquer** destes casos (e nível ≠ super admin id 1):
+ * para cada página, `permission = 1` quando ocorre **qualquer** destes casos (em **todos** os níveis, inclusive id 1):
  * - `adms_pages.public_page = 1` (pública no cadastro; lembrar que o roteador também dispensa login), ou
- * - `adms_pages.default_page = 1` (página padrão: privada pode ser padrão — exige login, mas entra liberada na matriz), ou
+ * - `adms_pages.default_page = 1` (página padrão na matriz), ou
  * - `controller` está na propriedade `$basicControllers` (mínimos: dashboard, perfil, informativos, etc.).
- * Caso contrário `permission = 0`. O nível 1 (super admin) recebe sempre 1 na lógica que aplica estas regras.
+ * Páginas privadas sem esses critérios: `permission = 0` (liberação manual na matriz). O acesso em rota para
+ * utilizadores com nível 1 segue a regra em `PagesRoutesRepository` / `UserAccessHelper::hasFullSystemAccess()`.
  *
  * @package App\adms\Models\Repository
  */
@@ -173,12 +174,7 @@ class AccessLevelsPagesRepository extends DbConnection
                     $isPublic  = $publicPage === 1;
                     $isDefault = $defaultPage === 1;
 
-                    // Super admin (ID 1) sempre com permissão 1
-                    if ((int) $accessLevelId === UserAccessHelper::SUPER_ADMIN_LEVEL_ID) {
-                        $permission = 1;
-                    } else {
-                        $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
-                    }
+                    $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
 
                     $now = date('Y-m-d H:i:s');
                     $values[] = $permission;
@@ -239,7 +235,7 @@ class AccessLevelsPagesRepository extends DbConnection
      *     * páginas públicas (`public_page = 1`),
      *     * páginas padrão (`default_page = 1`) — normalmente privadas, mas liberadas na matriz para todo nível novo,
      *     * páginas cujos controllers estão em $basicControllers
-     * - Define permission = 0 para as demais.
+     * - Define permission = 0 para as demais (inclui nível super administrador id 1 em páginas estritamente privadas).
      *
      * @param int $accessLevelId ID do nível de acesso recém-criado
      * @return bool

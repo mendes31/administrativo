@@ -3,7 +3,6 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
-use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
@@ -20,8 +19,8 @@ use PDO;
  *   páginas em massa, recebe permission=1 automaticamente. Se a página está **ativa** e é pública ou padrão,
  *   {@see self::ensurePublicOrDefaultPagePermissionsForAllLevels} garante permission=1 em **todos** os níveis.
  *   Continua **privada** para o roteador se `public_page=0` (exige login + ACL).
- * - Página **ativa**: garante linha em `adms_access_levels_pages` para o nível Super Administrador (id 1)
- *   com `permission = 1`, para a matriz e relatórios refletirem acesso total desse nível.
+ * - Página **ativa** e **privada** (sem público nem padrão): cria linhas em `adms_access_levels_pages` para todos
+ *   os níveis com `permission = 0` ({@see self::ensurePrivatePageMatrixRowsWithZeroPermission}), sem concessão automática.
  * - Ao **desmarcar** Padrão ou Público, este repositório **não revoga** permissões já gravadas; ajuste manual na tela de permissões.
  *
  * @package App\adms\Models\Repository
@@ -241,12 +240,12 @@ class PagesRepository extends DbConnection
                 $pageStatus = (int) ($data['page_status'] ?? 0);
                 $isPublic   = (int) ($data['public_page'] ?? 0) === 1;
                 $isDefault  = (int) ($data['default_page'] ?? 0) === 1;
-                if ($pageStatus === 1 && ($isPublic || $isDefault)) {
-                    $this->ensurePublicOrDefaultPagePermissionsForAllLevels((int) $pageId);
-                }
-
-                if ((int) ($data['page_status'] ?? 0) === 1) {
-                    $this->upsertSuperAdminLevelPagePermission((int) $pageId);
+                if ($pageStatus === 1) {
+                    if ($isPublic || $isDefault) {
+                        $this->ensurePublicOrDefaultPagePermissionsForAllLevels((int) $pageId);
+                    } else {
+                        $this->ensurePrivatePageMatrixRowsWithZeroPermission((int) $pageId);
+                    }
                 }
             }
 
@@ -339,12 +338,12 @@ class PagesRepository extends DbConnection
                 $pageStatus = (int) ($data['page_status'] ?? 0);
                 $isPublic   = (int) ($data['public_page'] ?? 0) === 1;
                 $isDefault  = (int) ($data['default_page'] ?? 0) === 1;
-                if ($pageStatus === 1 && ($isPublic || $isDefault)) {
-                    $this->ensurePublicOrDefaultPagePermissionsForAllLevels((int) $data['id']);
-                }
-
-                if ((int) ($data['page_status'] ?? 0) === 1) {
-                    $this->upsertSuperAdminLevelPagePermission((int) $data['id']);
+                if ($pageStatus === 1) {
+                    if ($isPublic || $isDefault) {
+                        $this->ensurePublicOrDefaultPagePermissionsForAllLevels((int) $data['id']);
+                    } else {
+                        $this->ensurePrivatePageMatrixRowsWithZeroPermission((int) $data['id']);
+                    }
                 }
             }
 
@@ -459,9 +458,6 @@ class PagesRepository extends DbConnection
     }
 
     /**
-     * Garante permission=1 na matriz para o nível Super Administrador (nova página ativa).
-     */
-    /**
      * Página ativa e (pública ou padrão na matriz): garante permission = 1 em todos os níveis de acesso.
      * Mesma regra da migration `20260418100000_sync_public_default_pages_permissions_all_levels` e do seed `SyncAccessLevelsPages`.
      */
@@ -486,22 +482,20 @@ class PagesRepository extends DbConnection
         $stmt->execute();
     }
 
-    private function upsertSuperAdminLevelPagePermission(int $pageId): void
+    /**
+     * Página privada ativa: garante uma linha na matriz por nível com permission = 0 (INSERT IGNORE não altera linhas já existentes).
+     */
+    private function ensurePrivatePageMatrixRowsWithZeroPermission(int $pageId): void
     {
         if ($pageId <= 0) {
             return;
         }
         $conn = $this->getConnection();
-        $sql = 'INSERT INTO adms_access_levels_pages
-                (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-                VALUES (1, :level_id, :page_id, :created_at, :updated_at)
-                ON DUPLICATE KEY UPDATE permission = 1, updated_at = VALUES(updated_at)';
+        $sql = 'INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                SELECT 0, al.id, :page_id, NOW(), NOW()
+                FROM adms_access_levels al';
         $stmt = $conn->prepare($sql);
-        $now = date('Y-m-d H:i:s');
-        $stmt->bindValue(':level_id', UserAccessHelper::SUPER_ADMIN_LEVEL_ID, PDO::PARAM_INT);
         $stmt->bindValue(':page_id', $pageId, PDO::PARAM_INT);
-        $stmt->bindValue(':created_at', $now);
-        $stmt->bindValue(':updated_at', $now);
         $stmt->execute();
     }
 }

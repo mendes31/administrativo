@@ -72,7 +72,7 @@ class ValidationWorkShiftService
             $test['entry_' . $i] = $en;
             $test['exit_' . $i] = $ex;
             if (WorkShiftsRepository::computeTotalMinutes($test) < 1) {
-                $errs[] = "Intervalo {$i}: horário de saída deve ser posterior à entrada (mesmo dia).";
+                $errs[] = "Intervalo {$i}: duração inválida. A saída deve ser depois da entrada no mesmo dia, ou antes da entrada no relógio se o turno cruza meia-noite (ex.: entrada 21:01, saída 01:19 = dia seguinte).";
             }
         }
 
