@@ -136,7 +136,14 @@ $csrf_token_copy   = CSRFHelper::generateCSRFToken('form_copy_access_level_permi
                                 extract($accessLevel); ?>
                                 <tr>
                                     <td><?php echo $id; ?></td>
-                                    <td><?php echo $name; ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars((string) $name, ENT_QUOTES, 'UTF-8'); ?>
+                                        <?php
+                                        $paAuth = (int) ($permissions_authorized_count ?? 0);
+                                        $paTot = (int) ($permissions_pages_total ?? 0);
+                                        ?>
+                                        <span class="text-muted small ms-1" title="Páginas autorizadas / total de páginas vinculadas a este nível">(<?php echo $paAuth; ?>/<?php echo $paTot; ?>)</span>
+                                    </td>
                                     <td class="text-center">
 
                                         <?php
@@ -184,7 +191,8 @@ $csrf_token_copy   = CSRFHelper::generateCSRFToken('form_copy_access_level_permi
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h5 class="card-title mb-1"><b><?= $name ?></b></h5>
+                                        <?php $paAuthM = (int) ($permissions_authorized_count ?? 0); $paTotM = (int) ($permissions_pages_total ?? 0); ?>
+                                        <h5 class="card-title mb-1"><b><?= htmlspecialchars((string) $name, ENT_QUOTES, 'UTF-8') ?></b> <span class="text-muted small" title="Páginas autorizadas / total vinculadas">(<?= $paAuthM ?>/<?= $paTotM ?>)</span></h5>
                                         <div class="mb-1"><b>ID:</b> <?= $id ?></div>
                                     </div>
                                 </div>

@@ -37,11 +37,20 @@ class AccessLevelsRepository extends DbConnection
         $where = '';
         $params = [];
         if (!empty($filterName)) {
-            $where = 'WHERE name LIKE :name';
+            $where = 'WHERE al.name LIKE :name';
             $params[':name'] = '%' . $filterName . '%';
         }
-        $sql = 'SELECT id, name FROM adms_access_levels '
-            . $where . ' ORDER BY name ASC LIMIT :limit OFFSET :offset';
+        $sql = 'SELECT al.id, al.name, (
+                    SELECT COUNT(*)
+                    FROM adms_access_levels_pages alp
+                    WHERE alp.adms_access_level_id = al.id AND alp.permission = 1
+                ) AS permissions_authorized_count, (
+                    SELECT COUNT(*)
+                    FROM adms_access_levels_pages alpt
+                    WHERE alpt.adms_access_level_id = al.id
+                ) AS permissions_pages_total
+                FROM adms_access_levels al '
+            . $where . ' ORDER BY al.name ASC LIMIT :limit OFFSET :offset';
         $stmt = $this->getConnection()->prepare($sql);
         if (!empty($filterName)) {
             $stmt->bindValue(':name', $params[':name'], PDO::PARAM_STR);
