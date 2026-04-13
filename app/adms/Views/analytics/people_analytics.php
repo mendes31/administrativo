@@ -1079,16 +1079,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const paFilhosMap = { 'Com filhos (cadastro)': 'S', 'Sem filhos (cadastro)': 'N', 'Filhos não informado': '' };
 
     const estadoCivilLabels = <?= json_encode($this->data['estado_civil_labels'] ?? []) ?>;
-    const countryNamesPa = <?= json_encode(array_map(static fn ($i) => $i['name'] ?? '', $this->data['countries_options_pa'] ?? [])) ?>;
+    const countryNamesPa = <?= json_encode(array_map(static fn ($i) => $i['name'] ?? '', $this->data['countries_options_pa'] ?? []), JSON_UNESCAPED_UNICODE) ?>;
+    <?php
+    $paCountryFlags = [];
+    foreach (($this->data['countries_options_pa'] ?? []) as $paCode => $paRow) {
+        $paCountryFlags[$paCode] = (string) ($paRow['flag'] ?? '');
+    }
+    ?>
+    const countryFlagsPa = <?= json_encode($paCountryFlags, JSON_UNESCAPED_UNICODE) ?>;
+
+    function paCountryChartLabel(slug) {
+        if (slug === '_empty') {
+            return '🏳️ Não informado';
+        }
+        var flag = (countryFlagsPa && countryFlagsPa[slug]) ? String(countryFlagsPa[slug]).trim() + ' ' : '';
+        var name = (countryNamesPa && countryNamesPa[slug]) ? countryNamesPa[slug] : slug;
+        return flag + name;
+    }
 
     function paBarChartDrillSlug(canvasId, datasetLabel, slugData, mode) {
         const ctx = document.getElementById(canvasId);
         if (!ctx || !slugData || Object.keys(slugData).length === 0) return;
         const slugs = Object.keys(slugData);
         const labels = slugs.map(function (s) {
+            if (mode === 'estado') {
+                if (s === '_empty') return 'Não informado';
+                return estadoCivilLabels[s] || s;
+            }
+            if (mode === 'pais') {
+                return paCountryChartLabel(s);
+            }
             if (s === '_empty') return 'Não informado';
-            if (mode === 'estado') return estadoCivilLabels[s] || s;
-            if (mode === 'pais') return countryNamesPa[s] || s;
             return s;
         });
         const values = slugs.map(function (s) { return slugData[s]; });
