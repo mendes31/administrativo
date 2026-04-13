@@ -1082,11 +1082,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const countryNamesPa = <?= json_encode(array_map(static fn ($i) => $i['name'] ?? '', $this->data['countries_options_pa'] ?? []), JSON_UNESCAPED_UNICODE) ?>;
     <?php
     $paCountryFlags = [];
+    $paCountryChartColors = [];
     foreach (($this->data['countries_options_pa'] ?? []) as $paCode => $paRow) {
         $paCountryFlags[$paCode] = (string) ($paRow['flag'] ?? '');
+        $paCountryChartColors[$paCode] = (string) ($paRow['chart_color'] ?? '#6c757d');
     }
     ?>
     const countryFlagsPa = <?= json_encode($paCountryFlags, JSON_UNESCAPED_UNICODE) ?>;
+    const countryChartColorsPa = <?= json_encode($paCountryChartColors, JSON_UNESCAPED_UNICODE) ?>;
+
+    function paCountrySliceColors(slugs) {
+        return slugs.map(function (s, i) {
+            if (s === '_empty') {
+                return '#94a3b8';
+            }
+            if (countryChartColorsPa && countryChartColorsPa[s]) {
+                return countryChartColorsPa[s];
+            }
+            return paPalette[i % paPalette.length];
+        });
+    }
 
     function paCountryChartLabel(slug) {
         if (slug === '_empty') {
@@ -1114,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const values = slugs.map(function (s) { return slugData[s]; });
         const n = slugs.length;
-        const colors = paColors(n);
+        const colors = mode === 'pais' ? paCountrySliceColors(slugs) : paColors(n);
         const usePie = n <= PA_PIE_MAX_SLICES;
 
         function doDrillSlug(els) {
