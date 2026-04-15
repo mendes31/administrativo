@@ -2,7 +2,7 @@
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
     <?php if (!empty($this->data['show_my_calendar_card'])): ?>
         <?php $dashCalCssBase = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'); ?>
-        <link rel="stylesheet" href="<?php echo htmlspecialchars($dashCalCssBase, ENT_QUOTES, 'UTF-8'); ?>/public/adms/css/rooms-module.css?v=20260417">
+        <link rel="stylesheet" href="<?php echo htmlspecialchars($dashCalCssBase, ENT_QUOTES, 'UTF-8'); ?>/public/adms/css/rooms-module.css?v=20260418">
     <?php endif; ?>
     <div class="row justify-content-center">
         <div class="col-12 col-lg-11">
@@ -342,7 +342,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body birthday-modal-body">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 birthday-filter-bar">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 birthday-filter-bar" id="myCalDashFiltersWrap">
                         <span class="text-muted small">Mês e ano</span>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <select id="myCalDashMonth" class="form-select form-select-sm" style="max-width: 160px;">
@@ -358,14 +358,23 @@
                             <span id="myCalDashMonthCount" class="badge rounded-pill text-bg-light border birthday-month-count">0</span>
                         </div>
                     </div>
-                    <div class="rooms-module-page">
-                        <div class="rooms-calendar-scroll">
-                            <div class="outlook-calendar p-2">
-                                <div id="dashboardMyCalGrid" class="calendar-grid-outlook"></div>
+                    <div id="myCalDashMonthWrap">
+                        <div class="rooms-module-page">
+                            <div class="rooms-calendar-scroll">
+                                <div class="outlook-calendar p-2">
+                                    <div id="dashboardMyCalGrid" class="calendar-grid-outlook"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="text-center mt-3">
+                    <div id="myCalDashDayWrap" class="d-none">
+                        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="myCalDashDayBack" aria-label="Voltar ao calendário mensal">
+                            <i class="fas fa-arrow-left me-1"></i>Voltar ao calendário
+                        </button>
+                        <h6 class="fw-bold mb-3" id="myCalDashDayTitle"></h6>
+                        <div id="myCalDashDayList"></div>
+                    </div>
+                    <div class="text-center mt-3" id="myCalDashFooterWrap">
                         <a class="btn btn-outline-primary btn-sm" id="myCalDashFullPageLink" href="<?php echo htmlspecialchars($mcFullHrefModal, ENT_QUOTES, 'UTF-8'); ?>">
                             <i class="fas fa-external-link-alt me-1"></i>Abrir página completa
                         </a>
@@ -1392,6 +1401,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var currentMonthNumber = <?php echo (int) date('n'); ?>;
         var currentYearNumber = <?php echo (int) date('Y'); ?>;
         var myCalPageBase = <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/my-calendar', JSON_THROW_ON_ERROR); ?>;
+        var monthWrap = document.getElementById('myCalDashMonthWrap');
+        var dayWrap = document.getElementById('myCalDashDayWrap');
+        var filtersWrap = document.getElementById('myCalDashFiltersWrap');
+        var footerWrap = document.getElementById('myCalDashFooterWrap');
+        var dayTitleEl = document.getElementById('myCalDashDayTitle');
+        var dayListEl = document.getElementById('myCalDashDayList');
+        var dayBackBtn = document.getElementById('myCalDashDayBack');
 
         function pad2(n) { return String(n).length < 2 ? '0' + n : String(n); }
         function ymdPrefix(y, m) { return y + '-' + pad2(m) + '-'; }
@@ -1415,6 +1431,76 @@ document.addEventListener('DOMContentLoaded', function() {
         function esc(s) {
             if (!s) return '';
             return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+        function sourceLabel(src) {
+            if (src === 'personal') return 'Pessoal';
+            if (src === 'room_booking') return 'Reserva';
+            if (src === 'room_invite') return 'Convite';
+            if (src === 'company_event') return 'Evento';
+            return src || '—';
+        }
+        function formatDashDayTitle(dateStr) {
+            try {
+                var d = new Date(dateStr + 'T12:00:00');
+                if (isNaN(d.getTime())) return dateStr;
+                return d.toLocaleDateString('pt-PT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+        function showMyCalMonthView() {
+            if (monthWrap) monthWrap.classList.remove('d-none');
+            if (dayWrap) dayWrap.classList.add('d-none');
+            if (filtersWrap) filtersWrap.classList.remove('d-none');
+            if (footerWrap) footerWrap.classList.remove('d-none');
+        }
+        function showMyCalDayView() {
+            if (monthWrap) monthWrap.classList.add('d-none');
+            if (dayWrap) dayWrap.classList.remove('d-none');
+            if (filtersWrap) filtersWrap.classList.add('d-none');
+            if (footerWrap) footerWrap.classList.add('d-none');
+        }
+        function eventsForDateString(dateStr) {
+            return (myCalEvents || []).filter(function (ev) {
+                return (ev.start || '').substring(0, 10) === dateStr;
+            });
+        }
+        function openDashDayAgenda(dateStr) {
+            var evs = eventsForDateString(dateStr).slice().sort(function (a, b) {
+                return (a.start || '').localeCompare(b.start || '');
+            });
+            if (dayTitleEl) {
+                var t = formatDashDayTitle(dateStr);
+                dayTitleEl.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+            }
+            if (!dayListEl) return;
+            if (evs.length === 0) {
+                dayListEl.className = '';
+                dayListEl.innerHTML = '<p class="text-muted mb-0">Sem compromissos neste dia.</p>';
+            } else {
+                dayListEl.className = 'list-group';
+                var h = '';
+                evs.forEach(function (ev) {
+                    var t0 = (ev.start || '').substring(11, 16);
+                    var t1 = (ev.end || '').substring(11, 16);
+                    var tit = ev.title || '—';
+                    var src = ev.source || '';
+                    var badge = '<span class="badge bg-light text-dark border ms-2">' + esc(sourceLabel(src)) + '</span>';
+                    h += '<div class="list-group-item list-group-item-action py-3">';
+                    h += '<div class="d-flex flex-wrap align-items-start justify-content-between gap-2">';
+                    h += '<div><strong>' + esc(tit) + '</strong>' + badge + '</div>';
+                    h += '</div>';
+                    h += '<div class="small text-muted mt-1">' + esc(t0) + ' — ' + esc(t1) + '</div>';
+                    if (ev.href && ev.href !== '#') {
+                        h += '<a class="btn btn-sm btn-primary mt-2" href="' + encodeURI(ev.href) + '">' + esc(ev.label || 'Abrir') + '</a>';
+                    } else {
+                        h += '<span class="small text-muted mt-2 d-inline-block">Sem ligação disponível para este item.</span>';
+                    }
+                    h += '</div>';
+                });
+                dayListEl.innerHTML = h;
+            }
+            showMyCalDayView();
         }
         function renderMyCalDashGrid() {
             if (!gridEl || !monthSel || !yearSel) return;
@@ -1440,29 +1526,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 var dateStr = ymdPrefix(y, m) + pad2(day);
                 var evs = eventsOnDay(y, m, day);
                 var isToday = dateStr === todayStr;
-                html += '<div class="calendar-day-outlook' + (isToday ? ' today' : '') + '">';
+                var hasEvs = evs.length > 0;
+                var cellClass = 'calendar-day-outlook' + (isToday ? ' today' : '') + (hasEvs ? ' dashboard-my-cal-day-clickable' : '');
+                html += '<div class="' + cellClass + '" data-dash-cal-date="' + esc(dateStr) + '"' + (hasEvs ? ' role="button" tabindex="0"' : ' tabindex="-1"') + ' title="' + (hasEvs ? 'Ver agenda do dia' : 'Dia sem compromissos') + '">';
                 html += '<div class="calendar-day-number-outlook">' + day + '</div>';
-                if (evs.length) {
+                if (hasEvs) {
                     html += '<div class="calendar-bookings-preview">';
-                    for (var k = 0; k < Math.min(3, evs.length); k++) {
+                    for (var k = 0; k < Math.min(2, evs.length); k++) {
                         var ev = evs[k];
                         var t0 = (ev.start || '').substring(11, 16);
                         var t1 = (ev.end || '').substring(11, 16);
                         var tit = ev.title || '';
-                        var shortT = tit.length > 22 ? tit.substring(0, 20) + '…' : tit;
+                        var shortT = tit.length > 18 ? tit.substring(0, 16) + '…' : tit;
                         html += '<div class="booking-preview-item" title="' + esc(tit) + '"><span class="booking-time">' + esc(t0 + '–' + t1) + '</span> <span class="booking-title">' + esc(shortT) + '</span></div>';
                     }
-                    if (evs.length > 3) {
-                        html += '<div class="booking-preview-more">+ ' + (evs.length - 3) + ' mais</div>';
+                    if (evs.length > 2) {
+                        html += '<div class="booking-preview-more">+ ' + (evs.length - 2) + ' · toque para ver</div>';
                     }
                     html += '</div>';
-                    html += '<div class="mt-1 small">';
-                    evs.forEach(function (ev) {
-                        if (ev.href && ev.href !== '#') {
-                            html += '<div><a href="' + encodeURI(ev.href) + '" class="link-primary small">' + esc(ev.label || 'Abrir') + '</a></div>';
-                        }
-                    });
-                    html += '</div>';
+                    html += '<div class="small text-success fw-semibold mt-1" style="font-size:0.68rem;">' + evs.length + ' compromisso(s)</div>';
                 } else {
                     html += '<div class="calendar-day-empty text-muted small">—</div>';
                 }
@@ -1472,11 +1554,39 @@ document.addEventListener('DOMContentLoaded', function() {
             if (countEl) {
                 countEl.textContent = String(monthEventCount(y, m)) + ' no mês';
             }
+            gridEl.onclick = function (e) {
+                var cell = e.target.closest('[data-dash-cal-date]');
+                if (!cell || !gridEl.contains(cell)) return;
+                var ds = cell.getAttribute('data-dash-cal-date');
+                if (!ds) return;
+                var y2 = parseInt(yearSel.value || '0', 10);
+                var m2 = parseInt(monthSel.value || '0', 10);
+                openDashDayAgenda(ds);
+            };
+            gridEl.onkeydown = function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                var cell = e.target.closest('[data-dash-cal-date]');
+                if (!cell || !gridEl.contains(cell)) return;
+                e.preventDefault();
+                var ds = cell.getAttribute('data-dash-cal-date');
+                if (!ds) return;
+                openDashDayAgenda(ds);
+            };
         }
-        if (monthSel) monthSel.addEventListener('change', renderMyCalDashGrid);
-        if (yearSel) yearSel.addEventListener('change', renderMyCalDashGrid);
+        function onFilterChange() {
+            showMyCalMonthView();
+            renderMyCalDashGrid();
+        }
+        if (monthSel) monthSel.addEventListener('change', onFilterChange);
+        if (yearSel) yearSel.addEventListener('change', onFilterChange);
+        if (dayBackBtn) {
+            dayBackBtn.addEventListener('click', function () {
+                showMyCalMonthView();
+            });
+        }
         if (myCalModal) {
             myCalModal.addEventListener('shown.bs.modal', function () {
+                showMyCalMonthView();
                 if (monthSel) monthSel.value = String(currentMonthNumber);
                 if (yearSel) yearSel.value = String(currentYearNumber);
                 renderMyCalDashGrid();

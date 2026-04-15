@@ -247,7 +247,7 @@ class Dashboard
     /**
      * Itens da agenda para o modal do dashboard (vários anos), com URL principal já resolvida.
      *
-     * @return list<array{start: string, end: string, title: string, href: string, label: string}>
+     * @return list<array{start: string, end: string, title: string, href: string, label: string, source: string}>
      */
     private function buildMyCalendarDashboardEventsPayload(int $userId, array $menuPermission, \App\adms\Models\Repository\UserCalendarRepository $calRepo): array
     {
@@ -296,6 +296,7 @@ class Dashboard
                 'title' => $title,
                 'href' => $href,
                 'label' => $label,
+                'source' => $src,
             ];
         }
 

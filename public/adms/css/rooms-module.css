@@ -196,6 +196,11 @@
     margin-top: 1rem;
 }
 
+/* Dashboard: dia do calendário com compromissos abre vista «agenda do dia» */
+.rooms-module-page .calendar-day-outlook.dashboard-my-cal-day-clickable {
+    cursor: pointer;
+}
+
 /* Semana: coluna de horas + 7 dias — mesmo problema de min-width nas colunas fr */
 .rooms-module-page .week-calendar-grid,
 .rooms-module-page .week-calendar-grid-simple {
