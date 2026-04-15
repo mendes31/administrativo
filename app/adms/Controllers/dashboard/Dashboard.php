@@ -210,6 +210,7 @@ class Dashboard
         $this->data['show_aniversariantes_card'] = in_array('DashboardCardAniversariantes', $menuPermission, true);
         $this->data['show_tempo_empresa_card'] = in_array('DashboardCardTempoEmpresa', $menuPermission, true);
         $this->data['show_payroll_documents_card'] = in_array('DashboardCardPayrollDocuments', $menuPermission, true);
+        $this->data['show_my_calendar_card'] = in_array('DashboardCardMyCalendar', $menuPermission, true);
 
         $this->data['payroll_documents_total'] = 0;
         $this->data['payroll_documents_latest'] = [];
@@ -220,9 +221,84 @@ class Dashboard
             $this->data['payroll_documents_latest'] = array_slice($allDocs, 0, 3);
         }
 
+        $this->data['my_calendar_month_count'] = 0;
+        $this->data['my_calendar_modal_events_json'] = '[]';
+        if ($userId > 0 && !empty($this->data['show_my_calendar_card'])) {
+            try {
+                $calRepo = new \App\adms\Models\Repository\UserCalendarRepository();
+                $y = (int) date('Y');
+                $m = (int) date('n');
+                $this->data['my_calendar_month_count'] = $calRepo->countUnifiedAgendaInMonth($userId, $y, $m);
+                $payload = $this->buildMyCalendarDashboardEventsPayload($userId, $menuPermission, $calRepo);
+                $this->data['my_calendar_modal_events_json'] = json_encode(
+                    $payload,
+                    JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+                );
+            } catch (\Throwable) {
+                $this->data['my_calendar_modal_events_json'] = '[]';
+            }
+        }
+
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/dashboard/dashboard", $this->data);
         $loadView->loadView();
     }
-      
+
+    /**
+     * Itens da agenda para o modal do dashboard (vários anos), com URL principal já resolvida.
+     *
+     * @return list<array{start: string, end: string, title: string, href: string, label: string}>
+     */
+    private function buildMyCalendarDashboardEventsPayload(int $userId, array $menuPermission, \App\adms\Models\Repository\UserCalendarRepository $calRepo): array
+    {
+        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
+        $y = (int) date('Y');
+        $yMin = $y - 1;
+        $yMax = $y + 1;
+        $rangeStart = sprintf('%04d-01-01 00:00:00', $yMin);
+        $rangeEnd = sprintf('%04d-12-31 23:59:59', $yMax);
+        $items = $calRepo->listUnifiedAgenda($userId, $rangeStart, $rangeEnd);
+        $permViewBooking = in_array('ViewBooking', $menuPermission, true);
+        $permViewCompanyEvent = in_array('ViewCompanyEvent', $menuPermission, true);
+
+        $out = [];
+        foreach ($items as $row) {
+            $src = (string) ($row['source'] ?? '');
+            $id = (int) ($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $st = (string) ($row['start_datetime'] ?? '');
+            $en = (string) ($row['end_datetime'] ?? '');
+            $title = (string) ($row['title'] ?? '');
+            $href = '#';
+            $label = 'Detalhe';
+            if ($src === 'personal') {
+                $mon = strlen($st) >= 7 ? substr($st, 0, 7) : date('Y-m');
+                $href = $base . 'my-calendar?month=' . rawurlencode($mon) . '&edit=' . $id;
+                $label = 'Editar compromisso';
+            } elseif ($src === 'room_booking' && $permViewBooking) {
+                $href = $base . 'view-booking/' . $id;
+                $label = 'Ver reserva';
+            } elseif ($src === 'room_invite') {
+                $tok = trim((string) ($row['rsvp_token'] ?? ''));
+                if ($tok !== '') {
+                    $href = $base . 'meeting-booking-rsvp/' . rawurlencode($tok);
+                    $label = 'RSVP convite';
+                }
+            } elseif ($src === 'company_event' && $permViewCompanyEvent) {
+                $href = $base . 'view-company-event/' . $id;
+                $label = 'Evento / RSVP';
+            }
+            $out[] = [
+                'start' => $st,
+                'end' => $en,
+                'title' => $title,
+                'href' => $href,
+                'label' => $label,
+            ];
+        }
+
+        return $out;
+    }
 }

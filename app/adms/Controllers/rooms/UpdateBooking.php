@@ -102,6 +102,21 @@ class UpdateBooking
         $this->data['users'] = $usersRepo->getUsersForRoomParticipantPicker();
         $this->data['requestTypes'] = $requestTypesRepo->getAll(true);
 
+        $seriesId = trim((string) ($booking['recurrence_series_id'] ?? ''));
+        $this->data['edit_recurrence_series'] = $seriesId !== '';
+        $this->data['edit_recurrence_future_count'] = 0;
+        if ($seriesId !== '') {
+            $anchorTs = strtotime((string) ($booking['start_datetime'] ?? ''));
+            if ($anchorTs !== false) {
+                foreach ($bookingsRepo->listActiveInRecurrenceSeries($seriesId) as $r) {
+                    $ts = strtotime((string) ($r['start_datetime'] ?? ''));
+                    if ($ts !== false && $ts >= $anchorTs) {
+                        $this->data['edit_recurrence_future_count']++;
+                    }
+                }
+            }
+        }
+
         $pageElements = [
             'title_head' => 'Editar Reserva',
             'menu' => 'update-booking',
@@ -236,95 +251,173 @@ class UpdateBooking
             exit;
         }
 
-        $updateData = [
-            'room_id' => $roomId,
-            'title' => $title,
-            'description' => $description,
-            'start_datetime' => $startSql,
-            'end_datetime' => $endSql,
-            'has_additional_requests' => !empty($additionalRequests),
-        ];
-
         $conflictRedirect = false;
         $updateError = '';
 
+        $scope = trim((string) ($_POST['edit_recurrence_scope'] ?? 'this_occurrence'));
+        $seriesId = trim((string) ($booking['recurrence_series_id'] ?? ''));
+        $futureOpen = $scope === 'future_open' && $seriesId !== '';
+
         try {
-            if ($bookingsRepo->hasConflict($roomId, $startSql, $endSql, $id)) {
-                if ($waitlistRepo->hasNotifiedOverlap($roomId, $currentUserId, $startSql, $endSql)) {
-                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Este horário já foi reservado por outro utilizador. A vaga foi preenchida — escolha outro intervalo ou entre novamente na lista de espera.</div>';
-                } else {
-                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Atenção: a sala já está reservada neste horário. Pode entrar na lista de espera pelo calendário da sala.</div>';
-                }
+            $affectedRows = $this->buildAffectedBookingRowsForEdit($bookingsRepo, $booking, $id, $futureOpen);
+            if ($affectedRows === []) {
+                $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível determinar as ocorrências a atualizar.</div>';
                 $conflictRedirect = true;
             } else {
-                $bookingsRepo->update($id, $updateData);
-
-                // Reagendamento: o intervalo antigo fica livre — notificar lista de espera (opção B), como no cancelamento
-                $prevRoomId = (int)($booking['room_id'] ?? 0);
-                $slotChanged = $prevRoomId !== $roomId
-                    || strtotime((string)($booking['start_datetime'] ?? '')) !== strtotime($startSql)
-                    || strtotime((string)($booking['end_datetime'] ?? '')) !== strtotime($endSql);
-                if ($slotChanged) {
-                    try {
-                        $waitlistService->notifyAllWaitingOnCancellation([
-                            'room_id' => $prevRoomId,
-                            'start_datetime' => (string)($booking['start_datetime'] ?? ''),
-                            'end_datetime' => (string)($booking['end_datetime'] ?? ''),
-                            'room_name' => (string)($booking['room_name'] ?? 'Sala'),
-                        ]);
-                    } catch (\Throwable) {
-                        // não bloquear a edição da reserva
+                $anchorStartTs = strtotime((string) $booking['start_datetime']);
+                if ($anchorStartTs === false) {
+                    $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao processar a data da reserva.</div>';
+                    $conflictRedirect = true;
+                } else {
+                    $deltaStart = $startTimestamp - $anchorStartTs;
+                    $newDur = $endTimestamp - $startTimestamp;
+                    $planned = [];
+                    foreach ($affectedRows as $row) {
+                        $bid = (int) ($row['id'] ?? 0);
+                        if ($bid <= 0) {
+                            continue;
+                        }
+                        $rowStartTs = strtotime((string) ($row['start_datetime'] ?? ''));
+                        if ($rowStartTs === false) {
+                            continue;
+                        }
+                        $st = $rowStartTs + $deltaStart;
+                        $sNew = date('Y-m-d H:i:s', $st);
+                        $eNew = date('Y-m-d H:i:s', $st + $newDur);
+                        $planned[] = ['id' => $bid, 'row' => $row, 'new_start' => $sNew, 'new_end' => $eNew];
                     }
-                }
 
-                $postUpdateFailed = false;
-                try {
-                    $this->updateParticipants($id, $participants, $slotChanged);
-                    $this->updateAdditionalRequests($id, $additionalRequests);
+                    if ($planned === []) {
+                        $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível calcular as novas datas das ocorrências.</div>';
+                        $conflictRedirect = true;
+                    } else {
 
-                    // Participantes já sincronizados (incl. novos tokens); depois avisar reagendamento e pedir nova confirmação
-                    if ($slotChanged) {
-                        try {
-                            (new BookingParticipantNotificationHelper())->notifyParticipantsOfReschedule(
-                                $id,
-                                (int) ($booking['user_id'] ?? 0),
-                                (string) ($booking['start_datetime'] ?? ''),
-                                (string) ($booking['end_datetime'] ?? ''),
-                                $startSql,
-                                $endSql,
-                                (string) ($booking['room_name'] ?? 'Sala'),
-                                (string) ($room['name'] ?? 'Sala')
-                            );
-                        } catch (\Throwable) {
+                    $anyConflict = false;
+                    foreach ($planned as $p) {
+                        if ($bookingsRepo->hasConflict($roomId, $p['new_start'], $p['new_end'], $p['id'])) {
+                            $anyConflict = true;
+                            break;
                         }
                     }
+                    if ($anyConflict) {
+                        if ($futureOpen) {
+                            if ($waitlistRepo->hasNotifiedOverlap($roomId, $currentUserId, $startSql, $endSql)) {
+                                $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Conflito de horário na sala numa ou mais ocorrências (série). A vaga pode ter sido preenchida — ajuste as datas ou o âmbito (apenas esta ocorrência).</div>';
+                            } else {
+                                $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Conflito de horário na sala numa ou mais ocorrências da série. Verifique o calendário da sala ou altere só esta ocorrência.</div>';
+                            }
+                        } elseif ($waitlistRepo->hasNotifiedOverlap($roomId, $currentUserId, $startSql, $endSql)) {
+                            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Este horário já foi reservado por outro utilizador. A vaga foi preenchida — escolha outro intervalo ou entre novamente na lista de espera.</div>';
+                        } else {
+                            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Atenção: a sala já está reservada neste horário. Pode entrar na lista de espera pelo calendário da sala.</div>';
+                        }
+                        $conflictRedirect = true;
+                    } else {
+                        $notifyHelper = new BookingParticipantNotificationHelper();
+                        foreach ($planned as $p) {
+                            $row = $p['row'];
+                            $bid = $p['id'];
+                            $slotThisChanged = (int) ($row['room_id'] ?? 0) !== $roomId
+                                || strtotime((string) ($row['start_datetime'] ?? '')) !== strtotime($p['new_start'])
+                                || strtotime((string) ($row['end_datetime'] ?? '')) !== strtotime($p['new_end']);
+                            if ($slotThisChanged) {
+                                try {
+                                    $waitlistService->notifyAllWaitingOnCancellation([
+                                        'room_id' => (int) ($row['room_id'] ?? 0),
+                                        'start_datetime' => (string) ($row['start_datetime'] ?? ''),
+                                        'end_datetime' => (string) ($row['end_datetime'] ?? ''),
+                                        'room_name' => (string) ($row['room_name'] ?? 'Sala'),
+                                    ]);
+                                } catch (\Throwable) {
+                                }
+                            }
+                        }
 
-                    $roomLabel = (string)($room['name'] ?? 'Sala');
-                    $waitlistService->finalizeAfterBookingCreated(
-                        $roomId,
-                        $startSql,
-                        $endSql,
-                        $currentUserId,
-                        $id,
-                        $roomLabel
-                    );
-                } catch (\Throwable $e) {
-                    $postUpdateFailed = true;
-                    \App\adms\Helpers\GenerateLog::generateLog('error', 'UpdateBooking: UPDATE da reserva OK; falha nos passos seguintes: ' . $e->getMessage(), [
-                        'booking_id' => $id,
-                        'exception' => $e::class,
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                    ]);
-                }
+                        $postUpdateFailed = false;
+                        $txnStarted = false;
+                        try {
+                            if (count($planned) > 1) {
+                                $pdo->beginTransaction();
+                                $txnStarted = true;
+                            }
+                            foreach ($planned as $p) {
+                                $row = $p['row'];
+                                $bid = $p['id'];
+                                $upd = [
+                                    'room_id' => $roomId,
+                                    'title' => $title,
+                                    'description' => $description,
+                                    'start_datetime' => $p['new_start'],
+                                    'end_datetime' => $p['new_end'],
+                                ];
+                                if ($bid === $id) {
+                                    $upd['has_additional_requests'] = !empty($additionalRequests);
+                                }
+                                $bookingsRepo->update($bid, $upd);
 
-                if ($postUpdateFailed) {
-                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">A reserva foi atualizada, mas participantes, solicitações ou lista de espera não ficaram totalmente sincronizados. Pode editar de novo ou contactar o administrador (detalhe no log).</div>';
-                } else {
-                    $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva atualizada com sucesso!</div>';
+                                $slotRowChanged = (int) ($row['room_id'] ?? 0) !== $roomId
+                                    || strtotime((string) ($row['start_datetime'] ?? '')) !== strtotime($p['new_start'])
+                                    || strtotime((string) ($row['end_datetime'] ?? '')) !== strtotime($p['new_end']);
+                                $this->updateParticipants($bid, $participants, $slotRowChanged);
+                                if ($bid === $id) {
+                                    $this->updateAdditionalRequests($bid, $additionalRequests);
+                                }
+                                if ($slotRowChanged) {
+                                    try {
+                                        $notifyHelper->notifyParticipantsOfReschedule(
+                                            $bid,
+                                            (int) ($booking['user_id'] ?? 0),
+                                            (string) ($row['start_datetime'] ?? ''),
+                                            (string) ($row['end_datetime'] ?? ''),
+                                            $p['new_start'],
+                                            $p['new_end'],
+                                            (string) ($row['room_name'] ?? 'Sala'),
+                                            (string) ($room['name'] ?? 'Sala')
+                                        );
+                                    } catch (\Throwable) {
+                                    }
+                                }
+                                $roomLabel = (string) ($room['name'] ?? 'Sala');
+                                $waitlistService->finalizeAfterBookingCreated(
+                                    $roomId,
+                                    $p['new_start'],
+                                    $p['new_end'],
+                                    $currentUserId,
+                                    $bid,
+                                    $roomLabel
+                                );
+                            }
+                            if ($txnStarted) {
+                                $pdo->commit();
+                            }
+                        } catch (\Throwable $e) {
+                            if ($txnStarted && $pdo->inTransaction()) {
+                                $pdo->rollBack();
+                            }
+                            $postUpdateFailed = true;
+                            \App\adms\Helpers\GenerateLog::generateLog('error', 'UpdateBooking: falha ao atualizar reserva(s): ' . $e->getMessage(), [
+                                'booking_id' => $id,
+                                'exception' => $e::class,
+                                'file' => $e->getFile(),
+                                'line' => $e->getLine(),
+                            ]);
+                        }
+
+                        if ($postUpdateFailed) {
+                            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Não foi possível concluir a atualização de todas as ocorrências. Pode tentar de novo ou contactar o administrador (detalhe no log).</div>';
+                        } else {
+                            $n = count($planned);
+                            if ($futureOpen && $n > 1) {
+                                $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Foram atualizadas <strong>' . $n . '</strong> ocorrências em aberto desta série (a partir desta data).</div>';
+                            } else {
+                                $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Reserva atualizada com sucesso!</div>';
+                            }
+                        }
+                        header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $id);
+                        exit;
+                    }
+                    }
                 }
-                header('Location: ' . $_ENV['URL_ADM'] . 'view-booking/' . $id);
-                exit;
             }
         } catch (\Throwable $e) {
             $updateError = $e->getMessage();
@@ -340,6 +433,40 @@ class UpdateBooking
         $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro ao atualizar reserva: ' . htmlspecialchars($updateError) . '</div>';
         header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
         exit;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildAffectedBookingRowsForEdit(RoomBookingsRepository $bookingsRepo, array $booking, int $bookingId, bool $futureOpen): array
+    {
+        $seriesId = trim((string) ($booking['recurrence_series_id'] ?? ''));
+        if (!$futureOpen || $seriesId === '') {
+            $one = $bookingsRepo->getById($bookingId);
+
+            return $one ? [$one] : [];
+        }
+        $rows = $bookingsRepo->listActiveInRecurrenceSeries($seriesId);
+        $anchorTs = strtotime((string) ($booking['start_datetime'] ?? ''));
+        if ($anchorTs === false) {
+            $one = $bookingsRepo->getById($bookingId);
+
+            return $one ? [$one] : [];
+        }
+        $out = [];
+        foreach ($rows as $r) {
+            $ts = strtotime((string) ($r['start_datetime'] ?? ''));
+            if ($ts !== false && $ts >= $anchorTs) {
+                $out[] = $r;
+            }
+        }
+        if ($out === []) {
+            $one = $bookingsRepo->getById($bookingId);
+
+            return $one ? [$one] : [];
+        }
+
+        return $out;
     }
 
     /**

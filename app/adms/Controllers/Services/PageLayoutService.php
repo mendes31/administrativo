@@ -201,6 +201,7 @@ class PageLayoutService
             'DashboardCardAniversariantes',
             'DashboardCardTempoEmpresa',
             'DashboardCardPayrollDocuments',
+            'DashboardCardMyCalendar',
             'ListPolicies',
             'ListMovBetweenAccounts',
             'ListPages',
@@ -507,6 +508,7 @@ class PageLayoutService
             // Histórico de Emprego
             'UpdateEmploymentHistory',
             'CalendarConfig',
+            'MyCalendar',
         ];
 
         // Verificar se o usuário está logado

@@ -1,5 +1,9 @@
 <div class="container-fluid px-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
+    <?php if (!empty($this->data['show_my_calendar_card'])): ?>
+        <?php $dashCalCssBase = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'); ?>
+        <link rel="stylesheet" href="<?php echo htmlspecialchars($dashCalCssBase, ENT_QUOTES, 'UTF-8'); ?>/public/adms/css/rooms-module.css?v=20260417">
+    <?php endif; ?>
     <div class="row justify-content-center">
         <div class="col-12 col-lg-11">
             <div class="bg-success bg-gradient rounded-4 p-4 mb-4" style="margin-top: 2rem;">
@@ -163,6 +167,37 @@
                     </a>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($this->data['show_my_calendar_card'])): ?>
+                <?php
+                    $mcMonth = date('Y-m');
+                    $mcFullHref = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/my-calendar?month=' . rawurlencode($mcMonth);
+                ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="#"
+                       class="text-decoration-none flex-fill h-100"
+                       data-bs-toggle="modal"
+                       data-bs-target="#modalMeuCalendarioMes"
+                       onclick="event.preventDefault();">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100 position-relative" style="background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
+                            <button type="button"
+                                    class="btn btn-sm dashboard-card-more-btn"
+                                    aria-label="Abrir página completa do calendário"
+                                    title="Página completa"
+                                    onclick="event.preventDefault(); event.stopPropagation(); window.location.href='<?php echo htmlspecialchars($mcFullHref, ENT_QUOTES, 'UTF-8'); ?>';">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-calendar-check fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Meu calendário</h5>
+                            <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
+                                <?php echo (int) ($this->data['my_calendar_month_count'] ?? 0); ?> neste mês
+                            </div>
+                            <div class="text-muted text-center small">Apenas as suas atividades</div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -287,6 +322,59 @@
     </div>
 
     <?php include __DIR__ . '/partials/modal_eventos_mes.php'; ?>
+
+    <?php if (!empty($this->data['show_my_calendar_card'])): ?>
+    <?php
+        $mesesPtDash = [
+            1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
+            5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
+            9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
+        ];
+        $yDash = (int) date('Y');
+        $mDash = (int) date('n');
+        $mcFullHrefModal = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/my-calendar?month=' . rawurlencode(sprintf('%04d-%02d', $yDash, $mDash));
+    ?>
+    <div class="modal fade" id="modalMeuCalendarioMes" tabindex="-1" aria-labelledby="modalMeuCalendarioMesLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down modal-xl modal-dialog-centered">
+            <div class="modal-content birthday-modal-content">
+                <div class="modal-header birthday-modal-header">
+                    <h5 class="modal-title" id="modalMeuCalendarioMesLabel">Meu calendário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body birthday-modal-body">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 birthday-filter-bar">
+                        <span class="text-muted small">Mês e ano</span>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <select id="myCalDashMonth" class="form-select form-select-sm" style="max-width: 160px;">
+                                <?php foreach ($mesesPtDash as $mn => $mname): ?>
+                                    <option value="<?php echo (int) $mn; ?>" <?php echo $mn === $mDash ? 'selected' : ''; ?>><?php echo htmlspecialchars($mname); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select id="myCalDashYear" class="form-select form-select-sm" style="max-width: 110px;">
+                                <?php for ($yy = $yDash - 1; $yy <= $yDash + 1; $yy++): ?>
+                                    <option value="<?php echo (int) $yy; ?>" <?php echo $yy === $yDash ? 'selected' : ''; ?>><?php echo (int) $yy; ?></option>
+                                <?php endfor; ?>
+                            </select>
+                            <span id="myCalDashMonthCount" class="badge rounded-pill text-bg-light border birthday-month-count">0</span>
+                        </div>
+                    </div>
+                    <div class="rooms-module-page">
+                        <div class="rooms-calendar-scroll">
+                            <div class="outlook-calendar p-2">
+                                <div id="dashboardMyCalGrid" class="calendar-grid-outlook"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a class="btn btn-outline-primary btn-sm" id="myCalDashFullPageLink" href="<?php echo htmlspecialchars($mcFullHrefModal, ENT_QUOTES, 'UTF-8'); ?>">
+                            <i class="fas fa-external-link-alt me-1"></i>Abrir página completa
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Modal de aniversariantes de empresa -->
     <div class="modal fade" id="modalAniversariantesEmpresa" tabindex="-1" aria-labelledby="modalAniversariantesEmpresaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
@@ -1201,7 +1289,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php endforeach; ?>
         'modalAniversariantesDia',
         'modalAniversariantesMes',
-        'modalAniversariantesEmpresa'
+        'modalAniversariantesEmpresa'<?php if (!empty($this->data['show_my_calendar_card'])): ?>,
+        'modalMeuCalendarioMes'<?php endif; ?>
     ];
 
     dashboardManagedModalIds.forEach(function (id) {
@@ -1290,6 +1379,111 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     applyAniversariantesEmpresaMesFilter();
+
+    <?php if (!empty($this->data['show_my_calendar_card'])): ?>
+    (function () {
+        var myCalEvents = <?php echo $this->data['my_calendar_modal_events_json'] ?? '[]'; ?>;
+        var gridEl = document.getElementById('dashboardMyCalGrid');
+        var monthSel = document.getElementById('myCalDashMonth');
+        var yearSel = document.getElementById('myCalDashYear');
+        var countEl = document.getElementById('myCalDashMonthCount');
+        var fullLink = document.getElementById('myCalDashFullPageLink');
+        var myCalModal = document.getElementById('modalMeuCalendarioMes');
+        var currentMonthNumber = <?php echo (int) date('n'); ?>;
+        var currentYearNumber = <?php echo (int) date('Y'); ?>;
+        var myCalPageBase = <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/my-calendar', JSON_THROW_ON_ERROR); ?>;
+
+        function pad2(n) { return String(n).length < 2 ? '0' + n : String(n); }
+        function ymdPrefix(y, m) { return y + '-' + pad2(m) + '-'; }
+        function firstWeekdayMon(y, m) {
+            var d = new Date(y, m - 1, 1).getDay();
+            return d === 0 ? 7 : d;
+        }
+        function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+        function eventsOnDay(y, m, day) {
+            var p = ymdPrefix(y, m) + pad2(day);
+            return (myCalEvents || []).filter(function (ev) {
+                return (ev.start || '').substring(0, 10) === p;
+            });
+        }
+        function monthEventCount(y, m) {
+            var pre = ymdPrefix(y, m);
+            return (myCalEvents || []).filter(function (ev) {
+                return (ev.start || '').substring(0, 7) === pre.substring(0, 7);
+            }).length;
+        }
+        function esc(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+        function renderMyCalDashGrid() {
+            if (!gridEl || !monthSel || !yearSel) return;
+            var y = parseInt(yearSel.value || '0', 10);
+            var m = parseInt(monthSel.value || '0', 10);
+            if (!y || !m) return;
+            if (fullLink) {
+                fullLink.setAttribute('href', myCalPageBase + '?month=' + y + '-' + pad2(m));
+            }
+            var dim = daysInMonth(y, m);
+            var fw = firstWeekdayMon(y, m);
+            var html = '';
+            var headers = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+            headers.forEach(function (h) {
+                html += '<div class="calendar-day-header-outlook">' + esc(h) + '</div>';
+            });
+            for (var i = 1; i < fw; i++) {
+                html += '<div class="calendar-day-outlook other-month"></div>';
+            }
+            var today = new Date();
+            var todayStr = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+            for (var day = 1; day <= dim; day++) {
+                var dateStr = ymdPrefix(y, m) + pad2(day);
+                var evs = eventsOnDay(y, m, day);
+                var isToday = dateStr === todayStr;
+                html += '<div class="calendar-day-outlook' + (isToday ? ' today' : '') + '">';
+                html += '<div class="calendar-day-number-outlook">' + day + '</div>';
+                if (evs.length) {
+                    html += '<div class="calendar-bookings-preview">';
+                    for (var k = 0; k < Math.min(3, evs.length); k++) {
+                        var ev = evs[k];
+                        var t0 = (ev.start || '').substring(11, 16);
+                        var t1 = (ev.end || '').substring(11, 16);
+                        var tit = ev.title || '';
+                        var shortT = tit.length > 22 ? tit.substring(0, 20) + '…' : tit;
+                        html += '<div class="booking-preview-item" title="' + esc(tit) + '"><span class="booking-time">' + esc(t0 + '–' + t1) + '</span> <span class="booking-title">' + esc(shortT) + '</span></div>';
+                    }
+                    if (evs.length > 3) {
+                        html += '<div class="booking-preview-more">+ ' + (evs.length - 3) + ' mais</div>';
+                    }
+                    html += '</div>';
+                    html += '<div class="mt-1 small">';
+                    evs.forEach(function (ev) {
+                        if (ev.href && ev.href !== '#') {
+                            html += '<div><a href="' + encodeURI(ev.href) + '" class="link-primary small">' + esc(ev.label || 'Abrir') + '</a></div>';
+                        }
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<div class="calendar-day-empty text-muted small">—</div>';
+                }
+                html += '</div>';
+            }
+            gridEl.innerHTML = html;
+            if (countEl) {
+                countEl.textContent = String(monthEventCount(y, m)) + ' no mês';
+            }
+        }
+        if (monthSel) monthSel.addEventListener('change', renderMyCalDashGrid);
+        if (yearSel) yearSel.addEventListener('change', renderMyCalDashGrid);
+        if (myCalModal) {
+            myCalModal.addEventListener('shown.bs.modal', function () {
+                if (monthSel) monthSel.value = String(currentMonthNumber);
+                if (yearSel) yearSel.value = String(currentYearNumber);
+                renderMyCalDashGrid();
+            });
+        }
+    })();
+    <?php endif; ?>
 
     <?php foreach (array_slice($this->data['informativos'] ?? [], 0, 6) as $info): ?>
     const modalEl<?php echo $info['id']; ?> = document.getElementById('informativoModal<?php echo $info['id']; ?>');

@@ -12,10 +12,13 @@ use App\adms\Helpers\ImageHelper;
 <div class="container-fluid px-4">
     <h1 class="mt-4">Meu Perfil</h1>
     
-    <ol class="breadcrumb mb-4">
+    <ol class="breadcrumb mb-2">
         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
         <li class="breadcrumb-item active">Meu Perfil</li>
     </ol>
+    <?php if (!empty($this->data['buttonPermission']) && in_array('MyCalendar', $this->data['buttonPermission'], true)): ?>
+        <p class="mb-4"><a href="<?php echo $_ENV['URL_ADM']; ?>my-calendar" class="btn btn-sm btn-outline-primary"><i class="fas fa-calendar-alt me-1"></i>Meu calendário</a></p>
+    <?php endif; ?>
 
     <div class="row">
         <!-- Coluna da foto e informações básicas -->

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\rooms;
 
 use App\adms\Helpers\BookingParticipantNotificationHelper;
+use App\adms\Helpers\UserAgendaConflictHelper;
 use App\adms\Models\Repository\BookingParticipantsRepository;
 
 /**
@@ -65,6 +66,7 @@ final class MeetingBookingRsvp
                 'end' => (string) ($row['end_datetime'] ?? ''),
                 'accept_url' => $base . '/meeting-booking-rsvp/' . $t . '/accept',
                 'decline_url' => $base . '/meeting-booking-rsvp/' . $t . '/decline',
+                'my_calendar_url' => $base . '/my-calendar',
             ]);
             return;
         }
@@ -77,6 +79,35 @@ final class MeetingBookingRsvp
                 'success' => false,
             ]);
             return;
+        }
+
+        if ($action === 'accept') {
+            $participantUid = (int) ($row['user_id'] ?? 0);
+            $startB = (string) ($row['start_datetime'] ?? '');
+            $endB = (string) ($row['end_datetime'] ?? '');
+            $bookingId = (int) ($row['booking_id'] ?? 0);
+            $ack = isset($_GET['ack_conflict']) && (string) $_GET['ack_conflict'] === '1';
+            if ($participantUid > 0 && !$ack && $startB !== '' && $endB !== '') {
+                $overlaps = UserAgendaConflictHelper::findOverlaps($participantUid, $startB, $endB, $bookingId > 0 ? $bookingId : null);
+                if ($overlaps !== []) {
+                    $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+                    $t = rawurlencode($token);
+                    $this->outputPage('meeting_booking_rsvp_public', [
+                        'mode' => 'conflict',
+                        'heading' => 'Conflito de agenda',
+                        'title' => (string) ($row['booking_title'] ?? 'Reunião'),
+                        'room' => (string) ($row['room_name'] ?? ''),
+                        'start' => $startB,
+                        'end' => $endB,
+                        'overlaps' => $overlaps,
+                        'accept_force_url' => $base . '/meeting-booking-rsvp/' . $t . '/accept?ack_conflict=1',
+                        'decline_url' => $base . '/meeting-booking-rsvp/' . $t . '/decline',
+                        'my_calendar_url' => $base . '/my-calendar',
+                    ]);
+
+                    return;
+                }
+            }
         }
 
         $newStatus = $action === 'decline' ? 'declined' : 'confirmed';

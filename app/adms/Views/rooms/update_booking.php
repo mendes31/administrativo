@@ -95,6 +95,25 @@ $participantIds = $form['participant_ids'] ?? [];
                            class="form-control" required 
                            value="<?= htmlspecialchars($endDatetime) ?>">
                 </div>
+
+                <?php if (!empty($this->data['edit_recurrence_series']) && (int)($this->data['edit_recurrence_future_count'] ?? 0) > 1): ?>
+                <div class="col-12">
+                    <div class="alert alert-info mb-0">
+                        <strong><i class="fas fa-layer-group me-1"></i> Recorrência</strong>
+                        <p class="small mb-2 mt-1">Esta reserva faz parte de uma série (<?= (int)($this->data['edit_recurrence_future_count'] ?? 0) ?> ocorrência(s) em aberto a partir desta data). Indique se as alterações valem só para <strong>esta</strong> sessão ou para <strong>todas as seguintes</strong> na série.</p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="edit_recurrence_scope" id="scope_this" value="this_occurrence" checked>
+                            <label class="form-check-label" for="scope_this">Apenas esta ocorrência</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="edit_recurrence_scope" id="scope_future" value="future_open">
+                            <label class="form-check-label" for="scope_future">Esta e todas as ocorrências futuras em aberto (mesmo deslocamento de horário, sala e título)</label>
+                        </div>
+                    </div>
+                </div>
+                <?php else: ?>
+                <input type="hidden" name="edit_recurrence_scope" value="this_occurrence">
+                <?php endif; ?>
                 
                 <!-- Participantes -->
                 <div class="col-12">

@@ -110,7 +110,7 @@ class Profile
         $pageElements = [
             'title_head' => 'Meu Perfil',
             'menu' => 'profile',
-            'buttonPermission' => ['Profile'],
+            'buttonPermission' => ['Profile', 'MyCalendar'],
         ];
         
         $pageLayoutService = new PageLayoutService();

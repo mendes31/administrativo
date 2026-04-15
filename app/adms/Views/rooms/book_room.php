@@ -262,8 +262,8 @@ foreach ($bookings as $date => $dateBookings) {
                     <div class="col-md-8">
                         <h6 class="mb-3">Horários Disponíveis e Ocupados</h6>
                         <p id="day-slots-range-hint" class="small text-muted mb-2">
-                            <strong>Intervalo:</strong> clique no horário de <strong>início</strong>. Depois mantenha <strong>Ctrl</strong> (ou <strong>Cmd</strong> no Mac) e clique no horário de <strong>fim</strong> — ficam selecionados todos os blocos de 30 min entre os dois (o fim inclui o bloco clicado; ex.: início 10:00 e fim 13:00 → até 13:30).
-                            <span class="d-block mt-1"><strong>Só 1 hora:</strong> clique duas vezes no mesmo horário livre (sem Ctrl), ou use Ctrl no mesmo bloco do início.</span>
+                            <span class="d-block"><strong><i class="fas fa-mobile-alt me-1"></i>Telemóvel / tablet:</strong> toque no horário de <strong>início</strong>; em seguida toque no <strong>último</strong> bloco de 30 min do intervalo (mesmo dia). Não precisa de tecla Ctrl. Para reservar <strong>só 1 hora</strong>: toque duas vezes no mesmo horário livre.</span>
+                            <span class="d-block mt-2"><strong><i class="fas fa-desktop me-1"></i>Computador:</strong> clique no <strong>início</strong>; depois <strong>Ctrl</strong>+clique (ou <strong>Cmd</strong> no Mac) no <strong>fim</strong> — ficam todos os blocos de 30 min entre os dois (ex.: início 10:00 e fim 13:00 → até 13:30). <strong>Só 1 hora:</strong> duplo clique no mesmo horário livre ou Ctrl+clique no mesmo bloco do início.</span>
                         </p>
                         <div class="time-slots-container" id="time-slots-container">
                             <!-- Slots serão preenchidos via JavaScript -->
@@ -912,50 +912,42 @@ function validateContiguousRange(dateStr, times, holds, isToday, isPastDay) {
     return null;
 }
 
-function clearDaySlotAnchorClass() {
-    document.querySelectorAll('.time-slot-item.slot-range-anchor').forEach((el) => el.classList.remove('slot-range-anchor'));
+function slotRangeHelpShort() {
+    try {
+        if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
+            return '1.º toque: início · 2.º toque: fim do intervalo';
+        }
+    } catch (e) { /* empty */ }
+    return 'Clique = início · Ctrl+clique = fim do intervalo';
+}
+
+function slotRangeHoldOwnHint() {
+    try {
+        if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
+            return 'Intervalo: 1.º toque início · 2.º toque fim';
+        }
+    } catch (e) { /* empty */ }
+    return 'Início de intervalo ou Ctrl+fim';
 }
 
 /**
- * @param {MouseEvent} ev
- * @param {{ date: string, time: string, datetime: string, holds: object[], isToday: boolean, isPastDay: boolean }} ctx
+ * @param {string} date
+ * @param {string} anchorTime
+ * @param {string} endSlotTime
+ * @param {object[]} holds
  */
-function handleDaySlotRangeClick(ev, ctx) {
-    const { date, time, datetime, holds, isToday, isPastDay } = ctx;
-    const multi = ev.ctrlKey === true || ev.metaKey === true;
-
-    if (!multi) {
-        if (daySlotRangeAnchor && daySlotRangeAnchor.date === date && daySlotRangeAnchor.time === time) {
-            daySlotRangeAnchor = null;
-            clearDaySlotAnchorClass();
-            void openCreateBookingModal(datetime, null);
-            return;
-        }
-        daySlotRangeAnchor = { date, time, datetime };
-        clearDaySlotAnchorClass();
-        if (ev.currentTarget && ev.currentTarget.classList) {
-            ev.currentTarget.classList.add('slot-range-anchor');
-        }
-        return;
-    }
-
-    if (!daySlotRangeAnchor || daySlotRangeAnchor.date !== date) {
-        alert('Primeiro clique no horário de início (sem Ctrl). Depois use Ctrl+clique (ou Cmd+clique) no último horário do intervalo.');
-        return;
-    }
-
-    const times = enumerateSlotTimesBetween(daySlotRangeAnchor.time, time);
+function finishDaySlotRangeSelection(date, anchorTime, endSlotTime, holds, isToday, isPastDay) {
+    const times = enumerateSlotTimesBetween(anchorTime, endSlotTime);
     const err = validateContiguousRange(date, times, holds, isToday, isPastDay);
     if (err) {
         alert(err);
         return;
     }
-
     const tStart = times[0];
     const tEnd = times[times.length - 1];
     const startSql = `${date} ${tStart}:00`;
     let endSql;
-    if (times.length === 1 && daySlotRangeAnchor.time === time) {
+    if (times.length === 1 && anchorTime === endSlotTime) {
         const d0 = new Date((date + ' ' + tStart + ':00').replace(' ', 'T'));
         d0.setHours(d0.getHours() + 1);
         const y = d0.getFullYear();
@@ -971,6 +963,46 @@ function handleDaySlotRangeClick(ev, ctx) {
     daySlotRangeAnchor = null;
     clearDaySlotAnchorClass();
     void openCreateBookingModal(startSql, endSql);
+}
+
+function clearDaySlotAnchorClass() {
+    document.querySelectorAll('.time-slot-item.slot-range-anchor').forEach((el) => el.classList.remove('slot-range-anchor'));
+}
+
+/**
+ * @param {MouseEvent} ev
+ * @param {{ date: string, time: string, datetime: string, holds: object[], isToday: boolean, isPastDay: boolean }} ctx
+ */
+function handleDaySlotRangeClick(ev, ctx) {
+    const { date, time, datetime, holds, isToday, isPastDay } = ctx;
+    const multi = ev.ctrlKey === true || ev.metaKey === true;
+
+    if (multi) {
+        if (!daySlotRangeAnchor || daySlotRangeAnchor.date !== date) {
+            alert('Primeiro defina o horário de início. No computador use Ctrl+clique no fim; no telemóvel toque em seguida no último horário do intervalo (mesmo dia).');
+            return;
+        }
+        finishDaySlotRangeSelection(date, daySlotRangeAnchor.time, time, holds, isToday, isPastDay);
+        return;
+    }
+
+    if (daySlotRangeAnchor && daySlotRangeAnchor.date === date && daySlotRangeAnchor.time !== time) {
+        finishDaySlotRangeSelection(date, daySlotRangeAnchor.time, time, holds, isToday, isPastDay);
+        return;
+    }
+
+    if (daySlotRangeAnchor && daySlotRangeAnchor.date === date && daySlotRangeAnchor.time === time) {
+        daySlotRangeAnchor = null;
+        clearDaySlotAnchorClass();
+        void openCreateBookingModal(datetime, null);
+        return;
+    }
+
+    daySlotRangeAnchor = { date, time, datetime };
+    clearDaySlotAnchorClass();
+    if (ev.currentTarget && ev.currentTarget.classList) {
+        ev.currentTarget.classList.add('slot-range-anchor');
+    }
 }
 
 async function openDayTimeSlotsModal(date) {
@@ -1061,7 +1093,7 @@ async function openDayTimeSlotsModal(date) {
                     <div class="time-slot-time">${time}</div>
                     <div class="time-slot-info">
                         <div class="time-slot-title">A sua reserva em curso</div>
-                        <div class="time-slot-user">Início de intervalo ou Ctrl+fim</div>
+                        <div class="time-slot-user">${slotRangeHoldOwnHint()}</div>
                     </div>
                 `;
                 slotDiv.addEventListener('click', (ev) => {
@@ -1072,7 +1104,7 @@ async function openDayTimeSlotsModal(date) {
                     <div class="time-slot-time">${time}</div>
                     <div class="time-slot-info">
                         <div class="time-slot-title">Disponível</div>
-                        <div class="time-slot-user">Clique = início · Ctrl+clique = fim do intervalo</div>
+                        <div class="time-slot-user">${slotRangeHelpShort()}</div>
                     </div>
                 `;
                 slotDiv.addEventListener('click', (ev) => {
