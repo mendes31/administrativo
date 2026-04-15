@@ -46,6 +46,7 @@ class LoadPageAdm
      */
     private array $listPgPublic = [
         "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin",
+        "MeetingBookingRsvp",
         // Servidor de arquivos foi tornado público para evitar problemas
         // de permissão com avatares e imagens em dashboards, mantendo ainda
         // toda a validação de caminho dentro do próprio FileServer.
@@ -168,6 +169,8 @@ class LoadPageAdm
         "RoomsListRequestGroups", "RoomsCreateRequestGroup", "RoomsUpdateRequestGroup", "RoomsDeleteRequestGroup",
         // Reserva de Salas - Solicitações avulsas
         "RoomsListServiceRequests", "RoomsCreateServiceRequest", "RoomsViewServiceRequest", "RoomsUpdateServiceRequest", "RoomsDeleteServiceRequest",
+        "RoomsCalendarIntegrationSettings",
+        "RoomBookingSlotHold",
         // Gestão de Projetos
         "ListProjects", "CreateProject", "UpdateProject", "DeleteProject",
         // Gestão de Projetos - Grupos de Etapas

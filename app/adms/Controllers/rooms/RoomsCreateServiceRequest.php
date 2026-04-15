@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomServiceRequestNotificationHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\RoomBookingsRepository;
 use App\adms\Models\Repository\RoomRequestTypesRepository;
@@ -204,6 +205,12 @@ class RoomsCreateServiceRequest
         }
 
         $id = $repo->create($payload);
+
+        try {
+            (new RoomServiceRequestNotificationHelper())->notifyGroupOnNewRequest($id);
+        } catch (\Throwable) {
+            // Não impedir a criação se a notificação falhar
+        }
 
         $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Solicitação criada com sucesso!</div>';
         if ($linkedBooking) {

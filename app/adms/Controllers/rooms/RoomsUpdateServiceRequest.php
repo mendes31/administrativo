@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomServiceRequestNotificationHelper;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\RoomRequestTypesRepository;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
@@ -121,6 +122,11 @@ class RoomsUpdateServiceRequest
             $responsibleGroupId = (int)$type['default_responsible_group_id'];
         }
 
+        $prevGroupId = isset($original['responsible_group_id']) && $original['responsible_group_id'] !== null && $original['responsible_group_id'] !== ''
+            ? (int) $original['responsible_group_id']
+            : 0;
+        $newGroupId = $responsibleGroupId !== null ? (int) $responsibleGroupId : 0;
+
         $repo = new RoomServiceRequestsRepository();
         $repo->update((int)$original['id'], [
             'request_type_id' => $requestTypeId,
@@ -133,6 +139,14 @@ class RoomsUpdateServiceRequest
             'location' => trim($_POST['location'] ?? ($original['location'] ?? '')),
             'responsible_group_id' => $responsibleGroupId,
         ]);
+
+        if ($newGroupId > 0 && $newGroupId !== $prevGroupId) {
+            try {
+                (new RoomServiceRequestNotificationHelper())->notifyGroupOnTeamAssigned((int) $original['id']);
+            } catch (\Throwable) {
+                // não bloquear a gravação
+            }
+        }
 
         $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Solicitação atualizada com sucesso!</div>';
         header('Location: ' . $_ENV['URL_ADM'] . 'rooms-view-service-request/' . (int)$original['id']);

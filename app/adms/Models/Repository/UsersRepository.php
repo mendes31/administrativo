@@ -108,8 +108,14 @@ class UsersRepository extends DbConnection
             $params[':status'] = $filtros['status'];
         }
         if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
-            $where[] = 'usr.bloqueado = :bloqueado';
-            $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+            $isBlocked = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1 || $filtros['bloqueado'] === true
+                || $filtros['bloqueado'] === 'Sim');
+            if ($isBlocked) {
+                $where[] = "(usr.bloqueado = 'Sim' OR usr.bloqueado = 1 OR usr.bloqueado = '1')";
+            } else {
+                // ENUM Sim/Não (adms_users) ou legado 0/1; NULL = não bloqueado
+                $where[] = "(usr.bloqueado IS NULL OR usr.bloqueado IN ('Não', 'Nao', 'NÃO', 'não') OR usr.bloqueado IN (0, '0'))";
+            }
         }
         
         // Filtro de desligado (baseado em data_desligamento)
@@ -233,8 +239,14 @@ class UsersRepository extends DbConnection
             $params[':status'] = $filtros['status'];
         }
         if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
-            $where[] = 'usr.bloqueado = :bloqueado';
-            $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+            $isBlocked = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1 || $filtros['bloqueado'] === true
+                || $filtros['bloqueado'] === 'Sim');
+            if ($isBlocked) {
+                $where[] = "(usr.bloqueado = 'Sim' OR usr.bloqueado = 1 OR usr.bloqueado = '1')";
+            } else {
+                // ENUM Sim/Não (adms_users) ou legado 0/1; NULL = não bloqueado
+                $where[] = "(usr.bloqueado IS NULL OR usr.bloqueado IN ('Não', 'Nao', 'NÃO', 'não') OR usr.bloqueado IN (0, '0'))";
+            }
         }
 
         if (isset($filtros['desligado']) && $filtros['desligado'] !== '' && $filtros['desligado'] !== null) {
@@ -485,8 +497,14 @@ class UsersRepository extends DbConnection
             $params[':status'] = $filtros['status'];
         }
         if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '' && $filtros['bloqueado'] !== null) {
-            $where[] = 'usr.bloqueado = :bloqueado';
-            $params[':bloqueado'] = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1) ? 1 : 0;
+            $isBlocked = ($filtros['bloqueado'] == '1' || $filtros['bloqueado'] === 1 || $filtros['bloqueado'] === true
+                || $filtros['bloqueado'] === 'Sim');
+            if ($isBlocked) {
+                $where[] = "(usr.bloqueado = 'Sim' OR usr.bloqueado = 1 OR usr.bloqueado = '1')";
+            } else {
+                // ENUM Sim/Não (adms_users) ou legado 0/1; NULL = não bloqueado
+                $where[] = "(usr.bloqueado IS NULL OR usr.bloqueado IN ('Não', 'Nao', 'NÃO', 'não') OR usr.bloqueado IN (0, '0'))";
+            }
         }
         
         // Filtro de desligado (baseado em data_desligamento)
@@ -2102,6 +2120,32 @@ class UsersRepository extends DbConnection
         $stmt->execute();
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lista para convites em reservas de sala: não bloqueado, não desligado, exclui só utilizadores explicitamente "Inativo".
+     * Útil quando o campo status tem valores legados ou vazios e getAllUsersForSelect() devolve vazio.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getUsersForRoomParticipantPicker(): array
+    {
+        $sql = 'SELECT id, name, email, status
+                FROM adms_users
+                WHERE (bloqueado IS NULL OR bloqueado IN (\'Não\', \'Nao\', \'NÃO\', \'não\') OR bloqueado IN (0, \'0\'))
+                  AND (data_desligamento IS NULL)
+                  AND (
+                    status IS NULL
+                    OR TRIM(COALESCE(status, \'\')) = \'\'
+                    OR status = \'Ativo\'
+                    OR LOWER(TRIM(status)) = \'ativo\'
+                  )
+                  AND NOT (LOWER(TRIM(COALESCE(status, \'\'))) IN (\'inativo\', \'inactive\'))
+                ORDER BY name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**

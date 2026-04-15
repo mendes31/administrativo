@@ -4,8 +4,10 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\UserAccessHelper;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\MeetingRoomsRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
+use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -140,6 +142,10 @@ class BookRoom
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
         $this->data['book_room_current_user_id'] = (int)($_SESSION['user_id'] ?? 0);
         $this->data['book_room_is_super_admin'] = UserAccessHelper::hasFullSystemAccess();
+
+        $usersRepo = new UsersRepository();
+        $this->data['booking_users_for_select'] = $usersRepo->getUsersForRoomParticipantPicker();
+        $this->data['csrf_slot_hold'] = CSRFHelper::generateCSRFToken('form_book_room_slot_hold');
         
         $loadView = new LoadViewService('adms/Views/rooms/book_room', $this->data);
         $loadView->loadView();

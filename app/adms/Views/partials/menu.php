@@ -813,6 +813,11 @@ $menus = [
                         'permission' => 'AdminBookingDashboard'
                     ],
                     [
+                        'label' => 'Integração calendário',
+                        'url' => $_ENV['URL_ADM'] . 'rooms-calendar-integration-settings',
+                        'permission' => 'RoomsCalendarIntegrationSettings'
+                    ],
+                    [
                         'label' => 'Relatórios',
                         'url' => $_ENV['URL_ADM'] . 'booking-reports',
                         'permission' => 'BookingReports'

@@ -17,10 +17,10 @@ class RoomBookingsRepository extends DbConnection
     {
         $sql = "INSERT INTO adms_room_bookings 
                 (room_id, user_id, title, description, start_datetime, end_datetime, status,
-                 requires_approval, has_additional_requests)
+                 requires_approval, has_additional_requests, recurrence_series_id)
                 VALUES 
                 (:room_id, :user_id, :title, :description, :start_datetime, :end_datetime, :status,
-                 :requires_approval, :has_additional_requests)";
+                 :requires_approval, :has_additional_requests, :recurrence_series_id)";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':room_id', $data['room_id'], PDO::PARAM_INT);
@@ -32,6 +32,8 @@ class RoomBookingsRepository extends DbConnection
         $stmt->bindValue(':status', $data['status'] ?? 'pending');
         $stmt->bindValue(':requires_approval', $data['requires_approval'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':has_additional_requests', $data['has_additional_requests'] ?? false, PDO::PARAM_BOOL);
+        $rid = isset($data['recurrence_series_id']) ? trim((string) $data['recurrence_series_id']) : '';
+        $stmt->bindValue(':recurrence_series_id', $rid !== '' ? $rid : null, $rid !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
         
         $stmt->execute();
         
@@ -232,7 +234,7 @@ class RoomBookingsRepository extends DbConnection
             'title', 'description', 'start_datetime', 'end_datetime', 'status',
             'requires_approval', 'approved_by', 'approved_at', 'cancelled_by',
             'cancelled_at', 'cancellation_reason', 'reminder_sent', 'reminder_sent_at',
-            'has_additional_requests'
+            'has_additional_requests', 'recurrence_series_id',
         ];
         
         $updates = [];
@@ -305,12 +307,13 @@ class RoomBookingsRepository extends DbConnection
      */
     public function getParticipantsByBookingId(int $bookingId): array
     {
-        $sql = "SELECT bp.*, 
-                       u.name as user_name, u.email as user_email
+        $sql = "SELECT bp.*,
+                       COALESCE(u.name, bp.guest_name, '') AS user_name,
+                       COALESCE(u.email, bp.guest_email, '') AS user_email
                 FROM adms_booking_participants bp
-                INNER JOIN adms_users u ON bp.user_id = u.id
+                LEFT JOIN adms_users u ON bp.user_id = u.id
                 WHERE bp.booking_id = :booking_id
-                ORDER BY bp.is_organizer DESC, u.name ASC";
+                ORDER BY bp.is_organizer DESC, user_name ASC, bp.guest_email ASC";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
@@ -344,6 +347,42 @@ class RoomBookingsRepository extends DbConnection
         $stmt->execute();
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Ocorrências ativas da mesma série de recorrência.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveInRecurrenceSeries(string $seriesId): array
+    {
+        $seriesId = trim($seriesId);
+        if ($seriesId === '') {
+            return [];
+        }
+        $sql = 'SELECT rb.*, mr.name AS room_name
+                FROM adms_room_bookings rb
+                INNER JOIN adms_meeting_rooms mr ON rb.room_id = mr.id
+                WHERE rb.recurrence_series_id = :sid
+                  AND rb.status IN (\'pending\', \'confirmed\', \'in_progress\')
+                ORDER BY rb.start_datetime ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':sid', $seriesId, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Última ocorrência ativa da série (por data de início).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getLastActiveInRecurrenceSeries(string $seriesId): ?array
+    {
+        $rows = $this->listActiveInRecurrenceSeries($seriesId);
+
+        return $rows !== [] ? $rows[array_key_last($rows)] : null;
     }
 }
 

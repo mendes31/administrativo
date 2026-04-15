@@ -123,6 +123,8 @@ class LoadPageAdmAccessLevel
             'MarkNotificationsRead' => "\\App\\adms\\Controllers\\notifications\\MarkNotificationsRead",
             // Renovação de sessão (AJAX) — evita falha de rota se adms_pages estiver incompleto.
             'ExtendSession' => "\\App\\adms\\Controllers\\session\\ExtendSession",
+            // Reserva de salas: bloqueio temporário de intervalo (book-room).
+            'RoomBookingSlotHold' => "\\App\\adms\\Controllers\\rooms\\RoomBookingSlotHold",
         ];
         if (isset($internalAjaxMap[$this->urlController])) {
             $this->classLoad = $internalAjaxMap[$this->urlController];

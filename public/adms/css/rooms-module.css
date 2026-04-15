@@ -176,3 +176,30 @@
         width: 100%;
     }
 }
+
+/* Formulários e grelhas: evitar overflow horizontal em mobile */
+.rooms-module-page .row {
+    --bs-gutter-x: 0.75rem;
+}
+
+.rooms-module-page .row > [class*='col-'] {
+    min-width: 0;
+}
+
+.rooms-module-page .form-control,
+.rooms-module-page .form-select,
+.rooms-module-page textarea {
+    max-width: 100%;
+}
+
+.rooms-module-page .card .table {
+    margin-bottom: 0;
+}
+
+/* Modais do calendário: conteúdo não ultrapassa a viewport */
+@media (max-width: 575.98px) {
+    .rooms-module-page .modal-dialog {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+}

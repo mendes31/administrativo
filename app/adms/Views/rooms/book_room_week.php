@@ -320,8 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Abrir modal de lista de espera
                 openWaitlistModal(datetime);
             } else {
-                // Abrir modal de criar reserva
-                openCreateBookingModal(datetime);
+                void openCreateBookingModal(datetime);
             }
         });
     });

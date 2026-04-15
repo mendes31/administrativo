@@ -74,6 +74,14 @@ $statusText = match($booking['status'] ?? '') {
                             <strong><?= FormatHelper::formatDate($booking['end_datetime'] ?? '', 'd/m/Y H:i') ?></strong>
                         </dd>
 
+                        <?php if (!empty($booking['recurrence_series_id'])): ?>
+                            <dt class="col-sm-4">Recorrência:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-secondary">Série semanal</span>
+                                <span class="text-muted small ms-1"><?= (int) ($this->data['recurrence_series_count'] ?? 0) ?> ocorrência(s) ativa(s) nesta série</span>
+                            </dd>
+                        <?php endif; ?>
+
                         <?php if (!empty($booking['description'])): ?>
                             <dt class="col-sm-4">Descrição:</dt>
                             <dd class="col-sm-8"><?= nl2br(htmlspecialchars($booking['description'])) ?></dd>
@@ -116,6 +124,28 @@ $statusText = match($booking['status'] ?? '') {
                                 <i class="fas fa-times me-2"></i>Cancelar Reserva
                             </button>
                         <?php } ?>
+                        <?php
+                        $canExtendSeries = !empty($booking['recurrence_series_id'])
+                            && ($booking['status'] ?? '') !== 'cancelled'
+                            && ($booking['status'] ?? '') !== 'completed'
+                            && in_array('UpdateBooking', $this->data['buttonPermission'] ?? [], true);
+                        ?>
+                        <?php if ($canExtendSeries): ?>
+                            <div class="border rounded p-3 bg-light mt-2 w-100">
+                                <h6 class="mb-2"><i class="fas fa-redo-alt me-2"></i>Prolongar série semanal</h6>
+                                <p class="small text-muted mb-2">Cria novas ocorrências com o mesmo horário e participantes, até à data final indicada, apenas se não existir conflito na sala.</p>
+                                <form method="post" action="<?php echo $_ENV['URL_ADM']; ?>extend-booking-recurrence/<?= (int) ($booking['id'] ?? 0) ?>" class="row g-2 align-items-end">
+                                    <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_extend_booking_recurrence') ?>">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-0">Nova data final da série</label>
+                                        <input type="date" name="recurrence_extend_until" class="form-control" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <button type="submit" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>Prolongar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -124,6 +154,7 @@ $statusText = match($booking['status'] ?? '') {
             <?php if (!empty($participants)): ?>
                 <div class="mb-4">
                     <h5 class="border-bottom pb-2 mb-3">Participantes</h5>
+                    <p class="text-muted small">Os participantes recebem convite por e-mail e na central de notificações, com link para <strong>Aceitar</strong> ou <strong>Recusar</strong>. Aqui vê o estado de cada um.</p>
                     <div class="d-none d-md-block table-responsive">
                         <table class="table table-sm">
                             <thead>

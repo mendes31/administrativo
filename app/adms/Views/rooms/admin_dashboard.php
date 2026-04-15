@@ -26,6 +26,14 @@ $totalHours = $this->data['total_hours'] ?? 0;
     </div>
     
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+
+    <?php if (!empty($this->data['room_external_calendar_status'])): ?>
+        <div class="alert alert-light border small mb-4 mb-md-3" role="status">
+            <i class="fas fa-link text-muted me-2"></i>
+            <strong>Calendários externos:</strong>
+            <?= htmlspecialchars((string) $this->data['room_external_calendar_status']); ?>
+        </div>
+    <?php endif; ?>
     
     <!-- Cards de Estatísticas -->
     <div class="row mb-4">

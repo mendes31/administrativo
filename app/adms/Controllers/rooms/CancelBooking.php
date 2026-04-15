@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\rooms;
 
+use App\adms\Helpers\BookingParticipantNotificationHelper;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\RoomWaitlistService;
 use App\adms\Models\Repository\RoomBookingsRepository;
@@ -65,6 +66,15 @@ class CancelBooking
                 ];
 
                 $bookingsRepo->update($id, $updateData);
+
+                try {
+                    (new BookingParticipantNotificationHelper())->notifyParticipantsOfCancellation(
+                        $id,
+                        (int) ($booking['user_id'] ?? 0),
+                        $cancellationReason
+                    );
+                } catch (\Throwable) {
+                }
 
                 // Lista de espera (opção B): notificar todos com horário sobreposto à vaga libertada
                 try {

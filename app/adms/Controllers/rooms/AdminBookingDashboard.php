@@ -5,6 +5,7 @@ namespace App\adms\Controllers\rooms;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\MeetingRoomsRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
+use App\adms\Models\Services\RoomExternalCalendarConfig;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -95,6 +96,17 @@ class AdminBookingDashboard
         $this->data['recent_bookings'] = $recentBookings;
         $this->data['occupancy_rate'] = round($occupancyRate, 2);
         $this->data['total_hours'] = round($totalHours, 2);
+
+        $syncParts = [];
+        if (RoomExternalCalendarConfig::isOutlookSyncEnabled()) {
+            $syncParts[] = 'Outlook/Microsoft 365';
+        }
+        if (RoomExternalCalendarConfig::isGoogleSyncEnabled()) {
+            $syncParts[] = 'Google Calendar';
+        }
+        $this->data['room_external_calendar_status'] = $syncParts === []
+            ? 'Desativada. Configure em Salas → Administrativo → Integração calendário (Outlook / Google). A sincronização automática será ligada nessa fase.'
+            : 'Ativa (definição na aplicação): ' . implode(' e ', $syncParts) . '. A sincronização automática ainda será implementada no código.';
 
         $pageElements = [
             'title_head' => 'Dashboard de Reservas',

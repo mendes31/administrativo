@@ -50,6 +50,12 @@ class ViewBooking
         $this->data['booking'] = $booking;
         $this->data['participants'] = $bookingsRepo->getParticipantsByBookingId($id);
 
+        $seriesId = trim((string) ($booking['recurrence_series_id'] ?? ''));
+        $this->data['recurrence_series_count'] = 0;
+        if ($seriesId !== '') {
+            $this->data['recurrence_series_count'] = count($bookingsRepo->listActiveInRecurrenceSeries($seriesId));
+        }
+
         // Solicitações adicionais (modelo legado em adms_booking_additional_requests)
         $requestsRepo = new BookingAdditionalRequestsRepository();
         $this->data['additionalRequests'] = $requestsRepo->getByBookingId($id);

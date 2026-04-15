@@ -261,6 +261,10 @@ foreach ($bookings as $date => $dateBookings) {
                 <div class="row">
                     <div class="col-md-8">
                         <h6 class="mb-3">Horários Disponíveis e Ocupados</h6>
+                        <p id="day-slots-range-hint" class="small text-muted mb-2">
+                            <strong>Intervalo:</strong> clique no horário de <strong>início</strong>. Depois mantenha <strong>Ctrl</strong> (ou <strong>Cmd</strong> no Mac) e clique no horário de <strong>fim</strong> — ficam selecionados todos os blocos de 30 min entre os dois (o fim inclui o bloco clicado; ex.: início 10:00 e fim 13:00 → até 13:30).
+                            <span class="d-block mt-1"><strong>Só 1 hora:</strong> clique duas vezes no mesmo horário livre (sem Ctrl), ou use Ctrl no mesmo bloco do início.</span>
+                        </p>
                         <div class="time-slots-container" id="time-slots-container">
                             <!-- Slots serão preenchidos via JavaScript -->
                         </div>
@@ -287,6 +291,7 @@ foreach ($bookings as $date => $dateBookings) {
                 <input type="hidden" name="room_id" value="<?= $room['id'] ?>">
                 <input type="hidden" name="start_datetime" id="modal_start_datetime">
                 <input type="hidden" name="end_datetime" id="modal_end_datetime">
+                <input type="hidden" name="slot_hold_token" id="slot_hold_token" value="">
                 
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title" id="createBookingModalLabel">
@@ -314,6 +319,47 @@ foreach ($bookings as $date => $dateBookings) {
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
                         <textarea name="description" class="form-control" rows="2" placeholder="Descreva o objetivo da reunião..."></textarea>
+                    </div>
+                    <div class="mb-3 border-top pt-3">
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="recurrence_enabled" value="1" id="quick_recurrence_enabled" class="form-check-input">
+                            <label class="form-check-label" for="quick_recurrence_enabled">Repetir <strong>semanalmente</strong> até…</label>
+                        </div>
+                        <label class="form-label" for="quick_recurrence_until">Data final da série</label>
+                        <input type="date" name="recurrence_until" id="quick_recurrence_until" class="form-control" style="max-width: 280px">
+                        <small class="text-muted d-block mt-1">Todas as datas são validadas na gravação; a série só é criada se não houver conflitos.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Participantes (utilizadores internos)</label>
+                        <?php
+                        $bookingUsers = $this->data['booking_users_for_select'] ?? [];
+                        $sessUid = (int)($_SESSION['user_id'] ?? 0);
+                        $internalInviteCount = 0;
+                        foreach ($bookingUsers as $_bu) {
+                            if ((int)($_bu['id'] ?? 0) !== $sessUid) {
+                                $internalInviteCount++;
+                            }
+                        }
+                        ?>
+                        <select name="participants[]" id="quick_participants" class="form-select" multiple size="5"<?= $internalInviteCount === 0 ? ' disabled' : '' ?>>
+                            <?php foreach ($bookingUsers as $u):
+                                if ((int)($u['id'] ?? 0) === $sessUid) {
+                                    continue;
+                                }
+                            ?>
+                                <option value="<?= (int)($u['id'] ?? 0) ?>"><?= htmlspecialchars((string)($u['name'] ?? '')) ?><?php if (!empty($u['email'])): ?> (<?= htmlspecialchars((string)$u['email']) ?>)<?php endif; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if ($internalInviteCount === 0): ?>
+                            <small class="text-muted d-block mt-1">Não há outros utilizadores ativos para convidar (ou só existe a sua conta).</small>
+                        <?php else: ?>
+                            <small class="text-muted">Mantenha Ctrl (Cmd no Mac) para selecionar vários.</small>
+                        <?php endif; ?>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Participantes externos (e-mail)</label>
+                        <textarea name="participant_guest_emails" id="quick_participant_guest_emails" class="form-control" rows="2" placeholder="Um e-mail por linha, ou separados por vírgula."></textarea>
+                        <small class="text-muted">Recebem convite por e-mail com link para aceitar ou recusar.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -531,6 +577,28 @@ foreach ($bookings as $date => $dateBookings) {
     cursor: not-allowed;
 }
 
+.time-slot-item.hold-other {
+    background: #fff3cd;
+    border-color: #ffc107;
+    cursor: not-allowed;
+}
+
+.time-slot-item.hold-other:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.time-slot-item.hold-own {
+    background: #e7f1ff;
+    border-color: #0d6efd;
+}
+
+.time-slot-item.slot-range-anchor {
+    outline: 3px solid #0d6efd;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
 .time-slot-time {
     font-weight: 600;
     min-width: 80px;
@@ -609,6 +677,103 @@ $permCancelBookRoom = in_array('CancelBooking', $bpBookRoom, true);
 ?>
 const permUpdateBooking = <?= $permUpdateBookRoom ? 'true' : 'false' ?>;
 const permCancelBooking = <?= $permCancelBookRoom ? 'true' : 'false' ?>;
+const slotHoldCsrf = <?= json_encode((string)($this->data['csrf_slot_hold'] ?? '')) ?>;
+const slotHoldUrl = urlAdm + 'room-booking-slot-hold';
+
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const cb = document.getElementById('quick_recurrence_enabled');
+        const dt = document.getElementById('quick_recurrence_until');
+        if (!cb || !dt) return;
+        const sync = function () {
+            dt.required = !!cb.checked;
+            if (!cb.checked) dt.value = '';
+        };
+        cb.addEventListener('change', sync);
+        sync();
+    });
+})();
+
+let activeSlotHoldToken = '';
+let slotHoldRenewTimer = null;
+
+/** @type {{ date: string, time: string, datetime: string } | null} */
+let daySlotRangeAnchor = null;
+
+function parseSqlDateTime(s) {
+    if (!s) return null;
+    const d = new Date(String(s).replace(' ', 'T'));
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function intervalsOverlap(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && bStart < aEnd;
+}
+
+function slotHalfHourRange(dateStr, timeHHMM) {
+    const start = new Date((dateStr + ' ' + timeHHMM + ':00').replace(' ', 'T'));
+    const end = new Date(start.getTime() + 30 * 60 * 1000);
+    return { start, end };
+}
+
+function holdBlocksSlot(holds, dateStr, timeHHMM) {
+    const r = slotHalfHourRange(dateStr, timeHHMM);
+    for (const h of holds) {
+        const hs = parseSqlDateTime(h.start_datetime);
+        const he = parseSqlDateTime(h.end_datetime);
+        if (!hs || !he) continue;
+        if (intervalsOverlap(r.start, r.end, hs, he)) {
+            return h;
+        }
+    }
+    return null;
+}
+
+async function postSlotHold(bodyObj) {
+    const fd = new FormData();
+    fd.append('csrf_token', slotHoldCsrf);
+    Object.keys(bodyObj).forEach((k) => fd.append(k, bodyObj[k]));
+    const res = await fetch(slotHoldUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        body: fd
+    });
+    return res.json();
+}
+
+function clearSlotHoldRenew() {
+    if (slotHoldRenewTimer) {
+        clearInterval(slotHoldRenewTimer);
+        slotHoldRenewTimer = null;
+    }
+}
+
+async function releaseActiveSlotHold() {
+    clearSlotHoldRenew();
+    const tok = activeSlotHoldToken;
+    activeSlotHoldToken = '';
+    const hid = document.getElementById('slot_hold_token');
+    if (hid) hid.value = '';
+    if (!tok) return;
+    try {
+        await postSlotHold({ action: 'release', hold_token: tok });
+    } catch (e) { /* ignorar */ }
+}
+
+function startSlotHoldRenew() {
+    clearSlotHoldRenew();
+    slotHoldRenewTimer = setInterval(async () => {
+        const tok = activeSlotHoldToken;
+        if (!tok) return;
+        try {
+            const j = await postSlotHold({ action: 'renew', hold_token: tok });
+            if (!j.success) {
+                await releaseActiveSlotHold();
+            }
+        } catch (e) { /* ignorar */ }
+    }, 45000);
+}
 
 function canManageOwnBooking(booking) {
     const st = booking.status || '';
@@ -637,10 +802,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 clickTimer = null;
                 
                 // Abrir modal de horários do dia
-                openDayTimeSlotsModal(date);
+                void openDayTimeSlotsModal(date);
             }
         });
     });
+
+    const qm = document.getElementById('createBookingModal');
+    if (qm) {
+        qm.addEventListener('hidden.bs.modal', function () {
+            void releaseActiveSlotHold();
+        });
+    }
+
+    const dayModal = document.getElementById('dayTimeSlotsModal');
+    if (dayModal) {
+        dayModal.addEventListener('hidden.bs.modal', function () {
+            daySlotRangeAnchor = null;
+            document.querySelectorAll('.time-slot-item.slot-range-anchor').forEach((el) => el.classList.remove('slot-range-anchor'));
+        });
+    }
     
     // Sincronizar campos de data/hora no formulário de reserva
     document.getElementById('modal_start_datetime_display')?.addEventListener('change', function() {
@@ -666,7 +846,137 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function openDayTimeSlotsModal(date) {
+function timeToMinutes(timeHHMM) {
+    const p = String(timeHHMM || '').split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1] || '0', 10);
+}
+
+/** Lista ordenada de chaves "HH:MM" em timeSlots entre tMin e tMax (inclusive). */
+function enumerateSlotTimesBetween(tMin, tMax) {
+    const lo = Math.min(timeToMinutes(tMin), timeToMinutes(tMax));
+    const hi = Math.max(timeToMinutes(tMin), timeToMinutes(tMax));
+    const out = [];
+    timeSlots.forEach((t) => {
+        const m = timeToMinutes(t);
+        if (m >= lo && m <= hi) {
+            out.push(t);
+        }
+    });
+    return out;
+}
+
+/** Fim do bloco de 30 min que começa em timeHHMM → string "YYYY-MM-DD HH:MM:00". */
+function endOfHalfHourBlock(dateStr, timeHHMM) {
+    const dt = new Date((dateStr + ' ' + timeHHMM + ':00').replace(' ', 'T'));
+    dt.setMinutes(dt.getMinutes() + 30);
+    const y = dt.getFullYear();
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const d = String(dt.getDate()).padStart(2, '0');
+    const h = String(dt.getHours()).padStart(2, '0');
+    const mi = String(dt.getMinutes()).padStart(2, '0');
+    return `${y}-${mo}-${d} ${h}:${mi}:00`;
+}
+
+function isSlotPast(dateStr, timeHHMM, isToday, isPastDay) {
+    if (isPastDay) return true;
+    const dt = new Date((dateStr + ' ' + timeHHMM + ':00').replace(' ', 'T'));
+    return isToday && dt < new Date();
+}
+
+/**
+ * @param {string[]} times
+ * @returns {string|null} mensagem de erro ou null se ok
+ */
+function validateContiguousRange(dateStr, times, holds, isToday, isPastDay) {
+    if (times.length === 0) {
+        return 'Selecione pelo menos um horário.';
+    }
+    const sorted = [...times].sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+    for (let i = 1; i < sorted.length; i++) {
+        if (timeToMinutes(sorted[i]) - timeToMinutes(sorted[i - 1]) !== 30) {
+            return 'Os horários selecionados têm de ser consecutivos (sem buracos).';
+        }
+    }
+    for (const t of sorted) {
+        if (isSlotPast(dateStr, t, isToday, isPastDay)) {
+            return 'O intervalo inclui horários no passado.';
+        }
+        if (bookedSlotsData[dateStr]?.[t]) {
+            return 'O intervalo inclui horários já reservados.';
+        }
+        const hh = holdBlocksSlot(holds, dateStr, t);
+        if (hh && parseInt(hh.user_id, 10) !== bookRoomCurrentUserId) {
+            return 'O intervalo inclui um horário em reserva por outro utilizador.';
+        }
+    }
+    return null;
+}
+
+function clearDaySlotAnchorClass() {
+    document.querySelectorAll('.time-slot-item.slot-range-anchor').forEach((el) => el.classList.remove('slot-range-anchor'));
+}
+
+/**
+ * @param {MouseEvent} ev
+ * @param {{ date: string, time: string, datetime: string, holds: object[], isToday: boolean, isPastDay: boolean }} ctx
+ */
+function handleDaySlotRangeClick(ev, ctx) {
+    const { date, time, datetime, holds, isToday, isPastDay } = ctx;
+    const multi = ev.ctrlKey === true || ev.metaKey === true;
+
+    if (!multi) {
+        if (daySlotRangeAnchor && daySlotRangeAnchor.date === date && daySlotRangeAnchor.time === time) {
+            daySlotRangeAnchor = null;
+            clearDaySlotAnchorClass();
+            void openCreateBookingModal(datetime, null);
+            return;
+        }
+        daySlotRangeAnchor = { date, time, datetime };
+        clearDaySlotAnchorClass();
+        if (ev.currentTarget && ev.currentTarget.classList) {
+            ev.currentTarget.classList.add('slot-range-anchor');
+        }
+        return;
+    }
+
+    if (!daySlotRangeAnchor || daySlotRangeAnchor.date !== date) {
+        alert('Primeiro clique no horário de início (sem Ctrl). Depois use Ctrl+clique (ou Cmd+clique) no último horário do intervalo.');
+        return;
+    }
+
+    const times = enumerateSlotTimesBetween(daySlotRangeAnchor.time, time);
+    const err = validateContiguousRange(date, times, holds, isToday, isPastDay);
+    if (err) {
+        alert(err);
+        return;
+    }
+
+    const tStart = times[0];
+    const tEnd = times[times.length - 1];
+    const startSql = `${date} ${tStart}:00`;
+    let endSql;
+    if (times.length === 1 && daySlotRangeAnchor.time === time) {
+        const d0 = new Date((date + ' ' + tStart + ':00').replace(' ', 'T'));
+        d0.setHours(d0.getHours() + 1);
+        const y = d0.getFullYear();
+        const mo = String(d0.getMonth() + 1).padStart(2, '0');
+        const d = String(d0.getDate()).padStart(2, '0');
+        const h = String(d0.getHours()).padStart(2, '0');
+        const mi = String(d0.getMinutes()).padStart(2, '0');
+        endSql = `${y}-${mo}-${d} ${h}:${mi}:00`;
+    } else {
+        endSql = endOfHalfHourBlock(date, tEnd);
+    }
+
+    daySlotRangeAnchor = null;
+    clearDaySlotAnchorClass();
+    void openCreateBookingModal(startSql, endSql);
+}
+
+async function openDayTimeSlotsModal(date) {
+    daySlotRangeAnchor = null;
+    clearDaySlotAnchorClass();
+
     const dateObj = new Date(date + 'T00:00:00');
     const dateText = dateObj.toLocaleDateString('pt-BR', {
         weekday: 'long',
@@ -677,6 +987,14 @@ function openDayTimeSlotsModal(date) {
     
     document.getElementById('modal-selected-date-text').textContent = dateText.charAt(0).toUpperCase() + dateText.slice(1);
     
+    let holds = [];
+    try {
+        const hj = await postSlotHold({ action: 'list', room_id: String(roomId), date });
+        if (hj.success && Array.isArray(hj.holds)) {
+            holds = hj.holds;
+        }
+    } catch (e) { /* ignorar */ }
+
     // Preencher slots de horário
     const container = document.getElementById('time-slots-container');
     container.innerHTML = '';
@@ -719,15 +1037,47 @@ function openDayTimeSlotsModal(date) {
             `;
             slotDiv.addEventListener('click', () => openWaitlistModal(datetime));
         } else {
-            slotDiv.innerHTML = `
-                <div class="time-slot-time">${time}</div>
-                <div class="time-slot-info">
-                    <div class="time-slot-title">Disponível</div>
-                    <div class="time-slot-user">Clique para reservar</div>
-                </div>
-            `;
-            if (!isPastTime) {
-                slotDiv.addEventListener('click', () => openCreateBookingModal(datetime));
+            const holdHit = !isPastTime ? holdBlocksSlot(holds, date, time) : null;
+            const holdUid = holdHit ? parseInt(holdHit.user_id, 10) : 0;
+            const holdName = holdHit ? String(holdHit.user_display_name || 'Outro utilizador') : '';
+
+            if (!isPastTime && holdHit && holdUid !== bookRoomCurrentUserId) {
+                slotDiv.classList.remove('available');
+                slotDiv.classList.add('hold-other');
+                slotDiv.innerHTML = `
+                    <div class="time-slot-time">${time}</div>
+                    <div class="time-slot-info">
+                        <div class="time-slot-title">Em reserva</div>
+                        <div class="time-slot-user">Por: ${escapeHtml(holdName)}</div>
+                    </div>
+                `;
+                slotDiv.addEventListener('click', () => {
+                    alert('Este horário está a ser reservado por: ' + holdName);
+                });
+            } else if (!isPastTime && holdHit && holdUid === bookRoomCurrentUserId) {
+                slotDiv.classList.remove('available');
+                slotDiv.classList.add('hold-own');
+                slotDiv.innerHTML = `
+                    <div class="time-slot-time">${time}</div>
+                    <div class="time-slot-info">
+                        <div class="time-slot-title">A sua reserva em curso</div>
+                        <div class="time-slot-user">Início de intervalo ou Ctrl+fim</div>
+                    </div>
+                `;
+                slotDiv.addEventListener('click', (ev) => {
+                    handleDaySlotRangeClick(ev, { date, time, datetime, holds, isToday, isPastDay: isPast });
+                });
+            } else {
+                slotDiv.innerHTML = `
+                    <div class="time-slot-time">${time}</div>
+                    <div class="time-slot-info">
+                        <div class="time-slot-title">Disponível</div>
+                        <div class="time-slot-user">Clique = início · Ctrl+clique = fim do intervalo</div>
+                    </div>
+                `;
+                slotDiv.addEventListener('click', (ev) => {
+                    handleDaySlotRangeClick(ev, { date, time, datetime, holds, isToday, isPastDay: isPast });
+                });
             }
         }
         
@@ -775,14 +1125,26 @@ function openDayTimeSlotsModal(date) {
     modal.show();
 }
 
-function openCreateBookingModal(datetime) {
+function sqlDatetimeToLocalInput(sqlDt) {
+    const m = String(sqlDt || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+    if (!m) return '';
+    return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`;
+}
+
+/**
+ * @param {string} datetime início "YYYY-MM-DD HH:MM:00"
+ * @param {string|null} endOverride fim "YYYY-MM-DD HH:MM:00" ou null para +1 h
+ */
+async function openCreateBookingModal(datetime, endOverride = null) {
+    await releaseActiveSlotHold();
+
     // Parse datetime como hora local (YYYY-MM-DD HH:MM:SS)
     const [datePart, timePart] = datetime.split(' ');
     const [year, month, day] = datePart.split('-');
     const [hours, minutes] = timePart.split(':');
     
     // Criar objeto Date usando hora local (não UTC)
-    const dateTimeObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
+    const dateTimeObj = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), parseInt(hours, 10), parseInt(minutes, 10));
     
     // Formatar para datetime-local (YYYY-MM-DDTHH:MM)
     const localYear = dateTimeObj.getFullYear();
@@ -794,24 +1156,73 @@ function openCreateBookingModal(datetime) {
     
     document.getElementById('modal_start_datetime').value = datetime;
     document.getElementById('modal_start_datetime_display').value = localDateTime;
-    
-    // Calcular fim (padrão 1 hora) - usando hora local
-    const endDateTime = new Date(dateTimeObj);
-    endDateTime.setHours(endDateTime.getHours() + 1);
-    
-    const endYear = endDateTime.getFullYear();
-    const endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
-    const endDay = String(endDateTime.getDate()).padStart(2, '0');
-    const endHours = String(endDateTime.getHours()).padStart(2, '0');
-    const endMinutes = String(endDateTime.getMinutes()).padStart(2, '0');
-    const endDateTimeFormatted = `${endYear}-${endMonth}-${endDay} ${endHours}:${endMinutes}:00`;
-    const endDateTimeStr = `${endYear}-${endMonth}-${endDay}T${endHours}:${endMinutes}`;
+
+    let endDateTimeFormatted;
+    let endDateTimeStr;
+    const endTrim = endOverride && String(endOverride).trim() !== '' ? String(endOverride).trim() : null;
+    if (endTrim) {
+        endDateTimeFormatted = endTrim;
+        endDateTimeStr = sqlDatetimeToLocalInput(endTrim);
+    } else {
+        const endDateTime = new Date(dateTimeObj);
+        endDateTime.setHours(endDateTime.getHours() + 1);
+        const endYear = endDateTime.getFullYear();
+        const endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
+        const endDay = String(endDateTime.getDate()).padStart(2, '0');
+        const endHours = String(endDateTime.getHours()).padStart(2, '0');
+        const endMinutes = String(endDateTime.getMinutes()).padStart(2, '0');
+        endDateTimeFormatted = `${endYear}-${endMonth}-${endDay} ${endHours}:${endMinutes}:00`;
+        endDateTimeStr = `${endYear}-${endMonth}-${endDay}T${endHours}:${endMinutes}`;
+    }
     
     document.getElementById('modal_end_datetime').value = endDateTimeFormatted;
     document.getElementById('modal_end_datetime_display').value = endDateTimeStr;
-    
+
+    const startSql = document.getElementById('modal_start_datetime').value;
+    const endSql = document.getElementById('modal_end_datetime').value;
+    const startProbe = new Date(String(startSql).replace(' ', 'T'));
+    const endProbe = new Date(String(endSql).replace(' ', 'T'));
+    if (!(endProbe > startProbe)) {
+        alert('A data/hora de fim tem de ser posterior ao início.');
+        return;
+    }
+
+    try {
+        const j = await postSlotHold({
+            action: 'acquire',
+            room_id: String(roomId),
+            start_datetime: startSql,
+            end_datetime: endSql
+        });
+        if (!j.success) {
+            const who = j.blocked_by ? String(j.blocked_by) : '';
+            alert(who ? ('Este horário está a ser reservado por: ' + who) : (j.error || 'Não foi possível reservar este horário.'));
+            return;
+        }
+        activeSlotHoldToken = j.token || '';
+        document.getElementById('slot_hold_token').value = activeSlotHoldToken;
+    } catch (e) {
+        alert('Erro de comunicação ao bloquear o horário. Tente novamente.');
+        return;
+    }
+
+    const sel = document.getElementById('quick_participants');
+    if (sel) {
+        Array.from(sel.options).forEach((o) => { o.selected = false; });
+    }
+    const gta = document.getElementById('quick_participant_guest_emails');
+    if (gta) gta.value = '';
+    const qrec = document.getElementById('quick_recurrence_enabled');
+    const quntil = document.getElementById('quick_recurrence_until');
+    if (qrec) qrec.checked = false;
+    if (quntil) {
+        quntil.value = '';
+        quntil.required = false;
+    }
+
     const modal = new bootstrap.Modal(document.getElementById('createBookingModal'));
     modal.show();
+    startSlotHoldRenew();
 }
 
 function openWaitlistModal(datetime) {

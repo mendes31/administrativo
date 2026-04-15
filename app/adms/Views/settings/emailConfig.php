@@ -1,7 +1,7 @@
 <?php
 $config = $this->data['email_config'] ?? [];
 ?>
-<div class="container-fluid">
+<div class="container-fluid px-2 px-sm-3 px-md-4">
     <div class="row">
         <div class="col-12 col-md-8 col-lg-6 mx-auto">
             <div class="card mt-4">
@@ -79,7 +79,10 @@ $config = $this->data['email_config'] ?? [];
                             <input type="email" class="form-control" id="EMAIL_TI" name="EMAIL_TI" 
                                    value="<?= htmlspecialchars($config['from_email'] ?? '') ?>" 
                                    placeholder="seu-email@gmail.com" required>
-                            <div class="form-text">E-mail que aparecerá como remetente</div>
+                            <div class="form-text">
+                                E-mail que aparecerá como remetente (deve ser autorizado na conta SMTP).
+                                <span class="d-block mt-1 small text-muted">Em notificações de <strong>reservas de sala</strong> e <strong>solicitações (salas)</strong>, o sistema define <strong>Reply-To</strong> com o e-mail do responsável/solicitante, para que «Responder» chegue a essa pessoa, mesmo mantendo este remetente. Nos convites de salas, o <strong>nome do remetente</strong> passa a incluir o organizador (ex.: «Nome | Salas»). Para usar o <strong>endereço</strong> do organizador no campo From (avançado; depende de SPF/DMARC do seu domínio), defina no <code>.env</code>: <code>ROOM_BOOKING_SMTP_USE_ORGANIZER_AS_FROM=true</code>.</span>
+                            </div>
                         </div>
                         
                         <div class="mb-3">

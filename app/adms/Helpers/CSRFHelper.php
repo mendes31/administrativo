@@ -61,9 +61,11 @@ class CSRFHelper
      *
      * @param string $formIdentifier Identificador do formulário. Usado para localizar o token CSRF na sessão.
      * @param string $token Token CSRF para validar. O token recebido do formulário.
+     * @param bool $consume Se true (padrão), remove o token após validação (submissão única). Se false, mantém o token
+     *                      na sessão para o mesmo formulário poder validar várias requisições (ex.: AJAX repetido na mesma página).
      * @return bool Retorna true se o token for válido e coincidir com o token armazenado na sessão; false caso contrário.
      */
-     public static function validateCSRFToken(string $formIdentifier, string $token)
+     public static function validateCSRFToken(string $formIdentifier, string $token, bool $consume = true)
      {
         // Log detalhado para debug
         file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
@@ -97,8 +99,9 @@ class CSRFHelper
                 FILE_APPEND
             );
             
-            // Token usado deve ser invalidado.
-            unset($_SESSION['csrf_tokens'][$formIdentifier]);
+            if ($consume) {
+                unset($_SESSION['csrf_tokens'][$formIdentifier]);
+            }
             
             return true;
         }

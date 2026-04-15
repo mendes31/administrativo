@@ -503,6 +503,7 @@ class PageLayoutService
             'AdminBookingDashboard',
             'AdminBookings',
             'BookingReports',
+            'RoomsCalendarIntegrationSettings',
             // Histórico de Emprego
             'UpdateEmploymentHistory',
             'CalendarConfig',

@@ -3,8 +3,10 @@
 namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\BookingParticipantNotificationHelper;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
+use App\adms\Models\Repository\BookingParticipantsRepository;
 use App\adms\Helpers\RoomWaitlistService;
 use App\adms\Models\Repository\BookingWaitlistRepository;
 use App\adms\Models\Repository\MeetingRoomsRepository;
@@ -85,7 +87,10 @@ class UpdateBooking
 
         // Buscar participantes atuais
         $this->data['participants'] = $bookingsRepo->getParticipantsByBookingId($id);
-        $participantIds = array_column($this->data['participants'], 'user_id');
+        $participantIds = array_values(array_filter(
+            array_map(static fn ($v) => (int) ($v['user_id'] ?? 0), $this->data['participants']),
+            static fn (int $uid): bool => $uid > 0
+        ));
 
         // Buscar solicitações adicionais atuais
         $requestsRepo = new BookingAdditionalRequestsRepository();
@@ -94,7 +99,7 @@ class UpdateBooking
         $this->data['form'] = $booking;
         $this->data['form']['participant_ids'] = $participantIds;
         $this->data['rooms'] = $roomsRepo->getAll(['status' => 'active'], 1, 1000);
-        $this->data['users'] = $usersRepo->getAllUsers(1, 1000, ['bloqueado' => false]);
+        $this->data['users'] = $usersRepo->getUsersForRoomParticipantPicker();
         $this->data['requestTypes'] = $requestTypesRepo->getAll(true);
 
         $pageElements = [
@@ -274,8 +279,25 @@ class UpdateBooking
 
                 $postUpdateFailed = false;
                 try {
-                    $this->updateParticipants($id, $participants);
+                    $this->updateParticipants($id, $participants, $slotChanged);
                     $this->updateAdditionalRequests($id, $additionalRequests);
+
+                    // Participantes já sincronizados (incl. novos tokens); depois avisar reagendamento e pedir nova confirmação
+                    if ($slotChanged) {
+                        try {
+                            (new BookingParticipantNotificationHelper())->notifyParticipantsOfReschedule(
+                                $id,
+                                (int) ($booking['user_id'] ?? 0),
+                                (string) ($booking['start_datetime'] ?? ''),
+                                (string) ($booking['end_datetime'] ?? ''),
+                                $startSql,
+                                $endSql,
+                                (string) ($booking['room_name'] ?? 'Sala'),
+                                (string) ($room['name'] ?? 'Sala')
+                            );
+                        } catch (\Throwable) {
+                        }
+                    }
 
                     $roomLabel = (string)($room['name'] ?? 'Sala');
                     $waitlistService->finalizeAfterBookingCreated(
@@ -322,29 +344,31 @@ class UpdateBooking
 
     /**
      * Atualizar participantes da reserva
+     *
+     * @param bool $skipInviteEmailForAdded Se true, não envia convite só aos novos (ex.: reagendamento na mesma gravação, onde seguirá e-mail de reconfirmação para todos).
      */
-    private function updateParticipants(int $bookingId, array $participantIds): void
+    private function updateParticipants(int $bookingId, array $participantIds, bool $skipInviteEmailForAdded = false): void
     {
-        // Deletar participantes existentes
-        $sql = "DELETE FROM adms_booking_participants WHERE booking_id = :booking_id";
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':booking_id', $bookingId, \PDO::PARAM_INT);
-        $stmt->execute();
+        $participantsRepo = new BookingParticipantsRepository();
+        $oldIds = $participantsRepo->getUserIdsForBooking($bookingId);
+        $participantsRepo->deleteInternalParticipantsByBookingId($bookingId);
 
-        // Adicionar novos participantes
+        $newIds = [];
         if (!empty($participantIds) && is_array($participantIds)) {
-            $sql = "INSERT INTO adms_booking_participants (booking_id, user_id, is_organizer, status, notified)
-                    VALUES (:booking_id, :user_id, 0, 'pending', 0)";
-            
-            $stmt = $this->getConnection()->prepare($sql);
-            
             foreach ($participantIds as $userId) {
-                $userId = (int)$userId;
+                $userId = (int) $userId;
                 if ($userId > 0) {
-                    $stmt->bindValue(':booking_id', $bookingId, \PDO::PARAM_INT);
-                    $stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
-                    $stmt->execute();
+                    $participantsRepo->insertParticipant($bookingId, $userId, false, 'pending');
+                    $newIds[] = $userId;
                 }
+            }
+        }
+
+        $added = array_values(array_diff($newIds, $oldIds));
+        if ($added !== [] && !$skipInviteEmailForAdded) {
+            try {
+                (new BookingParticipantNotificationHelper())->sendInvites($bookingId, $added);
+            } catch (\Throwable) {
             }
         }
     }
@@ -362,14 +386,26 @@ class UpdateBooking
         // Adicionar novas solicitações
         if (!empty($requests) && is_array($requests)) {
             $requestTypesRepo = new RoomRequestTypesRepository();
+            $organizerId = (int) ($_SESSION['user_id'] ?? 0);
 
             foreach ($requests as $request) {
-                if (empty($request['type']) || empty($request['responsible_user_id'])) {
+                if (empty($request['type'])) {
                     continue;
                 }
 
-                $requestType = $requestTypesRepo->getByCode($request['type']);
+                $requestType = $requestTypesRepo->getByCode((string) $request['type']);
                 if (!$requestType) {
+                    continue;
+                }
+
+                $responsibleUserId = !empty($request['responsible_user_id']) ? (int) $request['responsible_user_id'] : 0;
+                if ($responsibleUserId <= 0 && !empty($requestType['requires_responsible'])) {
+                    $responsibleUserId = (int) ($requestType['default_responsible_user_id'] ?? 0);
+                }
+                if ($responsibleUserId <= 0) {
+                    $responsibleUserId = $organizerId;
+                }
+                if ($responsibleUserId <= 0) {
                     continue;
                 }
 
@@ -378,22 +414,13 @@ class UpdateBooking
                     'request_type' => $request['type'],
                     'request_description' => $request['description'] ?? '',
                     'quantity' => !empty($request['quantity']) ? (int)$request['quantity'] : null,
-                    'responsible_user_id' => (int)$request['responsible_user_id'],
+                    'responsible_user_id' => $responsibleUserId,
                     'status' => 'pending',
                 ];
 
                 $requestsRepo->create($requestData);
             }
         }
-    }
-
-    /**
-     * Obter conexão com o banco
-     */
-    private function getConnection(): \PDO
-    {
-        $dbConnection = new \App\adms\Models\Services\DbConnection();
-        return $dbConnection->getConnection();
     }
 }
 

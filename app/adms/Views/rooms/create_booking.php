@@ -87,6 +87,21 @@ $requestTypes = $this->data['requestTypes'] ?? [];
                            class="form-control" required 
                            value="<?= htmlspecialchars($_POST['end_datetime'] ?? '') ?>">
                 </div>
+
+                <div class="col-12">
+                    <h5 class="border-bottom pb-2 mb-3 mt-2">Recorrência (opcional)</h5>
+                </div>
+                <div class="col-12">
+                    <div class="form-check mb-2">
+                        <input type="checkbox" name="recurrence_enabled" value="1" id="recurrence_enabled" class="form-check-input"
+                            <?= !empty($_POST['recurrence_enabled']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="recurrence_enabled">Repetir <strong>semanalmente</strong> até à data final abaixo</label>
+                    </div>
+                    <label for="recurrence_until" class="form-label">Data final da série (último dia em que pode haver sessão)</label>
+                    <input type="date" name="recurrence_until" id="recurrence_until" class="form-control" style="max-width: 280px"
+                           value="<?= htmlspecialchars($_POST['recurrence_until'] ?? '') ?>">
+                    <small class="text-muted d-block mt-1">A mesma duração repete-se todas as semanas, no mesmo dia da semana. Deixe desmarcado para uma única reserva.</small>
+                </div>
                 
                 <!-- Participantes -->
                 <div class="col-12">

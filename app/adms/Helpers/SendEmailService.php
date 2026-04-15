@@ -9,8 +9,26 @@ use App\adms\Helpers\GenerateLog;
 
 class SendEmailService
 {
-    public static function sendEmail(string $email, string $name, string $subject, string $body, string $altBody) : bool
-    {
+    /**
+     * Envia e-mail via SMTP com remetente (From) da configuração global.
+     *
+     * @param string|null $replyToEmail Se definido, cabeçalho Reply-To (ex.: organizador da reserva). Muitos servidores
+     *                                   exigem que o From coincida com a conta SMTP; usar Reply-To é o padrão seguro.
+     * @param string|null $replyToName Nome opcional para Reply-To
+     * @param string|null $fromDisplayNameOverride Nome amigável no cabeçalho From (o endereço continua o da config, salvo override abaixo).
+     * @param string|null $fromAddressOverride E-mail no From; só aplicado se ROOM_BOOKING_SMTP_USE_ORGANIZER_AS_FROM=true no .env (evita SPF/DMARC quebrados por defeito).
+     */
+    public static function sendEmail(
+        string $email,
+        string $name,
+        string $subject,
+        string $body,
+        string $altBody,
+        ?string $replyToEmail = null,
+        ?string $replyToName = null,
+        ?string $fromDisplayNameOverride = null,
+        ?string $fromAddressOverride = null,
+    ): bool {
         $mail = new PHPMailer(true);
 
         // Buscar configuração do banco
@@ -29,8 +47,33 @@ class SendEmailService
             $mail->SMTPSecure = $config['encryption'] ?? '';                 //Habilita criptografia TLS implícita
             $mail->Port       = $config['port'] ?? 587;
 
-            //Recipients
-            $mail->setFrom($config['from_email'] ?? '', $config['from_name'] ?? '');
+            //Recipients — From: por defeito conta SMTP; nome pode mostrar o organizador
+            $cfgFromEmail = trim((string) ($config['from_email'] ?? ''));
+            $cfgFromName = trim((string) ($config['from_name'] ?? ''));
+            $fromEmail = $cfgFromEmail;
+            $fromName = $cfgFromName !== '' ? $cfgFromName : $cfgFromEmail;
+            $displayName = $fromDisplayNameOverride !== null ? trim($fromDisplayNameOverride) : '';
+            if ($displayName !== '') {
+                $fromName = $displayName;
+            }
+
+            $useOrganizerFrom = filter_var($_ENV['ROOM_BOOKING_SMTP_USE_ORGANIZER_AS_FROM'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+            $overrideAddr = $fromAddressOverride !== null ? trim($fromAddressOverride) : '';
+            if ($useOrganizerFrom && $overrideAddr !== '' && filter_var($overrideAddr, FILTER_VALIDATE_EMAIL)) {
+                $fromEmail = $overrideAddr;
+                if ($displayName === '') {
+                    $fromName = $overrideAddr;
+                }
+                if ($cfgFromEmail !== '' && filter_var($cfgFromEmail, FILTER_VALIDATE_EMAIL)) {
+                    $mail->Sender = $cfgFromEmail;
+                }
+            }
+
+            $mail->setFrom($fromEmail, $fromName);
+            $replyToEmail = $replyToEmail !== null ? trim($replyToEmail) : '';
+            if ($replyToEmail !== '' && filter_var($replyToEmail, FILTER_VALIDATE_EMAIL)) {
+                $mail->addReplyTo($replyToEmail, $replyToName !== null ? trim($replyToName) : '');
+            }
             $mail->addAddress($email, $name);                           //Adiciona um destinatário
 
             //Content
