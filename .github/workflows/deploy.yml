@@ -72,7 +72,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
+            **/*.log  # só arquivos .log em disco; controllers, views, migrations, seeds (.php) seguem
             vendor/
             vendor/**
             lib/
@@ -104,7 +104,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
+            **/*.log  # só arquivos .log em disco; controllers, views, migrations, seeds (.php) seguem
             vendor/
             vendor/**
             lib/
@@ -136,7 +136,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
+            **/*.log  # só arquivos .log em disco; controllers, views, migrations, seeds (.php) seguem
             vendor/
             vendor/**
             lib/
@@ -168,7 +168,7 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
+            **/*.log  # só arquivos .log em disco; controllers, views, migrations, seeds (.php) seguem
             vendor/
             vendor/**
             lib/
@@ -200,71 +200,11 @@ jobs:
             node_modules/**
             .vscode/
             .vscode/**
-            **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
+            **/*.log  # só arquivos .log em disco; controllers, views, migrations, seeds (.php) seguem
             vendor/
             vendor/**
             lib/
             lib/**
-
-      # Força o envio das pastas de logs (controllers e views), independente do estado de sincronização
-      - name: Forçar upload - Controllers logs
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: app/adms/Controllers/logs/
-          server-dir: ./app/adms/Controllers/logs/
-          dangerous-clean-slate: true
-          log-level: verbose
-          exclude: |
-            **/*.log
-
-      - name: Forçar upload - Views logs
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: app/adms/Views/logs/
-          server-dir: ./app/adms/Views/logs/
-          dangerous-clean-slate: true
-          log-level: verbose
-          exclude: |
-            **/*.log
-
-      # Upload garantido via lftp das pastas de logs (ignora *.log)
-      - name: Forçar upload via lftp (logs)
-        if: always()
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-        run: |
-          if ! command -v lftp &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y lftp
-          fi
-
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set net:timeout 120
-          set net:max-retries 20
-          set net:reconnect-interval-base 2
-          set net:reconnect-interval-max 10
-
-          mkdir -p app/adms/Controllers/logs
-          mkdir -p app/adms/Views/logs
-
-          mirror -R --only-newer --continue --no-perms --verbose \
-            --exclude-glob *.log \
-            ./app/adms/Controllers/logs app/adms/Controllers/logs
-
-          mirror -R --only-newer --continue --no-perms --verbose \
-            --exclude-glob *.log \
-            ./app/adms/Views/logs app/adms/Views/logs
-          quit
-          EOF
 
       # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
       # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
