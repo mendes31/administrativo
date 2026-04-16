@@ -279,7 +279,7 @@ jobs:
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
             --exclude-glob .env \
-            --exclude-regex \\.log$ \
+            --exclude-glob '*.log' \
             --exclude-glob vendor/** \
             --exclude-glob lib/** \
             --exclude-glob node_modules/** \
