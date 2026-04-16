@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       ftp_server_dir:
-        description: "Pasta remota no FTP (barra final, ex. administrativo/). Vazio = padrão administrativo/"
+        description: "Só em execução manual: pasta remota (barra final). Ex. administrativo/ se o FTP abrir em www/. Vazio = mesmo padrão que em push (./)"
         required: false
         type: string
         default: ""
@@ -21,8 +21,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Em push usa administrativo/. Em execução manual (workflow_dispatch), use o input ftp_server_dir.
-      FTP_SERVER_DIR: ${{ github.event_name == 'workflow_dispatch' && inputs.ftp_server_dir || 'administrativo/' }}
+      # Igual ao fluxo que estava estável (server-dir ./): push envia para a raiz da sessão FTP.
+      # Se o login cair em www/ e o site estiver em administrativo/, rode o workflow à mão com input ftp_server_dir = administrativo/
+      FTP_SERVER_DIR: ${{ github.event_name == 'workflow_dispatch' && inputs.ftp_server_dir || './' }}
 
     steps:
       - name: Checkout código
@@ -61,7 +62,7 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
           set -euo pipefail
-          D="${FTP_SERVER_DIR:-administrativo/}"
+          D="${FTP_SERVER_DIR:-./}"
           while [[ "$D" == ./* ]]; do D="${D#./}"; done
           while [[ "$D" == /* ]]; do D="${D#/}"; done
           [ -z "$D" ] && D="."
