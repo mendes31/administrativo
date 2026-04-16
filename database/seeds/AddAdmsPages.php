@@ -858,6 +858,12 @@ class AddAdmsPages extends AbstractSeed
         }
         $comunicacaoSocialGroupId = (int)$comunicacaoSocialGroup['id'];
 
+        $lgpdGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'LGPD'");
+        if (!$lgpdGroup) {
+            throw new \Exception("ERRO: O grupo 'LGPD' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $lgpdGroupId = (int)$lgpdGroup['id'];
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -879,6 +885,8 @@ class AddAdmsPages extends AbstractSeed
                     $groupId = $gestaoPessoasGroupId;
                 } elseif ($groupId == 37) {
                     $groupId = $reservaSalasGroupId;
+                } elseif ($groupId == 31) {
+                    $groupId = $lgpdGroupId;
                 } elseif ($groupId == 39) {
                     $groupId = $comunicacaoSocialGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
@@ -929,6 +937,22 @@ class AddAdmsPages extends AbstractSeed
                  WHERE p.public_page = 0
                    AND (p.controller = 'DashboardCardMyCalendar'
                         OR p.adms_groups_page_id = {$reservaSalasGroupId})"
+            );
+
+            // LGPD: por padrão, páginas privadas iniciam sem permissão.
+            // Exceções realmente globais permanecem públicas via public_page = 1.
+            $this->execute(
+                "UPDATE adms_pages
+                 SET default_page = 0, updated_at = NOW()
+                 WHERE adms_groups_page_id = {$lgpdGroupId}"
+            );
+            $this->execute(
+                "UPDATE adms_access_levels_pages alp
+                 INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                 SET alp.permission = 0,
+                     alp.updated_at = NOW()
+                 WHERE p.adms_groups_page_id = {$lgpdGroupId}
+                   AND p.public_page = 0"
             );
         }
     }
