@@ -546,7 +546,7 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
                 target.classList.add('timeline-post-focus');
                 setTimeout(function () {
                     target.classList.remove('timeline-post-focus');
-                }, 2200);
+                }, 3400);
             }
 
             function focusPostBody() {

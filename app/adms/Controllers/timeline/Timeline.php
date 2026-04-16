@@ -82,7 +82,18 @@ class Timeline
                     $searchOk = $searchForRepo === null
                         || mb_stripos((string)($row['content'] ?? ''), $searchForRepo, 0, 'UTF-8') !== false;
                     if ($tagOk && $searchOk) {
-                        array_unshift($this->data['posts'], $row);
+                        $this->data['posts'][] = $row;
+                        usort(
+                            $this->data['posts'],
+                            static function (array $a, array $b): int {
+                                $aTs = strtotime((string)($a['created_at'] ?? '')) ?: 0;
+                                $bTs = strtotime((string)($b['created_at'] ?? '')) ?: 0;
+                                if ($aTs === $bTs) {
+                                    return (int)($b['id'] ?? 0) <=> (int)($a['id'] ?? 0);
+                                }
+                                return $bTs <=> $aTs;
+                            }
+                        );
                     }
                 }
             }

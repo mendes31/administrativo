@@ -58,7 +58,10 @@ $usersRepoMention = new UsersRepository();
     $primaryActionsCount = ($showLikeAction ? 1 : 0) + ($showCommentAction ? 1 : 0) + ($showShareAction ? 1 : 0);
 ?>
     <article class="card timeline-post-card mb-3" id="timeline-post-<?php echo $pid; ?>" data-post-id="<?php echo $pid; ?>">
-        <div class="card-body">
+        <div class="card-body position-relative">
+            <span class="timeline-focus-badge" aria-hidden="true">
+                <i class="fas fa-bell me-1"></i>Publicação da notificação
+            </span>
             <div class="timeline-post-header mb-2">
                 <?php
                 echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
