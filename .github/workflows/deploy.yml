@@ -4,8 +4,8 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # (firewall/hospedagem). Ver docs/COMANDOS_SERVIDOR_SSH.md (secção "GitHub Actions: erro FTP ETIMEDOUT").
 #
 # SSH (PuTTY): o projecto costuma ser cd ~/www/administrativo — o deploy deve escrever nessa mesma árvore no FTP.
-# FileZilla na raiz «/» com pasta administrativo/ ao lado de app/: a raiz FTP é o PAI (ex.: ~/www) → KINGHOST_FTP_REMOTE_DIR «administrativo» (padrão no job).
-# Se o login FTP já cair «chrootado» DENTRO de .../administrativo (listagem mostra app/public na raiz SEM pasta administrativo/) → use «.».
+# Padrão no job: KINGHOST_FTP_REMOTE_DIR «.» = sessão FTP já na raiz do projecto (listagem com app/, public/ — sem subpasta administrativo/).
+# Se o FileZilla mostrar administrativo/ na raiz «/» (pai = ~/www) → defina «administrativo» no env do job (não é o caso típico Kinghost quando o erro foi 550 ~/administrativo).
 # Use «files» apenas se a raiz FTP for mesmo a pasta files/ antes de app/.
 #
 # Secret FTP_USER_PROD: utilizar o mesmo user FTP do painel/FileZilla (ex.: tiaraju02), não confundir com o login SSH tiaraju.
@@ -33,9 +33,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Padrão «administrativo» = alinhado a SSH cd ~/www/administrativo quando a raiz FTP lista essa pasta (pai = ~/www).
-      # «.» = sessão FTP já na raiz do projecto (sem subpasta administrativo/ na listagem).
-      KINGHOST_FTP_REMOTE_DIR: administrativo
+      # «.» = deploy na raiz da sessão FTP (chroot no projecto). Só use «administrativo» se após login existir essa subpasta.
+      KINGHOST_FTP_REMOTE_DIR: '.'
 
     steps:
       - name: Checkout código
@@ -63,6 +62,29 @@ jobs:
           echo "::notice::Confirme no GitHub que FTP_USER_PROD é o user FTP (ex.: tiaraju02), não o login SSH (tiaraju)."
           echo "::notice::Teste de escrita no FileZilla: raiz do site ou public/ — não crie ficheiros dentro de lib/ (deploy não precisa disso)."
 
+      - name: Diagnóstico FTP rápido (pwd + listagem)
+        continue-on-error: true
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          echo "::group::Sessão FTP após login (pwd + primeiras entradas)"
+          lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          pwd
+          cls -1 | head -80
+          quit
+          EOF
+          echo "::endgroup::"
+          echo "::notice::Compare com o FileZilla: se vir app/public aqui, KINGHOST_FTP_REMOTE_DIR «.» está correcto. Se vir só administrativo/, altere o env para «administrativo»."
+
       - name: Diagnóstico FTP (pwd + listagem)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_ftp == 'true'
         continue-on-error: true
@@ -75,7 +97,7 @@ jobs:
           echo "::group::Raiz FTP (pwd + primeiras linhas de ls)"
           lftp <<EOF
           set cmd:fail-exit no
-          set net:prefer-ipv4 true
+          set dns:order "inet inet6"
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
@@ -85,7 +107,7 @@ jobs:
           quit
           EOF
           echo "::endgroup::"
-          echo "::notice::Padrão do workflow: prefixo «administrativo» (como cd ~/www/administrativo). Se a raiz FTP já for o projecto (app/public sem pasta administrativo/) → defina KINGHOST_FTP_REMOTE_DIR «.»."
+          echo "::notice::Padrão actual: KINGHOST_FTP_REMOTE_DIR «.». Se a listagem na raiz mostrar administrativo/ (e não app/) → use «administrativo» no env do job."
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -325,7 +347,7 @@ jobs:
           set +e
           lftp <<EOF
           set cmd:fail-exit no
-          set net:prefer-ipv4 true
+          set dns:order "inet inet6"
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
@@ -369,7 +391,7 @@ jobs:
           echo "📂 Destino remoto do mirror: $LFTP_TARGET (KINGHOST_FTP_REMOTE_DIR=$REMOTE)"
           lftp <<EOF
           set cmd:fail-exit no
-          set net:prefer-ipv4 true
+          set dns:order "inet inet6"
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
@@ -446,7 +468,7 @@ jobs:
           set +e
           {
             echo set cmd:fail-exit no
-            echo set net:prefer-ipv4 true
+            echo set dns:order "inet inet6"
             echo set ftp:passive-mode true
             echo set ssl:verify-certificate no
             echo set ftp:ssl-force true
@@ -496,8 +518,8 @@ jobs:
 
           echo ""
           echo "🧪 Diagnóstico (erros FTP / lftp):"
-          echo "   - Padrão: KINGHOST_FTP_REMOTE_DIR «administrativo» (mesma pasta que SSH: cd ~/www/administrativo)."
-          echo "   - Se aparecer «550 administrativo/...» em duplicado ou caminho errado → a sessão FTP já está dentro do projecto; use «.» em vez de «administrativo»."
+          echo "   - Padrão: KINGHOST_FTP_REMOTE_DIR «.» (raiz FTP = projecto; SSH pode ser cd ~/www/administrativo — não confundir caminho SSH com listagem FTP)."
+          echo "   - «550 ~/administrativo» ou «cd administrativo» a falhar → não existe essa pasta na raiz FTP; mantenha «.»."
           echo "   - «550 … Operation not permitted»: permissão/dono no servidor ou user FTP ≠ dono dos ficheiros (SSH: ls -la)."
           echo "   - «550 … em lib/»: normal se lib for só leitura; o pipeline não envia lib/ (exclude) nem precisa de MKD lá."
           echo "   - workflow_dispatch «debug_ftp»: pwd + listagem na raiz FTP."
