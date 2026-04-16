@@ -3,10 +3,11 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
 # (firewall/hospedagem). Ver docs/COMANDOS_SERVIDOR_SSH.md (secção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# Kinghost (tiaraju02): no FileZilla a raiz FTP mostra administrativo/, app/, public/ ao mesmo nível — o site está em
-# administrativo/ (no disco: .../www/administrativo). O deploy do repositório deve usar server-dir administrativo/.
-# Use KINGHOST_FTP_REMOTE_DIR: '.' só se a raiz FTP já for só o conteúdo do projecto (sem pasta administrativo/).
-# Use «files» apenas se a listagem na raiz for mesmo a pasta files/ antes de app/.
+# Kinghost (tiaraju02): no SFTP/FileZilla o caminho completo pode ser .../www/administrativo (árvore com pasta administrativo/).
+# Na porta 21 (FTP do GitHub) a conta costuma estar já «chrootada» DENTRO de .../administrativo — aí NÃO existe subpasta
+# administrativo/ na listagem; use KINGHOST_FTP_REMOTE_DIR: '.' (padrão). Use «administrativo» só se o pwd FTP listar
+# mesmo uma pasta administrativo/ para entrar (raiz = pai do projecto).
+# Use «files» apenas se a raiz FTP for mesmo a pasta files/ antes de app/.
 #
 # Secret FTP_USER_PROD: utilizar o mesmo user FTP do painel/FileZilla (ex.: tiaraju02), não confundir com o login SSH tiaraju.
 # FTPS: certificado *.kinghost.net vs host ftp.* → protocol ftps + security loose na action.
@@ -30,8 +31,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Padrão administrativo = FTP abre um nível acima do projecto (ver pastas administrativo + app na raiz). «.» = raiz já é o repo.
-      KINGHOST_FTP_REMOTE_DIR: administrativo
+      # Padrão «.» = sessão FTP já na raiz do repo (chroot .../administrativo). «administrativo» = só se pwd listar essa subpasta.
+      KINGHOST_FTP_REMOTE_DIR: '.'
 
     steps:
       - name: Checkout código
@@ -79,7 +80,7 @@ jobs:
           quit
           EOF
           echo "::endgroup::"
-          echo "::notice::Compare com KINGHOST_FTP_REMOTE_DIR: raiz com pasta administrativo/ ao lado de app/ → use «administrativo» (padrão). Raiz já = repo → «.»."
+          echo "::notice::Se pwd listar app/public na raiz → use «.» (padrão GitHub). Se listar pasta administrativo/ para entrar no site → use «administrativo»."
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -276,7 +277,7 @@ jobs:
           security: loose
           local-dir: app/adms/Controllers/logs/
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './app/adms/Controllers/logs/' || format('{0}/app/adms/Controllers/logs/', env.KINGHOST_FTP_REMOTE_DIR) }}
-          dangerous-clean-slate: true
+          dangerous-clean-slate: false
           log-level: standard
           exclude: |
             **/*.log
@@ -292,7 +293,7 @@ jobs:
           security: loose
           local-dir: app/adms/Views/logs/
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './app/adms/Views/logs/' || format('{0}/app/adms/Views/logs/', env.KINGHOST_FTP_REMOTE_DIR) }}
-          dangerous-clean-slate: true
+          dangerous-clean-slate: false
           log-level: standard
           exclude: |
             **/*.log
@@ -308,7 +309,7 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-administrativo}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           if [ "$REMOTE" = "." ]; then
             RCTL="app/adms/Controllers/logs"
             RVIE="app/adms/Views/logs"
@@ -353,7 +354,7 @@ jobs:
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           echo "⏳ Mirror completo do repo: pode levar 10–40+ min (centenas de MB / milhares de ficheiros). Sem --verbose no mirror para o runner não ficar preso a imprimir linhas."
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-administrativo}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           if [ "$REMOTE" = "." ]; then
             LFTP_TARGET="."
           else
@@ -433,7 +434,7 @@ jobs:
             sudo apt-get update && sudo apt-get install -y lftp
           fi
 
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-administrativo}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           echo "🔄 lftp: criando logs/ e public/uploads/ sob prefixo remoto «$REMOTE» (FTPS explícito)"
           {
             echo set cmd:fail-exit no
@@ -480,8 +481,8 @@ jobs:
 
           echo ""
           echo "🧪 Diagnóstico (erros FTP / lftp):"
-          echo "   - Raiz FTP com administrativo/ ao lado de app/: use KINGHOST_FTP_REMOTE_DIR «administrativo» (padrão actual)."
-          echo "   - Se a raiz FTP já for só o conteúdo do repo (sem pasta administrativo/), use «.»."
+          echo "   - «550 ~/administrativo»: a sessão FTP já está DENTRO do projecto → use KINGHOST_FTP_REMOTE_DIR «.» (padrão)."
+          echo "   - Só use «administrativo» se o pwd na raiz FTP listar essa pasta (pai do site)."
           echo "   - «550 … Operation not permitted»: permissão/dono no servidor ou user FTP ≠ dono dos ficheiros (SSH: ls -la)."
           echo "   - workflow_dispatch «debug_ftp»: pwd + listagem na raiz FTP."
           echo "   - Duplicados no Git a remover quando possível: receive copy, receive%20copy, ficheiros «* copy.php»."
