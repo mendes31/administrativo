@@ -78,12 +78,15 @@ final class SlowRequestProfilerHelper
     private static function debugLog(string $type, array $data): void
     {
         try {
-            $baseDir = realpath(__DIR__ . '/../../logs');
-            if ($baseDir === false) {
-                return;
-            }
             $line = date('Y-m-d H:i:s') . ' [' . $type . '] ' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            @file_put_contents($baseDir . '/slow_profiler_debug.log', $line . PHP_EOL, FILE_APPEND);
+
+            // Caminho principal: app/logs dentro do projeto (relativo a app/adms/Helpers)
+            $primaryPath = __DIR__ . '/../../logs/slow_profiler_debug.log';
+            if (@file_put_contents($primaryPath, $line . PHP_EOL, FILE_APPEND) === false) {
+                // Fallback: diretório temporário do PHP (quase sempre gravável na hospedagem)
+                $fallbackPath = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'slow_profiler_debug.log';
+                @file_put_contents($fallbackPath, $line . PHP_EOL, FILE_APPEND);
+            }
         } catch (\Throwable) {
             // silencioso
         }
