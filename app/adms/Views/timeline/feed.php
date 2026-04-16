@@ -76,8 +76,16 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
                             <h3 class="h5 mb-1"><?php echo htmlspecialchars((string)($timelineProfile['name'] ?? '')); ?></h3>
                             <div class="text-muted small mb-2">
                                 @<?php echo htmlspecialchars((string)($timelineProfile['username'] ?? '')); ?>
-                                <?php if (!empty($timelineProfile['dep_name'])): ?>
-                                    <span class="d-block mt-1"><?php echo htmlspecialchars((string)($timelineProfile['dep_name'] ?? '')); ?></span>
+                                <?php
+                                $tpPos = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($timelineProfile['pos_name'] ?? ''));
+                                $tpDep = trim((string)($timelineProfile['dep_name'] ?? ''));
+                                ?>
+                                <?php if ($tpPos !== '' || $tpDep !== ''): ?>
+                                    <span class="d-block mt-1">
+                                        <?php if ($tpPos !== ''): ?><?php echo htmlspecialchars($tpPos); ?><?php endif; ?>
+                                        <?php if ($tpPos !== '' && $tpDep !== ''): ?><span class="text-muted"> · </span><?php endif; ?>
+                                        <?php if ($tpDep !== ''): ?><?php echo htmlspecialchars($tpDep); ?><?php endif; ?>
+                                    </span>
                                 <?php endif; ?>
                             </div>
                             <?php if ($timelineProfileIsOwn): ?>

@@ -124,7 +124,7 @@ use App\adms\Helpers\FormatHelper;
                                         <strong><?= htmlspecialchars($vaga['titulo']) ?></strong>
                                     </td>
                                     <td><?= htmlspecialchars($vaga['area_nome'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars($vaga['cargo_nome'] ?? '-') ?></td>
+                                    <td><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($vaga['cargo_nome'] ?? '')) ?: '-') ?></td>
                                     <td><?= htmlspecialchars($vaga['tipo_contrato'] ?? '-') ?></td>
                                     <td>
                                         <?php

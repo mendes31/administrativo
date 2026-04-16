@@ -204,7 +204,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                         <?php endif; ?>
                                     </td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
-                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos); ?>"><?= $name_pos ?></td>
+                                    <?php $name_pos_display = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($name_pos)); ?>
+                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos_display); ?>"><?= htmlspecialchars($name_pos_display) ?></td>
                                     <td class="d-none d-md-table-cell text-center">
                                         <span class="badge <?= $status === 'Ativo' ? 'bg-success' : 'bg-danger'; ?>"><?= $status ?></span>
                                     </td>
@@ -277,7 +278,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                     <div><b>ID:</b> <?= $id ?></div>
                                     <div><b>Usuário:</b> <?= $username ?></div>
                                     <div><b>Departamento:</b> <?= $name_dep ?></div>
-                                    <div><b>Cargo:</b> <?= $name_pos ?></div>
+                                    <div><b>Cargo:</b> <?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)$name_pos)) ?></div>
                                     <div><b>Bloqueado:</b> <?= $bloqueado ?></div>
                                     <div class="mt-2">
                                         <?php

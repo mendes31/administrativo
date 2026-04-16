@@ -178,7 +178,7 @@ thead th {
                                         </a>
                                     </td>
                                     <td><?= htmlspecialchars($item['department'] ?? $item['department_nome'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($item['position'] ?? $item['cargo_nome'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($item['position'] ?? $item['cargo_nome'] ?? ''))) ?></td>
                                     <td>
                                         <a href="<?= $_ENV['URL_ADM'] ?>training-history/<?= $item['user_id'] ?? $item['id'] ?>-<?= $item['training_id'] ?>" 
                                            class="text-decoration-none" title="Ver histórico de reciclagem">
@@ -283,7 +283,7 @@ thead th {
                                 </div>
                                 <div class="collapse mt-2" id="cardMatrixDetails<?= $i ?>">
                                     <div><b>Departamento:</b> <?= htmlspecialchars($item['department'] ?? $item['department_nome'] ?? '') ?></div>
-                                    <div><b>Cargo:</b> <?= htmlspecialchars($item['position'] ?? $item['cargo_nome'] ?? '') ?></div>
+                                    <div><b>Cargo:</b> <?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($item['position'] ?? $item['cargo_nome'] ?? ''))) ?></div>
                                     <div><b>Código:</b> <?= htmlspecialchars($item['codigo'] ?? '') ?></div>
                                     <div><b>Versão:</b> <span class="badge bg-secondary">v<?= htmlspecialchars($item['training_version'] ?? '-') ?></span></div>
                                     <!-- <div><b>Reciclagem:</b> <?php if (($item['reciclagem'] ?? false) && ($item['reciclagem_periodo'] ?? false)): ?><?= $item['reciclagem_periodo'] ?> meses<?php else: ?><span class="text-muted">Não exige</span><?php endif; ?></div>

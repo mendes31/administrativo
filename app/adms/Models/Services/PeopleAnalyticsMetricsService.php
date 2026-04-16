@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Helpers\UserFormHelper;
 use DateInterval;
 use DateTime;
@@ -287,7 +288,7 @@ final class PeopleAnalyticsMetricsService
             if (!isset($map[$id])) {
                 $map[$id] = [
                     'position_id' => $id,
-                    'name' => (string) ($u['name_pos'] ?? 'Cargo'),
+                    'name' => PositionDisplayHelper::formatForDisplay((string) ($u['name_pos'] ?? '')) ?: (string) ($u['name_pos'] ?? 'Cargo'),
                     'count' => 0,
                 ];
             }
@@ -328,7 +329,15 @@ final class PeopleAnalyticsMetricsService
             if (($u['status'] ?? '') !== 'Ativo' || !empty($u['data_desligamento'])) {
                 continue;
             }
-            $p = $u['name_pos'] ?? 'Sem Cargo';
+            $pRaw = (string) ($u['name_pos'] ?? '');
+            if ($pRaw === '') {
+                $p = 'Sem Cargo';
+            } else {
+                $p = PositionDisplayHelper::formatForDisplay($pRaw);
+                if ($p === '') {
+                    $p = $pRaw;
+                }
+            }
             $dist[$p] = ($dist[$p] ?? 0) + 1;
         }
 

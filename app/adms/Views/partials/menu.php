@@ -1381,6 +1381,12 @@ if (!function_exists('countPermittedSubmenus')) {
             <div class="small">Logado como:</div>
             <?= $_SESSION['user_name'] ?? '' ?><br>
             <?= $_SESSION['user_department'] ?? '' ?>
+            <?php
+            $menuPos = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($_SESSION['user_position'] ?? ''));
+            if ($menuPos !== '') {
+                echo '<br>' . htmlspecialchars($menuPos);
+            }
+            ?>
         </div>
     </nav>
 </div>

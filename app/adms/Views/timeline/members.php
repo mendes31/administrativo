@@ -26,7 +26,7 @@ $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_
     <div class="timeline-members-filter-bar mb-3">
         <form method="get" action="<?php echo htmlspecialchars($urlAdm); ?>timeline-members" class="card border-0 shadow-sm mb-0">
             <div class="card-body py-3">
-                <label for="timelineMembersSearch" class="form-label small text-muted mb-1">Buscar por nome, @usuário, departamento ou apresentação</label>
+                <label for="timelineMembersSearch" class="form-label small text-muted mb-1">Buscar por nome, @usuário, cargo, departamento ou apresentação</label>
                 <div class="input-group input-group-sm flex-nowrap">
                     <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                     <input type="search" name="q" id="timelineMembersSearch" class="form-control"
@@ -59,6 +59,7 @@ $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_
                 $name = trim((string)($m['name'] ?? ''));
                 $username = trim((string)($m['username'] ?? ''));
                 $dep = trim((string)($m['dep_name'] ?? ''));
+                $posDisplay = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($m['pos_name'] ?? ''));
                 $bioRaw = trim((string)($m['timeline_bio'] ?? ''));
                 $bioShort = $bioRaw !== '' ? mb_substr(preg_replace('/\s+/u', ' ', $bioRaw), 0, 140) : '';
                 if ($bioShort !== '' && mb_strlen($bioRaw) > 140) {
@@ -88,8 +89,12 @@ $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_
                                         <?php if ($username !== ''): ?>
                                             <div class="small text-muted">@<?php echo htmlspecialchars($username); ?></div>
                                         <?php endif; ?>
-                                        <?php if ($dep !== ''): ?>
-                                            <div class="small text-body-secondary mt-1"><?php echo htmlspecialchars($dep); ?></div>
+                                        <?php if ($posDisplay !== '' || $dep !== ''): ?>
+                                            <div class="small text-body-secondary mt-1">
+                                                <?php if ($posDisplay !== ''): ?><?php echo htmlspecialchars($posDisplay); ?><?php endif; ?>
+                                                <?php if ($posDisplay !== '' && $dep !== ''): ?><span class="text-muted"> · </span><?php endif; ?>
+                                                <?php if ($dep !== ''): ?><?php echo htmlspecialchars($dep); ?><?php endif; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                 </div>

@@ -27,7 +27,7 @@ $csrfTokenVinculo = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_va
             <small class="text-muted">
                 Código: <?php echo htmlspecialchars($this->data['vaga']['codigo'] ?? '-'); ?> | 
                 Área: <?php echo htmlspecialchars($this->data['vaga']['area_nome'] ?? '-'); ?> | 
-                Cargo: <?php echo htmlspecialchars($this->data['vaga']['cargo_nome'] ?? '-'); ?> | 
+                Cargo: <?php echo htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($this->data['vaga']['cargo_nome'] ?? '')) ?: '-'); ?> | 
                 Status: <?php echo htmlspecialchars(ucfirst($this->data['vaga']['status'] ?? 'aberta')); ?>
             </small>
         </div>

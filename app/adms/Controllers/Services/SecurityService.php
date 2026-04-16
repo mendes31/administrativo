@@ -4,6 +4,7 @@ namespace App\adms\Controllers\Services;
 
 use App\adms\Models\Repository\LoginRepository;
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
+use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Helpers\SendEmailService;
 use Exception;
 
@@ -475,13 +476,18 @@ class SecurityService
         $tipoTexto = $tipo === 'temporário' ? 'temporariamente' : 'permanentemente';
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'N/A';
         $data = date('d/m/Y H:i:s');
+        $posDisplay = htmlspecialchars(
+            PositionDisplayHelper::formatForDisplay((string)($user['pos_name'] ?? '')),
+            ENT_QUOTES,
+            'UTF-8'
+        );
         
         return "
         <h2>Alerta de Segurança - Usuário Bloqueado</h2>
         <p><strong>Usuário:</strong> {$user['name']} ({$user['username']})</p>
         <p><strong>E-mail:</strong> {$user['email']}</p>
         <p><strong>Departamento:</strong> {$user['dep_name']}</p>
-        <p><strong>Cargo:</strong> {$user['pos_name']}</p>
+        <p><strong>Cargo:</strong> {$posDisplay}</p>
         <p><strong>IP:</strong> {$ip}</p>
         <p><strong>Data/Hora:</strong> {$data}</p>
         <p><strong>Tipo de Bloqueio:</strong> {$tipoTexto}</p>

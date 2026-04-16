@@ -2,6 +2,7 @@
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\ImageHelper;
+use App\adms\Helpers\PositionDisplayHelper;
 
 // Gera o token CSRF para proteger o formulário de deleção
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
@@ -187,7 +188,7 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dd class="col-sm-9"><?php echo $dep_name; ?></dd>
 
                     <dt class="col-sm-3">Cargo|Função: </dt>
-                    <dd class="col-sm-9"><?php echo $pos_name; ?></dd>
+                    <dd class="col-sm-9"><?php echo htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($pos_name ?? ''))); ?></dd>
 
                     <dt class="col-sm-3">Turno de trabalho: </dt>
                     <dd class="col-sm-9"><?php

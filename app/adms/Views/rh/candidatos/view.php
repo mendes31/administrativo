@@ -194,7 +194,7 @@ use App\adms\Helpers\FormatHelper;
                                         <tr>
                                             <td><?= htmlspecialchars($vaga['vaga_titulo'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($vaga['area_nome'] ?? '-') ?></td>
-                                            <td><?= htmlspecialchars($vaga['cargo_nome'] ?? '-') ?></td>
+                                            <td><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($vaga['cargo_nome'] ?? '')) ?: '-') ?></td>
                                             <td>
                                                 <?php
                                                 $vagaStatusClass = match($vaga['status']) {
@@ -350,7 +350,7 @@ use App\adms\Helpers\FormatHelper;
                                                     | Área: <?= htmlspecialchars($v['area_nome']) ?>
                                                 <?php endif; ?>
                                                 <?php if (!empty($v['cargo_nome'])): ?>
-                                                    | Cargo: <?= htmlspecialchars($v['cargo_nome']) ?>
+                                                    | Cargo: <?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($v['cargo_nome'] ?? ''))) ?>
                                                 <?php endif; ?>
                                                 | Tipo: <?= htmlspecialchars($v['tipo_contrato'] ?? 'CLT') ?>
                                                 | Status: <?= htmlspecialchars(ucfirst($v['status'] ?? 'aberta')) ?>

@@ -7,6 +7,7 @@ if (empty($_SESSION['user_id'])) {
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\ImageHelper;
+use App\adms\Helpers\PositionDisplayHelper;
 ?>
 
 <div class="container-fluid px-4">
@@ -46,6 +47,15 @@ use App\adms\Helpers\ImageHelper;
                     ?>
                     
                     <h5 class="card-title"><?php echo htmlspecialchars($this->data['form']['name'] ?? ''); ?></h5>
+                    <?php
+                    $profilePosDisplay = PositionDisplayHelper::formatForDisplay((string)($this->data['form']['pos_name'] ?? ''));
+                    ?>
+                    <?php if ($profilePosDisplay !== ''): ?>
+                    <p class="card-text text-muted">
+                        <i class="fas fa-briefcase me-1"></i>
+                        <?php echo htmlspecialchars($profilePosDisplay); ?>
+                    </p>
+                    <?php endif; ?>
                     <p class="card-text text-muted">
                         <i class="fas fa-building me-1"></i>
                         <?php echo htmlspecialchars($this->data['form']['dep_name'] ?? ''); ?>
@@ -152,6 +162,16 @@ use App\adms\Helpers\ImageHelper;
                                    value="<?php echo htmlspecialchars($this->data['form']['dep_name'] ?? ''); ?>" 
                                    readonly>
                             <small class="form-text text-muted">O departamento não pode ser alterado</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="pos_name_display" class="form-label">Cargo</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="pos_name_display"
+                                   value="<?php echo htmlspecialchars($profilePosDisplay); ?>"
+                                   readonly>
+                            <small class="form-text text-muted">O cargo não pode ser alterado</small>
                         </div>
 
                         <div class="col-12">

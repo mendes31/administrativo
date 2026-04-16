@@ -835,11 +835,12 @@ class UsersRepository extends DbConnection
         $bind[':td_s2'] = $term;
         $bind[':td_s3'] = $term;
         $bind[':td_s4'] = $term;
+        $bind[':td_s5'] = $term;
 
         return ' AND (
             t0.name LIKE :td_s1 OR t0.username LIKE :td_s2
-            OR t1.name LIKE :td_s3
-            OR t0.timeline_bio LIKE :td_s4
+            OR t1.name LIKE :td_s3 OR t2.name LIKE :td_s4
+            OR t0.timeline_bio LIKE :td_s5
         )';
     }
 

@@ -69,7 +69,7 @@
                             <?php foreach ($this->data['vinculados'] as $user): ?>
                                 <tr id="user-row-<?php echo $user['id']; ?>">
                                     <td class="col-nome">
-                                        <?php echo htmlspecialchars($user['name']) . ' (' . htmlspecialchars($user['cargo_nome']) . ')'; ?>
+                                        <?php echo htmlspecialchars($user['name']) . ' (' . htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($user['cargo_nome'] ?? ''))) . ')'; ?>
                                         <?php if ($user['tipo'] === 'cargo'): ?>
                                             <span title="Vínculo pelo cargo" style="color:#888; font-size:0.95em;">(cargo)</span>
                                         <?php endif; ?>

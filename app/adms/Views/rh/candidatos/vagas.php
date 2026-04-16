@@ -172,7 +172,7 @@ $csrfTokenVinculo = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_va
                                             <strong><?= htmlspecialchars($vaga['titulo'] ?? '') ?></strong>
                                         </td>
                                         <td><?= htmlspecialchars($vaga['area_nome'] ?? '-') ?></td>
-                                        <td><?= htmlspecialchars($vaga['cargo_nome'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($vaga['cargo_nome'] ?? '')) ?: '-') ?></td>
                                         <td class="text-center"><?= htmlspecialchars($vaga['tipo_contrato'] ?? '-') ?></td>
                                         <td class="text-center">
                                             <?php

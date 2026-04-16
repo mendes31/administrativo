@@ -74,7 +74,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                             <span class="badge bg-info"><?= htmlspecialchars($v['area_nome']) ?></span>
                         <?php endif; ?>
                         <?php if (!empty($v['cargo_nome'])): ?>
-                            <span class="badge bg-primary"><?= htmlspecialchars($v['cargo_nome']) ?></span>
+                            <span class="badge bg-primary"><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($v['cargo_nome'] ?? ''))) ?></span>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -88,7 +88,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                         <dd class="col-sm-7"><?= htmlspecialchars($v['area_nome'] ?? '-') ?></dd>
 
                         <dt class="col-sm-5">Cargo</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars($v['cargo_nome'] ?? '-') ?></dd>
+                        <dd class="col-sm-7"><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($v['cargo_nome'] ?? '')) ?: '-') ?></dd>
 
                         <dt class="col-sm-5">Tipo de Contrato</dt>
                         <dd class="col-sm-7"><?= htmlspecialchars($v['tipo_contrato'] ?? '-') ?></dd>

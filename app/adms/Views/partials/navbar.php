@@ -185,6 +185,21 @@ if (!empty($_SESSION['user_id'])) {
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu do usuário">
                 <?php
+                $navbarUserSubline = '—';
+                if (is_array($userInfo)) {
+                    $navDep = trim((string)($userInfo['dep_name'] ?? ''));
+                    $navPos = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($userInfo['pos_name'] ?? ''));
+                    $navParts = [];
+                    if ($navDep !== '') {
+                        $navParts[] = $navDep;
+                    }
+                    if ($navPos !== '') {
+                        $navParts[] = $navPos;
+                    }
+                    if ($navParts !== []) {
+                        $navbarUserSubline = implode(' · ', $navParts);
+                    }
+                }
                 $navbarAvatarPath = null;
                 if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png') {
                     $navbarAvatarPath = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
@@ -201,7 +216,7 @@ if (!empty($_SESSION['user_id'])) {
                         <?php echo htmlspecialchars($userInfo['name'] ?? 'Usuário'); ?>
                     </div>
                     <div class="text-white-50" style="font-size: 0.75rem; line-height: 1.1;">
-                        <?php echo htmlspecialchars(trim((string)($userInfo['dep_name'] ?? '')) ?: '—'); ?>
+                        <?php echo htmlspecialchars($navbarUserSubline); ?>
                     </div>
                 </div>
             </a>
@@ -222,7 +237,7 @@ if (!empty($_SESSION['user_id'])) {
                         
                         <div>
                             <div class="fw-bold"><?php echo htmlspecialchars($userInfo['name'] ?? 'Usuário'); ?></div>
-                            <div class="text-muted small"><?php echo htmlspecialchars(trim((string)($userInfo['dep_name'] ?? '')) ?: '—'); ?></div>
+                            <div class="text-muted small"><?php echo htmlspecialchars($navbarUserSubline); ?></div>
                         </div>
                     </div>
                 </li>

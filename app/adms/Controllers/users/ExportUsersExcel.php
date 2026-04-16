@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\users;
 
+use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Models\Repository\UsersRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -69,7 +70,7 @@ class ExportUsersExcel
             $sheet->setCellValue('D' . $row, $user['email'] ?? '');
             $sheet->setCellValue('E' . $row, $user['username'] ?? '');
             $sheet->setCellValue('F' . $row, $user['name_dep'] ?? '');
-            $sheet->setCellValue('G' . $row, $user['name_pos'] ?? '');
+            $sheet->setCellValue('G' . $row, PositionDisplayHelper::formatForDisplay((string)($user['name_pos'] ?? '')));
             $sheet->setCellValue('H' . $row, $user['status'] ?? '');
 
             $bloqueado = $user['bloqueado'] ?? 0;

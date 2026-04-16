@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\users;
 
+use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Models\Repository\UsersRepository;
 use Dompdf\Dompdf;
 
@@ -71,7 +72,7 @@ class ExportUsersPdf
                 $email = htmlspecialchars($user['email'] ?? '');
                 $username = htmlspecialchars($user['username'] ?? '');
                 $dep = htmlspecialchars($user['name_dep'] ?? '');
-                $pos = htmlspecialchars($user['name_pos'] ?? '');
+                $pos = htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($user['name_pos'] ?? '')));
                 $status = htmlspecialchars($user['status'] ?? '');
                 $bloqueado = $user['bloqueado'] ?? 0;
                 $bloqLabel = ($bloqueado == 1 || $bloqueado === 'Sim') ? 'Sim' : 'Não';

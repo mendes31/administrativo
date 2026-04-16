@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\trainings;
 
+use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Models\Repository\TrainingUsersRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
@@ -205,7 +206,10 @@ class MatrixByUser
         foreach ($matrix as $item) {
             $sheet->setCellValue('A' . $row, $item['user_name'] ?? $item['name'] ?? '');
             $sheet->setCellValue('B' . $row, $item['department'] ?? $item['department_nome'] ?? '');
-            $sheet->setCellValue('C' . $row, $item['position'] ?? $item['cargo_nome'] ?? '');
+            $sheet->setCellValue(
+                'C' . $row,
+                PositionDisplayHelper::formatForDisplay((string)($item['position'] ?? $item['cargo_nome'] ?? ''))
+            );
             $sheet->setCellValue('D' . $row, $item['training_name'] ?? $item['treinamento_nome'] ?? '');
             $sheet->setCellValue('E' . $row, $item['codigo'] ?? '');
             $sheet->setCellValue('F' . $row, $item['training_version'] ?? '-');
@@ -452,7 +456,7 @@ class MatrixByUser
 
         $hName = $this->h($userName);
         $hDept = $this->h($dept);
-        $hCargo = $this->h($cargo);
+        $hCargo = $this->h(PositionDisplayHelper::formatForDisplay($cargo));
         $hData = $this->h($dataEmissao);
         $hCpf = $this->h($this->formatCpfBr($cpfRaw !== null ? (string)$cpfRaw : null));
         $hEmail = $this->h($emailHdr !== '' ? $emailHdr : '-');
@@ -579,7 +583,7 @@ HTML;
             $body .= '<tr>'
                 . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h((string)($item['user_name'] ?? $item['name'] ?? '')) . '</td>'
                 . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h((string)($item['department'] ?? $item['department_nome'] ?? '')) . '</td>'
-                . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h((string)($item['position'] ?? $item['cargo_nome'] ?? '')) . '</td>'
+                . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h(PositionDisplayHelper::formatForDisplay((string)($item['position'] ?? $item['cargo_nome'] ?? ''))) . '</td>'
                 . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h((string)($item['training_name'] ?? $item['treinamento_nome'] ?? '')) . '</td>'
                 . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h((string)($item['codigo'] ?? '')) . '</td>'
                 . '<td style="border:1px solid #ccc;padding:4px;">' . $this->h((string)($item['training_version'] ?? '-')) . '</td>'

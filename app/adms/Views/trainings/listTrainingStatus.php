@@ -315,7 +315,7 @@ thead th {
                                 </td>
                                 <td><?= htmlspecialchars($row['user_name']) ?></td>
                                 <td><?= htmlspecialchars($row['department']) ?></td>
-                                <td><?= htmlspecialchars($row['position']) ?></td>
+                                <td><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($row['position'] ?? ''))) ?></td>
                                 <!-- <td>
                                     <?php if (!empty($row['data_realizacao'])): ?>
                                         <?= (new DateTime($row['data_realizacao']))->format('d/m/Y') ?>
@@ -446,7 +446,7 @@ thead th {
                             <div class="collapse mt-2" id="cardDetails<?= $i ?>">
                                 <div><b>Código:</b> <?= htmlspecialchars($row['codigo']) ?></div>
                                 <div><b>Departamento:</b> <?= htmlspecialchars($row['department']) ?></div>
-                                <div><b>Cargo:</b> <?= htmlspecialchars($row['position']) ?></div>
+                                <div><b>Cargo:</b> <?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($row['position'] ?? ''))) ?></div>
                                 <!-- <div><b>Data Agendada:</b> <?php if (!empty($row['data_agendada'])): ?><?= (new DateTime($row['data_agendada']))->format('d/m/Y') ?><?php else: ?><span class="text-muted">-</span><?php endif; ?></div> -->
                                 <!-- <div><b>Vencimento:</b> <?php if (!empty($row['reciclagem']) && !empty($row['reciclagem_periodo']) && !empty($row['data_realizacao'])): ?><?php $dataVencimento = new DateTime($row['data_realizacao']); $dataVencimento->add(new DateInterval('P' . $row['reciclagem_periodo'] . 'M')); echo $dataVencimento->format('d/m/Y'); ?><?php else: ?><span class="text-muted">N/A</span><?php endif; ?></div> -->
                                 <!-- <div><b>Nota:</b> <?= htmlspecialchars($row['nota'] ?? '-') ?></div> -->
