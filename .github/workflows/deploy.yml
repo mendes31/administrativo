@@ -4,7 +4,10 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
 # (seção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# Kinghost: a conta FTP já abre dentro de files/ — server-dir ./ envia app/, public/, etc. para a raiz dessa sessão.
+# Kinghost: muitas contas listam na raiz do FTP pastas como files/, logs/ (app/ fica DENTRO de files/).
+# Se o deploy der «550 app», use KINGHOST_FTP_REMOTE_DIR: files (padrão). Se o WebFTP já mostrar app/ na raiz, use «.».
+#
+# O lftp e o SamKirkland usam o mesmo prefixo (env abaixo).
 
 on:
   push:
@@ -16,6 +19,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # «files» = enviar para subpasta files/ (típico quando 550 em «app» na action). «.» = raiz da sessão já é o site.
+      KINGHOST_FTP_REMOTE_DIR: files
 
     steps:
       - name: Checkout código
@@ -39,22 +45,20 @@ jobs:
             exit 1
           fi
           echo "✅ Todos os secrets estão configurados"
-          echo "📋 Servidor: ${{ secrets.FTP_SERVER_PROD }}"
-          echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
-          echo "📋 Senha: [OCULTA]"
-          echo "📂 Destino remoto: ./ (sessão FTP já em files/)"
+          echo "📂 Prefixo remoto (KINGHOST_FTP_REMOTE_DIR): ${KINGHOST_FTP_REMOTE_DIR:-?}"
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
-          log-level: verbose
+          log-level: standard
           timeout: 300000
           exclude: |
             .git/
@@ -75,17 +79,18 @@ jobs:
             lib/**
 
       - name: Deploy Incremental - Tentativa 2
-        if: failure() && steps.deploy1.outcome == 'failure'
+        if: steps.deploy1.outcome == 'failure'
         id: deploy2
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
-          log-level: verbose
+          log-level: standard
           timeout: 300000
           exclude: |
             .git/
@@ -106,17 +111,18 @@ jobs:
             lib/**
 
       - name: Deploy Incremental - Tentativa 3
-        if: failure() && steps.deploy2.outcome == 'failure'
+        if: steps.deploy2.outcome == 'failure'
         id: deploy3
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
-          log-level: verbose
+          log-level: standard
           timeout: 300000
           exclude: |
             .git/
@@ -137,17 +143,18 @@ jobs:
             lib/**
 
       - name: Deploy Incremental - Tentativa 4
-        if: failure() && steps.deploy3.outcome == 'failure'
+        if: steps.deploy3.outcome == 'failure'
         id: deploy4
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
-          log-level: verbose
+          log-level: standard
           timeout: 300000
           exclude: |
             .git/
@@ -168,17 +175,18 @@ jobs:
             lib/**
 
       - name: Deploy Incremental - Tentativa 5
-        if: failure() && steps.deploy4.outcome == 'failure'
+        if: steps.deploy4.outcome == 'failure'
         id: deploy5
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
-          log-level: verbose
+          log-level: standard
           timeout: 300000
           exclude: |
             .git/
@@ -198,7 +206,6 @@ jobs:
             lib/
             lib/**
 
-      # Com FTP em files/: remoto ./app/adms/Controllers/logs/ = disco files/app/adms/Controllers/logs/
       - name: Forçar upload - Controllers logs
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -207,9 +214,9 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Controllers/logs/
-          server-dir: ./app/adms/Controllers/logs/
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './app/adms/Controllers/logs/' || format('{0}/app/adms/Controllers/logs/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: true
-          log-level: verbose
+          log-level: standard
           exclude: |
             **/*.log
 
@@ -221,9 +228,9 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Views/logs/
-          server-dir: ./app/adms/Views/logs/
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './app/adms/Views/logs/' || format('{0}/app/adms/Views/logs/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: true
-          log-level: verbose
+          log-level: standard
           exclude: |
             **/*.log
 
@@ -238,9 +245,16 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          # cwd = files/ → destino mirror app/adms/.../logs = files/app/adms/.../logs (pasta já pode existir; 550 ≠ «não existe»).
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-files}"
+          if [ "$REMOTE" = "." ]; then
+            RCTL="app/adms/Controllers/logs"
+            RVIE="app/adms/Views/logs"
+          else
+            RCTL="$REMOTE/app/adms/Controllers/logs"
+            RVIE="$REMOTE/app/adms/Views/logs"
+          fi
           set +e
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
           set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
@@ -250,23 +264,23 @@ jobs:
           set net:reconnect-interval-max 10
           mirror -R --only-newer --continue --no-perms \
             --exclude-glob *.log \
-            ./app/adms/Controllers/logs app/adms/Controllers/logs
+            ./app/adms/Controllers/logs $RCTL
           mirror -R --only-newer --continue --no-perms \
             --exclude-glob *.log \
-            ./app/adms/Views/logs app/adms/Views/logs
+            ./app/adms/Views/logs $RVIE
           quit
           EOF
           echo "::notice::Passo opcional (logs). Se a pasta existe em files/ mas dá 550, verifique permissões/dono no servidor; o deploy principal dos .php segue nos passos anteriores."
           exit 0
 
-      # Só se nenhuma das 5 tentativas FTP tiver sucesso (NÃO usar deploy5 == skipped: ocorre quando deploy1 já deu certo).
+      # Só após a 5.ª tentativa falhar (deploy5 não corre se alguma anterior tiver sucesso; evita lftp se checkout/secrets falharem).
       - name: Install lftp (Fallback Inteligente)
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
+        if: steps.deploy5.outcome == 'failure'
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via lftp (Fallback Incremental)
         id: lftp_fallback
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
+        if: steps.deploy5.outcome == 'failure'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -274,7 +288,14 @@ jobs:
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           echo "⏳ Mirror completo do repo: pode levar 10–40+ min (centenas de MB / milhares de ficheiros). Sem --verbose no mirror para o runner não ficar preso a imprimir linhas."
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-files}"
+          if [ "$REMOTE" = "." ]; then
+            LFTP_TARGET="."
+          else
+            LFTP_TARGET="$REMOTE"
+          fi
+          echo "📂 Destino remoto do mirror: $LFTP_TARGET (KINGHOST_FTP_REMOTE_DIR=$REMOTE)"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
           set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
@@ -296,7 +317,7 @@ jobs:
             --exclude-glob .vscode/** \
             --exclude-glob .DS_Store \
             --exclude-glob LICENSE.txt \
-            ./ .
+            ./ $LFTP_TARGET
           quit
           EOF
 
@@ -311,6 +332,7 @@ jobs:
           echo "   Tentativa 3: ${{ steps.deploy3.outcome }}"
           echo "   Tentativa 4: ${{ steps.deploy4.outcome }}"
           echo "   Tentativa 5: ${{ steps.deploy5.outcome }}"
+          echo "   Fallback lftp: ${{ steps.lftp_fallback.outcome }}"
           echo ""
           echo "📋 Logs detalhados estão disponíveis em:"
           echo "   GitHub Actions → Jobs → deploy → Steps"
@@ -341,28 +363,14 @@ jobs:
             sudo apt-get update && sudo apt-get install -y lftp
           fi
 
-          # Criar pastas na raiz da sessão FTP (já em files/)
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set cmd:fail-exit no
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set net:timeout 30
-
-          echo "🔄 Conectando ao servidor..."
-
-          echo "📁 Criando pasta logs..."
-          mkdir -p logs
-
-          echo "📁 Criando pasta public/uploads..."
-          mkdir -p public/uploads
-
-          echo "📁 Verificando permissões..."
-          chmod 755 logs
-          chmod 755 public/uploads
-
-          echo "✅ Pastas essenciais criadas com sucesso!"
-          quit
-          EOF
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-files}"
+          LFTP_SCRIPT="set cmd:fail-exit no; set ftp:passive-mode true; set ftp:ssl-allow no; set net:timeout 30;"
+          if [ "$REMOTE" != "." ]; then
+            LFTP_SCRIPT="${LFTP_SCRIPT} cd ${REMOTE};"
+          fi
+          LFTP_SCRIPT="${LFTP_SCRIPT} mkdir -p logs; mkdir -p public/uploads; chmod 755 logs; chmod 755 public/uploads; quit"
+          echo "🔄 lftp: criando logs/ e public/uploads/ sob prefixo remoto «$REMOTE»"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "$LFTP_SCRIPT"
 
       # Verificação final e relatório de integridade detalhado
       - name: Verificar Deploy e Gerar Relatório Detalhado
@@ -389,7 +397,7 @@ jobs:
           else
             echo "⚠️ Nenhuma tentativa FTP teve sucesso."
             echo "📊 Tentativas FTP: ❌❌❌❌❌"
-            echo "🔄 Fallback lftp: ${{ steps.lftp_fallback.outcome }} (skipped = deploy FTP já tinha sucesso antes)"
+            echo "🔄 Fallback lftp: ${{ steps.lftp_fallback.outcome }} (skipped = deploy FTP ok antes da 5.ª falha, ou job não chegou ao fallback)"
           fi
 
           echo ""
@@ -440,5 +448,5 @@ jobs:
           echo "   - 'Updating: arquivo.php' (arquivo modificado)"
           echo "   - 'Skipping: arquivo.php' (arquivo idêntico)"
           echo ""
-          echo "💡 Dica: Os logs 'verbose' mostram TUDO, mas podem ser longos"
+          echo "💡 Dica: log-level «standard» nas tentativas FTP reduz ruído; detalhe máximo nos steps em caso de erro"
           echo "💡 Dica: Use Ctrl+F para buscar por arquivos específicos nos logs"
