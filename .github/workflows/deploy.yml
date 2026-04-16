@@ -247,10 +247,10 @@ jobs:
           set net:max-retries 20
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
-          mirror -R --only-newer --continue --no-perms --verbose \
+          mirror -R --only-newer --continue --no-perms \
             --exclude-glob *.log \
             ./app/adms/Controllers/logs app/adms/Controllers/logs
-          mirror -R --only-newer --continue --no-perms --verbose \
+          mirror -R --only-newer --continue --no-perms \
             --exclude-glob *.log \
             ./app/adms/Views/logs app/adms/Views/logs
           quit
@@ -272,6 +272,7 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
+          echo "⏳ Mirror completo do repo: pode levar 10–40+ min (centenas de MB / milhares de ficheiros). Sem --verbose no mirror para o runner não ficar preso a imprimir linhas."
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set cmd:fail-exit no
           set ftp:passive-mode true
@@ -282,7 +283,7 @@ jobs:
           set net:reconnect-interval-max 60
           set net:idle 120
           set xfer:clobber on
-          mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
+          mirror -R --parallel=3 --only-newer --continue --no-perms \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
