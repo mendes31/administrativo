@@ -1,12 +1,15 @@
 name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 
 # Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
-# (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
-# (seção "GitHub Actions: erro FTP ETIMEDOUT").
+# (firewall/hospedagem). Ver docs/COMANDOS_SERVIDOR_SSH.md (secção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# Kinghost: se o WebFTP/GitHub listar app/ e public/ logo na raiz da sessão, a raiz JÁ é o site (equivale a files/ no disco).
-# Nesse caso use KINGHOST_FTP_REMOTE_DIR: '.' — «mirror ./ files» ou «cd files» dão 550 ~/files porque NÃO existe subpasta files/.
-# Use «files» só se na raiz do FTP aparecer pasta files/ e app/ estiver DENTRO dela (conta um nível acima do site).
+# Kinghost (tiaraju02): no FileZilla a raiz FTP mostra administrativo/, app/, public/ ao mesmo nível — o site está em
+# administrativo/ (no disco: .../www/administrativo). O deploy do repositório deve usar server-dir administrativo/.
+# Use KINGHOST_FTP_REMOTE_DIR: '.' só se a raiz FTP já for só o conteúdo do projecto (sem pasta administrativo/).
+# Use «files» apenas se a listagem na raiz for mesmo a pasta files/ antes de app/.
+#
+# Secret FTP_USER_PROD: utilizar o mesmo user FTP do painel/FileZilla (ex.: tiaraju02), não confundir com o login SSH tiaraju.
+# FTPS: certificado *.kinghost.net vs host ftp.* → protocol ftps + security loose na action.
 #
 # O lftp e o SamKirkland usam o mesmo prefixo (env abaixo).
 
@@ -27,8 +30,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Padrão «.» = sessão já no diretório do site. «files» = um nível acima; só se listagem FTP mostrar pasta files/ antes de app/.
-      KINGHOST_FTP_REMOTE_DIR: '.'
+      # Padrão administrativo = FTP abre um nível acima do projecto (ver pastas administrativo + app na raiz). «.» = raiz já é o repo.
+      KINGHOST_FTP_REMOTE_DIR: administrativo
 
     steps:
       - name: Checkout código
@@ -53,6 +56,7 @@ jobs:
           fi
           echo "✅ Todos os secrets estão configurados"
           echo "📂 Prefixo remoto (KINGHOST_FTP_REMOTE_DIR): ${KINGHOST_FTP_REMOTE_DIR:-?}"
+          echo "::notice::Confirme no GitHub que FTP_USER_PROD é o user FTP (ex.: tiaraju02), não o login SSH (tiaraju)."
 
       - name: Diagnóstico FTP (pwd + listagem)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_ftp == 'true'
@@ -64,9 +68,18 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lftp
           echo "::group::Raiz FTP (pwd + primeiras linhas de ls)"
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "set cmd:fail-exit no; set ftp:passive-mode true; pwd; cls -1 | head -100; quit" 2>&1
+          lftp <<EOF
+          set cmd:fail-exit no
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          pwd
+          cls -1 | head -100
+          quit
+          EOF
           echo "::endgroup::"
-          echo "::notice::Compare com KINGHOST_FTP_REMOTE_DIR: se vir app/ e public/ aqui, use «.»; se só vir files/, use «files»."
+          echo "::notice::Compare com KINGHOST_FTP_REMOTE_DIR: raiz com pasta administrativo/ ao lado de app/ → use «administrativo» (padrão). Raiz já = repo → «.»."
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -76,6 +89,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: ./
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
@@ -111,6 +126,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: ./
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
@@ -146,6 +163,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: ./
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
@@ -181,6 +200,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: ./
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
@@ -216,6 +237,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: ./
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
@@ -249,6 +272,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: app/adms/Controllers/logs/
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './app/adms/Controllers/logs/' || format('{0}/app/adms/Controllers/logs/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: true
@@ -263,6 +288,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
+          protocol: ftps
+          security: loose
           local-dir: app/adms/Views/logs/
           server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './app/adms/Views/logs/' || format('{0}/app/adms/Views/logs/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: true
@@ -281,7 +308,7 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-administrativo}"
           if [ "$REMOTE" = "." ]; then
             RCTL="app/adms/Controllers/logs"
             RVIE="app/adms/Views/logs"
@@ -290,14 +317,16 @@ jobs:
             RVIE="$REMOTE/app/adms/Views/logs"
           fi
           set +e
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
+          lftp <<EOF
           set cmd:fail-exit no
           set ftp:passive-mode true
-          set ftp:ssl-allow no
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
           set net:timeout 120
           set net:max-retries 20
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
           mirror -R --only-newer --continue --no-perms \
             --exclude-glob *.log \
             ./app/adms/Controllers/logs $RCTL
@@ -306,7 +335,7 @@ jobs:
             ./app/adms/Views/logs $RVIE
           quit
           EOF
-          echo "::notice::Passo opcional (logs). Se a pasta existe em files/ mas dá 550, verifique permissões/dono no servidor; o deploy principal dos .php segue nos passos anteriores."
+          echo "::notice::Passo opcional (logs). 550 aqui costuma ser permissão no remoto ou prefixo KINGHOST_FTP_REMOTE_DIR errado; o deploy principal segue nos passos anteriores."
           exit 0
 
       # Só após a 5.ª tentativa falhar (deploy5 não corre se alguma anterior tiver sucesso; evita lftp se checkout/secrets falharem).
@@ -324,23 +353,25 @@ jobs:
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           echo "⏳ Mirror completo do repo: pode levar 10–40+ min (centenas de MB / milhares de ficheiros). Sem --verbose no mirror para o runner não ficar preso a imprimir linhas."
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-administrativo}"
           if [ "$REMOTE" = "." ]; then
             LFTP_TARGET="."
           else
             LFTP_TARGET="$REMOTE"
           fi
           echo "📂 Destino remoto do mirror: $LFTP_TARGET (KINGHOST_FTP_REMOTE_DIR=$REMOTE)"
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
+          lftp <<EOF
           set cmd:fail-exit no
           set ftp:passive-mode true
-          set ftp:ssl-allow no
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
           set net:timeout 300
           set net:max-retries 200
           set net:reconnect-interval-base 5
           set net:reconnect-interval-max 60
           set net:idle 120
           set xfer:clobber on
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
           mirror -R --parallel=3 --only-newer --continue --no-perms \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
@@ -402,14 +433,22 @@ jobs:
             sudo apt-get update && sudo apt-get install -y lftp
           fi
 
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
-          LFTP_SCRIPT="set cmd:fail-exit no; set ftp:passive-mode true; set ftp:ssl-allow no; set net:timeout 30;"
-          if [ "$REMOTE" != "." ]; then
-            LFTP_SCRIPT="${LFTP_SCRIPT} cd ${REMOTE};"
-          fi
-          LFTP_SCRIPT="${LFTP_SCRIPT} mkdir -p logs; mkdir -p public/uploads; chmod 755 logs; chmod 755 public/uploads; quit"
-          echo "🔄 lftp: criando logs/ e public/uploads/ sob prefixo remoto «$REMOTE»"
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "$LFTP_SCRIPT"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-administrativo}"
+          echo "🔄 lftp: criando logs/ e public/uploads/ sob prefixo remoto «$REMOTE» (FTPS explícito)"
+          {
+            echo set cmd:fail-exit no
+            echo set ftp:passive-mode true
+            echo set ssl:verify-certificate no
+            echo set ftp:ssl-force true
+            echo set net:timeout 30
+            echo "open -u \"$FTP_USER\",\"$FTP_PASS\" ftp://$FTP_HOST"
+            [ "$REMOTE" != "." ] && echo "cd $REMOTE"
+            echo mkdir -p logs
+            echo mkdir -p public/uploads
+            echo chmod 755 logs
+            echo chmod 755 public/uploads
+            echo quit
+          } | lftp
 
       # Verificação final e relatório de integridade detalhado
       - name: Verificar Deploy e Gerar Relatório Detalhado
@@ -441,14 +480,15 @@ jobs:
 
           echo ""
           echo "🧪 Diagnóstico (erros FTP / lftp):"
-          echo "   - «550 ~/files» ou «cd files» falhou: a sessão FTP provavelmente JÁ está em files/ → mantenha KINGHOST_FTP_REMOTE_DIR «.» (não use «files»)."
-          echo "   - «550 … Operation not permitted» ao subir .php: permissão/dono no servidor (SSH: ls -la no diretório alvo; não é «arquivo mágico» no Git)."
-          echo "   - workflow_dispatch com opção «debug_ftp»: imprime pwd + listagem na raiz FTP para alinhar . vs files."
-          echo "   - Pastas duplicadas no repositório (remover do Git quando possível): app/adms/Controllers/receive copy, receive%20copy; ficheiros «* copy.php»."
+          echo "   - Raiz FTP com administrativo/ ao lado de app/: use KINGHOST_FTP_REMOTE_DIR «administrativo» (padrão actual)."
+          echo "   - Se a raiz FTP já for só o conteúdo do repo (sem pasta administrativo/), use «.»."
+          echo "   - «550 … Operation not permitted»: permissão/dono no servidor ou user FTP ≠ dono dos ficheiros (SSH: ls -la)."
+          echo "   - workflow_dispatch «debug_ftp»: pwd + listagem na raiz FTP."
+          echo "   - Duplicados no Git a remover quando possível: receive copy, receive%20copy, ficheiros «* copy.php»."
           echo ""
           echo "📋 Próximos passos no servidor:"
           echo "1. Acesse via SSH ou painel KingHost"
-          echo "2. Execute: cd /files (ou caminho correto da raiz do projeto)"
+          echo "2. Execute: cd ~/www/administrativo (ou caminho correcto da raiz do projecto no servidor)"
           echo "3. Execute: composer install --no-dev --optimize-autoloader"
           echo "4. Configure .env com URL_ADM correta"
           echo "5. Execute: php scripts/generate-htaccess.php"
