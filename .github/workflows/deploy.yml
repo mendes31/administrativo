@@ -3,6 +3,10 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
 # (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
 # (seção "GitHub Actions: erro FTP ETIMEDOUT").
+#
+# Kinghost WebFTP: o site está em files/administrativo/ (não em files/app/ ao mesmo nível).
+# server-dir = administrativo/ → envia app/, public/, etc. para dentro dessa pasta.
+# Se a tua conta FTP já abrir DENTRO de administrativo/, altera todas as server-dir para ./
 
 on:
   push:
@@ -40,6 +44,7 @@ jobs:
           echo "📋 Servidor: ${{ secrets.FTP_SERVER_PROD }}"
           echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
           echo "📋 Senha: [OCULTA]"
+          echo "📂 Destino remoto configurado: administrativo/ (Kinghost: files/administrativo/...)"
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -49,7 +54,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -80,7 +85,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -111,7 +116,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -142,7 +147,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -173,7 +178,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -203,7 +208,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Controllers/logs/
-          server-dir: ./app/adms/Controllers/logs/
+          server-dir: administrativo/app/adms/Controllers/logs/
           dangerous-clean-slate: true
           log-level: verbose
           exclude: |
@@ -217,7 +222,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Views/logs/
-          server-dir: ./app/adms/Views/logs/
+          server-dir: administrativo/app/adms/Views/logs/
           dangerous-clean-slate: true
           log-level: verbose
           exclude: |
@@ -234,8 +239,7 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          # Pastas já existem no servidor (ex.: Kinghost WebFTP em /files/app/...). Só sincroniza; sem MKD (evita 550).
-          # Se a sessão FTP abrir acima de /files/, o cd falha com fail-exit no e segue na raiz atual.
+          # Kinghost: WebFTP em /files/administrativo/app/... — entrar em files e administrativo antes do mirror.
           set +e
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set cmd:fail-exit no
@@ -246,6 +250,7 @@ jobs:
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
           cd files
+          cd administrativo
           mirror -R --only-newer --continue --no-perms --verbose \
             --exclude-glob *.log \
             ./app/adms/Controllers/logs app/adms/Controllers/logs
@@ -282,6 +287,7 @@ jobs:
           set net:idle 120
           set xfer:clobber on
           cd files
+          cd administrativo
           mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
@@ -348,6 +354,7 @@ jobs:
 
           echo "🔄 Conectando ao servidor..."
           cd files
+          cd administrativo
 
           echo "📁 Criando pasta logs..."
           mkdir -p logs
