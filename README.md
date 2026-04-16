@@ -305,7 +305,7 @@ git push origin dev-master
 003 - LoadPageAdm.php - Não encontrou a controller  
 004 - LoadPageAdm.php - Não encontrou o método  
 005 - LoadViewService.php - Não encontrou a VIEW
-006 -
+006 - Teste
 
 O `index.php` principal usa **`LoadPageAdmAccessLevel`** (rotas e permissões em `adms_pages`). A lista antiga referia **`LoadPageAdm`** (lista fixa de controllers); os códigos **002/003** não são os mesmos entre os dois roteadores.
 
