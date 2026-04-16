@@ -43,7 +43,10 @@ class ImageHelper
         $defaultAttributes = [
             'alt' => 'Imagem',
             'class' => 'img-fluid',
-            'style' => 'max-width: 100%; height: auto;'
+            'style' => 'max-width: 100%; height: auto;',
+            'loading' => 'lazy',
+            'decoding' => 'async',
+            'fetchpriority' => 'low'
         ];
 
         $attributes = array_merge($defaultAttributes, $attributes);

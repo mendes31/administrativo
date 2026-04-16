@@ -41,6 +41,39 @@ if (function_exists('mb_http_output')) {
 // Importante: não imprimir nada antes do <!DOCTYPE> para não quebrar o "standards mode".
 $currentUserMetaTag = '';
 $currentUserScriptTag = '';
+$isPermissionPage = strpos($this->view, 'permission/list.php') !== false;
+$viewPath = (string)$this->view;
+$viewFile = strtolower((string)basename($viewPath));
+$viewDir = strtolower((string)basename((string)dirname($viewPath)));
+
+// Matriz explícita: páginas que normalmente usam DataTables/máscaras.
+$dataTablesViewFiles = [
+    'list.php', 'dashboard.php', 'relatorioresultado.php', 'traininghistory.php',
+    'kpidashboard.php', 'people_analytics.php', 'view.php'
+];
+$dataTablesViewDirs = [
+    'informativos', 'policies', 'reports', 'trainings', 'analytics', 'performance',
+    'pay', 'receive', 'users', 'logs', 'rooms', 'crm', 'lgpd'
+];
+
+$inputMaskViewFiles = [
+    'create.php', 'update.php', 'profile.php', 'index.php', 'view.php'
+];
+$inputMaskViewDirs = [
+    'profile', 'pay', 'receive', 'rooms', 'users', 'portal', 'crm', 'departments',
+    'positions', 'costcenter', 'accesslevels', 'policies', 'informativos', 'lgpd'
+];
+
+$loadDataTables = in_array($viewFile, $dataTablesViewFiles, true) || in_array($viewDir, $dataTablesViewDirs, true);
+$loadInputMasks = in_array($viewFile, $inputMaskViewFiles, true) || in_array($viewDir, $inputMaskViewDirs, true);
+
+// Fallback defensivo para não quebrar telas fora da matriz.
+if (!$loadDataTables) {
+    $loadDataTables = (bool)preg_match('/\/(list|dashboard|relatorio|report|analytics|matrix|history|kpi)/i', $viewPath);
+}
+if (!$loadInputMasks) {
+    $loadInputMasks = (bool)preg_match('/\/(create|update|profile|pay|receive|rooms|users|portal|crm|departments|positions|costCenter|accessLevels)/i', $viewPath);
+}
 if (!headers_sent() && isset($_SESSION['user_id'])) {
     $userId = (int)$_SESSION['user_id'];
     $userName = $_SESSION['user_name'] ?? 'Usuário';
@@ -202,6 +235,10 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     }
     ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/pwa-icon-192.png">
@@ -219,7 +256,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/styles_admin.css">
 
+    <?php if ($loadDataTables): ?>
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.css">
+    <?php endif; ?>
 
     <!-- Removido Font Awesome JS externo para evitar aviso de header nosniff; CSS jÃ¡ cobre os Ã­cones -->
 
@@ -240,7 +279,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
 
     <!-- CSS especÃ­fico para pÃ¡gina de permissÃµes -->
-    <?php if (strpos($this->view, 'permission/list.php') !== false): ?>
+    <?php if ($isPermissionPage): ?>
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/permission-list.css">
     <?php endif; ?>
 
@@ -307,44 +346,46 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         </div>
     </div>
 
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/script_admin.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/script_admin.js"></script>
     
     <!-- Fix para garantir funcionamento do menu toggle -->
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-toggle-fix.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-toggle-fix.js"></script>
 
     <!-- Fix para modais travados em mobile (inclui mover .modal para body — stacking context) -->
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/modal-fix.js?v=20260213"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/modal-fix.js?v=20260213"></script>
     
     <!-- Fix para garantir que formulários funcionem em mobile -->
     <!-- TEMPORARIAMENTE DESABILITADO para testar modais -->
     <!-- <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/forms-mobile-fix.js"></script> -->
 
     <!-- Script para rolar automaticamente para o item ativo do menu -->
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js"></script>
     
     <!-- Pesquisa no menu -->
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-search.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-search.js"></script>
     
     <!-- Otimizações para dispositivos móveis -->
     <!-- TEMPORARIAMENTE DESABILITADO para testes -->
     <!-- <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-mobile.js"></script> -->
 
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.js"></script>
+    <?php if ($loadDataTables): ?>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.js"></script>
+    <?php endif; ?>
 
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js"></script>
-
-    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js"></script>
-
+    <?php if ($loadInputMasks): ?>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js"></script>
     <!-- Ajax para funcionar Mascaras JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js"></script>
+    <?php endif; ?>
     
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes (opcional) -->
     <?php if (($_ENV['USE_SCREEN_RESOLUTION'] ?? 'NÃ£o') === 'Sim'): ?>
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/screen-resolution.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/screen-resolution.js"></script>
     <?php endif; ?>
 
     <!-- Configurações de Sessão da Política de Senhas -->
@@ -358,10 +399,10 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     </script>
 
     <!-- Verificação Automática de Sessão -->
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js?v=20260416"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js?v=20260416"></script>
 
     <!-- Responsividade genÃ©rica de listas (desktop x mobile) -->
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
 
     <script>
     // Controle global de histórico para modais (apenas mobile/PWA em Android/iOS)
@@ -468,17 +509,63 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js';
-                navigator.serviceWorker.register(swUrl).catch(function(error) {
-                    console.warn('Falha ao registrar Service Worker:', error);
-                });
+                fetch(swUrl, { method: 'GET', credentials: 'same-origin' })
+                    .then(function (res) {
+                        const ct = (res.headers.get('content-type') || '').toLowerCase();
+                        if (!res.ok || ct.indexOf('javascript') === -1) {
+                            return null;
+                        }
+                        return navigator.serviceWorker.register(swUrl);
+                    })
+                    .catch(function(error) {
+                        console.warn('Falha ao registrar Service Worker:', error);
+                    });
             });
         }
     })();
     </script>
 
+    <script>
+    // Fallbacks para carregamento tardio sem quebrar páginas
+    window.admsLoadScriptOnce = function (url, marker) {
+        return new Promise(function (resolve, reject) {
+            if (marker && document.querySelector('script[data-marker="' + marker + '"]')) {
+                resolve();
+                return;
+            }
+            var s = document.createElement('script');
+            s.src = url;
+            s.defer = true;
+            if (marker) s.setAttribute('data-marker', marker);
+            s.onload = function () { resolve(); };
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    };
+    window.ensureDataTablesLoaded = function () {
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) {
+            return Promise.resolve();
+        }
+        return window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.js', 'adms-datatables');
+    };
+    window.ensureMasksLoaded = function () {
+        var hasMaskPlugin = window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.mask === 'function';
+        if (hasMaskPlugin) {
+            return Promise.resolve();
+        }
+        return window.admsLoadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js', 'adms-jquery-mask')
+            .then(function () {
+                return Promise.all([
+                    window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js', 'adms-tel-mask'),
+                    window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js', 'adms-masks')
+                ]);
+            });
+    };
+    </script>
+
     <!-- JavaScript específico para página de permissões -->
-    <?php if (strpos($this->view, 'permission/list.php') !== false): ?>
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=20260416"></script>
+    <?php if ($isPermissionPage): ?>
+    <script defer src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=20260416"></script>
     <?php endif; ?>
 
     <!-- Bootstrap Bundle com Popper.js -->
@@ -493,8 +580,12 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         const originalFetch = window.fetch;
         window.fetch = function() {
             return originalFetch.apply(this, arguments).then(async response => {
-                const cloned = response.clone();
                 try {
+                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                    if (contentType.indexOf('application/json') === -1) {
+                        return response;
+                    }
+                    const cloned = response.clone();
                     const data = await cloned.json();
                     if (data && data.logout) {
                         alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
