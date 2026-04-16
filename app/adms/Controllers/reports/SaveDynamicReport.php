@@ -66,9 +66,21 @@ class SaveDynamicReport
         $data['is_public'] = isset($_POST['is_public']) ? 1 : 0;
         
         $repo = new DynamicReportsRepository();
+        $viewerId = (int) ($_SESSION['user_id'] ?? 0);
         
         if (!empty($_POST['id'])) {
             $reportId = (int)$_POST['id'];
+            $existing = $repo->getById($reportId);
+            if (!$existing) {
+                $_SESSION['error'] = 'Relatório não encontrado';
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
+                exit;
+            }
+            if (!$repo->userCanAccessReport($existing, $viewerId)) {
+                $_SESSION['error'] = 'Você não tem permissão para alterar este relatório.';
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
+                exit;
+            }
             $success = $repo->update($reportId, $data);
             $message = $success ? 'Relatório atualizado com sucesso!' : 'Erro ao atualizar';
         } else {

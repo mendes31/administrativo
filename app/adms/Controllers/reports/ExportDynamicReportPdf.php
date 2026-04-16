@@ -30,6 +30,13 @@ class ExportDynamicReportPdf
             exit;
         }
 
+        $viewerId = (int) ($_SESSION['user_id'] ?? 0);
+        if (!$repo->userCanAccessReport($report, $viewerId)) {
+            $_SESSION['error'] = 'Você não tem permissão para exportar este relatório.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
+            exit;
+        }
+
         $report['cache_namespace'] = 'report_' . $id;
         $report['export_all'] = true;
         $report['force_refresh'] = !empty($_GET['refresh']);

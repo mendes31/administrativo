@@ -1,8 +1,12 @@
 <?php
+use App\adms\Helpers\UserAccessHelper;
+
 $categories = $this->data['categories'] ?? [];
 $reports = $this->data['reports'] ?? [];
 $pageTitle = $this->data['page_title'] ?? 'Meus Relatórios';
 $isSapScope = $this->data['is_sap_scope'] ?? false;
+$viewerUserId = (int) ($_SESSION['user_id'] ?? 0);
+$viewerIsFullAccess = UserAccessHelper::hasFullSystemAccess();
 // Define URLs exclusivas para criação conforme o tipo de relatório
 $createUrl = $_ENV['URL_ADM'] . ($isSapScope ? 'dynamic-report-builder-sap' : 'dynamic-report-builder-local');
 ?>
@@ -72,6 +76,19 @@ $createUrl = $_ENV['URL_ADM'] . ($isSapScope ? 'dynamic-report-builder-sap' : 'd
                                         ?>
                                         <i class="fas <?= $icon ?>"></i>
                                         <?= htmlspecialchars($report['name']) ?>
+                                        <?php
+                                        $createdBy = (int) ($report['created_by'] ?? 0);
+                                        if ($viewerIsFullAccess && $createdBy > 0 && $createdBy !== $viewerUserId):
+                                            $creatorLabel = trim((string) ($report['creator_name'] ?? ''));
+                                            if ($creatorLabel !== ''):
+                                        ?>
+                                            <span class="badge bg-light text-dark border ms-1 align-middle" title="Relatório criado por outro utilizador">
+                                                <i class="fas fa-user-shield me-1"></i>Criador: <?= htmlspecialchars($creatorLabel) ?>
+                                            </span>
+                                        <?php
+                                            endif;
+                                        endif;
+                                        ?>
                                     </h5>
                                     <div class="d-flex align-items-center gap-2">
                                         <?php if (!empty($report['is_sap'])): ?>
@@ -97,12 +114,15 @@ $createUrl = $_ENV['URL_ADM'] . ($isSapScope ? 'dynamic-report-builder-sap' : 'd
                                 
                                 <div class="mb-2">
                                     <small class="text-muted">
-                                        <i class="fas fa-user"></i> 
+                                        <i class="fas fa-user"></i>
+                                        <?php if ($viewerIsFullAccess && (int)($report['created_by'] ?? 0) !== $viewerUserId): ?>
+                                            <span class="text-body-secondary">Criador:</span>
+                                        <?php endif; ?>
                                         <?= htmlspecialchars($report['creator_name'] ?? 'Desconhecido') ?>
                                     </small>
                                 </div>
                                 
-                                <?php if ($report['is_public']): ?>
+                                <?php if ((int)($report['is_public'] ?? 0) === 1): ?>
                                     <span class="badge bg-info">
                                         <i class="fas fa-share-alt"></i> Público
                                     </span>
@@ -122,14 +142,19 @@ $createUrl = $_ENV['URL_ADM'] . ($isSapScope ? 'dynamic-report-builder-sap' : 'd
                                     </a>
                                     
                                     <div class="btn-group">
-                                        <?php if ($report['created_by'] == ($_SESSION['user_id'] ?? 0)): ?>
+                                        <?php
+                                        $isOwnReport = (int) ($report['created_by'] ?? 0) === $viewerUserId;
+                                        $canManageReport = $isOwnReport || $viewerIsFullAccess;
+                                        ?>
+                                        <?php if ($canManageReport): ?>
                                             <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder?id=<?= $report['id'] ?>" 
-                                               class="btn btn-sm btn-secondary">
+                                               class="btn btn-sm btn-secondary" title="<?= $isOwnReport ? 'Editar' : 'Editar (acesso total)' ?>">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <a href="<?= $_ENV['URL_ADM'] ?>delete-dynamic-report/<?= $report['id'] ?>" 
                                                class="btn btn-sm btn-danger"
-                                               onclick="return confirm('Tem certeza que deseja excluir este relatório?')">
+                                               onclick="return confirm('Tem certeza que deseja excluir este relatório?')"
+                                               title="<?= $isOwnReport ? 'Excluir' : 'Excluir (acesso total)' ?>">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                         <?php endif; ?>

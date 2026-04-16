@@ -7,20 +7,49 @@ use PDO;
 
 class DynamicReportsRepository extends DbConnection
 {
-    public function getUserReports(int $userId): array
+    /**
+     * Relatórios dinâmicos visíveis para o utilizador.
+     *
+     * @param bool $includeAllReports Quando true (ex.: super utilizador / acesso total), lista todos os relatórios ativos,
+     *                                independentemente do criador ou da flag is_public.
+     */
+    public function getUserReports(int $userId, bool $includeAllReports = false): array
     {
         $sql = "SELECT r.*, u.name as creator_name,
                        (SELECT COUNT(*) FROM adms_report_favorites WHERE report_id = r.id) as favorite_count,
                        EXISTS(SELECT 1 FROM adms_report_favorites WHERE report_id = r.id AND user_id = :user_id) as is_favorite
                 FROM adms_dynamic_reports r
                 INNER JOIN adms_users u ON u.id = r.created_by
-                WHERE (r.created_by = :user_id OR r.is_public = 1) AND r.is_active = 1
-                ORDER BY r.updated_at DESC";
-        
+                WHERE ";
+        if ($includeAllReports) {
+            $sql .= 'r.is_active = 1 ';
+        } else {
+            $sql .= '(r.created_by = :user_id OR r.is_public = 1) AND r.is_active = 1 ';
+        }
+        $sql .= 'ORDER BY r.updated_at DESC';
+
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Indica se o utilizador pode abrir/executar/exportar o relatório (inclui super utilizador e nível super admin).
+     */
+    public function userCanAccessReport(array $report, int $userId): bool
+    {
+        if ($userId < 1) {
+            return false;
+        }
+        if ((int) ($report['is_public'] ?? 0) === 1) {
+            return true;
+        }
+        if ((int) ($report['created_by'] ?? 0) === $userId) {
+            return true;
+        }
+
+        return \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
     }
 
     public function getById(int $id): ?array

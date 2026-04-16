@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\dashboards;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DashboardsRepository;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Repository\SpreadsheetsRepository;
@@ -36,11 +37,17 @@ class CreateDashboard
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
                 exit;
             }
+            $viewerId = (int) ($_SESSION['user_id'] ?? 0);
+            if (!$reportsRepo->userCanAccessReport($this->data['report'], $viewerId)) {
+                $_SESSION['error'] = 'Você não tem permissão para usar este relatório.';
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
+                exit;
+            }
         }
         
         // Listar todos os relatórios disponíveis
         $reportsRepo = $reportsRepo ?? new DynamicReportsRepository();
-        $this->data['reports'] = $reportsRepo->getUserReports($_SESSION['user_id'] ?? 0, true);
+        $this->data['reports'] = $reportsRepo->getUserReports((int)($_SESSION['user_id'] ?? 0), UserAccessHelper::hasFullSystemAccess());
         
         // Listar todas as planilhas disponíveis
         $spreadsheetsRepo = new SpreadsheetsRepository();

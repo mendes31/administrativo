@@ -72,7 +72,7 @@ class EditDashboard
         
         // Buscar todos os relatórios para seleção
         $reportsRepo = new DynamicReportsRepository();
-        $this->data['reports'] = $reportsRepo->getUserReports($userId);
+        $this->data['reports'] = $reportsRepo->getUserReports($userId, $this->hasFullAccess());
         
         $pageElements = [
             'title_head' => 'Editar Dashboard',

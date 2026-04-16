@@ -138,6 +138,11 @@ class ExecuteDynamicReport
                     throw new \Exception('Relatório não encontrado');
                 }
 
+                $viewerId = (int) ($_SESSION['user_id'] ?? 0);
+                if (!$repo->userCanAccessReport($report, $viewerId)) {
+                    throw new \Exception('Sem permissão para executar este relatório.');
+                }
+
                 $report['cache_namespace'] = 'report_' . $reportId;
                 $report['force_refresh'] = $forceRefresh;
             }

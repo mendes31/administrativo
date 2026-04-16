@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\reports;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
 use App\adms\Views\Services\LoadViewService;
@@ -24,7 +25,7 @@ class ListDynamicReportsSap
         $_SESSION['menu_override'] = 'ListDynamicReportsSap';
 
         // Recupera todos os relatórios do usuário
-        $this->data['reports'] = $repo->getUserReports($userId);
+        $this->data['reports'] = $repo->getUserReports($userId, UserAccessHelper::hasFullSystemAccess());
 
         // Marca quais relatórios são SAP
         foreach ($this->data['reports'] as &$report) {
