@@ -45,6 +45,14 @@ final class SlowRequestProfilerHelper
                 return;
             }
 
+            self::debugLog('log', [
+                'uri' => $uri,
+                'method' => $method,
+                'duration_ms' => $durationMs,
+                'threshold_ms' => $thresholdMs,
+                'user_id' => $_SESSION['user_id'] ?? null,
+            ]);
+
             $profileRepo = new AdmsSlowRequestProfileRepository();
             $profileRepo->logSlowRequest([
                 'request_method' => $method,
@@ -58,8 +66,26 @@ final class SlowRequestProfilerHelper
             if (random_int(1, 25) === 1) {
                 $profileRepo->cleanupOldProfiles($repo->getSlowProfilerRetentionDays());
             }
+        } catch (\Throwable $e) {
+            self::debugLog('error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+        }
+    }
+
+    private static function debugLog(string $type, array $data): void
+    {
+        try {
+            $baseDir = realpath(__DIR__ . '/../../logs');
+            if ($baseDir === false) {
+                return;
+            }
+            $line = date('Y-m-d H:i:s') . ' [' . $type . '] ' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            @file_put_contents($baseDir . '/slow_profiler_debug.log', $line . PHP_EOL, FILE_APPEND);
         } catch (\Throwable) {
-            // Nunca quebrar resposta do usuário por falha de profiling.
+            // silencioso
         }
     }
 
