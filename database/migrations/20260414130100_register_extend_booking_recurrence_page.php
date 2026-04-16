@@ -6,6 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Rota POST para prolongar série de recorrência (sem conflitos).
+ * Página privada deve nascer desautorizada (permission=0).
  */
 final class RegisterExtendBookingRecurrencePage extends AbstractMigration
 {
@@ -56,12 +57,10 @@ final class RegisterExtendBookingRecurrencePage extends AbstractMigration
             return;
         }
 
-        $refId = (int)$ref['id'];
         $this->execute(
-            "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-             SELECT permission, adms_access_level_id, {$newId}, '{$now}', '{$now}'
-             FROM adms_access_levels_pages
-             WHERE adms_page_id = {$refId}"
+            "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+             SELECT 0, al.id, {$newId}, '{$now}', '{$now}'
+             FROM adms_access_levels al"
         );
     }
 

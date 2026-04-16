@@ -12,8 +12,8 @@ final class RegisterRoomsCalendarAndMeetingRsvpPages extends AbstractMigration
             return;
         }
 
-        // Grupo e ACL alinhados ao padrão do projeto: configuração administrativa
-        // copia a matriz de AdminBookingDashboard (não ViewBooking — demasiado permissiva).
+        // Grupo alinhado ao padrão do projeto.
+        // ACL de páginas privadas do módulo deve nascer desautorizada (permission=0).
         $dash = $this->fetchRow("SELECT id, adms_groups_page_id FROM adms_pages WHERE controller = 'AdminBookingDashboard' LIMIT 1");
         if (!$dash) {
             return;
@@ -22,8 +22,6 @@ final class RegisterRoomsCalendarAndMeetingRsvpPages extends AbstractMigration
         if ($gid <= 0) {
             return;
         }
-        $copyAclFrom = (int) $dash['id'];
-
         $now = date('Y-m-d H:i:s');
 
         $this->ensurePage(
@@ -42,7 +40,7 @@ final class RegisterRoomsCalendarAndMeetingRsvpPages extends AbstractMigration
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
-            $copyAclFrom,
+            true,
             $now
         );
 
@@ -62,7 +60,7 @@ final class RegisterRoomsCalendarAndMeetingRsvpPages extends AbstractMigration
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
-            null,
+            false,
             $now
         );
     }
@@ -70,7 +68,7 @@ final class RegisterRoomsCalendarAndMeetingRsvpPages extends AbstractMigration
     /**
      * @param array<string, mixed> $row
      */
-    private function ensurePage(string $existsSql, array $row, ?int $copyAclFromPageId, string $now): void
+    private function ensurePage(string $existsSql, array $row, bool $initializePrivateAclAsZero, string $now): void
     {
         $exists = $this->fetchRow($existsSql);
         if ($exists) {
@@ -81,15 +79,14 @@ final class RegisterRoomsCalendarAndMeetingRsvpPages extends AbstractMigration
 
         $newRow = $this->fetchRow('SELECT LAST_INSERT_ID() AS id');
         $newId = (int) ($newRow['id'] ?? 0);
-        if ($newId <= 0 || !$this->hasTable('adms_access_levels_pages') || $copyAclFromPageId === null) {
+        if ($newId <= 0 || !$this->hasTable('adms_access_levels_pages') || !$initializePrivateAclAsZero) {
             return;
         }
 
         $this->execute(
-            "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-             SELECT permission, adms_access_level_id, {$newId}, '{$now}', '{$now}'
-             FROM adms_access_levels_pages
-             WHERE adms_page_id = {$copyAclFromPageId}"
+            "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+             SELECT 0, al.id, {$newId}, '{$now}', '{$now}'
+             FROM adms_access_levels al"
         );
     }
 

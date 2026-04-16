@@ -909,6 +909,28 @@ class AddAdmsPages extends AbstractSeed
             $adms_pages = $this->table('adms_pages');
             $adms_pages->insert($data)->save();
         }
+
+        // Blindagem para evitar "nascimento autorizado" em ambientes novos/legados:
+        // - card "Meu calendário" no dashboard;
+        // - páginas do grupo "Reserva de Salas".
+        $this->execute(
+            "UPDATE adms_pages
+             SET default_page = 0, updated_at = NOW()
+             WHERE controller = 'DashboardCardMyCalendar'
+                OR adms_groups_page_id = {$reservaSalasGroupId}"
+        );
+
+        if ($this->hasTable('adms_access_levels_pages')) {
+            $this->execute(
+                "UPDATE adms_access_levels_pages alp
+                 INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                 SET alp.permission = 0,
+                     alp.updated_at = NOW()
+                 WHERE p.public_page = 0
+                   AND (p.controller = 'DashboardCardMyCalendar'
+                        OR p.adms_groups_page_id = {$reservaSalasGroupId})"
+            );
+        }
     }
 
 }

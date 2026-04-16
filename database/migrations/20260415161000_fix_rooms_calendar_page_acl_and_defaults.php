@@ -6,7 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Alinha permissões do módulo Reserva de Salas ao padrão do projeto:
- * - Integração calendário: mesma matriz que AdminBookingDashboard (antes podia copiar ViewBooking).
+ * - páginas privadas devem nascer desautorizadas (permission=0);
  * - default_page = 0 (evita permissão implícita em novos níveis; RSVP continua público via public_page).
  */
 final class FixRoomsCalendarPageAclAndDefaults extends AbstractMigration
@@ -26,25 +26,22 @@ final class FixRoomsCalendarPageAclAndDefaults extends AbstractMigration
             return;
         }
 
-        $dash = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = 'AdminBookingDashboard' LIMIT 1");
         $cal = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = 'RoomsCalendarIntegrationSettings' LIMIT 1");
-        if (!$dash || !$cal) {
+        if (!$cal) {
             return;
         }
 
-        $srcId = (int) $dash['id'];
         $targetId = (int) $cal['id'];
-        if ($srcId <= 0 || $targetId <= 0) {
+        if ($targetId <= 0) {
             return;
         }
 
         $now = date('Y-m-d H:i:s');
         $this->execute("DELETE FROM adms_access_levels_pages WHERE adms_page_id = {$targetId}");
         $this->execute(
-            "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-             SELECT permission, adms_access_level_id, {$targetId}, '{$now}', '{$now}'
-             FROM adms_access_levels_pages
-             WHERE adms_page_id = {$srcId}"
+            "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+             SELECT 0, al.id, {$targetId}, '{$now}', '{$now}'
+             FROM adms_access_levels al"
         );
     }
 

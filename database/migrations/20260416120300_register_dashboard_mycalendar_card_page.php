@@ -5,7 +5,8 @@ declare(strict_types=1);
 use Phinx\Migration\AbstractMigration;
 
 /**
- * Card no dashboard para pré-visualização da agenda pessoal (mesmas permissões que "Meu calendário").
+ * Card no dashboard para pré-visualização da agenda pessoal.
+ * Deve nascer desautorizado (permission=0) para páginas privadas.
  */
 final class RegisterDashboardMycalendarCardPage extends AbstractMigration
 {
@@ -29,11 +30,6 @@ final class RegisterDashboardMycalendarCardPage extends AbstractMigration
         }
         if (!$ref) {
             return;
-        }
-
-        $refAcl = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = 'MyCalendar' LIMIT 1");
-        if (!$refAcl) {
-            $refAcl = $ref;
         }
 
         $gid = (int) ($ref['adms_groups_page_id'] ?? 0);
@@ -63,12 +59,10 @@ final class RegisterDashboardMycalendarCardPage extends AbstractMigration
             return;
         }
 
-        $refAclId = (int) $refAcl['id'];
         $this->execute(
-            "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-             SELECT permission, adms_access_level_id, {$newId}, '{$now}', '{$now}'
-             FROM adms_access_levels_pages
-             WHERE adms_page_id = {$refAclId}"
+            "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+             SELECT 0, al.id, {$newId}, '{$now}', '{$now}'
+             FROM adms_access_levels al"
         );
     }
 
