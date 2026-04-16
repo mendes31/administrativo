@@ -201,7 +201,7 @@ if (!empty($_SESSION['user_id'])) {
                         <?php echo htmlspecialchars($userInfo['name'] ?? 'Usuário'); ?>
                     </div>
                     <div class="text-white-50" style="font-size: 0.75rem; line-height: 1.1;">
-                        <?php echo htmlspecialchars($userInfo['pos_name'] ?? 'Cargo'); ?>
+                        <?php echo htmlspecialchars(trim((string)($userInfo['dep_name'] ?? '')) ?: '—'); ?>
                     </div>
                 </div>
             </a>
@@ -222,7 +222,7 @@ if (!empty($_SESSION['user_id'])) {
                         
                         <div>
                             <div class="fw-bold"><?php echo htmlspecialchars($userInfo['name'] ?? 'Usuário'); ?></div>
-                            <div class="text-muted small"><?php echo htmlspecialchars($userInfo['pos_name'] ?? 'Cargo'); ?></div>
+                            <div class="text-muted small"><?php echo htmlspecialchars(trim((string)($userInfo['dep_name'] ?? '')) ?: '—'); ?></div>
                         </div>
                     </div>
                 </li>

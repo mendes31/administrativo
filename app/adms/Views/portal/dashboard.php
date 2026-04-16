@@ -30,9 +30,6 @@ use App\adms\Helpers\FormatHelper;
                             <dt class="col-sm-5">Departamento:</dt>
                             <dd class="col-sm-7"><?= htmlspecialchars($this->data['employee_info']['dep_name'] ?? 'N/A') ?></dd>
                             
-                            <dt class="col-sm-5">Cargo:</dt>
-                            <dd class="col-sm-7"><?= htmlspecialchars($this->data['employee_info']['pos_name'] ?? 'N/A') ?></dd>
-                            
                             <?php if (!empty($this->data['employee_info']['data_admissao'])): ?>
                                 <dt class="col-sm-5">Data de Admissão:</dt>
                                 <dd class="col-sm-7"><?= date('d/m/Y', strtotime($this->data['employee_info']['data_admissao'])) ?></dd>

@@ -1380,8 +1380,7 @@ if (!function_exists('countPermittedSubmenus')) {
         <div class="sb-sidenav-footer">
             <div class="small">Logado como:</div>
             <?= $_SESSION['user_name'] ?? '' ?><br>
-            <?= $_SESSION['user_department'] ?? '' ?><br>
-            <?= $_SESSION['user_position'] ?? '' ?>
+            <?= $_SESSION['user_department'] ?? '' ?>
         </div>
     </nav>
 </div>
