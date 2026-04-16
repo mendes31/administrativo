@@ -47,10 +47,6 @@ use App\adms\Helpers\ImageHelper;
                     
                     <h5 class="card-title"><?php echo htmlspecialchars($this->data['form']['name'] ?? ''); ?></h5>
                     <p class="card-text text-muted">
-                        <i class="fas fa-briefcase me-1"></i>
-                        <?php echo htmlspecialchars($this->data['form']['pos_name'] ?? ''); ?>
-                    </p>
-                    <p class="card-text text-muted">
                         <i class="fas fa-building me-1"></i>
                         <?php echo htmlspecialchars($this->data['form']['dep_name'] ?? ''); ?>
                     </p>
@@ -156,16 +152,6 @@ use App\adms\Helpers\ImageHelper;
                                    value="<?php echo htmlspecialchars($this->data['form']['dep_name'] ?? ''); ?>" 
                                    readonly>
                             <small class="form-text text-muted">O departamento não pode ser alterado</small>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="pos_name" class="form-label">Cargo</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="pos_name" 
-                                   value="<?php echo htmlspecialchars($this->data['form']['pos_name'] ?? ''); ?>" 
-                                   readonly>
-                            <small class="form-text text-muted">O cargo não pode ser alterado</small>
                         </div>
 
                         <div class="col-12">

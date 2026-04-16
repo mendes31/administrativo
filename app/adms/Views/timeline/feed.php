@@ -76,13 +76,8 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
                             <h3 class="h5 mb-1"><?php echo htmlspecialchars((string)($timelineProfile['name'] ?? '')); ?></h3>
                             <div class="text-muted small mb-2">
                                 @<?php echo htmlspecialchars((string)($timelineProfile['username'] ?? '')); ?>
-                                <?php if (!empty($timelineProfile['dep_name']) || !empty($timelineProfile['pos_name'])): ?>
-                                    <span class="d-block mt-1">
-                                        <?php echo htmlspecialchars(trim((string)($timelineProfile['pos_name'] ?? ''))); ?>
-                                        <?php if (!empty($timelineProfile['dep_name'])): ?>
-                                            <span class="text-muted"> · </span><?php echo htmlspecialchars((string)($timelineProfile['dep_name'] ?? '')); ?>
-                                        <?php endif; ?>
-                                    </span>
+                                <?php if (!empty($timelineProfile['dep_name'])): ?>
+                                    <span class="d-block mt-1"><?php echo htmlspecialchars((string)($timelineProfile['dep_name'] ?? '')); ?></span>
                                 <?php endif; ?>
                             </div>
                             <?php if ($timelineProfileIsOwn): ?>
