@@ -3,10 +3,9 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
 # (firewall/hospedagem). Ver docs/COMANDOS_SERVIDOR_SSH.md (secção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# Kinghost (tiaraju02): no SFTP/FileZilla o caminho completo pode ser .../www/administrativo (árvore com pasta administrativo/).
-# Na porta 21 (FTP do GitHub) a conta costuma estar já «chrootada» DENTRO de .../administrativo — aí NÃO existe subpasta
-# administrativo/ na listagem; use KINGHOST_FTP_REMOTE_DIR: '.' (padrão). Use «administrativo» só se o pwd FTP listar
-# mesmo uma pasta administrativo/ para entrar (raiz = pai do projecto).
+# SSH (PuTTY): o projecto costuma ser cd ~/www/administrativo — o deploy deve escrever nessa mesma árvore no FTP.
+# FileZilla na raiz «/» com pasta administrativo/ ao lado de app/: a raiz FTP é o PAI (ex.: ~/www) → KINGHOST_FTP_REMOTE_DIR «administrativo» (padrão no job).
+# Se o login FTP já cair «chrootado» DENTRO de .../administrativo (listagem mostra app/public na raiz SEM pasta administrativo/) → use «.».
 # Use «files» apenas se a raiz FTP for mesmo a pasta files/ antes de app/.
 #
 # Secret FTP_USER_PROD: utilizar o mesmo user FTP do painel/FileZilla (ex.: tiaraju02), não confundir com o login SSH tiaraju.
@@ -34,8 +33,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Padrão «.» = sessão FTP já na raiz do repo (chroot .../administrativo). «administrativo» = só se pwd listar essa subpasta.
-      KINGHOST_FTP_REMOTE_DIR: '.'
+      # Padrão «administrativo» = alinhado a SSH cd ~/www/administrativo quando a raiz FTP lista essa pasta (pai = ~/www).
+      # «.» = sessão FTP já na raiz do projecto (sem subpasta administrativo/ na listagem).
+      KINGHOST_FTP_REMOTE_DIR: administrativo
 
     steps:
       - name: Checkout código
@@ -85,7 +85,7 @@ jobs:
           quit
           EOF
           echo "::endgroup::"
-          echo "::notice::Se pwd listar app/public na raiz → use «.» (padrão GitHub). Se listar pasta administrativo/ para entrar no site → use «administrativo»."
+          echo "::notice::Padrão do workflow: prefixo «administrativo» (como cd ~/www/administrativo). Se a raiz FTP já for o projecto (app/public sem pasta administrativo/) → defina KINGHOST_FTP_REMOTE_DIR «.»."
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -496,8 +496,8 @@ jobs:
 
           echo ""
           echo "🧪 Diagnóstico (erros FTP / lftp):"
-          echo "   - «550 ~/administrativo»: a sessão FTP já está DENTRO do projecto → use KINGHOST_FTP_REMOTE_DIR «.» (padrão)."
-          echo "   - Só use «administrativo» se o pwd na raiz FTP listar essa pasta (pai do site)."
+          echo "   - Padrão: KINGHOST_FTP_REMOTE_DIR «administrativo» (mesma pasta que SSH: cd ~/www/administrativo)."
+          echo "   - Se aparecer «550 administrativo/...» em duplicado ou caminho errado → a sessão FTP já está dentro do projecto; use «.» em vez de «administrativo»."
           echo "   - «550 … Operation not permitted»: permissão/dono no servidor ou user FTP ≠ dono dos ficheiros (SSH: ls -la)."
           echo "   - «550 … em lib/»: normal se lib for só leitura; o pipeline não envia lib/ (exclude) nem precisa de MKD lá."
           echo "   - workflow_dispatch «debug_ftp»: pwd + listagem na raiz FTP."
