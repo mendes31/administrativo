@@ -42,6 +42,30 @@ jobs:
           echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
           echo "📋 Senha: [OCULTA]"
 
+      # Kinghost / FTP: alguns servidores devolvem 550 ao gravar o primeiro ficheiro em `app/...`
+      # se a árvore ainda não existir. Criar pastas antes do FTP-Deploy-Action evita "550 app: No such file or directory".
+      - name: Preparar árvore de pastas no FTP (mkdir)
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y lftp
+          fi
+          echo "📁 Criando pastas base no servidor FTP (idempotente)..."
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set ftp:passive-mode true
+          set ftp:ssl-allow no
+          set net:timeout 120
+          mkdir -p app/adms/Controllers/logs
+          mkdir -p app/adms/Views/logs
+          mkdir -p public/uploads
+          mkdir -p logs
+          quit
+          EOF
+          echo "✅ Pastas base garantidas (ou já existiam)."
+
       # Estratégia 1: Deploy incremental inteligente com verificação
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -206,8 +230,30 @@ jobs:
             lib/
             lib/**
 
+      # Evita FTPError 550 "app: No such file or directory" nos uploads parciais:
+      # o deploy principal pode não criar pastas só com .gitkeep vazias no remoto.
+      - name: Garantir pastas remotas app/adms (logs)
+        if: success()
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y lftp
+          fi
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set ftp:passive-mode true
+          set ftp:ssl-allow no
+          set net:timeout 120
+          mkdir -p app/adms/Controllers/logs
+          mkdir -p app/adms/Views/logs
+          quit
+          EOF
+
       # Força o envio das pastas de logs (controllers e views), independente do estado de sincronização
       - name: Forçar upload - Controllers logs
+        if: success()
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
@@ -221,6 +267,7 @@ jobs:
             **/*.log
 
       - name: Forçar upload - Views logs
+        if: success()
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
@@ -381,6 +428,10 @@ jobs:
           
           echo "📁 Criando pasta public/uploads..."
           mkdir -p public/uploads
+
+          echo "📁 Garantindo app/adms/.../logs (evita 550 em deploy parcial)..."
+          mkdir -p app/adms/Controllers/logs
+          mkdir -p app/adms/Views/logs
           
           echo "✅ Pastas essenciais criadas (chmod via FTP costuma falhar em hospedagem compartilhada — ajuste no painel se precisar)"
           quit
