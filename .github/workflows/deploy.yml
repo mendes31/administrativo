@@ -198,6 +198,7 @@ jobs:
             lib/
             lib/**
 
+      # Com FTP em files/: remoto ./app/adms/Controllers/logs/ = disco files/app/adms/Controllers/logs/
       - name: Forçar upload - Controllers logs
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -237,7 +238,7 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          # Sessão FTP já em files/ — mirror directo para app/adms/.../logs
+          # cwd = files/ → destino mirror app/adms/.../logs = files/app/adms/.../logs (pasta já pode existir; 550 ≠ «não existe»).
           set +e
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set cmd:fail-exit no
@@ -255,7 +256,7 @@ jobs:
             ./app/adms/Views/logs app/adms/Views/logs
           quit
           EOF
-          echo "::notice::Passo opcional (logs no FTP). 550 em paths errados não impedem o deploy .php principal."
+          echo "::notice::Passo opcional (logs). Se a pasta existe em files/ mas dá 550, verifique permissões/dono no servidor; o deploy principal dos .php segue nos passos anteriores."
           exit 0
 
       # Só se nenhuma das 5 tentativas FTP tiver sucesso (NÃO usar deploy5 == skipped: ocorre quando deploy1 já deu certo).
