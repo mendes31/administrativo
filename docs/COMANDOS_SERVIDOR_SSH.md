@@ -298,3 +298,7 @@ Se o workflow **Deploy PHP para Kinghost** falha com:
 
 No `deploy.yml`, no passo `SamKirkland/FTP-Deploy-Action`, é possível usar `protocol: ftps` e, se necessário, `port` conforme a documentação do provedor — **somente** depois de confirmar que a conexão TCP na porta correta responde a partir de uma origem externa (ou do runner).
 
+### Estado de referência do workflow de deploy
+
+Em **16/04/2026**, `.github/workflows/deploy.yml` está alinhado com o commit **0e3da7c**: cinco tentativas `FTP-Deploy-Action`, passos «Forçar upload» das pastas de logs, «Forçar upload via lftp (logs)» com `if: always()`, fallback `lftp` completo só se **todas** as cinco tentativas falharem, e «Criar Pastas Essenciais» apenas `logs` e `public/uploads`. Pushes em `main` ou `dev-master` disparam o deploy.
+
