@@ -281,7 +281,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                 <?php if (!empty($informativo['imagem'])): ?>
                                                     <a href="#"
                                                        onclick="return openInformativoImageDesktop(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>');">
-                                                        <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>" alt="Imagem" style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e9ecef; cursor: pointer;">
+                                                        <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>" alt="Imagem" style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e9ecef; cursor: pointer;" loading="lazy" decoding="async" fetchpriority="low">
                                                     </a>
                                                 <?php endif; ?>
                                                 <?php if (!empty($informativo['anexo'])): ?>
@@ -470,7 +470,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                        onclick="return openInformativoImageMobile(event, <?php echo (int)$informativoId; ?>, <?php echo $requiresAck ? 'true' : 'false'; ?>, '<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>');">
                                                         <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>"
                                                              alt="Imagem"
-                                                             style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                                             style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"
+                                                             loading="lazy"
+                                                             decoding="async"
+                                                             fetchpriority="low">
                                                     </a>
                                                 <?php endif; ?>
                                                 <?php if (!empty($informativo['anexo'])): ?>

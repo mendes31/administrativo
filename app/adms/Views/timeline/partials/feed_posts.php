@@ -204,7 +204,10 @@ $usersRepoMention = new UsersRepository();
                             <a class="timeline-shared-media-link mt-2" href="<?php echo htmlspecialchars($urlAdm); ?>timeline?post=<?php echo $sharedId; ?>">
                                 <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode((string)$sharedImgs[0]); ?>"
                                      class="timeline-shared-media-thumb"
-                                     alt="Prévia da publicação original">
+                                     alt="Prévia da publicação original"
+                                     loading="lazy"
+                                     decoding="async"
+                                     fetchpriority="low">
                             </a>
                         <?php endif; ?>
                         <div class="small mt-2 d-flex align-items-center justify-content-between gap-2">
@@ -228,7 +231,10 @@ $usersRepoMention = new UsersRepository();
                              class="timeline-post-media timeline-media-clickable"
                              data-images="<?php echo $imgsJson; ?>"
                              data-index="0"
-                             alt="">
+                             alt=""
+                             loading="lazy"
+                             decoding="async"
+                             fetchpriority="low">
                     <?php else: ?>
                         <?php $colCount = count($imgs) === 2 ? 2 : 3; ?>
                         <div class="timeline-media-grid" style="grid-template-columns: repeat(<?php echo (int)$colCount; ?>, minmax(0, 1fr));">
@@ -237,7 +243,10 @@ $usersRepoMention = new UsersRepository();
                                      class="timeline-media-grid-item timeline-media-clickable"
                                      data-images="<?php echo $imgsJson; ?>"
                                      data-index="<?php echo (int)$i; ?>"
-                                     alt="">
+                                     alt=""
+                                     loading="lazy"
+                                     decoding="async"
+                                     fetchpriority="low">
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>

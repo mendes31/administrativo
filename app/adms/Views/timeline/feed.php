@@ -775,7 +775,7 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
         var avatarUrl = getUserAvatarUrl(u);
         return '' +
             '<span class="timeline-suggestion-avatar-wrap">' +
-            '<img src="' + avatarUrl + '" class="timeline-suggestion-avatar" alt="Avatar de @' + username + '">' +
+            '<img src="' + avatarUrl + '" class="timeline-suggestion-avatar" alt="Avatar de @' + username + '" loading="lazy" decoding="async" fetchpriority="low">' +
             '</span>' +
             '<span class="timeline-suggestion-text-wrap">' +
             '<span class="fw-semibold">@' + username + '</span>' +

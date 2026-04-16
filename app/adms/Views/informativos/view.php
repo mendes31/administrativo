@@ -142,6 +142,9 @@ $informativo = $this->data['informativo'];
                                  class="img-fluid rounded shadow"
                                  alt="Imagem do informativo"
                                  style="max-width: 100%; max-height: 300px;"
+                                 loading="lazy"
+                                 decoding="async"
+                                 fetchpriority="low"
                                  onerror="this.style.display='none';">
                         </div>
                     <?php endif; ?>
