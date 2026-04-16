@@ -13,6 +13,9 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # FTPS: certificado *.kinghost.net vs host ftp.* → protocol ftps + security loose na action.
 #
 # O lftp e o SamKirkland usam o mesmo prefixo (env abaixo).
+#
+# Teste manual (FileZilla): NÃO use MKD/STOR dentro de lib/ — em muitos planos essa árvore é só leitura ou o FTP
+# recusa escrita lá (550 Permission denied). Valide escrita na raiz do site (pwd após login) ou em public/.
 
 on:
   push:
@@ -58,6 +61,7 @@ jobs:
           echo "✅ Todos os secrets estão configurados"
           echo "📂 Prefixo remoto (KINGHOST_FTP_REMOTE_DIR): ${KINGHOST_FTP_REMOTE_DIR:-?}"
           echo "::notice::Confirme no GitHub que FTP_USER_PROD é o user FTP (ex.: tiaraju02), não o login SSH (tiaraju)."
+          echo "::notice::Teste de escrita no FileZilla: raiz do site ou public/ — não crie ficheiros dentro de lib/ (deploy não precisa disso)."
 
       - name: Diagnóstico FTP (pwd + listagem)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_ftp == 'true'
@@ -71,6 +75,7 @@ jobs:
           echo "::group::Raiz FTP (pwd + primeiras linhas de ls)"
           lftp <<EOF
           set cmd:fail-exit no
+          set net:prefer-ipv4 true
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
@@ -320,6 +325,7 @@ jobs:
           set +e
           lftp <<EOF
           set cmd:fail-exit no
+          set net:prefer-ipv4 true
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
@@ -363,6 +369,7 @@ jobs:
           echo "📂 Destino remoto do mirror: $LFTP_TARGET (KINGHOST_FTP_REMOTE_DIR=$REMOTE)"
           lftp <<EOF
           set cmd:fail-exit no
+          set net:prefer-ipv4 true
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
@@ -435,9 +442,11 @@ jobs:
           fi
 
           REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
-          echo "🔄 lftp: criando logs/ e public/uploads/ sob prefixo remoto «$REMOTE» (FTPS explícito)"
+          echo "🔄 lftp: criando logs/ e public/uploads/ sob prefixo remoto «$REMOTE» (FTPS explícito; melhor esforço)"
+          set +e
           {
             echo set cmd:fail-exit no
+            echo set net:prefer-ipv4 true
             echo set ftp:passive-mode true
             echo set ssl:verify-certificate no
             echo set ftp:ssl-force true
@@ -450,6 +459,12 @@ jobs:
             echo chmod 755 public/uploads
             echo quit
           } | lftp
+          ec=$?
+          set -e
+          if [ "$ec" != 0 ]; then
+            echo "::notice::mkdir/chmod remoto falhou (código $ec). Ajuste permissões na raiz do site; o deploy não exige escrita em lib/."
+          fi
+          exit 0
 
       # Verificação final e relatório de integridade detalhado
       - name: Verificar Deploy e Gerar Relatório Detalhado
@@ -484,6 +499,7 @@ jobs:
           echo "   - «550 ~/administrativo»: a sessão FTP já está DENTRO do projecto → use KINGHOST_FTP_REMOTE_DIR «.» (padrão)."
           echo "   - Só use «administrativo» se o pwd na raiz FTP listar essa pasta (pai do site)."
           echo "   - «550 … Operation not permitted»: permissão/dono no servidor ou user FTP ≠ dono dos ficheiros (SSH: ls -la)."
+          echo "   - «550 … em lib/»: normal se lib for só leitura; o pipeline não envia lib/ (exclude) nem precisa de MKD lá."
           echo "   - workflow_dispatch «debug_ftp»: pwd + listagem na raiz FTP."
           echo "   - Duplicados no Git a remover quando possível: receive copy, receive%20copy, ficheiros «* copy.php»."
           echo ""
