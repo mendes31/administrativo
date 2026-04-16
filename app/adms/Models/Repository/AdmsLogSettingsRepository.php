@@ -38,6 +38,7 @@ class AdmsLogSettingsRepository extends DbConnection
         $current = $this->getSettings();
         $sessionDebug = (int)($data['session_debug_logs'] ?? 0) === 1 ? 1 : 0;
         $slowProfiler = (int)($data['slow_request_profiler_enabled'] ?? 0) === 1 ? 1 : 0;
+        $frontendDebug = (int)($data['frontend_debug_logs'] ?? 0) === 1 ? 1 : 0;
         $thresholdMs = (int)($data['slow_request_threshold_ms'] ?? 700);
         if ($thresholdMs < 10) {
             $thresholdMs = 10;
@@ -57,6 +58,7 @@ class AdmsLogSettingsRepository extends DbConnection
             $sql = 'UPDATE adms_log_settings
                     SET session_debug_logs = :session_debug_logs,
                         slow_request_profiler_enabled = :slow_request_profiler_enabled,
+                        frontend_debug_logs = :frontend_debug_logs,
                         slow_request_threshold_ms = :slow_request_threshold_ms,
                         slow_request_retention_days = :slow_request_retention_days,
                         updated_at = NOW()
@@ -67,6 +69,7 @@ class AdmsLogSettingsRepository extends DbConnection
             $sql = 'INSERT INTO adms_log_settings (
                         session_debug_logs,
                         slow_request_profiler_enabled,
+                        frontend_debug_logs,
                         slow_request_threshold_ms,
                         slow_request_retention_days,
                         created_at,
@@ -74,6 +77,7 @@ class AdmsLogSettingsRepository extends DbConnection
                     ) VALUES (
                         :session_debug_logs,
                         :slow_request_profiler_enabled,
+                        :frontend_debug_logs,
                         :slow_request_threshold_ms,
                         :slow_request_retention_days,
                         NOW(),
@@ -84,6 +88,7 @@ class AdmsLogSettingsRepository extends DbConnection
 
         $stmt->bindValue(':session_debug_logs', $sessionDebug, PDO::PARAM_INT);
         $stmt->bindValue(':slow_request_profiler_enabled', $slowProfiler, PDO::PARAM_INT);
+        $stmt->bindValue(':frontend_debug_logs', $frontendDebug, PDO::PARAM_INT);
         $stmt->bindValue(':slow_request_threshold_ms', $thresholdMs, PDO::PARAM_INT);
         $stmt->bindValue(':slow_request_retention_days', $retentionDays, PDO::PARAM_INT);
         $ok = $stmt->execute();
@@ -119,18 +124,25 @@ class AdmsLogSettingsRepository extends DbConnection
         return $v > 0 ? $v : 7;
     }
 
+    public function isFrontendDebugEnabled(): bool
+    {
+        $settings = $this->getSettings();
+        return (int)($settings['frontend_debug_logs'] ?? 0) === 1;
+    }
+
     private function ensureDefaultRow(): void
     {
         $sql = 'INSERT INTO adms_log_settings (
                     id,
                     session_debug_logs,
                     slow_request_profiler_enabled,
+                    frontend_debug_logs,
                     slow_request_threshold_ms,
                     slow_request_retention_days,
                     created_at,
                     updated_at
                 )
-                VALUES (1, 0, 0, 700, 7, NOW(), NOW())
+                VALUES (1, 0, 0, 0, 700, 7, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE updated_at = updated_at';
         $this->getConnection()->exec($sql);
     }

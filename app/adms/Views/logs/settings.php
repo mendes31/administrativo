@@ -7,6 +7,7 @@ $downloadSlowToken = $this->data['csrf_download_slow_profiles'] ?? '';
 $buttonPermission = $this->data['buttonPermission'] ?? [];
 $sessionDebugEnabled = (int)($settings['session_debug_logs'] ?? 0) === 1;
 $slowProfilerEnabled = (int)($settings['slow_request_profiler_enabled'] ?? 0) === 1;
+$frontendDebugEnabled = (int)($settings['frontend_debug_logs'] ?? 0) === 1;
 $slowThresholdMs = (int)($settings['slow_request_threshold_ms'] ?? 700);
 $slowRetentionDays = (int)($settings['slow_request_retention_days'] ?? 7);
 ?>
@@ -49,6 +50,18 @@ $slowRetentionDays = (int)($settings['slow_request_retention_days'] ?? 7);
                             Use apenas durante investigação. Quando ativado, o sistema grava logs de sessão
                             detalhados em arquivo, o que pode aumentar I/O de disco e impactar performance.
                         </p>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="frontend_debug_logs" name="frontend_debug_logs" value="1"
+                                   <?= $frontendDebugEnabled ? 'checked' : ''; ?>>
+                            <label class="form-check-label fw-semibold" for="frontend_debug_logs">
+                                Ativar logs de debug no front-end (console)
+                            </label>
+                            <div class="form-text">
+                                Mantém o console mais silencioso em produção. Ative apenas para investigação pontual.
+                            </div>
+                        </div>
 
                         <hr class="my-4">
 

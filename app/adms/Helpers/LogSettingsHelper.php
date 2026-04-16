@@ -8,6 +8,7 @@ final class LogSettingsHelper
 {
     private static ?bool $sessionDebugEnabled = null;
     private static ?bool $slowProfilerEnabled = null;
+    private static ?bool $frontendDebugEnabled = null;
     private static ?int $slowProfilerThresholdMs = null;
     private static ?int $slowProfilerRetentionDays = null;
 
@@ -67,6 +68,20 @@ final class LogSettingsHelper
             self::$slowProfilerRetentionDays = 7;
         }
         return self::$slowProfilerRetentionDays;
+    }
+
+    public static function isFrontendDebugEnabled(): bool
+    {
+        if (self::$frontendDebugEnabled !== null) {
+            return self::$frontendDebugEnabled;
+        }
+        try {
+            $repo = new AdmsLogSettingsRepository();
+            self::$frontendDebugEnabled = $repo->isFrontendDebugEnabled();
+        } catch (\Throwable) {
+            self::$frontendDebugEnabled = false;
+        }
+        return self::$frontendDebugEnabled;
     }
 }
 

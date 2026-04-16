@@ -612,6 +612,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     </script>
 
     <script>
+        window.ADMS_DEBUG_LOGS = <?php echo \App\adms\Helpers\LogSettingsHelper::isFrontendDebugEnabled() ? 'true' : 'false'; ?>;
         const ADMS_DEBUG_LOGS = window.ADMS_DEBUG_LOGS === true;
         function admsLog() {
             if (!ADMS_DEBUG_LOGS) return;
