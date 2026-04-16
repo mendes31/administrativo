@@ -67,14 +67,17 @@ $slowRetentionDays = (int)($settings['slow_request_retention_days'] ?? 7);
                                     Limite para considerar lenta (ms)
                                 </label>
                                 <input type="number"
-                                       min="100"
+                                       min="10"
                                        max="30000"
-                                       step="50"
+                                       step="10"
                                        class="form-control"
                                        id="slow_request_threshold_ms"
                                        name="slow_request_threshold_ms"
                                        value="<?= htmlspecialchars((string)$slowThresholdMs, ENT_QUOTES, 'UTF-8'); ?>">
-                                <div class="form-text">Sugestão inicial: 700ms a 1200ms em produção.</div>
+                                <div class="form-text">
+                                    Para investigação curta use valores menores (ex.: 10–100ms).
+                                    Em produção estável, 700–1200ms costuma ser um bom limite.
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold" for="slow_request_retention_days">

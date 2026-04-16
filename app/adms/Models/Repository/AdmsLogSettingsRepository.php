@@ -39,8 +39,8 @@ class AdmsLogSettingsRepository extends DbConnection
         $sessionDebug = (int)($data['session_debug_logs'] ?? 0) === 1 ? 1 : 0;
         $slowProfiler = (int)($data['slow_request_profiler_enabled'] ?? 0) === 1 ? 1 : 0;
         $thresholdMs = (int)($data['slow_request_threshold_ms'] ?? 700);
-        if ($thresholdMs < 100) {
-            $thresholdMs = 100;
+        if ($thresholdMs < 10) {
+            $thresholdMs = 10;
         }
         if ($thresholdMs > 30000) {
             $thresholdMs = 30000;
