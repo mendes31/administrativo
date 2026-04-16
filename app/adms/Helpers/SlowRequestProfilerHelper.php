@@ -1,0 +1,96 @@
+<?php
+
+namespace App\adms\Helpers;
+
+use App\adms\Models\Repository\AdmsLogSettingsRepository;
+use App\adms\Models\Repository\AdmsSlowRequestProfileRepository;
+
+final class SlowRequestProfilerHelper
+{
+    public static function registerRequestStart(): void
+    {
+        if (!defined('ADMS_REQUEST_START_TS')) {
+            define('ADMS_REQUEST_START_TS', microtime(true));
+        }
+    }
+
+    public static function registerShutdownProfiler(): void
+    {
+        register_shutdown_function(static function (): void {
+            self::profileCurrentRequest();
+        });
+    }
+
+    private static function profileCurrentRequest(): void
+    {
+        try {
+            if (!defined('ADMS_REQUEST_START_TS')) {
+                return;
+            }
+
+            $repo = new AdmsLogSettingsRepository();
+            if (!$repo->isSlowProfilerEnabled()) {
+                return;
+            }
+
+            $uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+            $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+            if (self::shouldSkip($uri, $method)) {
+                return;
+            }
+
+            $durationMs = (int)round((microtime(true) - ADMS_REQUEST_START_TS) * 1000);
+            $thresholdMs = $repo->getSlowProfilerThresholdMs();
+            if ($durationMs < $thresholdMs) {
+                return;
+            }
+
+            $profileRepo = new AdmsSlowRequestProfileRepository();
+            $profileRepo->logSlowRequest([
+                'request_method' => $method,
+                'request_uri' => self::normalizeUri($uri),
+                'route_label' => self::extractRouteLabel($uri),
+                'user_id' => isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+                'duration_ms' => $durationMs,
+                'memory_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
+            ]);
+
+            if (random_int(1, 25) === 1) {
+                $profileRepo->cleanupOldProfiles($repo->getSlowProfilerRetentionDays());
+            }
+        } catch (\Throwable) {
+            // Nunca quebrar resposta do usuário por falha de profiling.
+        }
+    }
+
+    private static function shouldSkip(string $uri, string $method): bool
+    {
+        if ($method === 'OPTIONS') {
+            return true;
+        }
+        if ($uri === '') {
+            return true;
+        }
+        if (strpos($uri, '/public/') !== false) {
+            return true;
+        }
+        return (bool)preg_match('/\.(?:css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|map)$/i', $uri);
+    }
+
+    private static function normalizeUri(string $uri): string
+    {
+        $clean = strtok($uri, '#');
+        return substr((string)$clean, 0, 1024);
+    }
+
+    private static function extractRouteLabel(string $uri): string
+    {
+        $path = (string)parse_url($uri, PHP_URL_PATH);
+        $path = trim($path, '/');
+        if ($path === '') {
+            return 'root';
+        }
+        $chunks = explode('/', $path);
+        return (string)($chunks[count($chunks) - 1] ?? 'unknown');
+    }
+}

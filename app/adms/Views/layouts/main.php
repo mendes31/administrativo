@@ -3,6 +3,9 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+\App\adms\Helpers\SlowRequestProfilerHelper::registerRequestStart();
+\App\adms\Helpers\SlowRequestProfilerHelper::registerShutdownProfiler();
+
 /**
  * Logs de sessão (diagnóstico) devem ficar desligados em produção por padrão,
  * pois escrita em disco a cada requisição degrada navegação.

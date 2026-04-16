@@ -5,6 +5,7 @@ namespace App\adms\Controllers\logs;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\AdmsLogSettingsRepository;
+use App\adms\Models\Repository\AdmsSlowRequestProfileRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class LogSettings
@@ -13,13 +14,22 @@ class LogSettings
     {
         $repo = new AdmsLogSettingsRepository();
         $settings = $repo->getSettings();
+        $profiles = [];
+        try {
+            $profiles = (new AdmsSlowRequestProfileRepository())->listLatest(80);
+        } catch (\Throwable) {
+            $profiles = [];
+        }
 
         $data = [
             'title_head' => 'Configurações de Logs',
             'menu' => 'log-settings',
-            'buttonPermission' => ['LogSettings'],
+            'buttonPermission' => ['LogSettings', 'DownloadSessionDiagnosticLogs', 'ExportSlowRequestProfilesCsv'],
             'log_settings' => $settings,
+            'slow_request_profiles' => $profiles,
             'csrf_token' => CSRFHelper::generateCSRFToken('form_log_settings'),
+            'csrf_download_session_logs' => CSRFHelper::generateCSRFToken('download_session_logs'),
+            'csrf_download_slow_profiles' => CSRFHelper::generateCSRFToken('download_slow_profiles'),
         ];
 
         $pageLayout = new PageLayoutService();

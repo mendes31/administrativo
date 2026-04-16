@@ -37,21 +37,55 @@ class AdmsLogSettingsRepository extends DbConnection
     {
         $current = $this->getSettings();
         $sessionDebug = (int)($data['session_debug_logs'] ?? 0) === 1 ? 1 : 0;
+        $slowProfiler = (int)($data['slow_request_profiler_enabled'] ?? 0) === 1 ? 1 : 0;
+        $thresholdMs = (int)($data['slow_request_threshold_ms'] ?? 700);
+        if ($thresholdMs < 100) {
+            $thresholdMs = 100;
+        }
+        if ($thresholdMs > 30000) {
+            $thresholdMs = 30000;
+        }
+        $retentionDays = (int)($data['slow_request_retention_days'] ?? 7);
+        if ($retentionDays < 1) {
+            $retentionDays = 1;
+        }
+        if ($retentionDays > 60) {
+            $retentionDays = 60;
+        }
 
         if (!empty($current['id'])) {
             $sql = 'UPDATE adms_log_settings
                     SET session_debug_logs = :session_debug_logs,
+                        slow_request_profiler_enabled = :slow_request_profiler_enabled,
+                        slow_request_threshold_ms = :slow_request_threshold_ms,
+                        slow_request_retention_days = :slow_request_retention_days,
                         updated_at = NOW()
                     WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', (int)$current['id'], PDO::PARAM_INT);
         } else {
-            $sql = 'INSERT INTO adms_log_settings (session_debug_logs, created_at, updated_at)
-                    VALUES (:session_debug_logs, NOW(), NOW())';
+            $sql = 'INSERT INTO adms_log_settings (
+                        session_debug_logs,
+                        slow_request_profiler_enabled,
+                        slow_request_threshold_ms,
+                        slow_request_retention_days,
+                        created_at,
+                        updated_at
+                    ) VALUES (
+                        :session_debug_logs,
+                        :slow_request_profiler_enabled,
+                        :slow_request_threshold_ms,
+                        :slow_request_retention_days,
+                        NOW(),
+                        NOW()
+                    )';
             $stmt = $this->getConnection()->prepare($sql);
         }
 
         $stmt->bindValue(':session_debug_logs', $sessionDebug, PDO::PARAM_INT);
+        $stmt->bindValue(':slow_request_profiler_enabled', $slowProfiler, PDO::PARAM_INT);
+        $stmt->bindValue(':slow_request_threshold_ms', $thresholdMs, PDO::PARAM_INT);
+        $stmt->bindValue(':slow_request_retention_days', $retentionDays, PDO::PARAM_INT);
         $ok = $stmt->execute();
         if ($ok) {
             self::$cachedSettings = null;
@@ -65,10 +99,38 @@ class AdmsLogSettingsRepository extends DbConnection
         return (int)($settings['session_debug_logs'] ?? 0) === 1;
     }
 
+    public function isSlowProfilerEnabled(): bool
+    {
+        $settings = $this->getSettings();
+        return (int)($settings['slow_request_profiler_enabled'] ?? 0) === 1;
+    }
+
+    public function getSlowProfilerThresholdMs(): int
+    {
+        $settings = $this->getSettings();
+        $v = (int)($settings['slow_request_threshold_ms'] ?? 700);
+        return $v > 0 ? $v : 700;
+    }
+
+    public function getSlowProfilerRetentionDays(): int
+    {
+        $settings = $this->getSettings();
+        $v = (int)($settings['slow_request_retention_days'] ?? 7);
+        return $v > 0 ? $v : 7;
+    }
+
     private function ensureDefaultRow(): void
     {
-        $sql = 'INSERT INTO adms_log_settings (id, session_debug_logs, created_at, updated_at)
-                VALUES (1, 0, NOW(), NOW())
+        $sql = 'INSERT INTO adms_log_settings (
+                    id,
+                    session_debug_logs,
+                    slow_request_profiler_enabled,
+                    slow_request_threshold_ms,
+                    slow_request_retention_days,
+                    created_at,
+                    updated_at
+                )
+                VALUES (1, 0, 0, 700, 7, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE updated_at = updated_at';
         $this->getConnection()->exec($sql);
     }

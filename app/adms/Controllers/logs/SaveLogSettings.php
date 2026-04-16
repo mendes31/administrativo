@@ -24,6 +24,9 @@ class SaveLogSettings
         $repo = new AdmsLogSettingsRepository();
         $saved = $repo->saveSettings([
             'session_debug_logs' => isset($_POST['session_debug_logs']) ? 1 : 0,
+            'slow_request_profiler_enabled' => isset($_POST['slow_request_profiler_enabled']) ? 1 : 0,
+            'slow_request_threshold_ms' => (int)($_POST['slow_request_threshold_ms'] ?? 700),
+            'slow_request_retention_days' => (int)($_POST['slow_request_retention_days'] ?? 7),
         ]);
 
         if ($saved) {
