@@ -4,9 +4,7 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
 # (seção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# Kinghost WebFTP: o site está em files/administrativo/ (não em files/app/ ao mesmo nível).
-# server-dir = administrativo/ → envia app/, public/, etc. para dentro dessa pasta.
-# Se a tua conta FTP já abrir DENTRO de administrativo/, altera todas as server-dir para ./
+# Kinghost: a conta FTP já abre dentro de files/ — server-dir ./ envia app/, public/, etc. para a raiz dessa sessão.
 
 on:
   push:
@@ -44,7 +42,7 @@ jobs:
           echo "📋 Servidor: ${{ secrets.FTP_SERVER_PROD }}"
           echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
           echo "📋 Senha: [OCULTA]"
-          echo "📂 Destino remoto configurado: administrativo/ (Kinghost: files/administrativo/...)"
+          echo "📂 Destino remoto: ./ (sessão FTP já em files/)"
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -54,7 +52,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -85,7 +83,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -116,7 +114,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -147,7 +145,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -178,7 +176,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: administrativo/
+          server-dir: ./
           dangerous-clean-slate: false
           log-level: verbose
           timeout: 300000
@@ -208,7 +206,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Controllers/logs/
-          server-dir: administrativo/app/adms/Controllers/logs/
+          server-dir: ./app/adms/Controllers/logs/
           dangerous-clean-slate: true
           log-level: verbose
           exclude: |
@@ -222,7 +220,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: app/adms/Views/logs/
-          server-dir: administrativo/app/adms/Views/logs/
+          server-dir: ./app/adms/Views/logs/
           dangerous-clean-slate: true
           log-level: verbose
           exclude: |
@@ -239,7 +237,7 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          # Kinghost: WebFTP em /files/administrativo/app/... — entrar em files e administrativo antes do mirror.
+          # Sessão FTP já em files/ — mirror directo para app/adms/.../logs
           set +e
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set cmd:fail-exit no
@@ -249,8 +247,6 @@ jobs:
           set net:max-retries 20
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
-          cd files
-          cd administrativo
           mirror -R --only-newer --continue --no-perms --verbose \
             --exclude-glob *.log \
             ./app/adms/Controllers/logs app/adms/Controllers/logs
@@ -286,8 +282,6 @@ jobs:
           set net:reconnect-interval-max 60
           set net:idle 120
           set xfer:clobber on
-          cd files
-          cd administrativo
           mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
@@ -345,7 +339,7 @@ jobs:
             sudo apt-get update && sudo apt-get install -y lftp
           fi
 
-          # Criar pastas essenciais via FTP (Kinghost: em geral sob files/)
+          # Criar pastas na raiz da sessão FTP (já em files/)
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set cmd:fail-exit no
           set ftp:passive-mode true
@@ -353,8 +347,6 @@ jobs:
           set net:timeout 30
 
           echo "🔄 Conectando ao servidor..."
-          cd files
-          cd administrativo
 
           echo "📁 Criando pasta logs..."
           mkdir -p logs
