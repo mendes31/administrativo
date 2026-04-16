@@ -3,7 +3,7 @@
 ?>
 
 <!-- CSS separado para permissões -->
-<link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>css/permission-list.css?v=<?php echo time(); ?>">
+<link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>css/permission-list.css?v=20260416">
 
 <?php $permMatrixLocked = !empty($this->data['super_admin_level_permissions_locked']); ?>
 

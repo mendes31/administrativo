@@ -14,6 +14,34 @@ AddType application/javascript .js
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/plain text/css application/javascript application/json
 </IfModule>
+
+# Cache para assets estáticos (reduz 304 e round-trips de validação)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType application/x-javascript "access plus 7 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/jpg "access plus 30 days"
+  ExpiresByType image/gif "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType image/x-icon "access plus 30 days"
+  ExpiresByType font/woff2 "access plus 30 days"
+  ExpiresByType font/woff "access plus 30 days"
+  ExpiresByType application/font-woff2 "access plus 30 days"
+  ExpiresByType application/font-woff "access plus 30 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+  <FilesMatch "\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>
 # Documentação: https://httpd.apache.org/docs/2.4/rewrite/flags.html
 # Arquivo gerado automaticamente pelo script scripts/generate-htaccess.php
 # Para alterar, edite o arquivo .env e execute o script novamente

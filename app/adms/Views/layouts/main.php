@@ -357,8 +357,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         };
     </script>
 
-    <!-- Verificação Automática de Sessão (com versionamento para evitar cache) -->
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js?v=<?php echo time(); ?>"></script>
+    <!-- Verificação Automática de Sessão -->
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/session-checker.js?v=20260416"></script>
 
     <!-- Responsividade genÃ©rica de listas (desktop x mobile) -->
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/responsive-list.js"></script>
@@ -476,9 +476,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     })();
     </script>
 
-    <!-- JavaScript especÃ­fico para pÃ¡gina de permissÃµes -->
+    <!-- JavaScript específico para página de permissões -->
     <?php if (strpos($this->view, 'permission/list.php') !== false): ?>
-    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=20260416"></script>
     <?php endif; ?>
 
     <!-- Bootstrap Bundle com Popper.js -->
@@ -496,10 +496,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 const cloned = response.clone();
                 try {
                     const data = await cloned.json();
-                    // Log de todas as respostas fetch para debug
-                    console.log('FETCH RESPONSE:', data);
                     if (data && data.logout) {
-                        console.log('LOGOUT DETECTADO VIA FETCH:', data);
                         alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
                         window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                         return Promise.reject("SessÃ£o encerrada");
@@ -514,10 +511,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         $(document).ajaxSuccess(function(event, xhr, settings) {
             try {
                 const data = JSON.parse(xhr.responseText);
-                // Log de todas as respostas AJAX para debug
-                console.log('AJAX RESPONSE:', data);
                 if (data && data.logout) {
-                    console.log('LOGOUT DETECTADO VIA AJAX:', data);
                     alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
                     window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                 }
