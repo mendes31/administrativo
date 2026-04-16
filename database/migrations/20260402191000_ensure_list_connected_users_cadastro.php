@@ -36,6 +36,7 @@ final class EnsureListConnectedUsersCadastro extends AbstractMigration
                 directory = 'logs',
                 obs = 'Lista sessões ativas (usuários conectados) a partir de adms_sessions.',
                 public_page = 0,
+                default_page = 0,
                 page_status = 1,
                 adms_packages_page_id = {$packageId},
                 updated_at = NOW()

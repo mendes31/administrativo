@@ -94,6 +94,12 @@ $menus = [
                             'permission' => 'ListConnectedUsers',
                             'icon' => 'fas fa-user-check'
                         ],
+                        [
+                            'label' => 'Configurações',
+                            'url' => $_ENV['URL_ADM'] . 'log-settings',
+                            'permission' => 'LogSettings',
+                            'icon' => 'fas fa-sliders-h'
+                        ],
                     ]
                 ],
                 [

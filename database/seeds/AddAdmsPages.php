@@ -380,7 +380,9 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Exportar Logs Excel', 'controller' => 'ExportLogExcel', 'controller_url' => 'export-log-excel', 'directory' => 'logs', 'obs' => 'Página para exportar logs de alterações em Excel.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
             ['name'=> 'Exportar Logs PDF', 'controller' => 'ExportLogPdf', 'controller_url' => 'export-log-pdf', 'directory' => 'logs', 'obs' => 'Página para exportar logs de alterações em PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
             ['name'=> 'ListLogAcessos', 'controller' => 'ListLogAcessos', 'controller_url' => 'list-log-acessos', 'directory' => 'logs', 'obs' => 'Página para listar logs de acesso (login/logout).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
-            ['name' => 'Usuários conectados', 'controller' => 'ListConnectedUsers', 'controller_url' => 'list-connected-users', 'directory' => 'logs', 'obs' => 'Lista sessões ativas (usuários conectados) em adms_sessions.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
+            ['name' => 'Usuários conectados', 'controller' => 'ListConnectedUsers', 'controller_url' => 'list-connected-users', 'directory' => 'logs', 'obs' => 'Lista sessões ativas (usuários conectados) em adms_sessions.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
+            ['name' => 'Configurações de Logs', 'controller' => 'LogSettings', 'controller_url' => 'log-settings', 'directory' => 'logs', 'obs' => 'Página para configurar logs de diagnóstico do sistema.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
+            ['name' => 'Salvar Configurações de Logs', 'controller' => 'SaveLogSettings', 'controller_url' => 'save-log-settings', 'directory' => 'logs', 'obs' => 'Endpoint para salvar configurações de logs de diagnóstico.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
             ['name'=> 'Exportar Logs de Acesso Excel', 'controller' => 'ExportLogAcessosExcel', 'controller_url' => 'export-log-acessos-excel', 'directory' => 'logs', 'obs' => 'Exportação dos logs de acesso em Excel.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
             ['name'=> 'Exportar Logs de Acesso PDF', 'controller' => 'ExportLogAcessosPdf', 'controller_url' => 'export-log-acessos-pdf', 'directory' => 'logs', 'obs' => 'Exportação dos logs de acesso em PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 28],
             // ===== GRUPO 29: PLANEJAMENTO ESTRATÉGICO =====
@@ -858,6 +860,12 @@ class AddAdmsPages extends AbstractSeed
         }
         $comunicacaoSocialGroupId = (int)$comunicacaoSocialGroup['id'];
 
+        $logsGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Logs'");
+        if (!$logsGroup) {
+            throw new \Exception("ERRO: O grupo 'Logs' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $logsGroupId = (int)$logsGroup['id'];
+
         $lgpdGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'LGPD'");
         if (!$lgpdGroup) {
             throw new \Exception("ERRO: O grupo 'LGPD' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
@@ -887,6 +895,8 @@ class AddAdmsPages extends AbstractSeed
                     $groupId = $reservaSalasGroupId;
                 } elseif ($groupId == 31) {
                     $groupId = $lgpdGroupId;
+                } elseif ($groupId == 28) {
+                    $groupId = $logsGroupId;
                 } elseif ($groupId == 39) {
                     $groupId = $comunicacaoSocialGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
@@ -952,6 +962,22 @@ class AddAdmsPages extends AbstractSeed
                  SET alp.permission = 0,
                      alp.updated_at = NOW()
                  WHERE p.adms_groups_page_id = {$lgpdGroupId}
+                   AND p.public_page = 0"
+            );
+
+            // Logs: todas páginas privadas devem iniciar fechadas;
+            // liberação fica a cargo do administrador por nível.
+            $this->execute(
+                "UPDATE adms_pages
+                 SET default_page = 0, updated_at = NOW()
+                 WHERE adms_groups_page_id = {$logsGroupId}"
+            );
+            $this->execute(
+                "UPDATE adms_access_levels_pages alp
+                 INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                 SET alp.permission = 0,
+                     alp.updated_at = NOW()
+                 WHERE p.adms_groups_page_id = {$logsGroupId}
                    AND p.public_page = 0"
             );
         }

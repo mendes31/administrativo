@@ -107,6 +107,7 @@ class PageLayoutService
             'ListLogAcessos',
             'ListConnectedUsers',
             'ListLogAlteracoes',
+            'LogSettings',
             'LgpdRipd',
             'LgpdRipdCreate',
             'LgpdRipdDashboard',

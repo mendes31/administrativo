@@ -3,15 +3,22 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-// LOG TEMPORÁRIO: configuração de sessão do PHP (para diagnóstico de expiração antecipada)
-@file_put_contents(__DIR__ . '/../../logs/php_session_config.log',
-    date('Y-m-d H:i:s') .
-    ' gc_maxlifetime=' . ini_get('session.gc_maxlifetime') .
-    ' cookie_lifetime=' . ini_get('session.cookie_lifetime') .
-    ' save_path=' . ini_get('session.save_path') .
-    PHP_EOL,
-    FILE_APPEND
-);
+/**
+ * Logs de sessão (diagnóstico) devem ficar desligados em produção por padrão,
+ * pois escrita em disco a cada requisição degrada navegação.
+ */
+$sessionDebugLogsEnabled = \App\adms\Helpers\LogSettingsHelper::isSessionDebugEnabled();
+
+if ($sessionDebugLogsEnabled) {
+    @file_put_contents(__DIR__ . '/../../logs/php_session_config.log',
+        date('Y-m-d H:i:s') .
+        ' gc_maxlifetime=' . ini_get('session.gc_maxlifetime') .
+        ' cookie_lifetime=' . ini_get('session.cookie_lifetime') .
+        ' save_path=' . ini_get('session.save_path') .
+        PHP_EOL,
+        FILE_APPEND
+    );
+}
 
 // ForÃ§a cabeÃ§alhos/ambiente UTF-8 na resposta HTML
 if (!headers_sent()) {
@@ -224,7 +231,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20250905">
     
     <!-- Menu Modernizado -->
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=20260416">
     
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
