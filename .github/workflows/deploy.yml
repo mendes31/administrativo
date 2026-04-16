@@ -4,8 +4,9 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
 # (seção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# Kinghost: muitas contas listam na raiz do FTP pastas como files/, logs/ (app/ fica DENTRO de files/).
-# Se o deploy der «550 app», use KINGHOST_FTP_REMOTE_DIR: files (padrão). Se o WebFTP já mostrar app/ na raiz, use «.».
+# Kinghost: se o WebFTP/GitHub listar app/ e public/ logo na raiz da sessão, a raiz JÁ é o site (equivale a files/ no disco).
+# Nesse caso use KINGHOST_FTP_REMOTE_DIR: '.' — «mirror ./ files» ou «cd files» dão 550 ~/files porque NÃO existe subpasta files/.
+# Use «files» só se na raiz do FTP aparecer pasta files/ e app/ estiver DENTRO dela (conta um nível acima do site).
 #
 # O lftp e o SamKirkland usam o mesmo prefixo (env abaixo).
 
@@ -14,14 +15,20 @@ on:
     branches:
       - main
       - dev-master
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      debug_ftp:
+        description: "Rodar pwd + listagem curta na raiz FTP (diagnóstico)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # «files» = enviar para subpasta files/ (típico quando 550 em «app» na action). «.» = raiz da sessão já é o site.
-      KINGHOST_FTP_REMOTE_DIR: files
+      # Padrão «.» = sessão já no diretório do site. «files» = um nível acima; só se listagem FTP mostrar pasta files/ antes de app/.
+      KINGHOST_FTP_REMOTE_DIR: '.'
 
     steps:
       - name: Checkout código
@@ -46,6 +53,20 @@ jobs:
           fi
           echo "✅ Todos os secrets estão configurados"
           echo "📂 Prefixo remoto (KINGHOST_FTP_REMOTE_DIR): ${KINGHOST_FTP_REMOTE_DIR:-?}"
+
+      - name: Diagnóstico FTP (pwd + listagem)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_ftp == 'true'
+        continue-on-error: true
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          echo "::group::Raiz FTP (pwd + primeiras linhas de ls)"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "set cmd:fail-exit no; set ftp:passive-mode true; pwd; cls -1 | head -100; quit" 2>&1
+          echo "::endgroup::"
+          echo "::notice::Compare com KINGHOST_FTP_REMOTE_DIR: se vir app/ e public/ aqui, use «.»; se só vir files/, use «files»."
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
@@ -75,6 +96,9 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            **/receive copy/**
+            **/receive%20copy/**
+            **/* copy.php
             lib/
             lib/**
 
@@ -107,6 +131,9 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            **/receive copy/**
+            **/receive%20copy/**
+            **/* copy.php
             lib/
             lib/**
 
@@ -139,6 +166,9 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            **/receive copy/**
+            **/receive%20copy/**
+            **/* copy.php
             lib/
             lib/**
 
@@ -171,6 +201,9 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            **/receive copy/**
+            **/receive%20copy/**
+            **/* copy.php
             lib/
             lib/**
 
@@ -203,6 +236,9 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            **/receive copy/**
+            **/receive%20copy/**
+            **/* copy.php
             lib/
             lib/**
 
@@ -245,7 +281,7 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-files}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           if [ "$REMOTE" = "." ]; then
             RCTL="app/adms/Controllers/logs"
             RVIE="app/adms/Views/logs"
@@ -288,7 +324,7 @@ jobs:
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           echo "⏳ Mirror completo do repo: pode levar 10–40+ min (centenas de MB / milhares de ficheiros). Sem --verbose no mirror para o runner não ficar preso a imprimir linhas."
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-files}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           if [ "$REMOTE" = "." ]; then
             LFTP_TARGET="."
           else
@@ -317,6 +353,9 @@ jobs:
             --exclude-glob .vscode/** \
             --exclude-glob .DS_Store \
             --exclude-glob LICENSE.txt \
+            --exclude-glob '*receive copy*' \
+            --exclude-glob '*receive%20copy*' \
+            --exclude-glob '* copy.php' \
             ./ $LFTP_TARGET
           quit
           EOF
@@ -363,7 +402,7 @@ jobs:
             sudo apt-get update && sudo apt-get install -y lftp
           fi
 
-          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-files}"
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           LFTP_SCRIPT="set cmd:fail-exit no; set ftp:passive-mode true; set ftp:ssl-allow no; set net:timeout 30;"
           if [ "$REMOTE" != "." ]; then
             LFTP_SCRIPT="${LFTP_SCRIPT} cd ${REMOTE};"
@@ -400,6 +439,12 @@ jobs:
             echo "🔄 Fallback lftp: ${{ steps.lftp_fallback.outcome }} (skipped = deploy FTP ok antes da 5.ª falha, ou job não chegou ao fallback)"
           fi
 
+          echo ""
+          echo "🧪 Diagnóstico (erros FTP / lftp):"
+          echo "   - «550 ~/files» ou «cd files» falhou: a sessão FTP provavelmente JÁ está em files/ → mantenha KINGHOST_FTP_REMOTE_DIR «.» (não use «files»)."
+          echo "   - «550 … Operation not permitted» ao subir .php: permissão/dono no servidor (SSH: ls -la no diretório alvo; não é «arquivo mágico» no Git)."
+          echo "   - workflow_dispatch com opção «debug_ftp»: imprime pwd + listagem na raiz FTP para alinhar . vs files."
+          echo "   - Pastas duplicadas no repositório (remover do Git quando possível): app/adms/Controllers/receive copy, receive%20copy; ficheiros «* copy.php»."
           echo ""
           echo "📋 Próximos passos no servidor:"
           echo "1. Acesse via SSH ou painel KingHost"
