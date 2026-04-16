@@ -234,15 +234,18 @@ jobs:
           if ! command -v lftp &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y lftp
           fi
+          # Pastas já existem no servidor (ex.: Kinghost WebFTP em /files/app/...). Só sincroniza; sem MKD (evita 550).
+          # Se a sessão FTP abrir acima de /files/, o cd falha com fail-exit no e segue na raiz atual.
+          set +e
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
           set net:timeout 120
           set net:max-retries 20
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
-          mkdir -p app/adms/Controllers/logs
-          mkdir -p app/adms/Views/logs
+          cd files
           mirror -R --only-newer --continue --no-perms --verbose \
             --exclude-glob *.log \
             ./app/adms/Controllers/logs app/adms/Controllers/logs
@@ -251,6 +254,8 @@ jobs:
             ./app/adms/Views/logs app/adms/Views/logs
           quit
           EOF
+          echo "::notice::Passo opcional (logs no FTP). 550 em paths errados não impedem o deploy .php principal."
+          exit 0
 
       # Só se nenhuma das 5 tentativas FTP tiver sucesso (NÃO usar deploy5 == skipped: ocorre quando deploy1 já deu certo).
       - name: Install lftp (Fallback Inteligente)
@@ -258,6 +263,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via lftp (Fallback Incremental)
+        id: lftp_fallback
         if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
@@ -266,14 +272,16 @@ jobs:
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
-          set net:timeout 120
-          set net:max-retries 50
-          set net:reconnect-interval-base 2
-          set net:reconnect-interval-max 10
-          set net:idle 60
+          set net:timeout 300
+          set net:max-retries 200
+          set net:reconnect-interval-base 5
+          set net:reconnect-interval-max 60
+          set net:idle 120
           set xfer:clobber on
+          cd files
           mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
@@ -331,13 +339,15 @@ jobs:
             sudo apt-get update && sudo apt-get install -y lftp
           fi
 
-          # Criar pastas essenciais via FTP
+          # Criar pastas essenciais via FTP (Kinghost: em geral sob files/)
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
           set net:timeout 30
 
           echo "🔄 Conectando ao servidor..."
+          cd files
 
           echo "📁 Criando pasta logs..."
           mkdir -p logs
@@ -367,10 +377,18 @@ jobs:
             [ "${{ steps.deploy3.outcome }}" == "success" ] && echo "   - Tentativa 3: ✅"
             [ "${{ steps.deploy4.outcome }}" == "success" ] && echo "   - Tentativa 4: ✅"
             [ "${{ steps.deploy5.outcome }}" == "success" ] && echo "   - Tentativa 5: ✅"
-          else
-            echo "⚠️ Deploy FTP falhou, mas lftp foi executado como fallback"
+          elif [ "${{ steps.lftp_fallback.outcome }}" == "success" ]; then
+            echo "⚠️ As 5 tentativas FTP falharam, mas o fallback lftp incremental concluiu com sucesso."
             echo "📊 Tentativas FTP: ❌❌❌❌❌"
             echo "🔄 Fallback lftp: ✅"
+          elif [ "${{ steps.lftp_fallback.outcome }}" == "failure" ]; then
+            echo "❌ As 5 tentativas FTP falharam e o fallback lftp também falhou (rede, credenciais ou bloqueio do servidor)."
+            echo "📊 Tentativas FTP: ❌❌❌❌❌"
+            echo "🔄 Fallback lftp: ❌"
+          else
+            echo "⚠️ Nenhuma tentativa FTP teve sucesso."
+            echo "📊 Tentativas FTP: ❌❌❌❌❌"
+            echo "🔄 Fallback lftp: ${{ steps.lftp_fallback.outcome }} (skipped = deploy FTP já tinha sucesso antes)"
           fi
 
           echo ""
