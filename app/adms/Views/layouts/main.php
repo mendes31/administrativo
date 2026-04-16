@@ -612,6 +612,20 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     </script>
 
     <script>
+        const ADMS_DEBUG_LOGS = window.ADMS_DEBUG_LOGS === true;
+        function admsLog() {
+            if (!ADMS_DEBUG_LOGS) return;
+            console.log.apply(console, arguments);
+        }
+        function admsWarn() {
+            if (!ADMS_DEBUG_LOGS) return;
+            console.warn.apply(console, arguments);
+        }
+        function admsError() {
+            if (!ADMS_DEBUG_LOGS) return;
+            console.error.apply(console, arguments);
+        }
+
         // Restaurar contexto da aplicação após login
         document.addEventListener('DOMContentLoaded', function() {
             // Verificar se há contexto salvo para esta aba específica
@@ -623,14 +637,14 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
         // Função robusta para obter Tab ID de qualquer storage
         function getTabIdFromAnyStorage() {
-            console.log('Buscando Tab ID em todos os storages disponíveis...');
+            admsLog('Buscando Tab ID em todos os storages disponíveis...');
             
             // Detectar navegador
             const userAgent = navigator.userAgent;
             const isFirefox = userAgent.includes('Firefox');
             
             if (isFirefox) {
-                console.log('Firefox detectado - usando estratégia específica');
+                admsLog('Firefox detectado - usando estratégia específica');
                 return getTabIdFromFirefox();
             }
             
@@ -655,21 +669,21 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 try {
                     const tabId = storage.get();
                     if (tabId) {
-                        console.log(`Tab ID encontrado em ${storage.name}:`, tabId);
+                        admsLog(`Tab ID encontrado em ${storage.name}:`, tabId);
                         return tabId;
                     }
                 } catch (error) {
-                    console.warn(`Erro ao ler de ${storage.name}:`, error);
+                    admsWarn(`Erro ao ler de ${storage.name}:`, error);
                 }
             }
             
-            console.log('Nenhum Tab ID encontrado em nenhum storage');
+            admsLog('Nenhum Tab ID encontrado em nenhum storage');
             return null;
         }
         
         // Estratégia específica para Firefox
         function getTabIdFromFirefox() {
-            console.log('Firefox: Buscando Tab ID em todos os métodos disponíveis...');
+            admsLog('Firefox: Buscando Tab ID em todos os métodos disponíveis...');
             
             const firefoxMethods = [
                 { name: 'localStorage', get: () => localStorage.getItem('current_tab_id') },
@@ -698,22 +712,22 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 try {
                     const tabId = method.get();
                     if (tabId) {
-                        console.log(`Firefox: Tab ID encontrado em ${method.name}:`, tabId);
+                        admsLog(`Firefox: Tab ID encontrado em ${method.name}:`, tabId);
                         return tabId;
                     }
                 } catch (error) {
-                    console.warn(`Firefox: Erro ao ler de ${method.name}:`, error);
+                    admsWarn(`Firefox: Erro ao ler de ${method.name}:`, error);
                 }
             }
             
-            console.log('Firefox: Nenhum Tab ID encontrado em nenhum método');
+            admsLog('Firefox: Nenhum Tab ID encontrado em nenhum método');
             return null;
         }
 
         // Função para restaurar contexto da aplicação para uma aba específica
         function restoreApplicationContextForTab(tabId) {
             try {
-                console.log('Restaurando contexto para aba:', tabId);
+                admsLog('Restaurando contexto para aba:', tabId);
                 
                 // Restaurar posição de scroll
                 const savedScroll = getDataFromAnyStorage(`scroll_position_${tabId}`);
@@ -725,7 +739,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     if (timeDiff < 3600000) {
                         setTimeout(() => {
                             window.scrollTo(scrollData.x, scrollData.y);
-                            console.log('Posição de scroll restaurada para aba:', tabId);
+                            admsLog('Posição de scroll restaurada para aba:', tabId);
                         }, 500);
                     }
                     
@@ -755,7 +769,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                                     }
                                 });
                                 
-                                console.log(`Formulário ${formIndex} restaurado para aba:`, tabId);
+                                admsLog(`Formulário ${formIndex} restaurado para aba:`, tabId);
                             }
                         }
                         
@@ -767,9 +781,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                 // Limpar URL salva após restaurar
                 clearDataFromAnyStorage(`current_url_${tabId}`);
                 
-                console.log('Contexto da aplicação restaurado com sucesso para aba:', tabId);
+                admsLog('Contexto da aplicação restaurado com sucesso para aba:', tabId);
             } catch (error) {
-                console.error('Erro ao restaurar contexto:', error);
+                admsError('Erro ao restaurar contexto:', error);
             }
         }
         
@@ -779,22 +793,22 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
             try {
                 const data = localStorage.getItem(key);
                 if (data) {
-                    console.log(`Dados encontrados no localStorage: ${key}`);
+                    admsLog(`Dados encontrados no localStorage: ${key}`);
                     return JSON.parse(data);
                 }
             } catch (error) {
-                console.warn(`Erro ao ler do localStorage para ${key}:`, error);
+                admsWarn(`Erro ao ler do localStorage para ${key}:`, error);
             }
             
             // Estratégia 2: sessionStorage
             try {
                 const data = sessionStorage.getItem(key);
                 if (data) {
-                    console.log(`Dados encontrados no sessionStorage: ${key}`);
+                    admsLog(`Dados encontrados no sessionStorage: ${key}`);
                     return JSON.parse(data);
                 }
             } catch (error) {
-                console.warn(`Erro ao ler do sessionStorage para ${key}:`, error);
+                admsWarn(`Erro ao ler do sessionStorage para ${key}:`, error);
             }
             
             // Estratégia 3: Cookies
@@ -804,23 +818,23 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     const [cookieKey, cookieValue] = cookie.trim().split('=');
                     if (cookieKey === key) {
                         const data = decodeURIComponent(cookieValue);
-                        console.log(`Dados encontrados em cookie: ${key}`);
+                        admsLog(`Dados encontrados em cookie: ${key}`);
                         return JSON.parse(data);
                     }
                 }
             } catch (error) {
-                console.warn(`Erro ao ler de cookie para ${key}:`, error);
+                admsWarn(`Erro ao ler de cookie para ${key}:`, error);
             }
             
             // Estratégia 4: Variável global
             try {
                 const data = window[`storage_${key}`];
                 if (data) {
-                    console.log(`Dados encontrados em variável global: ${key}`);
+                    admsLog(`Dados encontrados em variável global: ${key}`);
                     return JSON.parse(data);
                 }
             } catch (error) {
-                console.warn(`Erro ao ler de variável global para ${key}:`, error);
+                admsWarn(`Erro ao ler de variável global para ${key}:`, error);
             }
             
             return null;
@@ -831,33 +845,33 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
             // Estratégia 1: localStorage
             try {
                 localStorage.removeItem(key);
-                console.log(`Dados removidos do localStorage: ${key}`);
+                admsLog(`Dados removidos do localStorage: ${key}`);
             } catch (error) {
-                console.warn(`Erro ao remover do localStorage para ${key}:`, error);
+                admsWarn(`Erro ao remover do localStorage para ${key}:`, error);
             }
             
             // Estratégia 2: sessionStorage
             try {
                 sessionStorage.removeItem(key);
-                console.log(`Dados removidos do sessionStorage: ${key}`);
+                admsLog(`Dados removidos do sessionStorage: ${key}`);
             } catch (error) {
-                console.warn(`Erro ao remover do sessionStorage para ${key}:`, error);
+                admsWarn(`Erro ao remover do sessionStorage para ${key}:`, error);
             }
             
             // Estratégia 3: Cookies
             try {
                 document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-                console.log(`Dados removidos de cookie: ${key}`);
+                admsLog(`Dados removidos de cookie: ${key}`);
             } catch (error) {
-                console.warn(`Erro ao remover de cookie para ${key}:`, error);
+                admsWarn(`Erro ao remover de cookie para ${key}:`, error);
             }
             
             // Estratégia 4: Variável global
             try {
                 delete window[`storage_${key}`];
-                console.log(`Dados removidos de variável global: ${key}`);
+                admsLog(`Dados removidos de variável global: ${key}`);
             } catch (error) {
-                console.warn(`Erro ao remover de variável global para ${key}:`, error);
+                admsWarn(`Erro ao remover de variável global para ${key}:`, error);
             }
         }
         
@@ -875,7 +889,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     }
                 }
             } catch (error) {
-                console.warn('Erro ao ler chaves do localStorage:', error);
+                admsWarn('Erro ao ler chaves do localStorage:', error);
             }
             
             // Estratégia 2: sessionStorage
@@ -887,7 +901,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     }
                 }
             } catch (error) {
-                console.warn('Erro ao ler chaves do sessionStorage:', error);
+                admsWarn('Erro ao ler chaves do sessionStorage:', error);
             }
             
             // Estratégia 3: Cookies
@@ -900,7 +914,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     }
                 }
             } catch (error) {
-                console.warn('Erro ao ler chaves de cookie:', error);
+                admsWarn('Erro ao ler chaves de cookie:', error);
             }
             
             // Estratégia 4: Variável global
@@ -911,7 +925,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     }
                 }
             } catch (error) {
-                console.warn('Erro ao ler chaves de variável global:', error);
+                admsWarn('Erro ao ler chaves de variável global:', error);
             }
             
             return keys;
