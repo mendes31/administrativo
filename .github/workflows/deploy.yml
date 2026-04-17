@@ -59,3 +59,8 @@ jobs:
         if: always()
         run: |
           echo "✅ Processo de deploy finalizado."
+
+      - name: Teste de Conexão (Debug)
+        run: |
+          echo "Tentando pingar o servidor..."
+          nc -zv ${{ secrets.FTP_SERVER_PROD }} 21 || echo "Porta 21 bloqueada para o GitHub"
