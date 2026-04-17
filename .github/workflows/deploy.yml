@@ -30,7 +30,7 @@ jobs:
           # Usando os dados que você confirmou via SSH
           SSH_USER: "tiaraju"
           SSHPASS: ${{ secrets.FTP_PASS_PROD }}
-          SSH_HOST: "web119.kinghost.net"
+          SSH_HOST: "191.6.208.23"
           DEST_PATH: "/home/tiaraju/www/administrativo/"
         run: |
           echo "🚀 Iniciando deploy via Rsync sobre SSH..."
