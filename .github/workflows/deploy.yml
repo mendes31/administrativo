@@ -22,24 +22,26 @@ jobs:
 
       - name: Deploy Incremental via lftp
         env:
+          # DICA: Tente trocar o FTP_SERVER_PROD no GitHub pelo IP 191.6.208.23 se o nome falhar
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
-          echo "🚀 Iniciando deploy em modo de compatibilidade..."
+          echo "🚀 Iniciando deploy em modo de compatibilidade total..."
           
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          # Configurações de Máxima Compatibilidade
+          # Ajustes de Conexão Baseados no Telnet OK
           set ftp:passive-mode true
           set ftp:ssl-allow no
-          set ftp:list-options -a
-          set net:timeout 120
-          set net:max-retries 20
-          set net:reconnect-interval-base 10
+          set net:timeout 60
+          set net:max-retries 10
+          set net:reconnect-interval-base 5
           set xfer:clobber on
 
-          # Sincronização sem paralelismo para não alertar o Firewall
-          # Removido --parallel para estabilidade total
+          # Debug: Listar o que tem no servidor antes de começar
+          ls
+
+          # Sincronização
           mirror --reverse --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/ \
             --exclude-glob .github/ \
@@ -48,7 +50,6 @@ jobs:
             --exclude-glob *.log \
             --exclude-glob vendor/ \
             --exclude-glob node_modules/ \
-            --exclude-glob .vscode/ \
             ./ .
           
           quit
