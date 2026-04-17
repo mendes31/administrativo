@@ -42,10 +42,12 @@ jobs:
           echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
           echo "📋 Senha: [OCULTA]"
 
-      # Estratégia 1: Deploy incremental inteligente com verificação
+      # Node costuma tentar IPv6 primeiro; na KingHost isso pode gerar ENETUNREACH enquanto IPv4 funciona.
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           # server: ${{ secrets.FTP_SERVER }}
           # username: ${{ secrets.FTP_USER }}
@@ -81,6 +83,8 @@ jobs:
         if: failure() && steps.deploy1.outcome == 'failure'
         id: deploy2
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -111,6 +115,8 @@ jobs:
         if: failure() && steps.deploy2.outcome == 'failure'
         id: deploy3
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -141,6 +147,8 @@ jobs:
         if: failure() && steps.deploy3.outcome == 'failure'
         id: deploy4
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -171,6 +179,8 @@ jobs:
         if: failure() && steps.deploy4.outcome == 'failure'
         id: deploy5
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -199,6 +209,8 @@ jobs:
       # Força o envio das pastas de logs (controllers e views), independente do estado de sincronização
       - name: Forçar upload - Controllers logs
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -212,6 +224,8 @@ jobs:
 
       - name: Forçar upload - Views logs
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -238,6 +252,8 @@ jobs:
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set ftp:passive-mode true
           set ftp:ssl-allow no
+          set dns:order "inet inet6"
+          set net:prefer-ipv4 yes
           set net:timeout 120
           set net:max-retries 20
           set net:reconnect-interval-base 2
@@ -276,6 +292,8 @@ jobs:
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set ftp:passive-mode true
           set ftp:ssl-allow no
+          set dns:order "inet inet6"
+          set net:prefer-ipv4 yes
           set net:timeout 120
           set net:max-retries 50
           set net:reconnect-interval-base 2
@@ -300,7 +318,8 @@ jobs:
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
             --exclude-glob .env \
-            --exclude-regex \\.log$ \
+            --exclude-glob "*.log" \
+            --exclude-glob "**/*.log" \
             --exclude-glob vendor/** \
             --exclude-glob node_modules/** \
             --exclude-glob .vscode/** \
@@ -361,6 +380,8 @@ jobs:
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           set ftp:passive-mode true
           set ftp:ssl-allow no
+          set dns:order "inet inet6"
+          set net:prefer-ipv4 yes
           set net:timeout 30
           
           echo "🔄 Conectando ao servidor..."
