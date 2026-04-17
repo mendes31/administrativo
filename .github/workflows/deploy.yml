@@ -77,6 +77,10 @@ jobs:
             **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
             vendor/
             vendor/**
+            # Legado removido do Git (arquivo ou pasta com espaço no nome, ex. cópia manual)
+            app/adms/Controllers/receive copy
+            app/adms/Controllers/receive copy/
+            app/adms/Controllers/receive copy/**
 
       # Verificação e deploy incremental da tentativa 2
       - name: Deploy Incremental - Tentativa 2
@@ -109,6 +113,10 @@ jobs:
             **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
             vendor/
             vendor/**
+            # Legado removido do Git (arquivo ou pasta com espaço no nome, ex. cópia manual)
+            app/adms/Controllers/receive copy
+            app/adms/Controllers/receive copy/
+            app/adms/Controllers/receive copy/**
 
       # Verificação e deploy incremental da tentativa 3
       - name: Deploy Incremental - Tentativa 3
@@ -141,6 +149,10 @@ jobs:
             **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
             vendor/
             vendor/**
+            # Legado removido do Git (arquivo ou pasta com espaço no nome, ex. cópia manual)
+            app/adms/Controllers/receive copy
+            app/adms/Controllers/receive copy/
+            app/adms/Controllers/receive copy/**
 
       # Verificação e deploy incremental da tentativa 4
       - name: Deploy Incremental - Tentativa 4
@@ -173,6 +185,10 @@ jobs:
             **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
             vendor/
             vendor/**
+            # Legado removido do Git (arquivo ou pasta com espaço no nome, ex. cópia manual)
+            app/adms/Controllers/receive copy
+            app/adms/Controllers/receive copy/
+            app/adms/Controllers/receive copy/**
 
       # Verificação e deploy incremental da tentativa 5
       - name: Deploy Incremental - Tentativa 5
@@ -205,6 +221,10 @@ jobs:
             **/*.log  # Esta regra exclui apenas os arquivos .log, permitindo as pastas
             vendor/
             vendor/**
+            # Legado removido do Git (arquivo ou pasta com espaço no nome, ex. cópia manual)
+            app/adms/Controllers/receive copy
+            app/adms/Controllers/receive copy/
+            app/adms/Controllers/receive copy/**
 
       # Força o envio das pastas de logs (controllers e views), independente do estado de sincronização
       - name: Forçar upload - Controllers logs
@@ -253,7 +273,6 @@ jobs:
           set ftp:passive-mode true
           set ftp:ssl-allow no
           set dns:order "inet inet6"
-          set net:prefer-ipv4 yes
           set net:timeout 120
           set net:max-retries 20
           set net:reconnect-interval-base 2
@@ -293,7 +312,6 @@ jobs:
           set ftp:passive-mode true
           set ftp:ssl-allow no
           set dns:order "inet inet6"
-          set net:prefer-ipv4 yes
           set net:timeout 120
           set net:max-retries 50
           set net:reconnect-interval-base 2
@@ -325,6 +343,8 @@ jobs:
             --exclude-glob .vscode/** \
             --exclude-glob .DS_Store \
             --exclude-glob LICENSE.txt \
+            --exclude-glob "app/adms/Controllers/receive copy" \
+            --exclude-glob "app/adms/Controllers/receive copy/**" \
             ./ .
           
           echo ""
@@ -370,6 +390,7 @@ jobs:
         run: |
           echo "🔧 === CRIAÇÃO DE PASTAS ESSENCIAIS ==="
           echo "📁 Criando pastas necessárias no servidor..."
+          echo "(FTP: 550 'File exists' ao mkdir em pasta que já existe é esperado e pode ser ignorado.)"
           
           # Instalar lftp se não estiver disponível
           if ! command -v lftp &> /dev/null; then
@@ -381,15 +402,15 @@ jobs:
           set ftp:passive-mode true
           set ftp:ssl-allow no
           set dns:order "inet inet6"
-          set net:prefer-ipv4 yes
           set net:timeout 30
+          set cmd:fail-exit no
           
           echo "🔄 Conectando ao servidor..."
           
-          echo "📁 Criando pasta logs..."
+          echo "📁 Garantindo pasta logs (ignora se já existir)..."
           mkdir -p logs
           
-          echo "📁 Criando pasta public/uploads..."
+          echo "📁 Garantindo pasta public/uploads (ignora se já existir)..."
           mkdir -p public/uploads
           
           echo "✅ Pastas essenciais criadas (chmod via FTP costuma falhar em hospedagem compartilhada — ajuste no painel se precisar)"
