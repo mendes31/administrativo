@@ -26,21 +26,21 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
-          echo "🚀 Iniciando deploy incremental para KingHost..."
+          echo "🚀 Iniciando deploy em modo de compatibilidade..."
           
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          # Configurações de Conexão Estáveis
+          # Configurações de Máxima Compatibilidade
           set ftp:passive-mode true
           set ftp:ssl-allow no
-          set net:timeout 60
-          set net:max-retries 10
-          set net:reconnect-interval-base 5
+          set ftp:list-options -a
+          set net:timeout 120
+          set net:max-retries 20
+          set net:reconnect-interval-base 10
           set xfer:clobber on
 
-          # Sincronização Principal (Mirror)
-          # Usando apenas --exclude-glob para compatibilidade total
-          
-          mirror --reverse --parallel=2 --only-newer --continue --no-perms --verbose \
+          # Sincronização sem paralelismo para não alertar o Firewall
+          # Removido --parallel para estabilidade total
+          mirror --reverse --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/ \
             --exclude-glob .github/ \
             --exclude-glob .gitignore \
@@ -49,8 +49,6 @@ jobs:
             --exclude-glob vendor/ \
             --exclude-glob node_modules/ \
             --exclude-glob .vscode/ \
-            --exclude-glob .DS_Store \
-            --exclude-glob LICENSE.txt \
             ./ .
           
           quit
