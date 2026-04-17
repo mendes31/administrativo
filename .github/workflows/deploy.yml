@@ -35,9 +35,15 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: deploy-kinghost-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       # «.» = deploy na raiz da sessão FTP (chroot no projecto). Só use «administrativo» se após login existir essa subpasta.
       KINGHOST_FTP_REMOTE_DIR: '.'
@@ -68,29 +74,6 @@ jobs:
           echo "::notice::Confirme no GitHub que FTP_USER_PROD é o user FTP (ex.: tiaraju02), não o login SSH (tiaraju)."
           echo "::notice::Teste de escrita no FileZilla: raiz do site ou public/ — não crie ficheiros dentro de lib/ (deploy não precisa disso)."
 
-      - name: Diagnóstico FTP rápido (pwd + listagem)
-        continue-on-error: true
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-          echo "::group::Sessão FTP após login (pwd + primeiras entradas)"
-          lftp <<EOF
-          set cmd:fail-exit no
-          set dns:order "inet inet6"
-          set ftp:passive-mode true
-          set ssl:verify-certificate no
-          set ftp:ssl-force true
-          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
-          pwd
-          cls -1 | head -80
-          quit
-          EOF
-          echo "::endgroup::"
-          echo "::notice::Compare com o FileZilla: se vir app/public aqui, KINGHOST_FTP_REMOTE_DIR «.» está correcto. Se vir só administrativo/, altere o env para «administrativo»."
-
       - name: Diagnóstico FTP (pwd + listagem)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_ftp == 'true'
         continue-on-error: true
@@ -99,7 +82,9 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          fi
           echo "::group::Raiz FTP (pwd + primeiras linhas de ls)"
           lftp <<EOF
           set cmd:fail-exit no
@@ -123,7 +108,9 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          fi
           echo "::group::Verificação de pasta legada na raiz FTP"
           LISTING="$(lftp <<EOF
           set cmd:fail-exit no
@@ -146,6 +133,7 @@ jobs:
 
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
+        timeout-minutes: 20
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -185,6 +173,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 2
         if: steps.deploy1.outcome == 'failure'
         id: deploy2
+        timeout-minutes: 20
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -224,6 +213,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 3
         if: steps.deploy2.outcome == 'failure'
         id: deploy3
+        timeout-minutes: 20
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -263,6 +253,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 4
         if: steps.deploy3.outcome == 'failure'
         id: deploy4
+        timeout-minutes: 20
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -302,6 +293,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 5
         if: steps.deploy4.outcome == 'failure'
         id: deploy5
+        timeout-minutes: 20
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -339,6 +331,8 @@ jobs:
             lib/**
 
       - name: Forçar upload - Controllers logs
+        if: steps.deploy5.outcome == 'failure'
+        timeout-minutes: 10
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -355,6 +349,8 @@ jobs:
             **/*.log
 
       - name: Forçar upload - Views logs
+        if: steps.deploy5.outcome == 'failure'
+        timeout-minutes: 10
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -371,7 +367,8 @@ jobs:
             **/*.log
 
       - name: Forçar upload via lftp (logs)
-        if: always()
+        if: steps.deploy5.outcome == 'failure'
+        timeout-minutes: 10
         continue-on-error: true
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
@@ -379,7 +376,7 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
           if ! command -v lftp &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y lftp
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
           fi
           REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
           if [ "$REMOTE" = "." ]; then
@@ -415,11 +412,15 @@ jobs:
       # Só após a 5.ª tentativa falhar (deploy5 não corre se alguma anterior tiver sucesso; evita lftp se checkout/secrets falharem).
       - name: Install lftp (Fallback Inteligente)
         if: steps.deploy5.outcome == 'failure'
-        run: sudo apt-get update && sudo apt-get install -y lftp
+        run: |
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          fi
 
       - name: Deploy via lftp (Fallback Incremental)
         id: lftp_fallback
         if: steps.deploy5.outcome == 'failure'
+        timeout-minutes: 60
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -506,7 +507,7 @@ jobs:
 
           # Instalar lftp se não estiver disponível
           if ! command -v lftp &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y lftp
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
           fi
 
           REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
