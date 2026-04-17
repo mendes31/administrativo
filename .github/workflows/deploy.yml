@@ -1,241 +1,71 @@
-name: Deploy PHP para Kinghost (Incremental Estavel)
+name: Deploy PHP para Kinghost (Otimizado)
 
 on:
   push:
     branches:
       - main
       - dev-master
-  workflow_dispatch:
-    inputs:
-      run_logs_probe:
-        description: "Forcar upload de pastas de logs"
-        required: false
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
-
-concurrency:
-  group: deploy-kinghost-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_dispatch: {}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
 
     steps:
-      - name: Checkout codigo
+      - name: Checkout código
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Verificar secrets
-        run: |
-          [ -n "${{ secrets.FTP_SERVER_PROD }}" ] || (echo "ERRO: FTP_SERVER_PROD ausente" && exit 1)
-          [ -n "${{ secrets.FTP_USER_PROD }}" ] || (echo "ERRO: FTP_USER_PROD ausente" && exit 1)
-          [ -n "${{ secrets.FTP_PASS_PROD }}" ] || (echo "ERRO: FTP_PASS_PROD ausente" && exit 1)
-          echo "Secrets OK"
-
-      - name: Instalar lftp (diagnostico rapido)
+      - name: Instalar lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Descobrir diretorio remoto valido
-        id: remote_dir
+      - name: Deploy Incremental via lftp
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
         run: |
-          set -e
-          CANDIDATES=( "." "./administrativo" "./www/administrativo" "./public_html/administrativo" "./files/administrativo" )
-          CHOSEN=""
-          HAS_SYNC_STATE="false"
-
-          for dir in "${CANDIDATES[@]}"; do
-            if lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "set ftp:passive-mode true; set dns:order inet; cd $dir; cls >/dev/null; bye" >/dev/null 2>&1; then
-              CHOSEN="$dir"
-              break
-            fi
-          done
-
-          if [ -z "$CHOSEN" ]; then
-            echo "ERRO: Nenhum server-dir candidato funcionou no FTP."
-            echo "Provavel causa: caminho remoto incorreto ou permissao da conta FTP."
-            exit 1
-          fi
-
-          if lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "set ftp:passive-mode true; set dns:order inet; cd $CHOSEN; cls .ftp-deploy-sync-state.json >/dev/null; bye" >/dev/null 2>&1; then
-            HAS_SYNC_STATE="true"
-          fi
-
-          echo "server_dir=$CHOSEN" >> "$GITHUB_OUTPUT"
-          echo "has_sync_state=$HAS_SYNC_STATE" >> "$GITHUB_OUTPUT"
-          echo "Diretorio remoto selecionado: $CHOSEN"
-
-      - name: Deploy incremental - tentativa 1
-        id: deploy1
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ${{ steps.remote_dir.outputs.server_dir }}/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-
-      - name: Deploy incremental - tentativa 2
-        if: failure() && steps.deploy1.outcome == 'failure'
-        id: deploy2
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ${{ steps.remote_dir.outputs.server_dir }}/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-
-      - name: Deploy incremental - tentativa 3
-        if: failure() && steps.deploy2.outcome == 'failure'
-        id: deploy3
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ${{ steps.remote_dir.outputs.server_dir }}/
-          dangerous-clean-slate: false
-          log-level: verbose
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-
-      - name: Forcar upload via lftp (fallback incremental)
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success'
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-          SERVER_DIR: ${{ steps.remote_dir.outputs.server_dir }}
-        run: |
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
+          echo "🚀 Iniciando deploy incremental para KingHost..."
+          
+          # O comando lftp é mais resiliente a timeouts da KingHost
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          # Configurações de Conexão
           set ftp:passive-mode true
           set ftp:ssl-allow no
-          set dns:order "inet inet6"
-          set net:timeout 45
-          set net:max-retries 4
-          set net:reconnect-interval-base 2
-          set net:reconnect-interval-max 6
-          cd $SERVER_DIR
-          mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
-            --exclude-glob .git/** \
-            --exclude-glob .github/** \
+          set net:timeout 60
+          set net:max-retries 10
+          set net:reconnect-interval-base 5
+          
+          # 1. Garantir que as pastas de logs e uploads existam na raiz
+          # Como o login cai na raiz, não usamos caminhos absolutos como /home/...
+          mkdir -p app/adms/Controllers/logs
+          mkdir -p app/adms/Views/logs
+          mkdir -p public/uploads
+          mkdir -p logs
+
+          # 2. Sincronização Principal (Mirror)
+          # --only-newer: só envia o que mudou
+          # --reverse: do local para o remoto
+          # --parallel=2: envia 2 arquivos por vez (evita travar a conexão)
+          mirror --reverse --parallel=2 --only-newer --continue --no-perms --verbose \
+            --exclude-glob .git/ \
+            --exclude-glob .github/ \
             --exclude-glob .gitignore \
             --exclude-glob .env \
             --exclude-glob *.log \
-            --exclude-glob vendor/** \
-            --exclude-glob lib/** \
-            --exclude-glob node_modules/** \
-            --exclude-glob .vscode/** \
+            --exclude-glob vendor/ \
+            --exclude-glob node_modules/ \
+            --exclude-glob .vscode/ \
             --exclude-glob .DS_Store \
             --exclude-glob LICENSE.txt \
             ./ .
-          bye
+          
+          quit
           EOF
 
-      - name: Forcar upload de logs (opcional)
-        if: github.event_name == 'workflow_dispatch' && inputs.run_logs_probe == 'true'
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-          SERVER_DIR: ${{ steps.remote_dir.outputs.server_dir }}
-        run: |
-          set +e
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set dns:order "inet inet6"
-          cd $SERVER_DIR
-          mkdir -p app/adms/Controllers/logs
-          mkdir -p app/adms/Views/logs
-          mirror -R --only-newer --continue --no-perms --verbose --exclude-glob *.log ./app/adms/Controllers/logs app/adms/Controllers/logs
-          mirror -R --only-newer --continue --no-perms --verbose --exclude-glob *.log ./app/adms/Views/logs app/adms/Views/logs
-          bye
-          EOF
-          echo "Step de logs finalizado (nao bloqueante)."
-          exit 0
-
-      - name: Modo detectado de deploy
+      - name: Feedback Final
         if: always()
         run: |
-          if [ "${{ steps.remote_dir.outputs.has_sync_state }}" = "true" ]; then
-            echo "Modo detectado: INCREMENTAL"
-          else
-            echo "Modo detectado: FULL SYNC"
-          fi
-
-      - name: Diagnostico de erro simplificado
-        if: failure()
-        run: |
-          echo "ERRO RESUMIDO:"
-          echo "1) Se aparecer '550 app: No such file or directory', o caminho remoto do FTP esta incorreto para esta conta."
-          echo "2) Se aparecer '550 Permission denied' em mkdir/upload, a conta FTP nao tem permissao de escrita no diretorio alvo."
-          echo "3) Se aparecer timeout (ETIMEDOUT/ENETUNREACH), e bloqueio de rede entre GitHub e servidor FTP."
-          echo "4) Este workflow removeu '--exclude-regex' do lftp para evitar falha de opcao invalida."
+          echo "✅ Processo de deploy finalizado."
+          echo "Se houver erro de 'Timeout', verifique se o IP do GitHub não foi bloqueado temporariamente pelo Firewall da KingHost."
