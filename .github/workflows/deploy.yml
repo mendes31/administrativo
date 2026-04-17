@@ -28,32 +28,26 @@ jobs:
         run: |
           echo "🚀 Iniciando deploy incremental para KingHost..."
           
-          # O comando lftp é mais resiliente a timeouts da KingHost
+          # Autenticação e comandos integrados para evitar erros de interpretação
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          # Configurações de Conexão
+          # Configurações de Conexão Estáveis
           set ftp:passive-mode true
           set ftp:ssl-allow no
           set net:timeout 60
           set net:max-retries 10
           set net:reconnect-interval-base 5
-          
-          # 1. Garantir que as pastas de logs e uploads existam na raiz
-          # Como o login cai na raiz, não usamos caminhos absolutos como /home/...
-          app/adms/Controllers/logs
-          app/adms/Views/logs
-          public/uploads
-          logs
+          set xfer:clobber on
 
-          # 2. Sincronização Principal (Mirror)
-          # --only-newer: só envia o que mudou
-          # --reverse: do local para o remoto
-          # --parallel=2: envia 2 arquivos por vez (evita travar a conexão)
+          # Sincronização Principal (Mirror)
+          # ./ -> Origem (GitHub Runner)
+          # .  -> Destino (Raiz do FTP onde o usuário cai)
+          
           mirror --reverse --parallel=2 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/ \
             --exclude-glob .github/ \
             --exclude-glob .gitignore \
             --exclude-glob .env \
-            --exclude-glob *.log \
+            --exclude-regex \.log$ \
             --exclude-glob vendor/ \
             --exclude-glob node_modules/ \
             --exclude-glob .vscode/ \
@@ -68,4 +62,3 @@ jobs:
         if: always()
         run: |
           echo "✅ Processo de deploy finalizado."
-          echo "Se houver erro de 'Timeout', verifique se o IP do GitHub não foi bloqueado temporariamente pelo Firewall da KingHost."
