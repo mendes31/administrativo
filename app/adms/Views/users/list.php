@@ -204,8 +204,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                         <?php endif; ?>
                                     </td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
-                                    <?php $name_pos_display = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($name_pos)); ?>
-                                    <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_pos_display); ?>"><?= htmlspecialchars($name_pos_display) ?></td>
+                                    <td class="d-none d-md-table-cell text-break users-list-cargo-full" title="<?= htmlspecialchars((string)($name_pos ?? '')); ?>"><?= htmlspecialchars((string)($name_pos ?? '')) ?></td>
                                     <td class="d-none d-md-table-cell text-center">
                                         <span class="badge <?= $status === 'Ativo' ? 'bg-success' : 'bg-danger'; ?>"><?= $status ?></span>
                                     </td>
@@ -278,7 +277,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                     <div><b>ID:</b> <?= $id ?></div>
                                     <div><b>Usuário:</b> <?= $username ?></div>
                                     <div><b>Departamento:</b> <?= $name_dep ?></div>
-                                    <div><b>Cargo:</b> <?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)$name_pos)) ?></div>
+                                    <div class="text-break"><b>Cargo:</b> <?= htmlspecialchars((string)($name_pos ?? '')) ?></div>
                                     <div><b>Bloqueado:</b> <?= $bloqueado ?></div>
                                     <div class="mt-2">
                                         <?php
@@ -454,6 +453,12 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
 
 .btn-group .btn i {
     font-size: 0.875rem;
+}
+
+/* Cargo na listagem: texto integral do cadastro (quebra em várias linhas) */
+.users-list-cargo-full {
+    white-space: normal;
+    min-width: 10rem;
 }
 
 /* Scroll horizontal se ainda faltar espaço (ex.: textos longos em Nome/Cargo) */
