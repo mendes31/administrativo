@@ -1,66 +1,17 @@
-name: Deploy PHP para Kinghost (Otimizado)
-
-on:
-  push:
-    branches:
-      - main
-      - dev-master
-  workflow_dispatch: {}
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Instalar lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Deploy Incremental via lftp
+- name: Deploy via Rsync com Senha
         env:
-          # DICA: Tente trocar o FTP_SERVER_PROD no GitHub pelo IP 191.6.208.23 se o nome falhar
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+          SSH_PASS: ${{ secrets.FTP_PASS_PROD }} # Sua senha do SSH
+          SSH_USER: "tiaraju"                    # Seu usuário do SSH
+          SSH_HOST: "web119.kinghost.net"        # Host correto do SSH
         run: |
-          echo "🚀 Iniciando deploy em modo de compatibilidade total..."
+          echo "🚀 Iniciando deploy via SSH em web119.kinghost.net..."
           
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          # Ajustes de Conexão Baseados no Telnet OK
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set net:timeout 60
-          set net:max-retries 10
-          set net:reconnect-interval-base 5
-          set xfer:clobber on
-
-          # Debug: Listar o que tem no servidor antes de começar
-          ls
-
-          # Sincronização
-          mirror --reverse --only-newer --continue --no-perms --verbose \
-            --exclude-glob .git/ \
-            --exclude-glob .github/ \
-            --exclude-glob .gitignore \
-            --exclude-glob .env \
-            --exclude-glob *.log \
-            --exclude-glob vendor/ \
-            --exclude-glob node_modules/ \
-            ./ .
-          
-          quit
-          EOF
-
-      - name: Feedback Final
-        if: always()
-        run: |
-          echo "✅ Processo de deploy finalizado."
-
-      - name: Teste de Conexão (Debug)
-        run: |
-          echo "Tentando pingar o servidor..."
-          nc -zv ${{ secrets.FTP_SERVER_PROD }} 21 || echo "Porta 21 bloqueada para o GitHub"
+          sshpass -e rsync -avz --delete \
+            -e "ssh -p 22 -o StrictHostKeyChecking=no" \
+            --exclude='.git*' \
+            --exclude='.github*' \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='*.log' \
+            ./ $SSH_USER@$SSH_HOST:/home/tiaraju/www/administrativo/
