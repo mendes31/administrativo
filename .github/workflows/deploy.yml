@@ -246,8 +246,10 @@ jobs:
           fi
 
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
+          set dns:order "inet inet6"
           set net:timeout 120
           set net:max-retries 20
           set net:reconnect-interval-base 2
@@ -273,6 +275,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via lftp (Fallback Incremental)
+        id: lftp_fallback_deploy
         if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
@@ -284,8 +287,10 @@ jobs:
           
           # Deploy incremental com lftp (--only-newer e --continue)
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set cmd:fail-exit yes
           set ftp:passive-mode true
           set ftp:ssl-allow no
+          set dns:order "inet inet6"
           set net:timeout 120
           set net:max-retries 50
           set net:reconnect-interval-base 2
@@ -310,13 +315,16 @@ jobs:
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
             --exclude-glob .env \
-            --exclude-regex \\.log$ \
+            --exclude-glob '*.log' \
+            --exclude-glob '**/*.log' \
             --exclude-glob vendor/** \
             --exclude-glob lib/** \
             --exclude-glob node_modules/** \
             --exclude-glob .vscode/** \
             --exclude-glob .DS_Store \
             --exclude-glob LICENSE.txt \
+            --exclude-glob 'app/adms/Controllers/receive copy' \
+            --exclude-glob 'app/adms/Controllers/receive copy/**' \
             ./ .
           
           echo ""
@@ -370,8 +378,10 @@ jobs:
           
           # Criar pastas essenciais via FTP
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set cmd:fail-exit no
           set ftp:passive-mode true
           set ftp:ssl-allow no
+          set dns:order "inet inet6"
           set net:timeout 30
           
           echo "🔄 Conectando ao servidor..."
@@ -393,17 +403,20 @@ jobs:
           echo "🔍 === RELATÓRIO DE DEPLOY DETALHADO ==="
           
           if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
-            echo "✅ Deploy FTP bem-sucedido!"
+            echo "✅ Deploy FTP (SamKirkland) bem-sucedido!"
             echo "📊 Tentativas utilizadas:"
             [ "${{ steps.deploy1.outcome }}" == "success" ] && echo "   - Tentativa 1: ✅"
             [ "${{ steps.deploy2.outcome }}" == "success" ] && echo "   - Tentativa 2: ✅"
             [ "${{ steps.deploy3.outcome }}" == "success" ] && echo "   - Tentativa 3: ✅"
             [ "${{ steps.deploy4.outcome }}" == "success" ] && echo "   - Tentativa 4: ✅"
             [ "${{ steps.deploy5.outcome }}" == "success" ] && echo "   - Tentativa 5: ✅"
+          elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "success" ]; then
+            echo "✅ Deploy concluído via fallback lftp (FTP em 5 tentativas não finalizou)."
+          elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "skipped" ]; then
+            echo "ℹ️ Fallback lftp não foi necessário (FTP já tinha sucesso ou o job parou antes)."
           else
-            echo "⚠️ Deploy FTP falhou, mas lftp foi executado como fallback"
-            echo "📊 Tentativas FTP: ❌❌❌❌❌"
-            echo "🔄 Fallback lftp: ✅"
+            echo "❌ FTP falhou em todas as tentativas e o fallback lftp não concluiu com sucesso."
+            echo "   Resultado do passo lftp: ${{ steps.lftp_fallback_deploy.outcome }}"
           fi
           
           echo ""
@@ -456,3 +469,23 @@ jobs:
           echo ""
           echo "💡 Dica: Os logs 'verbose' mostram TUDO, mas podem ser longos"
           echo "💡 Dica: Use Ctrl+F para buscar por arquivos específicos nos logs"
+
+      - name: Resultado final do deploy
+        if: always()
+        run: |
+          ok=0
+          if [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy3.outcome }}" = "success" ] || [ "${{ steps.deploy4.outcome }}" = "success" ] || [ "${{ steps.deploy5.outcome }}" = "success" ]; then
+            ok=1
+            echo "✅ Job aprovado: deploy FTP (SamKirkland) concluído com sucesso."
+          fi
+          if [ "${{ steps.lftp_fallback_deploy.outcome }}" = "success" ]; then
+            ok=1
+            echo "✅ Job aprovado: deploy incremental via lftp (fallback) concluído com sucesso."
+          fi
+          if [ "$ok" -eq 1 ]; then
+            echo "🎯 Conclusão: SUCESSO — alterações consideradas publicadas (FTP ou lftp)."
+            exit 0
+          fi
+          echo "❌ Conclusão: FALHA — nem FTP nem lftp completaram com sucesso."
+          echo "   Revise secrets, rede (ETIMEDOUT), opções do mirror lftp nos logs e docs/COMANDOS_SERVIDOR_SSH.md."
+          exit 1

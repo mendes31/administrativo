@@ -298,7 +298,14 @@ Se o workflow **Deploy PHP para Kinghost** falha com:
 
 No `deploy.yml`, no passo `SamKirkland/FTP-Deploy-Action`, é possível usar `protocol: ftps` e, se necessário, `port` conforme a documentação do provedor — **somente** depois de confirmar que a conexão TCP na porta correta responde a partir de uma origem externa (ou do runner).
 
+### GitHub Actions: `lftp` e `mirror: unrecognized option '--exclude-regex'`
+
+O pacote `lftp` do **ubuntu-latest** costuma ser antigo: a opção **`--exclude-regex`** do comando `mirror` **não existe** nessa versão. Use **`--exclude-glob '*.log'`** e, se suportado, **`--exclude-glob '**/*.log'`** em vez de regex.
+
+Use também **`set cmd:fail-exit yes`** no início do script enviado ao `lftp`: assim, se o `mirror` falhar, o `lftp` termina com código de erro e o passo do Actions **falha de verdade**, em vez de continuar e imprimir mensagens de sucesso enganadoras.
+
 ### Estado de referência do workflow de deploy
 
-Em **16/04/2026**, `.github/workflows/deploy.yml` está alinhado com o commit **0e3da7c**: cinco tentativas `FTP-Deploy-Action`, passos «Forçar upload» das pastas de logs, «Forçar upload via lftp (logs)» com `if: always()`, fallback `lftp` completo só se **todas** as cinco tentativas falharem, e «Criar Pastas Essenciais» apenas `logs` e `public/uploads`. Pushes em `main` ou `dev-master` disparam o deploy.
+Pushes em `main` ou `dev-master` disparam o deploy. O conteúdo exato de `.github/workflows/deploy.yml` depende do commit (FTP + fallback lftp, ou SSH/rsync noutra variante). Consulte o ficheiro no ramo em uso.
+
 
