@@ -28,7 +28,6 @@ jobs:
         run: |
           echo "🚀 Iniciando deploy incremental para KingHost..."
           
-          # Autenticação e comandos integrados para evitar erros de interpretação
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
           # Configurações de Conexão Estáveis
           set ftp:passive-mode true
@@ -39,15 +38,14 @@ jobs:
           set xfer:clobber on
 
           # Sincronização Principal (Mirror)
-          # ./ -> Origem (GitHub Runner)
-          # .  -> Destino (Raiz do FTP onde o usuário cai)
+          # Usando apenas --exclude-glob para compatibilidade total
           
           mirror --reverse --parallel=2 --only-newer --continue --no-perms --verbose \
             --exclude-glob .git/ \
             --exclude-glob .github/ \
             --exclude-glob .gitignore \
             --exclude-glob .env \
-            --exclude-regex \.log$ \
+            --exclude-glob *.log \
             --exclude-glob vendor/ \
             --exclude-glob node_modules/ \
             --exclude-glob .vscode/ \
