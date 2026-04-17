@@ -3,10 +3,11 @@ name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 # Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
 # (firewall/hospedagem). Ver docs/COMANDOS_SERVIDOR_SSH.md (secção "GitHub Actions: erro FTP ETIMEDOUT").
 #
-# SSH (PuTTY): o projecto costuma ser cd ~/www/administrativo — o deploy deve escrever nessa mesma árvore no FTP.
-# Padrão no job: KINGHOST_FTP_REMOTE_DIR «.» = sessão FTP já na raiz do projecto (listagem com app/, public/ — sem subpasta administrativo/).
-# Se o FileZilla mostrar administrativo/ na raiz «/» (pai = ~/www) → defina «administrativo» no env do job (não é o caso típico Kinghost quando o erro foi 550 ~/administrativo).
-# Use «files» apenas se a raiz FTP for mesmo a pasta files/ antes de app/.
+# SSH (PuTTY): o projecto costuma ser cd ~/www/administrativo.
+# WebFTP Kinghost abre em /files/, mas nesta conta essa listagem corresponde à MESMA árvore do projecto
+# (ou seja, em /files/ já aparecem app/, public/, routes/, etc).
+# Por isso, o padrão no job é KINGHOST_FTP_REMOTE_DIR «.».
+# Só use «administrativo» se, após login FTP, a listagem mostrar exclusivamente essa subpasta como raiz útil.
 #
 # Secret FTP_USER_PROD: utilizar o mesmo user FTP do painel/FileZilla (ex.: tiaraju02), não confundir com o login SSH tiaraju.
 # FTPS: certificado *.kinghost.net vs host ftp.* → protocol ftps + security loose na action.
@@ -25,6 +26,11 @@ on:
     inputs:
       debug_ftp:
         description: "Rodar pwd + listagem curta na raiz FTP (diagnóstico)"
+        required: false
+        default: false
+        type: boolean
+      debug_legacy_tree:
+        description: "Alertar se existir pasta legada administrativo/ na raiz FTP"
         required: false
         default: false
         type: boolean
@@ -109,6 +115,35 @@ jobs:
           echo "::endgroup::"
           echo "::notice::Padrão actual: KINGHOST_FTP_REMOTE_DIR «.». Se a listagem na raiz mostrar administrativo/ (e não app/) → use «administrativo» no env do job."
 
+      - name: Diagnóstico de árvore legada (administrativo/)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_legacy_tree == 'true'
+        continue-on-error: true
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          echo "::group::Verificação de pasta legada na raiz FTP"
+          LISTING="$(lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          cls -1
+          quit
+          EOF
+          )"
+          echo "$LISTING"
+          if echo "$LISTING" | grep -qx "administrativo"; then
+            echo "::warning::Detectada pasta «administrativo/» na raiz FTP. Isso costuma ser legado e pode confundir troubleshooting; mantenha KINGHOST_FTP_REMOTE_DIR='.' enquanto app/public estiverem na raiz."
+          else
+            echo "::notice::Nenhuma pasta «administrativo/» detectada na raiz FTP."
+          fi
+          echo "::endgroup::"
+
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
         continue-on-error: true
@@ -139,6 +174,8 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            administrativo/
+            administrativo/**
             **/receive copy/**
             **/receive%20copy/**
             **/* copy.php
@@ -176,6 +213,8 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            administrativo/
+            administrativo/**
             **/receive copy/**
             **/receive%20copy/**
             **/* copy.php
@@ -213,6 +252,8 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            administrativo/
+            administrativo/**
             **/receive copy/**
             **/receive%20copy/**
             **/* copy.php
@@ -250,6 +291,8 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            administrativo/
+            administrativo/**
             **/receive copy/**
             **/receive%20copy/**
             **/* copy.php
@@ -287,6 +330,8 @@ jobs:
             **/*.log
             vendor/
             vendor/**
+            administrativo/
+            administrativo/**
             **/receive copy/**
             **/receive%20copy/**
             **/* copy.php
@@ -409,6 +454,7 @@ jobs:
             --exclude-glob .env \
             --exclude-glob '*.log' \
             --exclude-glob vendor/** \
+            --exclude-glob administrativo/** \
             --exclude-glob lib/** \
             --exclude-glob node_modules/** \
             --exclude-glob .vscode/** \
