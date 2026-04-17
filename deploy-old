@@ -15,6 +15,66 @@ jobs:
     steps:
       - name: Aviso de backup
         run: |
+          echo "Arquivo de seguranca (backup)."
+          echo "Deploy ativo: .github/workflows/deploy.yml"
+          echo "Sem gatilho push para evitar deploy duplicado."
+name: Deploy Old (Backup de Seguranca)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_backup_run:
+        description: "Executar backup antigo manualmente (nao roda em push)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  backup_notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aviso de backup
+        run: |
+          echo "Arquivo de seguranca (backup)."
+          echo "Deploy ativo: .github/workflows/deploy.yml"
+          echo "Sem gatilho push para evitar deploy duplicado."
+name: Deploy Old (Backup de Seguranca)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_backup_run:
+        description: "Executar backup antigo manualmente (nao roda em push)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  backup_notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aviso de backup
+        run: |
+          echo "Arquivo de seguranca (backup)."
+          echo "Deploy ativo: .github/workflows/deploy.yml"
+          echo "Sem gatilho push para evitar deploy duplicado."
+name: Deploy Old (Backup de Seguranca)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_backup_run:
+        description: "Executar backup antigo manualmente (nao roda em push)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  backup_notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aviso de backup
+        run: |
           echo "Este arquivo existe como BACKUP de seguranca."
           echo "O deploy ativo e suportado e: .github/workflows/deploy.yml"
           echo "Este workflow nao possui gatilho de push para evitar deploy duplicado."

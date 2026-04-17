@@ -112,7 +112,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.SERVER_DIR }}
+          server-dir: ${{ (env.REMOTE_DIR_RAW == '' || env.REMOTE_DIR_RAW == '.' || env.REMOTE_DIR_RAW == './') && './' || format('{0}/', env.REMOTE_DIR_RAW) }}
           timeout: 300000
           log-level: standard
           dangerous-clean-slate: false
@@ -153,7 +153,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.SERVER_DIR }}
+          server-dir: ${{ (env.REMOTE_DIR_RAW == '' || env.REMOTE_DIR_RAW == '.' || env.REMOTE_DIR_RAW == './') && './' || format('{0}/', env.REMOTE_DIR_RAW) }}
           timeout: 300000
           log-level: standard
           dangerous-clean-slate: false
@@ -194,7 +194,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.SERVER_DIR }}
+          server-dir: ${{ (env.REMOTE_DIR_RAW == '' || env.REMOTE_DIR_RAW == '.' || env.REMOTE_DIR_RAW == './') && './' || format('{0}/', env.REMOTE_DIR_RAW) }}
           timeout: 300000
           log-level: standard
           dangerous-clean-slate: false
@@ -232,24 +232,42 @@ jobs:
       - name: Fallback lftp incremental
         id: lftp_fallback
         if: env.FORCE_LFTP_FALLBACK == 'true' || (steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure')
-        timeout-minutes: 60
+        timeout-minutes: 25
         continue-on-error: true
         run: |
           set +e
+          echo "Probe rapido de conectividade FTP antes do fallback..."
+          PROBE_OUT="$(lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          set net:timeout 15
+          set net:max-retries 1
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          pwd
+          quit
+          EOF
+          )"
+          if echo "$PROBE_OUT" | grep -Eiq "timed out|ETIMEDOUT|ENETUNREACH|No route|refused|Login failed|530"; then
+            echo "Falha rapida: FTP indisponivel no momento. Pulando mirror pesado do fallback."
+            exit 1
+          fi
           lftp <<EOF
           set cmd:fail-exit no
           set dns:order "inet inet6"
           set ftp:passive-mode true
           set ssl:verify-certificate no
           set ftp:ssl-force true
-          set net:timeout 300
-          set net:max-retries 200
-          set net:reconnect-interval-base 5
-          set net:reconnect-interval-max 60
+          set net:timeout 120
+          set net:max-retries 30
+          set net:reconnect-interval-base 3
+          set net:reconnect-interval-max 20
           set net:idle 120
           set xfer:clobber on
           open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
-          mirror -R --parallel=3 --only-newer --continue --no-perms \
+          mirror -R --parallel=2 --only-newer --continue --no-perms \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .vscode/** \
