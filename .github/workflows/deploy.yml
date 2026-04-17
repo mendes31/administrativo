@@ -34,6 +34,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_logs_probe:
+        description: "Executar upload forçado de logs (somente troubleshooting)"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: deploy-kinghost-${{ github.ref }}
@@ -143,7 +148,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && '/' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
           log-level: standard
           timeout: 300000
@@ -183,7 +188,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && '/' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
           log-level: standard
           timeout: 300000
@@ -223,7 +228,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && '/' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
           log-level: standard
           timeout: 300000
@@ -263,7 +268,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && '/' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
           log-level: standard
           timeout: 300000
@@ -303,7 +308,7 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./
-          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && './' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
+          server-dir: ${{ env.KINGHOST_FTP_REMOTE_DIR == '.' && '/' || format('{0}/', env.KINGHOST_FTP_REMOTE_DIR) }}
           dangerous-clean-slate: false
           log-level: standard
           timeout: 300000
@@ -330,8 +335,33 @@ jobs:
             lib/
             lib/**
 
-      - name: Forçar upload - Controllers logs
+      - name: Diagnóstico pós-falha FTP (pwd + ls)
         if: steps.deploy5.outcome == 'failure'
+        continue-on-error: true
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          fi
+          echo "::group::Diagnóstico após 5 falhas FTP"
+          lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          pwd
+          cls -1 | head -120
+          quit
+          EOF
+          echo "::endgroup::"
+
+      - name: Forçar upload - Controllers logs
+        if: steps.deploy5.outcome == 'failure' && github.event_name == 'workflow_dispatch' && github.event.inputs.run_logs_probe == 'true'
         timeout-minutes: 10
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -349,7 +379,7 @@ jobs:
             **/*.log
 
       - name: Forçar upload - Views logs
-        if: steps.deploy5.outcome == 'failure'
+        if: steps.deploy5.outcome == 'failure' && github.event_name == 'workflow_dispatch' && github.event.inputs.run_logs_probe == 'true'
         timeout-minutes: 10
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -367,7 +397,7 @@ jobs:
             **/*.log
 
       - name: Forçar upload via lftp (logs)
-        if: steps.deploy5.outcome == 'failure'
+        if: steps.deploy5.outcome == 'failure' && github.event_name == 'workflow_dispatch' && github.event.inputs.run_logs_probe == 'true'
         timeout-minutes: 10
         continue-on-error: true
         env:
@@ -492,6 +522,106 @@ jobs:
           echo "      ⏭️ 'Skipping: README.md' (arquivo idêntico)"
           echo ""
           echo "💡 Dica: Use Ctrl+F nos logs para buscar por 'README.md'"
+
+      - name: Detectar Modo de Sincronização (FULL SYNC vs INCREMENTAL)
+        if: always()
+        continue-on-error: true
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          fi
+
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
+          echo "🔎 Verificando estado remoto em: $REMOTE"
+
+          STATE_CHECK="$(lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          [ "$REMOTE" != "." ] && cd "$REMOTE"
+          cls -1 .ftp-deploy-sync-state.json
+          quit
+          EOF
+          )"
+
+          if echo "$STATE_CHECK" | grep -q ".ftp-deploy-sync-state.json"; then
+            echo "✅ Modo detectado: INCREMENTAL"
+            echo "::notice::Modo detectado: INCREMENTAL (estado remoto encontrado)."
+          else
+            echo "⚠️ Modo detectado: FULL SYNC"
+            echo "::warning::Modo detectado: FULL SYNC (estado remoto ausente/inacessível)."
+          fi
+
+      - name: Diagnóstico de Erro (explicação simples)
+        if: steps.deploy5.outcome == 'failure' && steps.lftp_fallback.outcome == 'failure'
+        continue-on-error: true
+        env:
+          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: |
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          fi
+
+          REMOTE="${KINGHOST_FTP_REMOTE_DIR:-.}"
+          PROBE_DIR=".ci-write-probe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "🩺 Iniciando diagnóstico amigável do erro..."
+
+          CONNECT_OUT="$(lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          set net:timeout 20
+          set net:max-retries 2
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          pwd
+          quit
+          EOF
+          )"
+
+          if echo "$CONNECT_OUT" | grep -Eiq "timed out|ETIMEDOUT|ENETUNREACH|No route|refused|Login failed|530"; then
+            echo "::error::Erro principal: conexão FTP/FTPS instável ou credenciais inválidas (timeout/rede/login)."
+            echo "👉 Ação: validar FTP_SERVER_PROD/FTP_USER_PROD/FTP_PASS_PROD e conectividade da KingHost no momento do deploy."
+            exit 0
+          fi
+
+          WRITE_OUT="$(lftp <<EOF
+          set cmd:fail-exit no
+          set dns:order "inet inet6"
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          open -u "$FTP_USER","$FTP_PASS" ftp://$FTP_HOST
+          [ "$REMOTE" != "." ] && cd "$REMOTE"
+          mkdir "$PROBE_DIR"
+          rmdir "$PROBE_DIR"
+          quit
+          EOF
+          )"
+
+          if echo "$WRITE_OUT" | grep -Eiq "No such file|550 .*No such file"; then
+            echo "::error::Erro principal: caminho remoto inválido (prefixo KINGHOST_FTP_REMOTE_DIR)."
+            echo "👉 Ação: manter '.' quando app/public já aparecem na raiz FTP; use 'administrativo' somente se essa pasta for a raiz útil."
+            exit 0
+          fi
+
+          if echo "$WRITE_OUT" | grep -Eiq "Operation not permitted|Permission denied|550"; then
+            echo "::error::Erro principal: falta de permissão de escrita no FTP para o diretório de deploy."
+            echo "👉 Ação: ajustar dono/permissões no servidor (ou usuário FTP no painel KingHost) para permitir upload."
+            exit 0
+          fi
+
+          echo "::warning::Falha não classificada automaticamente. Revise logs completos dos steps FTP e lftp."
 
       # Criação automática de pastas essenciais no servidor
       - name: Criar Pastas Essenciais no Servidor
