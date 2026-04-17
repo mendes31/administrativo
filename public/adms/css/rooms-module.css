@@ -76,8 +76,11 @@
     background: #f8f9fa;
 }
 
+/* A grelha usa repeat(7, minmax(0, 1fr)): não forçar largura mínima (evita rolagem horizontal no mobile). */
 .rooms-module-page .rooms-calendar-scroll .calendar-grid-outlook {
-    min-width: 520px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .rooms-module-page .calendar-grid-outlook {
@@ -98,6 +101,12 @@
     min-width: 0;
 }
 
+.rooms-module-page .calendar-day-header-outlook abbr {
+    text-decoration: none;
+    border-bottom: 0;
+    cursor: help;
+}
+
 .rooms-module-page .calendar-day-outlook {
     background: #fff;
     min-height: 120px;
@@ -107,6 +116,7 @@
     transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     border: 1px solid #e9ecef;
     min-width: 0;
+    overflow: hidden;
 }
 
 .rooms-module-page .calendar-day-outlook:hover {
@@ -153,8 +163,12 @@
     margin-bottom: 0.2rem;
     border-radius: 3px;
     cursor: inherit;
-    white-space: nowrap;
+    white-space: normal;
     overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     text-overflow: ellipsis;
     transition: background 0.2s;
     max-width: 100%;

@@ -381,13 +381,13 @@ foreach ($rooms as $room) {
                 <div class="outlook-calendar p-3">
                 <div class="calendar-grid-outlook">
                     <!-- Cabeçalho dos dias da semana -->
-                    <div class="calendar-day-header-outlook">Segunda</div>
-                    <div class="calendar-day-header-outlook">Terça</div>
-                    <div class="calendar-day-header-outlook">Quarta</div>
-                    <div class="calendar-day-header-outlook">Quinta</div>
-                    <div class="calendar-day-header-outlook">Sexta</div>
-                    <div class="calendar-day-header-outlook">Sábado</div>
-                    <div class="calendar-day-header-outlook">Domingo</div>
+                    <div class="calendar-day-header-outlook" aria-label="Segunda"><abbr title="Segunda">Seg</abbr></div>
+                    <div class="calendar-day-header-outlook" aria-label="Terça"><abbr title="Terça">Ter</abbr></div>
+                    <div class="calendar-day-header-outlook" aria-label="Quarta"><abbr title="Quarta">Qua</abbr></div>
+                    <div class="calendar-day-header-outlook" aria-label="Quinta"><abbr title="Quinta">Qui</abbr></div>
+                    <div class="calendar-day-header-outlook" aria-label="Sexta"><abbr title="Sexta">Sex</abbr></div>
+                    <div class="calendar-day-header-outlook" aria-label="Sábado"><abbr title="Sábado">Sáb</abbr></div>
+                    <div class="calendar-day-header-outlook" aria-label="Domingo"><abbr title="Domingo">Dom</abbr></div>
 
                     <?php
                     // Dias vazios antes do primeiro dia do mês
@@ -541,6 +541,12 @@ foreach ($rooms as $room) {
     padding: 0.75rem;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+.calendar-day-header-outlook abbr {
+    text-decoration: none;
+    border-bottom: 0;
+    cursor: help;
 }
 
 .calendar-day-outlook {

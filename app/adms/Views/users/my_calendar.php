@@ -186,7 +186,7 @@ $myCalPrimaryAction = static function (array $row) use ($base, $selectedMonth, $
                 </div>
                 <div class="card-body p-0">
                     <div class="alert alert-info mx-3 mt-3 mb-0 small">
-                        <i class="fas fa-info-circle me-1"></i>Em telemóvel, <strong>deslize horizontalmente</strong> sobre a grelha para ver os sete dias da semana (igual às reservas de sala).
+                        <i class="fas fa-info-circle me-1"></i>A vista mensal mostra os sete dias na mesma grelha, sem rolar para o lado. Em ecrãs estreitos os dias da semana aparecem abreviados (Seg, Ter, …); o nome completo pode surgir como dica no dispositivo.
                     </div>
                     <form method="get" class="row g-2 p-3 pb-0 m-0 align-items-end">
                         <div class="col-auto">
@@ -200,13 +200,13 @@ $myCalPrimaryAction = static function (array $row) use ($base, $selectedMonth, $
                     <div class="rooms-calendar-scroll">
                         <div class="outlook-calendar p-3 pt-2">
                             <div class="calendar-grid-outlook">
-                                <div class="calendar-day-header-outlook">Segunda</div>
-                                <div class="calendar-day-header-outlook">Terça</div>
-                                <div class="calendar-day-header-outlook">Quarta</div>
-                                <div class="calendar-day-header-outlook">Quinta</div>
-                                <div class="calendar-day-header-outlook">Sexta</div>
-                                <div class="calendar-day-header-outlook">Sábado</div>
-                                <div class="calendar-day-header-outlook">Domingo</div>
+                                <div class="calendar-day-header-outlook" aria-label="Segunda"><abbr title="Segunda">Seg</abbr></div>
+                                <div class="calendar-day-header-outlook" aria-label="Terça"><abbr title="Terça">Ter</abbr></div>
+                                <div class="calendar-day-header-outlook" aria-label="Quarta"><abbr title="Quarta">Qua</abbr></div>
+                                <div class="calendar-day-header-outlook" aria-label="Quinta"><abbr title="Quinta">Qui</abbr></div>
+                                <div class="calendar-day-header-outlook" aria-label="Sexta"><abbr title="Sexta">Sex</abbr></div>
+                                <div class="calendar-day-header-outlook" aria-label="Sábado"><abbr title="Sábado">Sáb</abbr></div>
+                                <div class="calendar-day-header-outlook" aria-label="Domingo"><abbr title="Domingo">Dom</abbr></div>
                                 <?php
                                 for ($i = 1; $i < $firstWeekday; $i++) {
                                     echo '<div class="calendar-day-outlook other-month"></div>';

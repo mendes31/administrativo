@@ -342,15 +342,15 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body birthday-modal-body">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 birthday-filter-bar" id="myCalDashFiltersWrap">
-                        <span class="text-muted small">Mês e ano</span>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <select id="myCalDashMonth" class="form-select form-select-sm" style="max-width: 160px;">
+                    <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-md-between gap-2 mb-3 birthday-filter-bar" id="myCalDashFiltersWrap">
+                        <span class="text-muted small flex-shrink-0">Mês e ano</span>
+                        <div class="d-flex align-items-center gap-2 flex-wrap flex-md-nowrap my-cal-dash-filters-row">
+                            <select id="myCalDashMonth" class="form-select form-select-sm my-cal-dash-select-month">
                                 <?php foreach ($mesesPtDash as $mn => $mname): ?>
                                     <option value="<?php echo (int) $mn; ?>" <?php echo $mn === $mDash ? 'selected' : ''; ?>><?php echo htmlspecialchars($mname); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <select id="myCalDashYear" class="form-select form-select-sm" style="max-width: 110px;">
+                            <select id="myCalDashYear" class="form-select form-select-sm my-cal-dash-select-year">
                                 <?php for ($yy = $yDash - 1; $yy <= $yDash + 1; $yy++): ?>
                                     <option value="<?php echo (int) $yy; ?>" <?php echo $yy === $yDash ? 'selected' : ''; ?>><?php echo (int) $yy; ?></option>
                                 <?php endfor; ?>
@@ -962,6 +962,35 @@
     background: #f6fbff !important;
     border-color: #d6e4f1 !important;
 }
+
+/* Modal «Meu calendário»: filtros e grelha sem overflow horizontal em telemóvel */
+.my-cal-dash-select-month {
+    max-width: 160px;
+}
+.my-cal-dash-select-year {
+    max-width: 110px;
+}
+#modalMeuCalendarioMes .birthday-modal-body .rooms-module-page,
+#modalMeuCalendarioMes .birthday-modal-body .rooms-calendar-scroll,
+#modalMeuCalendarioMes .birthday-modal-body #dashboardMyCalGrid {
+    min-width: 0;
+}
+@media (max-width: 767.98px) {
+    .my-cal-dash-filters-row {
+        width: 100%;
+        flex-wrap: nowrap;
+    }
+    .my-cal-dash-select-month {
+        max-width: none;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .my-cal-dash-select-year {
+        max-width: none;
+        flex: 0 0 5.5rem;
+        min-width: 4.75rem;
+    }
+}
 .birthday-person-card {
     border: 1px solid #d9e5f0 !important;
     border-radius: 16px !important;
@@ -1513,9 +1542,12 @@ document.addEventListener('DOMContentLoaded', function() {
             var dim = daysInMonth(y, m);
             var fw = firstWeekdayMon(y, m);
             var html = '';
-            var headers = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-            headers.forEach(function (h) {
-                html += '<div class="calendar-day-header-outlook">' + esc(h) + '</div>';
+            var headers = [
+                ['Segunda', 'Seg'], ['Terça', 'Ter'], ['Quarta', 'Qua'], ['Quinta', 'Qui'],
+                ['Sexta', 'Sex'], ['Sábado', 'Sáb'], ['Domingo', 'Dom']
+            ];
+            headers.forEach(function (pair) {
+                html += '<div class="calendar-day-header-outlook" aria-label="' + esc(pair[0]) + '"><abbr title="' + esc(pair[0]) + '">' + esc(pair[1]) + '</abbr></div>';
             });
             for (var i = 1; i < fw; i++) {
                 html += '<div class="calendar-day-outlook other-month"></div>';
