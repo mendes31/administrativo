@@ -14,6 +14,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # SamKirkland e uploads auxiliares usam continue-on-error para não abortar o job antes do lftp.
+    # O passo "Resultado final do deploy" define sucesso se FTP ou fallback lftp tiverem concluído.
 
     steps:
       - name: Checkout código
@@ -45,6 +47,7 @@ jobs:
       # Node costuma tentar IPv6 primeiro; na KingHost isso pode gerar ENETUNREACH enquanto IPv4 funciona.
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -86,6 +89,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 2
         if: failure() && steps.deploy1.outcome == 'failure'
         id: deploy2
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -122,6 +126,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 3
         if: failure() && steps.deploy2.outcome == 'failure'
         id: deploy3
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -158,6 +163,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 4
         if: failure() && steps.deploy3.outcome == 'failure'
         id: deploy4
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -194,6 +200,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 5
         if: failure() && steps.deploy4.outcome == 'failure'
         id: deploy5
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -228,6 +235,7 @@ jobs:
 
       # Força o envio das pastas de logs (controllers e views), independente do estado de sincronização
       - name: Forçar upload - Controllers logs
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -243,6 +251,7 @@ jobs:
             **/*.log
 
       - name: Forçar upload - Views logs
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         env:
           NODE_OPTIONS: --dns-result-order=ipv4first
@@ -260,6 +269,7 @@ jobs:
       # Upload garantido via lftp das pastas de logs (ignora *.log)
       - name: Forçar upload via lftp (logs)
         if: always()
+        continue-on-error: true
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -293,11 +303,8 @@ jobs:
 
       # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
       # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
-      - name: Install lftp (Fallback Inteligente)
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
       - name: Deploy via lftp (Fallback Incremental)
+        id: lftp_fallback_deploy
         if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
@@ -306,6 +313,9 @@ jobs:
         run: |
           echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
           echo "📁 Verificando arquivos existentes e enviando apenas o que falta..."
+          if ! command -v lftp &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y lftp
+          fi
           
           # Deploy incremental com lftp (--only-newer e --continue)
           lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
@@ -383,6 +393,7 @@ jobs:
       # Criação automática de pastas essenciais no servidor
       - name: Criar Pastas Essenciais no Servidor
         if: always()
+        continue-on-error: true
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -424,17 +435,18 @@ jobs:
           echo "🔍 === RELATÓRIO DE DEPLOY DETALHADO ==="
           
           if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
-            echo "✅ Deploy FTP bem-sucedido!"
+            echo "✅ Deploy FTP (SamKirkland) bem-sucedido!"
             echo "📊 Tentativas utilizadas:"
             [ "${{ steps.deploy1.outcome }}" == "success" ] && echo "   - Tentativa 1: ✅"
             [ "${{ steps.deploy2.outcome }}" == "success" ] && echo "   - Tentativa 2: ✅"
             [ "${{ steps.deploy3.outcome }}" == "success" ] && echo "   - Tentativa 3: ✅"
             [ "${{ steps.deploy4.outcome }}" == "success" ] && echo "   - Tentativa 4: ✅"
             [ "${{ steps.deploy5.outcome }}" == "success" ] && echo "   - Tentativa 5: ✅"
+          elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "success" ]; then
+            echo "✅ Deploy concluído via fallback lftp (SamKirkland não finalizou em nenhuma das 5 tentativas)."
+            echo "📊 Tentativas SamKirkland: ver status acima; mirror lftp: ✅"
           else
-            echo "⚠️ Deploy FTP falhou, mas lftp foi executado como fallback"
-            echo "📊 Tentativas FTP: ❌❌❌❌❌"
-            echo "🔄 Fallback lftp: ✅"
+            echo "⚠️ Nenhuma tentativa SamKirkland com sucesso; fallback lftp: ${{ steps.lftp_fallback_deploy.outcome }} (skipped = não necessário)"
           fi
           
           echo ""
@@ -487,3 +499,23 @@ jobs:
           echo ""
           echo "💡 Dica: Os logs 'verbose' mostram TUDO, mas podem ser longos"
           echo "💡 Dica: Use Ctrl+F para buscar por arquivos específicos nos logs"
+
+      - name: Resultado final do deploy
+        if: always()
+        run: |
+          ok=0
+          if [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy3.outcome }}" = "success" ] || [ "${{ steps.deploy4.outcome }}" = "success" ] || [ "${{ steps.deploy5.outcome }}" = "success" ]; then
+            ok=1
+            echo "✅ Job aprovado: pelo menos uma tentativa SamKirkland (FTP principal) concluiu com sucesso."
+          fi
+          if [ "${{ steps.lftp_fallback_deploy.outcome }}" = "success" ]; then
+            ok=1
+            echo "✅ Job aprovado: deploy incremental via lftp (fallback) concluiu com sucesso."
+          fi
+          if [ "$ok" -eq 1 ]; then
+            echo "🎯 Conclusão: SUCESSO — alterações consideradas publicadas (FTP ou lftp)."
+            exit 0
+          fi
+          echo "❌ Conclusão: FALHA — nenhum caminho (SamKirkland nem lftp) completou com sucesso."
+          echo "   Revise secrets, rede (ETIMEDOUT), caminho server-dir e logs do passo 'Deploy via lftp'."
+          exit 1
