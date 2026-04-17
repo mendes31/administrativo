@@ -206,32 +206,9 @@ jobs:
             lib/
             lib/**
 
-      # Força o envio das pastas de logs (controllers e views), independente do estado de sincronização
-      - name: Forçar upload - Controllers logs
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: app/adms/Controllers/logs/
-          server-dir: ./app/adms/Controllers/logs/
-          dangerous-clean-slate: true
-          log-level: verbose
-          exclude: |
-            **/*.log
-
-      - name: Forçar upload - Views logs
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: app/adms/Views/logs/
-          server-dir: ./app/adms/Views/logs/
-          dangerous-clean-slate: true
-          log-level: verbose
-          exclude: |
-            **/*.log
+      # Pastas de logs (PHP em Controllers/Views): só via lftp numa ligação.
+      # Dois FTP-Deploy-Action seguidos ao principal costumavam dar ETIMEDOUT no socket
+      # de controlo (nova ligação ao mesmo host) e marcavam o job como falha mesmo com deploy OK.
 
       # Upload garantido via lftp das pastas de logs (ignora *.log)
       - name: Forçar upload via lftp (logs)

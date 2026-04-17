@@ -14,7 +14,7 @@ use App\adms\Models\Repository\PagesRoutesRepository;
  * 1. Resolve a página em `adms_pages` (via {@see PagesRoutesRepository}) pelo controller ou slug.
  * 2. Se `public_page = 1`: carrega a controller **sem** exigir login nem ACL.
  * 3. Caso contrário: exige sessão e {@see PagesRoutesRepository::checkUserPagePermission} (matriz `adms_access_levels_pages`).
- * Exceções pontuais: ServeFile e central de notificações com sessão, mapa AJAX interno, etc.
+ * Exceções pontuais: ServeFile (sem sessão/ACL — segurança no FileServer), central de notificações com sessão, etc.
  *
  * Campos `default_page` / `basicControllers` **não** são consultados aqui; afetam só a inicialização da matriz
  * de permissões (ver {@see \App\adms\Models\Repository\AccessLevelsPagesRepository::initializeForNewAccessLevel}).
@@ -160,6 +160,22 @@ class LoadPageAdmAccessLevel
             }
         }
 
+        // Imagens/anexos via serve-file: se a linha em adms_pages faltar ou estiver inativa, ainda resolvemos a rota.
+        if (!$this->page && preg_match('#serve-file|servefile#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
+            $this->page = $accessLevelPage->getPageByControllerUrl('serve-file') ?: $accessLevelPage->getPage('ServeFile');
+            if (!$this->page) {
+                $this->page = [
+                    'id_ap' => 0,
+                    'controller' => 'ServeFile',
+                    'controller_url' => 'serve-file',
+                    'directory' => 'serveFile',
+                    'public_page' => 1,
+                    'name_app' => 'adms',
+                ];
+            }
+            $this->urlController = 'ServeFile';
+        }
+
         // 1) Página não encontrada no cadastro de rotas/páginas
         if (!$this->page) {
             GenerateLog::generateLog("error", "Página/rota não encontrada em pages_routes.", [
@@ -194,11 +210,11 @@ class LoadPageAdmAccessLevel
             return;
         }
 
-        // 2b) ServeFile: usuário autenticado pode acessar (FileServer restringe caminhos a public/adms/uploads).
-        // Sem isso, imagens/avatars na dashboard disparam negação de página, gravam $_SESSION['msg'] e o aviso
-        // aparece na próxima tela (ex.: Meus documentos), embora a lista carregue normalmente.
-        // Inclui fallbacks: cadastro local do banco pode divergir do seed (controller_url / nome da classe).
-        if ($this->isServeFileRoute() && !empty($_SESSION['user_id'])) {
+        // 2b) ServeFile: ficheiros apenas sob public/adms/uploads — validação em {@see FileServer}.
+        // Não exigir sessão nem permissão em adms_access_levels_pages: sem isto, níveis sem linha para a
+        // página "Servir arquivo" quebram avatares e imagens em todo o painel (GET de <img> não leva ACL).
+        // Alinhado ao comentário em {@see LoadPageAdm::$listPgPublic} (ServeFile como rota técnica pública).
+        if ($this->isServeFileRoute()) {
             $this->checkControllersExists();
             return;
         }
@@ -306,11 +322,12 @@ class LoadPageAdmAccessLevel
         if (($this->urlController ?? '') === 'ServeFile') {
             return true;
         }
-        $ctrl = (string)($this->page['controller'] ?? '');
+        $page = is_array($this->page) ? $this->page : [];
+        $ctrl = (string)($page['controller'] ?? '');
         if ($ctrl === 'ServeFile') {
             return true;
         }
-        $slug = strtolower((string)($this->page['controller_url'] ?? ''));
+        $slug = strtolower((string)($page['controller_url'] ?? ''));
         if ($slug === 'serve-file' || $slug === 'servefile') {
             return true;
         }
