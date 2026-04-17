@@ -39,10 +39,10 @@ jobs:
           
           # 1. Garantir que as pastas de logs e uploads existam na raiz
           # Como o login cai na raiz, não usamos caminhos absolutos como /home/...
-          mkdir -p app/adms/Controllers/logs
-          mkdir -p app/adms/Views/logs
-          mkdir -p public/uploads
-          mkdir -p logs
+          app/adms/Controllers/logs
+          app/adms/Views/logs
+          public/uploads
+          logs
 
           # 2. Sincronização Principal (Mirror)
           # --only-newer: só envia o que mudou
