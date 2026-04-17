@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tiaraju-pwa-root-v1';
+const CACHE_NAME = 'tiaraju-pwa-root-v2';
 const URL_PREFIX = '/administrativo/';
 
 // Rotas e assets principais para cache inicial (escopo raiz /administrativo/)
@@ -45,12 +45,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Não interceptar ficheiros servidos em stream: cache.put assíncrono + clone
+  // partilha o body da Response e pode deixar imagens/vídeos com 200 e corpo vazio.
+  if (request.url.includes('serve-file')) {
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
+        if (!response || !response.ok) {
+          return response;
+        }
         const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        return response;
+        return caches.open(CACHE_NAME).then((cache) =>
+          cache.put(request, clone).catch(() => {}).then(() => response)
+        );
       })
       .catch(() =>
         caches.match(request).then((cached) => cached || Promise.reject('no-match'))
