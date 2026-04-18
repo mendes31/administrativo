@@ -10,6 +10,22 @@ namespace App\adms\Helpers;
 class ImageHelper
 {
     /**
+     * Codifica o valor de ?path= para serve-file sem transformar "/" em "%2F"
+     * (evita falhas em Apache/proxy; o FileServer recebe "users/123/foto.png" corretamente).
+     */
+    public static function encodePathForServeFile(?string $path): string
+    {
+        if ($path === null || $path === '') {
+            return '';
+        }
+
+        $path = str_replace('\\', '/', $path);
+        $segments = array_values(array_filter(explode('/', $path), static fn ($s) => $s !== ''));
+
+        return implode('/', array_map(static fn (string $s): string => rawurlencode($s), $segments));
+    }
+
+    /**
      * Obtém a URL da imagem com fallback para imagem padrão
      * 
      * @param string|null $imagePath Caminho da imagem
@@ -20,13 +36,12 @@ class ImageHelper
     public static function getImageUrl(?string $imagePath, string $defaultImage = 'icon_user.png', string $type = 'users'): string
     {
         if (empty($imagePath)) {
-            return $_ENV['URL_ADM'] . "serve-file?path={$type}/{$defaultImage}";
+            $logical = "{$type}/{$defaultImage}";
+
+            return $_ENV['URL_ADM'] . 'serve-file?path=' . self::encodePathForServeFile($logical);
         }
-        
-        // Deixar a validação e fallback para o FileServer.
-        // Aqui apenas montamos o caminho lógico; o FileServer já
-        // trata inexistência e redireciona para o ícone padrão.
-        return $_ENV['URL_ADM'] . "serve-file?path=" . $imagePath;
+
+        return $_ENV['URL_ADM'] . 'serve-file?path=' . self::encodePathForServeFile($imagePath);
     }
 
     /**
@@ -59,7 +74,9 @@ class ImageHelper
             $html .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
         }
         
-        $html .= ' onerror="this.onerror=null; this.src=\'' . $_ENV['URL_ADM'] . "serve-file?path={$type}/{$defaultImage}" . '\';">';
+        $fallbackQs = self::encodePathForServeFile("{$type}/{$defaultImage}");
+        $fallbackUrl = $_ENV['URL_ADM'] . 'serve-file?path=' . $fallbackQs;
+        $html .= ' onerror="this.onerror=null; this.src=\'' . addslashes($fallbackUrl) . '\';">';
         
         return $html;
     }

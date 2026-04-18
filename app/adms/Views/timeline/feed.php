@@ -736,15 +736,23 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
         return d.innerHTML;
     }
 
+    /** Mesmo critério que {@see \App\adms\Helpers\ImageHelper::encodePathForServeFile}: não usar %2F nas barras. */
+    function encodeServeFilePath(path) {
+        if (!path) return '';
+        return String(path).split('/').filter(function (seg) { return seg.length; }).map(function (seg) {
+            return encodeURIComponent(seg);
+        }).join('/');
+    }
+
     function getUserAvatarPath(u) {
         if (!u || !u.id) return 'users/icon_user.png';
         var img = (u.image || '').trim();
         if (!img || img === 'icon_user.png') return 'users/icon_user.png';
-        return 'users/' + encodeURIComponent(String(u.id)) + '/' + encodeURIComponent(img);
+        return 'users/' + String(u.id) + '/' + img;
     }
 
     function getUserAvatarUrl(u) {
-        return base + 'serve-file?path=' + encodeURIComponent(getUserAvatarPath(u));
+        return base + 'serve-file?path=' + encodeServeFilePath(getUserAvatarPath(u));
     }
 
     function renderUserSuggestionHtml(u) {
@@ -1557,7 +1565,7 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
         timelineViewerIndex = idx;
 
         var p = timelineViewerImages[timelineViewerIndex];
-        els.imgEl.src = base + 'serve-file?path=' + encodeURIComponent(p);
+        els.imgEl.src = base + 'serve-file?path=' + encodeServeFilePath(p);
 
         if (els.countEl) {
             els.countEl.textContent = (timelineViewerIndex + 1) + ' / ' + max;

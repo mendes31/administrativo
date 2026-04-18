@@ -202,7 +202,7 @@ $usersRepoMention = new UsersRepository();
                             </a>
                         <?php elseif (!empty($sharedImgs)): ?>
                             <a class="timeline-shared-media-link mt-2" href="<?php echo htmlspecialchars($urlAdm); ?>timeline?post=<?php echo $sharedId; ?>">
-                                <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode((string)$sharedImgs[0]); ?>"
+                                <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo \App\adms\Helpers\ImageHelper::encodePathForServeFile((string)$sharedImgs[0]); ?>"
                                      class="timeline-shared-media-thumb"
                                      alt="Prévia da publicação original"
                                      loading="lazy"
@@ -222,12 +222,12 @@ $usersRepoMention = new UsersRepository();
             <?php if (!empty($postRow['video_path'])): ?>
                 <div class="mb-2 mx-n3">
                     <video class="timeline-post-media w-100 rounded" controls playsinline preload="metadata"
-                           src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode($postRow['video_path']); ?>"></video>
+                           src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo \App\adms\Helpers\ImageHelper::encodePathForServeFile((string)$postRow['video_path']); ?>"></video>
                 </div>
             <?php elseif (!empty($imgs)): ?>
                 <div class="mb-2 mx-n3">
                     <?php if (count($imgs) === 1): ?>
-                        <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode($imgs[0]); ?>"
+                        <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo \App\adms\Helpers\ImageHelper::encodePathForServeFile((string)$imgs[0]); ?>"
                              class="timeline-post-media timeline-media-clickable"
                              data-images="<?php echo $imgsJson; ?>"
                              data-index="0"
@@ -239,7 +239,7 @@ $usersRepoMention = new UsersRepository();
                         <?php $colCount = count($imgs) === 2 ? 2 : 3; ?>
                         <div class="timeline-media-grid" style="grid-template-columns: repeat(<?php echo (int)$colCount; ?>, minmax(0, 1fr));">
                             <?php foreach ($imgs as $i => $img): ?>
-                                <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo urlencode($img); ?>"
+                                <img src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo \App\adms\Helpers\ImageHelper::encodePathForServeFile((string)$img); ?>"
                                      class="timeline-media-grid-item timeline-media-clickable"
                                      data-images="<?php echo $imgsJson; ?>"
                                      data-index="<?php echo (int)$i; ?>"
