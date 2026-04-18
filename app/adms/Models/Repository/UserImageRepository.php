@@ -70,15 +70,15 @@ class UserImageRepository extends DbConnection
             $finalImageName = $slugImg->slug($data['image']['name'] ?? ('user-' . $data['id'] . '-' . time()));
             $data['image']['name'] = $finalImageName;
 
-            // Processar upload da nova imagem já com o nome slugificado
+            // Remover a imagem antiga ANTES do upload: se o slug do novo ficheiro for igual ao nome já na BD,
+            // upload + unlink "antigo" apagava o ficheiro que acabámos de gravar (substituir foto parecia não funcionar).
+            $this->deleteOldImage($userOld);
+
             error_log('UPLOAD DEBUG - repo UserImageRepository: detectedType=' . ($detectedType ?? 'null') . ' size=' . ($data['image']['size'] ?? 'null') . ' finalName=' . $finalImageName);
             if (!$this->uploadImage($data)) {
                 error_log("UserImageRepository: Falha no upload da imagem");
                 return false;
             }
-
-            // Deletar imagem antiga se existir
-            $this->deleteOldImage($userOld);
 
             // Atualizar banco de dados com o mesmo nome salvo no disco
             if (!$this->updateDatabaseImage($data)) {

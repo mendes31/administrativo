@@ -1354,15 +1354,23 @@ class UsersRepository extends DbConnection
                 $this->data['errors'][] = "Erro: Formato de imagem não suportado! Use JPG, PNG ou GIF.";
                 return false;
             }
-            
+
+            $slugImg = new SlugImg();
+            $nameImgFormatad = $slugImg->slug($data['image']['name']);
+
+            // Apagar ficheiro antigo no disco ANTES do upload (mesmo motivo que UserImageRepository: nome slug igual ao da BD).
+            if ($dadosAntes && !empty($dadosAntes['image']) && $dadosAntes['image'] !== 'icon_user.png') {
+                $oldPath = 'public/adms/uploads/users/' . (int) $data['id'] . '/' . $dadosAntes['image'];
+                if (is_file($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+
             // Processar upload da nova imagem
             error_log("DEBUG updateUserImage - Iniciando upload...");
             if ($this->upload($data, $data['image'])) {
                 error_log("DEBUG updateUserImage - Upload realizado com sucesso");
                 // Atualizar banco com nova imagem
-                $slugImg = new SlugImg();
-                $nameImgFormatad = $slugImg->slug($data['image']['name']);
-                
                 $sql = 'UPDATE adms_users SET image = :image, updated_at = :updated_at WHERE id = :id';
                 $stmt = $this->getConnection()->prepare($sql);
                 $stmt->bindValue(':image', $nameImgFormatad, PDO::PARAM_STR);
@@ -1372,8 +1380,8 @@ class UsersRepository extends DbConnection
                 $result = $stmt->execute();
                 
                 if ($result) {
-                    // SÓ deletar a imagem antiga DEPOIS de salvar no banco com sucesso
-                    $this->deleteImage($data);
+                    // Não usar deleteImage($data) aqui: após o UPDATE a BD já tem o nome novo e deleteImage apagaria o ficheiro recém-enviado.
+                    $this->cleanUserImageDirectory((int) $data['id']);
                     
                     // Log de alteração
                     $dadosDepois = [
