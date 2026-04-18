@@ -20,7 +20,7 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
     }
 }
 
-// Extrair o caminho da URL_ADM
+// Extrair o caminho da URL_ADM (deve bater com o URL path real do Apache, não só com a pasta no disco)
     $urlAdm = getenv('URL_ADM');
     if (!$urlAdm && isset($_ENV['URL_ADM'])) {
         $urlAdm = $_ENV['URL_ADM'];
@@ -29,12 +29,27 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
         $urlAdm = 'http://localhost/administrativo/';
     }
 
-    $path = parse_url($urlAdm, PHP_URL_PATH) ?: '/administrativo/';
-    $path = rtrim($path, '/') . '/';
+    $urlPath = parse_url($urlAdm, PHP_URL_PATH);
+    if (!is_string($urlPath) || $urlPath === '' || $urlPath === '/') {
+        // Vhost com document root = pasta do projeto (ex.: ~/www/administrativo) → URLs na raiz: /serve-file
+        $rewriteBase = '/';
+        $uriDirPrefix = '';
+    } else {
+        // App num subcaminho (ex.: /administrativo/)
+        $rewriteBase = rtrim($urlPath, '/') . '/';
+        $uriDirPrefix = rtrim($urlPath, '/');
+    }
+
+    $publicUriRx = ($uriDirPrefix === '')
+        ? '^/public/'
+        : '^' . preg_quote($uriDirPrefix, '#') . '/public/';
+    $scriptsUriRx = ($uriDirPrefix === '')
+        ? '^/scripts/.*\\.php$'
+        : '^' . preg_quote($uriDirPrefix, '#') . '/scripts/.*\\.php$';
 
 echo "🔧 Gerando .htaccess dinamicamente...\n";
 echo "📁 URL configurada: $urlAdm\n";
-echo "📁 Caminho extraído: $path\n\n";
+echo "📁 RewriteBase: $rewriteBase\n\n";
 
 // Conteúdo do .htaccess
 $htaccessContent = <<<HTACCESS
@@ -44,27 +59,33 @@ $htaccessContent = <<<HTACCESS
 # 
 # Ativa o módulo Rewrite, que faz a reescrita de URL.
 RewriteEngine On
-RewriteBase {$path}
+RewriteBase {$rewriteBase}
 
-# Não reescrever se for arquivo ou diretório físico
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-
-# Redireciona tudo para index.php, preservando subdiretórios e pontos
-RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
-
-# Quando houver o erro 403 redirecionar o usuário (caminho relativo)
-ErrorDocument 403 {$path}error403   
-
-# Bloquear a opção listar os arquivos do diretório
-Options -Indexes
-
-# Bloquear acesso direto aos diretórios pela URL
+# Bloquear pastas sensíveis antes do catch-all
 RewriteRule ^app/ - [F]
 RewriteRule ^database/ - [F]
 RewriteRule ^logs/ - [F]
 RewriteRule ^routes/ - [F]
 RewriteRule ^vendor/ - [F]
+
+# Não reescrever se for arquivo ou diretório físico
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Assets estáticos em public/ (não passar pelo index.php)
+RewriteCond %{REQUEST_URI} !{$publicUriRx}
+
+# Scripts PHP de diagnóstico (opcional)
+RewriteCond %{REQUEST_URI} !{$scriptsUriRx}
+
+# Redireciona o resto para index.php, preservando query string (QSA) — necessário para serve-file?path=...
+RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
+
+# Quando houver o erro 403 redirecionar o usuário (caminho relativo ao host)
+ErrorDocument 403 {$rewriteBase}error403
+
+# Bloquear a opção listar os arquivos do diretório
+Options -Indexes
 
 # Bloquear acesso direto aos arquivos pela URL
 <FilesMatch "^\.env$">
@@ -100,10 +121,11 @@ RewriteRule ^vendor/ - [F]
 </FilesMatch>
 HTACCESS;
 
-// Salvar o arquivo .htaccess
-if (file_put_contents('.htaccess', $htaccessContent)) {
+// Salvar o arquivo .htaccess (sempre na raiz do projeto)
+$targetHtaccess = __DIR__ . '/../.htaccess';
+if (file_put_contents($targetHtaccess, $htaccessContent)) {
     echo "✅ .htaccess gerado com sucesso!\n";
-    echo "📁 Caminho configurado: $path\n";
+    echo "📁 RewriteBase configurado: $rewriteBase\n";
     echo "🚀 Agora teste acessando: $urlAdm\n\n";
     
     echo "💡 Para mudar a URL no futuro:\n";

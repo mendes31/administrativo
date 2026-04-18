@@ -37,11 +37,14 @@ class FileServer
             $path = 'users/icon_user.png';
         }
 
-        // Obter o caminho base correto (subindo 4 níveis a partir do diretório atual)
-        $base = realpath(__DIR__ . '/../../../../public/adms/uploads');
-        
+        // Raiz do projeto: index.php define APP_ROOT; evita falhar se __DIR__ divergir (symlink, deploy).
+        $uploadsDir = (defined('APP_ROOT') && APP_ROOT !== '')
+            ? APP_ROOT . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'adms' . DIRECTORY_SEPARATOR . 'uploads'
+            : dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'adms' . DIRECTORY_SEPARATOR . 'uploads';
+        $base = realpath($uploadsDir);
+
         if (!$base) {
-            error_log("Base path não encontrado: " . __DIR__ . '/../../../../public/adms/uploads');
+            error_log('Base path não encontrado: ' . $uploadsDir);
             $this->sendError('Erro de configuração do servidor', 500);
             return;
         }
