@@ -107,17 +107,23 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                         <?php
                         // Monta caminho completo somente se houver imagem personalizada
                         $userImagePath = null;
-                        if (!empty($image) && $image !== 'icon_user.png') {
+                        if (ImageHelper::userImageExists((int)($id ?? 0), (string)($image ?? ''))) {
                             $userImagePath = 'users/' . $id . '/' . $image;
                         }
 
-                        echo ImageHelper::displayImage($userImagePath, [
-                            'alt' => 'Imagem do usuário',
-                            'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;',
-                        ], 'icon_user.png', 'users');
+                        if ($userImagePath !== null) {
+                            echo ImageHelper::displayImage($userImagePath, [
+                                'alt' => 'Imagem do usuário',
+                                'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;',
+                            ], 'icon_user.png', 'users');
+                        } else {
+                            echo ImageHelper::renderInitialsAvatar((string)($name ?? 'Usuário'), 120, [
+                                'style' => 'border-radius: 8px;',
+                            ]);
+                        }
                         ?>
                         
-                        <?php if (!empty($image) && $image !== 'icon_user.png'): ?>
+                        <?php if (ImageHelper::userImageExists((int)($id ?? 0), (string)($image ?? ''))): ?>
                             <!-- Botão para abrir o modal de confirmação (desktop) -->
                             <button type="button" class="btn btn-outline-danger btn-sm d-none d-md-inline-block" data-bs-toggle="modal" data-bs-target="#modalDeleteImage<?php echo $id; ?>-desktop" style="margin-left: 10px;">
                                 Remover imagem

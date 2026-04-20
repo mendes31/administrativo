@@ -201,14 +201,20 @@ if (!empty($_SESSION['user_id'])) {
                     }
                 }
                 $navbarAvatarPath = null;
-                if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png') {
+                if (\App\adms\Helpers\ImageHelper::userImageExists((int)($userInfo['id'] ?? 0), (string)($userInfo['image'] ?? ''))) {
                     $navbarAvatarPath = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
                 }
-                echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPath, [
-                    'alt' => 'Foto do usuário',
-                    'class' => 'rounded-circle me-2',
-                    'style' => 'width: 32px; height: 32px; object-fit: cover;',
-                ], 'icon_user.png', 'users');
+                if ($navbarAvatarPath !== null) {
+                    echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPath, [
+                        'alt' => 'Foto do usuário',
+                        'class' => 'rounded-circle me-2',
+                        'style' => 'width: 32px; height: 32px; object-fit: cover;',
+                    ], 'icon_user.png', 'users');
+                } else {
+                    echo \App\adms\Helpers\ImageHelper::renderInitialsAvatar((string)($userInfo['name'] ?? 'Usuário'), 32, [
+                        'class' => 'me-2',
+                    ]);
+                }
                 ?>
                 
                 <div class="d-none d-md-block text-start me-2">
@@ -225,14 +231,20 @@ if (!empty($_SESSION['user_id'])) {
                     <div class="d-flex align-items-center">
                         <?php
                         $navbarAvatarPathLg = null;
-                        if (!empty($userInfo['image']) && $userInfo['image'] !== 'icon_user.png') {
+                        if (\App\adms\Helpers\ImageHelper::userImageExists((int)($userInfo['id'] ?? 0), (string)($userInfo['image'] ?? ''))) {
                             $navbarAvatarPathLg = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
                         }
-                        echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPathLg, [
-                            'alt' => 'Foto do usuário',
-                            'class' => 'rounded-circle me-2',
-                            'style' => 'width: 40px; height: 40px; object-fit: cover;',
-                        ], 'icon_user.png', 'users');
+                        if ($navbarAvatarPathLg !== null) {
+                            echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPathLg, [
+                                'alt' => 'Foto do usuário',
+                                'class' => 'rounded-circle me-2',
+                                'style' => 'width: 40px; height: 40px; object-fit: cover;',
+                            ], 'icon_user.png', 'users');
+                        } else {
+                            echo \App\adms\Helpers\ImageHelper::renderInitialsAvatar((string)($userInfo['name'] ?? 'Usuário'), 40, [
+                                'class' => 'me-2',
+                            ]);
+                        }
                         ?>
                         
                         <div>

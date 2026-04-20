@@ -32,18 +32,25 @@ use App\adms\Helpers\PositionDisplayHelper;
                 <div class="card-body text-center">
                     <?php
                     $profileImagePath = null;
-                    if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png') {
+                    if (ImageHelper::userImageExists((int)($_SESSION['user_id'] ?? 0), (string)($this->data['form']['image'] ?? ''))) {
                         $profileImagePath = 'users/' . ($_SESSION['user_id'] ?? 0) . '/' . $this->data['form']['image'];
                     }
 
-                    echo '<button type="button" class="btn p-0 border-0 bg-transparent" style="cursor: zoom-in;" onclick="openProfilePhotoModal();">';
-                    echo ImageHelper::displayImage($profileImagePath, [
-                        'alt' => 'Foto do usuário',
-                        'id' => 'profileAvatarImg',
-                        'class' => 'img-fluid rounded-circle mb-3',
-                        'style' => 'width: 150px; height: 150px; object-fit: cover;',
-                    ], 'icon_user.png', 'users');
-                    echo '</button>';
+                    if ($profileImagePath !== null) {
+                        echo '<button type="button" class="btn p-0 border-0 bg-transparent" style="cursor: zoom-in;" onclick="openProfilePhotoModal();">';
+                        echo ImageHelper::displayImage($profileImagePath, [
+                            'alt' => 'Foto do usuário',
+                            'id' => 'profileAvatarImg',
+                            'class' => 'img-fluid rounded-circle mb-3',
+                            'style' => 'width: 150px; height: 150px; object-fit: cover;',
+                        ], 'icon_user.png', 'users');
+                        echo '</button>';
+                    } else {
+                        echo ImageHelper::renderInitialsAvatar((string)($this->data['form']['name'] ?? 'Usuário'), 150, [
+                            'class' => 'mb-3',
+                            'id' => 'profileAvatarImg',
+                        ]);
+                    }
                     ?>
                     
                     <h5 class="card-title"><?php echo htmlspecialchars($this->data['form']['name'] ?? ''); ?></h5>
@@ -81,7 +88,7 @@ use App\adms\Helpers\PositionDisplayHelper;
                                 <i class="fas fa-save me-1"></i>
                                 Salvar Foto
                             </button>
-                            <?php if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png'): ?>
+                            <?php if (ImageHelper::userImageExists((int)($_SESSION['user_id'] ?? 0), (string)($this->data['form']['image'] ?? ''))): ?>
                                 <button type="button"
                                         class="btn btn-outline-danger btn-sm"
                                         data-bs-toggle="modal"

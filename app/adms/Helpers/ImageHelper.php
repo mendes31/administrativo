@@ -58,10 +58,19 @@ class ImageHelper
         $classAttr = trim('rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-secondary ' . (string) $attributes['class']);
         $styleAttr = trim('width:' . $sizePx . 'px;height:' . $sizePx . 'px;background:#ececec;font-size:' . $fontSize . 'px;line-height:1;' . (string) $attributes['style']);
 
+        $extraAttrs = '';
+        foreach ($attributes as $key => $value) {
+            if (in_array($key, ['class', 'style', 'aria-label', 'title'], true)) {
+                continue;
+            }
+            $extraAttrs .= ' ' . htmlspecialchars((string) $key, ENT_QUOTES, 'UTF-8') . '="' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '"';
+        }
+
         return '<div class="' . htmlspecialchars($classAttr, ENT_QUOTES, 'UTF-8') . '"'
             . ' style="' . htmlspecialchars($styleAttr, ENT_QUOTES, 'UTF-8') . '"'
             . ' aria-label="' . htmlspecialchars((string) $attributes['aria-label'], ENT_QUOTES, 'UTF-8') . '"'
-            . ' title="' . htmlspecialchars((string) $attributes['title'], ENT_QUOTES, 'UTF-8') . '">'
+            . ' title="' . htmlspecialchars((string) $attributes['title'], ENT_QUOTES, 'UTF-8') . '"'
+            . $extraAttrs . '>'
             . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
             . '</div>';
     }

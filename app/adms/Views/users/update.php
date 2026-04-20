@@ -176,19 +176,23 @@ use App\adms\Helpers\ImageHelper;
                     <label for="image" class="form-label">Imagem do Usuário</label>
                     <input type="file" name="image" class="form-control" id="image" accept="image/*">
                     <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamanho máximo: 2MB.</small>
-                    <?php if (!empty($this->data['form']['image']) && $this->data['form']['image'] !== 'icon_user.png'): ?>
-                        <div class="mt-2">
-                            <?php
-                            $editAvatarPath = 'users/' . ($this->data['form']['id'] ?? 0) . '/' . $this->data['form']['image'];
+                    <div class="mt-2">
+                        <?php
+                        $editUserId = (int)($this->data['form']['id'] ?? 0);
+                        $editImageName = (string)($this->data['form']['image'] ?? '');
+                        if (ImageHelper::userImageExists($editUserId, $editImageName)) {
+                            $editAvatarPath = 'users/' . $editUserId . '/' . $editImageName;
                             echo ImageHelper::displayImage($editAvatarPath, [
                                 'alt' => 'Imagem atual',
                                 'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;',
                             ], 'icon_user.png', 'users');
-                            ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="mt-2 text-muted">Sem imagem</div>
-                    <?php endif; ?>
+                        } else {
+                            echo ImageHelper::renderInitialsAvatar((string)($this->data['form']['name'] ?? 'Usuário'), 120, [
+                                'style' => 'border-radius: 8px;',
+                            ]);
+                        }
+                        ?>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
