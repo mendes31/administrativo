@@ -293,8 +293,8 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                     ?>
                         <div class="card mb-3 shadow-sm <?= $isDesligado ? 'border-danger' : '' ?>">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
+                                <div class="d-flex justify-content-between align-items-start users-list-mobile-header">
+                                    <div class="users-list-mobile-info">
                                         <h5 class="card-title mb-1">
                                             <span class="d-inline-flex align-items-center gap-2">
                                                 <?php if ($canViewUser): ?>
@@ -323,7 +323,7 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                             <div class="mb-1"><b>Data de Desligamento:</b> <span class="text-danger"><?= date('d/m/Y', strtotime($dataDesligamento)) ?></span></div>
                                         <?php endif; ?>
                                     </div>
-                                    <button class="btn btn-outline-primary btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#cardUserDetails<?= $i ?>" aria-expanded="false" aria-controls="cardUserDetails<?= $i ?>">Ver mais</button>
+                                    <button class="btn btn-outline-primary btn-sm ms-2 users-list-mobile-more-btn" type="button" data-bs-toggle="collapse" data-bs-target="#cardUserDetails<?= $i ?>" aria-expanded="false" aria-controls="cardUserDetails<?= $i ?>">Ver mais</button>
                                 </div>
                                 <div class="collapse mt-2" id="cardUserDetails<?= $i ?>">
                                     <div><b>ID:</b> <?= $id ?></div>
@@ -498,6 +498,20 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
     display: inline-flex;
     border-radius: 999px;
     text-decoration: none;
+}
+
+.users-list-mobile-header {
+    gap: 0.5rem;
+}
+
+.users-list-mobile-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.users-list-mobile-more-btn {
+    flex: 0 0 auto;
+    min-width: 72px;
 }
 
 /* Otimizar botões de ações */
