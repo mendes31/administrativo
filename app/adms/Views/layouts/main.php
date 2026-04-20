@@ -235,11 +235,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     }
     ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
-    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
     <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260420-1">
@@ -380,8 +375,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <?php if ($loadInputMasks): ?>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js"></script>
-    <!-- Ajax para funcionar Mascaras JS -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js"></script>
     <?php endif; ?>
     
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes (opcional) -->
@@ -550,17 +543,10 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         return window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.js', 'adms-datatables');
     };
     window.ensureMasksLoaded = function () {
-        var hasMaskPlugin = window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.mask === 'function';
-        if (hasMaskPlugin) {
-            return Promise.resolve();
-        }
-        return window.admsLoadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js', 'adms-jquery-mask')
-            .then(function () {
-                return Promise.all([
-                    window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js', 'adms-tel-mask'),
-                    window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js', 'adms-masks')
-                ]);
-            });
+        return Promise.all([
+            window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js', 'adms-tel-mask'),
+            window.admsLoadScriptOnce('<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js', 'adms-masks')
+        ]);
     };
     </script>
 

@@ -94,7 +94,7 @@ $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $poli
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/reset.css?v=<?php echo time(); ?>">
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/bootstrap.min.css">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/all.min.css">
@@ -163,8 +163,7 @@ $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $poli
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js"></script>
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js"></script>
     
-    <!-- Ajax para funcionar Mascaras JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.11/jquery.mask.min.js"></script>
+    <!-- Plugin de máscara externo removido para evitar bloqueios de Tracking Prevention -->
     
     <!-- Sistema Responsivo para Diferentes Resoluções (opcional) -->
     <?php if (($_ENV['USE_SCREEN_RESOLUTION'] ?? 'Não') === 'Sim'): ?>
