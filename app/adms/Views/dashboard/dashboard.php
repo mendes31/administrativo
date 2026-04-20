@@ -4,6 +4,36 @@
         <?php $dashCalCssBase = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'); ?>
         <link rel="stylesheet" href="<?php echo htmlspecialchars($dashCalCssBase, ENT_QUOTES, 'UTF-8'); ?>/public/adms/css/rooms-module.css?v=20260418">
     <?php endif; ?>
+    <?php
+    $renderAvatarFallback = static function (string $name): string {
+        $safeName = trim($name);
+        $initials = '';
+        if ($safeName !== '') {
+            $parts = preg_split('/\s+/u', $safeName) ?: [];
+            foreach ($parts as $part) {
+                if ($part === '') {
+                    continue;
+                }
+                $initials .= mb_substr($part, 0, 1, 'UTF-8');
+                if (mb_strlen($initials, 'UTF-8') >= 2) {
+                    break;
+                }
+            }
+        }
+        if ($initials === '') {
+            $initials = 'U';
+        }
+
+        $escapedInitials = htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+        $escapedName = htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8');
+
+        return '<div class="rounded-circle mb-2 birthday-avatar d-inline-flex align-items-center justify-content-center fw-bold text-secondary" title="'
+            . $escapedName
+            . '" aria-label="Avatar de ' . $escapedName . '" style="width: 86px; height: 86px; background:#ececec; font-size: 1.4rem; line-height: 1;">'
+            . $escapedInitials
+            . '</div>';
+    };
+    ?>
     <div class="row justify-content-center">
         <div class="col-12 col-lg-11">
             <div class="bg-success bg-gradient rounded-4 p-4 mb-4" style="margin-top: 2rem;">
@@ -225,7 +255,7 @@
                                                 ], 'icon_user.png', 'users');
                                                 ?>
                                             <?php else: ?>
-                                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2 birthday-avatar" style="width: 86px; height: 86px;">
+                                                <?php echo $renderAvatarFallback((string)($aniv['name'] ?? '')); ?>
                                             <?php endif; ?>
                                         </div>
                                         <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
@@ -297,7 +327,7 @@
                                             ], 'icon_user.png', 'users');
                                             ?>
                                         <?php else: ?>
-                                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2 birthday-avatar" style="width: 86px; height: 86px;">
+                                            <?php echo $renderAvatarFallback((string)($aniv['name'] ?? '')); ?>
                                         <?php endif; ?>
                                     </div>
                                     <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
@@ -429,7 +459,7 @@
                                             ], 'icon_user.png', 'users');
                                             ?>
                                         <?php else: ?>
-                                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($aniv['name']); ?>&background=ececec&color=6c757d&size=100" class="rounded-circle mb-2 birthday-avatar" style="width: 86px; height: 86px;">
+                                            <?php echo $renderAvatarFallback((string)($aniv['name'] ?? '')); ?>
                                         <?php endif; ?>
                                     </div>
                                     <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>

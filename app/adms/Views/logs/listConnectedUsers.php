@@ -23,13 +23,29 @@ $renderConnectedUserAvatar = function (array $row, int $sizePx): string {
             'users'
         );
     }
-    $uaSize = max(64, $sizePx * 2);
-    $url = 'https://ui-avatars.com/api/?name=' . rawurlencode($name) . '&background=ececec&color=6c757d&size=' . $uaSize;
+    $safeName = trim($name);
+    $initials = '';
+    if ($safeName !== '' && $safeName !== '—') {
+        $parts = preg_split('/\s+/u', $safeName) ?: [];
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            $initials .= mb_substr($part, 0, 1, 'UTF-8');
+            if (mb_strlen($initials, 'UTF-8') >= 2) {
+                break;
+            }
+        }
+    }
+    if ($initials === '') {
+        $initials = 'U';
+    }
 
-    return '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
-        . '" class="rounded-circle flex-shrink-0 connected-user-thumb" style="'
-        . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '" width="' . (int) $sizePx . '" height="' . (int) $sizePx
-        . '" alt="">';
+    return '<div class="rounded-circle flex-shrink-0 connected-user-thumb d-inline-flex align-items-center justify-content-center fw-bold text-secondary" '
+        . 'style="width:' . (int) $sizePx . 'px;height:' . (int) $sizePx . 'px;background:#ececec;font-size:' . max(12, (int) floor($sizePx * 0.38)) . 'px;line-height:1;" '
+        . 'aria-label="Avatar de ' . htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
+        . '</div>';
 };
 ?>
 <style>
