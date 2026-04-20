@@ -73,123 +73,137 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
             // Inclui o arquivo que exibe mensagens de sucesso e erro
             include './app/adms/Views/partials/alerts.php';
             ?>
-            <form method="get" class="row g-2 mb-2 align-items-end users-list-filters">
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="nome" class="form-label users-list-filters-label">Nome</label>
-                    <input type="text" name="nome" id="nome" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['nome'] ?? '') ?>">
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="usuario" class="form-label users-list-filters-label">Usuário</label>
-                    <input type="text" name="usuario" id="usuario" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['usuario'] ?? '') ?>">
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="departamento_id" class="form-label users-list-filters-label">Departamento</label>
-                    <select name="departamento_id" id="departamento_id" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <?php foreach ($this->data['departments'] ?? [] as $dept): ?>
-                            <option value="<?= $dept['id'] ?>" <?= ($this->data['filtros']['departamento_id'] ?? '') == $dept['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($dept['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="cargo_id" class="form-label users-list-filters-label">Cargo</label>
-                    <select name="cargo_id" id="cargo_id" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <?php foreach ($this->data['positions'] ?? [] as $pos): ?>
-                            <option value="<?= $pos['id'] ?>" <?= ($this->data['filtros']['cargo_id'] ?? '') == $pos['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($pos['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="turno_id" class="form-label users-list-filters-label">Turno</label>
-                    <select name="turno_id" id="turno_id" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <option value="0" <?= ($this->data['filtros']['turno_id'] ?? '') !== '' && (string) ($this->data['filtros']['turno_id'] ?? '') === '0' ? 'selected' : '' ?>>Sem turno</option>
-                        <?php foreach ($this->data['work_shifts'] ?? [] as $ws): ?>
-                            <option value="<?= (int) $ws['id'] ?>" <?= ($this->data['filtros']['turno_id'] ?? '') == $ws['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($ws['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="status" class="form-label users-list-filters-label">Status</label>
-                    <select name="status" id="status" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <option value="Ativo" <?= ($this->data['filtros']['status'] ?? '') == 'Ativo' ? 'selected' : '' ?>>Ativo</option>
-                        <option value="Inativo" <?= ($this->data['filtros']['status'] ?? '') == 'Inativo' ? 'selected' : '' ?>>Inativo</option>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="bloqueado" class="form-label users-list-filters-label">Bloqueado</label>
-                    <select name="bloqueado" id="bloqueado" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <option value="1" <?= ($this->data['filtros']['bloqueado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
-                        <option value="0" <?= ($this->data['filtros']['bloqueado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="desligado" class="form-label users-list-filters-label">Desligado</label>
-                    <select name="desligado" id="desligado" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <option value="1" <?= ($this->data['filtros']['desligado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
-                        <option value="0" <?= ($this->data['filtros']['desligado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="sexo" class="form-label users-list-filters-label">Sexo</label>
-                    <select name="sexo" id="sexo" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <option value="M" <?= ($this->data['filtros']['sexo'] ?? '') === 'M' ? 'selected' : '' ?>>Masculino</option>
-                        <option value="F" <?= ($this->data['filtros']['sexo'] ?? '') === 'F' ? 'selected' : '' ?>>Feminino</option>
-                        <option value="O" <?= ($this->data['filtros']['sexo'] ?? '') === 'O' ? 'selected' : '' ?>>Outros</option>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="filhos" class="form-label users-list-filters-label">Filho(s)</label>
-                    <select name="filhos" id="filhos" class="form-select users-list-filters-control">
-                        <option value="">Todos</option>
-                        <option value="S" <?= ($this->data['filtros']['filhos'] ?? '') === 'S' ? 'selected' : '' ?>>Sim</option>
-                        <option value="N" <?= ($this->data['filtros']['filhos'] ?? '') === 'N' ? 'selected' : '' ?>>Não</option>
-                    </select>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3 col-xl-2">
-                    <label for="periodo_tipo" class="form-label users-list-filters-label">Selecionar</label>
-                    <select name="periodo_tipo" id="periodo_tipo" class="form-select users-list-filters-control">
-                        <option value="">-- Selecionar --</option>
-                        <option value="admissao" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'admissao' ? 'selected' : '' ?>>Admissão</option>
-                        <option value="desligamento" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'desligamento' ? 'selected' : '' ?>>Desligamento</option>
-                        <option value="atualizacao_cargos" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'atualizacao_cargos' ? 'selected' : '' ?>>Atualização de Cargos</option>
-                    </select>
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="data_de" class="form-label users-list-filters-label">Data de</label>
-                    <input type="date" name="data_de" id="data_de" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['data_de'] ?? '') ?>">
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="data_ate" class="form-label users-list-filters-label">Data até</label>
-                    <input type="date" name="data_ate" id="data_ate" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['data_ate'] ?? '') ?>">
-                </div>
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
-                    <label for="per_page" class="form-label users-list-filters-label">Mostrar</label>
-                    <div class="d-flex align-items-center">
-                        <select name="per_page" id="per_page" class="form-select users-list-filters-control me-2" onchange="this.form.submit()">
-                            <?php foreach ([10, 20, 50, 100] as $opt): ?>
-                                <option value="<?= $opt ?>" <?= ($this->data['per_page'] ?? 10) == $opt ? 'selected' : '' ?>><?= $opt ?></option>
+            <div class="d-md-none mb-2">
+                <button
+                    class="btn btn-outline-primary btn-sm"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#usersListFiltersCollapse"
+                    aria-expanded="false"
+                    aria-controls="usersListFiltersCollapse"
+                >
+                    <i class="fa fa-filter me-1"></i> Abrir filtros
+                </button>
+            </div>
+            <div class="collapse d-md-block" id="usersListFiltersCollapse">
+                <form method="get" class="row g-2 mb-2 align-items-end users-list-filters">
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="nome" class="form-label users-list-filters-label">Nome</label>
+                        <input type="text" name="nome" id="nome" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['nome'] ?? '') ?>">
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="usuario" class="form-label users-list-filters-label">Usuário</label>
+                        <input type="text" name="usuario" id="usuario" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['usuario'] ?? '') ?>">
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="departamento_id" class="form-label users-list-filters-label">Departamento</label>
+                        <select name="departamento_id" id="departamento_id" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <?php foreach ($this->data['departments'] ?? [] as $dept): ?>
+                                <option value="<?= $dept['id'] ?>" <?= ($this->data['filtros']['departamento_id'] ?? '') == $dept['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($dept['name']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
-                        <span class="form-label mb-0 users-list-filters-hint">registros</span>
                     </div>
-                </div>
-                <div class="col-12 col-sm-auto d-flex gap-2 flex-wrap align-items-end users-list-filters-actions">
-                    <button type="submit" class="btn btn-primary btn-sm users-list-filters-btn"><i class="fa fa-search"></i> Filtrar</button>
-                    <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm users-list-filters-btn"><i class="fa fa-times"></i> Limpar</a>
-                </div>
-            </form>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="cargo_id" class="form-label users-list-filters-label">Cargo</label>
+                        <select name="cargo_id" id="cargo_id" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <?php foreach ($this->data['positions'] ?? [] as $pos): ?>
+                                <option value="<?= $pos['id'] ?>" <?= ($this->data['filtros']['cargo_id'] ?? '') == $pos['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($pos['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="turno_id" class="form-label users-list-filters-label">Turno</label>
+                        <select name="turno_id" id="turno_id" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <option value="0" <?= ($this->data['filtros']['turno_id'] ?? '') !== '' && (string) ($this->data['filtros']['turno_id'] ?? '') === '0' ? 'selected' : '' ?>>Sem turno</option>
+                            <?php foreach ($this->data['work_shifts'] ?? [] as $ws): ?>
+                                <option value="<?= (int) $ws['id'] ?>" <?= ($this->data['filtros']['turno_id'] ?? '') == $ws['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($ws['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="status" class="form-label users-list-filters-label">Status</label>
+                        <select name="status" id="status" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <option value="Ativo" <?= ($this->data['filtros']['status'] ?? '') == 'Ativo' ? 'selected' : '' ?>>Ativo</option>
+                            <option value="Inativo" <?= ($this->data['filtros']['status'] ?? '') == 'Inativo' ? 'selected' : '' ?>>Inativo</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="bloqueado" class="form-label users-list-filters-label">Bloqueado</label>
+                        <select name="bloqueado" id="bloqueado" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <option value="1" <?= ($this->data['filtros']['bloqueado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
+                            <option value="0" <?= ($this->data['filtros']['bloqueado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="desligado" class="form-label users-list-filters-label">Desligado</label>
+                        <select name="desligado" id="desligado" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <option value="1" <?= ($this->data['filtros']['desligado'] ?? '') == '1' ? 'selected' : '' ?>>Sim</option>
+                            <option value="0" <?= ($this->data['filtros']['desligado'] ?? '') == '0' ? 'selected' : '' ?>>Não</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="sexo" class="form-label users-list-filters-label">Sexo</label>
+                        <select name="sexo" id="sexo" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <option value="M" <?= ($this->data['filtros']['sexo'] ?? '') === 'M' ? 'selected' : '' ?>>Masculino</option>
+                            <option value="F" <?= ($this->data['filtros']['sexo'] ?? '') === 'F' ? 'selected' : '' ?>>Feminino</option>
+                            <option value="O" <?= ($this->data['filtros']['sexo'] ?? '') === 'O' ? 'selected' : '' ?>>Outros</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="filhos" class="form-label users-list-filters-label">Filho(s)</label>
+                        <select name="filhos" id="filhos" class="form-select users-list-filters-control">
+                            <option value="">Todos</option>
+                            <option value="S" <?= ($this->data['filtros']['filhos'] ?? '') === 'S' ? 'selected' : '' ?>>Sim</option>
+                            <option value="N" <?= ($this->data['filtros']['filhos'] ?? '') === 'N' ? 'selected' : '' ?>>Não</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                        <label for="periodo_tipo" class="form-label users-list-filters-label">Selecionar</label>
+                        <select name="periodo_tipo" id="periodo_tipo" class="form-select users-list-filters-control">
+                            <option value="">-- Selecionar --</option>
+                            <option value="admissao" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'admissao' ? 'selected' : '' ?>>Admissão</option>
+                            <option value="desligamento" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'desligamento' ? 'selected' : '' ?>>Desligamento</option>
+                            <option value="atualizacao_cargos" <?= ($this->data['filtros']['periodo_tipo'] ?? '') == 'atualizacao_cargos' ? 'selected' : '' ?>>Atualização de Cargos</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="data_de" class="form-label users-list-filters-label">Data de</label>
+                        <input type="date" name="data_de" id="data_de" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['data_de'] ?? '') ?>">
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="data_ate" class="form-label users-list-filters-label">Data até</label>
+                        <input type="date" name="data_ate" id="data_ate" class="form-control users-list-filters-control" value="<?= htmlspecialchars($this->data['filtros']['data_ate'] ?? '') ?>">
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                        <label for="per_page" class="form-label users-list-filters-label">Mostrar</label>
+                        <div class="d-flex align-items-center">
+                            <select name="per_page" id="per_page" class="form-select users-list-filters-control me-2" onchange="this.form.submit()">
+                                <?php foreach ([10, 20, 50, 100] as $opt): ?>
+                                    <option value="<?= $opt ?>" <?= ($this->data['per_page'] ?? 10) == $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="form-label mb-0 users-list-filters-hint">registros</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-auto d-flex gap-2 flex-wrap align-items-end users-list-filters-actions">
+                        <button type="submit" class="btn btn-primary btn-sm users-list-filters-btn"><i class="fa fa-search"></i> Filtrar</button>
+                        <a href="?limpar_filtros=1" class="btn btn-secondary btn-sm users-list-filters-btn"><i class="fa fa-times"></i> Limpar</a>
+                    </div>
+                </form>
+            </div>
             <?php
             // Verifica se há usuários no array
             if ($this->data['users'] ?? false) {
@@ -318,7 +332,8 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                             <?php endif; ?>
                                         </h5>
                                         <div class="mb-1"><b>Status:</b> <?= $status ?></div>
-                                        <div class="mb-1"><b>E-mail:</b> <?= $email ?></div>
+                                        <div class="mb-1"><b>Bloqueado:</b> <?= $bloqueado ?></div>
+                                        <div class="mb-1"><b>Departamento:</b> <?= htmlspecialchars((string)($name_dep ?? '—')) ?></div>
                                         <?php if ($isDesligado): ?>
                                             <div class="mb-1"><b>Data de Desligamento:</b> <span class="text-danger"><?= date('d/m/Y', strtotime($dataDesligamento)) ?></span></div>
                                         <?php endif; ?>
@@ -328,9 +343,9 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                 <div class="collapse mt-2" id="cardUserDetails<?= $i ?>">
                                     <div><b>ID:</b> <?= $id ?></div>
                                     <div><b>Usuário:</b> <?= $username ?></div>
+                                    <div><b>E-mail:</b> <?= $email ?></div>
                                     <div><b>Departamento:</b> <?= $name_dep ?></div>
                                     <div class="text-break"><b>Cargo:</b> <?= htmlspecialchars((string)($name_pos ?? '')) ?></div>
-                                    <div><b>Bloqueado:</b> <?= $bloqueado ?></div>
                                     <div class="mt-2">
                                         <?php
                                         if (in_array('ViewUser', $this->data['buttonPermission'])) {
