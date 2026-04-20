@@ -349,7 +349,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
 
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min.js"></script>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/swal-lite.js?v=20260420-1"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/script_admin.js"></script>
     

@@ -156,7 +156,7 @@ $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $poli
     </div>
 
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/swal-lite.js?v=20260420-1"></script>
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/script_admin.js"></script>
     <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/DataTables/datatables.min.js"></script>
