@@ -209,45 +209,6 @@ jobs:
             lib/
             lib/**
 
-      # Pastas de logs (PHP em Controllers/Views): só via lftp numa ligação.
-      # Dois FTP-Deploy-Action seguidos ao principal costumavam dar ETIMEDOUT no socket
-      # de controlo (nova ligação ao mesmo host) e marcavam o job como falha mesmo com deploy OK.
-
-      # Upload garantido via lftp das pastas de logs (ignora *.log)
-      - name: Forçar upload via lftp (logs)
-        if: always()
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-        run: |
-          if ! command -v lftp &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y lftp
-          fi
-
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set cmd:fail-exit no
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set dns:order "inet inet6"
-          set net:timeout 120
-          set net:max-retries 20
-          set net:reconnect-interval-base 2
-          set net:reconnect-interval-max 10
-
-          mkdir -p app/adms/Controllers/logs
-          mkdir -p app/adms/Views/logs
-
-          mirror -R --only-newer --continue --no-perms --verbose \
-            --exclude-glob *.log \
-            ./app/adms/Controllers/logs app/adms/Controllers/logs
-
-          mirror -R --only-newer --continue --no-perms --verbose \
-            --exclude-glob *.log \
-            ./app/adms/Views/logs app/adms/Views/logs
-          quit
-          EOF
-
       # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
       # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
       - name: Install lftp (Fallback Inteligente)
