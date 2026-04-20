@@ -2,6 +2,32 @@
 $urlAdm = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $members = isset($this->data['members']) && is_array($this->data['members']) ? $this->data['members'] : [];
 $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_query'] : '';
+$renderInitialsAvatar = static function (string $name, int $sizePx = 64): string {
+    $safeName = trim($name);
+    $initials = '';
+    if ($safeName !== '') {
+        $parts = preg_split('/\s+/u', $safeName) ?: [];
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            $initials .= mb_substr($part, 0, 1, 'UTF-8');
+            if (mb_strlen($initials, 'UTF-8') >= 2) {
+                break;
+            }
+        }
+    }
+    if ($initials === '') {
+        $initials = 'U';
+    }
+    $fontSize = max(12, (int) floor($sizePx * 0.38));
+
+    return '<div class="rounded-circle flex-shrink-0 d-inline-flex align-items-center justify-content-center fw-bold text-secondary" '
+        . 'style="width:' . $sizePx . 'px;height:' . $sizePx . 'px;background:#ececec;font-size:' . $fontSize . 'px;line-height:1;" '
+        . 'aria-label="Avatar de ' . htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
+        . '</div>';
+};
 ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=36">
 <link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-members.css?v=1">
@@ -76,14 +102,18 @@ $searchQuery = isset($this->data['search_query']) ? (string)$this->data['search_
                         <div class="card border-0 shadow-sm h-100 timeline-member-card">
                             <div class="card-body d-flex flex-column gap-2">
                                 <div class="d-flex gap-3 align-items-start">
-                                    <?php
-                                    echo \App\adms\Helpers\ImageHelper::displayImage($avatar, [
-                                        'class' => 'rounded-circle flex-shrink-0',
-                                        'alt' => '',
-                                        'width' => '64',
-                                        'height' => '64',
-                                    ], 'icon_user.png', 'users');
-                                    ?>
+                                    <?php if ($avatar !== null): ?>
+                                        <?php
+                                        echo \App\adms\Helpers\ImageHelper::displayImage($avatar, [
+                                            'class' => 'rounded-circle flex-shrink-0',
+                                            'alt' => '',
+                                            'width' => '64',
+                                            'height' => '64',
+                                        ], 'icon_user.png', 'users');
+                                        ?>
+                                    <?php else: ?>
+                                        <?php echo $renderInitialsAvatar($name !== '' ? $name : 'Usuário', 64); ?>
+                                    <?php endif; ?>
                                     <div class="min-w-0 flex-grow-1">
                                         <div class="fw-semibold text-body"><?php echo htmlspecialchars($name !== '' ? $name : '—'); ?></div>
                                         <?php if ($username !== ''): ?>

@@ -246,7 +246,7 @@
                                 <div class="col-12 col-md-6 col-lg-4 d-flex">
                                     <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                         <div class="mb-2">
-                                            <?php if (!empty($aniv['image'])): ?>
+                                            <?php if (!empty($aniv['image']) && strcasecmp((string)$aniv['image'], 'icon_user.png') !== 0): ?>
                                                 <?php
                                                 $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                                 echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
@@ -318,7 +318,7 @@
                             <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-mes-item" data-mes="<?php echo (int)($aniv['aniversario_mes'] ?? 0); ?>">
                                 <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                     <div class="mb-2">
-                                        <?php if (!empty($aniv['image'])): ?>
+                                        <?php if (!empty($aniv['image']) && strcasecmp((string)$aniv['image'], 'icon_user.png') !== 0): ?>
                                             <?php
                                             $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                             echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
@@ -450,7 +450,7 @@
                             <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-empresa-mes-item" data-mes="<?php echo (int)($aniv['aniversario_empresa_mes'] ?? 0); ?>">
                                 <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                     <div class="mb-2">
-                                        <?php if (!empty($aniv['image'])): ?>
+                                        <?php if (!empty($aniv['image']) && strcasecmp((string)$aniv['image'], 'icon_user.png') !== 0): ?>
                                             <?php
                                             $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                             echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [

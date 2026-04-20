@@ -16,6 +16,34 @@ $canShare = !empty($this->data['can_share']);
 $urlAdm = $_ENV['URL_ADM'] ?? '';
 $mentionMap = $this->data['mention_name_map'] ?? [];
 $usersRepoMention = new UsersRepository();
+$renderInitialsAvatar = static function (string $name, int $sizePx, string $className = ''): string {
+    $safeName = trim($name);
+    $initials = '';
+    if ($safeName !== '') {
+        $parts = preg_split('/\s+/u', $safeName) ?: [];
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            $initials .= mb_substr($part, 0, 1, 'UTF-8');
+            if (mb_strlen($initials, 'UTF-8') >= 2) {
+                break;
+            }
+        }
+    }
+    if ($initials === '') {
+        $initials = 'U';
+    }
+    $fontSize = max(11, (int) floor($sizePx * 0.4));
+    $safeClass = trim($className);
+
+    return '<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-secondary '
+        . htmlspecialchars($safeClass, ENT_QUOTES, 'UTF-8')
+        . '" style="width:' . $sizePx . 'px;height:' . $sizePx . 'px;background:#ececec;font-size:' . $fontSize . 'px;line-height:1;" '
+        . 'aria-label="Avatar de ' . htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
+        . '</div>';
+};
 ?>
 <?php if (empty($posts)): ?>
     <div class="text-center text-muted py-5">
@@ -63,12 +91,16 @@ $usersRepoMention = new UsersRepository();
                 <i class="fas fa-bell me-1"></i>Publicação da notificação
             </span>
             <div class="timeline-post-header mb-2">
-                <?php
-                echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                    'class' => 'timeline-avatar',
-                    'alt' => '',
-                ], 'icon_user.png', 'users');
-                ?>
+                <?php if ($avatarPath !== null): ?>
+                    <?php
+                    echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
+                        'class' => 'timeline-avatar',
+                        'alt' => '',
+                    ], 'icon_user.png', 'users');
+                    ?>
+                <?php else: ?>
+                    <?php echo $renderInitialsAvatar((string)($postRow['author_name'] ?? 'Usuário'), 40, 'timeline-avatar'); ?>
+                <?php endif; ?>
                 <div class="flex-grow-1 min-w-0">
                     <?php
                     $authorUserId = (int)($postRow['user_id'] ?? 0);

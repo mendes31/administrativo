@@ -19,6 +19,34 @@ $timelineComposerPrefill = isset($this->data['timeline_composer_prefill']) ? (st
 $timelineComposerContext = isset($this->data['timeline_composer_context']) && is_array($this->data['timeline_composer_context'])
     ? $this->data['timeline_composer_context']
     : ['type' => '', 'target_user_id' => 0, 'years' => null];
+$renderInitialsAvatar = static function (string $name, int $sizePx, string $className = ''): string {
+    $safeName = trim($name);
+    $initials = '';
+    if ($safeName !== '') {
+        $parts = preg_split('/\s+/u', $safeName) ?: [];
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            $initials .= mb_substr($part, 0, 1, 'UTF-8');
+            if (mb_strlen($initials, 'UTF-8') >= 2) {
+                break;
+            }
+        }
+    }
+    if ($initials === '') {
+        $initials = 'U';
+    }
+    $fontSize = max(12, (int) floor($sizePx * 0.38));
+    $safeClass = trim($className);
+
+    return '<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-secondary '
+        . htmlspecialchars($safeClass, ENT_QUOTES, 'UTF-8')
+        . '" style="width:' . $sizePx . 'px;height:' . $sizePx . 'px;background:#ececec;font-size:' . $fontSize . 'px;line-height:1;" '
+        . 'aria-label="Avatar de ' . htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
+        . '</div>';
+};
 ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=36">
 
@@ -65,12 +93,16 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
                         if (!empty($timelineProfile['image']) && $timelineProfile['image'] !== 'icon_user.png') {
                             $tpAvatar = 'users/' . $timelineProfileUid . '/' . $timelineProfile['image'];
                         }
-                        echo \App\adms\Helpers\ImageHelper::displayImage($tpAvatar, [
-                            'class' => 'rounded-circle flex-shrink-0 timeline-profile-header-avatar',
-                            'alt' => '',
-                            'width' => '96',
-                            'height' => '96',
-                        ], 'icon_user.png', 'users');
+                        if ($tpAvatar !== null) {
+                            echo \App\adms\Helpers\ImageHelper::displayImage($tpAvatar, [
+                                'class' => 'rounded-circle flex-shrink-0 timeline-profile-header-avatar',
+                                'alt' => '',
+                                'width' => '96',
+                                'height' => '96',
+                            ], 'icon_user.png', 'users');
+                        } else {
+                            echo $renderInitialsAvatar((string)($timelineProfile['name'] ?? 'Usuário'), 96, 'flex-shrink-0 timeline-profile-header-avatar');
+                        }
                         ?>
                         <div class="flex-grow-1 min-w-0">
                             <h3 class="h5 mb-1"><?php echo htmlspecialchars((string)($timelineProfile['name'] ?? '')); ?></h3>
@@ -143,12 +175,16 @@ $timelineComposerContext = isset($this->data['timeline_composer_context']) && is
                         </div>
                         <div class="timeline-composer-row d-flex align-items-center gap-2">
                             <div class="timeline-composer-avatar flex-shrink-0">
-                                <?php echo \App\adms\Helpers\ImageHelper::displayImage($composerAvatarPath, [
-                                    'alt' => 'Sua foto',
-                                    'class' => 'timeline-composer-avatar-img',
-                                    'width' => '40',
-                                    'height' => '40',
-                                ], 'icon_user.png', 'users'); ?>
+                                <?php if ($composerAvatarPath !== null): ?>
+                                    <?php echo \App\adms\Helpers\ImageHelper::displayImage($composerAvatarPath, [
+                                        'alt' => 'Sua foto',
+                                        'class' => 'timeline-composer-avatar-img',
+                                        'width' => '40',
+                                        'height' => '40',
+                                    ], 'icon_user.png', 'users'); ?>
+                                <?php else: ?>
+                                    <?php echo $renderInitialsAvatar($composerName !== '' ? $composerName : 'Usuário', 40, 'timeline-composer-avatar-img'); ?>
+                                <?php endif; ?>
                             </div>
                             <div class="timeline-composer-input-wrap flex-grow-1 min-w-0">
                                 <label for="timelineComposerText" class="visually-hidden">Texto da publicação</label>
