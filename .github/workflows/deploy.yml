@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -48,7 +48,7 @@ jobs:
       # Estratégia 1: Deploy incremental inteligente com verificação
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           # server: ${{ secrets.FTP_SERVER }}
           # username: ${{ secrets.FTP_USER }}
@@ -85,7 +85,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 2
         if: failure() && steps.deploy1.outcome == 'failure'
         id: deploy2
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -117,7 +117,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 3
         if: failure() && steps.deploy2.outcome == 'failure'
         id: deploy3
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -149,7 +149,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 4
         if: failure() && steps.deploy3.outcome == 'failure'
         id: deploy4
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -181,7 +181,7 @@ jobs:
       - name: Deploy Incremental - Tentativa 5
         if: failure() && steps.deploy4.outcome == 'failure'
         id: deploy5
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
@@ -277,139 +277,24 @@ jobs:
           quit
           EOF
 
-      # Captura e exibe logs detalhados do deploy
-      - name: Capturar Logs Detalhados do Deploy
+      - name: Resumo do deploy
         if: always()
         run: |
-          echo "🔍 === CAPTURA DE LOGS DETALHADOS ==="
-          echo "📊 Status de cada tentativa:"
+          echo "📊 Resumo das tentativas:"
           echo "   Tentativa 1: ${{ steps.deploy1.outcome }}"
           echo "   Tentativa 2: ${{ steps.deploy2.outcome }}"
           echo "   Tentativa 3: ${{ steps.deploy3.outcome }}"
           echo "   Tentativa 4: ${{ steps.deploy4.outcome }}"
           echo "   Tentativa 5: ${{ steps.deploy5.outcome }}"
+          echo "   Fallback lftp: ${{ steps.lftp_fallback_deploy.outcome }}"
           echo ""
-          echo "📋 Logs detalhados estão disponíveis em:"
-          echo "   GitHub Actions → Jobs → deploy → Steps"
-          echo ""
-          echo "🔍 Para ver logs de arquivos específicos:"
-          echo "   1. Expanda o step 'Deploy Incremental - Tentativa X'"
-          echo "   2. Procure por mensagens como:"
-          echo "      ✅ 'Uploading: README.md' (arquivo novo)"
-          echo "      🔄 'Updating: README.md' (arquivo modificado)"
-          echo "      ⏭️ 'Skipping: README.md' (arquivo idêntico)"
-          echo ""
-          echo "💡 Dica: Use Ctrl+F nos logs para buscar por 'README.md'"
-
-      # Criação automática de pastas essenciais no servidor
-      - name: Criar Pastas Essenciais no Servidor
-        if: always()
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-        run: |
-          echo "🔧 === CRIAÇÃO DE PASTAS ESSENCIAIS ==="
-          echo "📁 Criando pastas necessárias no servidor..."
-          
-          # Instalar lftp se não estiver disponível
-          if ! command -v lftp &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y lftp
-          fi
-          
-          # Criar pastas essenciais via FTP
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set cmd:fail-exit no
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set dns:order "inet inet6"
-          set net:timeout 30
-          
-          echo "🔄 Conectando ao servidor..."
-          
-          echo "📁 Criando pasta logs..."
-          mkdir -p logs
-          
-          echo "📁 Criando pasta public/uploads..."
-          mkdir -p public/uploads
-          
-          echo "✅ Pastas essenciais criadas (chmod via FTP costuma falhar em hospedagem compartilhada — ajuste no painel se precisar)"
-          quit
-          EOF
-
-      # Verificação final e relatório de integridade detalhado
-      - name: Verificar Deploy e Gerar Relatório Detalhado
-        if: always()
-        run: |
-          echo "🔍 === RELATÓRIO DE DEPLOY DETALHADO ==="
-          
           if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
-            echo "✅ Deploy FTP (SamKirkland) bem-sucedido!"
-            echo "📊 Tentativas utilizadas:"
-            [ "${{ steps.deploy1.outcome }}" == "success" ] && echo "   - Tentativa 1: ✅"
-            [ "${{ steps.deploy2.outcome }}" == "success" ] && echo "   - Tentativa 2: ✅"
-            [ "${{ steps.deploy3.outcome }}" == "success" ] && echo "   - Tentativa 3: ✅"
-            [ "${{ steps.deploy4.outcome }}" == "success" ] && echo "   - Tentativa 4: ✅"
-            [ "${{ steps.deploy5.outcome }}" == "success" ] && echo "   - Tentativa 5: ✅"
+            echo "✅ Deploy concluído via FTP-Deploy-Action."
           elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "success" ]; then
-            echo "✅ Deploy concluído via fallback lftp (FTP em 5 tentativas não finalizou)."
-          elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "skipped" ]; then
-            echo "ℹ️ Fallback lftp não foi necessário (FTP já tinha sucesso ou o job parou antes)."
+            echo "✅ Deploy concluído via fallback lftp."
           else
-            echo "❌ FTP falhou em todas as tentativas e o fallback lftp não concluiu com sucesso."
-            echo "   Resultado do passo lftp: ${{ steps.lftp_fallback_deploy.outcome }}"
+            echo "❌ Deploy não concluído."
           fi
-          
-          echo ""
-          echo "📋 Próximos passos no servidor:"
-          echo "1. Acesse via SSH ou painel KingHost"
-          echo "2. Execute: cd /files (ou caminho correto da raiz do projeto)"
-          echo "3. Execute: composer install --no-dev --optimize-autoloader"
-          echo "4. Configure .env com URL_ADM correta"
-          echo "5. Execute: php scripts/generate-htaccess.php"
-          echo "6. Verifique permissões: chmod 755 public/uploads/"
-          echo ""
-          echo "🔍 Verificação de integridade:"
-          echo "   - app/adms/Controllers/ (deve ter todos os arquivos .php)"
-          echo "   - app/adms/Models/ (deve ter todos os arquivos .php)"
-          echo "   - app/adms/Views/ (deve ter todas as pastas e arquivos)"
-          echo "   - app/Helpers/ (deve ter todos os arquivos .php)"
-          echo "   - routes/ (deve ter todos os arquivos .php)"
-          echo "   - public/ (deve ter todas as pastas e arquivos)"
-          echo "   - scripts/ (deve ter todos os arquivos .php)"
-          echo ""
-          echo "💡 Dica: O deploy foi INCREMENTAL - apenas arquivos novos/modificados foram enviados"
-          echo "💡 Dica: Use 'dangerous-clean-slate: false' para continuar onde parou"
-          echo ""
-          echo "📊 === DETALHAMENTO DO DEPLOY INCREMENTAL ==="
-          echo "🔄 Como funciona o deploy incremental:"
-          echo "   ✅ Arquivo NÃO existe no servidor → ENVIA (primeira vez)"
-          echo "   🔄 Arquivo existe mas foi MODIFICADO → ATUALIZA (sobrescreve)"
-          echo "   ⏭️ Arquivo existe e é IDÊNTICO → PULA (não envia)"
-          echo ""
-          echo "🔍 Detecção automática:"
-          echo "   📏 Tamanho do arquivo"
-          echo "   📅 Data de modificação (timestamp)"
-          echo "   🔐 Hash/checksum (quando disponível)"
-          echo ""
-          echo "⚡ Benefícios:"
-          echo "   🚀 Muito mais rápido (só envia diferenças)"
-          echo "   💾 Economiza banda (não repete arquivos)"
-          echo "   🛡️ Preserva progresso (continua onde parou)"
-          echo "   🔄 Sempre atualiza o que mudou"
-          echo ""
-          echo "🔍 === COMO VER OS LOGS DETALHADOS ==="
-          echo "📋 Para ver logs detalhados em tempo real:"
-          echo "1. Clique no job 'deploy' no GitHub Actions"
-          echo "2. Clique no step 'Deploy Incremental - Tentativa X'"
-          echo "3. Expanda os logs para ver cada arquivo sendo processado"
-          echo "4. Procure por mensagens como:"
-          echo "   - 'Uploading: arquivo.php' (arquivo novo)"
-          echo "   - 'Updating: arquivo.php' (arquivo modificado)"
-          echo "   - 'Skipping: arquivo.php' (arquivo idêntico)"
-          echo ""
-          echo "💡 Dica: Os logs 'verbose' mostram TUDO, mas podem ser longos"
-          echo "💡 Dica: Use Ctrl+F para buscar por arquivos específicos nos logs"
 
       - name: Resultado final do deploy
         if: always()

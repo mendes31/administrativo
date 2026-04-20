@@ -6,32 +6,9 @@
     <?php endif; ?>
     <?php
     $renderAvatarFallback = static function (string $name): string {
-        $safeName = trim($name);
-        $initials = '';
-        if ($safeName !== '') {
-            $parts = preg_split('/\s+/u', $safeName) ?: [];
-            foreach ($parts as $part) {
-                if ($part === '') {
-                    continue;
-                }
-                $initials .= mb_substr($part, 0, 1, 'UTF-8');
-                if (mb_strlen($initials, 'UTF-8') >= 2) {
-                    break;
-                }
-            }
-        }
-        if ($initials === '') {
-            $initials = 'U';
-        }
-
-        $escapedInitials = htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8');
-        $escapedName = htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8');
-
-        return '<div class="rounded-circle mb-2 birthday-avatar d-inline-flex align-items-center justify-content-center fw-bold text-secondary" title="'
-            . $escapedName
-            . '" aria-label="Avatar de ' . $escapedName . '" style="width: 86px; height: 86px; background:#ececec; font-size: 1.4rem; line-height: 1;">'
-            . $escapedInitials
-            . '</div>';
+        return \App\adms\Helpers\ImageHelper::renderInitialsAvatar($name, 86, [
+            'class' => 'mb-2 birthday-avatar',
+        ]);
     };
     ?>
     <div class="row justify-content-center">
@@ -246,7 +223,7 @@
                                 <div class="col-12 col-md-6 col-lg-4 d-flex">
                                     <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                         <div class="mb-2">
-                                            <?php if (!empty($aniv['image']) && strcasecmp((string)$aniv['image'], 'icon_user.png') !== 0): ?>
+                                            <?php if (\App\adms\Helpers\ImageHelper::userImageExists((int)($aniv['id'] ?? 0), (string)($aniv['image'] ?? ''))): ?>
                                                 <?php
                                                 $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                                 echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
@@ -318,7 +295,7 @@
                             <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-mes-item" data-mes="<?php echo (int)($aniv['aniversario_mes'] ?? 0); ?>">
                                 <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                     <div class="mb-2">
-                                        <?php if (!empty($aniv['image']) && strcasecmp((string)$aniv['image'], 'icon_user.png') !== 0): ?>
+                                        <?php if (\App\adms\Helpers\ImageHelper::userImageExists((int)($aniv['id'] ?? 0), (string)($aniv['image'] ?? ''))): ?>
                                             <?php
                                             $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                             echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
@@ -450,7 +427,7 @@
                             <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-empresa-mes-item" data-mes="<?php echo (int)($aniv['aniversario_empresa_mes'] ?? 0); ?>">
                                 <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
                                     <div class="mb-2">
-                                        <?php if (!empty($aniv['image']) && strcasecmp((string)$aniv['image'], 'icon_user.png') !== 0): ?>
+                                        <?php if (\App\adms\Helpers\ImageHelper::userImageExists((int)($aniv['id'] ?? 0), (string)($aniv['image'] ?? ''))): ?>
                                             <?php
                                             $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
                                             echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [

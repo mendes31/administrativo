@@ -17,32 +17,9 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
 $mentionMap = $this->data['mention_name_map'] ?? [];
 $usersRepoMention = new UsersRepository();
 $renderInitialsAvatar = static function (string $name, int $sizePx, string $className = ''): string {
-    $safeName = trim($name);
-    $initials = '';
-    if ($safeName !== '') {
-        $parts = preg_split('/\s+/u', $safeName) ?: [];
-        foreach ($parts as $part) {
-            if ($part === '') {
-                continue;
-            }
-            $initials .= mb_substr($part, 0, 1, 'UTF-8');
-            if (mb_strlen($initials, 'UTF-8') >= 2) {
-                break;
-            }
-        }
-    }
-    if ($initials === '') {
-        $initials = 'U';
-    }
-    $fontSize = max(11, (int) floor($sizePx * 0.4));
-    $safeClass = trim($className);
-
-    return '<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-secondary '
-        . htmlspecialchars($safeClass, ENT_QUOTES, 'UTF-8')
-        . '" style="width:' . $sizePx . 'px;height:' . $sizePx . 'px;background:#ececec;font-size:' . $fontSize . 'px;line-height:1;" '
-        . 'aria-label="Avatar de ' . htmlspecialchars($safeName !== '' ? $safeName : 'Usuário', ENT_QUOTES, 'UTF-8') . '">'
-        . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
-        . '</div>';
+    return \App\adms\Helpers\ImageHelper::renderInitialsAvatar($name, $sizePx, [
+        'class' => $className,
+    ]);
 };
 ?>
 <?php if (empty($posts)): ?>
@@ -59,7 +36,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     $totalReactions = array_sum($summary);
     $isAuthor = $currentUserId > 0 && (int)($postRow['user_id'] ?? 0) === $currentUserId;
     $avatarPath = null;
-    if (!empty($postRow['author_image']) && $postRow['author_image'] !== 'icon_user.png') {
+    if (\App\adms\Helpers\ImageHelper::userImageExists((int)($postRow['user_id'] ?? 0), (string)($postRow['author_image'] ?? ''))) {
         $avatarPath = 'users/' . (int)($postRow['user_id'] ?? 0) . '/' . $postRow['author_image'];
     }
     $txt = trim((string)($postRow['content'] ?? ''));

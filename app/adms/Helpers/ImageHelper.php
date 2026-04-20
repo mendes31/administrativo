@@ -10,6 +10,63 @@ namespace App\adms\Helpers;
 class ImageHelper
 {
     /**
+     * Verifica se a imagem personalizada de usuário existe fisicamente.
+     */
+    public static function userImageExists(int $userId, ?string $imageName): bool
+    {
+        $name = trim((string) $imageName);
+        if ($userId <= 0 || $name === '' || strcasecmp($name, 'icon_user.png') === 0) {
+            return false;
+        }
+
+        $relative = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, 'public/adms/uploads/users/' . $userId . '/' . $name);
+
+        return is_file($relative);
+    }
+
+    /**
+     * Renderiza avatar textual com iniciais.
+     */
+    public static function renderInitialsAvatar(string $name, int $sizePx, array $attributes = []): string
+    {
+        $safeName = trim($name);
+        $initials = '';
+        if ($safeName !== '') {
+            $parts = preg_split('/\s+/u', $safeName) ?: [];
+            foreach ($parts as $part) {
+                if ($part === '') {
+                    continue;
+                }
+                $initials .= mb_substr($part, 0, 1, 'UTF-8');
+                if (mb_strlen($initials, 'UTF-8') >= 2) {
+                    break;
+                }
+            }
+        }
+        if ($initials === '') {
+            $initials = 'U';
+        }
+
+        $fontSize = max(11, (int) floor($sizePx * 0.38));
+        $defaultAttributes = [
+            'class' => '',
+            'style' => '',
+            'aria-label' => 'Avatar de ' . ($safeName !== '' ? $safeName : 'Usuário'),
+            'title' => $safeName !== '' ? $safeName : 'Usuário',
+        ];
+        $attributes = array_merge($defaultAttributes, $attributes);
+        $classAttr = trim('rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-secondary ' . (string) $attributes['class']);
+        $styleAttr = trim('width:' . $sizePx . 'px;height:' . $sizePx . 'px;background:#ececec;font-size:' . $fontSize . 'px;line-height:1;' . (string) $attributes['style']);
+
+        return '<div class="' . htmlspecialchars($classAttr, ENT_QUOTES, 'UTF-8') . '"'
+            . ' style="' . htmlspecialchars($styleAttr, ENT_QUOTES, 'UTF-8') . '"'
+            . ' aria-label="' . htmlspecialchars((string) $attributes['aria-label'], ENT_QUOTES, 'UTF-8') . '"'
+            . ' title="' . htmlspecialchars((string) $attributes['title'], ENT_QUOTES, 'UTF-8') . '">'
+            . htmlspecialchars(mb_strtoupper($initials, 'UTF-8'), ENT_QUOTES, 'UTF-8')
+            . '</div>';
+    }
+
+    /**
      * Codifica o valor de ?path= para serve-file sem transformar "/" em "%2F"
      * (evita falhas em Apache/proxy; o FileServer recebe "users/123/foto.png" corretamente).
      */
