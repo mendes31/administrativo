@@ -8,6 +8,7 @@ declare(strict_types=1);
  * Uso (na raiz do projeto ou a partir de qualquer pasta):
  *   php scripts/audit-upload-files-on-disk.php
  *   php scripts/audit-upload-files-on-disk.php --json
+ *   php scripts/audit-upload-files-on-disk.php --no-detail   (só resumo + contagens por tabela)
  *
  * Requer .env com DB_HOST, DB_NAME, DB_USER, DB_PASS.
  */
@@ -23,6 +24,28 @@ $dotenv->load();
 date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'UTC');
 
 $json = in_array('--json', $argv ?? [], true);
+$noDetail = in_array('--no-detail', $argv ?? [], true);
+
+/**
+ * @param list<array{context: string, path: string, expected: string}> $missing
+ * @return array<string, int>
+ */
+function summarize_missing_by_table(array $missing): array
+{
+    $out = [];
+    foreach ($missing as $row) {
+        $ctx = (string) ($row['context'] ?? '');
+        if (preg_match('/^([a-z0-9_]+)\./i', $ctx, $m)) {
+            $tbl = $m[1];
+        } else {
+            $tbl = '_desconhecido';
+        }
+        $out[$tbl] = ($out[$tbl] ?? 0) + 1;
+    }
+    ksort($out);
+
+    return $out;
+}
 
 $dsn = 'mysql:host=' . ($_ENV['DB_HOST'] ?? 'localhost') . ';dbname=' . ($_ENV['DB_NAME'] ?? '') . ';charset=utf8mb4';
 $pdo = new PDO($dsn, $_ENV['DB_USER'] ?? '', $_ENV['DB_PASS'] ?? '', [
@@ -248,9 +271,20 @@ try {
     exit(1);
 }
 
+$summaryByTable = summarize_missing_by_table($missing);
+
 if ($json) {
+    $payload = [
+        'ok' => true,
+        'missing_count' => count($missing),
+        'summary_by_table' => $summaryByTable,
+        'missing' => $missing,
+    ];
+    if ($noDetail) {
+        unset($payload['missing']);
+    }
     echo json_encode(
-        ['ok' => true, 'missing_count' => count($missing), 'missing' => $missing],
+        $payload,
         JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
     ) . PHP_EOL;
     exit(count($missing) > 0 ? 2 : 0);
@@ -258,9 +292,18 @@ if ($json) {
 
 echo 'Auditoria de ficheiros (APP_ROOT=' . APP_ROOT . ')' . PHP_EOL;
 echo 'Referências em falta no disco: ' . count($missing) . PHP_EOL;
-foreach ($missing as $row) {
-    echo '- [' . $row['context'] . '] ' . $row['path'] . PHP_EOL;
-    echo '  esperado: ' . $row['expected'] . PHP_EOL;
+if ($summaryByTable !== []) {
+    echo PHP_EOL . 'Resumo por tabela:' . PHP_EOL;
+    foreach ($summaryByTable as $tbl => $cnt) {
+        echo '  - ' . $tbl . ': ' . $cnt . PHP_EOL;
+    }
+    echo PHP_EOL;
+}
+if (!$noDetail) {
+    foreach ($missing as $row) {
+        echo '- [' . $row['context'] . '] ' . $row['path'] . PHP_EOL;
+        echo '  esperado: ' . $row['expected'] . PHP_EOL;
+    }
 }
 
 exit(count($missing) > 0 ? 2 : 0);
