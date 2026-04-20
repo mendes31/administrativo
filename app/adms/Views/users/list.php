@@ -1,9 +1,29 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\ImageHelper;
 
 // Gera o token CSRF para proteger o formulário de deleção
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
+
+$renderListUserAvatar = static function (int $userId, ?string $imageName, string $userName, int $sizePx): string {
+    if (ImageHelper::userImageExists($userId, $imageName)) {
+        return ImageHelper::displayImage(
+            'users/' . $userId . '/' . (string) $imageName,
+            [
+                'alt' => 'Foto de ' . $userName,
+                'class' => 'users-list-avatar rounded-circle flex-shrink-0',
+                'style' => 'width:' . $sizePx . 'px;height:' . $sizePx . 'px;object-fit:cover;',
+            ],
+            'icon_user.png',
+            'users'
+        );
+    }
+
+    return ImageHelper::renderInitialsAvatar($userName, $sizePx, [
+        'class' => 'users-list-avatar flex-shrink-0',
+    ]);
+};
 
 ?>
 
@@ -197,11 +217,16 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                             ?>
                                 <tr class="<?= $desligadoClass ?>">
                                     <th class="text-center"><?= $id; ?></th>
-                                    <td class="text-truncate" title="<?= htmlspecialchars($name); ?>">
-                                        <?= $name; ?>
-                                        <?php if ($isDesligado): ?>
-                                            <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
-                                        <?php endif; ?>
+                                    <td title="<?= htmlspecialchars($name); ?>">
+                                        <div class="d-flex align-items-center gap-2 users-list-name-wrap">
+                                            <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 28); ?>
+                                            <span class="text-truncate d-inline-block users-list-name-text">
+                                                <?= $name; ?>
+                                            </span>
+                                            <?php if ($isDesligado): ?>
+                                                <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
                                     <td class="d-none d-md-table-cell text-break users-list-cargo-full" title="<?= htmlspecialchars((string)($name_pos ?? '')); ?>"><?= htmlspecialchars((string)($name_pos ?? '')) ?></td>
@@ -258,7 +283,10 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h5 class="card-title mb-1">
-                                            <b><?= $name ?></b>
+                                            <span class="d-inline-flex align-items-center gap-2">
+                                                <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 36); ?>
+                                                <b><?= $name ?></b>
+                                            </span>
                                             <?php if ($isDesligado): ?>
                                                 <span class="badge bg-danger ms-2">
                                                     <i class="fas fa-user-slash me-1"></i>Desligado
@@ -428,6 +456,18 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.users-list-name-wrap {
+    min-width: 0;
+}
+
+.users-list-name-text {
+    max-width: calc(100% - 44px);
+}
+
+.users-list-avatar {
+    display: inline-flex;
 }
 
 /* Otimizar botões de ações */
