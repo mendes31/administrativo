@@ -241,10 +241,11 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
-    <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/pwa-icon-192.png">
-    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json">
+    <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
+    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260420-1">
     <meta name="theme-color" content="#198754">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Tiaraju">
 
