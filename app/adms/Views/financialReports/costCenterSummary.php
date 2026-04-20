@@ -57,7 +57,7 @@ $months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto
     </div>
 </div>
 <!-- Sparkline com Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 <script>
 document.querySelectorAll('.sparkline').forEach(function(canvas) {
     const values = JSON.parse(canvas.dataset.values);

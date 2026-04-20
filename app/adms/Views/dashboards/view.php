@@ -149,7 +149,7 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 <script>
 const dashboardId = <?= $dashboard['id'] ?>;
 const kpisConfig = <?= json_encode($kpisConfig) ?>;

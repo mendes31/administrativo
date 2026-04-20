@@ -319,14 +319,14 @@ foreach ($stats['por_origem'] ?? [] as $origem => $total) {
 </div>
 
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se Chart.js carregou
     if (typeof Chart === 'undefined') {
         console.error('Chart.js não foi carregado. Tentando carregar novamente...');
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+        script.src = '<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js';
         script.onload = function() {
             initCharts();
         };

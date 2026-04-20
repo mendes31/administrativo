@@ -152,7 +152,7 @@ $topTrainings = $config['topCriticalTrainings'] ?? [];
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 <script>
     // Gráfico de status
     const statusData = {

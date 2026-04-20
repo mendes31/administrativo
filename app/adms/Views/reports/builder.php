@@ -345,7 +345,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 <script>
 const shouldOpenSqlTab = <?= $shouldOpenSqlTab ? 'true' : 'false' ?>;
 let reportState = {

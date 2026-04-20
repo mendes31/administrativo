@@ -142,7 +142,7 @@ function money($v) { return 'R$ ' . number_format($v, 2, ',', '.'); }
     <div class="mt-4">
         <canvas id="graficoAcumulado" height="80"></canvas>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
     <script>
     const acumulado = [
         <?php

@@ -1,6 +1,6 @@
 <?php
 ?>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/select2/css/select2.min.css" />
 <style>
 /* Responsividade para mobile */
 @media (max-width: 767px) {
@@ -96,7 +96,7 @@
     </div>
 
     <!-- Select2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/select2/js/select2.min.js"></script>
     <script>
     // Inicializar Select2
     $(document).ready(function() {

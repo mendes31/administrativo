@@ -230,7 +230,7 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                         <?php else: ?>
                             <!-- Gráfico -->
                             <canvas id="reportChart" style="max-height: 500px;"></canvas>
-                            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+                            <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
                             <script>
                                 const chartData = <?= json_encode($result['data']) ?>;
                                 const labels = chartData.map(row => Object.values(row)[0]);

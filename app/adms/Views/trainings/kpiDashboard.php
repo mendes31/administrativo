@@ -421,18 +421,18 @@ use App\adms\Models\Repository\TrainingUsersRepository;
 
 <!-- Scripts para os gráficos -->
 <!-- Chart.js com fallback -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" 
-        onerror="console.error('Erro ao carregar Chart.js do CDN'); loadChartJsFallback();"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js" 
+        onerror="console.error('Erro ao carregar Chart.js local'); loadChartJsFallback();"></script>
 <script>
 // Fallback para Chart.js se CDN falhar
 function loadChartJsFallback() {
     console.warn('Tentando carregar Chart.js de fallback...');
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+    script.src = '<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js';
     script.onerror = function() {
-        console.error('Erro ao carregar Chart.js do fallback também. Verifique sua conexão ou bloqueio de CDN.');
-        document.getElementById('statusChart').parentElement.innerHTML = '<div class="alert alert-warning">Erro ao carregar biblioteca de gráficos. Verifique se o CDN não está bloqueado.</div>';
-        document.getElementById('monthlyChart').parentElement.innerHTML = '<div class="alert alert-warning">Erro ao carregar biblioteca de gráficos. Verifique se o CDN não está bloqueado.</div>';
+        console.error('Erro ao carregar Chart.js local (fallback). Verifique o arquivo local.');
+        document.getElementById('statusChart').parentElement.innerHTML = '<div class="alert alert-warning">Erro ao carregar biblioteca de gráficos local.</div>';
+        document.getElementById('monthlyChart').parentElement.innerHTML = '<div class="alert alert-warning">Erro ao carregar biblioteca de gráficos local.</div>';
     };
     document.head.appendChild(script);
 }

@@ -12,7 +12,7 @@ $fPaisIso = $this->data['filter_pais_iso'] ?? null;
 $fFilhos = $this->data['filter_filhos'] ?? null;
 $turnoverFormula = $this->data['turnover_formula'] ?? '';
 ?>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/select2/css/select2.min.css" />
 <style>
 .people-analytics-filters .select2-container { width: 100% !important; max-width: 100%; }
 .people-analytics-filters .select2-container--default .select2-selection--multiple {
@@ -526,7 +526,7 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/select2/js/select2.min.js"></script>
 <script>
 (function () {
     function paYmd(d) {
@@ -585,7 +585,7 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
 </script>
 
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
