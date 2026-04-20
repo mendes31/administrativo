@@ -214,12 +214,24 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                 $dataDesligamento = $data_desligamento ?? '';
                                 $isDesligado = !empty($dataDesligamento);
                                 $desligadoClass = $isDesligado ? 'table-danger' : '';
+                                $canViewUser = in_array('ViewUser', $this->data['buttonPermission']);
                             ?>
                                 <tr class="<?= $desligadoClass ?>">
                                     <th class="text-center"><?= $id; ?></th>
                                     <td title="<?= htmlspecialchars($name); ?>">
                                         <div class="d-flex align-items-center gap-2 users-list-name-wrap">
-                                            <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 28); ?>
+                                            <?php if ($canViewUser): ?>
+                                                <a
+                                                    href="<?= $_ENV['URL_ADM']; ?>view-user/<?= $id; ?>"
+                                                    class="users-list-avatar-link"
+                                                    title="Visualizar perfil de <?= htmlspecialchars((string)($name ?? 'Usuário')); ?>"
+                                                    aria-label="Visualizar perfil de <?= htmlspecialchars((string)($name ?? 'Usuário')); ?>"
+                                                >
+                                                    <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 28); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 28); ?>
+                                            <?php endif; ?>
                                             <span class="text-truncate d-inline-block users-list-name-text">
                                                 <?= $name; ?>
                                             </span>
@@ -277,6 +289,7 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                     <?php foreach ($this->data['users'] as $i => $user) { extract($user); 
                         $dataDesligamento = $data_desligamento ?? '';
                         $isDesligado = !empty($dataDesligamento);
+                        $canViewUser = in_array('ViewUser', $this->data['buttonPermission']);
                     ?>
                         <div class="card mb-3 shadow-sm <?= $isDesligado ? 'border-danger' : '' ?>">
                             <div class="card-body">
@@ -284,7 +297,18 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                     <div>
                                         <h5 class="card-title mb-1">
                                             <span class="d-inline-flex align-items-center gap-2">
-                                                <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 36); ?>
+                                                <?php if ($canViewUser): ?>
+                                                    <a
+                                                        href="<?= $_ENV['URL_ADM']; ?>view-user/<?= $id; ?>"
+                                                        class="users-list-avatar-link"
+                                                        title="Visualizar perfil de <?= htmlspecialchars((string)($name ?? 'Usuário')); ?>"
+                                                        aria-label="Visualizar perfil de <?= htmlspecialchars((string)($name ?? 'Usuário')); ?>"
+                                                    >
+                                                        <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 36); ?>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <?= $renderListUserAvatar((int)($id ?? 0), (string)($image ?? ''), (string)($name ?? 'Usuário'), 36); ?>
+                                                <?php endif; ?>
                                                 <b><?= $name ?></b>
                                             </span>
                                             <?php if ($isDesligado): ?>
@@ -468,6 +492,12 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
 
 .users-list-avatar {
     display: inline-flex;
+}
+
+.users-list-avatar-link {
+    display: inline-flex;
+    border-radius: 999px;
+    text-decoration: none;
 }
 
 /* Otimizar botões de ações */
