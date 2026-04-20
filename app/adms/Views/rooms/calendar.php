@@ -252,13 +252,14 @@ foreach ($rooms as $room) {
                         <?php foreach ($weekDays as $dayIndex => $dayDate): 
                             $dateStr = $dayDate->format('Y-m-d');
                             $dayName = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'][$dayIndex];
+                            $dayNameShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][$dayIndex];
                             $dayNumber = $dayDate->format('d');
                             $isToday = ($dateStr === $today);
                         ?>
                             <div class="week-day-column-simple">
                                 <!-- Cabeçalho do dia -->
                                 <div class="week-day-header-simple<?= $isToday ? ' today' : '' ?>">
-                                    <div class="week-day-name-simple"><?= $dayName ?></div>
+                                    <div class="week-day-name-simple" title="<?= $dayName ?>"><?= $dayNameShort ?></div>
                                     <div class="week-day-number-simple"><?= $dayNumber ?></div>
                                 </div>
                                 

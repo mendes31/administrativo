@@ -218,6 +218,8 @@
     font-style: italic;
     text-align: center;
     margin-top: 1rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 /* Dashboard: dia do calendário com compromissos abre vista «agenda do dia» */
@@ -277,13 +279,13 @@
     padding: 0.5rem;
     font-size: 0.75rem;
     font-weight: 600;
-    text-align: right;
+    text-align: left;
     border-right: 2px solid #dee2e6;
     border-bottom: 1px solid #d1d5db;
     height: 50px;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     position: sticky;
     left: 0;
     z-index: 5;
@@ -330,6 +332,8 @@
 .rooms-module-page .week-day-name-simple {
     font-size: 0.9rem;
     margin-bottom: 0.2rem;
+    white-space: nowrap;
+    line-height: 1;
 }
 
 .rooms-module-page .week-day-number-simple {
@@ -525,16 +529,59 @@
     }
 
     /* Grade semanal: cabeçalhos e slots mais densos */
+    .rooms-module-page .week-calendar-grid-simple {
+        grid-template-columns: minmax(50px, 56px) repeat(7, minmax(34px, 1fr));
+    }
+
     .rooms-module-page .week-day-header-week,
     .rooms-module-page .week-day-header-simple {
         font-size: 0.65rem;
         padding: 0.35rem 0.2rem !important;
     }
 
+    .rooms-module-page .week-day-name-simple {
+        font-size: 0.62rem;
+        margin-bottom: 0.1rem;
+        letter-spacing: 0;
+    }
+
+    .rooms-module-page .week-day-number-simple {
+        font-size: 0.86rem;
+    }
+
     .rooms-module-page .time-slot-week-simple,
     .rooms-module-page .time-slot-week {
         font-size: 0.65rem;
         padding: 0.35rem 0.25rem;
+        text-align: left;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 430px) {
+    .rooms-module-page .calendar-day-header-outlook {
+        font-size: 0.56rem;
+        padding: 0.3rem 0.15rem;
+    }
+
+    .rooms-module-page .calendar-day-outlook {
+        min-height: 70px;
+        padding: 0.25rem;
+    }
+
+    .rooms-module-page .calendar-day-number-outlook {
+        font-size: 0.75rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .rooms-module-page .calendar-bookings-preview {
+        font-size: 0.6rem;
+        line-height: 1.2;
+    }
+
+    .rooms-module-page .calendar-day-empty {
+        font-size: 0.58rem;
+        line-height: 1.15;
     }
 }
 
