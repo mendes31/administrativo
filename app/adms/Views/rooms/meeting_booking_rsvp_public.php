@@ -8,7 +8,7 @@ $mode = $mode ?? 'result';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($heading ?? 'Convite', ENT_QUOTES, 'UTF-8'); ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= htmlspecialchars(rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/public/adms/css/bootstrap.min.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body class="bg-light">
 <div class="container px-3 py-4 py-md-5" style="max-width: 520px;">
