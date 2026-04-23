@@ -9,6 +9,7 @@ use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
+use App\adms\Models\Repository\GamificationQuizRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
@@ -211,6 +212,16 @@ class Dashboard
         $this->data['show_tempo_empresa_card'] = in_array('DashboardCardTempoEmpresa', $menuPermission, true);
         $this->data['show_payroll_documents_card'] = in_array('DashboardCardPayrollDocuments', $menuPermission, true);
         $this->data['show_my_calendar_card'] = in_array('DashboardCardMyCalendar', $menuPermission, true);
+        $this->data['show_gamification_quizzes_card'] = in_array('DashboardCardGamificationQuizzes', $menuPermission, true);
+
+        $this->data['gamification_quizzes_catalog_count'] = 0;
+        if ($userId > 0 && !empty($this->data['show_gamification_quizzes_card'])) {
+            try {
+                $this->data['gamification_quizzes_catalog_count'] = count((new GamificationQuizRepository())->listPublishedForCatalog());
+            } catch (\Throwable) {
+                $this->data['gamification_quizzes_catalog_count'] = 0;
+            }
+        }
 
         $this->data['payroll_documents_total'] = 0;
         $this->data['payroll_documents_latest'] = [];

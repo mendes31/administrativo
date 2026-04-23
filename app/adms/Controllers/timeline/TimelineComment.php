@@ -11,6 +11,7 @@ use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\GamificationAwardService;
 
 class TimelineComment
 {
@@ -91,6 +92,15 @@ class TimelineComment
                 echo json_encode(['success' => false, 'message' => 'Não foi possível registrar o voto.']);
                 return;
             }
+            try {
+                (new GamificationAwardService())->awardTimelineEvent(
+                    (int)$_SESSION['user_id'],
+                    'timeline_poll_vote',
+                    'timeline_post',
+                    $pid
+                );
+            } catch (\Throwable) {
+            }
             echo json_encode(['success' => true, 'poll' => $poll, 'csrf_token' => CSRFHelper::generateCSRFToken('timeline_comment_post')]);
             return;
         }
@@ -104,6 +114,15 @@ class TimelineComment
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro ao comentar']);
             return;
+        }
+        try {
+            (new GamificationAwardService())->awardTimelineEvent(
+                (int)$_SESSION['user_id'],
+                'timeline_comment_created',
+                'timeline_comment',
+                $cid
+            );
+        } catch (\Throwable) {
         }
         $actorId = (int)($_SESSION['user_id'] ?? 0);
         $actorName = (string)($_SESSION['user_name'] ?? 'Alguém');

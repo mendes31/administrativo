@@ -395,7 +395,7 @@ class LoadPageAdmAccessLevel
             'movement', 'notifications', 'packages', 'pages', 'pay', 'paymentMethod',
             'performance', 'permission', 'policies', 'portal', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
-            'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline',
+            'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline', 'gamification',
             'trainings', 'users', 'workShifts',
         ];
 

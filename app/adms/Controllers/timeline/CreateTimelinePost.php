@@ -10,6 +10,7 @@ use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\GamificationAwardService;
 use App\adms\Helpers\CSRFHelper;
 
 class CreateTimelinePost
@@ -251,6 +252,16 @@ class CreateTimelinePost
                     'entity_id' => $postId,
                 ]);
             }
+        }
+
+        try {
+            $award = new GamificationAwardService();
+            if ($sharedFromPostId !== null) {
+                $award->awardTimelineEvent($authorId, 'timeline_share_created', 'timeline_post', $postId, ['shared_from_post_id' => $sharedFromPostId]);
+            } else {
+                $award->awardTimelineEvent($authorId, 'timeline_post_created', 'timeline_post', $postId);
+            }
+        } catch (\Throwable) {
         }
 
         $this->successAndExit('Publicação enviada.');

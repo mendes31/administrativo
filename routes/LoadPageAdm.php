@@ -176,7 +176,13 @@ class LoadPageAdm
         // Gestão de Projetos - Grupos de Etapas
         "ListStageGroups", "CreateStageGroup", "UpdateStageGroup", "DeleteStageGroup",
         // Permissões - utilitários
-        "CopyAccessLevelPermissions"
+        "CopyAccessLevelPermissions",
+        // Gamificação
+        "ListGamificationTimelineRules", "UpdateGamificationTimelineRule",
+        "ListGamificationQuizzes", "CreateGamificationQuiz", "UpdateGamificationQuiz", "DeleteGamificationQuiz",
+        "ListGamificationQuizQuestions", "CreateGamificationQuizQuestion", "UpdateGamificationQuizQuestion", "DeleteGamificationQuizQuestion",
+        "ListGamificationPointLedger", "GamificationQuizCatalog", "TakeGamificationQuiz", "SubmitGamificationQuizAttempt",
+        "GamificationLeaderboard"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -222,7 +228,8 @@ class LoadPageAdm
         "portal",
         // Diretório para controllers de permissões (ListAccessLevelsPermissions, CopyAccessLevelPermissions, etc.)
         "permission",
-        "notifications"
+        "notifications",
+        "gamification"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

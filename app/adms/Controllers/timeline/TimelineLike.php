@@ -6,6 +6,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
+use App\adms\Models\Services\GamificationAwardService;
 
 class TimelineLike
 {
@@ -72,6 +73,19 @@ class TimelineLike
                 'entity_type' => 'timeline_post',
                 'entity_id' => $postId,
             ]);
+        }
+
+        if (!empty($result['liked'])) {
+            try {
+                (new GamificationAwardService())->awardTimelineEvent(
+                    $actorId,
+                    'timeline_reaction_created',
+                    'timeline_post',
+                    $postId,
+                    ['reaction' => (string)($result['reaction'] ?? '')]
+                );
+            } catch (\Throwable) {
+            }
         }
 
         echo json_encode([

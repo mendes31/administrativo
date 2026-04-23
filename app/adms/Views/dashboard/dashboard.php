@@ -123,6 +123,20 @@
                     </a>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($this->data['show_gamification_quizzes_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>gamification-quiz-catalog" class="text-decoration-none flex-fill h-100">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: linear-gradient(135deg, #f5fff8 0%, #fff 100%);">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-puzzle-piece fa-3x text-success"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Quizzes</h5>
+                            <div class="text-muted mb-1 text-center small">Disponíveis para responder</div>
+                            <div class="text-success text-center small fw-semibold"><?php echo (int)($this->data['gamification_quizzes_catalog_count'] ?? 0); ?> publicados</div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
                 <?php if (!empty($this->data['show_eventos_card'])): ?>
                 <div class="col-12 col-md-3 d-flex align-items-stretch">
                     <a href="#"
