@@ -137,7 +137,8 @@ class GamificationLedgerRepository extends DbConnection
         $scope = in_array($scope, ['general', 'monthly', 'department'], true) ? $scope : 'general';
         $where = [];
         $monthRef = preg_match('/^\d{4}-\d{2}$/', (string)$monthRef) ? (string)$monthRef : date('Y-m');
-        if ($scope === 'monthly' || $monthRef !== '') {
+        // «Geral» = soma de todo o histórico; mês do formulário só aplica a «Mensal» e «Por setor».
+        if ($scope === 'monthly' || $scope === 'department') {
             $where[] = 'DATE_FORMAT(l.created_at, "%Y-%m") = :month_ref';
         }
         if ($departmentId !== null && $departmentId > 0) {
