@@ -39,27 +39,14 @@ class GamificationLeaderboard
         $programRepo = new GamificationProgramRepository();
         $userId = (int)($_SESSION['user_id'] ?? 0);
         if ($userId > 0) {
-            if ($scope === 'general') {
-                $totalPts = $programRepo->getUserTotalPoints($userId);
-                $this->data['my_level'] = $programRepo->resolveUserLevel($totalPts);
-                $this->data['my_level_basis'] = 'total';
-                $this->data['my_total_points'] = $totalPts;
-                $this->data['my_level_previous_month'] = null;
-                $this->data['my_monthly_points'] = 0;
-                $this->data['my_previous_month_points'] = 0;
-                $this->data['level_prev_month_ref'] = '';
-            } else {
-                $pointsFilterMonth = $programRepo->getUserMonthlyPoints($userId, $monthRef);
-                $prevMonthRef = self::previousMonthRef($monthRef);
-                $pointsPrevMonth = $programRepo->getUserMonthlyPoints($userId, $prevMonthRef);
-                $this->data['my_level'] = $programRepo->resolveUserLevel($pointsFilterMonth);
-                $this->data['my_level_previous_month'] = $programRepo->resolveUserLevel($pointsPrevMonth);
-                $this->data['my_level_basis'] = 'monthly';
-                $this->data['my_total_points'] = 0;
-                $this->data['my_monthly_points'] = $pointsFilterMonth;
-                $this->data['my_previous_month_points'] = $pointsPrevMonth;
-                $this->data['level_prev_month_ref'] = $prevMonthRef;
-            }
+            $pointsFilterMonth = $programRepo->getUserMonthlyPoints($userId, $monthRef);
+            $prevMonthRef = self::previousMonthRef($monthRef);
+            $pointsPrevMonth = $programRepo->getUserMonthlyPoints($userId, $prevMonthRef);
+            $this->data['my_level'] = $programRepo->resolveUserLevel($pointsFilterMonth);
+            $this->data['my_level_previous_month'] = $programRepo->resolveUserLevel($pointsPrevMonth);
+            $this->data['my_monthly_points'] = $pointsFilterMonth;
+            $this->data['my_previous_month_points'] = $pointsPrevMonth;
+            $this->data['level_prev_month_ref'] = $prevMonthRef;
             $this->data['my_badges'] = $programRepo->listBadgesByUser($userId);
             $missionMonthStart = $monthRef . '-01';
             $this->data['my_missions'] = $programRepo->listWeeklyMissionProgressByUser($userId, $missionMonthStart);

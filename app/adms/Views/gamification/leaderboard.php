@@ -7,8 +7,6 @@ $departmentId = (int)($this->data['department_id'] ?? 0);
 $departments = $this->data['departments'] ?? [];
 $myLevel = $this->data['my_level'] ?? null;
 $myLevelPrev = $this->data['my_level_previous_month'] ?? null;
-$myLevelBasis = (string)($this->data['my_level_basis'] ?? 'monthly');
-$myTotalPoints = (int)($this->data['my_total_points'] ?? 0);
 $myMonthlyPoints = (int)($this->data['my_monthly_points'] ?? 0);
 $myPrevMonthlyPoints = (int)($this->data['my_previous_month_points'] ?? 0);
 $levelPrevMonthRef = (string)($this->data['level_prev_month_ref'] ?? '');
@@ -175,11 +173,7 @@ $initials = static function (string $name): string {
         </ol>
     </div>
     <p class="text-muted small mb-1">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
-    <?php if ($scope === 'general'): ?>
-        <p class="text-muted small">Escopo <strong>Geral</strong>: a lista mostra a <strong>pontuação total</strong> acumulada; o cartão «Meu nível» usa os mesmos totais.</p>
-    <?php else: ?>
-        <p class="text-muted small">Escopo <strong><?= $scope === 'monthly' ? 'Mensal' : 'Por setor' ?></strong>: lista e nível usam apenas pontos do mês <strong><?= htmlspecialchars($monthRef) ?></strong> (limiares dos níveis aplicam-se a esse total mensal).</p>
-    <?php endif; ?>
+    <p class="text-muted small">Os cartões de <strong>nível</strong> usam sempre os pontos do <strong>mês selecionado</strong> no filtro e do <strong>mês civil imediatamente anterior</strong> (limiares configurados em Gamificação). A <strong>lista</strong> do ranking segue o escopo: <strong>Geral</strong> = pontuação total acumulada; <strong>Mensal</strong> ou <strong>Por setor</strong> = só pontos do mês selecionado<?= $scope !== 'general' ? ' (<strong>' . htmlspecialchars($monthRef) . '</strong>)' : '' ?>.</p>
     <div id="gamiFiltersCollapse" class="gami-filters-wrap collapse d-md-block mb-3">
     <form method="get" class="row g-2 mb-0 align-items-end gami-filter-row">
         <div class="col-12 col-md-3 col-lg-2 gami-filter-scope">
@@ -216,48 +210,41 @@ $initials = static function (string $name): string {
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
     <div class="row g-3 mb-3">
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-md-6 col-lg-4">
             <div class="card border-light shadow h-100">
-                <div class="card-header"><?= $myLevelBasis === 'total' ? 'Meu nível (total)' : 'Meu nível (mensal)' ?></div>
+                <div class="card-header">Nível no mês selecionado</div>
                 <div class="card-body">
-                    <?php if ($myLevelBasis === 'total'): ?>
-                        <?php if ($myLevel): ?>
-                            <span class="badge bg-<?= htmlspecialchars((string)($myLevel['badge_color'] ?? 'secondary')) ?> fs-6">
-                                <?= htmlspecialchars((string)($myLevel['name'] ?? '')) ?>
-                            </span>
-                            <div class="small mt-2"><span class="fw-semibold"><?= $myTotalPoints ?></span> pts no total (mesma base do ranking em Geral) · limiar deste nível: mín. <?= (int)($myLevel['min_points'] ?? 0) ?> pts</div>
-                        <?php else: ?>
-                            <span class="text-muted small">Sem nível definido (nenhum limiar ativo).</span>
-                        <?php endif; ?>
-                        <p class="text-muted small mb-0 mt-3">Para nível só pelo mês civil (e comparação com o mês anterior), escolha <strong>Mensal</strong> ou <strong>Por setor</strong>.</p>
+                    <div class="text-muted small mb-2">Referência: <strong><?= htmlspecialchars($monthRef) ?></strong></div>
+                    <?php if ($myLevel): ?>
+                        <span class="badge bg-<?= htmlspecialchars((string)($myLevel['badge_color'] ?? 'secondary')) ?> fs-6">
+                            <?= htmlspecialchars((string)($myLevel['name'] ?? '')) ?>
+                        </span>
+                        <div class="small mt-2"><span class="fw-semibold"><?= $myMonthlyPoints ?></span> pts neste mês · limiar do nível: mín. <?= (int)($myLevel['min_points'] ?? 0) ?> pts no mês</div>
                     <?php else: ?>
-                        <div class="mb-3 pb-3 border-bottom">
-                            <div class="text-muted small mb-1">Mês do filtro <strong><?= htmlspecialchars($monthRef) ?></strong></div>
-                            <?php if ($myLevel): ?>
-                                <span class="badge bg-<?= htmlspecialchars((string)($myLevel['badge_color'] ?? 'secondary')) ?> fs-6">
-                                    <?= htmlspecialchars((string)($myLevel['name'] ?? '')) ?>
-                                </span>
-                                <div class="small mt-2"><span class="fw-semibold"><?= $myMonthlyPoints ?></span> pts neste mês · limiar do nível: mín. <?= (int)($myLevel['min_points'] ?? 0) ?> pts no mês</div>
-                            <?php else: ?>
-                                <span class="text-muted small">Sem nível definido (nenhum limiar ativo).</span>
-                            <?php endif; ?>
-                        </div>
-                        <div>
-                            <div class="text-muted small mb-1">Mês anterior <?= $levelPrevMonthRef !== '' ? '(<strong>' . htmlspecialchars($levelPrevMonthRef) . '</strong>)' : '' ?></div>
-                            <?php if ($myLevelPrev): ?>
-                                <span class="badge bg-<?= htmlspecialchars((string)($myLevelPrev['badge_color'] ?? 'secondary')) ?>">
-                                    <?= htmlspecialchars((string)($myLevelPrev['name'] ?? '')) ?>
-                                </span>
-                                <div class="small mt-2 text-muted"><span class="fw-semibold text-body"><?= $myPrevMonthlyPoints ?></span> pts naquele mês · mín. <?= (int)($myLevelPrev['min_points'] ?? 0) ?> pts</div>
-                            <?php else: ?>
-                                <span class="text-muted small">Sem nível definido.</span>
-                            <?php endif; ?>
-                        </div>
+                        <span class="text-muted small">Sem nível definido (nenhum limiar ativo).</span>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card border-light shadow h-100">
+                <div class="card-header">Nível no mês anterior</div>
+                <div class="card-body">
+                    <?php if ($levelPrevMonthRef !== ''): ?>
+                        <div class="text-muted small mb-2">Referência: <strong><?= htmlspecialchars($levelPrevMonthRef) ?></strong></div>
+                    <?php endif; ?>
+                    <?php if ($myLevelPrev): ?>
+                        <span class="badge bg-<?= htmlspecialchars((string)($myLevelPrev['badge_color'] ?? 'secondary')) ?> fs-6">
+                            <?= htmlspecialchars((string)($myLevelPrev['name'] ?? '')) ?>
+                        </span>
+                        <div class="small mt-2"><span class="fw-semibold"><?= $myPrevMonthlyPoints ?></span> pts naquele mês · limiar do nível: mín. <?= (int)($myLevelPrev['min_points'] ?? 0) ?> pts</div>
+                    <?php else: ?>
+                        <span class="text-muted small">Sem nível definido (nenhum limiar ativo).</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4">
             <div class="card border-light shadow h-100">
                 <div class="card-header">Minhas badges</div>
                 <div class="card-body">
