@@ -25,15 +25,17 @@ class GamificationLeaderboard
             $monthRef = date('Y-m');
         }
         $departmentId = (int)($_GET['department_id'] ?? 0);
-        if ($scope !== 'department') {
-            $departmentId = 0;
-        }
 
         $this->data['scope'] = $scope;
         $this->data['month_ref'] = $monthRef;
         $this->data['department_id'] = $departmentId;
         $this->data['departments'] = $repo->getDepartmentRankingOptions();
-        $this->data['leaderboard'] = $repo->getLeaderboard(40, $scope, $departmentId > 0 ? $departmentId : null, $monthRef);
+        $this->data['leaderboard'] = $repo->getLeaderboard(
+            40,
+            $scope,
+            $departmentId > 0 ? $departmentId : null,
+            $monthRef
+        );
         $programRepo = new GamificationProgramRepository();
         $userId = (int)($_SESSION['user_id'] ?? 0);
         if ($userId > 0) {

@@ -93,11 +93,11 @@ class GamificationLedgerRepository extends DbConnection
         $limit = max(1, min(100, $limit));
         $scope = in_array($scope, ['general', 'monthly', 'department'], true) ? $scope : 'general';
         $where = [];
-        if ($scope === 'monthly') {
-            $monthRef = preg_match('/^\d{4}-\d{2}$/', (string)$monthRef) ? (string)$monthRef : date('Y-m');
+        $monthRef = preg_match('/^\d{4}-\d{2}$/', (string)$monthRef) ? (string)$monthRef : date('Y-m');
+        if ($scope === 'monthly' || $monthRef !== '') {
             $where[] = 'DATE_FORMAT(l.created_at, "%Y-%m") = :month_ref';
         }
-        if ($scope === 'department' && $departmentId !== null && $departmentId > 0) {
+        if ($departmentId !== null && $departmentId > 0) {
             $where[] = 'u.user_department_id = :department_id';
         }
         $whereSql = $where !== [] ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -114,10 +114,10 @@ class GamificationLedgerRepository extends DbConnection
                 ORDER BY total_points DESC, reached_at ASC, u.name ASC
                 LIMIT {$limit}";
         $stmt = $this->getConnection()->prepare($sql);
-        if ($scope === 'monthly') {
+        if (str_contains($whereSql, ':month_ref')) {
             $stmt->bindValue(':month_ref', $monthRef, PDO::PARAM_STR);
         }
-        if ($scope === 'department' && $departmentId !== null && $departmentId > 0) {
+        if ($departmentId !== null && $departmentId > 0) {
             $stmt->bindValue(':department_id', $departmentId, PDO::PARAM_INT);
         }
         $stmt->execute();

@@ -1,8 +1,22 @@
 <?php include __DIR__ . '/partials/module_head.php'; ?>
+<style>
+    .gami-kpi-value { word-break: break-word; }
+    .gami-list-compact .list-group-item { padding: .65rem .8rem; }
+    @media (max-width: 767.98px) {
+        .gami-dashboard-filter { width: 100%; }
+        .gami-dashboard-filter input,
+        .gami-dashboard-filter button { width: 100%; }
+        .gami-dashboard-filter { flex-direction: column; align-items: stretch !important; }
+        .gami-kpi-value { font-size: 1.35rem !important; }
+        .gami-table-mobile th,
+        .gami-table-mobile td { font-size: .8rem; white-space: nowrap; }
+        .gami-list-compact .list-group-item { padding: .55rem .65rem; }
+    }
+</style>
 <div class="container-fluid px-2 px-sm-3 px-md-4">
     <div class="mb-2 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
         <h2 class="mt-2 mt-md-3 mb-0">Dashboard de engajamento</h2>
-        <form method="get" class="ms-md-auto d-flex align-items-center gap-2">
+        <form method="get" class="ms-md-auto d-flex align-items-center gap-2 gami-dashboard-filter">
             <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($this->data['month_ref'] ?? date('Y-m'))) ?>">
             <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
         </form>
@@ -14,19 +28,19 @@
         <div class="col-12 col-md-4">
             <div class="card border-light shadow h-100"><div class="card-body">
                 <div class="text-muted small">Usuários ativos no mês</div>
-                <div class="fs-4 fw-semibold"><?= (int)($kpi['active_users'] ?? 0) ?></div>
+                <div class="fs-4 fw-semibold gami-kpi-value"><?= (int)($kpi['active_users'] ?? 0) ?></div>
             </div></div>
         </div>
         <div class="col-12 col-md-4">
             <div class="card border-light shadow h-100"><div class="card-body">
                 <div class="text-muted small">Pontos distribuídos no mês</div>
-                <div class="fs-4 fw-semibold"><?= (int)($kpi['total_points_month'] ?? 0) ?></div>
+                <div class="fs-4 fw-semibold gami-kpi-value"><?= (int)($kpi['total_points_month'] ?? 0) ?></div>
             </div></div>
         </div>
         <div class="col-12 col-md-4">
             <div class="card border-light shadow h-100"><div class="card-body">
                 <div class="text-muted small">Bloqueios anti-fraude (mês)</div>
-                <div class="fs-4 fw-semibold"><?= (int)($kpi['anti_fraud_blocks'] ?? 0) ?></div>
+                <div class="fs-4 fw-semibold gami-kpi-value"><?= (int)($kpi['anti_fraud_blocks'] ?? 0) ?></div>
             </div></div>
         </div>
     </div>
@@ -37,7 +51,7 @@
                 <div class="card-header">Ranking por setor (mês)</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
+                        <table class="table table-sm table-hover mb-0 gami-table-mobile">
                             <thead><tr><th>Setor</th><th class="text-end">Pontos</th></tr></thead>
                             <tbody>
                             <?php foreach (($this->data['department_engagement'] ?? []) as $row): ?>
@@ -57,7 +71,7 @@
                 <div class="card-header">Níveis configurados</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
+                        <table class="table table-sm table-hover mb-0 gami-table-mobile">
                             <thead><tr><th>Nível</th><th class="text-end">Pontos mínimos</th></tr></thead>
                             <tbody>
                             <?php foreach (($this->data['levels'] ?? []) as $level): ?>
@@ -76,7 +90,7 @@
         <div class="col-12 col-lg-6">
             <div class="card border-light shadow h-100">
                 <div class="card-header">Badges ativos</div>
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush gami-list-compact">
                     <?php foreach (($this->data['badges'] ?? []) as $badge): ?>
                         <li class="list-group-item">
                             <strong><?= htmlspecialchars((string)($badge['name'] ?? '')) ?></strong><br>
@@ -90,7 +104,7 @@
         <div class="col-12 col-lg-6">
             <div class="card border-light shadow h-100">
                 <div class="card-header">Missões semanais</div>
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush gami-list-compact">
                     <?php foreach (($this->data['weekly_missions'] ?? []) as $mission): ?>
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div>
@@ -109,7 +123,7 @@
                 <div class="card-header">Bloqueios anti-fraude recentes</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
+                        <table class="table table-sm table-hover mb-0 gami-table-mobile">
                             <thead><tr><th>Colaborador</th><th>Evento</th><th>Motivo</th><th>Data</th></tr></thead>
                             <tbody>
                             <?php foreach (($this->data['anti_fraud_events'] ?? []) as $event): ?>
