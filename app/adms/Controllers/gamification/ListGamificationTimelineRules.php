@@ -6,6 +6,7 @@ namespace App\adms\Controllers\gamification;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\GamificationProgramRepository;
 use App\adms\Models\Repository\GamificationTimelineRulesRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -148,6 +149,11 @@ class ListGamificationTimelineRules
     {
         $programRepo = new GamificationProgramRepository();
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+            if (!$this->userCanEditGamificationSettings()) {
+                $_SESSION['error'] = 'Sem permissão para alterar as configurações de gamificação.';
+                header('Location: ' . $_ENV['URL_ADM'] . 'list-gamification-timeline-rules');
+                exit;
+            }
             $postedSection = (string)($_POST['section'] ?? '');
             $this->handlePost($programRepo);
             $tab = self::redirectHashForGamificationSection($postedSection);
@@ -187,6 +193,7 @@ class ListGamificationTimelineRules
         $this->data['badge_criteria_options'] = $this->badgeCriteriaOptions();
         $this->data['mission_event_options'] = $this->missionEventOptions();
         $this->data['level_color_options'] = $this->levelColorOptions();
+        $this->data['gamification_read_only'] = !$this->userCanEditGamificationSettings();
 
         $pageElements = [
             'title_head' => 'Gamificação — Regras da timeline',
@@ -415,5 +422,19 @@ class ListGamificationTimelineRules
         }
 
         return '';
+    }
+
+    /** Quem só tem listagem usa modo consulta; edição exige permissão da página de atualização de regra. */
+    private function userCanEditGamificationSettings(): bool
+    {
+        if (empty($_SESSION['user_id'])) {
+            return false;
+        }
+        $allowed = (new ButtonPermissionUserRepository())->buttonPermission(['UpdateGamificationTimelineRule']);
+        if ($allowed === false) {
+            return false;
+        }
+
+        return in_array('UpdateGamificationTimelineRule', $allowed, true);
     }
 }

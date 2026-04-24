@@ -59,7 +59,11 @@ class GamificationLeaderboard
         $pageElements = [
             'title_head' => 'Ranking de pontos — Gamificação',
             'menu' => 'GamificationLeaderboard',
-            'buttonPermission' => [],
+            'buttonPermission' => [
+                'ListGamificationTimelineRules',
+                'ListGamificationPointLedger',
+                'GamificationQuizCatalog',
+            ],
         ];
 
         $pageLayoutService = new PageLayoutService();

@@ -13,6 +13,11 @@ $levelPrevMonthRef = (string)($this->data['level_prev_month_ref'] ?? '');
 $myBadges = $this->data['my_badges'] ?? [];
 $myMissions = $this->data['my_missions'] ?? [];
 $missionMonthRange = (string)($this->data['mission_month_range_label'] ?? '');
+$btnPerm = $this->data['buttonPermission'] ?? [];
+$sessionUserId = (int)($_SESSION['user_id'] ?? 0);
+$canRules = in_array('ListGamificationTimelineRules', $btnPerm, true);
+$canLedger = in_array('ListGamificationPointLedger', $btnPerm, true) && $sessionUserId > 0;
+$canQuizCatalog = in_array('GamificationQuizCatalog', $btnPerm, true);
 $top1 = $rows[0] ?? null;
 $top2 = $rows[1] ?? null;
 $top3 = $rows[2] ?? null;
@@ -174,6 +179,20 @@ $initials = static function (string $name): string {
     </div>
     <p class="text-muted small mb-1">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
     <p class="text-muted small">Os cartões de <strong>nível</strong> usam sempre os pontos do <strong>mês selecionado</strong> no filtro e do <strong>mês civil imediatamente anterior</strong> (limiares configurados em Gamificação). A <strong>lista</strong> do ranking segue o escopo: <strong>Geral</strong> = pontuação total acumulada; <strong>Mensal</strong> ou <strong>Por setor</strong> = só pontos do mês selecionado<?= $scope !== 'general' ? ' (<strong>' . htmlspecialchars($monthRef) . '</strong>)' : '' ?>.</p>
+    <?php if ($canRules || $canLedger || $canQuizCatalog): ?>
+        <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+            <span class="text-muted small">Consultar:</span>
+            <?php if ($canRules): ?>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>list-gamification-timeline-rules" class="btn btn-sm btn-outline-primary"><i class="fas fa-book me-1"></i>Regras e pontuação</a>
+            <?php endif; ?>
+            <?php if ($canLedger): ?>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>list-gamification-point-ledger?user_id=<?= $sessionUserId ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-receipt me-1"></i>Extrato dos meus pontos</a>
+            <?php endif; ?>
+            <?php if ($canQuizCatalog): ?>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>gamification-quiz-catalog" class="btn btn-sm btn-outline-secondary"><i class="fas fa-question-circle me-1"></i>Quizzes</a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
     <div id="gamiFiltersCollapse" class="gami-filters-wrap collapse d-md-block mb-3">
     <form method="get" class="row g-2 mb-0 align-items-end gami-filter-row">
         <div class="col-12 col-md-3 col-lg-2 gami-filter-scope">
