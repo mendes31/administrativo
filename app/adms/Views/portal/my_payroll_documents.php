@@ -146,12 +146,22 @@ $payrollDocTypeIcon = [
             <div class="card border-0 shadow-sm mb-2 mb-md-3 rounded-3">
                 <div class="card-body py-2 px-2 px-md-3">
                     <div class="d-flex flex-wrap align-items-center gap-2">
-                        <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" data-bs-toggle="collapse" data-bs-target="#payrollFiltersPanel" aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>" aria-controls="payrollFiltersPanel" id="btnPayrollFiltersToggle">
+                        <button type="button" class="btn btn-outline-primary btn-sm d-none d-md-inline-flex align-items-center gap-1" data-bs-toggle="collapse" data-bs-target="#payrollFiltersPanel" aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>" aria-controls="payrollFiltersPanel" id="btnPayrollFiltersToggleDesktop">
                             <i class="fas fa-filter" aria-hidden="true"></i>
                             <span>Filtros</span>
                             <?php if ($filtersActive): ?>
                                 <span class="badge text-bg-primary rounded-pill ms-1" style="font-size: 0.65rem;">ativo</span>
                             <?php endif; ?>
+                        </button>
+                        <button type="button" class="adm-filter-mobile-trigger adm-filter-mobile-trigger--compact d-md-none" data-bs-toggle="collapse" data-bs-target="#payrollFiltersPanel" aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>" aria-controls="payrollFiltersPanel" id="btnPayrollFiltersToggle">
+                            <span class="adm-filter-mobile-trigger__leading">
+                                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                                <span>Filtros</span>
+                                <?php if ($filtersActive): ?>
+                                    <span class="badge rounded-pill ms-1" style="font-size: 0.65rem; background: #e5e7eb; color: #374151;">ativo</span>
+                                <?php endif; ?>
+                            </span>
+                            <span class="adm-filter-mobile-trigger__chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
                         </button>
                         <?php if ($filtersActive): ?>
                             <span class="small text-muted text-truncate" style="max-width: 100%;">

@@ -271,6 +271,75 @@ body, html, .container-fluid, .card {
   color: #212529 !important;
 }
 
+/**
+ * Filtros recolhíveis no mobile: gatilho leve (não compete com botões primários).
+ * Use em <button type="button" class="adm-filter-mobile-trigger" data-bs-toggle="collapse" ...>
+ */
+@media (max-width: 767.98px) {
+  .adm-filter-mobile-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: #4b5563;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: none;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .adm-filter-mobile-trigger:hover,
+  .adm-filter-mobile-trigger:focus-visible {
+    color: #374151;
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+  }
+  .adm-filter-mobile-trigger:focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(107, 114, 128, 0.18);
+  }
+  .adm-filter-mobile-trigger__leading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  .adm-filter-mobile-trigger__leading i {
+    font-size: 0.8rem;
+    color: #6b7280;
+    flex-shrink: 0;
+  }
+  .adm-filter-mobile-trigger__chevron {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    color: #9ca3af;
+    transition: transform 0.2s ease;
+  }
+  .adm-filter-mobile-trigger[aria-expanded="true"] .adm-filter-mobile-trigger__chevron {
+    transform: rotate(180deg);
+  }
+  /* Ao lado do título: não ocupa linha inteira */
+  .adm-filter-mobile-trigger--compact {
+    width: auto;
+    max-width: 100%;
+    padding: 0.38rem 0.65rem;
+    font-size: 0.78rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .adm-filter-mobile-trigger--compact .adm-filter-mobile-trigger__chevron {
+    margin-left: 0.2rem;
+  }
+}
+
 
 
 

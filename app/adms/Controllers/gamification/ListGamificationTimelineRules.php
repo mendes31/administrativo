@@ -21,7 +21,7 @@ class ListGamificationTimelineRules
         return [
             'total_points' => 'Pontuação total',
             'monthly_points' => 'Pontuação mensal',
-            'weekly_missions_completed' => 'Missões semanais concluídas',
+            'monthly_missions_completed' => 'Missões mensais concluídas',
             'monthly_posts' => 'Publicações no mês',
         ];
     }
@@ -97,7 +97,7 @@ class ListGamificationTimelineRules
             return true;
         }
 
-        if ($criteriaKey === 'weekly_missions_completed') {
+        if ($criteriaKey === 'monthly_missions_completed' || $criteriaKey === 'weekly_missions_completed') {
             if (!array_key_exists('min_missions', $decoded) || (int)$decoded['min_missions'] < 0) {
                 $errorMessage = 'Para este critério, informe "min_missions" com valor numérico >= 0.';
                 return false;
@@ -121,7 +121,7 @@ class ListGamificationTimelineRules
     {
         return match ($criteriaKey) {
             'total_points', 'monthly_points' => 'min_points',
-            'weekly_missions_completed' => 'min_missions',
+            'monthly_missions_completed', 'weekly_missions_completed' => 'min_missions',
             'monthly_posts' => 'min_posts',
             default => 'min_points',
         };
@@ -148,8 +148,10 @@ class ListGamificationTimelineRules
     {
         $programRepo = new GamificationProgramRepository();
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+            $postedSection = (string)($_POST['section'] ?? '');
             $this->handlePost($programRepo);
-            header('Location: ' . $_ENV['URL_ADM'] . 'list-gamification-timeline-rules');
+            $tab = self::redirectHashForGamificationSection($postedSection);
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-gamification-timeline-rules' . $tab);
             exit;
         }
 
@@ -394,5 +396,24 @@ class ListGamificationTimelineRules
             $programRepo->updateSetting($key, (string)($_POST['setting_value'] ?? ''));
             $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Configuração anti-fraude atualizada com sucesso.</div>';
         }
+    }
+
+    /** Fragmento #tab-* para manter a aba correta após POST (Bootstrap tabs). */
+    private static function redirectHashForGamificationSection(string $section): string
+    {
+        if (in_array($section, ['level', 'level_create', 'level_remove'], true)) {
+            return '#tab-levels';
+        }
+        if (in_array($section, ['badge', 'badge_create', 'badge_remove'], true)) {
+            return '#tab-badges';
+        }
+        if (in_array($section, ['mission', 'mission_create', 'mission_remove'], true)) {
+            return '#tab-missions';
+        }
+        if ($section === 'setting') {
+            return '#tab-antifraud';
+        }
+
+        return '';
     }
 }

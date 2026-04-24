@@ -25,7 +25,7 @@ class GamificationEngagementDashboard
         $this->data['department_engagement'] = $repo->getDepartmentEngagement($monthRef);
         $this->data['levels'] = $repo->listActiveLevels();
         $this->data['badges'] = $repo->listActiveBadges();
-        $this->data['weekly_missions'] = $repo->listActiveWeeklyMissions();
+        $this->data['monthly_missions'] = $repo->listEngagementMissionsForMonth($monthRef);
         $this->data['anti_fraud_events'] = $repo->listRecentAntiFraudEvents(25);
 
         $pageElements = [

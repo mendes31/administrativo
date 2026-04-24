@@ -62,7 +62,7 @@ class GamificationAwardService
         }
         $ok = $this->ledgerRepo->insertIfNotExists($userId, 'timeline', $eventKey, $refType, $refId, $points, $metaJson);
         if ($ok) {
-            $this->processWeeklyMissions($userId, $eventKey);
+            $this->processMonthlyMissions($userId, $eventKey);
             $this->processBadges($userId);
         }
 
@@ -151,9 +151,12 @@ class GamificationAwardService
         }
     }
 
-    private function processWeeklyMissions(int $userId, string $eventKey): void
+    /**
+     * Progresso das missões por mês civil (chave em adms_gamification_user_mission_progress.week_start_date = Y-m-01).
+     */
+    private function processMonthlyMissions(int $userId, string $eventKey): void
     {
-        $weekStart = (new \DateTimeImmutable('monday this week'))->format('Y-m-d');
+        $monthStart = (new \DateTimeImmutable('first day of this month'))->format('Y-m-01');
         foreach ($this->programRepo->listActiveWeeklyMissions() as $mission) {
             if ((string)($mission['event_key'] ?? '') !== $eventKey) {
                 continue;
@@ -161,23 +164,26 @@ class GamificationAwardService
             $progress = $this->programRepo->upsertWeeklyMissionProgress(
                 (int)$mission['id'],
                 $userId,
-                $weekStart,
+                $monthStart,
                 1
             );
-            $target = max(1, (int)($mission['target_value'] ?? 1));
+            if ((int)($progress['id'] ?? 0) <= 0) {
+                continue;
+            }
+            $target = max(1, (int)($progress['effective_target'] ?? 1));
             if ((int)($progress['is_completed'] ?? 0) === 1 || (int)($progress['current_value'] ?? 0) < $target) {
                 continue;
             }
 
             $this->programRepo->markMissionCompleted((int)$progress['id']);
-            $rewardPoints = max(0, (int)($mission['reward_points'] ?? 0));
+            $rewardPoints = max(0, (int)($progress['effective_reward'] ?? 0));
             if ($rewardPoints <= 0) {
                 continue;
             }
             $this->ledgerRepo->insertIfNotExists(
                 $userId,
                 'mission',
-                'weekly_mission_completed',
+                'monthly_mission_completed',
                 'gamification_mission_progress',
                 (int)$progress['id'],
                 $rewardPoints,
@@ -211,7 +217,7 @@ class GamificationAwardService
                 $shouldAward = $totalPoints >= (int)($criteria['min_points'] ?? 0);
             } elseif ($criteriaKey === 'monthly_points') {
                 $shouldAward = $monthlyPoints >= (int)($criteria['min_points'] ?? 0);
-            } elseif ($criteriaKey === 'weekly_missions_completed') {
+            } elseif ($criteriaKey === 'monthly_missions_completed' || $criteriaKey === 'weekly_missions_completed') {
                 $shouldAward = $completedMissions >= (int)($criteria['min_missions'] ?? 0);
             }
             if (!$shouldAward) {

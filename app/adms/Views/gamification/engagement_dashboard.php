@@ -90,6 +90,7 @@
         <div class="col-12 col-lg-6">
             <div class="card border-light shadow h-100">
                 <div class="card-header">Badges ativos</div>
+                <div class="px-3 py-2 small text-muted border-bottom">Critérios atuais configurados em Gamificação → Regras (não variam por mês).</div>
                 <ul class="list-group list-group-flush gami-list-compact">
                     <?php foreach (($this->data['badges'] ?? []) as $badge): ?>
                         <li class="list-group-item">
@@ -103,9 +104,10 @@
 
         <div class="col-12 col-lg-6">
             <div class="card border-light shadow h-100">
-                <div class="card-header">Missões semanais</div>
+                <div class="card-header">Missões mensais</div>
+                <div class="px-3 py-2 small text-muted border-bottom">Texto e meta do mês <strong><?= htmlspecialchars((string)($this->data['month_ref'] ?? '')) ?></strong> quando houver progresso gravado; senão, a definição atual.</div>
                 <ul class="list-group list-group-flush gami-list-compact">
-                    <?php foreach (($this->data['weekly_missions'] ?? []) as $mission): ?>
+                    <?php foreach (($this->data['monthly_missions'] ?? []) as $mission): ?>
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div>
                                 <strong><?= htmlspecialchars((string)($mission['title'] ?? '')) ?></strong><br>

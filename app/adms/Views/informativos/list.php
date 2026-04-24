@@ -171,8 +171,12 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
 
                     <!-- Toggle de Filtros avançados no mobile -->
                     <div class="d-block d-md-none mt-2">
-                        <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#informativosFiltersAdvanced" aria-expanded="false" aria-controls="informativosFiltersAdvanced">
-                            <i class="fas fa-sliders me-2"></i>Filtros avançados
+                        <button class="adm-filter-mobile-trigger" type="button" data-bs-toggle="collapse" data-bs-target="#informativosFiltersAdvanced" aria-expanded="false" aria-controls="informativosFiltersAdvanced">
+                            <span class="adm-filter-mobile-trigger__leading">
+                                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                                <span>Filtros avançados</span>
+                            </span>
+                            <span class="adm-filter-mobile-trigger__chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
                         </button>
                     </div>
 

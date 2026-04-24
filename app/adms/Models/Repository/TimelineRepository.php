@@ -1023,6 +1023,8 @@ class TimelineRepository extends DbConnection
         try {
             $pdo->beginTransaction();
 
+            (new GamificationLedgerRepository())->deleteLedgerRowsForTimelinePost($postId);
+
             $pdo->prepare($sqlDelMentions)->execute([':id' => $postId]);
             $pdo->prepare($sqlDelLikes)->execute([':id' => $postId]);
             $pdo->prepare($sqlDelComments)->execute([':id' => $postId]);
@@ -1057,6 +1059,8 @@ class TimelineRepository extends DbConnection
         $pdo = $this->getConnection();
         try {
             $pdo->beginTransaction();
+
+            (new GamificationLedgerRepository())->deleteLedgerRowsForTimelinePost($postId);
 
             $pdo->prepare($sqlDelMentions)->execute([':id' => $postId]);
             $pdo->prepare($sqlDelLikes)->execute([':id' => $postId]);

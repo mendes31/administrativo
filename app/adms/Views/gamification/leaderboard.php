@@ -7,7 +7,8 @@ $departmentId = (int)($this->data['department_id'] ?? 0);
 $departments = $this->data['departments'] ?? [];
 $myLevel = $this->data['my_level'] ?? null;
 $myBadges = $this->data['my_badges'] ?? [];
-$myMissions = $this->data['my_weekly_missions'] ?? [];
+$myMissions = $this->data['my_missions'] ?? [];
+$missionMonthRange = (string)($this->data['mission_month_range_label'] ?? '');
 $top1 = $rows[0] ?? null;
 $top2 = $rows[1] ?? null;
 $top3 = $rows[2] ?? null;
@@ -94,6 +95,31 @@ $initials = static function (string $name): string {
         .gami-filter-row .form-select-sm,
         .gami-filter-row .form-control-sm { font-size: .84rem; }
     }
+    /* Uma linha estável em telas largas: larguras min/max por campo */
+    @media (min-width: 992px) {
+        .gami-filter-row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: flex-end;
+            gap: .55rem;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        .gami-filter-row > [class*="col-"] {
+            flex: 0 0 auto !important;
+            width: auto !important;
+            max-width: none !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        .gami-filter-row .form-select-sm,
+        .gami-filter-row .form-control-sm { width: 100%; }
+        .gami-filter-scope { min-width: 120px; max-width: 180px; flex: 0 0 150px; }
+        .gami-filter-month { min-width: 140px; max-width: 200px; flex: 0 0 165px; }
+        .gami-filter-sector { min-width: 180px; max-width: 380px; flex: 1 1 240px; }
+        .gami-filter-actions-wrap { min-width: 150px; max-width: 220px; flex: 0 0 190px; }
+        .gami-filter-actions { flex-wrap: nowrap; }
+    }
     .gami-filter-toggle-mobile { display: none; }
     @media (max-width: 767.98px) {
         .gami-podium-wrap { padding: 14px 8px 6px; }
@@ -119,16 +145,24 @@ $initials = static function (string $name): string {
         .gami-mission-meta { font-size: .78rem; color: #4b5563; display: flex; justify-content: space-between; }
         .gami-filter-toggle-mobile { display: inline-flex; }
         .gami-filters-wrap.collapse:not(.show) { display: none; }
+        .gami-title-filter-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+        .gami-title-filter-row h2 { min-width: 0; }
     }
 </style>
 <div class="container-fluid px-2 px-sm-3 px-md-4">
     <div class="mb-2 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+        <div class="gami-title-filter-row w-100 w-md-auto">
         <h2 class="mt-2 mt-md-3 mb-0"><i class="fas fa-trophy text-warning me-2"></i>Ranking de pontos</h2>
-        <button class="btn btn-outline-secondary btn-sm gami-filter-toggle-mobile" type="button"
+        <button class="adm-filter-mobile-trigger adm-filter-mobile-trigger--compact gami-filter-toggle-mobile mt-2 mt-md-0 align-self-center" type="button"
                 data-bs-toggle="collapse" data-bs-target="#gamiFiltersCollapse"
                 aria-expanded="false" aria-controls="gamiFiltersCollapse">
-            <i class="fas fa-sliders-h me-1"></i>Filtros
+            <span class="adm-filter-mobile-trigger__leading">
+                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                <span>Filtros</span>
+            </span>
+            <span class="adm-filter-mobile-trigger__chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
         </button>
+        </div>
         <ol class="breadcrumb mb-0 mt-1 ms-md-auto small">
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
             <li class="breadcrumb-item">Gamificação</li>
@@ -137,7 +171,7 @@ $initials = static function (string $name): string {
     <p class="text-muted small">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
     <div id="gamiFiltersCollapse" class="gami-filters-wrap collapse d-md-block mb-3">
     <form method="get" class="row g-2 mb-0 align-items-end gami-filter-row">
-        <div class="col-12 col-md-3 col-lg-2">
+        <div class="col-12 col-md-3 col-lg-2 gami-filter-scope">
             <label class="form-label small mb-1">Escopo</label>
             <select name="scope" class="form-select form-select-sm">
                 <option value="general" <?= $scope === 'general' ? 'selected' : '' ?>>Geral</option>
@@ -145,11 +179,11 @@ $initials = static function (string $name): string {
                 <option value="department" <?= $scope === 'department' ? 'selected' : '' ?>>Por setor</option>
             </select>
         </div>
-        <div class="col-12 col-md-3 col-lg-2">
+        <div class="col-12 col-md-3 col-lg-2 gami-filter-month">
             <label class="form-label small mb-1">Mês</label>
             <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($monthRef) ?>">
         </div>
-        <div class="col-12 col-md-4 col-lg-3">
+        <div class="col-12 col-md-4 col-lg-3 gami-filter-sector">
             <label class="form-label small mb-1">Setor</label>
             <select name="department_id" class="form-select form-select-sm">
                 <option value="0">Todos</option>
@@ -160,7 +194,7 @@ $initials = static function (string $name): string {
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-12 col-md-2 col-lg-3 d-flex align-items-end">
+        <div class="col-12 col-md-2 col-lg-3 d-flex align-items-end gami-filter-actions-wrap">
             <div class="gami-filter-actions">
                 <button type="submit" class="btn btn-sm btn-primary w-100">Aplicar</button>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>gamification-leaderboard" class="btn btn-sm btn-outline-secondary w-100">Limpar</a>
@@ -258,7 +292,13 @@ $initials = static function (string $name): string {
 
     <?php if ($myMissions !== []): ?>
             <div class="card border-light shadow mt-3">
-            <div class="card-header">Missões da semana</div>
+            <div class="card-header">Missões do mês</div>
+            <?php if ($missionMonthRange !== ''): ?>
+                <p class="small text-muted px-3 pt-2 mb-0">
+                    Período <strong><?= htmlspecialchars($missionMonthRange) ?></strong>
+                    (mês do filtro acima). O filtro de <strong>setor</strong> aplica-se ao ranking, não às suas missões.
+                </p>
+            <?php endif; ?>
             <div class="card-body p-0">
                 <div class="table-responsive gami-missions-table">
                     <table class="table table-sm mb-0">

@@ -170,6 +170,69 @@ class GamificationProgramRepository extends DbConnection
         return is_array($rows) ? $rows : [];
     }
 
+    /**
+     * Missões para o dashboard de engajamento: para o mês filtrado, usa snapshot de progresso (qualquer utilizador)
+     * quando existir, para alinhar texto/meta ao que valeu naquele mês; caso contrário, a definição actual na tabela.
+     *
+     * @param string $monthRef Formato Y-m
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listEngagementMissionsForMonth(string $monthRef): array
+    {
+        if (!preg_match('/^\d{4}-\d{2}$/', $monthRef)) {
+            $monthRef = date('Y-m');
+        }
+        $monthStart = $monthRef . '-01';
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'SELECT m.id,
+                        COALESCE(
+                            (SELECT p.snapshot_title FROM adms_gamification_user_mission_progress p
+                             WHERE p.mission_id = m.id AND p.week_start_date = :w
+                               AND NULLIF(TRIM(p.snapshot_title), \'\') IS NOT NULL
+                             ORDER BY p.id ASC LIMIT 1),
+                            m.title
+                        ) AS title,
+                        COALESCE(
+                            (SELECT p.snapshot_description FROM adms_gamification_user_mission_progress p
+                             WHERE p.mission_id = m.id AND p.week_start_date = :w2
+                               AND NULLIF(TRIM(p.snapshot_description), \'\') IS NOT NULL
+                             ORDER BY p.id ASC LIMIT 1),
+                            m.description
+                        ) AS description,
+                        COALESCE(
+                            (SELECT p.snapshot_target_value FROM adms_gamification_user_mission_progress p
+                             WHERE p.mission_id = m.id AND p.week_start_date = :w3
+                               AND p.snapshot_target_value IS NOT NULL
+                             ORDER BY p.id ASC LIMIT 1),
+                            m.target_value
+                        ) AS target_value,
+                        COALESCE(
+                            (SELECT p.snapshot_reward_points FROM adms_gamification_user_mission_progress p
+                             WHERE p.mission_id = m.id AND p.week_start_date = :w4
+                               AND p.snapshot_reward_points IS NOT NULL
+                             ORDER BY p.id ASC LIMIT 1),
+                            m.reward_points
+                        ) AS reward_points
+                 FROM adms_gamification_weekly_missions m
+                 WHERE m.is_active = 1
+                 ORDER BY m.sort_order ASC, m.id ASC'
+            );
+            $stmt->execute([
+                ':w' => $monthStart,
+                ':w2' => $monthStart,
+                ':w3' => $monthStart,
+                ':w4' => $monthStart,
+            ]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return $this->listActiveWeeklyMissions();
+        }
+
+        return is_array($rows) ? $rows : [];
+    }
+
     public function listWeeklyMissions(): array
     {
         $stmt = $this->getConnection()->query(
@@ -181,13 +244,22 @@ class GamificationProgramRepository extends DbConnection
         return is_array($rows) ? $rows : [];
     }
 
+    /**
+     * @param string $weekStartDate Primeiro dia do mês civil (Y-m-01); nome da coluna na BD mantém-se week_start_date.
+     *
+     * @return array{id:int,current_value:int,is_completed:int,effective_target:int,effective_reward:int}
+     */
     public function upsertWeeklyMissionProgress(int $missionId, int $userId, string $weekStartDate, int $increment): array
     {
         $pdo = $this->getConnection();
+        $increment = max(0, $increment);
         $sel = $pdo->prepare(
-            'SELECT id, current_value, is_completed
-             FROM adms_gamification_user_mission_progress
-             WHERE mission_id = :m AND user_id = :u AND week_start_date = :w
+            'SELECT p.id, p.current_value, p.is_completed,
+                    COALESCE(p.snapshot_target_value, m.target_value) AS eff_target,
+                    COALESCE(p.snapshot_reward_points, m.reward_points) AS eff_reward
+             FROM adms_gamification_user_mission_progress p
+             INNER JOIN adms_gamification_weekly_missions m ON m.id = p.mission_id
+             WHERE p.mission_id = :m AND p.user_id = :u AND p.week_start_date = :w
              LIMIT 1'
         );
         $sel->execute([':m' => $missionId, ':u' => $userId, ':w' => $weekStartDate]);
@@ -195,22 +267,91 @@ class GamificationProgramRepository extends DbConnection
         if (!$row) {
             $ins = $pdo->prepare(
                 'INSERT INTO adms_gamification_user_mission_progress
-                 (mission_id, user_id, week_start_date, current_value, is_completed, created_at, updated_at)
-                 VALUES (:m, :u, :w, :v, 0, NOW(), NOW())'
+                 (mission_id, user_id, week_start_date, current_value, is_completed,
+                  snapshot_target_value, snapshot_reward_points, snapshot_title, snapshot_description,
+                  created_at, updated_at)
+                 SELECT :m, :u, :w, :v, 0,
+                        m.target_value, m.reward_points, m.title, m.description,
+                        NOW(), NOW()
+                 FROM adms_gamification_weekly_missions m WHERE m.id = :m2 LIMIT 1'
             );
-            $ins->execute([':m' => $missionId, ':u' => $userId, ':w' => $weekStartDate, ':v' => max(0, $increment)]);
-            $id = (int)$pdo->lastInsertId();
-            return ['id' => $id, 'current_value' => max(0, $increment), 'is_completed' => 0];
+            $ins->execute([
+                ':m' => $missionId,
+                ':u' => $userId,
+                ':w' => $weekStartDate,
+                ':v' => $increment,
+                ':m2' => $missionId,
+            ]);
+            if ((int)$pdo->lastInsertId() <= 0) {
+                return ['id' => 0, 'current_value' => 0, 'is_completed' => 0, 'effective_target' => 1, 'effective_reward' => 0];
+            }
+
+            return $this->fetchMissionProgressState($missionId, $userId, $weekStartDate);
         }
 
-        $newValue = (int)$row['current_value'] + max(0, $increment);
+        $newValue = (int)$row['current_value'] + $increment;
         $upd = $pdo->prepare(
             'UPDATE adms_gamification_user_mission_progress
              SET current_value = :v, updated_at = NOW()
              WHERE id = :id'
         );
         $upd->execute([':v' => $newValue, ':id' => (int)$row['id']]);
-        return ['id' => (int)$row['id'], 'current_value' => $newValue, 'is_completed' => (int)$row['is_completed']];
+
+        return $this->fetchMissionProgressState($missionId, $userId, $weekStartDate);
+    }
+
+    /**
+     * Preenche snapshots em linhas antigas (útil após cópias manuais na BD).
+     *
+     * @return int Linhas atualizadas
+     */
+    public function backfillNullMissionSnapshots(): int
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'UPDATE adms_gamification_user_mission_progress p
+                 INNER JOIN adms_gamification_weekly_missions m ON m.id = p.mission_id
+                 SET p.snapshot_target_value = m.target_value,
+                     p.snapshot_reward_points = m.reward_points,
+                     p.snapshot_title = m.title,
+                     p.snapshot_description = m.description
+                 WHERE p.snapshot_target_value IS NULL'
+            );
+            $stmt->execute();
+
+            return $stmt->rowCount();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
+     * @return array{id:int,current_value:int,is_completed:int,effective_target:int,effective_reward:int}
+     */
+    private function fetchMissionProgressState(int $missionId, int $userId, string $weekStartDate): array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT p.id, p.current_value, p.is_completed,
+                    COALESCE(p.snapshot_target_value, m.target_value) AS eff_target,
+                    COALESCE(p.snapshot_reward_points, m.reward_points) AS eff_reward
+             FROM adms_gamification_user_mission_progress p
+             INNER JOIN adms_gamification_weekly_missions m ON m.id = p.mission_id
+             WHERE p.mission_id = :m AND p.user_id = :u AND p.week_start_date = :w
+             LIMIT 1'
+        );
+        $stmt->execute([':m' => $missionId, ':u' => $userId, ':w' => $weekStartDate]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return ['id' => 0, 'current_value' => 0, 'is_completed' => 0, 'effective_target' => 1, 'effective_reward' => 0];
+        }
+
+        return [
+            'id' => (int)$row['id'],
+            'current_value' => (int)$row['current_value'],
+            'is_completed' => (int)$row['is_completed'],
+            'effective_target' => max(1, (int)$row['eff_target']),
+            'effective_reward' => max(0, (int)$row['eff_reward']),
+        ];
     }
 
     public function markMissionCompleted(int $progressId): void
@@ -223,10 +364,17 @@ class GamificationProgramRepository extends DbConnection
         $stmt->execute([':id' => $progressId]);
     }
 
+    /**
+     * @param string $weekStartDate Y-m-01 (início do mês civil) para o qual se pede o progresso.
+     */
     public function listWeeklyMissionProgressByUser(int $userId, string $weekStartDate): array
     {
         $stmt = $this->getConnection()->prepare(
-            'SELECT m.id AS mission_id, m.title, m.description, m.target_value, m.reward_points,
+            'SELECT m.id AS mission_id,
+                    COALESCE(p.snapshot_title, m.title) AS title,
+                    COALESCE(p.snapshot_description, m.description) AS description,
+                    COALESCE(p.snapshot_target_value, m.target_value) AS target_value,
+                    COALESCE(p.snapshot_reward_points, m.reward_points) AS reward_points,
                     COALESCE(p.current_value, 0) AS current_value,
                     COALESCE(p.is_completed, 0) AS is_completed
              FROM adms_gamification_weekly_missions m
@@ -234,7 +382,7 @@ class GamificationProgramRepository extends DbConnection
                ON p.mission_id = m.id
               AND p.user_id = :u
               AND p.week_start_date = :w
-             WHERE m.is_active = 1
+             WHERE m.is_active = 1 OR p.id IS NOT NULL
              ORDER BY m.sort_order ASC, m.id ASC'
         );
         $stmt->execute([':u' => $userId, ':w' => $weekStartDate]);
@@ -267,11 +415,14 @@ class GamificationProgramRepository extends DbConnection
 
     public function getEngagementIndicators(string $monthRef): array
     {
+        $exL = GamificationRankingExclusions::sqlLedgerUserNotExcluded('user_id');
         $stmt = $this->getConnection()->prepare(
-            'SELECT
-                (SELECT COUNT(DISTINCT user_id) FROM adms_gamification_point_ledger WHERE DATE_FORMAT(created_at, "%Y-%m") = :m1) AS active_users,
-                (SELECT COUNT(*) FROM adms_gamification_anti_fraud_events WHERE DATE_FORMAT(created_at, "%Y-%m") = :m2) AS anti_fraud_blocks,
-                (SELECT COALESCE(SUM(points),0) FROM adms_gamification_point_ledger WHERE DATE_FORMAT(created_at, "%Y-%m") = :m3) AS total_points_month'
+            "SELECT
+                (SELECT COUNT(DISTINCT user_id) FROM adms_gamification_point_ledger
+                  WHERE DATE_FORMAT(created_at, \"%Y-%m\") = :m1 AND ({$exL})) AS active_users,
+                (SELECT COUNT(*) FROM adms_gamification_anti_fraud_events WHERE DATE_FORMAT(created_at, \"%Y-%m\") = :m2) AS anti_fraud_blocks,
+                (SELECT COALESCE(SUM(points),0) FROM adms_gamification_point_ledger
+                  WHERE DATE_FORMAT(created_at, \"%Y-%m\") = :m3 AND ({$exL})) AS total_points_month"
         );
         $stmt->execute([':m1' => $monthRef, ':m2' => $monthRef, ':m3' => $monthRef]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -280,15 +431,16 @@ class GamificationProgramRepository extends DbConnection
 
     public function getDepartmentEngagement(string $monthRef): array
     {
+        $exU = GamificationRankingExclusions::sqlUserNameNotExcluded('u.name');
         $stmt = $this->getConnection()->prepare(
-            'SELECT d.name AS department_name, COALESCE(SUM(l.points),0) AS total_points
+            "SELECT d.name AS department_name, COALESCE(SUM(l.points),0) AS total_points
              FROM adms_departments d
-             LEFT JOIN adms_users u ON u.user_department_id = d.id AND u.status = 1
+             LEFT JOIN adms_users u ON u.user_department_id = d.id AND u.status = 1 AND ({$exU})
              LEFT JOIN adms_gamification_point_ledger l ON l.user_id = u.id
-               AND DATE_FORMAT(l.created_at, "%Y-%m") = :m
+               AND DATE_FORMAT(l.created_at, \"%Y-%m\") = :m
              GROUP BY d.id, d.name
              ORDER BY total_points DESC, d.name ASC
-             LIMIT 10'
+             LIMIT 10"
         );
         $stmt->execute([':m' => $monthRef]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

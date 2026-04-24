@@ -167,8 +167,12 @@ use App\adms\Helpers\FormatHelper;
 
                 <!-- Toggle de Filtros avançados no mobile -->
                 <div class="d-block d-md-none mt-2">
-                    <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#policiesFiltersAdvanced" aria-expanded="false" aria-controls="policiesFiltersAdvanced">
-                        <i class="fas fa-sliders me-2"></i>Filtros avançados
+                    <button class="adm-filter-mobile-trigger" type="button" data-bs-toggle="collapse" data-bs-target="#policiesFiltersAdvanced" aria-expanded="false" aria-controls="policiesFiltersAdvanced">
+                        <span class="adm-filter-mobile-trigger__leading">
+                            <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                            <span>Filtros avançados</span>
+                        </span>
+                        <span class="adm-filter-mobile-trigger__chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
                     </button>
                 </div>
 

@@ -45,7 +45,7 @@ class AddGamificationProgramDefaults extends AbstractSeed
                 ['name' => 'Ideia do Mês', 'slug' => 'ideia-do-mes', 'description' => 'Conquistou reconhecimento por contribuição de ideias.', 'criteria_key' => 'monthly_posts', 'criteria_value_json' => json_encode(['min_posts' => 4]), 'icon' => 'fa-lightbulb', 'is_active' => 1],
                 ['name' => 'Colaborador Destaque', 'slug' => 'colaborador-destaque', 'description' => 'Acumulou pontuação total de destaque.', 'criteria_key' => 'total_points', 'criteria_value_json' => json_encode(['min_points' => 300]), 'icon' => 'fa-users', 'is_active' => 1],
                 ['name' => 'Engajamento Máximo', 'slug' => 'engajamento-maximo', 'description' => 'Manteve alto nível de interações válidas.', 'criteria_key' => 'total_points', 'criteria_value_json' => json_encode(['min_points' => 700]), 'icon' => 'fa-fire', 'is_active' => 1],
-                ['name' => 'Presença Constante', 'slug' => 'presenca-constante', 'description' => 'Completou ao menos 4 missões semanais.', 'criteria_key' => 'weekly_missions_completed', 'criteria_value_json' => json_encode(['min_missions' => 4]), 'icon' => 'fa-calendar-check', 'is_active' => 1],
+                ['name' => 'Presença Constante', 'slug' => 'presenca-constante', 'description' => 'Completou ao menos 4 missões mensais.', 'criteria_key' => 'monthly_missions_completed', 'criteria_value_json' => json_encode(['min_missions' => 4]), 'icon' => 'fa-calendar-check', 'is_active' => 1],
             ];
             foreach ($badges as $badge) {
                 $slug = (string)($badge['slug'] ?? '');
@@ -67,10 +67,10 @@ class AddGamificationProgramDefaults extends AbstractSeed
 
         if ($this->hasTable('adms_gamification_weekly_missions')) {
             $missions = [
-                ['title' => 'Fazer 3 comentários relevantes', 'description' => 'Comente de forma construtiva 3 vezes na semana.', 'event_key' => 'timeline_comment_created', 'target_value' => 3, 'reward_points' => 10, 'sort_order' => 1, 'is_active' => 1],
-                ['title' => 'Criar 1 publicação útil', 'description' => 'Publique ao menos um conteúdo relevante na semana.', 'event_key' => 'timeline_post_created', 'target_value' => 1, 'reward_points' => 15, 'sort_order' => 2, 'is_active' => 1],
-                ['title' => 'Participar de 2 enquetes', 'description' => 'Vote em duas enquetes durante a semana.', 'event_key' => 'timeline_poll_vote', 'target_value' => 2, 'reward_points' => 5, 'sort_order' => 3, 'is_active' => 1],
-                ['title' => 'Interagir em 5 ações válidas', 'description' => 'Some 5 ações qualificadas de engajamento na semana.', 'event_key' => 'timeline_reaction_created', 'target_value' => 5, 'reward_points' => 12, 'sort_order' => 4, 'is_active' => 1],
+                ['title' => 'Fazer 12 comentários relevantes (mês)', 'description' => 'Comente de forma construtiva 12 vezes no mês civil.', 'event_key' => 'timeline_comment_created', 'target_value' => 12, 'reward_points' => 10, 'sort_order' => 1, 'is_active' => 1],
+                ['title' => 'Criar 4 publicações úteis (mês)', 'description' => 'Publique ao menos quatro conteúdos relevantes no mês.', 'event_key' => 'timeline_post_created', 'target_value' => 4, 'reward_points' => 15, 'sort_order' => 2, 'is_active' => 1],
+                ['title' => 'Participar de 8 enquetes (mês)', 'description' => 'Vote em oito enquetes durante o mês.', 'event_key' => 'timeline_poll_vote', 'target_value' => 8, 'reward_points' => 5, 'sort_order' => 3, 'is_active' => 1],
+                ['title' => 'Interagir em 20 ações válidas (mês)', 'description' => 'Some 20 reações qualificadas no mês.', 'event_key' => 'timeline_reaction_created', 'target_value' => 20, 'reward_points' => 12, 'sort_order' => 4, 'is_active' => 1],
             ];
             foreach ($missions as $mission) {
                 $title = (string)($mission['title'] ?? '');

@@ -188,7 +188,7 @@
 
         <div class="tab-pane fade" id="tab-missions">
             <div class="card mb-4 border-light shadow">
-                <div class="card-header">Missões semanais</div>
+                <div class="card-header">Missões mensais</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0">
@@ -278,6 +278,16 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var hash = window.location.hash || '';
+    if (hash.indexOf('#tab-') === 0) {
+        var trigger = document.querySelector('button.nav-link[data-bs-target="' + hash + '"]');
+        if (trigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try {
+                bootstrap.Tab.getOrCreateInstance(trigger).show();
+            } catch (e) {}
+        }
+    }
+
     var allowed = ['secondary', 'info', 'primary', 'warning', 'success', 'danger', 'dark'];
     var selects = document.querySelectorAll('.js-level-color-select');
     selects.forEach(function (select) {

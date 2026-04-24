@@ -18,6 +18,24 @@ class GamificationLedgerRepository extends DbConnection
         int $points,
         ?string $metaJson
     ): bool {
+        return $this->insertIfNotExistsAt($userId, $sourceType, $eventKey, $refType, $refId, $points, $metaJson, date('Y-m-d H:i:s'));
+    }
+
+    /**
+     * Idempotente (uk user_id+event_key+ref_type+ref_id). Use para backfill com data real da ação.
+     *
+     * @param string $createdAt Data/hora MySQL (Y-m-d H:i:s) da atividade na timeline
+     */
+    public function insertIfNotExistsAt(
+        int $userId,
+        string $sourceType,
+        string $eventKey,
+        string $refType,
+        int $refId,
+        int $points,
+        ?string $metaJson,
+        string $createdAt
+    ): bool {
         if ($userId <= 0 || $points === 0) {
             return false;
         }
@@ -27,9 +45,13 @@ class GamificationLedgerRepository extends DbConnection
         if ($sourceType === '' || $eventKey === '') {
             return false;
         }
+        $at = $this->normalizeLedgerCreatedAt($createdAt);
+        if ($at === null) {
+            return false;
+        }
         $sql = 'INSERT IGNORE INTO adms_gamification_point_ledger
                 (user_id, source_type, event_key, ref_type, ref_id, points, meta_json, created_at)
-                VALUES (:uid, :st, :ek, :rt, :rid, :pts, :meta, NOW())';
+                VALUES (:uid, :st, :ek, :rt, :rid, :pts, :meta, :cat)';
         $stmt = $this->getConnection()->prepare($sql);
 
         return $stmt->execute([
@@ -40,7 +62,28 @@ class GamificationLedgerRepository extends DbConnection
             ':rid' => $refId,
             ':pts' => $points,
             ':meta' => $metaJson,
+            ':cat' => $at,
         ]) && $stmt->rowCount() > 0;
+    }
+
+    private function normalizeLedgerCreatedAt(string $createdAt): ?string
+    {
+        $createdAt = trim($createdAt);
+        if ($createdAt === '') {
+            return null;
+        }
+        $dt = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $createdAt)
+            ?: \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:sP', $createdAt)
+            ?: \DateTimeImmutable::createFromFormat(\DateTimeInterface::ATOM, $createdAt);
+        if ($dt === false) {
+            try {
+                $dt = new \DateTimeImmutable($createdAt);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return $dt->format('Y-m-d H:i:s');
     }
 
     public function countAwardsToday(int $userId, string $eventKey): int
@@ -100,6 +143,7 @@ class GamificationLedgerRepository extends DbConnection
         if ($departmentId !== null && $departmentId > 0) {
             $where[] = 'u.user_department_id = :department_id';
         }
+        $where[] = GamificationRankingExclusions::sqlLedgerUserNotExcluded('l.user_id');
         $whereSql = $where !== [] ? ('WHERE ' . implode(' AND ', $where)) : '';
         $sql = "SELECT l.user_id,
                        u.name AS user_name,
@@ -124,6 +168,37 @@ class GamificationLedgerRepository extends DbConnection
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * Remove pontos do ledger ligados a um post da timeline (post, comentários desse post,
+     * reações e votos em enquete usam ref_id = id do post ou id do comentário).
+     * Deve ser chamado antes de apagar comentários do post (usa subquery em adms_timeline_comments).
+     *
+     * @return int Linhas apagadas (aprox.: soma dos dois DELETEs)
+     */
+    public function deleteLedgerRowsForTimelinePost(int $postId): int
+    {
+        if ($postId <= 0) {
+            return 0;
+        }
+        $pdo = $this->getConnection();
+        $stmtC = $pdo->prepare(
+            'DELETE FROM adms_gamification_point_ledger
+             WHERE ref_type = \'timeline_comment\'
+               AND ref_id IN (SELECT id FROM adms_timeline_comments WHERE post_id = :pid)'
+        );
+        $stmtC->execute([':pid' => $postId]);
+        $n = $stmtC->rowCount();
+
+        $stmtP = $pdo->prepare(
+            'DELETE FROM adms_gamification_point_ledger
+             WHERE ref_type = \'timeline_post\' AND ref_id = :pid'
+        );
+        $stmtP->execute([':pid' => $postId]);
+        $n += $stmtP->rowCount();
+
+        return $n;
     }
 
     public function countAwardsTotal(int $userId, string $eventKey): int

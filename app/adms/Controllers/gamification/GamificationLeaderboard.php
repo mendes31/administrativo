@@ -42,10 +42,10 @@ class GamificationLeaderboard
             $points = $programRepo->getUserTotalPoints($userId);
             $this->data['my_level'] = $programRepo->resolveUserLevel($points);
             $this->data['my_badges'] = $programRepo->listBadgesByUser($userId);
-            $this->data['my_weekly_missions'] = $programRepo->listWeeklyMissionProgressByUser(
-                $userId,
-                (new \DateTimeImmutable('monday this week'))->format('Y-m-d')
-            );
+            $missionMonthStart = $monthRef . '-01';
+            $this->data['my_missions'] = $programRepo->listWeeklyMissionProgressByUser($userId, $missionMonthStart);
+            $this->data['mission_month_ref'] = $monthRef;
+            $this->data['mission_month_range_label'] = self::formatMonthRangeBr($monthRef);
         }
 
         $pageElements = [
@@ -59,5 +59,18 @@ class GamificationLeaderboard
 
         $loadView = new LoadViewService('adms/Views/gamification/leaderboard', $this->data);
         $loadView->loadView();
+    }
+
+    /** Intervalo do mês civil (dd/mm — dd/mm) para o filtro Y-m. */
+    private static function formatMonthRangeBr(string $monthRef): string
+    {
+        $monthRef = preg_match('/^\d{4}-\d{2}$/', $monthRef) ? $monthRef : date('Y-m');
+        $first = \DateTimeImmutable::createFromFormat('Y-m-d', $monthRef . '-01');
+        if ($first === false) {
+            return $monthRef;
+        }
+        $last = $first->modify('last day of this month');
+
+        return $first->format('d/m/Y') . ' — ' . $last->format('d/m/Y');
     }
 }
