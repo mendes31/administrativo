@@ -39,8 +39,14 @@ class GamificationLeaderboard
         $programRepo = new GamificationProgramRepository();
         $userId = (int)($_SESSION['user_id'] ?? 0);
         if ($userId > 0) {
-            $points = $programRepo->getUserTotalPoints($userId);
-            $this->data['my_level'] = $programRepo->resolveUserLevel($points);
+            $pointsFilterMonth = $programRepo->getUserMonthlyPoints($userId, $monthRef);
+            $prevMonthRef = self::previousMonthRef($monthRef);
+            $pointsPrevMonth = $programRepo->getUserMonthlyPoints($userId, $prevMonthRef);
+            $this->data['my_level'] = $programRepo->resolveUserLevel($pointsFilterMonth);
+            $this->data['my_level_previous_month'] = $programRepo->resolveUserLevel($pointsPrevMonth);
+            $this->data['my_monthly_points'] = $pointsFilterMonth;
+            $this->data['my_previous_month_points'] = $pointsPrevMonth;
+            $this->data['level_prev_month_ref'] = $prevMonthRef;
             $this->data['my_badges'] = $programRepo->listBadgesByUser($userId);
             $missionMonthStart = $monthRef . '-01';
             $this->data['my_missions'] = $programRepo->listWeeklyMissionProgressByUser($userId, $missionMonthStart);
@@ -59,6 +65,20 @@ class GamificationLeaderboard
 
         $loadView = new LoadViewService('adms/Views/gamification/leaderboard', $this->data);
         $loadView->loadView();
+    }
+
+    /** @param string $monthRef Y-m */
+    private static function previousMonthRef(string $monthRef): string
+    {
+        if (!preg_match('/^\d{4}-\d{2}$/', $monthRef)) {
+            $monthRef = date('Y-m');
+        }
+        $first = \DateTimeImmutable::createFromFormat('Y-m-d', $monthRef . '-01');
+        if ($first === false) {
+            return date('Y-m', strtotime('first day of last month'));
+        }
+
+        return $first->modify('-1 month')->format('Y-m');
     }
 
     /** Intervalo do mês civil (dd/mm — dd/mm) para o filtro Y-m. */

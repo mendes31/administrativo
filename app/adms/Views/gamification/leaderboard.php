@@ -6,6 +6,10 @@ $monthRef = (string)($this->data['month_ref'] ?? date('Y-m'));
 $departmentId = (int)($this->data['department_id'] ?? 0);
 $departments = $this->data['departments'] ?? [];
 $myLevel = $this->data['my_level'] ?? null;
+$myLevelPrev = $this->data['my_level_previous_month'] ?? null;
+$myMonthlyPoints = (int)($this->data['my_monthly_points'] ?? 0);
+$myPrevMonthlyPoints = (int)($this->data['my_previous_month_points'] ?? 0);
+$levelPrevMonthRef = (string)($this->data['level_prev_month_ref'] ?? '');
 $myBadges = $this->data['my_badges'] ?? [];
 $myMissions = $this->data['my_missions'] ?? [];
 $missionMonthRange = (string)($this->data['mission_month_range_label'] ?? '');
@@ -168,7 +172,8 @@ $initials = static function (string $name): string {
             <li class="breadcrumb-item">Gamificação</li>
         </ol>
     </div>
-    <p class="text-muted small">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
+    <p class="text-muted small mb-1">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
+    <p class="text-muted small">O nível mensal usa só os pontos ganhos no mês civil (limiares iguais aos níveis configurados).</p>
     <div id="gamiFiltersCollapse" class="gami-filters-wrap collapse d-md-block mb-3">
     <form method="get" class="row g-2 mb-0 align-items-end gami-filter-row">
         <div class="col-12 col-md-3 col-lg-2 gami-filter-scope">
@@ -207,16 +212,30 @@ $initials = static function (string $name): string {
     <div class="row g-3 mb-3">
         <div class="col-12 col-lg-6">
             <div class="card border-light shadow h-100">
-                <div class="card-header">Meu nível atual</div>
+                <div class="card-header">Meu nível (mensal)</div>
                 <div class="card-body">
-                    <?php if ($myLevel): ?>
-                        <span class="badge bg-<?= htmlspecialchars((string)($myLevel['badge_color'] ?? 'secondary')) ?>">
-                            <?= htmlspecialchars((string)($myLevel['name'] ?? '')) ?>
-                        </span>
-                        <span class="text-muted small ms-2">mín. <?= (int)($myLevel['min_points'] ?? 0) ?> pontos</span>
-                    <?php else: ?>
-                        <span class="text-muted small">Sem nível definido.</span>
-                    <?php endif; ?>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="text-muted small mb-1">Mês do filtro <strong><?= htmlspecialchars($monthRef) ?></strong></div>
+                        <?php if ($myLevel): ?>
+                            <span class="badge bg-<?= htmlspecialchars((string)($myLevel['badge_color'] ?? 'secondary')) ?> fs-6">
+                                <?= htmlspecialchars((string)($myLevel['name'] ?? '')) ?>
+                            </span>
+                            <div class="small mt-2"><span class="fw-semibold"><?= $myMonthlyPoints ?></span> pts neste mês · limiar do nível: mín. <?= (int)($myLevel['min_points'] ?? 0) ?> pts no mês</div>
+                        <?php else: ?>
+                            <span class="text-muted small">Sem nível definido (nenhum limiar ativo).</span>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <div class="text-muted small mb-1">Mês anterior <?= $levelPrevMonthRef !== '' ? '(<strong>' . htmlspecialchars($levelPrevMonthRef) . '</strong>)' : '' ?></div>
+                        <?php if ($myLevelPrev): ?>
+                            <span class="badge bg-<?= htmlspecialchars((string)($myLevelPrev['badge_color'] ?? 'secondary')) ?>">
+                                <?= htmlspecialchars((string)($myLevelPrev['name'] ?? '')) ?>
+                            </span>
+                            <div class="small mt-2 text-muted"><span class="fw-semibold text-body"><?= $myPrevMonthlyPoints ?></span> pts naquele mês · mín. <?= (int)($myLevelPrev['min_points'] ?? 0) ?> pts</div>
+                        <?php else: ?>
+                            <span class="text-muted small">Sem nível definido.</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
