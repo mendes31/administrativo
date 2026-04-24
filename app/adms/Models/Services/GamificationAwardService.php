@@ -63,7 +63,7 @@ class GamificationAwardService
         $ok = $this->ledgerRepo->insertIfNotExists($userId, 'timeline', $eventKey, $refType, $refId, $points, $metaJson);
         if ($ok) {
             $this->processMonthlyMissions($userId, $eventKey);
-            $this->processBadges($userId);
+            $this->syncBadgesForUser($userId);
         }
 
         return $ok ? $points : 0;
@@ -92,10 +92,53 @@ class GamificationAwardService
             $metaJson
         );
         if ($ok) {
-            $this->processBadges($userId);
+            $this->syncBadgesForUser($userId);
         }
 
         return $ok ? $points : 0;
+    }
+
+    /**
+     * Reavalia badges ativas com base no histórico (corrige backfill e critérios mensais).
+     */
+    public function syncBadgesForUser(int $userId): void
+    {
+        if ($userId <= 0) {
+            return;
+        }
+        $totalPoints = $this->programRepo->getUserTotalPoints($userId);
+        $maxMonthlyPoints = $this->programRepo->getUserMaxMonthlyPointsSum($userId);
+        $maxMissionsInAMonth = $this->programRepo->getUserMaxMonthlyMissionCompletions($userId);
+        $maxPostsInAMonth = $this->programRepo->getUserMaxMonthlyLedgerEventCount($userId, 'timeline_post_created');
+
+        foreach ($this->programRepo->listActiveBadges() as $badge) {
+            $badgeId = (int)($badge['id'] ?? 0);
+            if ($badgeId <= 0 || $this->programRepo->userHasBadge($userId, $badgeId)) {
+                continue;
+            }
+            $criteria = [];
+            if (!empty($badge['criteria_value_json'])) {
+                $decoded = json_decode((string)$badge['criteria_value_json'], true);
+                if (is_array($decoded)) {
+                    $criteria = $decoded;
+                }
+            }
+            $shouldAward = false;
+            $criteriaKey = (string)($badge['criteria_key'] ?? '');
+            if ($criteriaKey === 'total_points') {
+                $shouldAward = $totalPoints >= (int)($criteria['min_points'] ?? 0);
+            } elseif ($criteriaKey === 'monthly_points') {
+                $shouldAward = $maxMonthlyPoints >= (int)($criteria['min_points'] ?? 0);
+            } elseif ($criteriaKey === 'monthly_missions_completed' || $criteriaKey === 'weekly_missions_completed') {
+                $shouldAward = $maxMissionsInAMonth >= (int)($criteria['min_missions'] ?? 0);
+            } elseif ($criteriaKey === 'monthly_posts') {
+                $shouldAward = $maxPostsInAMonth >= (int)($criteria['min_posts'] ?? 0);
+            }
+            if (!$shouldAward) {
+                continue;
+            }
+            $this->programRepo->awardBadge($userId, $badgeId, null);
+        }
     }
 
     private function shouldBlockByAntiFraud(
@@ -192,38 +235,4 @@ class GamificationAwardService
         }
     }
 
-    private function processBadges(int $userId): void
-    {
-        $monthRef = date('Y-m');
-        $totalPoints = $this->programRepo->getUserTotalPoints($userId);
-        $monthlyPoints = $this->programRepo->getUserMonthlyPoints($userId, $monthRef);
-        $completedMissions = $this->programRepo->countCompletedMissions($userId);
-
-        foreach ($this->programRepo->listActiveBadges() as $badge) {
-            $badgeId = (int)($badge['id'] ?? 0);
-            if ($badgeId <= 0 || $this->programRepo->userHasBadge($userId, $badgeId)) {
-                continue;
-            }
-            $criteria = [];
-            if (!empty($badge['criteria_value_json'])) {
-                $decoded = json_decode((string)$badge['criteria_value_json'], true);
-                if (is_array($decoded)) {
-                    $criteria = $decoded;
-                }
-            }
-            $shouldAward = false;
-            $criteriaKey = (string)($badge['criteria_key'] ?? '');
-            if ($criteriaKey === 'total_points') {
-                $shouldAward = $totalPoints >= (int)($criteria['min_points'] ?? 0);
-            } elseif ($criteriaKey === 'monthly_points') {
-                $shouldAward = $monthlyPoints >= (int)($criteria['min_points'] ?? 0);
-            } elseif ($criteriaKey === 'monthly_missions_completed' || $criteriaKey === 'weekly_missions_completed') {
-                $shouldAward = $completedMissions >= (int)($criteria['min_missions'] ?? 0);
-            }
-            if (!$shouldAward) {
-                continue;
-            }
-            $this->programRepo->awardBadge($userId, $badgeId, null);
-        }
-    }
 }

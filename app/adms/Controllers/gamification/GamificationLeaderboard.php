@@ -7,6 +7,7 @@ namespace App\adms\Controllers\gamification;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\GamificationLedgerRepository;
 use App\adms\Models\Repository\GamificationProgramRepository;
+use App\adms\Models\Services\GamificationAwardService;
 use App\adms\Views\Services\LoadViewService;
 
 class GamificationLeaderboard
@@ -47,6 +48,7 @@ class GamificationLeaderboard
             $this->data['my_monthly_points'] = $pointsFilterMonth;
             $this->data['my_previous_month_points'] = $pointsPrevMonth;
             $this->data['level_prev_month_ref'] = $prevMonthRef;
+            (new GamificationAwardService())->syncBadgesForUser($userId);
             $this->data['my_badges'] = $programRepo->listBadgesByUser($userId);
             $missionMonthStart = $monthRef . '-01';
             $this->data['my_missions'] = $programRepo->listWeeklyMissionProgressByUser($userId, $missionMonthStart);

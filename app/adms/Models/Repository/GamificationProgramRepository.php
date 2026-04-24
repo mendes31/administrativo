@@ -77,6 +77,71 @@ class GamificationProgramRepository extends DbConnection
         return (int)($row['c'] ?? 0);
     }
 
+    /** Maior soma de pontos do ledger num único mês civil (Y-m). */
+    public function getUserMaxMonthlyPointsSum(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COALESCE(MAX(m_total), 0) AS mx
+             FROM (
+                 SELECT SUM(l.points) AS m_total
+                 FROM adms_gamification_point_ledger l
+                 WHERE l.user_id = :u
+                 GROUP BY DATE_FORMAT(l.created_at, \'%Y-%m\')
+             ) t'
+        );
+        $stmt->execute([':u' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['mx'] ?? 0);
+    }
+
+    /** Maior número de missões concluídas num mesmo mês (week_start_date = Y-m-01). */
+    public function getUserMaxMonthlyMissionCompletions(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COALESCE(MAX(cn), 0) AS mx
+             FROM (
+                 SELECT COUNT(*) AS cn
+                 FROM adms_gamification_user_mission_progress
+                 WHERE user_id = :u AND is_completed = 1
+                 GROUP BY week_start_date
+             ) t'
+        );
+        $stmt->execute([':u' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['mx'] ?? 0);
+    }
+
+    /**
+     * Maior contagem de linhas do ledger com event_key num único mês (ex.: publicações).
+     */
+    public function getUserMaxMonthlyLedgerEventCount(int $userId, string $eventKey): int
+    {
+        if ($userId <= 0 || trim($eventKey) === '') {
+            return 0;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COALESCE(MAX(cn), 0) AS mx
+             FROM (
+                 SELECT COUNT(*) AS cn
+                 FROM adms_gamification_point_ledger l
+                 WHERE l.user_id = :u AND l.event_key = :ek
+                 GROUP BY DATE_FORMAT(l.created_at, \'%Y-%m\')
+             ) t'
+        );
+        $stmt->execute([':u' => $userId, ':ek' => mb_substr(trim($eventKey), 0, 64)]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['mx'] ?? 0);
+    }
+
     public function listActiveLevels(): array
     {
         $stmt = $this->getConnection()->query(
