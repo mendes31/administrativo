@@ -60,17 +60,22 @@ class GamificationLedgerRepository extends DbConnection
 
     /**
      * Soma de pontos por utilizador (ranking).
+     * Critério de desempate: quem atingiu a pontuação atual primeiro.
      *
-     * @return list<array{user_id:int,user_name:string,total_points:int}>
+     * @return list<array{user_id:int,user_name:string,user_image:?string,total_points:int,reached_at:string}>
      */
     public function getLeaderboard(int $limit = 30): array
     {
         $limit = max(1, min(100, $limit));
-        $sql = "SELECT l.user_id, u.name AS user_name, SUM(l.points) AS total_points
+        $sql = "SELECT l.user_id,
+                       u.name AS user_name,
+                       u.image AS user_image,
+                       SUM(l.points) AS total_points,
+                       MAX(l.created_at) AS reached_at
                 FROM adms_gamification_point_ledger l
                 INNER JOIN adms_users u ON u.id = l.user_id AND u.status = 1
-                GROUP BY l.user_id, u.name
-                ORDER BY total_points DESC, u.name ASC
+                GROUP BY l.user_id, u.name, u.image
+                ORDER BY total_points DESC, reached_at ASC, u.name ASC
                 LIMIT {$limit}";
         $stmt = $this->getConnection()->query($sql);
         $rows = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : false;

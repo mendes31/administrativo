@@ -42,6 +42,35 @@ class GamificationQuizRepository extends DbConnection
         return is_array($rows) ? $rows : [];
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listPublishedAvailableForUser(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $sql = 'SELECT q.id, q.title, q.slug, q.summary, q.passing_percent, q.max_attempts, q.points_on_completion, q.available_from, q.available_until
+                FROM adms_gamification_quizzes q
+                WHERE q.status = \'published\'
+                  AND (q.available_from IS NULL OR q.available_from <= NOW())
+                  AND (q.available_until IS NULL OR q.available_until >= NOW())
+                  AND (
+                        SELECT COUNT(*)
+                        FROM adms_gamification_quiz_attempts a
+                        WHERE a.quiz_id = q.id
+                          AND a.user_id = :u
+                          AND a.status = \'completed\'
+                      ) < q.max_attempts
+                ORDER BY q.title ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':u' => $userId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return is_array($rows) ? $rows : [];
+    }
+
     public function findById(int $id): ?array
     {
         if ($id <= 0) {

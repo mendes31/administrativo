@@ -28,7 +28,7 @@ class GamificationQuizCatalog
         }
 
         $repo = new GamificationQuizRepository();
-        $this->data['quizzes'] = $repo->listPublishedForCatalog();
+        $this->data['quizzes'] = $repo->listPublishedAvailableForUser((int)$_SESSION['user_id']);
 
         $pageElements = [
             'title_head' => 'Quizzes disponíveis',

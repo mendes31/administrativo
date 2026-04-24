@@ -217,7 +217,7 @@ class Dashboard
         $this->data['gamification_quizzes_catalog_count'] = 0;
         if ($userId > 0 && !empty($this->data['show_gamification_quizzes_card'])) {
             try {
-                $this->data['gamification_quizzes_catalog_count'] = count((new GamificationQuizRepository())->listPublishedForCatalog());
+                $this->data['gamification_quizzes_catalog_count'] = count((new GamificationQuizRepository())->listPublishedAvailableForUser($userId));
             } catch (\Throwable) {
                 $this->data['gamification_quizzes_catalog_count'] = 0;
             }

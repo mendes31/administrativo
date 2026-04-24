@@ -840,6 +840,23 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'RSVP Evento Corporativo', 'controller' => 'EventRsvp', 'controller_url' => 'event-rsvp', 'directory' => 'companyEvents', 'obs' => 'Confirmar ou cancelar presença em evento.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
             ['name'=> 'Eventos do mês (JSON)', 'controller' => 'CompanyEventsMonth', 'controller_url' => 'company-events-month', 'directory' => 'companyEvents', 'obs' => 'JSON de eventos do mês para o dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
             ['name'=> 'Buscar usuários (Timeline)', 'controller' => 'TimelineSearchUsers', 'controller_url' => 'timeline-search-users', 'directory' => 'timeline', 'obs' => 'Autocomplete de colaboradores para menções na timeline.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            // Gamificação (comunicação social) — todas iniciam fechadas (default_page = 0)
+            ['name'=> 'Regras de pontos (Timeline)', 'controller' => 'ListGamificationTimelineRules', 'controller_url' => 'list-gamification-timeline-rules', 'directory' => 'gamification', 'obs' => 'Listagem e gestão das regras de pontuação por interação na timeline.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Editar regra de pontos (Timeline)', 'controller' => 'UpdateGamificationTimelineRule', 'controller_url' => 'update-gamification-timeline-rule', 'directory' => 'gamification', 'obs' => 'Formulário para ajustar pontos e limites de uma regra.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Quizzes (Gamificação)', 'controller' => 'ListGamificationQuizzes', 'controller_url' => 'list-gamification-quizzes', 'directory' => 'gamification', 'obs' => 'CRUD de quizzes de gamificação.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Criar quiz (Gamificação)', 'controller' => 'CreateGamificationQuiz', 'controller_url' => 'create-gamification-quiz', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Editar quiz (Gamificação)', 'controller' => 'UpdateGamificationQuiz', 'controller_url' => 'update-gamification-quiz', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Excluir quiz (Gamificação)', 'controller' => 'DeleteGamificationQuiz', 'controller_url' => 'delete-gamification-quiz', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Questões do quiz (Gamificação)', 'controller' => 'ListGamificationQuizQuestions', 'controller_url' => 'list-gamification-quiz-questions', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Nova questão (Gamificação)', 'controller' => 'CreateGamificationQuizQuestion', 'controller_url' => 'create-gamification-quiz-question', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Editar questão (Gamificação)', 'controller' => 'UpdateGamificationQuizQuestion', 'controller_url' => 'update-gamification-quiz-question', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Excluir questão (Gamificação)', 'controller' => 'DeleteGamificationQuizQuestion', 'controller_url' => 'delete-gamification-quiz-question', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Extrato de pontos (Gamificação)', 'controller' => 'ListGamificationPointLedger', 'controller_url' => 'list-gamification-point-ledger', 'directory' => 'gamification', 'obs' => 'Auditoria do ledger de pontos.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Quizzes disponíveis', 'controller' => 'GamificationQuizCatalog', 'controller_url' => 'gamification-quiz-catalog', 'directory' => 'gamification', 'obs' => 'Catálogo de quizzes publicados para o colaborador.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Responder quiz (Gamificação)', 'controller' => 'TakeGamificationQuiz', 'controller_url' => 'take-gamification-quiz', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Enviar respostas do quiz', 'controller' => 'SubmitGamificationQuizAttempt', 'controller_url' => 'submit-gamification-quiz-attempt', 'directory' => 'gamification', 'obs' => 'Sem observação', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Ranking de pontos (Gamificação)', 'controller' => 'GamificationLeaderboard', 'controller_url' => 'gamification-leaderboard', 'directory' => 'gamification', 'obs' => 'Classificação geral por pontos acumulados.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
+            ['name'=> 'Card Dashboard - Quizzes (Gamificação)', 'controller' => 'DashboardCardGamificationQuizzes', 'controller_url' => 'dashboard-card-gamification-quizzes', 'directory' => 'dashboard', 'obs' => 'Controla visibilidade do card de Quizzes disponíveis no dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
         ];
 
         // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
@@ -932,11 +949,15 @@ class AddAdmsPages extends AbstractSeed
 
         // Blindagem para evitar "nascimento autorizado" em ambientes novos/legados:
         // - card "Meu calendário" no dashboard;
+        // - páginas de Gamificação (directory = gamification);
+        // - card "Quizzes (Gamificação)" no dashboard;
         // - páginas do grupo "Reserva de Salas".
         $this->execute(
             "UPDATE adms_pages
              SET default_page = 0, updated_at = NOW()
              WHERE controller = 'DashboardCardMyCalendar'
+                OR controller = 'DashboardCardGamificationQuizzes'
+                OR directory = 'gamification'
                 OR adms_groups_page_id = {$reservaSalasGroupId}"
         );
 
@@ -948,6 +969,8 @@ class AddAdmsPages extends AbstractSeed
                      alp.updated_at = NOW()
                  WHERE p.public_page = 0
                    AND (p.controller = 'DashboardCardMyCalendar'
+                        OR p.controller = 'DashboardCardGamificationQuizzes'
+                        OR p.directory = 'gamification'
                         OR p.adms_groups_page_id = {$reservaSalasGroupId})"
             );
 

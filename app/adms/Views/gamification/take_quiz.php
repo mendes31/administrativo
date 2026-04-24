@@ -4,10 +4,14 @@ $attempt = $this->data['attempt'] ?? [];
 $questions = $this->data['questions'] ?? [];
 include __DIR__ . '/partials/module_head.php';
 ?>
+<?php
+$quizTitle = isset($quiz['title']) ? (string)$quiz['title'] : '';
+$quizSummary = isset($quiz['summary']) ? (string)$quiz['summary'] : '';
+?>
 <div class="container-fluid px-2 px-sm-3 px-md-4">
-    <h2 class="mt-3"><?= htmlspecialchars((string)($quiz['title'] ?? '')) ?></h2>
-    <?php if (!empty($quiz['summary'])): ?>
-        <p class="text-muted"><?= nl2br(htmlspecialchars((string)($quiz['summary'] ?? ''))) ?></p>
+    <h2 class="mt-3"><?php echo htmlspecialchars($quizTitle, ENT_QUOTES, 'UTF-8'); ?></h2>
+    <?php if ($quizSummary !== ''): ?>
+        <p class="text-muted"><?php echo nl2br(htmlspecialchars($quizSummary, ENT_QUOTES, 'UTF-8')); ?></p>
     <?php endif; ?>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
     <?php if (in_array('SubmitGamificationQuizAttempt', $this->data['buttonPermission'] ?? [], true)) : ?>
