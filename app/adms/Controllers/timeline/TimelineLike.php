@@ -82,7 +82,10 @@ class TimelineLike
                     'timeline_reaction_created',
                     'timeline_post',
                     $postId,
-                    ['reaction' => (string)($result['reaction'] ?? '')]
+                    [
+                        'reaction' => (string)($result['reaction'] ?? ''),
+                        'target_user_id' => $postOwnerId,
+                    ]
                 );
             } catch (\Throwable) {
             }

@@ -38,7 +38,7 @@ class LgpdTermosView
         $pageElements = [
             'title_head' => 'Visualizar Termo LGPD',
             'menu' => 'lgpd-termos',
-            'buttonPermission' => ['LgpdTermosView', 'LgpdTermosEdit', 'LgpdTermosDelete'],
+            'buttonPermission' => ['LgpdTermosView', 'LgpdTermosEdit', 'LgpdTermosDelete', 'LgpdTermosExportPdf'],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

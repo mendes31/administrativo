@@ -11,6 +11,12 @@ use App\adms\Helpers\FormatHelper;
                         <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-termos-new-version/<?= $this->data['termo']['id'] ?>" class="btn btn-warning btn-sm">
                             <i class="fas fa-copy me-1"></i>Nova versão
                         </a>
+                        <?php if (in_array('LgpdTermosExportPdf', $this->data['buttonPermission'] ?? [], true)): ?>
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-termos-export-pdf/<?= $this->data['termo']['id'] ?>"
+                               class="btn btn-primary btn-sm" target="_blank" rel="noopener">
+                                <i class="fas fa-file-pdf me-1"></i>Gerar PDF
+                            </a>
+                        <?php endif; ?>
                         <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-termos-delete?id=<?= $this->data['termo']['id'] ?>"
                            class="btn btn-danger btn-sm"
                            onclick="return confirm('Tem certeza que deseja excluir este termo?')">

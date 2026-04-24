@@ -120,7 +120,8 @@ class TimelineComment
                 (int)$_SESSION['user_id'],
                 'timeline_comment_created',
                 'timeline_comment',
-                $cid
+                    $cid,
+                    ['content' => $text]
             );
         } catch (\Throwable) {
         }

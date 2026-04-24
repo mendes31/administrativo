@@ -1,6 +1,13 @@
 <?php include __DIR__ . '/partials/module_head.php'; ?>
 <?php
 $rows = $this->data['leaderboard'] ?? [];
+$scope = (string)($this->data['scope'] ?? 'general');
+$monthRef = (string)($this->data['month_ref'] ?? date('Y-m'));
+$departmentId = (int)($this->data['department_id'] ?? 0);
+$departments = $this->data['departments'] ?? [];
+$myLevel = $this->data['my_level'] ?? null;
+$myBadges = $this->data['my_badges'] ?? [];
+$myMissions = $this->data['my_weekly_missions'] ?? [];
 $top1 = $rows[0] ?? null;
 $top2 = $rows[1] ?? null;
 $top3 = $rows[2] ?? null;
@@ -61,8 +68,68 @@ $initials = static function (string $name): string {
             <li class="breadcrumb-item">Gamificação</li>
         </ol>
     </div>
-    <p class="text-muted small">Classificação geral por pontos acumulados (timeline + quizzes concluídos).</p>
+    <p class="text-muted small">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-12 col-md-3">
+            <label class="form-label small mb-1">Escopo</label>
+            <select name="scope" class="form-select form-select-sm">
+                <option value="general" <?= $scope === 'general' ? 'selected' : '' ?>>Geral</option>
+                <option value="monthly" <?= $scope === 'monthly' ? 'selected' : '' ?>>Mensal</option>
+                <option value="department" <?= $scope === 'department' ? 'selected' : '' ?>>Por setor</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label small mb-1">Mês</label>
+            <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($monthRef) ?>">
+        </div>
+        <div class="col-12 col-md-4">
+            <label class="form-label small mb-1">Setor</label>
+            <select name="department_id" class="form-select form-select-sm">
+                <option value="0">Todos</option>
+                <?php foreach ($departments as $dep): ?>
+                    <option value="<?= (int)$dep['id'] ?>" <?= $departmentId === (int)$dep['id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars((string)$dep['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-sm btn-primary w-100">Aplicar</button>
+        </div>
+    </form>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header">Meu nível atual</div>
+                <div class="card-body">
+                    <?php if ($myLevel): ?>
+                        <span class="badge bg-<?= htmlspecialchars((string)($myLevel['badge_color'] ?? 'secondary')) ?>">
+                            <?= htmlspecialchars((string)($myLevel['name'] ?? '')) ?>
+                        </span>
+                        <span class="text-muted small ms-2">mín. <?= (int)($myLevel['min_points'] ?? 0) ?> pontos</span>
+                    <?php else: ?>
+                        <span class="text-muted small">Sem nível definido.</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card border-light shadow h-100">
+                <div class="card-header">Minhas badges</div>
+                <div class="card-body">
+                    <?php if ($myBadges !== []): ?>
+                        <?php foreach (array_slice($myBadges, 0, 4) as $badge): ?>
+                            <span class="badge bg-light text-dark border me-1 mb-1"><?= htmlspecialchars((string)($badge['name'] ?? '')) ?></span>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <span class="text-muted small">Nenhuma badge conquistada ainda.</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <?php if ($rows === []): ?>
         <div class="alert alert-info">Ainda não há pontos registados.</div>
@@ -115,5 +182,30 @@ $initials = static function (string $name): string {
                 </div>
             </div>
         <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($myMissions !== []): ?>
+        <div class="card border-light shadow mt-3">
+            <div class="card-header">Missões da semana</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Missão</th><th>Progresso</th><th class="text-end">Recompensa</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($myMissions as $mission): ?>
+                            <tr>
+                                <td><?= htmlspecialchars((string)($mission['title'] ?? '')) ?></td>
+                                <td>
+                                    <?= (int)($mission['current_value'] ?? 0) ?>/<?= (int)($mission['target_value'] ?? 0) ?>
+                                    <?php if (!empty($mission['is_completed'])): ?><span class="badge bg-success ms-1">Concluída</span><?php endif; ?>
+                                </td>
+                                <td class="text-end"><?= (int)($mission['reward_points'] ?? 0) ?> pts</td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     <?php endif; ?>
 </div>

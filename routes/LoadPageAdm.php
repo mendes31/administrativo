@@ -113,7 +113,7 @@ class LoadPageAdm
         "LgpdCategoriasTitulares", "LgpdCategoriasTitularesCreate", "LgpdCategoriasTitularesEdit", "LgpdCategoriasTitularesView", "LgpdCategoriasTitularesDelete",
         "LgpdFinalidades", "LgpdFinalidadesCreate", "LgpdFinalidadesEdit", "LgpdFinalidadesView", "LgpdFinalidadesDelete",
         "LgpdBasesLegais", "LgpdBasesLegaisCreate", "LgpdBasesLegaisEdit", "LgpdBasesLegaisView", "LgpdBasesLegaisDelete",
-        "LgpdTermos", "LgpdTermosCreate", "LgpdTermosEdit", "LgpdTermosView", "LgpdTermosDelete",
+        "LgpdTermos", "LgpdTermosCreate", "LgpdTermosEdit", "LgpdTermosView", "LgpdTermosDelete", "LgpdTermosExportPdf",
         "LgpdTiposDados", "LgpdTiposDadosCreate", "LgpdTiposDadosEdit", "LgpdTiposDadosView", "LgpdTiposDadosDelete",
         "LgpdClassificacoesDados", "LgpdClassificacoesDadosCreate", "LgpdClassificacoesDadosEdit", "LgpdClassificacoesDadosView", "LgpdClassificacoesDadosDelete",
         "LgpdInventory", "LgpdInventoryCreate", "LgpdInventoryEdit", "LgpdInventoryView", "LgpdInventoryDelete",
@@ -182,7 +182,7 @@ class LoadPageAdm
         "ListGamificationQuizzes", "CreateGamificationQuiz", "UpdateGamificationQuiz", "DeleteGamificationQuiz",
         "ListGamificationQuizQuestions", "CreateGamificationQuizQuestion", "UpdateGamificationQuizQuestion", "DeleteGamificationQuizQuestion",
         "ListGamificationPointLedger", "GamificationQuizCatalog", "TakeGamificationQuiz", "SubmitGamificationQuizAttempt",
-        "GamificationLeaderboard"
+        "GamificationLeaderboard", "GamificationEngagementDashboard"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

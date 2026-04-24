@@ -237,6 +237,12 @@ $menus = [
                 'permission' => 'GamificationLeaderboard',
                 'icon' => 'fas fa-trophy'
             ],
+            [
+                'label' => 'Dashboard RH de engajamento',
+                'url' => $_ENV['URL_ADM'] . 'gamification-engagement-dashboard',
+                'permission' => 'GamificationEngagementDashboard',
+                'icon' => 'fas fa-chart-line'
+            ],
         ]
     ],
     [

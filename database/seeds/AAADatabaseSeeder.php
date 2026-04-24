@@ -26,6 +26,7 @@ class AAADatabaseSeeder extends AbstractSeed
             'AddAdmsPages',
             'SyncAccessLevelsPages',
             'AddGamificationDefaultRules',
+            'AddGamificationProgramDefaults',
         ];
     }
 }
