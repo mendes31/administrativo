@@ -132,11 +132,16 @@ $initials = static function (string $name): string {
     .gami-filter-toggle-mobile { display: none; }
     @media (max-width: 767.98px) {
         .gami-podium-wrap { padding: 14px 8px 6px; }
+        .gami-podium-wrap .row { --bs-gutter-x: .55rem; }
         .gami-podium-col { min-height: 160px; }
         .gami-podium-avatar { width: 74px; height: 74px; }
         .gami-podium-first .gami-podium-avatar { width: 96px; height: 96px; }
+        .gami-podium-second { padding-right: 4px; }
+        .gami-podium-third { padding-left: 4px; }
         .gami-top-name { font-size: .75rem; min-height: 1.7rem; }
         .gami-top-name-main { font-size: .8rem; }
+        .gami-top-name,
+        .gami-top-name-main { max-width: 96%; margin-left: auto; margin-right: auto; overflow-wrap: anywhere; }
         .gami-top-points { font-size: 1.5rem; }
         .gami-top-points-sm { font-size: 1.2rem; }
         .gami-badge-rank { width: 28px; height: 28px; font-size: .82rem; }
@@ -156,6 +161,15 @@ $initials = static function (string $name): string {
         .gami-filters-wrap.collapse:not(.show) { display: none; }
         .gami-title-filter-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
         .gami-title-filter-row h2 { min-width: 0; }
+    }
+    @media (max-width: 430px) {
+        .gami-podium-wrap { padding: 12px 6px 6px; }
+        .gami-podium-wrap .row { --bs-gutter-x: .75rem; }
+        .gami-podium-avatar { width: 68px; height: 68px; }
+        .gami-podium-first .gami-podium-avatar { width: 88px; height: 88px; }
+        .gami-podium-col { min-height: 148px; }
+        .gami-top-name { font-size: .72rem; }
+        .gami-top-name-main { font-size: .78rem; }
     }
 </style>
 <div class="container-fluid px-2 px-sm-3 px-md-4">
