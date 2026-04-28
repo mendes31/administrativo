@@ -132,10 +132,10 @@ $initials = static function (string $name): string {
     .gami-filter-toggle-mobile { display: none; }
     @media (max-width: 767.98px) {
         .gami-podium-wrap { padding: 14px 8px 6px; }
-        .gami-podium-wrap .row { --bs-gutter-x: .55rem; }
+        .gami-podium-row { --bs-gutter-x: .7rem; }
         .gami-podium-col { min-height: 0; }
-        .gami-podium-avatar { width: 74px; height: 74px; }
-        .gami-podium-first .gami-podium-avatar { width: 96px; height: 96px; }
+        .gami-podium-avatar { width: 66px !important; height: 66px !important; }
+        .gami-podium-first .gami-podium-avatar { width: 84px !important; height: 84px !important; }
         .gami-podium-second { padding-right: 4px; }
         .gami-podium-third { padding-left: 4px; }
         .gami-top-name { font-size: .75rem; min-height: 2.2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -164,9 +164,9 @@ $initials = static function (string $name): string {
     }
     @media (max-width: 430px) {
         .gami-podium-wrap { padding: 12px 6px 6px; }
-        .gami-podium-wrap .row { --bs-gutter-x: .75rem; }
-        .gami-podium-avatar { width: 68px; height: 68px; }
-        .gami-podium-first .gami-podium-avatar { width: 88px; height: 88px; }
+        .gami-podium-row { --bs-gutter-x: .85rem; }
+        .gami-podium-avatar { width: 60px !important; height: 60px !important; }
+        .gami-podium-first .gami-podium-avatar { width: 76px !important; height: 76px !important; }
         .gami-podium-col { min-height: 0; }
         .gami-top-name { font-size: .72rem; }
         .gami-top-name-main { font-size: .78rem; }
@@ -300,7 +300,7 @@ $initials = static function (string $name): string {
         <div class="card border-light shadow mb-3">
             <div class="card-body">
                 <div class="gami-podium-wrap">
-                    <div class="row g-2 align-items-end">
+                    <div class="row g-2 align-items-end gami-podium-row">
                         <div class="col-4 gami-podium-col gami-podium-second">
                             <?php if ($top2): ?>
                                 <?= $renderAvatar($top2, 92, 'gami-podium-avatar') ?>
