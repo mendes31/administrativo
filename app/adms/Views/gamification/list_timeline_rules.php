@@ -1165,9 +1165,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (targetTab !== '') {
         var trigger = document.querySelector('button.nav-link[data-bs-target="' + targetTab + '"]');
-        if (trigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+        var targetPane = document.querySelector(targetTab);
+        if (trigger && targetPane) {
+            var activeBtns = document.querySelectorAll('button.nav-link[data-bs-target^="#tab-"]');
+            activeBtns.forEach(function (btn) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            var panes = document.querySelectorAll('.tab-content .tab-pane');
+            panes.forEach(function (pane) {
+                pane.classList.remove('show', 'active');
+            });
+            trigger.classList.add('active');
+            trigger.setAttribute('aria-selected', 'true');
+            targetPane.classList.add('show', 'active');
             try {
-                bootstrap.Tab.getOrCreateInstance(trigger).show();
+                window.localStorage.setItem(TAB_STORAGE_KEY, targetTab);
             } catch (e) {}
         }
     }

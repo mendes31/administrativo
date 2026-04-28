@@ -949,64 +949,88 @@ class AddAdmsPages extends AbstractSeed
             $adms_pages->insert($data)->save();
         }
 
-        // Blindagem para evitar "nascimento autorizado" em ambientes novos/legados:
-        // - card "Meu calendário" no dashboard;
-        // - páginas de Gamificação (directory = gamification);
-        // - card "Quizzes (Gamificação)" no dashboard;
-        // - páginas do grupo "Reserva de Salas".
-        $this->execute(
-            "UPDATE adms_pages
-             SET default_page = 0, updated_at = NOW()
-             WHERE controller = 'DashboardCardMyCalendar'
-                OR controller = 'DashboardCardGamificationQuizzes'
-                OR directory = 'gamification'
-                OR adms_groups_page_id = {$reservaSalasGroupId}"
-        );
-
-        if ($this->hasTable('adms_access_levels_pages')) {
-            $this->execute(
-                "UPDATE adms_access_levels_pages alp
-                 INNER JOIN adms_pages p ON p.id = alp.adms_page_id
-                 SET alp.permission = 0,
-                     alp.updated_at = NOW()
-                 WHERE p.public_page = 0
-                   AND (p.controller = 'DashboardCardMyCalendar'
-                        OR p.controller = 'DashboardCardGamificationQuizzes'
-                        OR p.directory = 'gamification'
-                        OR p.adms_groups_page_id = {$reservaSalasGroupId})"
-            );
-
-            // LGPD: por padrão, páginas privadas iniciam sem permissão.
-            // Exceções realmente globais permanecem públicas via public_page = 1.
+        // Executa ajustes de ACL/default apenas quando houver novas páginas inseridas.
+        // Mantém o comportamento idempotente do seed: somente pendências.
+        if (!empty($data)) {
+            // Blindagem para evitar "nascimento autorizado" em ambientes novos/legados:
+            // - card "Meu calendário" no dashboard;
+            // - páginas de Gamificação (directory = gamification);
+            // - card "Quizzes (Gamificação)" no dashboard;
+            // - páginas do grupo "Reserva de Salas".
             $this->execute(
                 "UPDATE adms_pages
                  SET default_page = 0, updated_at = NOW()
-                 WHERE adms_groups_page_id = {$lgpdGroupId}"
-            );
-            $this->execute(
-                "UPDATE adms_access_levels_pages alp
-                 INNER JOIN adms_pages p ON p.id = alp.adms_page_id
-                 SET alp.permission = 0,
-                     alp.updated_at = NOW()
-                 WHERE p.adms_groups_page_id = {$lgpdGroupId}
-                   AND p.public_page = 0"
+                 WHERE controller = 'DashboardCardMyCalendar'
+                   OR controller = 'DashboardCardGamificationQuizzes'
+                   OR directory = 'gamification'
+                   OR adms_groups_page_id = {$reservaSalasGroupId}"
             );
 
-            // Logs: todas páginas privadas devem iniciar fechadas;
-            // liberação fica a cargo do administrador por nível.
-            $this->execute(
-                "UPDATE adms_pages
-                 SET default_page = 0, updated_at = NOW()
-                 WHERE adms_groups_page_id = {$logsGroupId}"
-            );
-            $this->execute(
-                "UPDATE adms_access_levels_pages alp
-                 INNER JOIN adms_pages p ON p.id = alp.adms_page_id
-                 SET alp.permission = 0,
-                     alp.updated_at = NOW()
-                 WHERE p.adms_groups_page_id = {$logsGroupId}
-                   AND p.public_page = 0"
-            );
+            if ($this->hasTable('adms_access_levels_pages')) {
+                $this->execute(
+                    "UPDATE adms_access_levels_pages alp
+                     INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                     SET alp.permission = 0,
+                         alp.updated_at = NOW()
+                     WHERE p.public_page = 0
+                       AND (p.controller = 'DashboardCardMyCalendar'
+                            OR p.controller = 'DashboardCardGamificationQuizzes'
+                            OR p.directory = 'gamification'
+                            OR p.adms_groups_page_id = {$reservaSalasGroupId})
+                       AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_access_levels_pages keep_acl
+                            WHERE keep_acl.adms_page_id = p.id
+                              AND keep_acl.permission = 1
+                       )"
+                );
+
+                // LGPD: por padrão, páginas privadas iniciam sem permissão.
+                // Exceções realmente globais permanecem públicas via public_page = 1.
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET default_page = 0, updated_at = NOW()
+                     WHERE adms_groups_page_id = {$lgpdGroupId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages alp
+                     INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                     SET alp.permission = 0,
+                         alp.updated_at = NOW()
+                     WHERE p.adms_groups_page_id = {$lgpdGroupId}
+                       AND p.public_page = 0
+                       AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_access_levels_pages keep_acl
+                            WHERE keep_acl.adms_page_id = p.id
+                              AND keep_acl.permission = 1
+                       )"
+                );
+
+                // Logs: todas páginas privadas devem iniciar fechadas;
+                // liberação fica a cargo do administrador por nível.
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET default_page = 0, updated_at = NOW()
+                     WHERE adms_groups_page_id = {$logsGroupId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages alp
+                     INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                     SET alp.permission = 0,
+                         alp.updated_at = NOW()
+                     WHERE p.adms_groups_page_id = {$logsGroupId}
+                       AND p.public_page = 0
+                       AND NOT EXISTS (
+                            SELECT 1
+                            FROM adms_access_levels_pages keep_acl
+                            WHERE keep_acl.adms_page_id = p.id
+                              AND keep_acl.permission = 1
+                       )"
+                );
+            }
+        } else {
+            echo "ℹ️ AddAdmsPages: sem novas páginas, hardening de ACL/default não executado.\n";
         }
     }
 
