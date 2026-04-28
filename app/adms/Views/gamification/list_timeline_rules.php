@@ -254,6 +254,17 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                            <tr><form method="post">
+                                <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                <input type="hidden" name="section" value="rule_create">
+                                <td data-label="Chave"><input class="form-control form-control-sm" name="event_key" placeholder="nova_regra_evento"></td>
+                                <td data-label="Título"><input class="form-control form-control-sm" name="title" placeholder="Nova regra"></td>
+                                <td data-label="Pontos"><input class="form-control form-control-sm" type="number" min="0" name="points" value="0"></td>
+                                <td data-label="Máx./dia"><input class="form-control form-control-sm" type="number" min="0" name="max_awards_per_user_per_day" placeholder="—"></td>
+                                <td data-label="Máx. total"><input class="form-control form-control-sm" type="number" min="0" name="max_awards_per_user_total" placeholder="—"></td>
+                                <td data-label="Ativo"><span class="badge bg-success">Sim</span></td>
+                                <td class="text-end" data-label="Ações"><button class="btn btn-sm btn-success" type="submit">Criar</button></td>
+                            </form></tr>
                             </tbody>
                         </table>
                     </div>
