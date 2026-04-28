@@ -97,6 +97,7 @@ $initials = static function (string $name): string {
     .gami-list-name { font-size: .92rem; color: #111827; }
     .gami-list-points { font-weight: 900; color: #111827; font-size: 1.1rem; }
     .gami-missions-mobile { display: none; }
+    .gami-prepodium-toggle { display: none; }
     @media (min-width: 768px) {
         .gami-filter-row { flex-wrap: nowrap; }
         .gami-filter-actions { display: flex; gap: .4rem; width: 100%; }
@@ -131,6 +132,12 @@ $initials = static function (string $name): string {
     }
     .gami-filter-toggle-mobile { display: none; }
     @media (max-width: 767.98px) {
+        .gami-prepodium-toggle { display: inline-flex; }
+        .gami-prepodium-info.collapse:not(.show) { display: none; }
+        .gami-prepodium-info .card { margin-bottom: .45rem; }
+        .gami-prepodium-info .card .card-header { padding: .45rem .6rem; font-size: .95rem; }
+        .gami-prepodium-info .card .card-body { padding: .55rem .6rem; font-size: .9rem; }
+        .gami-prepodium-intro { font-size: .82rem !important; margin-bottom: .35rem !important; }
         .gami-podium-wrap { padding: 12px 6px 6px; }
         .gami-podium-row { --bs-gutter-x: .4rem; }
         .gami-podium-col { min-height: 0; }
@@ -164,6 +171,13 @@ $initials = static function (string $name): string {
         .gami-filters-wrap.collapse:not(.show) { display: none; }
         .gami-title-filter-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
         .gami-title-filter-row h2 { min-width: 0; }
+    }
+    @media (min-width: 768px) {
+        .gami-prepodium-info {
+            display: block !important;
+            height: auto !important;
+            visibility: visible !important;
+        }
     }
     @media (max-width: 430px) {
         .gami-podium-wrap { padding: 12px 4px 6px; }
@@ -199,22 +213,28 @@ $initials = static function (string $name): string {
             <li class="breadcrumb-item">Gamificação</li>
         </ol>
     </div>
-    <p class="text-muted small mb-1">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
-    <p class="text-muted small">Os cartões de <strong>nível</strong> usam sempre os pontos do <strong>mês selecionado</strong> no filtro e do <strong>mês civil imediatamente anterior</strong> (limiares configurados em Gamificação). A <strong>lista</strong> do ranking segue o escopo: <strong>Geral</strong> = pontuação total acumulada; <strong>Mensal</strong> ou <strong>Por setor</strong> = só pontos do mês selecionado<?= $scope !== 'general' ? ' (<strong>' . htmlspecialchars($monthRef) . '</strong>)' : '' ?>.</p>
-    <?php if ($canRules || $canLedger || $canQuizCatalog): ?>
-        <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-            <span class="text-muted small">Consultar:</span>
-            <?php if ($canRules): ?>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-gamification-timeline-rules" class="btn btn-sm btn-outline-primary"><i class="fas fa-book me-1"></i>Regras e pontuação</a>
-            <?php endif; ?>
-            <?php if ($canLedger): ?>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-gamification-point-ledger?user_id=<?= $sessionUserId ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-receipt me-1"></i>Extrato dos meus pontos</a>
-            <?php endif; ?>
-            <?php if ($canQuizCatalog): ?>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>gamification-quiz-catalog" class="btn btn-sm btn-outline-secondary"><i class="fas fa-question-circle me-1"></i>Quizzes</a>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
+    <button class="btn btn-sm btn-outline-secondary gami-prepodium-toggle mb-2" type="button"
+            data-bs-toggle="collapse" data-bs-target="#gamiPrePodiumInfo"
+            aria-expanded="false" aria-controls="gamiPrePodiumInfo">
+        <i class="fas fa-info-circle me-1"></i>Resumo e níveis
+    </button>
+    <div id="gamiPrePodiumInfo" class="gami-prepodium-info collapse">
+        <p class="text-muted small mb-1 gami-prepodium-intro">Classificação com desempate por quem atingiu a pontuação primeiro.</p>
+        <p class="text-muted small gami-prepodium-intro">Os cartões de <strong>nível</strong> usam sempre os pontos do <strong>mês selecionado</strong> no filtro e do <strong>mês civil imediatamente anterior</strong> (limiares configurados em Gamificação). A <strong>lista</strong> do ranking segue o escopo: <strong>Geral</strong> = pontuação total acumulada; <strong>Mensal</strong> ou <strong>Por setor</strong> = só pontos do mês selecionado<?= $scope !== 'general' ? ' (<strong>' . htmlspecialchars($monthRef) . '</strong>)' : '' ?>.</p>
+        <?php if ($canRules || $canLedger || $canQuizCatalog): ?>
+            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+                <span class="text-muted small">Consultar:</span>
+                <?php if ($canRules): ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-gamification-timeline-rules" class="btn btn-sm btn-outline-primary"><i class="fas fa-book me-1"></i>Regras e pontuação</a>
+                <?php endif; ?>
+                <?php if ($canLedger): ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-gamification-point-ledger?user_id=<?= $sessionUserId ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-receipt me-1"></i>Extrato dos meus pontos</a>
+                <?php endif; ?>
+                <?php if ($canQuizCatalog): ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>gamification-quiz-catalog" class="btn btn-sm btn-outline-secondary"><i class="fas fa-question-circle me-1"></i>Quizzes</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     <div id="gamiFiltersCollapse" class="gami-filters-wrap collapse d-md-block mb-3">
     <form method="get" class="row g-2 mb-0 align-items-end gami-filter-row">
         <div class="col-12 col-md-3 col-lg-2 gami-filter-scope">
@@ -299,6 +319,7 @@ $initials = static function (string $name): string {
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <?php if ($rows === []): ?>
