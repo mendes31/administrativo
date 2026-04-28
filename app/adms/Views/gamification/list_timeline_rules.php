@@ -132,8 +132,12 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
     .gami-rules-page .gami-collab-compact .collapse .text-break {
         line-height: 1.4;
     }
+    .gami-rules-page.gami-tabs-init-pending .gami-rules-tabs-wrap,
+    .gami-rules-page.gami-tabs-init-pending .tab-content {
+        visibility: hidden;
+    }
 </style>
-<div class="container-fluid gami-rules-page px-2 px-sm-3 px-md-4">
+<div class="container-fluid gami-rules-page gami-tabs-init-pending px-2 px-sm-3 px-md-4">
     <div class="mb-2 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
         <h2 class="gami-rules-title mt-2 mt-md-3 mb-0"><?= $readOnly ? 'Regras e metas da gamificação' : 'Configurações da Gamificação' ?></h2>
         <ol class="gami-rules-breadcrumb breadcrumb mb-0 mt-1 ms-md-auto small text-md-end">
@@ -163,7 +167,35 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                 <div class="card-header"><i class="fas fa-sliders-h me-2"></i><?= $readOnly ? 'Como ganha pontos na timeline' : 'Regras configuráveis da timeline' ?></div>
                 <div class="card-body <?= $readOnly ? 'p-2 p-md-3' : 'p-0' ?>">
                     <?php if ($readOnly): ?>
-                    <div class="row g-2 gami-collab-cards">
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light"><tr><th>Chave</th><th>Título</th><th>Pontos</th><th>Máx./dia</th><th>Máx. total</th><th>Ativo</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($this->data['rules'] ?? [] as $r): ?>
+                                <tr>
+                                    <td><code><?= htmlspecialchars((string)($r['event_key'] ?? '')) ?></code></td>
+                                    <td><?= htmlspecialchars((string)($r['title'] ?? '')) ?></td>
+                                    <td><?= (int)($r['points'] ?? 0) ?></td>
+                                    <td><?= $r['max_awards_per_user_per_day'] !== null ? (int)$r['max_awards_per_user_per_day'] : '—' ?></td>
+                                    <td><?= $r['max_awards_per_user_total'] !== null ? (int)$r['max_awards_per_user_total'] : '—' ?></td>
+                                    <td><?= !empty($r['is_active']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                                <tr><form method="post">
+                                    <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                    <input type="hidden" name="section" value="rule_create">
+                                    <td data-label="Chave"><input class="form-control form-control-sm" name="event_key" placeholder="nova_regra_evento"></td>
+                                    <td data-label="Título"><input class="form-control form-control-sm" name="title" placeholder="Nova regra"></td>
+                                    <td data-label="Pontos"><input class="form-control form-control-sm" type="number" min="0" name="points" value="0"></td>
+                                    <td data-label="Máx./dia"><input class="form-control form-control-sm" type="number" min="0" name="max_awards_per_user_per_day" placeholder="—"></td>
+                                    <td data-label="Máx. total"><input class="form-control form-control-sm" type="number" min="0" name="max_awards_per_user_total" placeholder="—"></td>
+                                    <td data-label="Ativo"><span class="badge bg-success">Sim</span></td>
+                                    <td class="text-end" data-label="Ações"><button class="btn btn-sm btn-success" type="submit">Criar</button></td>
+                                </form></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row g-2 gami-collab-cards d-md-none">
                         <?php foreach ($this->data['rules'] ?? [] as $r):
                             $rid = (int)($r['id'] ?? 0);
                             $title = (string)($r['title'] ?? '');
@@ -172,7 +204,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             $inactive = empty($r['is_active']);
                             $cardExtra = $inactive ? ' border-inactive' : '';
                             ?>
-                        <div class="col-12 col-md-6 col-xl-4">
+                        <div class="col-12">
                             <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
@@ -203,7 +235,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                         <?php endforeach; ?>
                     </div>
                     <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-hover align-middle mb-0 gami-table-mobile-cards">
                             <thead class="table-light"><tr><th>Chave</th><th>Título</th><th>Pontos</th><th>Máx./dia</th><th>Máx. total</th><th>Ativo</th><th class="text-end">Ações</th></tr></thead>
                             <tbody>
@@ -225,6 +257,62 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             </tbody>
                         </table>
                     </div>
+                    <div class="row g-2 gami-collab-cards d-md-none">
+                        <?php foreach ($this->data['rules'] ?? [] as $r):
+                            $rid = (int)($r['id'] ?? 0);
+                            $title = (string)($r['title'] ?? '');
+                            $fold = $gamiCollabFold($title, 130);
+                            $moreId = 'gami-rule-edit-more-' . $rid;
+                            $inactive = empty($r['is_active']);
+                            $cardExtra = $inactive ? ' border-inactive' : '';
+                            ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
+                                        <div class="gami-collab-mobile-info flex-grow-1 min-w-0 pe-1">
+                                            <h6 class="card-title mb-2 d-flex align-items-center gap-2">
+                                                <span class="gami-collab-ico rounded-circle bg-light text-primary d-inline-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true"><i class="fas fa-sliders-h"></i></span>
+                                                <span class="gami-collab-title-clamp"><b><?= htmlspecialchars($title !== '' ? $title : 'Regra') ?></b></span>
+                                            </h6>
+                                            <div class="mb-1 small"><b>Pontos:</b> <?= (int)($r['points'] ?? 0) ?> pts</div>
+                                            <div class="mb-1 small"><b>Ativa:</b> <?= !$inactive ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm ms-2 flex-shrink-0 gami-collab-more-btn" data-bs-toggle="collapse" data-bs-target="#<?= htmlspecialchars($moreId) ?>" aria-expanded="false" aria-controls="<?= htmlspecialchars($moreId) ?>">Ver mais</button>
+                                    </div>
+                                    <div class="collapse mt-2 small" id="<?= htmlspecialchars($moreId) ?>">
+                                        <?php if ($fold['needs']): ?>
+                                            <div class="mb-2 text-break"><b>Descrição completa:</b><br><?= nl2br(htmlspecialchars($fold['full'])) ?></div>
+                                        <?php endif; ?>
+                                        <div class="mb-1"><b>Máximo por dia:</b> <?= $r['max_awards_per_user_per_day'] !== null ? (int)$r['max_awards_per_user_per_day'] . ' vezes' : '—' ?></div>
+                                        <div class="mb-1"><b>Limite total:</b> <?= $r['max_awards_per_user_total'] !== null ? (int)$r['max_awards_per_user_total'] . ' vezes' : '—' ?></div>
+                                        <div class="text-break mb-2"><b>Identificador técnico:</b> <code class="small"><?= htmlspecialchars((string)($r['event_key'] ?? '')) ?></code></div>
+                                        <?php if (in_array('UpdateGamificationTimelineRule', $this->data['buttonPermission'] ?? [], true)) { ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-gamification-timeline-rule/<?= (int)$r['id'] ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit me-1"></i>Editar</a>
+                                        <?php } ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2"><b>Nova regra de timeline</b></h6>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                        <input type="hidden" name="section" value="rule_create">
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="event_key" placeholder="Chave técnica"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="title" placeholder="Título"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="points" value="0" placeholder="Pontos"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="max_awards_per_user_per_day" placeholder="Máx. por dia (opcional)"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="max_awards_per_user_total" placeholder="Limite total (opcional)"></div>
+                                        <button class="btn btn-sm btn-success" type="submit">Criar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -235,7 +323,23 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                 <div class="card-header"><?= $readOnly ? 'Níveis no ranking' : 'Níveis de usuário' ?></div>
                 <div class="card-body <?= $readOnly ? 'p-2 p-md-3' : 'p-0' ?>">
                         <?php if ($readOnly): ?>
-                        <div class="row g-2 gami-collab-cards">
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light"><tr><th>Nome</th><th>Pontos mín.</th><th>Cor</th><th>Ordem</th><th>Ativo</th></tr></thead>
+                                <tbody>
+                                <?php foreach (($this->data['levels'] ?? []) as $row): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars((string)($row['name'] ?? '')) ?></td>
+                                        <td><?= (int)($row['min_points'] ?? 0) ?></td>
+                                        <td><span class="badge bg-<?= htmlspecialchars((string)($row['badge_color'] ?? 'secondary')) ?>"><?= htmlspecialchars((string)($row['name'] ?? '')) ?></span></td>
+                                        <td><?= (int)($row['sort_order'] ?? 0) ?></td>
+                                        <td><?= !empty($row['is_active']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row g-2 gami-collab-cards d-md-none">
                             <?php foreach (($this->data['levels'] ?? []) as $row):
                                 $lid = (int)($row['id'] ?? 0);
                                 $lname = (string)($row['name'] ?? '');
@@ -250,7 +354,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                                 $inactive = empty($row['is_active']);
                                 $cardExtra = $inactive ? ' border-inactive' : '';
                                 ?>
-                            <div class="col-12 col-md-6 col-xl-4">
+                            <div class="col-12">
                                 <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
@@ -275,7 +379,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             <?php endforeach; ?>
                         </div>
                         <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-sm table-hover mb-0 gami-table-mobile-cards">
                             <thead class="table-light"><tr><th>Nome</th><th>Pontos mín.</th><th>Cor</th><th>Ordem</th><th>Ativo</th><th>Ação</th></tr></thead>
                             <tbody>
@@ -330,6 +434,87 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             </tbody>
                         </table>
                     </div>
+                    <div class="row g-2 gami-collab-cards d-md-none">
+                        <?php foreach (($this->data['levels'] ?? []) as $row):
+                            $lid = (int)($row['id'] ?? 0);
+                            $lname = (string)($row['name'] ?? '');
+                            $lmin = (int)($row['min_points'] ?? 0);
+                            $descPlain = $lname !== ''
+                                ? sprintf('O nível «%s» é atingido com %s pontos ou mais no ranking mensal.', $lname, $lmin)
+                                : sprintf('Este nível exige %s pontos ou mais no ranking mensal.', $lmin);
+                            $fold = $gamiCollabFold($descPlain, 140);
+                            $moreId = 'gami-level-edit-more-' . $lid;
+                            $bc = (string)($row['badge_color'] ?? 'secondary');
+                            $colorLabel = $levelColorOptions[$bc] ?? $bc;
+                            $inactive = empty($row['is_active']);
+                            $cardExtra = $inactive ? ' border-inactive' : '';
+                            ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
+                                        <div class="gami-collab-mobile-info flex-grow-1 min-w-0 pe-1">
+                                            <h6 class="card-title mb-2 d-flex align-items-center gap-2 flex-wrap">
+                                                <span class="gami-collab-ico rounded-circle bg-light text-warning d-inline-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true"><i class="fas fa-star"></i></span>
+                                                <span class="badge bg-<?= htmlspecialchars($bc) ?> gami-collab-title-clamp"><?= htmlspecialchars($lname !== '' ? $lname : 'Nível') ?></span>
+                                            </h6>
+                                            <div class="mb-1 small"><b>Pontos mínimos:</b> <?= $lmin ?></div>
+                                            <div class="mb-1 small"><b>Ativo:</b> <?= !$inactive ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm ms-2 flex-shrink-0 gami-collab-more-btn" data-bs-toggle="collapse" data-bs-target="#<?= htmlspecialchars($moreId) ?>" aria-expanded="false" aria-controls="<?= htmlspecialchars($moreId) ?>">Ver mais</button>
+                                    </div>
+                                    <div class="collapse mt-2 small" id="<?= htmlspecialchars($moreId) ?>">
+                                        <div class="mb-2 text-break"><?= nl2br(htmlspecialchars($fold['full'])) ?></div>
+                                        <div class="mb-1"><b>Cor no perfil:</b> <?= htmlspecialchars($colorLabel) ?></div>
+                                        <div class="mb-2"><b>Ordem:</b> <?= (int)($row['sort_order'] ?? 0) ?></div>
+                                        <form method="post" class="mt-2">
+                                            <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                            <input type="hidden" name="section" value="level">
+                                            <input type="hidden" name="id" value="<?= (int)($row['id'] ?? 0) ?>">
+                                            <input type="hidden" name="name" value="<?= htmlspecialchars((string)($row['name'] ?? '')) ?>">
+                                            <input type="hidden" name="min_points" value="<?= (int)($row['min_points'] ?? 0) ?>">
+                                            <input type="hidden" name="badge_color" value="<?= htmlspecialchars((string)($row['badge_color'] ?? 'secondary')) ?>">
+                                            <input type="hidden" name="sort_order" value="<?= (int)($row['sort_order'] ?? 0) ?>">
+                                            <div class="mb-2">
+                                                <label class="form-label mb-1">Ativo</label>
+                                                <select class="form-select form-select-sm" name="is_active">
+                                                    <option value="1" <?= !empty($row['is_active']) ? 'selected' : '' ?>>Sim</option>
+                                                    <option value="0" <?= empty($row['is_active']) ? 'selected' : '' ?>>Não</option>
+                                                </select>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
+                                                <button class="btn btn-sm btn-outline-danger" type="submit" onclick="this.form.section.value='level_remove';return confirm('Remover nível? (será desativado)')">Remover</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2"><b>Novo nível</b></h6>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                        <input type="hidden" name="section" value="level_create">
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="name" placeholder="Nome"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="min_points" value="0" placeholder="Pontos mínimos"></div>
+                                        <div class="mb-2">
+                                            <select class="form-select form-select-sm" name="badge_color">
+                                                <?php foreach ($levelColorOptions as $colorKey => $colorLabel): ?>
+                                                    <option value="<?= htmlspecialchars((string)$colorKey) ?>" <?= (string)$colorKey === 'secondary' ? 'selected' : '' ?>><?= htmlspecialchars((string)$colorLabel) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="sort_order" value="0" placeholder="Ordem"></div>
+                                        <button class="btn btn-sm btn-success" type="submit">Criar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                         <?php endif; ?>
                 </div>
             </div>
@@ -340,7 +525,26 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                 <div class="card-header">Badges</div>
                 <div class="card-body <?= $readOnly ? 'p-2 p-md-3' : 'p-0' ?>">
                         <?php if ($readOnly): ?>
-                        <div class="row g-2 gami-collab-cards">
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light"><tr><th>Nome</th><th>Descrição</th><th>Critério</th><th>Meta</th><th>Ativo</th></tr></thead>
+                                <tbody>
+                                <?php foreach (($this->data['badges'] ?? []) as $row):
+                                    $ck = (string)($row['criteria_key'] ?? '');
+                                    $critLabel = $criteriaOptions[$ck] ?? $ck;
+                                    ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars((string)($row['name'] ?? '')) ?></td>
+                                        <td class="small"><?= htmlspecialchars((string)($row['description'] ?? '')) ?></td>
+                                        <td><?= htmlspecialchars($critLabel) ?></td>
+                                        <td><?= (int)($row['criteria_threshold'] ?? 0) ?> <span class="text-muted">(<?= htmlspecialchars((string)($row['criteria_threshold_key'] ?? '')) ?>)</span></td>
+                                        <td><?= !empty($row['is_active']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row g-2 gami-collab-cards d-md-none">
                             <?php foreach (($this->data['badges'] ?? []) as $row):
                                 $bid = (int)($row['id'] ?? 0);
                                 $bname = (string)($row['name'] ?? '');
@@ -355,7 +559,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                                 $inactive = empty($row['is_active']);
                                 $cardExtra = $inactive ? ' border-inactive' : '';
                                 ?>
-                            <div class="col-12 col-md-6 col-xl-4">
+                            <div class="col-12">
                                 <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
@@ -383,7 +587,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             <?php endforeach; ?>
                         </div>
                         <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-sm table-hover mb-0 gami-table-mobile-cards">
                             <thead class="table-light"><tr><th>Nome</th><th>Slug</th><th>Critério</th><th>Meta</th><th>Ativo</th><th>Ação</th></tr></thead>
                             <tbody>
@@ -446,6 +650,103 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             </tbody>
                         </table>
                     </div>
+                    <div class="row g-2 gami-collab-cards d-md-none">
+                        <?php foreach (($this->data['badges'] ?? []) as $row):
+                            $bid = (int)($row['id'] ?? 0);
+                            $bname = (string)($row['name'] ?? '');
+                            $bdesc = trim((string)($row['description'] ?? ''));
+                            $descPlain = $bdesc !== '' ? $bdesc : ($bname !== '' ? $bname : 'Badge sem descrição.');
+                            $fold = $gamiCollabFold($descPlain, 140);
+                            $moreId = 'gami-badge-edit-more-' . $bid;
+                            $ck = (string)($row['criteria_key'] ?? '');
+                            $critLabel = $criteriaOptions[$ck] ?? $ck;
+                            $threshKey = (string)($row['criteria_threshold_key'] ?? '');
+                            $metaLine = (int)($row['criteria_threshold'] ?? 0) . ($threshKey !== '' ? ' · ' . $threshKey : '');
+                            $inactive = empty($row['is_active']);
+                            $cardExtra = $inactive ? ' border-inactive' : '';
+                            ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
+                                        <div class="gami-collab-mobile-info flex-grow-1 min-w-0 pe-1">
+                                            <h6 class="card-title mb-2 d-flex align-items-center gap-2">
+                                                <span class="gami-collab-ico rounded-circle bg-light text-success d-inline-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true"><i class="fas fa-award"></i></span>
+                                                <span class="gami-collab-title-clamp"><b><?= htmlspecialchars($bname !== '' ? $bname : 'Badge') ?></b></span>
+                                            </h6>
+                                            <div class="mb-1 small text-break"><b>Critério:</b> <?= htmlspecialchars($critLabel) ?></div>
+                                            <div class="mb-1 small"><b>Ativa:</b> <?= !$inactive ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm ms-2 flex-shrink-0 gami-collab-more-btn" data-bs-toggle="collapse" data-bs-target="#<?= htmlspecialchars($moreId) ?>" aria-expanded="false" aria-controls="<?= htmlspecialchars($moreId) ?>">Ver mais</button>
+                                    </div>
+                                    <div class="collapse mt-2 small" id="<?= htmlspecialchars($moreId) ?>">
+                                        <?php if ($bdesc !== ''): ?>
+                                            <div class="mb-2 text-break"><b>Descrição:</b><br><?= nl2br(htmlspecialchars($bdesc)) ?></div>
+                                        <?php elseif ($bdesc === '' && $fold['needs']): ?>
+                                            <div class="mb-2 text-break"><?= nl2br(htmlspecialchars($fold['full'])) ?></div>
+                                        <?php endif; ?>
+                                        <div class="mb-2 text-break"><b>Meta:</b> <?= htmlspecialchars($metaLine) ?></div>
+                                        <form method="post" class="mt-2">
+                                            <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                            <input type="hidden" name="section" value="badge">
+                                            <input type="hidden" name="id" value="<?= (int)($row['id'] ?? 0) ?>">
+                                            <input type="hidden" name="name" value="<?= htmlspecialchars((string)($row['name'] ?? '')) ?>">
+                                            <input type="hidden" name="slug" value="<?= htmlspecialchars((string)($row['slug'] ?? '')) ?>">
+                                            <input type="hidden" name="description" value="<?= htmlspecialchars((string)($row['description'] ?? '')) ?>">
+                                            <input type="hidden" name="icon" value="<?= htmlspecialchars((string)($row['icon'] ?? '')) ?>">
+                                            <input type="hidden" name="criteria_threshold" value="<?= (int)($row['criteria_threshold'] ?? 0) ?>">
+                                            <input type="hidden" name="criteria_value_json" value="<?= htmlspecialchars((string)($row['criteria_value_json'] ?? '{}')) ?>">
+                                            <div class="mb-2">
+                                                <label class="form-label mb-1">Critério</label>
+                                                <select class="form-select form-select-sm" name="criteria_key">
+                                                    <?php foreach ($criteriaOptions as $optKey => $optLabel): ?>
+                                                        <option value="<?= htmlspecialchars((string)$optKey) ?>" <?= ((string)($row['criteria_key'] ?? '') === (string)$optKey) ? 'selected' : '' ?>><?= htmlspecialchars((string)$optLabel) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label mb-1">Ativo</label>
+                                                <select class="form-select form-select-sm" name="is_active">
+                                                    <option value="1" <?= !empty($row['is_active']) ? 'selected' : '' ?>>Sim</option>
+                                                    <option value="0" <?= empty($row['is_active']) ? 'selected' : '' ?>>Não</option>
+                                                </select>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
+                                                <button class="btn btn-sm btn-outline-danger" type="submit" onclick="this.form.section.value='badge_remove';return confirm('Remover badge? (será desativada)')">Remover</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2"><b>Nova badge</b></h6>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                        <input type="hidden" name="section" value="badge_create">
+                                        <input type="hidden" name="description" value="">
+                                        <input type="hidden" name="icon" value="fa-award">
+                                        <input type="hidden" name="criteria_value_json" value='{"min_points":100}'>
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="name" placeholder="Nome"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="slug" placeholder="slug"></div>
+                                        <div class="mb-2">
+                                            <select class="form-select form-select-sm" name="criteria_key">
+                                                <?php foreach ($criteriaOptions as $optKey => $optLabel): ?>
+                                                    <option value="<?= htmlspecialchars((string)$optKey) ?>" <?= (string)$optKey === 'total_points' ? 'selected' : '' ?>><?= htmlspecialchars((string)$optLabel) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="criteria_threshold" value="100"></div>
+                                        <button class="btn btn-sm btn-success" type="submit">Criar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                         <?php endif; ?>
                 </div>
             </div>
@@ -456,7 +757,27 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                 <div class="card-header">Missões mensais</div>
                 <div class="card-body <?= $readOnly ? 'p-2 p-md-3' : 'p-0' ?>">
                         <?php if ($readOnly): ?>
-                        <div class="row g-2 gami-collab-cards">
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light"><tr><th>Título</th><th>Descrição</th><th>Evento</th><th>Meta</th><th>Recompensa (pts)</th><th>Ativo</th></tr></thead>
+                                <tbody>
+                                <?php foreach (($this->data['missions'] ?? []) as $row):
+                                    $ek = (string)($row['event_key'] ?? '');
+                                    $evLabel = $missionEventOptions[$ek] ?? $ek;
+                                    ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars((string)($row['title'] ?? '')) ?></td>
+                                        <td class="small"><?= htmlspecialchars((string)($row['description'] ?? '')) ?></td>
+                                        <td><?= htmlspecialchars($evLabel) ?></td>
+                                        <td><?= (int)($row['target_value'] ?? 0) ?></td>
+                                        <td><?= (int)($row['reward_points'] ?? 0) ?></td>
+                                        <td><?= !empty($row['is_active']) ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row g-2 gami-collab-cards d-md-none">
                             <?php foreach (($this->data['missions'] ?? []) as $row):
                                 $mid = (int)($row['id'] ?? 0);
                                 $mtitle = (string)($row['title'] ?? '');
@@ -469,7 +790,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                                 $inactive = empty($row['is_active']);
                                 $cardExtra = $inactive ? ' border-inactive' : '';
                                 ?>
-                            <div class="col-12 col-md-6 col-xl-4">
+                            <div class="col-12">
                                 <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
@@ -499,7 +820,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             <?php endforeach; ?>
                         </div>
                         <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-sm table-hover mb-0 gami-table-mobile-cards">
                             <thead class="table-light"><tr><th>Título</th><th>Evento</th><th>Meta</th><th>Recompensa</th><th>Ativo</th><th>Ação</th></tr></thead>
                             <tbody>
@@ -554,6 +875,101 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             </tbody>
                         </table>
                     </div>
+                    <div class="row g-2 gami-collab-cards d-md-none">
+                        <?php foreach (($this->data['missions'] ?? []) as $row):
+                            $mid = (int)($row['id'] ?? 0);
+                            $mtitle = (string)($row['title'] ?? '');
+                            $mdesc = trim((string)($row['description'] ?? ''));
+                            $descPlain = $mdesc !== '' ? $mdesc : ($mtitle !== '' ? $mtitle : 'Missão sem descrição.');
+                            $fold = $gamiCollabFold($descPlain, 140);
+                            $moreId = 'gami-mission-edit-more-' . $mid;
+                            $ek = (string)($row['event_key'] ?? '');
+                            $evLabel = $missionEventOptions[$ek] ?? $ek;
+                            $inactive = empty($row['is_active']);
+                            $cardExtra = $inactive ? ' border-inactive' : '';
+                            ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact<?= $cardExtra ?>">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
+                                        <div class="gami-collab-mobile-info flex-grow-1 min-w-0 pe-1">
+                                            <h6 class="card-title mb-2 d-flex align-items-center gap-2">
+                                                <span class="gami-collab-ico rounded-circle bg-light text-info d-inline-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true"><i class="fas fa-flag-checkered"></i></span>
+                                                <span class="gami-collab-title-clamp"><b><?= htmlspecialchars($mtitle !== '' ? $mtitle : 'Missão') ?></b></span>
+                                            </h6>
+                                            <div class="mb-1 small"><b>Meta:</b> <?= (int)($row['target_value'] ?? 0) ?></div>
+                                            <div class="mb-1 small"><b>Recompensa:</b> <?= (int)($row['reward_points'] ?? 0) ?> pts</div>
+                                            <div class="mb-1 small"><b>Ativa:</b> <?= !$inactive ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>' ?></div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm ms-2 flex-shrink-0 gami-collab-more-btn" data-bs-toggle="collapse" data-bs-target="#<?= htmlspecialchars($moreId) ?>" aria-expanded="false" aria-controls="<?= htmlspecialchars($moreId) ?>">Ver mais</button>
+                                    </div>
+                                    <div class="collapse mt-2 small" id="<?= htmlspecialchars($moreId) ?>">
+                                        <?php if ($mdesc !== ''): ?>
+                                            <div class="mb-2 text-break"><b>Descrição:</b><br><?= nl2br(htmlspecialchars($mdesc)) ?></div>
+                                        <?php elseif ($mdesc === '' && $fold['needs']): ?>
+                                            <div class="mb-2 text-break"><b>Detalhe:</b><br><?= nl2br(htmlspecialchars($fold['full'])) ?></div>
+                                        <?php endif; ?>
+                                        <div class="mb-1 text-break"><b>Evento:</b> <?= htmlspecialchars($evLabel) ?></div>
+                                        <div class="text-break mb-2"><b>Identificador técnico:</b> <code class="small"><?= htmlspecialchars($ek) ?></code></div>
+                                        <form method="post" class="mt-2">
+                                            <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                            <input type="hidden" name="section" value="mission">
+                                            <input type="hidden" name="id" value="<?= (int)($row['id'] ?? 0) ?>">
+                                            <input type="hidden" name="title" value="<?= htmlspecialchars((string)($row['title'] ?? '')) ?>">
+                                            <input type="hidden" name="description" value="<?= htmlspecialchars((string)($row['description'] ?? '')) ?>">
+                                            <input type="hidden" name="sort_order" value="<?= (int)($row['sort_order'] ?? 0) ?>">
+                                            <input type="hidden" name="target_value" value="<?= (int)($row['target_value'] ?? 0) ?>">
+                                            <input type="hidden" name="reward_points" value="<?= (int)($row['reward_points'] ?? 0) ?>">
+                                            <div class="mb-2">
+                                                <label class="form-label mb-1">Evento</label>
+                                                <select class="form-select form-select-sm" name="event_key">
+                                                    <?php foreach ($missionEventOptions as $optKey => $optLabel): ?>
+                                                        <option value="<?= htmlspecialchars((string)$optKey) ?>" <?= ((string)($row['event_key'] ?? '') === (string)$optKey) ? 'selected' : '' ?>><?= htmlspecialchars((string)$optLabel) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label mb-1">Ativa</label>
+                                                <select class="form-select form-select-sm" name="is_active">
+                                                    <option value="1" <?= !empty($row['is_active']) ? 'selected' : '' ?>>Sim</option>
+                                                    <option value="0" <?= empty($row['is_active']) ? 'selected' : '' ?>>Não</option>
+                                                </select>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
+                                                <button class="btn btn-sm btn-outline-danger" type="submit" onclick="this.form.section.value='mission_remove';return confirm('Remover missão? (será desativada)')">Remover</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2"><b>Nova missão</b></h6>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                        <input type="hidden" name="section" value="mission_create">
+                                        <input type="hidden" name="description" value="">
+                                        <input type="hidden" name="sort_order" value="0">
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="title" placeholder="Título"></div>
+                                        <div class="mb-2">
+                                            <select class="form-select form-select-sm" name="event_key">
+                                                <?php foreach ($missionEventOptions as $optKey => $optLabel): ?>
+                                                    <option value="<?= htmlspecialchars((string)$optKey) ?>" <?= (string)$optKey === 'timeline_comment_created' ? 'selected' : '' ?>><?= htmlspecialchars((string)$optLabel) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="1" name="target_value" value="1"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" type="number" min="0" name="reward_points" value="5"></div>
+                                        <button class="btn btn-sm btn-success" type="submit">Criar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                         <?php endif; ?>
                 </div>
             </div>
@@ -564,7 +980,21 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                 <div class="card-header">Parâmetros anti-fraude</div>
                 <div class="card-body <?= $readOnly ? 'p-2 p-md-3' : 'p-0' ?>">
                         <?php if ($readOnly): ?>
-                        <div class="row g-2 gami-collab-cards">
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light"><tr><th>Chave</th><th>Valor</th><th>Descrição</th></tr></thead>
+                                <tbody>
+                                <?php foreach (($this->data['settings'] ?? []) as $row): ?>
+                                    <tr>
+                                        <td><code><?= htmlspecialchars((string)$row['setting_key']) ?></code></td>
+                                        <td><?= htmlspecialchars((string)$row['setting_value']) ?></td>
+                                        <td class="small"><?= htmlspecialchars((string)($row['description'] ?? '')) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row g-2 gami-collab-cards d-md-none">
                             <?php
                             $afIdx = 0;
                             foreach (($this->data['settings'] ?? []) as $row):
@@ -579,7 +1009,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                                 $fold = $gamiCollabFold($afDesc !== '' ? $afDesc : 'Parâmetro de proteção do sistema de pontos.', 140);
                                 $sval = (string)($row['setting_value'] ?? '');
                                 ?>
-                            <div class="col-12 col-md-6 col-xl-4">
+                            <div class="col-12">
                                 <div class="card mb-0 shadow-sm border-light gami-collab-compact">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
@@ -606,7 +1036,7 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                             <?php endforeach; ?>
                         </div>
                         <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-sm table-hover mb-0 gami-table-mobile-cards">
                             <thead class="table-light"><tr><th>Chave</th><th>Valor</th><th>Descrição</th><th>Ação</th></tr></thead>
                             <tbody>
@@ -621,8 +1051,79 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
                                     <td data-label="Ação"><button class="btn btn-sm btn-primary" type="submit">Salvar</button></td>
                                 </form></tr>
                             <?php endforeach; ?>
+                            <tr><form method="post">
+                                <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                <input type="hidden" name="section" value="setting_create">
+                                <td data-label="Chave"><input class="form-control form-control-sm" name="setting_key" placeholder="anti_fraud_nova_regra"></td>
+                                <td data-label="Valor"><input class="form-control form-control-sm" name="setting_value" placeholder="0"></td>
+                                <td data-label="Descrição"><input class="form-control form-control-sm" name="description" placeholder="Descrição do parâmetro"></td>
+                                <td data-label="Ação"><button class="btn btn-sm btn-success" type="submit">Criar</button></td>
+                            </form></tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="row g-2 gami-collab-cards d-md-none">
+                        <?php
+                        $afEditIdx = 0;
+                        foreach (($this->data['settings'] ?? []) as $row):
+                            $afEditIdx++;
+                            $sk = (string)($row['setting_key'] ?? '');
+                            $safeId = $sk !== '' ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $sk) : 'row';
+                            $moreId = 'gami-af-edit-more-' . $safeId . '-' . $afEditIdx;
+                            $afDesc = trim((string)($row['description'] ?? ''));
+                            $headline = $afDesc !== ''
+                                ? (mb_strlen($afDesc) > 72 ? rtrim(mb_substr($afDesc, 0, 72)) . '…' : $afDesc)
+                                : ($sk !== '' ? $sk : 'Parâmetro');
+                            $fold = $gamiCollabFold($afDesc !== '' ? $afDesc : 'Parâmetro de proteção do sistema de pontos.', 140);
+                            $sval = (string)($row['setting_value'] ?? '');
+                            ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start gami-collab-mobile-header">
+                                        <div class="gami-collab-mobile-info flex-grow-1 min-w-0 pe-1">
+                                            <h6 class="card-title mb-2 d-flex align-items-center gap-2">
+                                                <span class="gami-collab-ico rounded-circle bg-light text-danger d-inline-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+                                                <span class="gami-collab-title-clamp"><b><?= htmlspecialchars($headline) ?></b></span>
+                                            </h6>
+                                            <div class="mb-1 small text-break"><b>Valor:</b> <?= htmlspecialchars($sval !== '' ? $sval : '—') ?></div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm ms-2 flex-shrink-0 gami-collab-more-btn" data-bs-toggle="collapse" data-bs-target="#<?= htmlspecialchars($moreId) ?>" aria-expanded="false" aria-controls="<?= htmlspecialchars($moreId) ?>">Ver mais</button>
+                                    </div>
+                                    <div class="collapse mt-2 small" id="<?= htmlspecialchars($moreId) ?>">
+                                        <?php if ($afDesc !== ''): ?>
+                                            <div class="mb-2 text-break"><b>Descrição completa:</b><br><?= nl2br(htmlspecialchars($afDesc)) ?></div>
+                                        <?php elseif ($fold['needs']): ?>
+                                            <div class="mb-2 text-break"><?= nl2br(htmlspecialchars($fold['full'])) ?></div>
+                                        <?php endif; ?>
+                                        <div class="text-break mb-2"><b>Chave técnica:</b> <code class="small"><?= htmlspecialchars($sk) ?></code></div>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                            <input type="hidden" name="section" value="setting">
+                                            <input type="hidden" name="setting_key" value="<?= htmlspecialchars($sk) ?>">
+                                            <input type="hidden" name="setting_value" value="<?= htmlspecialchars($sval) ?>">
+                                            <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="col-12">
+                            <div class="card mb-0 shadow-sm border-light gami-collab-compact">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2"><b>Novo parâmetro anti-fraude</b></h6>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_gamification_settings'); ?>">
+                                        <input type="hidden" name="section" value="setting_create">
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="setting_key" placeholder="Chave técnica"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="setting_value" placeholder="Valor"></div>
+                                        <div class="mb-2"><input class="form-control form-control-sm" name="description" placeholder="Descrição"></div>
+                                        <button class="btn btn-sm btn-success" type="submit">Criar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                         <?php endif; ?>
                 </div>
@@ -632,14 +1133,53 @@ $gamiCollabFold = static function (string $text, int $maxLen = 140): array {
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var pageRoot = document.querySelector('.gami-rules-page');
+    var TAB_STORAGE_KEY = 'gamificationRulesActiveTab';
     var hash = window.location.hash || '';
+    var storedTab = '';
+    try {
+        storedTab = String(window.localStorage.getItem(TAB_STORAGE_KEY) || '');
+    } catch (e) {
+        storedTab = '';
+    }
+
+    var targetTab = '';
+    var cameFromHash = false;
     if (hash.indexOf('#tab-') === 0) {
-        var trigger = document.querySelector('button.nav-link[data-bs-target="' + hash + '"]');
+        targetTab = hash;
+        cameFromHash = true;
+    } else if (storedTab.indexOf('#tab-') === 0) {
+        targetTab = storedTab;
+    }
+
+    if (targetTab !== '') {
+        var trigger = document.querySelector('button.nav-link[data-bs-target="' + targetTab + '"]');
         if (trigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
             try {
                 bootstrap.Tab.getOrCreateInstance(trigger).show();
             } catch (e) {}
         }
+    }
+
+    var tabButtons = document.querySelectorAll('button.nav-link[data-bs-target^="#tab-"]');
+    tabButtons.forEach(function (btn) {
+        btn.addEventListener('shown.bs.tab', function (event) {
+            var target = String(event.target.getAttribute('data-bs-target') || '');
+            if (target.indexOf('#tab-') !== 0) return;
+            try {
+                window.localStorage.setItem(TAB_STORAGE_KEY, target);
+            } catch (e) {}
+            var cleanUrl = window.location.pathname + window.location.search;
+            history.replaceState(null, '', cleanUrl);
+        });
+    });
+    if (cameFromHash) {
+        var cleanUrl = window.location.pathname + window.location.search;
+        history.replaceState(null, '', cleanUrl);
+        window.scrollTo(0, 0);
+    }
+    if (pageRoot) {
+        pageRoot.classList.remove('gami-tabs-init-pending');
     }
 <?php if (!$readOnly): ?>
     var allowed = ['secondary', 'info', 'primary', 'warning', 'success', 'danger', 'dark'];

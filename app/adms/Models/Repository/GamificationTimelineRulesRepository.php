@@ -108,4 +108,43 @@ class GamificationTimelineRulesRepository extends DbConnection
 
         return $stmt->execute($params);
     }
+
+    /**
+     * @param array{event_key:string,title:string,description?:string|null,points?:int,max_awards_per_user_per_day?:int|null,max_awards_per_user_total?:int|null,is_active?:bool} $data
+     */
+    public function create(array $data): bool
+    {
+        $eventKey = trim((string)($data['event_key'] ?? ''));
+        $title = trim((string)($data['title'] ?? ''));
+        if ($eventKey === '' || $title === '') {
+            return false;
+        }
+
+        $points = max(0, min(999999, (int)($data['points'] ?? 0)));
+        $description = array_key_exists('description', $data) ? (string)$data['description'] : '';
+        $description = trim($description);
+        $maxDay = array_key_exists('max_awards_per_user_per_day', $data)
+            ? ($data['max_awards_per_user_per_day'] === null ? null : max(0, min(999999, (int)$data['max_awards_per_user_per_day'])))
+            : null;
+        $maxTotal = array_key_exists('max_awards_per_user_total', $data)
+            ? ($data['max_awards_per_user_total'] === null ? null : max(0, min(999999, (int)$data['max_awards_per_user_total'])))
+            : null;
+        $isActive = array_key_exists('is_active', $data) ? (!empty($data['is_active']) ? 1 : 0) : 1;
+
+        $stmt = $this->getConnection()->prepare(
+            'INSERT INTO adms_gamification_timeline_rules
+             (event_key, title, description, points, max_awards_per_user_per_day, max_awards_per_user_total, is_active, created_at, updated_at)
+             VALUES (:event_key, :title, :description, :points, :max_day, :max_total, :is_active, NOW(), NOW())'
+        );
+
+        return $stmt->execute([
+            ':event_key' => mb_substr($eventKey, 0, 120),
+            ':title' => mb_substr($title, 0, 191),
+            ':description' => $description === '' ? null : mb_substr($description, 0, 255),
+            ':points' => $points,
+            ':max_day' => $maxDay,
+            ':max_total' => $maxTotal,
+            ':is_active' => $isActive,
+        ]);
+    }
 }

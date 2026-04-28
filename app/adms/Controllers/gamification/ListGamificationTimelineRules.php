@@ -398,10 +398,53 @@ class ListGamificationTimelineRules
             $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Missão removida (desativada) com sucesso.</div>';
             return;
         }
+        if ($section === 'rule_create') {
+            $eventKey = trim((string)($_POST['event_key'] ?? ''));
+            $title = trim((string)($_POST['title'] ?? ''));
+            if ($eventKey === '' || $title === '') {
+                $_SESSION['error'] = 'Informe chave e título da regra.';
+                return;
+            }
+            $repo = new GamificationTimelineRulesRepository();
+            if ($repo->findByEventKey($eventKey) !== null) {
+                $_SESSION['error'] = 'Já existe uma regra com essa chave técnica.';
+                return;
+            }
+            $repo->create([
+                'event_key' => $eventKey,
+                'title' => $title,
+                'description' => (string)($_POST['description'] ?? ''),
+                'points' => (int)($_POST['points'] ?? 0),
+                'max_awards_per_user_per_day' => isset($_POST['max_awards_per_user_per_day']) && (string)$_POST['max_awards_per_user_per_day'] !== '' ? (int)$_POST['max_awards_per_user_per_day'] : null,
+                'max_awards_per_user_total' => isset($_POST['max_awards_per_user_total']) && (string)$_POST['max_awards_per_user_total'] !== '' ? (int)$_POST['max_awards_per_user_total'] : null,
+                'is_active' => true,
+            ]);
+            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Regra criada com sucesso.</div>';
+            return;
+        }
         if ($section === 'setting') {
             $key = (string)($_POST['setting_key'] ?? '');
             $programRepo->updateSetting($key, (string)($_POST['setting_value'] ?? ''));
             $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Configuração anti-fraude atualizada com sucesso.</div>';
+            return;
+        }
+        if ($section === 'setting_create') {
+            $key = trim((string)($_POST['setting_key'] ?? ''));
+            if ($key === '') {
+                $_SESSION['error'] = 'Informe a chave do parâmetro anti-fraude.';
+                return;
+            }
+            if ($programRepo->settingExists($key)) {
+                $_SESSION['error'] = 'Já existe um parâmetro com essa chave.';
+                return;
+            }
+            $programRepo->createSetting(
+                $key,
+                (string)($_POST['setting_value'] ?? ''),
+                (string)($_POST['description'] ?? '')
+            );
+            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Parâmetro anti-fraude criado com sucesso.</div>';
+            return;
         }
     }
 
@@ -417,8 +460,11 @@ class ListGamificationTimelineRules
         if (in_array($section, ['mission', 'mission_create', 'mission_remove'], true)) {
             return '#tab-missions';
         }
-        if ($section === 'setting') {
+        if (in_array($section, ['setting', 'setting_create'], true)) {
             return '#tab-antifraud';
+        }
+        if ($section === 'rule_create') {
+            return '#tab-rules';
         }
 
         return '';

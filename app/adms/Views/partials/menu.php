@@ -208,40 +208,46 @@ $menus = [
                 'permission' => 'TimelineModerate'
             ],
             [
-                'label' => 'Gamificação — Regras (timeline)',
-                'url' => $_ENV['URL_ADM'] . 'list-gamification-timeline-rules',
-                'permission' => 'ListGamificationTimelineRules',
-                'icon' => 'fas fa-sliders-h'
-            ],
-            [
-                'label' => 'Gamificação — Quizzes (gestão)',
-                'url' => $_ENV['URL_ADM'] . 'list-gamification-quizzes',
-                'permission' => 'ListGamificationQuizzes',
-                'icon' => 'fas fa-question-circle'
-            ],
-            [
-                'label' => 'Gamificação — Extrato de pontos',
-                'url' => $_ENV['URL_ADM'] . 'list-gamification-point-ledger',
-                'permission' => 'ListGamificationPointLedger',
-                'icon' => 'fas fa-coins'
-            ],
-            [
-                'label' => 'Quizzes disponíveis',
-                'url' => $_ENV['URL_ADM'] . 'gamification-quiz-catalog',
-                'permission' => 'GamificationQuizCatalog',
-                'icon' => 'fas fa-puzzle-piece'
-            ],
-            [
-                'label' => 'Ranking de pontos',
-                'url' => $_ENV['URL_ADM'] . 'gamification-leaderboard',
-                'permission' => 'GamificationLeaderboard',
-                'icon' => 'fas fa-trophy'
-            ],
-            [
-                'label' => 'Dashboard RH de engajamento',
-                'url' => $_ENV['URL_ADM'] . 'gamification-engagement-dashboard',
-                'permission' => 'GamificationEngagementDashboard',
-                'icon' => 'fas fa-chart-line'
+                'label' => 'Gamificação',
+                'icon' => 'fas fa-gamepad',
+                'submenu' => [
+                    [
+                        'label' => 'Regras (timeline)',
+                        'url' => $_ENV['URL_ADM'] . 'list-gamification-timeline-rules',
+                        'permission' => 'ListGamificationTimelineRules',
+                        'icon' => 'fas fa-sliders-h'
+                    ],
+                    [
+                        'label' => 'Quizzes (gestão)',
+                        'url' => $_ENV['URL_ADM'] . 'list-gamification-quizzes',
+                        'permission' => 'ListGamificationQuizzes',
+                        'icon' => 'fas fa-question-circle'
+                    ],
+                    [
+                        'label' => 'Extrato de pontos',
+                        'url' => $_ENV['URL_ADM'] . 'list-gamification-point-ledger',
+                        'permission' => 'ListGamificationPointLedger',
+                        'icon' => 'fas fa-coins'
+                    ],
+                    [
+                        'label' => 'Quizzes disponíveis',
+                        'url' => $_ENV['URL_ADM'] . 'gamification-quiz-catalog',
+                        'permission' => 'GamificationQuizCatalog',
+                        'icon' => 'fas fa-puzzle-piece'
+                    ],
+                    [
+                        'label' => 'Ranking de pontos',
+                        'url' => $_ENV['URL_ADM'] . 'gamification-leaderboard',
+                        'permission' => 'GamificationLeaderboard',
+                        'icon' => 'fas fa-trophy'
+                    ],
+                    [
+                        'label' => 'Dashboard RH de engajamento',
+                        'url' => $_ENV['URL_ADM'] . 'gamification-engagement-dashboard',
+                        'permission' => 'GamificationEngagementDashboard',
+                        'icon' => 'fas fa-chart-line'
+                    ],
+                ]
             ],
         ]
     ],

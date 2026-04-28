@@ -558,6 +558,33 @@ class GamificationProgramRepository extends DbConnection
         return $stmt->execute([':k' => trim($key), ':v' => trim($value)]);
     }
 
+    public function settingExists(string $key): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT setting_key FROM adms_gamification_settings WHERE setting_key = :k LIMIT 1'
+        );
+        $stmt->execute([':k' => trim($key)]);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function createSetting(string $key, string $value, ?string $description = null): bool
+    {
+        $k = trim($key);
+        if ($k === '') {
+            return false;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'INSERT INTO adms_gamification_settings (setting_key, setting_value, description, created_at, updated_at)
+             VALUES (:k, :v, :d, NOW(), NOW())'
+        );
+        $desc = $description !== null ? trim($description) : '';
+        return $stmt->execute([
+            ':k' => mb_substr($k, 0, 120),
+            ':v' => trim($value),
+            ':d' => $desc === '' ? null : mb_substr($desc, 0, 255),
+        ]);
+    }
+
     public function updateLevel(int $id, array $data): bool
     {
         $stmt = $this->getConnection()->prepare(
