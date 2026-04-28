@@ -6,6 +6,8 @@ use Phinx\Migration\AbstractMigration;
 
 final class AddEscolaridadeToAdmsUsers extends AbstractMigration
 {
+    // Observação: migration idempotente para suportar reexecução segura em ambientes
+    // onde o deploy do arquivo possa ocorrer após execuções prévias do Phinx.
     public function up(): void
     {
         if (!$this->hasTable('adms_users')) {

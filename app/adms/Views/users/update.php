@@ -194,6 +194,10 @@ use App\adms\Helpers\ImageHelper;
                         ?>
                     </div>
                 </div>
+                <div class="col-12">
+                    <hr class="mt-1 mb-0">
+                    <h6 class="mt-2 mb-0 text-muted">Dados pessoais</h6>
+                </div>
                 <div class="col-md-4">
                     <label for="data_nascimento" class="form-label">Data de Nascimento</label>
                     <input type="date" name="data_nascimento" class="form-control" id="data_nascimento" value="<?php echo $this->data['form']['data_nascimento'] ?? ''; ?>">
@@ -206,15 +210,6 @@ use App\adms\Helpers\ImageHelper;
                         <option value="M" <?php echo $sx === 'M' ? 'selected' : ''; ?>>Masculino</option>
                         <option value="F" <?php echo $sx === 'F' ? 'selected' : ''; ?>>Feminino</option>
                         <option value="O" <?php echo $sx === 'O' ? 'selected' : ''; ?>>Outros</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="filhos" class="form-label">Filho(s)</label>
-                    <select name="filhos" id="filhos" class="form-select">
-                        <?php $fh = (string)($this->data['form']['filhos'] ?? ''); ?>
-                        <option value="" <?php echo $fh === '' ? 'selected' : ''; ?>>Selecione</option>
-                        <option value="S" <?php echo $fh === 'S' ? 'selected' : ''; ?>>Sim</option>
-                        <option value="N" <?php echo $fh === 'N' ? 'selected' : ''; ?>>Não</option>
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -246,6 +241,15 @@ use App\adms\Helpers\ImageHelper;
                     </select>
                 </div>
                 <div class="col-md-4">
+                    <label for="filhos" class="form-label">Filho(s)</label>
+                    <select name="filhos" id="filhos" class="form-select">
+                        <?php $fh = (string)($this->data['form']['filhos'] ?? ''); ?>
+                        <option value="" <?php echo $fh === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <option value="S" <?php echo $fh === 'S' ? 'selected' : ''; ?>>Sim</option>
+                        <option value="N" <?php echo $fh === 'N' ? 'selected' : ''; ?>>Não</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
                     <label for="pais_residencia_iso" class="form-label">País de residência</label>
                     <select name="pais_residencia_iso" id="pais_residencia_iso" class="form-select">
                         <?php
@@ -260,6 +264,10 @@ use App\adms\Helpers\ImageHelper;
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+                <div class="col-12">
+                    <hr class="mt-1 mb-0">
+                    <h6 class="mt-2 mb-0 text-muted">Dados contratuais</h6>
                 </div>
 
                 <div class="col-md-4">

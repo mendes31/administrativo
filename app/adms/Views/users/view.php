@@ -189,6 +189,34 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                         echo !empty($dataNasc) ? date('d/m/Y', strtotime($dataNasc)) : '<span class="text-muted">Não informado</span>'; 
                         ?>
                     </dd>
+                    <dt class="col-sm-3">Escolaridade: </dt>
+                    <dd class="col-sm-9">
+                        <?php
+                        $escolaridadeRaw = $this->data['user']['escolaridade'] ?? null;
+                        $escolaridadeLabel = \App\adms\Helpers\UserFormHelper::escolaridadeLabel(
+                            is_string($escolaridadeRaw) ? $escolaridadeRaw : null
+                        );
+                        echo $escolaridadeRaw !== null && $escolaridadeRaw !== ''
+                            ? htmlspecialchars($escolaridadeLabel, ENT_QUOTES, 'UTF-8')
+                            : '<span class="text-muted">Não informado</span>';
+                        ?>
+                    </dd>
+                    <dt class="col-sm-3">Sexo: </dt>
+                    <dd class="col-sm-9">
+                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::sexoLabel($this->data['user']['sexo'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
+                    </dd>
+                    <dt class="col-sm-3">Filho(s): </dt>
+                    <dd class="col-sm-9">
+                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::filhosLabel($this->data['user']['filhos'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
+                    </dd>
+                    <dt class="col-sm-3">Estado civil: </dt>
+                    <dd class="col-sm-9">
+                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::estadoCivilLabel($this->data['user']['estado_civil'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
+                    </dd>
+                    <dt class="col-sm-3">País de residência: </dt>
+                    <dd class="col-sm-9">
+                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::paisResidenciaLabel($this->data['user']['pais_residencia_iso'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
+                    </dd>
 
                     <dt class="col-sm-3">Departamento: </dt>
                     <dd class="col-sm-9"><?php echo $dep_name; ?></dd>
