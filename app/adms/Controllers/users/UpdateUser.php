@@ -239,6 +239,7 @@ class UpdateUser
         $form['sexo'] = UserFormHelper::normalizeSexo($form['sexo'] ?? '');
         $form['filhos'] = UserFormHelper::normalizeFilhos($form['filhos'] ?? '');
         $form['estado_civil'] = UserFormHelper::normalizeEstadoCivil($_POST['estado_civil'] ?? null);
+        $form['escolaridade'] = UserFormHelper::normalizeEscolaridade($_POST['escolaridade'] ?? null);
         $form['pais_residencia_iso'] = UserFormHelper::normalizePaisResidenciaIso($_POST['pais_residencia_iso'] ?? null);
         $newSuperFlag = array_key_exists('super_usuario', $form)
             ? (((int) $form['super_usuario'] === 1) ? 1 : 0)

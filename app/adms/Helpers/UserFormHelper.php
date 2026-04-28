@@ -20,6 +20,20 @@ final class UserFormHelper
         'outro',
     ];
 
+    /** @var list<string> */
+    public const ESCOLARIDADE_SLUGS = [
+        'fundamental_incompleto',
+        'fundamental_completo',
+        'medio_incompleto',
+        'medio_completo',
+        'tecnico',
+        'superior_incompleto',
+        'superior_completo',
+        'pos_graduacao',
+        'mestrado',
+        'doutorado',
+    ];
+
     public static function normalizeSexo(mixed $value): ?string
     {
         $v = strtoupper(trim((string) $value));
@@ -104,6 +118,44 @@ final class UserFormHelper
         $out = [];
         foreach (self::ESTADO_CIVIL_SLUGS as $slug) {
             $out[$slug] = self::estadoCivilLabel($slug);
+        }
+
+        return $out;
+    }
+
+    public static function normalizeEscolaridade(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtolower(trim((string) $value));
+
+        return in_array($v, self::ESCOLARIDADE_SLUGS, true) ? $v : null;
+    }
+
+    public static function escolaridadeLabel(?string $code): string
+    {
+        return match ($code) {
+            'fundamental_incompleto' => 'Ensino fundamental incompleto',
+            'fundamental_completo' => 'Ensino fundamental completo',
+            'medio_incompleto' => 'Ensino médio incompleto',
+            'medio_completo' => 'Ensino médio completo',
+            'tecnico' => 'Curso técnico',
+            'superior_incompleto' => 'Ensino superior incompleto',
+            'superior_completo' => 'Ensino superior completo',
+            'pos_graduacao' => 'Pós-graduação',
+            'mestrado' => 'Mestrado',
+            'doutorado' => 'Doutorado',
+            default => 'Escolaridade não informada',
+        };
+    }
+
+    /** @return array<string, string> slug => rótulo */
+    public static function escolaridadeOptions(): array
+    {
+        $out = [];
+        foreach (self::ESCOLARIDADE_SLUGS as $slug) {
+            $out[$slug] = self::escolaridadeLabel($slug);
         }
 
         return $out;

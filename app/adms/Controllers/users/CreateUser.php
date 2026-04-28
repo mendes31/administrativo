@@ -165,6 +165,7 @@ class CreateUser
         $form['sexo'] = UserFormHelper::normalizeSexo($form['sexo'] ?? '');
         $form['filhos'] = UserFormHelper::normalizeFilhos($form['filhos'] ?? '');
         $form['estado_civil'] = UserFormHelper::normalizeEstadoCivil($_POST['estado_civil'] ?? null);
+        $form['escolaridade'] = UserFormHelper::normalizeEscolaridade($_POST['escolaridade'] ?? null);
         $form['pais_residencia_iso'] = UserFormHelper::normalizePaisResidenciaIso($_POST['pais_residencia_iso'] ?? null);
         // $form['data_nascimento'] e $form['data_admissao'] já foram preenchidos antes da validação
         // Flags de mensagem de boas-vindas

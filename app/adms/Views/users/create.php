@@ -238,6 +238,18 @@ use App\adms\Helpers\CSRFHelper;
                     </select>
                 </div>
                 <div class="col-md-4">
+                    <label for="escolaridade" class="form-label">Escolaridade</label>
+                    <select name="escolaridade" id="escolaridade" class="form-select">
+                        <?php $escVal = (string)($this->data['form']['escolaridade'] ?? ''); ?>
+                        <option value="" <?php echo $escVal === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <?php foreach (\App\adms\Helpers\UserFormHelper::escolaridadeOptions() as $slug => $escLabel): ?>
+                            <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $escVal === $slug ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($escLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
                     <label for="pais_residencia_iso" class="form-label">País de residência</label>
                     <select name="pais_residencia_iso" id="pais_residencia_iso" class="form-select">
                         <?php
