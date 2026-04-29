@@ -287,13 +287,18 @@ class LoadPageAdmAccessLevel
             exit;
         }
 
-        // Flash só em navegação “documento” (HTML). Imagens, fontes, scripts etc. podem passar
-        // pelo mesmo roteador; gravar msg aqui polui a próxima tela (ex.: dashboard) com aviso
-        // falso mesmo após corrigir ServeFile ou permissões pontuais.
+        // Flash só em tentativa explícita de navegação para página HTML.
+        // Evita poluir o dashboard com aviso gerado por chamadas indiretas/background.
         $accept = (string)($_SERVER['HTTP_ACCEPT'] ?? '');
         $dest = strtolower((string)($_SERVER['HTTP_SEC_FETCH_DEST'] ?? ''));
+        $mode = strtolower((string)($_SERVER['HTTP_SEC_FETCH_MODE'] ?? ''));
+        $userNav = (string)($_SERVER['HTTP_SEC_FETCH_USER'] ?? '');
+        $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         $isSubResource = in_array($dest, ['image', 'style', 'script', 'font', 'audio', 'video', 'track'], true);
-        $shouldFlashPermissionDenied = !$isSubResource && str_contains($accept, 'text/html');
+        $isHtmlDocument = str_contains($accept, 'text/html');
+        $isDocumentNavigation = ($dest === 'document') || ($mode === 'navigate' && $userNav === '?1');
+        $isGetNavigation = $method === 'GET';
+        $shouldFlashPermissionDenied = !$isSubResource && $isHtmlDocument && $isDocumentNavigation && $isGetNavigation;
 
         if ($shouldFlashPermissionDenied) {
             $_SESSION['msg'] = '<div class="alert alert-warning">Você não possui permissão para acessar esta página.</div>';

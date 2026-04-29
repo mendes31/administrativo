@@ -9,6 +9,16 @@ use Exception;
 
 class LgpdTermosRepository extends DbConnection
 {
+    private function normalizeNullableDateTime(mixed $value): ?string
+    {
+        $v = is_string($value) ? trim($value) : '';
+        if ($v === '' || $v === '0000-00-00 00:00:00' || $v === '0000-00-00') {
+            return null;
+        }
+
+        return $v;
+    }
+
     /**
      * Buscar termo ativo mais recente por tipo (ex.: 'login').
      */
@@ -17,10 +27,14 @@ class LgpdTermosRepository extends DbConnection
         try {
             $sql = "SELECT *
                     FROM lgpd_termos
-                    WHERE tipo = :tipo
+                    WHERE TRIM(tipo) = :tipo
                       AND status = 'Ativo'
                       AND data_inicio_vigencia <= NOW()
-                      AND (data_fim_vigencia IS NULL OR data_fim_vigencia >= NOW())
+                      AND (
+                            data_fim_vigencia IS NULL
+                            OR data_fim_vigencia = '0000-00-00 00:00:00'
+                            OR data_fim_vigencia >= NOW()
+                          )
                     ORDER BY data_inicio_vigencia DESC, id DESC
                     LIMIT 1";
 
@@ -158,7 +172,11 @@ class LgpdTermosRepository extends DbConnection
                     FROM lgpd_termos
                     WHERE status = 'Ativo'
                       AND data_inicio_vigencia <= NOW()
-                      AND (data_fim_vigencia IS NULL OR data_fim_vigencia >= NOW())
+                      AND (
+                            data_fim_vigencia IS NULL
+                            OR data_fim_vigencia = '0000-00-00 00:00:00'
+                            OR data_fim_vigencia >= NOW()
+                          )
                     ORDER BY titulo ASC";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->execute();
@@ -183,13 +201,14 @@ class LgpdTermosRepository extends DbConnection
                     (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
 
         $stmt = $this->getConnection()->prepare($sql);
+        $dataFimVigencia = $this->normalizeNullableDateTime($data['data_fim_vigencia'] ?? null);
         $stmt->bindValue(':versao', $data['versao'], PDO::PARAM_STR);
         $stmt->bindValue(':titulo', $data['titulo'], PDO::PARAM_STR);
         $stmt->bindValue(':tipo', $data['tipo'], PDO::PARAM_STR);
         $stmt->bindValue(':documento_codigo', $documentoCodigo, PDO::PARAM_STR);
         $stmt->bindValue(':conteudo', $data['conteudo'], PDO::PARAM_STR);
         $stmt->bindValue(':data_inicio_vigencia', $data['data_inicio_vigencia'], PDO::PARAM_STR);
-        $stmt->bindValue(':data_fim_vigencia', $data['data_fim_vigencia'] ?? null, PDO::PARAM_STR);
+        $stmt->bindValue(':data_fim_vigencia', $dataFimVigencia, $dataFimVigencia !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
 
         $ok = $stmt->execute();
@@ -280,13 +299,14 @@ class LgpdTermosRepository extends DbConnection
                             (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
 
             $stmtNew = $conn->prepare($sqlInsert);
+            $dataFimVigenciaNova = $this->normalizeNullableDateTime($dataNova['data_fim_vigencia'] ?? null);
             $stmtNew->bindValue(':versao', $dataNova['versao'], PDO::PARAM_STR);
             $stmtNew->bindValue(':titulo', $dataNova['titulo'], PDO::PARAM_STR);
             $stmtNew->bindValue(':tipo', $termoAntigo['tipo'], PDO::PARAM_STR);
             $stmtNew->bindValue(':documento_codigo', $documentoCodigo, PDO::PARAM_STR);
             $stmtNew->bindValue(':conteudo', $dataNova['conteudo'], PDO::PARAM_STR);
             $stmtNew->bindValue(':data_inicio_vigencia', $dataNova['data_inicio_vigencia'], PDO::PARAM_STR);
-            $stmtNew->bindValue(':data_fim_vigencia', $dataNova['data_fim_vigencia'] ?? null, PDO::PARAM_STR);
+            $stmtNew->bindValue(':data_fim_vigencia', $dataFimVigenciaNova, $dataFimVigenciaNova !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmtNew->bindValue(':status', $dataNova['status'] ?? 'Ativo', PDO::PARAM_STR);
 
             if (!$stmtNew->execute()) {
@@ -364,13 +384,14 @@ class LgpdTermosRepository extends DbConnection
                 WHERE id = :id";
 
         $stmt = $this->getConnection()->prepare($sql);
+        $dataFimVigencia = $this->normalizeNullableDateTime($data['data_fim_vigencia'] ?? null);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':versao', $data['versao'], PDO::PARAM_STR);
         $stmt->bindValue(':titulo', $data['titulo'], PDO::PARAM_STR);
         $stmt->bindValue(':tipo', $data['tipo'], PDO::PARAM_STR);
         $stmt->bindValue(':conteudo', $data['conteudo'], PDO::PARAM_STR);
         $stmt->bindValue(':data_inicio_vigencia', $data['data_inicio_vigencia'], PDO::PARAM_STR);
-        $stmt->bindValue(':data_fim_vigencia', $data['data_fim_vigencia'] ?? null, PDO::PARAM_STR);
+        $stmt->bindValue(':data_fim_vigencia', $dataFimVigencia, $dataFimVigencia !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
 
         return $stmt->execute();
