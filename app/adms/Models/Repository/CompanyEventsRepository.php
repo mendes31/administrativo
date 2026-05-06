@@ -257,8 +257,8 @@ class CompanyEventsRepository extends DbConnection
                 WHERE e.ativo = 1
                   AND e.starts_at <= :end
                   AND e.ends_at >= :start
-                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
-                  AND (e.expire_at IS NULL OR e.expire_at > NOW())
+                  AND (e.publish_at IS NULL OR e.publish_at <= :end)
+                  AND (e.expire_at IS NULL OR e.expire_at >= :start)
                 ORDER BY e.starts_at ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end]);
@@ -308,8 +308,8 @@ class CompanyEventsRepository extends DbConnection
                 WHERE e.ativo = 1
                   AND e.starts_at <= :end
                   AND e.ends_at >= :start
-                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
-                  AND (e.expire_at IS NULL OR e.expire_at > NOW())';
+                  AND (e.publish_at IS NULL OR e.publish_at <= :end)
+                  AND (e.expire_at IS NULL OR e.expire_at >= :start)';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -646,9 +646,6 @@ class CompanyEventsRepository extends DbConnection
         return $stmt->rowCount() > 0;
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
     public function deleteEvent(int $id): bool
     {
         $rsvpIds = $this->getConnection()->prepare('SELECT id FROM adms_company_event_rsvps WHERE event_id = :e');

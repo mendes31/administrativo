@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 use Phinx\Seed\AbstractSeed;
 
+/**
+ * Seed de grupos de páginas.
+ *
+ * Anotações para análise estática (Intelephense) dos métodos herdados do Phinx.
+ *
+ * @method array|false fetchRow(string $sql)
+ * @method void execute(string $sql)
+ * @method array|false fetchRow(string $sql)
+ */
 class AddAdmsGroupsPages extends AbstractSeed
 {
     /**
@@ -62,19 +71,26 @@ class AddAdmsGroupsPages extends AbstractSeed
         ];
 
         foreach ($grupos as $grupo) {
-            $existingRecord = $this->query('SELECT id FROM adms_groups_pages WHERE name=:name', ['name' => $grupo['name']])->fetch();
+            $nameSql = str_replace("'", "''", (string)$grupo['name']);
+            $obsSql = str_replace("'", "''", (string)$grupo['obs']);
+            $existingRecord = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = '{$nameSql}' LIMIT 1");
             if (!$existingRecord) {
                 $data[] = [
-                    'name' => $grupo['name'],
-                    'obs' => $grupo['obs'],
+                    'name' => $nameSql,
+                    'obs' => $obsSql,
                     'created_at' => date("Y-m-d H:i:s"),
                 ];
             }
         }
 
         if (!empty($data)) {
-            $adms_groups_pages = $this->table('adms_groups_pages');
-            $adms_groups_pages->insert($data)->save();
+            foreach ($data as $row) {
+                $createdAtSql = str_replace("'", "''", (string)$row['created_at']);
+                $this->execute(
+                    "INSERT INTO adms_groups_pages (name, obs, created_at)
+                     VALUES ('{$row['name']}', '{$row['obs']}', '{$createdAtSql}')"
+                );
+            }
         }
     }
 }
