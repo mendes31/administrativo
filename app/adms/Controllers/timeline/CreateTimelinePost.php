@@ -405,7 +405,6 @@ class CreateTimelinePost
 
     private function failAndExit(string $message, string $sessionKey = 'msg_warning'): void
     {
-        $_SESSION[$sessionKey] = $message;
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
@@ -414,13 +413,13 @@ class CreateTimelinePost
             ]);
             exit;
         }
+        $_SESSION[$sessionKey] = $message;
         header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
         exit;
     }
 
     private function successAndExit(string $message): void
     {
-        $_SESSION['success'] = $message;
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
@@ -430,6 +429,7 @@ class CreateTimelinePost
             ]);
             exit;
         }
+        $_SESSION['success'] = $message;
         header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
         exit;
     }
