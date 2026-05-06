@@ -256,6 +256,26 @@
 .timeline-poll-option-btn.active {
     border-color: #198754;
 }
+.timeline-inline-feedback {
+    min-height: 2px;
+}
+.timeline-inline-alert {
+    border-radius: 12px;
+    animation: timelineInlineAlertIn 0.18s ease-out;
+}
+.timeline-inline-alert .btn-close {
+    margin-top: 1px;
+}
+@keyframes timelineInlineAlertIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 .timeline-poll-option-label,
 .timeline-poll-option-meta {
     position: relative;

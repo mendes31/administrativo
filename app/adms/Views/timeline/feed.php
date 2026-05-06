@@ -29,6 +29,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
+    <div id="timelineInlineFeedback" class="timeline-inline-feedback" aria-live="polite" aria-atomic="true"></div>
     <div class="row justify-content-center">
         <div class="col-12">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3 mt-3">
@@ -831,6 +832,25 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                 return data;
             });
         });
+    }
+
+    function showTimelineInlineMessage(message, type) {
+        var wrap = document.getElementById('timelineInlineFeedback');
+        if (!wrap) {
+            alert(message || 'Ocorreu um erro inesperado.');
+            return;
+        }
+        var safeType = (type === 'success' || type === 'warning' || type === 'danger' || type === 'info') ? type : 'warning';
+        var icon = safeType === 'success' ? 'fa-check-circle'
+            : (safeType === 'danger' ? 'fa-circle-exclamation'
+            : (safeType === 'info' ? 'fa-circle-info' : 'fa-triangle-exclamation'));
+        wrap.innerHTML =
+            '<div class="alert alert-' + safeType + ' timeline-inline-alert shadow-sm border-0 d-flex align-items-start gap-2 mb-3" role="alert">' +
+                '<i class="fas ' + icon + ' mt-1" aria-hidden="true"></i>' +
+                '<div class="flex-grow-1">' + escapeHtml(message || 'Ocorreu um erro inesperado.') + '</div>' +
+                '<button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Fechar"></button>' +
+            '</div>';
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function bindPostActions() {
@@ -2607,7 +2627,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
             if (vidIn && vidIn.files && vidIn.files.length) {
                 var videoFile = vidIn.files[0];
                 if (videoFile && videoFile.size > maxVideoBytes) {
-                    alert('Vídeo muito grande. Limite de 50MB. Grave um vídeo mais curto e tente novamente.');
+                    showTimelineInlineMessage('Vídeo muito grande. Limite de 50MB. Grave um vídeo mais curto e tente novamente.', 'warning');
                     return;
                 }
             }
@@ -2651,7 +2671,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                             return sendComposer(maxRetry - 1);
                         }
                         if (d.success === false || d.error) {
-                            alert(d.error || d.message || 'Não foi possível publicar. Tente novamente.');
+                            showTimelineInlineMessage(d.error || d.message || 'Não foi possível publicar. Tente novamente.', 'warning');
                             return;
                         }
                         window.location.href = base.replace(/\/?$/, '/') + 'timeline';
@@ -2667,7 +2687,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                     window.location.href = base.replace(/\/?$/, '/') + 'timeline';
                 })
                 .catch(function () {
-                    alert('Não foi possível enviar a publicação. Verifique a conexão e tente novamente.');
+                    showTimelineInlineMessage('Não foi possível enviar a publicação. Verifique a conexão e tente novamente.', 'danger');
                 })
                 .finally(function () {
                     submitBtns.forEach(function (b) { b.disabled = false; });
