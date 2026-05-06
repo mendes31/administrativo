@@ -6,6 +6,7 @@ namespace App\adms\Controllers\timeline;
 
 use App\adms\Helpers\TimelineMentionHelper;
 use App\adms\Helpers\TextEncodingHelper;
+use App\adms\Helpers\FlashMessageHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
@@ -413,7 +414,8 @@ class CreateTimelinePost
             ]);
             exit;
         }
-        $_SESSION[$sessionKey] = $message;
+        $type = $sessionKey === 'success' ? 'success' : ($sessionKey === 'error' ? 'danger' : 'warning');
+        FlashMessageHelper::push($message, $type, 'timeline');
         header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
         exit;
     }
@@ -429,7 +431,7 @@ class CreateTimelinePost
             ]);
             exit;
         }
-        $_SESSION['success'] = $message;
+        FlashMessageHelper::push($message, 'success', 'timeline');
         header('Location: ' . $_ENV['URL_ADM'] . 'timeline');
         exit;
     }

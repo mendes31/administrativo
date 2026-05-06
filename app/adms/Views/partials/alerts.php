@@ -1,5 +1,16 @@
 <?php
 
+use App\adms\Helpers\FlashMessageHelper;
+
+$scopedFlash = FlashMessageHelper::consumeForCurrentRoute();
+if (is_array($scopedFlash) && !empty($scopedFlash['message'])) {
+    $alertType = in_array(($scopedFlash['type'] ?? 'info'), ['success', 'warning', 'danger', 'info'], true)
+        ? $scopedFlash['type']
+        : 'info';
+    $safeMessage = htmlspecialchars((string)$scopedFlash['message'], ENT_QUOTES, 'UTF-8');
+    echo "<div class='alert alert-{$alertType}' role='alert'>{$safeMessage}</div>";
+}
+
 // Exibe mensagens de sucesso e erro armazenadas na sessão.
 // Usar operador ternário para verificar se existe a mensagem de sucesso e erro
 if (!empty($_SESSION['success'])) {

@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=36">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=37">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -837,7 +837,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     function showTimelineInlineMessage(message, type) {
         var wrap = document.getElementById('timelineInlineFeedback');
         if (!wrap) {
-            alert(message || 'Ocorreu um erro inesperado.');
+            console.warn(message || 'Ocorreu um erro inesperado.');
             return;
         }
         var safeType = (type === 'success' || type === 'warning' || type === 'danger' || type === 'info') ? type : 'warning';
@@ -882,7 +882,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                             updateReactionUI(id, data);
                         }
                     })
-                    .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível registrar a reação.'); });
+                    .catch(function (err) { console.error(err); showTimelineInlineMessage(err.message || 'Não foi possível registrar a reação.', 'danger'); });
                 }
                 sendLike(1);
             };
@@ -911,7 +911,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                             updateReactionUI(id, data);
                         }
                     })
-                    .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível registrar a reação.'); });
+                    .catch(function (err) { console.error(err); showTimelineInlineMessage(err.message || 'Não foi possível registrar a reação.', 'danger'); });
                 }
                 sendLikeMain(1);
             };
@@ -953,7 +953,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                     })
                     .catch(function (err) {
                         console.error(err);
-                        alert(err.message || 'Não foi possível carregar as reações.');
+                        showTimelineInlineMessage(err.message || 'Não foi possível carregar as reações.', 'warning');
                     });
             };
         });
@@ -1050,10 +1050,10 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                         if (data && data.success) {
                             window.location.href = base + 'timeline';
                         } else if (data && data.message) {
-                            alert(data.message);
+                            showTimelineInlineMessage(data.message, 'warning');
                         }
                     })
-                    .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível salvar.'); });
+                    .catch(function (err) { console.error(err); showTimelineInlineMessage(err.message || 'Não foi possível salvar.', 'danger'); });
                 }
                 sendEdit(1);
             };
@@ -1096,14 +1096,14 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                         if (data && data.success) {
                             window.location.href = base.replace(/\/?$/, '/') + 'timeline';
                         } else if (data && data.message) {
-                            alert(data.message);
+                            showTimelineInlineMessage(data.message, 'warning');
                         } else {
-                            alert('Não foi possível deletar a publicação.');
+                            showTimelineInlineMessage('Não foi possível deletar a publicação.', 'danger');
                         }
                     })
                     .catch(function (err) {
                         console.error(err);
-                        alert(err.message || 'Não foi possível deletar.');
+                        showTimelineInlineMessage(err.message || 'Não foi possível deletar.', 'danger');
                     });
                 }
                 sendDelete(1)
@@ -1129,7 +1129,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                                 box.setAttribute('data-loaded', '1');
                             }
                         })
-                        .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível carregar comentários.'); });
+                        .catch(function (err) { console.error(err); showTimelineInlineMessage(err.message || 'Não foi possível carregar comentários.', 'danger'); });
                 }
             };
         });
@@ -1156,10 +1156,10 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                             const box = document.getElementById('comments-' + id);
                             if (box) { box.classList.remove('d-none'); box.setAttribute('data-loaded', '1'); }
                         } else if (data && data.message) {
-                            alert(data.message);
+                            showTimelineInlineMessage(data.message, 'warning');
                         }
                     })
-                    .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível enviar o comentário.'); });
+                    .catch(function (err) { console.error(err); showTimelineInlineMessage(err.message || 'Não foi possível enviar o comentário.', 'danger'); });
                 }
                 sendComment(1);
             };
@@ -1190,12 +1190,12 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                                     updatePollUI(postId, data.poll);
                                 }
                             } else if (data && data.message) {
-                                alert(data.message);
+                                showTimelineInlineMessage(data.message, 'warning');
                             }
                         })
                         .catch(function (err) {
                             console.error(err);
-                            alert(err.message || 'Não foi possível registrar o voto.');
+                            showTimelineInlineMessage(err.message || 'Não foi possível registrar o voto.', 'danger');
                         });
                 }
                 sendVote(1);
@@ -1253,7 +1253,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                 })
                 .catch(function (err) {
                     console.error(err);
-                    alert(err.message || 'Não foi possível carregar as reações do comentário.');
+                    showTimelineInlineMessage(err.message || 'Não foi possível carregar as reações do comentário.', 'warning');
                 });
         });
 
@@ -1318,12 +1318,12 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                     var tray = document.querySelector('.timeline-comment-reaction-tray[data-comment-id="' + cid + '"]');
                     if (tray) tray.classList.add('d-none');
                 } else if (data && data.message) {
-                    alert(data.message);
+                    showTimelineInlineMessage(data.message, 'warning');
                 }
             })
             .catch(function (err) {
                 console.error(err);
-                alert(err.message || 'Não foi possível registrar a reação no comentário.');
+                showTimelineInlineMessage(err.message || 'Não foi possível registrar a reação no comentário.', 'danger');
             });
     }
 
@@ -1526,10 +1526,10 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                     if (data && data.csrf_token) {
                         timelineReportCsrf = data.csrf_token;
                     }
-                    alert(data && data.message ? data.message : 'Enviado.');
+                    showTimelineInlineMessage(data && data.message ? data.message : 'Enviado.', 'success');
                     bootstrap.Modal.getInstance(document.getElementById('modalDenunciaTimeline')).hide();
                 })
-                .catch(function (err) { console.error(err); alert(err.message || 'Não foi possível enviar a denúncia.'); });
+                .catch(function (err) { console.error(err); showTimelineInlineMessage(err.message || 'Não foi possível enviar a denúncia.', 'danger'); });
             }
             sendReport(1);
         };
@@ -2336,7 +2336,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
 
         function openNativeCaptureFallback(kind) {
             var k = kind || 'photo';
-            alert('Câmera ao vivo exige HTTPS (ou localhost). Vamos abrir a captura nativa do dispositivo.');
+            showTimelineInlineMessage('Câmera ao vivo exige HTTPS (ou localhost). Vamos abrir a captura nativa do dispositivo.', 'info');
             if (k === 'video') {
                 openCaptureWithFallback(captureVideoIn, vidIn);
                 return;
@@ -2360,7 +2360,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                 message: err && err.message ? err.message : String(err || '')
             });
             setCameraHint(msg, true);
-            alert(msg + ' Vamos abrir a captura nativa do dispositivo.');
+            showTimelineInlineMessage(msg + ' Vamos abrir a captura nativa do dispositivo.', 'warning');
             releaseCameraSession();
             var mi = bootstrap.Modal.getInstance(modalCameraEl);
             if (mi) mi.hide();
@@ -2531,7 +2531,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
             try {
                 mediaRecorder = new MediaRecorder(camStream, { mimeType: mime });
             } catch (e) {
-                alert('Gravação não suportada neste navegador.');
+                showTimelineInlineMessage('Gravação não suportada neste navegador.', 'warning');
                 return;
             }
 
