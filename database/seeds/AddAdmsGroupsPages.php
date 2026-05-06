@@ -11,7 +11,6 @@ use Phinx\Seed\AbstractSeed;
  *
  * @method array|false fetchRow(string $sql)
  * @method void execute(string $sql)
- * @method array|false fetchRow(string $sql)
  */
 class AddAdmsGroupsPages extends AbstractSeed
 {

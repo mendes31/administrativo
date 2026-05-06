@@ -7,6 +7,9 @@ use PDO;
 
 /**
  * Repository para gerenciar histórico de admissões e desligamentos
+ *
+ * @method bool markInactivationEmailSent(int $historyId)
+ * @method bool markInactivationEmailFailed(int $historyId, ?string $error)
  */
 class EmploymentHistoryRepository extends DbConnection
 {
@@ -167,6 +170,30 @@ class EmploymentHistoryRepository extends DbConnection
         $stmt->execute();
         
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: false;
+    }
+
+    public function markInactivationEmailSent(int $historyId): bool
+    {
+        $sql = "UPDATE adms_employment_history
+                SET inactivation_email_sent_at = NOW(),
+                    inactivation_email_error = NULL,
+                    updated_at = NOW()
+                WHERE id = :id";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $historyId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    public function markInactivationEmailFailed(int $historyId, ?string $error): bool
+    {
+        $sql = "UPDATE adms_employment_history
+                SET inactivation_email_error = :error,
+                    updated_at = NOW()
+                WHERE id = :id";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $historyId, PDO::PARAM_INT);
+        $stmt->bindValue(':error', $error);
+        return $stmt->execute();
     }
 
     /**

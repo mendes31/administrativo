@@ -17,6 +17,7 @@ class SendEmailService
      * @param string|null $replyToName Nome opcional para Reply-To
      * @param string|null $fromDisplayNameOverride Nome amigável no cabeçalho From (o endereço continua o da config, salvo override abaixo).
      * @param string|null $fromAddressOverride E-mail no From; só aplicado se ROOM_BOOKING_SMTP_USE_ORGANIZER_AS_FROM=true no .env (evita SPF/DMARC quebrados por defeito).
+     * @param bool $forceFromAddressOverride Quando true, aplica fromAddressOverride independentemente da flag de ambiente.
      */
     public static function sendEmail(
         string $email,
@@ -28,6 +29,7 @@ class SendEmailService
         ?string $replyToName = null,
         ?string $fromDisplayNameOverride = null,
         ?string $fromAddressOverride = null,
+        bool $forceFromAddressOverride = false,
     ): bool {
         $mail = new PHPMailer(true);
 
@@ -59,7 +61,7 @@ class SendEmailService
 
             $useOrganizerFrom = filter_var($_ENV['ROOM_BOOKING_SMTP_USE_ORGANIZER_AS_FROM'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
             $overrideAddr = $fromAddressOverride !== null ? trim($fromAddressOverride) : '';
-            if ($useOrganizerFrom && $overrideAddr !== '' && filter_var($overrideAddr, FILTER_VALIDATE_EMAIL)) {
+            if (($useOrganizerFrom || $forceFromAddressOverride) && $overrideAddr !== '' && filter_var($overrideAddr, FILTER_VALIDATE_EMAIL)) {
                 $fromEmail = $overrideAddr;
                 if ($displayName === '') {
                     $fromName = $overrideAddr;

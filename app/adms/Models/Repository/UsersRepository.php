@@ -8,6 +8,7 @@ use App\adms\Helpers\SlugImg;
 use App\adms\Helpers\Upload;
 use App\adms\Helpers\ValExtImg;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\UserOffboardingNotificationService;
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 use Exception;
 use PDO;
@@ -20,7 +21,7 @@ use PDO;
  * para registrar erros que ocorrem durante as operações.
  *
  * @package App\adms\Models\Repository
- * @return Rafael Mendes
+ * @author Rafael Mendes
  */
 class UsersRepository extends DbConnection
 {
@@ -979,10 +980,12 @@ class UsersRepository extends DbConnection
             
             // CASO 1: DESLIGAMENTO - Se data_desligamento foi preenchida e não havia antes
             if (!empty($data['data_desligamento']) && empty($dadosAntes['data_desligamento'])) {
+                $terminationHistoryId = null;
                 // Verificar se existe período ativo no histórico
                 $periodoAtual = $historyRepo->getCurrentPeriod($data['id']);
                 
                 if ($periodoAtual) {
+                    $terminationHistoryId = (int)($periodoAtual['id'] ?? 0);
                     // Atualizar período existente com data de desligamento
                     $historyRepo->updateTermination(
                         $data['id'],
@@ -992,7 +995,7 @@ class UsersRepository extends DbConnection
                     );
                 } else {
                     // Criar novo registro histórico (caso não exista)
-                    $historyRepo->create([
+                    $terminationHistoryId = $historyRepo->create([
                         'adms_user_id' => $data['id'],
                         'data_admissao' => $dadosAntes['data_admissao'] ?? $data['data_admissao'] ?? date('Y-m-d'),
                         'data_desligamento' => $data['data_desligamento'],
@@ -1001,6 +1004,31 @@ class UsersRepository extends DbConnection
                         'tipo_periodo' => 'Admissão',
                         'observacoes' => 'Desligamento registrado'
                     ]);
+                }
+                if ($terminationHistoryId !== null && $terminationHistoryId > 0) {
+                    $actorEmail = null;
+                    $actorName = null;
+                    $actorId = (int)($_SESSION['user_id'] ?? 0);
+                    if ($actorId > 0) {
+                        $actorUser = $this->getUser($actorId);
+                        if ($actorUser) {
+                            $candidateActorEmail = trim((string)($actorUser['email'] ?? ''));
+                            if ($candidateActorEmail !== '' && filter_var($candidateActorEmail, FILTER_VALIDATE_EMAIL)) {
+                                $actorEmail = $candidateActorEmail;
+                            }
+                            $candidateActorName = trim((string)($actorUser['name'] ?? ''));
+                            if ($candidateActorName !== '') {
+                                $actorName = $candidateActorName;
+                            }
+                        }
+                    }
+                    (new UserOffboardingNotificationService())->sendInactivationRequestOnce(
+                        $terminationHistoryId,
+                        (int)$data['id'],
+                        (string)($dadosAntes['name'] ?? $data['name'] ?? ''),
+                        $actorEmail,
+                        $actorName
+                    );
                 }
                 error_log("DESLIGAMENTO registrado no histórico para usuário {$data['id']}");
             }
@@ -1617,7 +1645,7 @@ class UsersRepository extends DbConnection
      * Metodo gera o slug da imagem com o helper SlugImg
      * Faz o upload da imagem usando o helper AdmsUploadImgRes
      * Chama o metodo edit para atualizar as informações no banco de dados
-     * @return void
+     * @return bool
      */
     private function upload(array $data, array $dataImage): bool
     {
@@ -1632,7 +1660,7 @@ class UsersRepository extends DbConnection
         $directory = "public/adms/uploads/users/" . $data['id'] . "/";
 
         $uploadImgRes = new Upload();
-        $result = $uploadImgRes->upload($directory, $dataImage['tmp_name'], $this->nameImg, 300, 300);
+        $result = $uploadImgRes->upload($directory, $dataImage['tmp_name'], $this->nameImg);
 
         if ($result && $uploadImgRes->getResult()) {
             return true;
