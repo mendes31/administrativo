@@ -42,7 +42,8 @@ class FlashMessageHelper
         }
 
         $targetPath = self::normalizePath((string)($payload['target_path'] ?? ''));
-        if ($targetPath !== '' && $targetPath !== self::getCurrentPath()) {
+        $currentPath = self::getCurrentPath();
+        if ($targetPath !== '' && !self::pathMatches($currentPath, $targetPath)) {
             return null;
         }
 
@@ -81,6 +82,14 @@ class FlashMessageHelper
         $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '');
         $parsed = (string)(parse_url($requestUri, PHP_URL_PATH) ?? '');
         return trim($parsed, '/');
+    }
+
+    private static function pathMatches(string $currentPath, string $targetPath): bool
+    {
+        if ($currentPath === $targetPath) {
+            return true;
+        }
+        return str_ends_with('/' . $currentPath, '/' . $targetPath) || str_ends_with($currentPath, '/' . $targetPath);
     }
 }
 

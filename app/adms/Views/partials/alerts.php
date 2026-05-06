@@ -8,20 +8,20 @@ if (is_array($scopedFlash) && !empty($scopedFlash['message'])) {
         ? $scopedFlash['type']
         : 'info';
     $safeMessage = htmlspecialchars((string)$scopedFlash['message'], ENT_QUOTES, 'UTF-8');
-    echo "<div class='alert alert-{$alertType}' role='alert'>{$safeMessage}</div>";
+    echo "<div class='alert alert-{$alertType} adms-inline-alert' role='alert'>{$safeMessage}</div>";
 }
 
 // Exibe mensagens de sucesso e erro armazenadas na sessão.
 // Usar operador ternário para verificar se existe a mensagem de sucesso e erro
 if (!empty($_SESSION['success'])) {
-    echo "<div class='alert alert-success' role='alert'>{$_SESSION['success']}</div>";
+    echo "<div class='alert alert-success adms-inline-alert' role='alert'>{$_SESSION['success']}</div>";
 }
 
 // Filtrar mensagens genéricas de roteador (Erro 004) para não poluir telas de negócio
 if (!empty($_SESSION['error'])) {
     $errorMsg = (string) $_SESSION['error'];
     if (stripos($errorMsg, 'Erro 004') === false) {
-        echo "<div class='alert alert-danger' role='alert'>{$errorMsg}</div>";
+        echo "<div class='alert alert-danger adms-inline-alert' role='alert'>{$errorMsg}</div>";
     }
 }
 
@@ -29,7 +29,7 @@ if (!empty($_SESSION['error'])) {
 if (isset($_SESSION['msg']) && isset($_SESSION['msg_type'])) {
     $alertType = $_SESSION['msg_type'] === 'success' ? 'success' : 
                  ($_SESSION['msg_type'] === 'warning' ? 'warning' : 'danger');
-    echo "<div class='alert alert-{$alertType}' role='alert'>{$_SESSION['msg']}</div>";
+    echo "<div class='alert alert-{$alertType} adms-inline-alert' role='alert'>{$_SESSION['msg']}</div>";
 } elseif (!empty($_SESSION['msg'])) {
     // Fallback: só msg (ex.: fluxos antigos com HTML já formatado)
     echo $_SESSION['msg'];
@@ -37,13 +37,13 @@ if (isset($_SESSION['msg']) && isset($_SESSION['msg_type'])) {
 
 // Mensagem de aviso/warning (amarelo)
 if (isset($_SESSION['msg_warning'])) {
-    echo "<div class='alert alert-warning' role='alert'><i class='fas fa-exclamation-triangle me-2'></i>{$_SESSION['msg_warning']}</div>";
+    echo "<div class='alert alert-warning adms-inline-alert' role='alert'><i class='fas fa-exclamation-triangle me-2'></i>{$_SESSION['msg_warning']}</div>";
 }
 
 // Verifica se há erros armazenados em $_SESSION['errors'].
 if (isset($_SESSION['errors'])) {
     foreach ($_SESSION['errors'] as $error) {
-        echo "<div class='alert alert-danger' role='alert'>$error</div>";
+        echo "<div class='alert alert-danger adms-inline-alert' role='alert'>$error</div>";
     }
 }
 
@@ -58,6 +58,6 @@ if(isset($this->data['errors'])){
 
     foreach($this->data['errors'] as $error){
 
-        echo "<div class='alert alert-danger' role='alert'>$error</div>";
+        echo "<div class='alert alert-danger adms-inline-alert' role='alert'>$error</div>";
     }
 }

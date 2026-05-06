@@ -3,6 +3,33 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+// Flash legado: expira em 1 request para evitar "vazamento" em páginas aleatórias.
+$legacyFlashKeys = ['success', 'error', 'errors', 'msg', 'msg_type', 'msg_warning', 'sucesso', 'erro'];
+if (!isset($_SESSION['__adms_request_seq']) || !is_int($_SESSION['__adms_request_seq'])) {
+    $_SESSION['__adms_request_seq'] = 0;
+}
+$_SESSION['__adms_request_seq']++;
+$admsCurrentRequestSeq = (int)$_SESSION['__adms_request_seq'];
+$hasLegacyFlash = false;
+foreach ($legacyFlashKeys as $legacyKey) {
+    if (isset($_SESSION[$legacyKey])) {
+        $hasLegacyFlash = true;
+        break;
+    }
+}
+if ($hasLegacyFlash) {
+    if (!isset($_SESSION['__adms_legacy_flash_request_seq'])) {
+        $_SESSION['__adms_legacy_flash_request_seq'] = $admsCurrentRequestSeq;
+    } elseif ((int)$_SESSION['__adms_legacy_flash_request_seq'] < $admsCurrentRequestSeq) {
+        foreach ($legacyFlashKeys as $legacyKey) {
+            unset($_SESSION[$legacyKey]);
+        }
+        unset($_SESSION['__adms_legacy_flash_request_seq']);
+    }
+} else {
+    unset($_SESSION['__adms_legacy_flash_request_seq']);
+}
+
 \App\adms\Helpers\SlowRequestProfilerHelper::registerRequestStart();
 \App\adms\Helpers\SlowRequestProfilerHelper::registerShutdownProfiler();
 
@@ -297,11 +324,30 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
         echo $_ENV['APP_NAME'] . " - " . ($this->data['title_head'] ?? "");
         ?>
     </title>
+    <style>
+        .adms-inline-alert { border-radius: 12px; border: 0; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+        .adms-inline-feedback-global {
+            position: fixed;
+            top: 74px;
+            right: 14px;
+            z-index: 1080;
+            width: min(460px, calc(100vw - 28px));
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            pointer-events: none;
+        }
+        .adms-inline-feedback-global .alert { pointer-events: auto; margin-bottom: 0; }
+        @media (max-width: 767.98px) {
+            .adms-inline-feedback-global { top: 66px; right: 10px; width: calc(100vw - 20px); }
+        }
+    </style>
 
 
 </head>
 
 <body class="sb-nav-fixed">
+    <div id="admsInlineFeedbackGlobal" class="adms-inline-feedback-global" aria-live="polite" aria-atomic="true"></div>
 
     <?php include 'app/adms/Views/partials/navbar.php'; ?>
 
@@ -343,6 +389,59 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     </div>
 
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function () {
+        function esc(str) {
+            return String(str || '').replace(/[&<>"']/g, function (c) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];
+            });
+        }
+        function iconFor(type) {
+            if (type === 'success') return 'fa-check-circle';
+            if (type === 'danger') return 'fa-circle-exclamation';
+            if (type === 'info') return 'fa-circle-info';
+            return 'fa-triangle-exclamation';
+        }
+        function ensureWrap() {
+            var el = document.getElementById('admsInlineFeedbackGlobal');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'admsInlineFeedbackGlobal';
+                el.className = 'adms-inline-feedback-global';
+                el.setAttribute('aria-live', 'polite');
+                el.setAttribute('aria-atomic', 'true');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+        window.AdmsFeedback = window.AdmsFeedback || {
+            show: function (message, type, timeoutMs) {
+                var safeType = ['success', 'warning', 'danger', 'info'].indexOf(type) >= 0 ? type : 'warning';
+                var wrap = ensureWrap();
+                var item = document.createElement('div');
+                item.innerHTML =
+                    '<div class="alert alert-' + safeType + ' adms-inline-alert d-flex align-items-start gap-2" role="alert">' +
+                        '<i class="fas ' + iconFor(safeType) + ' mt-1" aria-hidden="true"></i>' +
+                        '<div class="flex-grow-1">' + esc(message || 'Ocorreu uma notificação.') + '</div>' +
+                        '<button type="button" class="btn-close ms-2" aria-label="Fechar"></button>' +
+                    '</div>';
+                var node = item.firstChild;
+                wrap.prepend(node);
+                var closeBtn = node.querySelector('.btn-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function () { node.remove(); });
+                }
+                var ttl = typeof timeoutMs === 'number' ? timeoutMs : 7000;
+                if (ttl > 0) {
+                    setTimeout(function () { if (node && node.parentNode) node.remove(); }, ttl);
+                }
+            }
+        };
+        window.alert = function (message) {
+            window.AdmsFeedback.show(message || 'Atenção.', 'warning');
+        };
+    })();
+    </script>
 
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/swal-lite.js?v=20260420-1"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
