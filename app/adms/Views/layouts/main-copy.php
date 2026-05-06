@@ -301,7 +301,9 @@ $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $poli
                     const data = await cloned.json();
                     if (data && data.logout) {
                         console.log('LOGOUT DETECTADO VIA FETCH:', data);
-                        alert(data.message || "Sua sessão foi encerrada. Faça login novamente.");
+                        if (window.AdmsFeedback && typeof window.AdmsFeedback.show === 'function') {
+                            window.AdmsFeedback.show(data.message || "Sua sessão foi encerrada. Faça login novamente.", 'warning', 5000);
+                        }
                         window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                         return Promise.reject("Sessão encerrada");
                     }
@@ -318,7 +320,9 @@ $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $poli
                 const data = JSON.parse(xhr.responseText);
                 if (data && data.logout) {
                     console.log('LOGOUT DETECTADO VIA AJAX:', data);
-                    alert(data.message || "Sua sessão foi encerrada. Faça login novamente.");
+                    if (window.AdmsFeedback && typeof window.AdmsFeedback.show === 'function') {
+                        window.AdmsFeedback.show(data.message || "Sua sessão foi encerrada. Faça login novamente.", 'warning', 5000);
+                    }
                     window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                 }
             } catch (e) { /* Não é JSON, ignora */ }

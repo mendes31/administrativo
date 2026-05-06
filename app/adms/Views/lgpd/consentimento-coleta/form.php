@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $dados['title_head']; ?></title>
+    <title><?php echo htmlspecialchars((string)($dados['title_head'] ?? 'Coleta de Consentimento - LGPD'), ENT_QUOTES, 'UTF-8'); ?></title>
     
     <!-- Bootstrap CSS local -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/bootstrap.min.css">
@@ -255,6 +255,29 @@
     <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        function showConsentInlineMessage(message, type) {
+            var host = document.querySelector('.consentimento-card');
+            if (!host) {
+                return;
+            }
+            var existing = document.getElementById('consentInlineAlert');
+            if (existing) {
+                existing.remove();
+            }
+            var safeType = (type === 'success' || type === 'warning' || type === 'danger' || type === 'info') ? type : 'warning';
+            var icon = safeType === 'success' ? 'fa-check-circle'
+                : (safeType === 'danger' ? 'fa-circle-exclamation'
+                : (safeType === 'info' ? 'fa-circle-info' : 'fa-triangle-exclamation'));
+            var wrap = document.createElement('div');
+            wrap.id = 'consentInlineAlert';
+            wrap.className = 'alert alert-' + safeType + ' d-flex align-items-start gap-2 mb-3';
+            wrap.setAttribute('role', 'alert');
+            wrap.innerHTML = '<i class="fas ' + icon + ' mt-1" aria-hidden="true"></i><div class="flex-grow-1"></div>';
+            wrap.querySelector('.flex-grow-1').textContent = message || 'Atenção.';
+            host.insertBefore(wrap, host.firstChild);
+            wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         // Mostrar/ocultar campo de finalidade específica
         document.getElementById('finalidade').addEventListener('change', function() {
             const outrosField = document.getElementById('finalidade_outros');
@@ -278,14 +301,14 @@
             
             if (finalidade === 'outros' && finalidadeOutros.value.trim() === '') {
                 e.preventDefault();
-                alert('Por favor, especifique a finalidade do tratamento.');
+                showConsentInlineMessage('Por favor, especifique a finalidade do tratamento.', 'warning');
                 finalidadeOutros.focus();
                 return false;
             }
             
             if (!document.getElementById('politica_privacidade').checked) {
                 e.preventDefault();
-                alert('É obrigatório aceitar a Política de Privacidade.');
+                showConsentInlineMessage('É obrigatório aceitar a Política de Privacidade.', 'warning');
                 return false;
             }
         });

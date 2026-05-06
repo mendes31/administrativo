@@ -25,7 +25,7 @@ $ignorados = 0;
 $atualizados = 0;
 $erros = [];
 
-function validarCabecalho($cabecalho, $camposObrigatorios) {
+function validarCabecalho(array $cabecalho, array $camposObrigatorios): array {
     $faltando = [];
     foreach ($camposObrigatorios as $campo) {
         if (!in_array($campo, $cabecalho)) {
@@ -35,7 +35,7 @@ function validarCabecalho($cabecalho, $camposObrigatorios) {
     return $faltando;
 }
 
-function converterData($data) {
+function converterData(string $data): string {
     // Se já estiver no formato YYYY-MM-DD, retorna igual
     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
         return $data;
@@ -62,11 +62,11 @@ function converterData($data) {
     return '';
 }
 
-function normalizarData($data) {
+function normalizarData(?string $data): string {
     return $data ? date('Y-m-d', strtotime($data)) : '';
 }
 
-function normalizarValor($valor) {
+function normalizarValor(string|int|float $valor): string {
     // Remove pontos (milhar) e troca vírgula por ponto (decimal)
     $valor = str_replace('.', '', $valor); // remove separador de milhar
     $valor = str_replace(',', '.', $valor); // troca vírgula por ponto
@@ -74,7 +74,7 @@ function normalizarValor($valor) {
 }
 
 // Lista de feriados nacionais, RS e Santo Ângelo (formato 'm-d')
-function getFeriados($ano) {
+function getFeriados(int $ano): array {
     return [
         // Nacionais
         "$ano-01-01", // Confraternização Universal
@@ -97,7 +97,7 @@ function getFeriados($ano) {
 }
 
 // Função para calcular o próximo dia útil
-function proximoDiaUtil($data) {
+function proximoDiaUtil(string $data): string {
     $timestamp = strtotime($data);
     if (!$timestamp) {
         // Data inválida, retorna a própria data ou vazio
@@ -116,7 +116,7 @@ function proximoDiaUtil($data) {
     return $dataTeste;
 }
 
-function gerenciarParcelas($num_doc, $card_code_fornecedor, $novasParcelas) {
+function gerenciarParcelas(string $num_doc, string $card_code_fornecedor, array $novasParcelas): void {
     $paymentCreate = new PaymentsRepository();
     
     // Buscar todas as parcelas existentes do documento
@@ -310,12 +310,16 @@ if ($arquivo['type'] == "text/csv") {
 }
 
 // Após o fechamento do arquivo e contagem dos registros:
-// Redireciona para list-payments com popup de resultado
-echo "<script>alert('Importação finalizada!\\nRegistros importados: $importados\\nRegistros atualizados: $atualizados\\nRegistros ignorados (já existentes e sem alteração): $ignorados');window.location.href='" . $_ENV['URL_ADM'] . "list-payments';</script>";
+// Redireciona para list-payments usando flash (sem popup nativo).
+$_SESSION['msg'] = 'Importação finalizada! Importados: ' . $importados
+    . ' | Atualizados: ' . $atualizados
+    . ' | Ignorados: ' . $ignorados . '.';
+$_SESSION['msg_type'] = 'success';
+header('Location: ' . $_ENV['URL_ADM'] . 'list-payments');
 exit;
 
 // Função para converter encoding se necessário
-function converter(&$dados_arquivo)
+function converter(string &$dados_arquivo): void
 {
     $dados_arquivo = mb_convert_encoding($dados_arquivo, "UTF-8", "ISO-8859-1");
 }
@@ -324,7 +328,7 @@ function converter(&$dados_arquivo)
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/import_debug.log');
 
-function logComparacaoCampos($num_doc, $installment_number, $diferencas) {
+function logComparacaoCampos(string $num_doc, int $installment_number, array $diferencas): void {
     $logDir = __DIR__ . '/../../../logs';
     if (!is_dir($logDir)) {
         mkdir($logDir, 0777, true);
@@ -343,7 +347,7 @@ function logComparacaoCampos($num_doc, $installment_number, $diferencas) {
     file_put_contents($logFile, $mensagem, FILE_APPEND);
 }
 
-function camposEquivalentes($a, $b, $tipo = 'string') {
+function camposEquivalentes(mixed $a, mixed $b, string $tipo = 'string'): bool {
     $vazios = ['', null, '0000-00-00', '0000-00-00 00:00:00'];
     if ($tipo === 'data') {
         if (in_array($a, $vazios) && in_array($b, $vazios)) return true;

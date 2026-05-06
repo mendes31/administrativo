@@ -155,6 +155,10 @@ if (!isset($_SESSION['session_id']) || $_SESSION['session_id'] !== session_id())
     $_SESSION['session_id'] = session_id();
 }
 
+// Defaults para evitar variáveis indefinidas em telas sem sessão autenticada.
+$limite = 1800;
+$lockOffsetMinutes = 1;
+
 // Checagem de sessÃ£o invalidada
 if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
     $sessionRepo = new \App\adms\Models\Repository\AdmsSessionsRepository();
@@ -674,7 +678,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
                     const cloned = response.clone();
                     const data = await cloned.json();
                     if (data && data.logout) {
-                        alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
+                        if (window.AdmsFeedback && typeof window.AdmsFeedback.show === 'function') {
+                            window.AdmsFeedback.show(data.message || "Sua sessão foi encerrada. Faça login novamente.", 'warning', 5000);
+                        }
                         window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                         return Promise.reject("SessÃ£o encerrada");
                     }
@@ -689,7 +695,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data && data.logout) {
-                    alert(data.message || "Sua sessÃ£o foi encerrada. FaÃ§a login novamente.");
+                    if (window.AdmsFeedback && typeof window.AdmsFeedback.show === 'function') {
+                        window.AdmsFeedback.show(data.message || "Sua sessão foi encerrada. Faça login novamente.", 'warning', 5000);
+                    }
                     window.location.href = "<?php echo $_ENV['URL_ADM']; ?>login";
                 }
             } catch (e) { /* NÃ£o Ã© JSON, ignora */ }
