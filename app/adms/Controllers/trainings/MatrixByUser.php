@@ -102,23 +102,16 @@ class MatrixByUser
             );
         }
 
-        if (!empty($filters['treinamento'])) {
-            // Se filtrou por um treinamento específico, traz todos os vinculados (cargo e individual)
-            $matrixByUser = $this->trainingUsersRepo->getAllVinculadosPorTreinamento($filters['treinamento']);
-            $total = count($matrixByUser);
-            // Paginação manual
-            $matrixByUser = array_slice($matrixByUser, $offset, $perPage);
+        // Regra atual: a matriz por colaborador deve listar TODOS os vínculos
+        // (cargo e individual), independente do tipo de vínculo.
+        // OTIMIZADO: Usa contagem eficiente (COUNT no SQL) em vez de buscar muitos registros.
+        $result = $this->trainingUsersRepo->getMandatoryMatrixByUser($filters, $perPage, $offset, true);
+        if (is_array($result) && isset($result['data']) && isset($result['total'])) {
+            $matrixByUser = $result['data'];
+            $total = $result['total'];
         } else {
-            // Comportamento padrão (apenas obrigatórios por cargo)
-            // OTIMIZADO: Usa contagem eficiente (COUNT no SQL) em vez de buscar 1.000.000 registros
-            $result = $this->trainingUsersRepo->getMandatoryMatrixByUser($filters, $perPage, $offset, true);
-            if (is_array($result) && isset($result['data']) && isset($result['total'])) {
-                $matrixByUser = $result['data'];
-                $total = $result['total'];
-            } else {
-                $matrixByUser = [];
-                $total = 0;
-            }
+            $matrixByUser = [];
+            $total = 0;
         }
         
         // NOTA: Filtro de código já é aplicado no SQL (não precisa filtrar em PHP novamente)
@@ -244,9 +237,6 @@ class MatrixByUser
      */
     private function collectExportMatrixData(array $filters): array
     {
-        if (!empty($filters['treinamento'])) {
-            return $this->trainingUsersRepo->getAllVinculadosPorTreinamento($filters['treinamento']);
-        }
         $exportData = [];
         $batchSize = 10000;
         $batchOffset = 0;
@@ -270,16 +260,6 @@ class MatrixByUser
      */
     private function collectLntMatrixData(array $filtersLnt, int $userId): array
     {
-        if (!empty($filtersLnt['treinamento'])) {
-            $matrix = $this->trainingUsersRepo->getAllVinculadosPorTreinamento($filtersLnt['treinamento']);
-            $matrix = array_values(array_filter(
-                $matrix,
-                static fn(array $r): bool => (int)($r['user_id'] ?? $r['id'] ?? 0) === $userId
-            ));
-
-            return $this->trainingUsersRepo->mergeUltimaRealizacaoConcluidaForUser($matrix, $userId);
-        }
-
         $exportData = [];
         $batchSize = 10000;
         $batchOffset = 0;

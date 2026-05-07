@@ -9,6 +9,71 @@ use Exception;
 
 class TrainingUsersRepository extends DbConnection
 {
+    /**
+     * Garante tabela de backup para vínculos removidos por deduplicação.
+     */
+    private function ensureTrainingUsersDedupeBackupTable(): void
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS adms_training_users_dedup_backup LIKE adms_training_users";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+    }
+
+    /**
+     * Realiza backup dos registros de vínculo que serão removidos.
+     */
+    private function backupRowsForDedupeByUserTraining(int $userId, int $trainingId, int $keeperId): void
+    {
+        $this->ensureTrainingUsersDedupeBackupTable();
+        $sql = "INSERT IGNORE INTO adms_training_users_dedup_backup
+                SELECT *
+                FROM adms_training_users
+                WHERE adms_user_id = :user_id
+                  AND adms_training_id = :training_id
+                  AND id <> :keeper_id";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmt->bindValue(':keeper_id', $keeperId, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
+    /**
+     * Backup em lote para deduplicação por usuário+treinamento.
+     */
+    private function backupRowsForGlobalDedupe(?int $trainingId = null): void
+    {
+        $this->ensureTrainingUsersDedupeBackupTable();
+        $trainingFilter = '';
+        if ($trainingId !== null) {
+            $trainingFilter = ' AND d.adms_training_id = :training_id_filter';
+        }
+
+        $sql = "INSERT IGNORE INTO adms_training_users_dedup_backup
+                SELECT tu.*
+                FROM adms_training_users tu
+                INNER JOIN (
+                    SELECT
+                        adms_user_id,
+                        adms_training_id,
+                        COALESCE(
+                            MAX(CASE WHEN status <> 'concluido' THEN id END),
+                            MAX(id)
+                        ) AS keep_id
+                    FROM adms_training_users
+                    GROUP BY adms_user_id, adms_training_id
+                    HAVING COUNT(*) > 1
+                ) d
+                        ON d.adms_user_id = tu.adms_user_id
+                       AND d.adms_training_id = tu.adms_training_id
+                WHERE tu.id <> d.keep_id{$trainingFilter}";
+        $stmt = $this->getConnection()->prepare($sql);
+        if ($trainingId !== null) {
+            $stmt->bindValue(':training_id_filter', $trainingId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+    }
+
     public function getByUser(int $userId): array
     {
         $sql = 'SELECT * FROM adms_training_users WHERE adms_user_id = :user_id';
@@ -68,12 +133,11 @@ class TrainingUsersRepository extends DbConnection
                 $dataLimite = (new \DateTime())->modify("+{$prazoDias} days")->format('Y-m-d');
             }
 
-            // Buscar vínculos ativos atuais para consolidar escrita e evitar duplicados
+            // Buscar vínculos atuais para consolidar escrita e evitar duplicados
             $sqlCheck = "SELECT id, tipo_vinculo
                          FROM adms_training_users
                          WHERE adms_user_id = :user_id
                            AND adms_training_id = :training_id
-                           AND status != 'concluido'
                          ORDER BY id DESC";
             $stmtCheck = $this->getConnection()->prepare($sqlCheck);
             $stmtCheck->bindValue(':user_id', $userId, PDO::PARAM_INT);
@@ -102,7 +166,7 @@ class TrainingUsersRepository extends DbConnection
             }
 
             if (!empty($ativos)) {
-                // Se passou a ser obrigatório por cargo, converte para cargo e remove ativos extras
+                // Consolidar para um único vínculo por usuário+treinamento.
                 $keeperId = $latestSameTypeId ?? $latestAnyId;
 
                 $sqlUpdate = "UPDATE adms_training_users
@@ -120,10 +184,10 @@ class TrainingUsersRepository extends DbConnection
                 $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
                 $stmtUpdate->execute();
 
+                $this->backupRowsForDedupeByUserTraining($userId, $trainingId, (int)$keeperId);
                 $sqlDeleteExtras = "DELETE FROM adms_training_users
                                     WHERE adms_user_id = :user_id
                                       AND adms_training_id = :training_id
-                                      AND status != 'concluido'
                                       AND id <> :id";
                 $stmtDeleteExtras = $this->getConnection()->prepare($sqlDeleteExtras);
                 $stmtDeleteExtras->bindValue(':user_id', $userId, PDO::PARAM_INT);
@@ -800,6 +864,30 @@ class TrainingUsersRepository extends DbConnection
             
             // Remover apenas vínculos ativos de cargo que não são mais obrigatórios
             $this->deleteActiveCargoLinksByUserAndNotInTrainings($userId, $requiredTrainings);
+
+            // Hardening: manter apenas 1 vínculo por usuário+treinamento para o usuário informado.
+            $this->backupRowsForGlobalDedupe(null);
+            $sqlDedupeUser = "DELETE tu
+                              FROM adms_training_users tu
+                              INNER JOIN (
+                                  SELECT
+                                      adms_training_id,
+                                      COALESCE(
+                                          MAX(CASE WHEN status <> 'concluido' THEN id END),
+                                          MAX(id)
+                                      ) AS keep_id
+                                  FROM adms_training_users
+                                  WHERE adms_user_id = :user_id
+                                  GROUP BY adms_training_id
+                                  HAVING COUNT(*) > 1
+                              ) d
+                                      ON d.adms_training_id = tu.adms_training_id
+                              WHERE tu.adms_user_id = :user_id_2
+                                AND tu.id <> d.keep_id";
+            $stmtDedupeUser = $this->getConnection()->prepare($sqlDedupeUser);
+            $stmtDedupeUser->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmtDedupeUser->bindValue(':user_id_2', $userId, PDO::PARAM_INT);
+            $stmtDedupeUser->execute();
             
             return true;
         } catch (\Exception $e) {
@@ -850,7 +938,7 @@ class TrainingUsersRepository extends DbConnection
             }
             $stmtConvert->execute();
 
-            // 2) Inserir vínculos ativos por cargo que ainda não existem.
+            // 2) Inserir vínculos por cargo quando não existe nenhum vínculo para o par usuário+treinamento.
             $sqlInsertMissing = "INSERT INTO adms_training_users
                                     (adms_user_id, adms_training_id, status, tipo_vinculo, motivo, created_at, updated_at, data_limite_primeiro_treinamento)
                                  SELECT
@@ -869,12 +957,11 @@ class TrainingUsersRepository extends DbConnection
                                  INNER JOIN adms_trainings t
                                          ON t.id = tp.adms_training_id
                                         AND t.ativo = 1
-                                 LEFT JOIN adms_training_users tu_ativo
-                                        ON tu_ativo.adms_user_id = u.id
-                                       AND tu_ativo.adms_training_id = tp.adms_training_id
-                                       AND tu_ativo.status != 'concluido'
+                                 LEFT JOIN adms_training_users tu_any
+                                       ON tu_any.adms_user_id = u.id
+                                      AND tu_any.adms_training_id = tp.adms_training_id
                                  WHERE tp.obrigatorio = 1
-                                   AND tu_ativo.id IS NULL{$trainingFilterInsert}";
+                                   AND tu_any.id IS NULL{$trainingFilterInsert}";
             $stmtInsert = $this->getConnection()->prepare($sqlInsertMissing);
             foreach ($paramsInsert as $key => $value) {
                 $stmtInsert->bindValue($key, $value, PDO::PARAM_INT);
@@ -882,7 +969,7 @@ class TrainingUsersRepository extends DbConnection
             $stmtInsert->execute();
 
             // 3) Fallback determinístico:
-            // caso algum par usuário+treinamento obrigatório ainda fique sem vínculo ativo,
+            // caso algum par usuário+treinamento obrigatório ainda fique sem vínculo,
             // materializa linha a linha via regra central.
             $sqlMissingAfterBulk = "SELECT
                                         u.id AS user_id,
@@ -894,12 +981,11 @@ class TrainingUsersRepository extends DbConnection
                                     INNER JOIN adms_trainings t
                                             ON t.id = tp.adms_training_id
                                            AND t.ativo = 1
-                                    LEFT JOIN adms_training_users tu_ativo
-                                           ON tu_ativo.adms_user_id = u.id
-                                          AND tu_ativo.adms_training_id = tp.adms_training_id
-                                          AND tu_ativo.status != 'concluido'
+                                    LEFT JOIN adms_training_users tu_any
+                                           ON tu_any.adms_user_id = u.id
+                                          AND tu_any.adms_training_id = tp.adms_training_id
                                     WHERE tp.obrigatorio = 1
-                                      AND tu_ativo.id IS NULL";
+                                      AND tu_any.id IS NULL";
             if ($trainingId !== null) {
                 $sqlMissingAfterBulk .= " AND tp.adms_training_id = :training_id";
             }
@@ -919,6 +1005,35 @@ class TrainingUsersRepository extends DbConnection
                     'sincronizacao'
                 );
             }
+
+            // 4) Hardening: manter apenas 1 vínculo por usuário+treinamento.
+            $dedupeTrainingFilter = '';
+            if ($trainingId !== null) {
+                $dedupeTrainingFilter = ' AND d.adms_training_id = :training_id_filter';
+            }
+            $this->backupRowsForGlobalDedupe($trainingId);
+            $sqlDedupe = "DELETE tu
+                          FROM adms_training_users tu
+                          INNER JOIN (
+                              SELECT
+                                  adms_user_id,
+                                  adms_training_id,
+                                  COALESCE(
+                                      MAX(CASE WHEN status <> 'concluido' THEN id END),
+                                      MAX(id)
+                                  ) AS keep_id
+                              FROM adms_training_users
+                              GROUP BY adms_user_id, adms_training_id
+                              HAVING COUNT(*) > 1
+                          ) d
+                                  ON d.adms_user_id = tu.adms_user_id
+                                 AND d.adms_training_id = tu.adms_training_id
+                          WHERE tu.id <> d.keep_id{$dedupeTrainingFilter}";
+            $stmtDedupe = $this->getConnection()->prepare($sqlDedupe);
+            if ($trainingId !== null) {
+                $stmtDedupe->bindValue(':training_id_filter', $trainingId, PDO::PARAM_INT);
+            }
+            $stmtDedupe->execute();
 
             return true;
         } catch (Exception $e) {
@@ -1750,8 +1865,8 @@ class TrainingUsersRepository extends DbConnection
                 ]
             );
             
-            // Verifica se já existe vínculo ativo
-            $sqlCheck = "SELECT tipo_vinculo FROM adms_training_users WHERE adms_user_id = :user_id AND adms_training_id = :training_id AND status != 'concluido'";
+            // Verifica se já existe vínculo para log/diagnóstico (qualquer status)
+            $sqlCheck = "SELECT tipo_vinculo FROM adms_training_users WHERE adms_user_id = :user_id AND adms_training_id = :training_id";
             $stmtCheck = $this->getConnection()->prepare($sqlCheck);
             $stmtCheck->bindValue(':user_id', $userId, \PDO::PARAM_INT);
             $stmtCheck->bindValue(':training_id', $trainingId, \PDO::PARAM_INT);
@@ -1771,44 +1886,18 @@ class TrainingUsersRepository extends DbConnection
                 ]
             );
 
-            if (in_array($user['user_position_id'], $cargosObrigatorios)) {
-                // Usuário tem cargo obrigatório - sempre criar/atualizar para 'cargo'
-                \App\adms\Helpers\GenerateLog::generateLog(
-                    "debug", 
-                    "vincularUsuariosTreinamento - Criando/atualizando vínculo por cargo", 
-                    [
-                        'userId' => $userId,
-                        'trainingId' => $trainingId,
-                        'tipo' => 'cargo',
-                        'vinculo_existente' => $vinculoExistente
-                    ]
-                );
-                $this->insertOrUpdate((int)$userId, (int)$trainingId, 'dentro_do_prazo', 'cargo');
-            } else {
-                // Usuário não tem cargo obrigatório - só criar individual se não existir vínculo
-                if (!$vinculoExistente) {
-                    \App\adms\Helpers\GenerateLog::generateLog(
-                        "debug", 
-                        "vincularUsuariosTreinamento - Criando vínculo individual", 
-                        [
-                            'userId' => $userId,
-                            'trainingId' => $trainingId,
-                            'tipo' => 'individual'
-                        ]
-                    );
-                    $this->insertOrUpdate((int)$userId, (int)$trainingId, 'dentro_do_prazo', 'individual');
-                } else {
-                    \App\adms\Helpers\GenerateLog::generateLog(
-                        "debug", 
-                        "vincularUsuariosTreinamento - Vínculo já existe, ignorando", 
-                        [
-                            'userId' => $userId,
-                            'trainingId' => $trainingId,
-                            'vinculo_existente' => $vinculoExistente
-                        ]
-                    );
-                }
-            }
+            $targetTipo = in_array($user['user_position_id'], $cargosObrigatorios, true) ? 'cargo' : 'individual';
+            \App\adms\Helpers\GenerateLog::generateLog(
+                "debug",
+                "vincularUsuariosTreinamento - Consolidando vínculo",
+                [
+                    'userId' => $userId,
+                    'trainingId' => $trainingId,
+                    'tipo_destino' => $targetTipo,
+                    'vinculo_existente' => $vinculoExistente
+                ]
+            );
+            $this->insertOrUpdate((int)$userId, (int)$trainingId, 'dentro_do_prazo', $targetTipo);
         }
         
         // Log final

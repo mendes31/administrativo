@@ -1311,6 +1311,20 @@ class UsersRepository extends DbConnection
             }
             // Se atualização bem-sucedida, registra o log de alteração
             if ($result) {
+                $oldPositionId = (int)($dadosAntes['user_position_id'] ?? 0);
+                $newPositionId = (int)($data['user_position_id'] ?? 0);
+                if ($newPositionId > 0 && $newPositionId !== $oldPositionId) {
+                    $trainingUsersRepo = new \App\adms\Models\Repository\TrainingUsersRepository();
+                    $syncOk = $trainingUsersRepo->syncUserTrainingLinks((int)$data['id'], $newPositionId);
+                    if (!$syncOk) {
+                        GenerateLog::generateLog("error", "Falha ao sincronizar vínculos de treinamento após mudança de cargo.", [
+                            'user_id' => (int)$data['id'],
+                            'old_position_id' => $oldPositionId,
+                            'new_position_id' => $newPositionId,
+                        ]);
+                    }
+                }
+
                 // Monta os dados depois da alteração (agora com todos os campos relevantes)
                 $dadosDepois = [
                     'id' => $data['id'],

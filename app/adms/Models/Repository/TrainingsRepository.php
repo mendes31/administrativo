@@ -9,6 +9,36 @@ use Exception;
 
 class TrainingsRepository extends DbConnection
 {
+    private function existsCode(string $codigo, ?int $excludeId = null): bool
+    {
+        $codigo = trim($codigo);
+        if ($codigo === '') {
+            return false;
+        }
+
+        $sql = 'SELECT id
+                FROM adms_trainings
+                WHERE TRIM(codigo) = :codigo';
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :exclude_id';
+        }
+        $sql .= ' LIMIT 1';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':codigo', $codigo, PDO::PARAM_STR);
+        if ($excludeId !== null) {
+            $stmt->bindValue(':exclude_id', $excludeId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function isCodeAlreadyRegistered(string $codigo, ?int $excludeId = null): bool
+    {
+        return $this->existsCode($codigo, $excludeId);
+    }
+
     private function existsCodeVersion(string $codigo, ?string $versao, ?int $excludeId = null): bool
     {
         $codigo = trim($codigo);
@@ -143,6 +173,9 @@ class TrainingsRepository extends DbConnection
             }
             if ($versao === '') {
                 throw new Exception('O campo "Versão" é obrigatório.');
+            }
+            if ($this->existsCode($codigo)) {
+                throw new Exception('Código já existe na base e somente pode ser versionado, através da opção Criar nova versão disponibilizada na tela de visualização do treinamento.');
             }
             if ($this->existsCodeVersion($codigo, $versao)) {
                 throw new Exception('Já existe um treinamento com o mesmo código e versão.');
