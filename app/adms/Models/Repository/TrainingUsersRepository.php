@@ -288,7 +288,6 @@ class TrainingUsersRepository extends DbConnection
                     AND ta1.created_at = ta2.max_created_at
             ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
                 AND ta_last.adms_training_id = tu.adms_training_id
-                AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)
             WHERE 1=1';
         
         $params = [];
@@ -339,7 +338,7 @@ class TrainingUsersRepository extends DbConnection
         $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
         
         // Aplicar ordenação
-        $sql .= ' ORDER BY u.name ASC, t.nome ASC';
+        $sql .= ' ORDER BY u.name ASC, t.codigo ASC';
 
         // Quando NÃO há filtro de status, aplicamos paginação diretamente no SQL
         // Quando HÁ filtro de status, buscamos tudo e paginamos depois em memória
@@ -614,8 +613,7 @@ class TrainingUsersRepository extends DbConnection
                         AND ta1.adms_training_id = ta2.adms_training_id 
                         AND ta1.created_at = ta2.max_created_at
                 ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
-                    AND ta_last.adms_training_id = tu.adms_training_id
-                    AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)';
+                    AND ta_last.adms_training_id = tu.adms_training_id';
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
@@ -1353,8 +1351,7 @@ class TrainingUsersRepository extends DbConnection
                     AND ta1.adms_training_id = ta2.adms_training_id 
                     AND ta1.created_at = ta2.max_created_at
             ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
-                AND ta_last.adms_training_id = tu.adms_training_id
-                AND (ta_last.created_at >= tu.created_at OR ta_last.created_at IS NULL)';
+                AND ta_last.adms_training_id = tu.adms_training_id';
         }
 
         // Construir query base
@@ -1448,7 +1445,7 @@ class TrainingUsersRepository extends DbConnection
         }
         
         // Aplicar ordenação e paginação
-        $sql .= ' ORDER BY u.name ASC, t.nome ASC';
+        $sql .= ' ORDER BY u.name ASC, t.codigo ASC';
         $sql .= ' LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
         
         $stmt = $this->getConnection()->prepare($sql);
@@ -1931,7 +1928,11 @@ class TrainingUsersRepository extends DbConnection
             ];
         }
         usort($padronizados, function($a, $b) {
-            return strcasecmp($a['user_name'], $b['user_name']);
+            $byUser = strcasecmp((string)$a['user_name'], (string)$b['user_name']);
+            if ($byUser !== 0) {
+                return $byUser;
+            }
+            return strcasecmp((string)($a['codigo'] ?? ''), (string)($b['codigo'] ?? ''));
         });
         return $padronizados;
     }
@@ -2036,9 +2037,9 @@ class TrainingUsersRepository extends DbConnection
         $order = strtolower($filters['order'] ?? 'asc');
         $order = ($order === 'desc') ? 'DESC' : 'ASC';
         if ($sort && isset($allowedSort[$sort])) {
-            $sql .= ' ORDER BY ' . $allowedSort[$sort] . ' ' . $order . ', u.name ASC, ta.data_realizacao DESC';
+            $sql .= ' ORDER BY ' . $allowedSort[$sort] . ' ' . $order . ', u.name ASC, t.codigo ASC, ta.data_realizacao DESC';
         } else {
-            $sql .= ' ORDER BY u.name ASC, ta.data_realizacao DESC';
+            $sql .= ' ORDER BY u.name ASC, t.codigo ASC, ta.data_realizacao DESC';
         }
         if ($perPage !== null) {
             $offset = max(0, ($page - 1) * $perPage);

@@ -520,11 +520,12 @@ class TrainingsRepository extends DbConnection
 
             if ($requireRetraining === 0) {
                 $sqlCopyConcludedApps = 'INSERT INTO adms_training_applications
-                                         (adms_user_id, adms_training_id, data_realizacao, data_agendada, instrutor_nome, instrutor_email, aplicado_por, nota, observacoes, status, created_at, updated_at)
+                                         (adms_user_id, adms_training_id, data_realizacao, data_avaliacao, data_agendada, instrutor_nome, instrutor_email, aplicado_por, nota, observacoes, status, created_at, updated_at)
                                          SELECT
                                             ta.adms_user_id,
                                             :new_training_id,
                                             ta.data_realizacao,
+                                            ta.data_avaliacao,
                                             ta.data_agendada,
                                             ta.instrutor_nome,
                                             ta.instrutor_email,
