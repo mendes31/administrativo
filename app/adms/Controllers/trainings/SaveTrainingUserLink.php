@@ -2,6 +2,7 @@
 namespace App\adms\Controllers\trainings;
 
 use App\adms\Models\Repository\TrainingUsersRepository;
+use App\adms\Models\Repository\TrainingsRepository;
 
 class SaveTrainingUserLink
 {
@@ -34,6 +35,16 @@ class SaveTrainingUserLink
         
         $trainingId = isset($_POST['training_id']) ? (int)$_POST['training_id'] : null;
         $userIds = $_POST['user_ids'] ?? [];
+
+        if ($trainingId) {
+            $trainingsRepo = new TrainingsRepository();
+            $training = $trainingsRepo->getTraining($trainingId);
+            if (!$training || (isset($training['is_current_version']) && (int)$training['is_current_version'] !== 1)) {
+                $_SESSION['msg'] = '<div class="alert alert-danger">Somente a versão atual pode gerenciar vínculos de colaboradores.</div>';
+                header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . (int)$trainingId);
+                exit;
+            }
+        }
         
         // Log de debug após processamento
         \App\adms\Helpers\GenerateLog::generateLog(

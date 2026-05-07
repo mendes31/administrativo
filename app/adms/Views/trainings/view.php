@@ -132,6 +132,7 @@ $nextVersion = $currentVersion > 0 ? ($currentVersion + 1) : 1;
         </div>
     </div>
 
+    <?php if (!isset($this->data['training']['is_current_version']) || (int)$this->data['training']['is_current_version'] === 1): ?>
     <!-- Nova versão -->
     <div class="card mb-4 border-light shadow">
         <div class="card-header">
@@ -181,6 +182,7 @@ $nextVersion = $currentVersion > 0 ? ($currentVersion + 1) : 1;
             </form>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- Histórico de versões -->
     <div class="card mb-4 border-light shadow">
@@ -367,19 +369,25 @@ $nextVersion = $currentVersion > 0 ? ($currentVersion + 1) : 1;
                     <i class="fas fa-arrow-left me-2"></i>Voltar
                 </a>
                 <div>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $this->data['training']['id']; ?>" 
-                       class="btn btn-warning me-2">
-                        <i class="fas fa-edit me-2"></i>Editar
-                    </a>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $this->data['training']['id']; ?>" 
-                       class="btn btn-info me-2">
-                        <i class="fas fa-link me-2"></i>Vincular Cargos
-                    </a>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $this->data['training']['id']; ?>" 
-                       class="btn btn-danger"
-                       onclick="return confirm('Tem certeza que deseja excluir este treinamento?');">
-                        <i class="fas fa-trash me-2"></i>Excluir
-                    </a>
+                    <?php if (!isset($this->data['training']['is_current_version']) || (int)$this->data['training']['is_current_version'] === 1): ?>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $this->data['training']['id']; ?>" 
+                           class="btn btn-warning me-2">
+                            <i class="fas fa-edit me-2"></i>Editar
+                        </a>
+                    <?php endif; ?>
+                    <?php if (!isset($this->data['training']['is_current_version']) || (int)$this->data['training']['is_current_version'] === 1): ?>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $this->data['training']['id']; ?>" 
+                           class="btn btn-info me-2">
+                            <i class="fas fa-link me-2"></i>Vincular Cargos
+                        </a>
+                    <?php endif; ?>
+                    <?php if (!isset($this->data['training']['is_current_version']) || (int)$this->data['training']['is_current_version'] === 1): ?>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $this->data['training']['id']; ?>" 
+                           class="btn btn-danger"
+                           onclick="return confirm('Tem certeza que deseja excluir este treinamento?');">
+                            <i class="fas fa-trash me-2"></i>Excluir
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

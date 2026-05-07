@@ -26,6 +26,19 @@ class NewTrainingVersion
             exit;
         }
 
+        $repo = new TrainingsRepository();
+        $sourceTraining = $repo->getTraining($sourceTrainingId);
+        if (!$sourceTraining) {
+            $_SESSION['error'] = 'Treinamento de origem não encontrado.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
+            exit;
+        }
+        if (isset($sourceTraining['is_current_version']) && (int)$sourceTraining['is_current_version'] !== 1) {
+            $_SESSION['error'] = 'Nova versão só pode ser criada a partir da versão atual.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $sourceTrainingId);
+            exit;
+        }
+
         $payload = [
             'nome' => $form['nome'] ?? null,
             'versao' => $form['versao'] ?? null,
@@ -45,7 +58,6 @@ class NewTrainingVersion
             'require_retraining' => !empty($form['require_retraining']) ? 1 : 0,
         ];
 
-        $repo = new TrainingsRepository();
         $newId = $repo->createNewVersion($sourceTrainingId, $payload, (int)($_SESSION['user_id'] ?? 0));
 
         if (!$newId) {

@@ -30,6 +30,16 @@ class LinkTrainingUsers
         // Buscar informações do treinamento
         $trainingsRepo = new \App\adms\Models\Repository\TrainingsRepository();
         $training = $trainingsRepo->getTraining($id);
+        if (!$training) {
+            $_SESSION['error'] = 'Treinamento não encontrado.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
+            exit;
+        }
+        if (isset($training['is_current_version']) && (int)$training['is_current_version'] !== 1) {
+            $_SESSION['error'] = 'Somente a versão atual pode gerenciar vínculos de colaboradores.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $id);
+            exit;
+        }
         $this->data['training_info'] = [
             'nome' => $training['nome'] ?? '',
             'codigo' => $training['codigo'] ?? '',

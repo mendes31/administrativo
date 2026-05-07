@@ -39,6 +39,16 @@ class UpdateTraining
         $repo = new TrainingsRepository();
         $departmentsRepo = new DepartmentsRepository();
         $this->data['training'] = $repo->getTraining($this->id);
+        if (empty($this->data['training'])) {
+            $_SESSION['error'] = 'Treinamento não encontrado.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
+            exit;
+        }
+        if (isset($this->data['training']['is_current_version']) && (int)$this->data['training']['is_current_version'] !== 1) {
+            $_SESSION['error'] = 'Somente a versão atual pode ser editada.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $this->id);
+            exit;
+        }
         $usersRepo = new UsersRepository();
         $this->data['listUsers'] = $usersRepo->getAllUsersSelect();
         $this->data['listDepartments'] = $departmentsRepo->getAllDepartmentsSelect();
@@ -70,6 +80,16 @@ class UpdateTraining
         // Capturar dados antigos para verificar mudança de status
         $repo = new TrainingsRepository();
         $trainingAntigo = $repo->getTraining($this->id);
+        if (!$trainingAntigo) {
+            $_SESSION['error'] = 'Treinamento não encontrado.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
+            exit;
+        }
+        if (isset($trainingAntigo['is_current_version']) && (int)$trainingAntigo['is_current_version'] !== 1) {
+            $_SESSION['error'] = 'Somente a versão atual pode ser editada.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $this->id);
+            exit;
+        }
         $statusAnterior = $trainingAntigo['ativo'] ?? 1;
         
         // Determinar tipo de instrutor e ajustar campos

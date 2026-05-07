@@ -14,6 +14,19 @@ class TrainingPositions
 
     public function index(int $trainingId): void
     {
+        $trainingsRepo = new TrainingsRepository();
+        $training = $trainingsRepo->getTraining($trainingId);
+        if (!$training) {
+            $_SESSION['error'] = 'Treinamento não encontrado!';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
+            exit;
+        }
+        if (isset($training['is_current_version']) && (int)$training['is_current_version'] !== 1) {
+            $_SESSION['error'] = 'Somente a versão atual pode alterar vínculos de cargos.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $trainingId);
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->saveTrainingPositions($trainingId);
         }

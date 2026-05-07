@@ -2,6 +2,7 @@
 namespace App\adms\Controllers\trainings;
 
 use App\adms\Models\Repository\TrainingUsersRepository;
+use App\adms\Models\Repository\TrainingsRepository;
 
 class DeleteTrainingUserLink
 {
@@ -13,6 +14,18 @@ class DeleteTrainingUserLink
         }
         $trainingId = isset($_POST['training_id']) ? (int)$_POST['training_id'] : null;
         $userId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
+        if ($trainingId) {
+            $trainingsRepo = new TrainingsRepository();
+            $training = $trainingsRepo->getTraining($trainingId);
+            if (!$training || (isset($training['is_current_version']) && (int)$training['is_current_version'] !== 1)) {
+                $_SESSION['msg'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-exclamation-triangle"></i> Somente a versão atual pode gerenciar vínculos de colaboradores.
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>';
+                header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . (int)$trainingId);
+                exit;
+            }
+        }
         if ($trainingId && $userId) {
             $repo = new TrainingUsersRepository();
             $repo->deleteIndividualVinculo($trainingId, $userId);
