@@ -14,6 +14,8 @@ use Phinx\Seed\AbstractSeed;
  * @method void execute(string $sql)
  * @method array|false fetchRow(string $sql)
  * @method \Phinx\Db\Table table(string $tableName)
+ * @method mixed query(string $sql, array<string, mixed> $params = [])
+ * @method bool hasTable(string $tableName)
  */
 class AddAdmsPages extends AbstractSeed
 {
@@ -67,6 +69,13 @@ class AddAdmsPages extends AbstractSeed
                             page_status = 1,
                             updated_at = NOW()
                         WHERE controller_url = 'new-training-version'");
+        $this->execute("UPDATE adms_pages
+                        SET controller = 'TrainingVersionAudit',
+                            directory = 'trainings',
+                            public_page = 0,
+                            page_status = 1,
+                            updated_at = NOW()
+                        WHERE controller_url = 'training-version-audit'");
 
         // Variável para receber os dados que devem ser validados antes de cadastrar
         $pages = [
@@ -282,6 +291,7 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Matriz por Colaborador', 'controller' => 'MatrixByUser', 'controller_url' => 'matrix-by-user', 'directory' => 'trainings', 'obs' => 'Matriz de treinamentos obrigatórios por colaborador', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
             ['name'=> 'Histórico de Reciclagem', 'controller' => 'TrainingHistory', 'controller_url' => 'training-history', 'directory' => 'trainings', 'obs' => 'Histórico detalhado de aplicações/reciclagens', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
             ['name'=> 'Status dos Treinamentos', 'controller' => 'ListTrainingStatus', 'controller_url' => 'list-training-status', 'directory' => 'trainings', 'obs' => 'Página para visualizar o status dos treinamentos dos colaboradores.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
+            ['name'=> 'Auditoria de Versões de Treinamento', 'controller' => 'TrainingVersionAudit', 'controller_url' => 'training-version-audit', 'directory' => 'trainings', 'obs' => 'Página para auditoria de inconsistências de versionamento dos treinamentos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
             ['name'=> 'Matriz de Treinamentos', 'controller' => 'TrainingMatrixManager', 'controller_url' => 'training-matrix-manager', 'directory' => 'trainings', 'obs' => 'Página para gerenciar a matriz de treinamentos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
             ['name'=> 'Teste de Notificações de Treinamentos', 'controller' => 'TestNotification', 'controller_url' => 'test-notification', 'directory' => 'trainings', 'obs' => 'Página para testar o envio de notificações de treinamentos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
             ['name'=> 'Atualizar Matriz de Treinamentos', 'controller' => 'UpdateTrainingMatrix', 'controller_url' => 'update-training-matrix', 'directory' => 'trainings', 'obs' => 'Página para atualizar a matriz de treinamentos obrigatórios.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 24],
@@ -987,9 +997,12 @@ class AddAdmsPages extends AbstractSeed
                             OR p.adms_groups_page_id = {$reservaSalasGroupId})
                        AND NOT EXISTS (
                             SELECT 1
-                            FROM adms_access_levels_pages keep_acl
+                            FROM (
+                                SELECT adms_page_id
+                                FROM adms_access_levels_pages
+                                WHERE permission = 1
+                            ) keep_acl
                             WHERE keep_acl.adms_page_id = p.id
-                              AND keep_acl.permission = 1
                        )"
                 );
 
@@ -1009,9 +1022,12 @@ class AddAdmsPages extends AbstractSeed
                        AND p.public_page = 0
                        AND NOT EXISTS (
                             SELECT 1
-                            FROM adms_access_levels_pages keep_acl
+                            FROM (
+                                SELECT adms_page_id
+                                FROM adms_access_levels_pages
+                                WHERE permission = 1
+                            ) keep_acl
                             WHERE keep_acl.adms_page_id = p.id
-                              AND keep_acl.permission = 1
                        )"
                 );
 
@@ -1031,9 +1047,12 @@ class AddAdmsPages extends AbstractSeed
                        AND p.public_page = 0
                        AND NOT EXISTS (
                             SELECT 1
-                            FROM adms_access_levels_pages keep_acl
+                            FROM (
+                                SELECT adms_page_id
+                                FROM adms_access_levels_pages
+                                WHERE permission = 1
+                            ) keep_acl
                             WHERE keep_acl.adms_page_id = p.id
-                              AND keep_acl.permission = 1
                        )"
                 );
             }
@@ -1052,6 +1071,21 @@ class AddAdmsPages extends AbstractSeed
                      SELECT alp.permission, alp.adms_access_level_id, {$newVersionPageId}, NOW(), NOW()
                      FROM adms_access_levels_pages alp
                      WHERE alp.adms_page_id = {$updateTrainingPageId}"
+                );
+            }
+        }
+
+        $auditPage = $this->query("SELECT id FROM adms_pages WHERE controller_url = 'training-version-audit' LIMIT 1")->fetch();
+        $listTrainingsPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'ListTrainings' LIMIT 1")->fetch();
+        if ($auditPage && $listTrainingsPage && $this->hasTable('adms_access_levels_pages')) {
+            $auditPageId = (int)($auditPage['id'] ?? 0);
+            $listTrainingsPageId = (int)($listTrainingsPage['id'] ?? 0);
+            if ($auditPageId > 0 && $listTrainingsPageId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$auditPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listTrainingsPageId}"
                 );
             }
         }

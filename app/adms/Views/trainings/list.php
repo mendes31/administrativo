@@ -39,6 +39,9 @@ use App\adms\Helpers\FormatHelper;
                 <?php if (in_array('ListTrainingStatus', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-training-status" class="btn btn-info btn-sm mb-1 btn-min-width-70"><i class="fas fa-chart-bar"></i> Status</a>
                 <?php } ?>
+                <?php if (in_array('TrainingVersionAudit', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-version-audit" class="btn btn-secondary btn-sm mb-1 btn-min-width-70"><i class="fas fa-shield-alt"></i> Auditoria</a>
+                <?php } ?>
             </span>
         </div>
         <div class="card-body">

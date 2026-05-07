@@ -747,4 +747,127 @@ class TrainingsRepository extends DbConnection
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    /**
+     * Retorna linhas da auditoria de versionamento com filtro por família/código.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getVersionAuditRows(array $filters = []): array
+    {
+        $where = [];
+        $params = [];
+
+        if (!empty($filters['family'])) {
+            $where[] = 'COALESCE(NULLIF(TRIM(t.training_family_key), ""), TRIM(t.codigo)) LIKE :family';
+            $params[':family'] = '%' . trim((string)$filters['family']) . '%';
+        }
+        if (!empty($filters['codigo'])) {
+            $where[] = 'TRIM(t.codigo) LIKE :codigo';
+            $params[':codigo'] = '%' . trim((string)$filters['codigo']) . '%';
+        }
+
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $sql = 'SELECT
+                    COALESCE(NULLIF(TRIM(t.training_family_key), ""), TRIM(t.codigo)) AS familia,
+                    t.codigo,
+                    t.id AS training_id,
+                    t.versao,
+                    t.ativo,
+                    t.is_current_version,
+                    t.parent_training_id AS versao_origem_id,
+                    t.change_summary AS resumo_alteracoes,
+                    t.created_at,
+                    t.updated_at
+                FROM adms_trainings t
+                ' . $whereSql . '
+                ORDER BY familia ASC, CAST(t.versao AS UNSIGNED) DESC, t.id DESC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Retorna alertas de inconsistência para versionamento.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function getVersionAuditAlerts(array $filters = []): array
+    {
+        $where = [];
+        $params = [];
+
+        if (!empty($filters['family'])) {
+            $where[] = 'COALESCE(NULLIF(TRIM(t.training_family_key), ""), TRIM(t.codigo)) LIKE :family';
+            $params[':family'] = '%' . trim((string)$filters['family']) . '%';
+        }
+        if (!empty($filters['codigo'])) {
+            $where[] = 'TRIM(t.codigo) LIKE :codigo';
+            $params[':codigo'] = '%' . trim((string)$filters['codigo']) . '%';
+        }
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $alerts = [
+            'families_with_invalid_current_count' => [],
+            'families_with_invalid_active_count' => [],
+            'current_versions_not_active' => [],
+        ];
+
+        $sqlCurrentCount = 'SELECT
+                                COALESCE(NULLIF(TRIM(t.training_family_key), ""), TRIM(t.codigo)) AS familia,
+                                COUNT(*) AS total_versoes,
+                                SUM(CASE WHEN t.is_current_version = 1 THEN 1 ELSE 0 END) AS qtd_atuais
+                            FROM adms_trainings t
+                            ' . $whereSql . '
+                            GROUP BY familia
+                            HAVING SUM(CASE WHEN t.is_current_version = 1 THEN 1 ELSE 0 END) <> 1
+                            ORDER BY familia ASC';
+        $stmtCurrentCount = $this->getConnection()->prepare($sqlCurrentCount);
+        foreach ($params as $key => $value) {
+            $stmtCurrentCount->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmtCurrentCount->execute();
+        $alerts['families_with_invalid_current_count'] = $stmtCurrentCount->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $sqlActiveCount = 'SELECT
+                                COALESCE(NULLIF(TRIM(t.training_family_key), ""), TRIM(t.codigo)) AS familia,
+                                COUNT(*) AS total_versoes,
+                                SUM(CASE WHEN t.ativo = 1 THEN 1 ELSE 0 END) AS qtd_ativas
+                           FROM adms_trainings t
+                           ' . $whereSql . '
+                           GROUP BY familia
+                           HAVING SUM(CASE WHEN t.ativo = 1 THEN 1 ELSE 0 END) <> 1
+                           ORDER BY familia ASC';
+        $stmtActiveCount = $this->getConnection()->prepare($sqlActiveCount);
+        foreach ($params as $key => $value) {
+            $stmtActiveCount->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmtActiveCount->execute();
+        $alerts['families_with_invalid_active_count'] = $stmtActiveCount->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $sqlCurrentInactive = 'SELECT
+                                    COALESCE(NULLIF(TRIM(t.training_family_key), ""), TRIM(t.codigo)) AS familia,
+                                    t.id AS training_id,
+                                    t.codigo,
+                                    t.versao,
+                                    t.ativo,
+                                    t.is_current_version
+                               FROM adms_trainings t
+                               ' . $whereSql . ($whereSql === '' ? ' WHERE ' : ' AND ') . 't.is_current_version = 1 AND t.ativo <> 1
+                               ORDER BY familia ASC, t.id DESC';
+        $stmtCurrentInactive = $this->getConnection()->prepare($sqlCurrentInactive);
+        foreach ($params as $key => $value) {
+            $stmtCurrentInactive->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmtCurrentInactive->execute();
+        $alerts['current_versions_not_active'] = $stmtCurrentInactive->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $alerts;
+    }
 } 
