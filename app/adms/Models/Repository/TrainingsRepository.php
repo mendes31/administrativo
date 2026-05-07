@@ -465,6 +465,32 @@ class TrainingsRepository extends DbConnection
             $stmtInactivateSource->bindValue(':id', $sourceTrainingId, PDO::PARAM_INT);
             $stmtInactivateSource->execute();
 
+            // Copiar matriz de cargos da versão anterior para a nova versão.
+            // Isso mantém a estrutura de obrigatoriedade e permite ajustes na versão atual.
+            $sqlCopyPositions = 'INSERT INTO adms_training_positions
+                                 (adms_training_id, adms_position_id, obrigatorio, tipo_treinamento, reciclagem_periodo, created_at, updated_at)
+                                 SELECT
+                                    :new_training_id,
+                                    tp.adms_position_id,
+                                    tp.obrigatorio,
+                                    tp.tipo_treinamento,
+                                    tp.reciclagem_periodo,
+                                    NOW(),
+                                    NOW()
+                                 FROM adms_training_positions tp
+                                 WHERE tp.adms_training_id = :source_training_id
+                                   AND NOT EXISTS (
+                                       SELECT 1
+                                       FROM adms_training_positions tp_exists
+                                       WHERE tp_exists.adms_training_id = :new_training_id_2
+                                         AND tp_exists.adms_position_id = tp.adms_position_id
+                                   )';
+            $stmtCopyPositions = $conn->prepare($sqlCopyPositions);
+            $stmtCopyPositions->bindValue(':new_training_id', $newTrainingId, PDO::PARAM_INT);
+            $stmtCopyPositions->bindValue(':new_training_id_2', $newTrainingId, PDO::PARAM_INT);
+            $stmtCopyPositions->bindValue(':source_training_id', $sourceTrainingId, PDO::PARAM_INT);
+            $stmtCopyPositions->execute();
+
             $sqlMigrateActive = 'INSERT INTO adms_training_users
                                  (adms_training_id, adms_user_id, data_realizacao, data_agendada, status, nota, certificado, created_at, updated_at, data_limite_primeiro_treinamento, tipo_vinculo, motivo, last_notification_expiring, last_notification_expired, observacoes)
                                  SELECT

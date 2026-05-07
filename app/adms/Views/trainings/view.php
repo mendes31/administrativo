@@ -231,9 +231,13 @@ $nextVersion = $currentVersion > 0 ? ($currentVersion + 1) : 1;
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo (int)$version['id']; ?>" class="btn btn-sm btn-outline-primary">
-                                        Ver
-                                    </a>
+                                    <?php if ((int)($version['id'] ?? 0) !== (int)($this->data['training']['id'] ?? 0)): ?>
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo (int)$version['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                            Ver
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">Atual</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -60,6 +60,12 @@ class ApplyTraining
             header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
             exit;
         }
+        if (isset($this->data['training']['is_current_version']) && (int)$this->data['training']['is_current_version'] !== 1) {
+            $_SESSION['msg'] = "Somente a versão atual permite aplicação.";
+            $_SESSION['msg_type'] = "warning";
+            header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
+            exit;
+        }
 
         // Buscar vínculo do usuário com o treinamento para obter a data de criação
         $trainingUsersRepo = new TrainingUsersRepository();
@@ -228,6 +234,13 @@ class ApplyTraining
             $_SESSION['msg_type'] = "danger";
             saveFormSession();
             header("Location: " . $redirectUrl);
+            exit;
+        }
+        $trainingRef = $trainingsRepo->getTraining($training_id);
+        if (!$trainingRef || (isset($trainingRef['is_current_version']) && (int)$trainingRef['is_current_version'] !== 1)) {
+            $_SESSION['msg'] = "Somente a versão atual permite aplicação.";
+            $_SESSION['msg_type'] = "warning";
+            header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
             exit;
         }
         error_log("✓ PASSOU: training_id=$training_id, user_id=$user_id");

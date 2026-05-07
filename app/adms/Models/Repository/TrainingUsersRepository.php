@@ -223,6 +223,7 @@ class TrainingUsersRepository extends DbConnection
                 p.name as position,
                 t.id as training_id, 
                 t.codigo, 
+                t.versao as training_version,
                 t.nome as training_name, 
                 t.reciclagem, 
                 t.reciclagem_periodo,

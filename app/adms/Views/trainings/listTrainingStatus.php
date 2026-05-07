@@ -312,6 +312,9 @@ thead th {
                                 <td>
                                     <strong><?= htmlspecialchars($row['training_name']) ?></strong>
                                     <br><small class="text-muted"><?= htmlspecialchars($row['codigo']) ?></small>
+                                    <?php if (!empty($row['training_version'])): ?>
+                                        <br><small class="text-muted">Versão: v<?= htmlspecialchars((string)$row['training_version']) ?></small>
+                                    <?php endif; ?>
                                 </td>
                                 <td><?= htmlspecialchars($row['user_name']) ?></td>
                                 <td><?= htmlspecialchars($row['department']) ?></td>
@@ -431,12 +434,33 @@ thead th {
                         $matchCodigo = (stripos($row['codigo'], $codigoFiltro) !== false);
                     }
                     if (!$matchCodigo) continue;
+                    $statusClass = match($status) {
+                        'em_dia' => 'bg-success',
+                        'pendente' => 'bg-warning text-dark',
+                        'vencido' => 'bg-danger',
+                        'proximo_vencimento' => 'bg-warning',
+                        'agendado' => 'bg-info text-dark',
+                        'dentro_do_prazo' => 'bg-primary text-white',
+                        default => 'bg-secondary'
+                    };
+                    $statusText = match($status) {
+                        'em_dia' => 'Em Dia',
+                        'pendente' => 'Pendente',
+                        'vencido' => 'Vencido',
+                        'proximo_vencimento' => 'Próximo Vencimento',
+                        'agendado' => 'Agendado',
+                        'dentro_do_prazo' => 'Dentro do Prazo',
+                        default => ucfirst($status)
+                    };
                     ?>
                     <div class="card mb-3 shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 class="card-title mb-1"><b><?= htmlspecialchars($row['training_name']) ?></b></h5>
+                                    <?php if (!empty($row['training_version'])): ?>
+                                        <div class="mb-1"><small class="text-muted">Versão: v<?= htmlspecialchars((string)$row['training_version']) ?></small></div>
+                                    <?php endif; ?>
                                     <div class="mb-1"><span class="badge <?= $statusClass ?>"><?= $statusText ?></span></div>
                                     <div class="mb-1"><b>Colaborador:</b> <?= htmlspecialchars($row['user_name']) ?></div>
                                     <!-- <div class="mb-1"><b>Data Realização:</b> <?php if (!empty($row['data_realizacao'])): ?><?= (new DateTime($row['data_realizacao']))->format('d/m/Y') ?><?php else: ?><span class="text-muted">-</span><?php endif; ?></div> -->
