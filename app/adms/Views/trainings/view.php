@@ -1,5 +1,9 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\CSRFHelper;
+$csrfVersionToken = CSRFHelper::generateCSRFToken('form_new_training_version');
+$currentVersion = (int)($this->data['training']['versao'] ?? 0);
+$nextVersion = $currentVersion > 0 ? ($currentVersion + 1) : 1;
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -36,9 +40,18 @@ use App\adms\Helpers\FormatHelper;
                             <td>
                                 <?php if (!empty($this->data['training']['versao'])): ?>
                                     <span class="badge bg-info"><?php echo htmlspecialchars($this->data['training']['versao']); ?></span>
+                                    <?php if (!empty($this->data['training']['is_current_version'])): ?>
+                                        <span class="badge bg-success ms-1">Atual</span>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="text-muted">Não informada</span>
                                 <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Família:</strong></td>
+                            <td>
+                                <?php echo htmlspecialchars((string)($this->data['training']['training_family_key'] ?? $this->data['training']['codigo'] ?? '-')); ?>
                             </td>
                         </tr>
                         <tr>
@@ -116,6 +129,118 @@ use App\adms\Helpers\FormatHelper;
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Nova versão -->
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-code-branch me-2"></i>Nova Versão</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="<?php echo $_ENV['URL_ADM']; ?>new-training-version">
+                <input type="hidden" name="csrf_token" value="<?php echo $csrfVersionToken; ?>">
+                <input type="hidden" name="source_training_id" value="<?php echo (int)$this->data['training']['id']; ?>">
+                <input type="hidden" name="nome" value="<?php echo htmlspecialchars((string)($this->data['training']['nome'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="prazo_treinamento" value="<?php echo (int)($this->data['training']['prazo_treinamento'] ?? 0); ?>">
+                <input type="hidden" name="tipo" value="<?php echo htmlspecialchars((string)($this->data['training']['tipo'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="instrutor" value="<?php echo htmlspecialchars((string)($this->data['training']['instrutor'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="carga_horaria" value="<?php echo htmlspecialchars((string)($this->data['training']['carga_horaria'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="instructor_user_id" value="<?php echo (int)($this->data['training']['instructor_user_id'] ?? 0); ?>">
+                <input type="hidden" name="instructor_email" value="<?php echo htmlspecialchars((string)($this->data['training']['instructor_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="instructor_name" value="<?php echo htmlspecialchars((string)($this->data['training']['instructor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="reciclagem" value="<?php echo (int)($this->data['training']['reciclagem'] ?? 0); ?>">
+                <input type="hidden" name="reciclagem_periodo" value="<?php echo (int)($this->data['training']['reciclagem_periodo'] ?? 0); ?>">
+                <input type="hidden" name="area_responsavel_id" value="<?php echo (int)($this->data['training']['area_responsavel_id'] ?? 0); ?>">
+                <input type="hidden" name="area_elaborador_id" value="<?php echo (int)($this->data['training']['area_elaborador_id'] ?? 0); ?>">
+                <input type="hidden" name="tipo_obrigatoriedade" value="<?php echo htmlspecialchars((string)($this->data['training']['tipo_obrigatoriedade'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="versao" class="form-label"><strong>Nova versão</strong></label>
+                        <input type="text" name="versao" id="versao" class="form-control" value="<?php echo $nextVersion; ?>" readonly required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="require_retraining" class="form-label"><strong>Exige retreinamento?</strong></label>
+                        <select name="require_retraining" id="require_retraining" class="form-select">
+                            <option value="1" selected>Sim</option>
+                            <option value="0">Não</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="change_summary" class="form-label"><strong>Resumo das alterações</strong></label>
+                        <input type="text" name="change_summary" id="change_summary" class="form-control" maxlength="500" required>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Criar nova versão
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Histórico de versões -->
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Histórico de Versões</h5>
+        </div>
+        <div class="card-body">
+            <?php $versions = $this->data['trainingVersions'] ?? []; ?>
+            <?php if (!empty($versions)): ?>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Versão</th>
+                                <th>Status</th>
+                                <th>Retreinamento</th>
+                                <th>Resumo</th>
+                                <th>Criado em</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($versions as $version): ?>
+                            <tr>
+                                <td>v<?php echo htmlspecialchars((string)($version['versao'] ?? '-')); ?></td>
+                                <td>
+                                    <?php if (!empty($version['is_current_version'])): ?>
+                                        <span class="badge bg-success">Atual</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">Anterior</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (isset($version['require_retraining']) && (int)$version['require_retraining'] === 0): ?>
+                                        <span class="badge bg-info text-dark">Não</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark">Sim</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars((string)($version['change_summary'] ?? '-')); ?></td>
+                                <td>
+                                    <?php if (!empty($version['created_at'])): ?>
+                                        <?php echo (new DateTime((string)$version['created_at']))->format('d/m/Y H:i'); ?>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo (int)$version['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        Ver
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-secondary mb-0">Nenhuma outra versão encontrada para esta família.</div>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -154,16 +154,25 @@ class TrainingsRepository extends DbConnection
                 throw new Exception('O campo "Prazo de treinamento (dias)" é obrigatório e deve ser maior que 0.');
             }
             
-            $sql = 'INSERT INTO adms_trainings (nome, codigo, versao, prazo_treinamento, tipo, instrutor, carga_horaria, ativo, created_at, instructor_user_id, instructor_email, instructor_name, reciclagem, reciclagem_periodo, area_responsavel_id, area_elaborador_id, tipo_obrigatoriedade) VALUES (:nome, :codigo, :versao, :prazo_treinamento, :tipo, :instrutor, :carga_horaria, :ativo, NOW(), :instructor_user_id, :instructor_email, :instructor_name, :reciclagem, :reciclagem_periodo, :area_responsavel_id, :area_elaborador_id, :tipo_obrigatoriedade)';
+            $familyKey = trim((string)($data['training_family_key'] ?? $codigo));
+            if ($familyKey === '') {
+                $familyKey = $codigo;
+            }
+            $sql = 'INSERT INTO adms_trainings (nome, codigo, training_family_key, parent_training_id, versao, prazo_treinamento, tipo, instrutor, carga_horaria, ativo, is_current_version, change_summary, require_retraining, created_at, instructor_user_id, instructor_email, instructor_name, reciclagem, reciclagem_periodo, area_responsavel_id, area_elaborador_id, tipo_obrigatoriedade) VALUES (:nome, :codigo, :training_family_key, :parent_training_id, :versao, :prazo_treinamento, :tipo, :instrutor, :carga_horaria, :ativo, :is_current_version, :change_summary, :require_retraining, NOW(), :instructor_user_id, :instructor_email, :instructor_name, :reciclagem, :reciclagem_periodo, :area_responsavel_id, :area_elaborador_id, :tipo_obrigatoriedade)';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':nome', $data['nome'], PDO::PARAM_STR);
             $stmt->bindValue(':codigo', $data['codigo'], PDO::PARAM_STR);
+            $stmt->bindValue(':training_family_key', $familyKey, PDO::PARAM_STR);
+            $stmt->bindValue(':parent_training_id', $data['parent_training_id'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':versao', $data['versao'], PDO::PARAM_STR);
             $stmt->bindValue(':prazo_treinamento', $prazoTreinamento, PDO::PARAM_INT);
             $stmt->bindValue(':tipo', $data['tipo'], PDO::PARAM_STR);
             $stmt->bindValue(':instrutor', $data['instrutor'], PDO::PARAM_STR);
             $stmt->bindValue(':carga_horaria', $data['carga_horaria'] !== '' ? $data['carga_horaria'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_BOOL);
+            $stmt->bindValue(':is_current_version', isset($data['is_current_version']) ? (int)$data['is_current_version'] : 1, PDO::PARAM_INT);
+            $stmt->bindValue(':change_summary', $data['change_summary'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':require_retraining', isset($data['require_retraining']) ? (int)$data['require_retraining'] : 1, PDO::PARAM_INT);
             $stmt->bindValue(':instructor_user_id', $data['instructor_user_id'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':instructor_email', $data['instructor_email'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':instructor_name', $data['instructor_name'] ?? null, PDO::PARAM_STR);
@@ -181,6 +190,8 @@ class TrainingsRepository extends DbConnection
                     'id' => $novoId,
                     'nome' => $data['nome'],
                     'codigo' => $data['codigo'],
+                    'training_family_key' => $familyKey,
+                    'parent_training_id' => $data['parent_training_id'] ?? null,
                     'versao' => $data['versao'],
                     'prazo_treinamento' => $prazoTreinamento,
                     'tipo' => $data['tipo'],
@@ -192,6 +203,9 @@ class TrainingsRepository extends DbConnection
                     'instructor_name' => $data['instructor_name'] ?? null,
                     'reciclagem' => $data['reciclagem'] ?? 0,
                     'reciclagem_periodo' => $data['reciclagem_periodo'] ?? null,
+                    'is_current_version' => isset($data['is_current_version']) ? (int)$data['is_current_version'] : 1,
+                    'change_summary' => $data['change_summary'] ?? null,
+                    'require_retraining' => isset($data['require_retraining']) ? (int)$data['require_retraining'] : 1,
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_trainings',
@@ -346,6 +360,233 @@ class TrainingsRepository extends DbConnection
         }
     }
 
+    /**
+     * Cria nova versão de treinamento de forma transacional.
+     * - Inativa a versão de origem
+     * - Cria a nova versão como atual
+     * - Migra vínculos ativos
+     * - Com "sem retreinamento", herda conclusões/aplicações da versão anterior
+     */
+    public function createNewVersion(int $sourceTrainingId, array $data, int $actorUserId = 0): bool|int
+    {
+        try {
+            $source = $this->getTraining($sourceTrainingId);
+            if (!$source) {
+                throw new Exception('Treinamento de origem não encontrado.');
+            }
+
+            $codigo = trim((string)($source['codigo'] ?? ''));
+            $versaoRaw = trim((string)($data['versao'] ?? ''));
+            if ($versaoRaw === '' || !ctype_digit($versaoRaw)) {
+                throw new Exception('A nova versão deve ser um número inteiro (1, 2, 3...).');
+            }
+            $versaoInt = (int)$versaoRaw;
+            if ($versaoInt < 1) {
+                throw new Exception('A nova versão deve ser maior que zero.');
+            }
+            $versao = (string)$versaoInt;
+            if ($codigo === '' || $versao === '') {
+                throw new Exception('Código e nova versão são obrigatórios.');
+            }
+            if ($this->existsCodeVersion($codigo, $versao)) {
+                throw new Exception('Já existe treinamento com este código e versão.');
+            }
+
+            $changeSummary = trim((string)($data['change_summary'] ?? ''));
+            if ($changeSummary === '') {
+                throw new Exception('Resumo das alterações é obrigatório para nova versão.');
+            }
+
+            $requireRetraining = !empty($data['require_retraining']) ? 1 : 0;
+            $familyKey = trim((string)($source['training_family_key'] ?? $codigo));
+            if ($familyKey === '') {
+                $familyKey = $codigo;
+            }
+
+            $sqlMaxVersion = 'SELECT COALESCE(MAX(CAST(versao AS UNSIGNED)), 0) AS max_version
+                              FROM adms_trainings
+                              WHERE (training_family_key = :family_key OR codigo = :family_key)
+                                AND versao REGEXP "^[0-9]+$"';
+            $stmtMaxVersion = $this->getConnection()->prepare($sqlMaxVersion);
+            $stmtMaxVersion->bindValue(':family_key', $familyKey, PDO::PARAM_STR);
+            $stmtMaxVersion->execute();
+            $maxVersion = (int)($stmtMaxVersion->fetch(PDO::FETCH_ASSOC)['max_version'] ?? 0);
+            if ($versaoInt !== ($maxVersion + 1)) {
+                throw new Exception('A nova versão deve ser sequencial: ' . ($maxVersion + 1) . '.');
+            }
+
+            $conn = $this->getConnection();
+            $conn->beginTransaction();
+
+            $insertData = [
+                'nome' => $data['nome'] ?? $source['nome'],
+                'codigo' => $codigo,
+                'training_family_key' => $familyKey,
+                'parent_training_id' => $sourceTrainingId,
+                'versao' => $versao,
+                'prazo_treinamento' => (int)($data['prazo_treinamento'] ?? $source['prazo_treinamento'] ?? 0),
+                'tipo' => $data['tipo'] ?? $source['tipo'] ?? '',
+                'instrutor' => $data['instrutor'] ?? $source['instrutor'] ?? '',
+                'carga_horaria' => $data['carga_horaria'] ?? $source['carga_horaria'] ?? null,
+                'ativo' => 1,
+                'is_current_version' => 1,
+                'change_summary' => $changeSummary,
+                'require_retraining' => $requireRetraining,
+                'instructor_user_id' => $data['instructor_user_id'] ?? ($source['instructor_user_id'] ?? null),
+                'instructor_email' => $data['instructor_email'] ?? ($source['instructor_email'] ?? null),
+                'instructor_name' => $data['instructor_name'] ?? ($source['instructor_name'] ?? null),
+                'reciclagem' => $data['reciclagem'] ?? ($source['reciclagem'] ?? 0),
+                'reciclagem_periodo' => $data['reciclagem_periodo'] ?? ($source['reciclagem_periodo'] ?? null),
+                'area_responsavel_id' => $data['area_responsavel_id'] ?? ($source['area_responsavel_id'] ?? null),
+                'area_elaborador_id' => $data['area_elaborador_id'] ?? ($source['area_elaborador_id'] ?? null),
+                'tipo_obrigatoriedade' => $data['tipo_obrigatoriedade'] ?? ($source['tipo_obrigatoriedade'] ?? null),
+            ];
+
+            $newTrainingId = $this->createTraining($insertData);
+            if (!$newTrainingId) {
+                throw new Exception('Falha ao criar nova versão do treinamento.');
+            }
+
+            $sqlUnsetCurrent = 'UPDATE adms_trainings
+                                SET is_current_version = 0, updated_at = NOW()
+                                WHERE training_family_key = :family_key
+                                  AND id <> :new_id';
+            $stmtUnsetCurrent = $conn->prepare($sqlUnsetCurrent);
+            $stmtUnsetCurrent->bindValue(':family_key', $familyKey, PDO::PARAM_STR);
+            $stmtUnsetCurrent->bindValue(':new_id', $newTrainingId, PDO::PARAM_INT);
+            $stmtUnsetCurrent->execute();
+
+            $sqlInactivateSource = 'UPDATE adms_trainings
+                                    SET ativo = 0,
+                                        is_current_version = 0,
+                                        updated_at = NOW()
+                                    WHERE id = :id';
+            $stmtInactivateSource = $conn->prepare($sqlInactivateSource);
+            $stmtInactivateSource->bindValue(':id', $sourceTrainingId, PDO::PARAM_INT);
+            $stmtInactivateSource->execute();
+
+            $sqlMigrateActive = 'INSERT INTO adms_training_users
+                                 (adms_training_id, adms_user_id, data_realizacao, data_agendada, status, nota, certificado, created_at, updated_at, data_limite_primeiro_treinamento, tipo_vinculo, motivo, last_notification_expiring, last_notification_expired, observacoes)
+                                 SELECT
+                                    :new_training_id,
+                                    tu.adms_user_id,
+                                    NULL,
+                                    NULL,
+                                    CASE WHEN :require_retraining = 1 THEN "dentro_do_prazo" ELSE tu.status END,
+                                    CASE WHEN :require_retraining = 1 THEN NULL ELSE tu.nota END,
+                                    CASE WHEN :require_retraining = 1 THEN NULL ELSE tu.certificado END,
+                                    NOW(),
+                                    NOW(),
+                                    tu.data_limite_primeiro_treinamento,
+                                    tu.tipo_vinculo,
+                                    CASE WHEN :require_retraining = 1 THEN "nova_versao_retreinamento" ELSE "nova_versao_migracao" END,
+                                    NULL,
+                                    NULL,
+                                    tu.observacoes
+                                 FROM adms_training_users tu
+                                 WHERE tu.adms_training_id = :source_training_id
+                                   AND tu.status <> "concluido"';
+            $stmtMigrateActive = $conn->prepare($sqlMigrateActive);
+            $stmtMigrateActive->bindValue(':new_training_id', $newTrainingId, PDO::PARAM_INT);
+            $stmtMigrateActive->bindValue(':source_training_id', $sourceTrainingId, PDO::PARAM_INT);
+            $stmtMigrateActive->bindValue(':require_retraining', $requireRetraining, PDO::PARAM_INT);
+            $stmtMigrateActive->execute();
+
+            if ($requireRetraining === 0) {
+                $sqlCopyConcludedApps = 'INSERT INTO adms_training_applications
+                                         (adms_user_id, adms_training_id, data_realizacao, data_agendada, instrutor_nome, instrutor_email, aplicado_por, nota, observacoes, status, created_at, updated_at)
+                                         SELECT
+                                            ta.adms_user_id,
+                                            :new_training_id,
+                                            ta.data_realizacao,
+                                            ta.data_agendada,
+                                            ta.instrutor_nome,
+                                            ta.instrutor_email,
+                                            ta.aplicado_por,
+                                            ta.nota,
+                                            ta.observacoes,
+                                            ta.status,
+                                            NOW(),
+                                            NOW()
+                                         FROM adms_training_applications ta
+                                         WHERE ta.adms_training_id = :source_training_id
+                                           AND ta.status = "concluido"';
+                $stmtCopyConcludedApps = $conn->prepare($sqlCopyConcludedApps);
+                $stmtCopyConcludedApps->bindValue(':new_training_id', $newTrainingId, PDO::PARAM_INT);
+                $stmtCopyConcludedApps->bindValue(':source_training_id', $sourceTrainingId, PDO::PARAM_INT);
+                $stmtCopyConcludedApps->execute();
+
+                $sqlCreateConcludedLinks = 'INSERT INTO adms_training_users
+                                            (adms_training_id, adms_user_id, data_realizacao, data_agendada, status, nota, certificado, created_at, updated_at, data_limite_primeiro_treinamento, tipo_vinculo, motivo, last_notification_expiring, last_notification_expired, observacoes)
+                                            SELECT
+                                                :new_training_id,
+                                                x.adms_user_id,
+                                                x.data_realizacao,
+                                                NULL,
+                                                "concluido",
+                                                x.nota,
+                                                NULL,
+                                                NOW(),
+                                                NOW(),
+                                                x.data_limite,
+                                                "cargo",
+                                                "nova_versao_sem_retreinamento",
+                                                NULL,
+                                                NULL,
+                                                x.observacoes
+                                            FROM (
+                                                SELECT
+                                                    ta.adms_user_id,
+                                                    MAX(ta.data_realizacao) AS data_realizacao,
+                                                    MAX(ta.nota) AS nota,
+                                                    MAX(ta.observacoes) AS observacoes,
+                                                    DATE_ADD(CURDATE(), INTERVAL 90 DAY) AS data_limite
+                                                FROM adms_training_applications ta
+                                                WHERE ta.adms_training_id = :source_training_id_2
+                                                  AND ta.status = "concluido"
+                                                GROUP BY ta.adms_user_id
+                                            ) x
+                                            LEFT JOIN adms_training_users tu_exists
+                                                   ON tu_exists.adms_training_id = :new_training_id_2
+                                                  AND tu_exists.adms_user_id = x.adms_user_id
+                                            WHERE tu_exists.id IS NULL';
+                $stmtCreateConcludedLinks = $conn->prepare($sqlCreateConcludedLinks);
+                $stmtCreateConcludedLinks->bindValue(':new_training_id', $newTrainingId, PDO::PARAM_INT);
+                $stmtCreateConcludedLinks->bindValue(':new_training_id_2', $newTrainingId, PDO::PARAM_INT);
+                $stmtCreateConcludedLinks->bindValue(':source_training_id_2', $sourceTrainingId, PDO::PARAM_INT);
+                $stmtCreateConcludedLinks->execute();
+            }
+
+            $conn->commit();
+
+            \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
+                'adms_trainings',
+                (int)$newTrainingId,
+                $actorUserId,
+                'version_create',
+                $source,
+                [
+                    'new_training_id' => $newTrainingId,
+                    'source_training_id' => $sourceTrainingId,
+                    'version' => $versao,
+                    'require_retraining' => $requireRetraining,
+                    'change_summary' => $changeSummary,
+                ]
+            );
+
+            return (int)$newTrainingId;
+        } catch (Exception $e) {
+            if ($this->getConnection()->inTransaction()) {
+                $this->getConnection()->rollBack();
+            }
+            GenerateLog::generateLog('error', 'Falha ao criar nova versão de treinamento.', [
+                'source_training_id' => $sourceTrainingId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
     public function getLinkedPositionsCount(int $trainingId): int
     {
         $sql = 'SELECT COUNT(*) FROM adms_training_positions WHERE adms_training_id = :training_id AND obrigatorio = 1';
@@ -442,7 +683,7 @@ class TrainingsRepository extends DbConnection
     /**
      * Retorna o total de colaboradores vinculados ao treinamento (direto ou por cargo obrigatório, sem duplicidade)
      */
-    public function getTotalColaboradoresVinculados($trainingId): int
+    public function getTotalColaboradoresVinculados(int $trainingId): int
     {
         $sql = "SELECT COUNT(DISTINCT u.id) as total
                 FROM adms_users u
@@ -459,5 +700,25 @@ class TrainingsRepository extends DbConnection
         $stmt->execute();
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return (int)($row['total'] ?? 0);
+    }
+
+    /**
+     * Lista versões da mesma família (mais nova primeiro).
+     */
+    public function getVersionsByFamily(string $familyKey): array
+    {
+        $familyKey = trim($familyKey);
+        if ($familyKey === '') {
+            return [];
+        }
+
+        $sql = 'SELECT id, nome, codigo, versao, ativo, is_current_version, parent_training_id, change_summary, require_retraining, created_at, updated_at
+                FROM adms_trainings
+                WHERE training_family_key = :family_key OR codigo = :family_key
+                ORDER BY id DESC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':family_key', $familyKey, PDO::PARAM_STR);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 } 
