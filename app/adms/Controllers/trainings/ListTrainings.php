@@ -125,7 +125,8 @@ class ListTrainings
                 'LinkTrainingUsers',
                 'TrainingKpiDashboard',
                 'TrainingMatrixManager',
-                'ListTrainingStatus'
+                'ListTrainingStatus',
+                'TrainingVersionAudit'
             ],
         ];
         $pageLayoutService = new PageLayoutService();

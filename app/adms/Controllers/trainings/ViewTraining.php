@@ -70,6 +70,9 @@ class ViewTraining
         $positionStats = $trainingPositionsRepo->getTrainingPositionsStats($id);
 
         $this->data['training'] = $training;
+        $familyKey = trim((string)($training['training_family_key'] ?? $training['codigo'] ?? ''));
+        $allVersions = call_user_func([$trainingsRepo, 'getVersionsByFamily'], $familyKey);
+        $this->data['trainingVersions'] = $allVersions;
         $this->data['linkedPositions'] = $linkedPositions;
         $this->data['positions'] = $positions;
         $this->data['userStats'] = $userStats;

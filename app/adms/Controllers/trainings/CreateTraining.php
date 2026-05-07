@@ -98,6 +98,12 @@ class CreateTraining
         $this->data['form']['tipo_obrigatoriedade'] = $this->data['form']['tipo_obrigatoriedade'] ?? null;
 
         $repo = new TrainingsRepository();
+        $codigo = trim((string)($this->data['form']['codigo'] ?? ''));
+        if ($codigo !== '' && $repo->isCodeAlreadyRegistered($codigo)) {
+            $this->data['errors'][] = 'Código já existe na base e somente pode ser versionado, através da opção Criar nova versão disponibilizada na tela de visualização do treinamento.';
+            $this->viewCreateTraining();
+            return;
+        }
         $result = $repo->createTraining($this->data['form']);
         if ($result) {
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();

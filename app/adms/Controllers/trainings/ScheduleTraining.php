@@ -55,6 +55,12 @@ class ScheduleTraining
             header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
             exit;
         }
+        if (isset($this->data['training']['is_current_version']) && (int)$this->data['training']['is_current_version'] !== 1) {
+            $_SESSION['msg'] = 'Somente a versão atual permite agendamento.';
+            $_SESSION['msg_type'] = 'warning';
+            header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
+            exit;
+        }
 
         // Se for edição, buscar dados da aplicação
         if ($this->data['edit_id']) {
@@ -110,6 +116,15 @@ class ScheduleTraining
             $_SESSION['msg'] = "Data de agendamento não pode ser retroativa.";
             $_SESSION['msg_type'] = "danger";
             header("Location: " . $_ENV['URL_ADM'] . "schedule-training?training_id={$training_id}&user_id={$user_id}");
+            exit;
+        }
+
+        $trainingsRepo = new TrainingsRepository();
+        $training = $trainingsRepo->getTraining($training_id);
+        if (!$training || (isset($training['is_current_version']) && (int)$training['is_current_version'] !== 1)) {
+            $_SESSION['msg'] = "Somente a versão atual permite agendamento.";
+            $_SESSION['msg_type'] = "warning";
+            header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
             exit;
         }
 

@@ -39,6 +39,9 @@ use App\adms\Helpers\FormatHelper;
                 <?php if (in_array('ListTrainingStatus', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-training-status" class="btn btn-info btn-sm mb-1 btn-min-width-70"><i class="fas fa-chart-bar"></i> Status</a>
                 <?php } ?>
+                <?php if (in_array('TrainingVersionAudit', $this->data['buttonPermission'] ?? [])) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-version-audit" class="btn btn-secondary btn-sm mb-1 btn-min-width-70"><i class="fas fa-shield-alt"></i> Auditoria</a>
+                <?php } ?>
             </span>
         </div>
         <div class="card-body">
@@ -153,6 +156,9 @@ use App\adms\Helpers\FormatHelper;
                                                 <strong><?php echo is_array($training['nome']) ? '' : htmlspecialchars($training['nome']); ?></strong>
                                                 <?php if (!empty($training['versao']) && !is_array($training['versao'])): ?>
                                                     <br><small class="text-muted" style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; border: 1px solid #dee2e6;">v<?php echo htmlspecialchars($training['versao']); ?></small>
+                                                    <?php if (!empty($training['is_current_version'])): ?>
+                                                        <small class="text-success ms-1"><strong>atual</strong></small>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -236,16 +242,24 @@ use App\adms\Helpers\FormatHelper;
                                                     <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo $training['id']; ?>" class="btn btn-primary btn-sm" title="Visualizar"><i class="fas fa-eye"></i></a>
                                                 <?php } ?>
                                                 <?php if (in_array('UpdateTraining', $this->data['buttonPermission'] ?? [])) { ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>
+                                                    <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                        <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>
+                                                    <?php endif; ?>
                                                 <?php } ?>
                                                 <?php if (in_array('TrainingPositions', $this->data['buttonPermission'] ?? [])) { ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm" title="Vincular Cargos"><i class="fas fa-link"></i></a>
+                                                    <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                        <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm" title="Vincular Cargos"><i class="fas fa-link"></i></a>
+                                                    <?php endif; ?>
                                                 <?php } ?>
                                                 <?php if (in_array('LinkTrainingUsers', $this->data['buttonPermission'] ?? [])) { ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
+                                            <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
+                                            <?php endif; ?>
                                                 <?php } ?>
                                                 <?php if (in_array('DeleteTraining', $this->data['buttonPermission'] ?? [])) { ?>
-                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                                    <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                        <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                                    <?php endif; ?>
                                                 <?php } ?>
                                             </div>
                                         </td>
@@ -268,7 +282,12 @@ use App\adms\Helpers\FormatHelper;
                                     <div>
                                         <h5 class="card-title mb-1"><b><?= is_array($training['nome']) ? '' : htmlspecialchars($training['nome']); ?></b></h5>
                                         <?php if (!empty($training['versao'])): ?>
-                                            <div class="mb-1"><small class="text-muted">v<?= is_array($training['versao']) ? '' : htmlspecialchars($training['versao']); ?></small></div>
+                                            <div class="mb-1">
+                                                <small class="text-muted">v<?= is_array($training['versao']) ? '' : htmlspecialchars($training['versao']); ?></small>
+                                                <?php if (!empty($training['is_current_version'])): ?>
+                                                    <small class="text-success ms-1"><strong>atual</strong></small>
+                                                <?php endif; ?>
+                                            </div>
                                         <?php endif; ?>
                                         <div class="mb-1"><b>Código:</b> <?= is_array($training['codigo']) ? '' : htmlspecialchars($training['codigo']); ?></div>
                                         <div class="mb-1"><b>Status:</b> <?php if ($training['ativo']): ?><span class="badge bg-success">Ativo</span><?php else: ?><span class="badge bg-danger">Inativo</span><?php endif; ?></div>
@@ -299,16 +318,24 @@ use App\adms\Helpers\FormatHelper;
                                             <a href="<?php echo $_ENV['URL_ADM']; ?>view-training/<?php echo $training['id']; ?>" class="btn btn-primary btn-sm me-1 mb-1" title="Visualizar"><i class="fas fa-eye"></i> </a>
                                         <?php } ?>
                                         <?php if (in_array('UpdateTraining', $this->data['buttonPermission'] ?? [])) { ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> </a>
+                                            <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>update-training/<?php echo $training['id']; ?>" class="btn btn-warning btn-sm me-1 mb-1" title="Editar"><i class="fas fa-edit"></i> </a>
+                                            <?php endif; ?>
                                         <?php } ?>
                                         <?php if (in_array('TrainingPositions', $this->data['buttonPermission'] ?? [])) { ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm me-1 mb-1" title="Vincular Cargos"><i class="fas fa-link"></i></a>
+                                            <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $training['id']; ?>" class="btn btn-info btn-sm me-1 mb-1" title="Vincular Cargos"><i class="fas fa-link"></i></a>
+                                            <?php endif; ?>
                                         <?php } ?>
                                         <?php if (in_array('LinkTrainingUsers', $this->data['buttonPermission'] ?? [])) { ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm me-1 mb-1" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
+                                            <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>link-training-users/<?php echo $training['id']; ?>" class="btn btn-secondary btn-sm me-1 mb-1" title="Vincular Colaboradores"><i class="fas fa-users"></i></a>
+                                            <?php endif; ?>
                                         <?php } ?>
                                         <?php if (in_array('DeleteTraining', $this->data['buttonPermission'] ?? [])) { ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                            <?php if (!isset($training['is_current_version']) || (int)$training['is_current_version'] === 1): ?>
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>delete-training/<?php echo $training['id']; ?>" class="btn btn-danger btn-sm me-1 mb-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este treinamento?');"><i class="fas fa-trash"></i></a>
+                                            <?php endif; ?>
                                         <?php } ?>
                                     </div>
                                 </div>
