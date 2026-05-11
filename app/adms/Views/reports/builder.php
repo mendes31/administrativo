@@ -7,6 +7,9 @@ $availableTables = $this->data['availableTables'] ?? [];
 $isSapScope = $this->data['is_sap_scope'] ?? (!empty($_GET['source']) && $_GET['source'] === 'sap');
 $defaultQueryMode = $report['query_mode'] ?? 'builder';
 $shouldOpenSqlTab = $isSapScope || $defaultQueryMode === 'custom_sql';
+$usersForShare = $this->data['users_for_share'] ?? [];
+$sharedUserIds = $this->data['shared_user_ids'] ?? [];
+$sharedUserIdsFlipped = array_fill_keys(array_map('intval', $sharedUserIds), true);
 
 // Gerar token CSRF para o formulário de relatórios
 $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
@@ -54,6 +57,46 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                         <input type="text" name="category" class="form-control" 
                                value="<?= htmlspecialchars($report['category'] ?? '') ?>"
                                placeholder="Ex: Vendas">
+                    </div>
+                </div>
+
+                <div class="card border mb-4">
+                    <div class="card-header py-2">
+                        <strong><i class="fas fa-users"></i> Quem pode ver este relatório</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="is_public" id="isPublic" value="1"
+                                   <?= !empty($report['is_public']) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="isPublic">
+                                <strong>Público</strong> — qualquer utilizador com acesso ao menu «Relatórios Locais» vê e executa este relatório.
+                            </label>
+                        </div>
+                        <label class="form-label fw-bold mb-1" for="sharedUserIds">
+                            Ou partilhar apenas com utilizadores específicos (mantém privado para os restantes)
+                        </label>
+                        <select name="shared_user_ids[]" id="sharedUserIds" class="form-select" multiple size="8"
+                                aria-describedby="sharedUserHelp">
+                            <?php foreach ($usersForShare as $u): ?>
+                                <?php
+                                $uid = (int) ($u['id'] ?? 0);
+                                if ($uid < 1) {
+                                    continue;
+                                }
+                                $sel = !empty($sharedUserIdsFlipped[$uid]) ? ' selected' : '';
+                                ?>
+                                <option value="<?= $uid ?>"<?= $sel ?>>
+                                    <?= htmlspecialchars(trim((string)($u['name'] ?? ''))) ?>
+                                    <?php if (!empty($u['email'])): ?>
+                                        — <?= htmlspecialchars((string) $u['email']) ?>
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="sharedUserHelp" class="form-text">
+                            Utilize <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> para selecionar vários. Quem estiver na lista pode <strong>visualizar e executar</strong>;
+                            só o criador (ou administrador com acesso total) pode <strong>editar ou apagar</strong>.
+                        </div>
                     </div>
                 </div>
 
@@ -197,15 +240,6 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                                             <option value="line_chart">📉 Gráfico de Linhas</option>
                                             <option value="pie_chart">🥧 Gráfico de Pizza</option>
                                         </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">&nbsp;</label>
-                                        <div class="form-check mt-2">
-                                            <input class="form-check-input" type="checkbox" name="is_public" id="isPublic">
-                                            <label class="form-check-label" for="isPublic">
-                                                Compartilhar com outros usuários
-                                            </label>
-                                        </div>
                                     </div>
                                 </div>
                             </div>

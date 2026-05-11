@@ -38,7 +38,7 @@ class CreateDashboard
                 exit;
             }
             $viewerId = (int) ($_SESSION['user_id'] ?? 0);
-            if (!$reportsRepo->userCanAccessReport($this->data['report'], $viewerId)) {
+            if (!$reportsRepo->userCanViewReport($this->data['report'], $viewerId)) {
                 $_SESSION['error'] = 'Você não tem permissão para usar este relatório.';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
                 exit;

@@ -2,15 +2,45 @@
 
 namespace App\adms\Controllers\users;
 
-use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Models\Repository\UsersRepository;
 use Dompdf\Dompdf;
 
 /**
  * Exporta lista de usuários em PDF respeitando os filtros da listagem.
+ * Colunas alinhadas ao pedido: cargo com texto integral da BD (pos.name).
  */
 class ExportUsersPdf
 {
+    /** @var list<string> */
+    private const EXPORT_KEYS = [
+        'user_name',
+        'department_name',
+        'data_admissao_br',
+        'position_name',
+        'supervisor_name',
+        'data_nascimento_br',
+        'cpf',
+        'email',
+        'sexo',
+        'celular',
+        'escolaridade',
+    ];
+
+    /** @var list<string> */
+    private const EXPORT_HEADERS_PT = [
+        'Nome',
+        'Departamento',
+        'Data admissão',
+        'Cargo',
+        'Superior imediato',
+        'Data nascimento',
+        'CPF',
+        'E-mail',
+        'Sexo',
+        'Celular',
+        'Escolaridade',
+    ];
+
     public function index(): void
     {
         if (!isset($_SESSION['filtros_list_users'])) {
@@ -36,59 +66,38 @@ class ExportUsersPdf
         $usersRepo = new UsersRepository();
         $users = $usersRepo->getAllUsersForExport($filtros);
 
+        $colCount = count(self::EXPORT_HEADERS_PT);
+
         $html = '<html><head><meta charset="UTF-8"><style>
-            body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; }
-            h1 { font-size: 18px; margin-bottom: 5px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #ccc; padding: 4px 6px; }
-            th { background: #f2f2f2; font-weight: bold; }
-            .text-center { text-align: center; }
-            .small { font-size: 10px; color: #666; }
+            body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 8px; }
+            h1 { font-size: 15px; margin-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
+            th, td { border: 1px solid #ccc; padding: 3px 4px; vertical-align: top; word-wrap: break-word; }
+            th { background: #e8e8e8; font-weight: bold; font-size: 7.5px; }
+            .small { font-size: 8px; color: #666; }
+            .col-cargo { font-size: 7.5px; }
         </style></head><body>';
 
         $html .= '<h1>Lista de Usuários</h1>';
         $html .= '<div class="small">Gerado em ' . date('d/m/Y H:i') . '</div>';
 
-        $html .= '<table><thead><tr>
-            <th style="width:6%;">ID</th>
-            <th style="width:14%;">Nome</th>
-            <th style="width:10%;">CPF</th>
-            <th style="width:16%;">E-mail</th>
-            <th style="width:10%;">Usuário</th>
-            <th style="width:12%;">Departamento</th>
-            <th style="width:12%;">Cargo</th>
-            <th style="width:6%;">Status</th>
-            <th style="width:6%;">Bloq.</th>
-            <th style="width:6%;">Desl.</th>
-        </tr></thead><tbody>';
+        $html .= '<table><thead><tr>';
+        foreach (self::EXPORT_HEADERS_PT as $label) {
+            $html .= '<th>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</th>';
+        }
+        $html .= '</tr></thead><tbody>';
 
         if (!$users) {
-            $html .= '<tr><td colspan="10" class="text-center">Nenhum usuário encontrado com os filtros selecionados.</td></tr>';
+            $html .= '<tr><td colspan="' . $colCount . '" style="text-align:center;">Nenhum usuário encontrado com os filtros selecionados.</td></tr>';
         } else {
             foreach ($users as $user) {
-                $id = (int)($user['id'] ?? 0);
-                $name = htmlspecialchars($user['name'] ?? '');
-                $cpf = htmlspecialchars((string)($user['cpf'] ?? ''));
-                $email = htmlspecialchars($user['email'] ?? '');
-                $username = htmlspecialchars($user['username'] ?? '');
-                $dep = htmlspecialchars($user['name_dep'] ?? '');
-                $pos = htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($user['name_pos'] ?? '')));
-                $status = htmlspecialchars($user['status'] ?? '');
-                $bloqueado = $user['bloqueado'] ?? 0;
-                $bloqLabel = ($bloqueado == 1 || $bloqueado === 'Sim') ? 'Sim' : 'Não';
-                $desligado = !empty($user['data_desligamento']) ? 'Sim' : 'Não';
-
                 $html .= '<tr>';
-                $html .= '<td class="text-center">' . $id . '</td>';
-                $html .= '<td>' . $name . '</td>';
-                $html .= '<td class="text-center">' . $cpf . '</td>';
-                $html .= '<td>' . $email . '</td>';
-                $html .= '<td>' . $username . '</td>';
-                $html .= '<td>' . $dep . '</td>';
-                $html .= '<td>' . $pos . '</td>';
-                $html .= '<td class="text-center">' . $status . '</td>';
-                $html .= '<td class="text-center">' . $bloqLabel . '</td>';
-                $html .= '<td class="text-center">' . $desligado . '</td>';
+                foreach (self::EXPORT_KEYS as $key) {
+                    $val = (string) ($user[$key] ?? '');
+                    $cell = htmlspecialchars($val, ENT_QUOTES, 'UTF-8');
+                    $class = ($key === 'position_name') ? ' class="col-cargo"' : '';
+                    $html .= '<td' . $class . '>' . $cell . '</td>';
+                }
                 $html .= '</tr>';
             }
         }
@@ -104,4 +113,3 @@ class ExportUsersPdf
         exit;
     }
 }
-

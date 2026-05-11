@@ -310,10 +310,23 @@ class UsersRepository extends DbConnection
         }
 
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.image, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
+        // Exportação: nomes de colunas alinhados ao pedido; cargo = pos.name integral (sem truncar / formatar na UI).
+        $sql = 'SELECT
+                    usr.name AS user_name,
+                    dep.name AS department_name,
+                    IFNULL(DATE_FORMAT(usr.data_admissao, \'%d/%m/%Y\'), \'\') AS data_admissao_br,
+                    pos.name AS position_name,
+                    sup.name AS supervisor_name,
+                    IFNULL(DATE_FORMAT(usr.data_nascimento, \'%d/%m/%Y\'), \'\') AS data_nascimento_br,
+                    usr.cpf AS cpf,
+                    usr.email AS email,
+                    usr.sexo AS sexo,
+                    usr.celular AS celular,
+                    usr.escolaridade AS escolaridade
                 FROM adms_users usr
                 LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
-                LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id 
+                LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id
+                LEFT JOIN adms_users sup ON sup.id = usr.immediate_supervisor_id
                 ' . $whereSql . '
                 ORDER BY usr.name ASC';
 

@@ -76,7 +76,7 @@ class SaveDynamicReport
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
                 exit;
             }
-            if (!$repo->userCanAccessReport($existing, $viewerId)) {
+            if (!$repo->userCanEditReport($existing, $viewerId)) {
                 $_SESSION['error'] = 'Você não tem permissão para alterar este relatório.';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
                 exit;
@@ -87,6 +87,21 @@ class SaveDynamicReport
             $reportId = $repo->create($data);
             $success = $reportId > 0;
             $message = $success ? 'Relatório criado com sucesso!' : 'Erro ao criar';
+        }
+
+        $sharedRaw = $_POST['shared_user_ids'] ?? [];
+        if (!is_array($sharedRaw)) {
+            $sharedRaw = [];
+        }
+        $sharedIds = array_values(array_unique(array_filter(array_map('intval', $sharedRaw), static fn ($id) => $id > 0)));
+
+        if ($success && $reportId > 0) {
+            try {
+                $repo->setSharedUsers($reportId, $sharedIds, $viewerId);
+            } catch (\Throwable $e) {
+                error_log('setSharedUsers: ' . $e->getMessage());
+                $_SESSION['warning'] = 'Relatório guardado, mas não foi possível atualizar a lista de utilizadores com acesso. Execute a migração da base de dados se ainda não o fez.';
+            }
         }
         
         if ($success) {

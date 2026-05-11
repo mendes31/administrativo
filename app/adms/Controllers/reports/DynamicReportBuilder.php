@@ -35,12 +35,19 @@ class DynamicReportBuilder
                 exit;
             }
             $viewerId = (int) ($_SESSION['user_id'] ?? 0);
-            if (!$repo->userCanAccessReport($this->data['report'], $viewerId)) {
+            if (!$repo->userCanEditReport($this->data['report'], $viewerId)) {
                 $_SESSION['error'] = 'Você não tem permissão para editar este relatório.';
                 header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
                 exit;
             }
         }
+
+        $viewerId = (int) ($_SESSION['user_id'] ?? 0);
+        $this->data['users_for_share'] = $repo->listUsersForReportShare($viewerId);
+        $existingReportId = isset($this->data['report']['id']) ? (int) $this->data['report']['id'] : 0;
+        $this->data['shared_user_ids'] = $existingReportId > 0
+            ? $repo->getSharedUserIds($existingReportId)
+            : [];
         
         $pageElements = [
             'title_head' => $sapScope ? 'Construtor de Relatórios SAP (API)' : 'Construtor de Relatórios Locais',

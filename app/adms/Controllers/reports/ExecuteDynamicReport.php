@@ -139,7 +139,7 @@ class ExecuteDynamicReport
                 }
 
                 $viewerId = (int) ($_SESSION['user_id'] ?? 0);
-                if (!$repo->userCanAccessReport($report, $viewerId)) {
+                if (!$repo->userCanViewReport($report, $viewerId)) {
                     throw new \Exception('Sem permissão para executar este relatório.');
                 }
 

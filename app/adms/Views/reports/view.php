@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\UserAccessHelper;
+
 $report = $this->data['report'] ?? null;
 $result = $this->data['result'] ?? null;
 $connectionLabels = [
@@ -49,7 +51,11 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                     <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard/<?= $report['id'] ?>" class="btn btn-success">
                         <i class="fas fa-chart-bar"></i> Criar Dashboard
                     </a>
-                    <?php if ($report['created_by'] == ($_SESSION['user_id'] ?? 0)): ?>
+                    <?php
+                    $viewerUid = (int) ($_SESSION['user_id'] ?? 0);
+                    $canEditThisReport = (int) ($report['created_by'] ?? 0) === $viewerUid || UserAccessHelper::hasFullSystemAccess();
+                    if ($canEditThisReport):
+                    ?>
                         <a href="<?= $_ENV['URL_ADM'] ?>dynamic-report-builder?id=<?= $report['id'] ?>" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Editar
                         </a>

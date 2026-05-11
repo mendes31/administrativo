@@ -43,7 +43,7 @@ class ViewDynamicReport
         }
 
         $viewerId = (int) ($_SESSION['user_id'] ?? 0);
-        if (!$repo->userCanAccessReport($this->data['report'], $viewerId)) {
+        if (!$repo->userCanViewReport($this->data['report'], $viewerId)) {
             $_SESSION['error'] = 'Você não tem permissão para acessar este relatório.';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
             exit;

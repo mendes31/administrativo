@@ -2,21 +2,52 @@
 
 namespace App\adms\Controllers\users;
 
-use App\adms\Helpers\PositionDisplayHelper;
 use App\adms\Models\Repository\UsersRepository;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Exporta lista de usuários em Excel respeitando os filtros da listagem.
+ * Colunas alinhadas ao pedido: cargo com texto integral da BD (pos.name).
  */
 class ExportUsersExcel
 {
+    /** @var list<string> */
+    private const EXPORT_KEYS = [
+        'user_name',
+        'department_name',
+        'data_admissao_br',
+        'position_name',
+        'supervisor_name',
+        'data_nascimento_br',
+        'cpf',
+        'email',
+        'sexo',
+        'celular',
+        'escolaridade',
+    ];
+
+    /** @var list<string> */
+    private const EXPORT_HEADERS_PT = [
+        'Nome',
+        'Departamento',
+        'Data admissão',
+        'Cargo',
+        'Superior imediato',
+        'Data nascimento',
+        'CPF',
+        'E-mail',
+        'Sexo',
+        'Celular',
+        'Escolaridade',
+    ];
+
     public function index(): void
     {
-        // Reaproveitar mesma lógica de filtros da ListUsers (GET + sessão)
         if (!isset($_SESSION['filtros_list_users'])) {
             $_SESSION['filtros_list_users'] = [];
         }
@@ -44,49 +75,48 @@ class ExportUsersExcel
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Usuários');
 
-        // Cabeçalhos
-        $headers = [
-            'ID', 'Nome', 'CPF', 'E-mail', 'Usuário', 'Departamento', 'Cargo',
-            'Status', 'Bloqueado', 'Desligado', 'Data Admissão', 'Data Desligamento',
-        ];
-
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $sheet->getStyle($col . '1')->getFill()
+        $headerCount = count(self::EXPORT_HEADERS_PT);
+        for ($c = 1; $c <= $headerCount; $c++) {
+            $colLetter = Coordinate::stringFromColumnIndex($c);
+            $sheet->setCellValue($colLetter . '1', self::EXPORT_HEADERS_PT[$c - 1]);
+            $sheet->getStyle($colLetter . '1')->getFill()
                 ->setFillType(Fill::FILL_SOLID)
                 ->getStartColor()->setARGB('FF2E9263');
-            $sheet->getStyle($col . '1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-            $sheet->getStyle($col . '1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $col++;
+            $sheet->getStyle($colLetter . '1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+            $sheet->getStyle($colLetter . '1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
-        // Dados
         $row = 2;
         foreach ($users as $user) {
-            $sheet->setCellValue('A' . $row, $user['id'] ?? '');
-            $sheet->setCellValue('B' . $row, $user['name'] ?? '');
-            $sheet->setCellValueExplicit('C' . $row, (string)($user['cpf'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-            $sheet->setCellValue('D' . $row, $user['email'] ?? '');
-            $sheet->setCellValue('E' . $row, $user['username'] ?? '');
-            $sheet->setCellValue('F' . $row, $user['name_dep'] ?? '');
-            $sheet->setCellValue('G' . $row, PositionDisplayHelper::formatForDisplay((string)($user['name_pos'] ?? '')));
-            $sheet->setCellValue('H' . $row, $user['status'] ?? '');
+            for ($c = 1; $c <= $headerCount; $c++) {
+                $colLetter = Coordinate::stringFromColumnIndex($c);
+                $key = self::EXPORT_KEYS[$c - 1];
+                $cell = $colLetter . $row;
+                $raw = $user[$key] ?? '';
 
-            $bloqueado = $user['bloqueado'] ?? 0;
-            $sheet->setCellValue('I' . $row, ($bloqueado == 1 || $bloqueado === 'Sim') ? 'Sim' : 'Não');
-
-            $dataDesligamento = $user['data_desligamento'] ?? null;
-            $sheet->setCellValue('J' . $row, $dataDesligamento ? 'Sim' : 'Não');
-            $sheet->setCellValue('K' . $row, !empty($user['data_admissao']) ? date('d/m/Y', strtotime($user['data_admissao'])) : '');
-            $sheet->setCellValue('L' . $row, $dataDesligamento ? date('d/m/Y', strtotime($dataDesligamento)) : '');
-
+                if ($key === 'cpf') {
+                    $sheet->setCellValueExplicit($cell, (string) $raw, DataType::TYPE_STRING);
+                } else {
+                    $sheet->setCellValue($cell, $raw);
+                }
+            }
             $row++;
         }
 
-        // Auto-ajustar largura
-        foreach (range('A', 'L') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+        $lastDataRow = max(1, $row - 1);
+        for ($c = 1; $c <= $headerCount; $c++) {
+            $colLetter = Coordinate::stringFromColumnIndex($c);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+        }
+
+        // Cargo: texto completo da BD — largura mínima + quebra de linha (evita “cortar” visualmente no Excel)
+        $cargoCol = Coordinate::stringFromColumnIndex(4);
+        $dim = $sheet->getColumnDimension($cargoCol);
+        if ((float) $dim->getWidth() < 42) {
+            $dim->setWidth(42);
+        }
+        if ($lastDataRow >= 2) {
+            $sheet->getStyle($cargoCol . '2:' . $cargoCol . $lastDataRow)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
         }
 
         $writer = new Xlsx($spreadsheet);
@@ -100,4 +130,3 @@ class ExportUsersExcel
         exit;
     }
 }
-

@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -15,29 +16,195 @@ class DynamicReportsRepository extends DbConnection
      */
     public function getUserReports(int $userId, bool $includeAllReports = false): array
     {
-        $sql = "SELECT r.*, u.name as creator_name,
-                       (SELECT COUNT(*) FROM adms_report_favorites WHERE report_id = r.id) as favorite_count,
-                       EXISTS(SELECT 1 FROM adms_report_favorites WHERE report_id = r.id AND user_id = :user_id) as is_favorite
-                FROM adms_dynamic_reports r
-                INNER JOIN adms_users u ON u.id = r.created_by
-                WHERE ";
+        // Super administrador / flag super usuário: todos os relatórios ativos (sem JOIN à tabela de partilhas —
+        // evita Erro 004 se a migração `adms_dynamic_report_shared_users` ainda não existir).
         if ($includeAllReports) {
-            $sql .= 'r.is_active = 1 ';
-        } else {
-            $sql .= '(r.created_by = :user_id OR r.is_public = 1) AND r.is_active = 1 ';
-        }
-        $sql .= 'ORDER BY r.updated_at DESC';
+            $sql = "SELECT r.*, u.name as creator_name,
+                           (SELECT COUNT(*) FROM adms_report_favorites WHERE report_id = r.id) as favorite_count,
+                           EXISTS(SELECT 1 FROM adms_report_favorites WHERE report_id = r.id AND user_id = :user_id) as is_favorite,
+                           0 AS access_via_share
+                    FROM adms_dynamic_reports r
+                    INNER JOIN adms_users u ON u.id = r.created_by
+                    WHERE r.is_active = 1
+                    ORDER BY r.updated_at DESC";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
 
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        try {
+            return $this->fetchUserReportsForUserWithShareTable($userId);
+        } catch (\Throwable $e) {
+            error_log('DynamicReportsRepository::getUserReports (fallback sem partilhas): ' . $e->getMessage());
+
+            return $this->fetchUserReportsForUserWithoutShareTable($userId);
+        }
     }
 
     /**
-     * Indica se o utilizador pode abrir/executar/exportar o relatório (inclui super utilizador e nível super admin).
+     * Listagem com partilha por utilizador (requer tabela adms_dynamic_report_shared_users).
+     *
+     * @return list<array<string, mixed>>
      */
-    public function userCanAccessReport(array $report, int $userId): bool
+    private function fetchUserReportsForUserWithShareTable(int $userId): array
+    {
+        $sql = "SELECT r.*, u.name as creator_name,
+                       (SELECT COUNT(*) FROM adms_report_favorites WHERE report_id = r.id) as favorite_count,
+                       EXISTS(SELECT 1 FROM adms_report_favorites WHERE report_id = r.id AND user_id = :user_id) as is_favorite,
+                       EXISTS(
+                           SELECT 1 FROM adms_dynamic_report_shared_users sh
+                           WHERE sh.report_id = r.id AND sh.user_id = :user_id2
+                       ) as access_via_share
+                FROM adms_dynamic_reports r
+                INNER JOIN adms_users u ON u.id = r.created_by
+                WHERE (r.created_by = :user_id OR r.is_public = 1 OR EXISTS (
+                    SELECT 1 FROM adms_dynamic_report_shared_users sh2
+                    WHERE sh2.report_id = r.id AND sh2.user_id = :user_id3
+                )) AND r.is_active = 1
+                ORDER BY r.updated_at DESC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id2', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id3', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Listagem sem tabela de partilhas (comportamento anterior à partilha por utilizador).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchUserReportsForUserWithoutShareTable(int $userId): array
+    {
+        $sql = "SELECT r.*, u.name as creator_name,
+                       (SELECT COUNT(*) FROM adms_report_favorites WHERE report_id = r.id) as favorite_count,
+                       EXISTS(SELECT 1 FROM adms_report_favorites WHERE report_id = r.id AND user_id = :user_id) as is_favorite,
+                       0 AS access_via_share
+                FROM adms_dynamic_reports r
+                INNER JOIN adms_users u ON u.id = r.created_by
+                WHERE (r.created_by = :user_id OR r.is_public = 1) AND r.is_active = 1
+                ORDER BY r.updated_at DESC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Utilizadores ativos para multiselect de partilha (exclui o próprio utilizador).
+     *
+     * @return list<array{id: int, name: string, email: string}>
+     */
+    public function listUsersForReportShare(int $excludeUserId, int $limit = 2000): array
+    {
+        $sql = "SELECT id, name, email FROM adms_users
+                WHERE status = 'Ativo'
+                  AND id != :exclude
+                  AND (bloqueado IS NULL OR bloqueado IN ('Não', 'Nao', 'NÃO', 'não', '0', 0))
+                ORDER BY name ASC
+                LIMIT " . max(1, min($limit, 5000));
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':exclude', $excludeUserId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * IDs dos utilizadores com acesso explícito ao relatório (além do criador / público).
+     *
+     * @return int[]
+     */
+    public function getSharedUserIds(int $reportId): array
+    {
+        if ($reportId < 1) {
+            return [];
+        }
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'SELECT user_id FROM adms_dynamic_report_shared_users WHERE report_id = :rid ORDER BY user_id'
+            );
+            $stmt->bindValue(':rid', $reportId, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            return array_values(array_map('intval', $rows ?: []));
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Substitui a lista de utilizadores com partilha explícita. Apenas quem pode editar o relatório deve chamar.
+     *
+     * @param int[] $userIds
+     */
+    public function setSharedUsers(int $reportId, array $userIds, int $actingUserId): void
+    {
+        if ($reportId < 1 || $actingUserId < 1) {
+            return;
+        }
+        $report = $this->getById($reportId);
+        if (!$report || !$this->userCanEditReport($report, $actingUserId)) {
+            return;
+        }
+        $creatorId = (int) ($report['created_by'] ?? 0);
+        $clean = [];
+        foreach ($userIds as $uid) {
+            $uid = (int) $uid;
+            if ($uid > 0 && $uid !== $creatorId) {
+                $clean[$uid] = $uid;
+            }
+        }
+
+        $conn = $this->getConnection();
+        $conn->beginTransaction();
+        try {
+            $del = $conn->prepare('DELETE FROM adms_dynamic_report_shared_users WHERE report_id = :rid');
+            $del->execute([':rid' => $reportId]);
+            if ($clean !== []) {
+                $ins = $conn->prepare(
+                    'INSERT INTO adms_dynamic_report_shared_users (report_id, user_id) VALUES (:rid, :uid)'
+                );
+                foreach ($clean as $uid) {
+                    $ins->execute([':rid' => $reportId, ':uid' => $uid]);
+                }
+            }
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
+        }
+    }
+
+    private function userHasExplicitShare(int $reportId, int $userId): bool
+    {
+        if ($reportId < 1 || $userId < 1) {
+            return false;
+        }
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'SELECT 1 FROM adms_dynamic_report_shared_users WHERE report_id = :rid AND user_id = :uid LIMIT 1'
+            );
+            $stmt->execute([':rid' => $reportId, ':uid' => $userId]);
+
+            return (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            // Tabela ainda não migrada: comportamento legado (sem partilhas)
+            return false;
+        }
+    }
+
+    /**
+     * Ver / executar / exportar / usar em dashboard.
+     */
+    public function userCanViewReport(array $report, int $userId): bool
     {
         if ($userId < 1) {
             return false;
@@ -48,8 +215,34 @@ class DynamicReportsRepository extends DbConnection
         if ((int) ($report['created_by'] ?? 0) === $userId) {
             return true;
         }
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            return true;
+        }
 
-        return \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
+        return $this->userHasExplicitShare((int) ($report['id'] ?? 0), $userId);
+    }
+
+    /**
+     * Alterar definições ou apagar relatório.
+     */
+    public function userCanEditReport(array $report, int $userId): bool
+    {
+        if ($userId < 1) {
+            return false;
+        }
+        if ((int) ($report['created_by'] ?? 0) === $userId) {
+            return true;
+        }
+
+        return UserAccessHelper::hasFullSystemAccess();
+    }
+
+    /**
+     * @deprecated Use userCanViewReport() ou userCanEditReport()
+     */
+    public function userCanAccessReport(array $report, int $userId): bool
+    {
+        return $this->userCanViewReport($report, $userId);
     }
 
     public function getById(int $id): ?array

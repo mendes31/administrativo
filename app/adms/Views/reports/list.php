@@ -127,6 +127,14 @@ $createUrl = $_ENV['URL_ADM'] . ($isSapScope ? 'dynamic-report-builder-sap' : 'd
                                         <i class="fas fa-share-alt"></i> Público
                                     </span>
                                 <?php endif; ?>
+                                <?php
+                                $isOwnReportCard = (int) ($report['created_by'] ?? 0) === $viewerUserId;
+                                if (!$isOwnReportCard && (int) ($report['is_public'] ?? 0) !== 1 && !empty($report['access_via_share'])):
+                                ?>
+                                    <span class="badge bg-secondary" title="Este relatório foi partilhado consigo pelo criador">
+                                        <i class="fas fa-user-friends"></i> Partilhado contigo
+                                    </span>
+                                <?php endif; ?>
                                 
                                 <?php if (!empty($report['refresh_interval'])): ?>
                                     <span class="badge bg-success">
