@@ -44,9 +44,15 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         width: 150px;
     }
 
+    .table-informativos th.col-leitura,
+    .table-informativos td.col-leitura {
+        width: 150px;
+        text-align: center;
+    }
+
     .table-informativos th.col-resumo,
     .table-informativos td.col-resumo {
-        width: 260px;
+        width: 220px;
         /* Forçar quebra mesmo para textos muito longos ou sem espaços */
         white-space: normal !important;
         word-break: break-all;
@@ -135,6 +141,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             <?php
             $unreadInformativoIds = array_map('intval', $this->data['unreadInformativoIds'] ?? []);
             $unreadInformativoIdSet = array_fill_keys($unreadInformativoIds, true);
+            $informativoReadMap = $this->data['informativo_read_map'] ?? [];
             ?>
             
             <!-- Filtros (somente para usuários com permissão de cadastrar/editar informativos) -->
@@ -248,6 +255,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                             <th class="col-categoria">Categoria</th>
                             <th class="col-departamento">Departamento</th>
                             <th class="col-resumo">Resumo</th>
+                            <th class="text-center col-leitura">Leitura / ciência</th>
                             <th class="text-center col-urgente">Urgente</th>
                             <th class="text-center col-status">Status</th>
                             <th class="text-center col-data">Data</th>
@@ -259,28 +267,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                             <?php foreach ($this->data['informativos'] as $informativo): ?>
                                 <?php
                                 $informativoId = (int) ($informativo['id'] ?? 0);
-                                $isUnread = $informativoId > 0 && isset($unreadInformativoIdSet[$informativoId]);
                                 $requiresAck = !empty($informativo['requires_ack']);
                                 $canManageRow = $informativoId > 0 && !empty($this->data['informativo_can_manage'][$informativoId]);
+                                $readRowDesktop = $informativoReadMap[$informativoId] ?? null;
+                                $readStDesktop = \App\adms\Helpers\InformativoReadStatusHelper::forCurrentUser($informativo, $readRowDesktop);
                                 ?>
                                 <tr>
                                     <td class="col-titulo">
                                         <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>
-                                        <?php if ($requiresAck): ?>
-                                            <?php if ($isUnread): ?>
-                                                <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
-                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Ciência pendente
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-success ms-1">
-                                                    <i class="fa-solid fa-circle-check me-1"></i>Ciente
-                                                </span>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <?php if ($isUnread): ?>
-                                                <span class="badge bg-primary ms-1">Novo</span>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
                                             <div class="informativo-media">
                                                 <?php if (!empty($informativo['imagem'])): ?>
@@ -310,6 +304,12 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                         $textoResumo = $informativo['resumo'] ?? strip_tags($informativo['conteudo']);
                                         echo htmlspecialchars($textoResumo);
                                         ?>
+                                    </td>
+                                    <td class="text-center col-leitura small">
+                                        <span class="badge <?php echo htmlspecialchars($readStDesktop['badge_class']); ?> text-wrap text-start d-inline-flex align-items-center" style="max-width: 100%; white-space: normal;">
+                                            <i class="<?php echo htmlspecialchars($readStDesktop['icon']); ?> me-1 flex-shrink-0"></i>
+                                            <span><?php echo htmlspecialchars($readStDesktop['text']); ?></span>
+                                        </span>
                                     </td>
                                     <td class="text-center col-urgente">
                                         <?php if ($informativo['urgente']): ?>
@@ -390,7 +390,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="8" class="text-center">Nenhum informativo encontrado.</td></tr>
+                            <tr><td colspan="9" class="text-center">Nenhum informativo encontrado.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -416,6 +416,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                         $canRelatorioInformativo = $canManageRow && in_array('RelatorioInformativo', $buttonPermission, true);
                         $canDeleteInformativo = $canManageRow && in_array('DeleteInformativo', $buttonPermission, true);
                         $hasSecondaryActions = $canUpdateInformativo || $canRelatorioInformativo || $canDeleteInformativo;
+                        $readRowMobile = $informativoReadMap[$informativoId] ?? null;
+                        $readStMobile = \App\adms\Helpers\InformativoReadStatusHelper::forCurrentUser($informativo, $readRowMobile);
                         ?>
                         <div class="card mb-3 shadow-sm<?php echo $isAckPendingAlert ? ' informativo-card-alert' : ''; ?>">
                             <div class="card-body"<?php if ($cardClickable): ?> onclick="window.location.href='<?php echo $_ENV['URL_ADM']; ?>view-informativo/<?php echo $informativo['id']; ?>';" style="cursor:pointer;"<?php endif; ?>>
@@ -423,21 +425,6 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                     <div class="flex-grow-1">
                                         <h5 class="card-title mb-1">
                                             <strong class="informativo-card-title-text"><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>
-                                            <?php if ($requiresAck): ?>
-                                                <?php if ($isUnread): ?>
-                                                    <span class="badge bg-warning text-dark ms-1" style="border:1px solid #dc3545;">
-                                                        <i class="fa-solid fa-triangle-exclamation me-1"></i>Ciência pendente
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-success ms-1">
-                                                        <i class="fa-solid fa-circle-check me-1"></i>Ciente
-                                                    </span>
-                                                <?php endif; ?>
-                                            <?php else: ?>
-                                                <?php if ($isUnread): ?>
-                                                    <span class="badge bg-primary ms-1">Novo</span>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
                                             <?php if ($informativo['urgente']): ?>
                                                 <span class="badge bg-danger ms-1">
                                                     <i class="fas fa-exclamation-triangle"></i> Urgente
@@ -454,6 +441,12 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                             <?php else: ?>
                                                 <span class="badge bg-danger ms-1">Inativo</span>
                                             <?php endif; ?>
+                                        </div>
+                                        <div class="mb-1">
+                                            <span class="badge <?php echo htmlspecialchars($readStMobile['badge_class']); ?> text-wrap text-start d-inline-flex align-items-center">
+                                                <i class="<?php echo htmlspecialchars($readStMobile['icon']); ?> me-1 flex-shrink-0"></i>
+                                                <span><?php echo htmlspecialchars($readStMobile['text']); ?></span>
+                                            </span>
                                         </div>
                                         <?php if (!empty($informativo['expire_at'])): ?>
                                             <div class="text-muted small" title="Expira em"><i class="fas fa-hourglass-end me-1"></i><?php echo date('d/m/Y H:i', strtotime($informativo['expire_at'])); ?></div>

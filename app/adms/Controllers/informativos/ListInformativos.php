@@ -73,30 +73,12 @@ class ListInformativos
         $informativoIds = array_map(static fn ($i) => (int)($i['id'] ?? 0), $this->data['informativos'] ?? []);
         $userId = (int)($_SESSION['user_id'] ?? 0);
         $this->data['unreadInformativoIds'] = $userId > 0 ? $repo->getNaoLidosIdsByInformativoIds($userId, $informativoIds) : [];
+        $this->data['informativo_read_map'] = $userId > 0 && !empty($informativoIds)
+            ? $repo->getReadsMapForUser($userId, $informativoIds)
+            : [];
 
-        // Ordenação: não lidos / sem ciência primeiro, depois por data descrescente.
-        $unreadInformativoIdSet = array_fill_keys($this->data['unreadInformativoIds'] ?? [], true);
-        if (!empty($this->data['informativos'])) {
-            usort($this->data['informativos'], static function (array $a, array $b) use ($unreadInformativoIdSet): int {
-                $aId = (int)($a['id'] ?? 0);
-                $bId = (int)($b['id'] ?? 0);
+        // Ordenação global: ativos primeiro (por data), depois inativos (por data) — ver getAllInformativos ORDER BY.
 
-                $aUnread = $aId > 0 && isset($unreadInformativoIdSet[$aId]);
-                $bUnread = $bId > 0 && isset($unreadInformativoIdSet[$bId]);
-
-                if ($aUnread !== $bUnread) {
-                    return $aUnread ? -1 : 1;
-                }
-
-                $aRef = $a['publish_at'] ?? $a['created_at'] ?? null;
-                $bRef = $b['publish_at'] ?? $b['created_at'] ?? null;
-                $aTs = $aRef ? strtotime((string)$aRef) : 0;
-                $bTs = $bRef ? strtotime((string)$bRef) : 0;
-
-                return $bTs <=> $aTs; // desc
-            });
-        }
-        
         $pagination = PaginationService::generatePagination(
             (int) $totalInformativos,
             (int) $this->limitResult,

@@ -81,7 +81,7 @@ class InformativosRepository extends DbConnection
                 LEFT JOIN adms_informativos_categorias c ON c.id = i.categoria_id
                 LEFT JOIN adms_departments d ON d.id = i.department_id
                 {$whereClause}
-                ORDER BY i.urgente DESC, COALESCE(i.publish_at, i.created_at) DESC
+                ORDER BY i.ativo DESC, i.urgente DESC, COALESCE(i.publish_at, i.created_at) DESC
                 LIMIT :limit OFFSET :offset";
         
         $stmt = $this->getConnection()->prepare($sql);
@@ -447,6 +447,68 @@ class InformativosRepository extends DbConnection
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         return array_map(static fn ($row) => (int) $row['id'], $rows);
+    }
+
+    /**
+     * Último registro de leitura/ciência do usuário por informativo (mesma prioridade de getReadByUser).
+     *
+     * @param int   $userId
+     * @param int[] $informativoIds
+     * @return array<int, array<string, mixed>> mapa informativo_id => linha normalizada
+     */
+    public function getReadsMapForUser(int $userId, array $informativoIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $informativoIds), static fn ($v) => $v > 0)));
+        if ($userId <= 0 || $ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT informativo_id, read_at, acknowledged, ack_at
+                FROM adms_informativos_reads
+                WHERE user_id = ?
+                  AND informativo_id IN ({$placeholders})";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+        $i = 2;
+        foreach ($ids as $id) {
+            $stmt->bindValue($i++, $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $byInf = [];
+        foreach ($rows as $row) {
+            $infId = (int) ($row['informativo_id'] ?? 0);
+            if ($infId <= 0) {
+                continue;
+            }
+            $byInf[$infId][] = $row;
+        }
+
+        $map = [];
+        foreach ($byInf as $infId => $group) {
+            usort($group, static function (array $a, array $b): int {
+                $aAck = !empty($a['acknowledged']) ? 1 : 0;
+                $bAck = !empty($b['acknowledged']) ? 1 : 0;
+                if ($aAck !== $bAck) {
+                    return $bAck <=> $aAck;
+                }
+                $aAckAt = strtotime((string) ($a['ack_at'] ?? '')) ?: 0;
+                $bAckAt = strtotime((string) ($b['ack_at'] ?? '')) ?: 0;
+                if ($aAckAt !== $bAckAt) {
+                    return $bAckAt <=> $aAckAt;
+                }
+                $aRead = strtotime((string) ($a['read_at'] ?? '')) ?: 0;
+                $bRead = strtotime((string) ($b['read_at'] ?? '')) ?: 0;
+
+                return $bRead <=> $aRead;
+            });
+            $map[$infId] = $this->normalizeRow($group[0]);
+        }
+
+        return $map;
     }
     
     /**
