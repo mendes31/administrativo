@@ -6,7 +6,10 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Services\InformativosPermissionService;
+use App\adms\Models\Services\InformativosStatusUpdaterService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInformativos
@@ -38,6 +41,9 @@ class ListInformativos
             'data_fim' => $_GET['data_fim'] ?? '',
             'busca' => $_GET['busca'] ?? '',
         ];
+
+        // Sincroniza ativo/inativo (throttle global + lock; mesmo padrão do dashboard)
+        InformativosStatusUpdaterService::ensureUpdated();
         
         $repo = new InformativosRepository();
 
@@ -46,10 +52,18 @@ class ListInformativos
         $perms = $permRepo->buttonPermission(['CreateInformativo','UpdateInformativo']);
         $isEditor = is_array($perms) && count($perms) > 0;
 
-        if (!$isEditor) {
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            // Super administrador / super usuário: lista completa (apenas filtros opcionais da URL)
+        } elseif (!$isEditor) {
             // Usuário comum: apenas ativos e dentro da janela de publicação
             $filters['ativo'] = '1';
             $filters['apenas_janela_publicacao'] = true;
+        } else {
+            // Editor: ativos de todos + todos os próprios (qualquer status); não aplica a quem tem acesso total
+            $uid = (int) ($_SESSION['user_id'] ?? 0);
+            if ($uid > 0) {
+                $filters['editor_list_scope_user_id'] = $uid;
+            }
         }
 
         $this->data['informativos'] = $repo->getAllInformativos((int)$page, (int)$this->limitResult, $filters);
@@ -98,7 +112,20 @@ class ListInformativos
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
         $this->data['filters'] = $filters;
         $this->data['isEditor'] = $isEditor;
-        
+
+        $this->data['informativo_can_manage'] = [];
+        foreach (($this->data['informativos'] ?? []) as $infRow) {
+            $iid = (int) ($infRow['id'] ?? 0);
+            if ($iid <= 0) {
+                continue;
+            }
+            $this->data['informativo_can_manage'][$iid] = InformativosPermissionService::canManageRecord(
+                $infRow,
+                $userId,
+                InformativosPermissionService::sessionUserDepartmentId()
+            );
+        }
+
         $pageElements = [
             'title_head' => 'Listar Informativos',
             'menu' => 'list-informativos',

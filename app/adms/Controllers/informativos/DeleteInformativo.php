@@ -5,6 +5,7 @@ namespace App\adms\Controllers\informativos;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Services\InformativosPermissionService;
 
 class DeleteInformativo
 {
@@ -40,20 +41,30 @@ class DeleteInformativo
             exit;
         }
 
+        $userId = InformativosPermissionService::sessionUserId();
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+        if (!InformativosPermissionService::canManageRecord($informativo, $userId, $userDept)) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Você não tem permissão para excluir este informativo.</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
+            exit;
+        }
+
+        $baseUploads = dirname(__DIR__, 4) . '/public/adms/uploads/';
+
         try {
             $success = $repo->deleteInformativo((int)$id);
             
             if ($success) {
                 // Remover arquivos físicos se existirem
                 if (!empty($informativo['imagem'])) {
-                    $imagemPath = __DIR__ . '/../../../public/adms/' . $informativo['imagem'];
+                    $imagemPath = $baseUploads . $informativo['imagem'];
                     if (file_exists($imagemPath)) {
                         unlink($imagemPath);
                     }
                 }
                 
                 if (!empty($informativo['anexo'])) {
-                    $anexoPath = __DIR__ . '/../../../public/adms/' . $informativo['anexo'];
+                    $anexoPath = $baseUploads . $informativo['anexo'];
                     if (file_exists($anexoPath)) {
                         unlink($anexoPath);
                     }

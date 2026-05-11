@@ -261,6 +261,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                 $informativoId = (int) ($informativo['id'] ?? 0);
                                 $isUnread = $informativoId > 0 && isset($unreadInformativoIdSet[$informativoId]);
                                 $requiresAck = !empty($informativo['requires_ack']);
+                                $canManageRow = $informativoId > 0 && !empty($this->data['informativo_can_manage'][$informativoId]);
                                 ?>
                                 <tr>
                                     <td class="col-titulo">
@@ -345,17 +346,17 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                             <?php endif; ?>
-                                            <?php if (in_array('UpdateInformativo', $this->data['buttonPermission'])): ?>
+                                            <?php if ($canManageRow && in_array('UpdateInformativo', $this->data['buttonPermission'])): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>update-informativo/<?php echo $informativo['id']; ?>" class="btn btn-warning btn-sm" title="Editar">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                             <?php endif; ?>
-                                            <?php if (in_array('RelatorioInformativo', $this->data['buttonPermission'])): ?>
+                                            <?php if ($canManageRow && in_array('RelatorioInformativo', $this->data['buttonPermission'])): ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-informativo?informativo_id=<?php echo $informativo['id']; ?>" class="btn btn-info btn-sm" title="Relatório">
                                                     <i class="fas fa-chart-bar"></i>
                                                 </a>
                                             <?php endif; ?>
-                                            <?php if (in_array('DeleteInformativo', $this->data['buttonPermission'])): ?>
+                                            <?php if ($canManageRow && in_array('DeleteInformativo', $this->data['buttonPermission'])): ?>
                                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalDelete<?php echo $informativo['id']; ?>-desktop">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -405,14 +406,15 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                         $isUnread = $informativoId > 0 && isset($unreadInformativoIdSet[$informativoId]);
                         $requiresAck = !empty($informativo['requires_ack']);
                         $isAckPendingAlert = $requiresAck && $isUnread;
+                        $canManageRow = $informativoId > 0 && !empty($this->data['informativo_can_manage'][$informativoId]);
 
                         $buttonPermission = $this->data['buttonPermission'] ?? [];
                         $canViewInformativo = in_array('ViewInformativo', $buttonPermission, true);
                         $cardClickable = (!$isEditor) || $canViewInformativo;
 
-                        $canUpdateInformativo = in_array('UpdateInformativo', $buttonPermission, true);
-                        $canRelatorioInformativo = in_array('RelatorioInformativo', $buttonPermission, true);
-                        $canDeleteInformativo = in_array('DeleteInformativo', $buttonPermission, true);
+                        $canUpdateInformativo = $canManageRow && in_array('UpdateInformativo', $buttonPermission, true);
+                        $canRelatorioInformativo = $canManageRow && in_array('RelatorioInformativo', $buttonPermission, true);
+                        $canDeleteInformativo = $canManageRow && in_array('DeleteInformativo', $buttonPermission, true);
                         $hasSecondaryActions = $canUpdateInformativo || $canRelatorioInformativo || $canDeleteInformativo;
                         ?>
                         <div class="card mb-3 shadow-sm<?php echo $isAckPendingAlert ? ' informativo-card-alert' : ''; ?>">

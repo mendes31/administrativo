@@ -4,6 +4,8 @@ namespace App\adms\Controllers\informativos;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Services\InformativosPermissionService;
+use App\adms\Models\Services\InformativosStatusUpdaterService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewInformativo
@@ -18,6 +20,8 @@ class ViewInformativo
             exit;
         }
 
+        InformativosStatusUpdaterService::ensureUpdated();
+
         $repo = new InformativosRepository();
         $informativo = $repo->getInformativoById((int)$id);
 
@@ -28,6 +32,12 @@ class ViewInformativo
         }
 
         $this->data['informativo'] = $informativo;
+        $uid = InformativosPermissionService::sessionUserId();
+        $this->data['can_manage_informativo'] = InformativosPermissionService::canManageRecord(
+            $informativo,
+            $uid,
+            InformativosPermissionService::sessionUserDepartmentId()
+        );
         // Status de leitura/ciência do usuário logado
         $userId = $_SESSION['user_id'] ?? null;
         if ($userId) {

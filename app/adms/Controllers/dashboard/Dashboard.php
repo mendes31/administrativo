@@ -28,7 +28,7 @@ class Dashboard
         // Lembretes de ciência em documentos de folha (RH), no máximo 1× por 24 h
         PayrollDocumentRemindersService::ensureUpdated();
 
-        // Atualizar status de informativos (publicação/expiração) no primeiro acesso (com janela de 10 minutos)
+        // Informativos: throttle global + flock (ver InformativosStatusUpdaterService)
         InformativosStatusUpdaterService::ensureUpdated();
 
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';

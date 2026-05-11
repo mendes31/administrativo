@@ -17,6 +17,11 @@ use App\adms\Helpers\CSRFHelper;
             <div class="card mb-4 border-0 shadow-sm" style="border-radius: 18px; background: #fff;">
                 <div class="card-body p-4">
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
+                    <?php if (!empty($this->data['cannot_create_no_department'])): ?>
+                        <div class="alert alert-warning" role="alert">
+                            Seu usuário não possui departamento vinculado. Não é possível publicar informativos até que um administrador associe um departamento ao seu cadastro (ou use um perfil com permissão total).
+                        </div>
+                    <?php endif; ?>
                     <form method="POST" enctype="multipart/form-data" style="max-width: 700px; margin: 0 auto;">
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('create_informativo'); ?>">
                         <div class="row g-3 mb-3" style="margin-bottom: 2.5rem !important;">
@@ -37,13 +42,25 @@ use App\adms\Helpers\CSRFHelper;
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
+                                <?php
+                                $deptLocked = !empty($this->data['department_select_locked']);
+                                $firstDept = ($this->data['departments'] ?? [])[0] ?? null;
+                                ?>
                                 <label for="department_id" class="form-label fw-semibold">Departamento (publicante) *</label>
-                                <select class="form-select form-select-lg rounded-3" id="department_id" name="department_id" required>
-                                    <option value="">Selecione o departamento</option>
+                                <select class="form-select form-select-lg rounded-3" id="department_id" name="department_id" required <?= $deptLocked ? 'disabled' : '' ?>>
+                                    <?php if (!$deptLocked): ?>
+                                        <option value="">Selecione o departamento</option>
+                                    <?php endif; ?>
                                     <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
-                                        <option value="<?= (int)$dep['id'] ?>"><?= htmlspecialchars($dep['name']) ?></option>
+                                        <option value="<?= (int)$dep['id'] ?>" <?= $deptLocked ? 'selected' : '' ?>><?= htmlspecialchars($dep['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <?php if ($deptLocked && $firstDept): ?>
+                                    <input type="hidden" name="department_id" value="<?= (int)$firstDept['id'] ?>">
+                                <?php endif; ?>
+                                <?php if ($deptLocked): ?>
+                                    <div class="form-text">O comunicado é publicado em nome do seu departamento. Apenas perfis com permissão total podem alterar o departamento publicante.</div>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-3">
                                 <label for="publish_at" class="form-label fw-semibold">Publicar em</label>
@@ -94,7 +111,7 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                             <label class="form-label small mb-1">Departamentos a notificar (opcional)</label>
                             <div class="border rounded p-2 bg-light" style="max-height: 130px; overflow-y: auto;">
-                                <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
+                                <?php foreach (($this->data['all_departments_for_notify'] ?? $this->data['departments'] ?? []) as $dep): ?>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="notify_departments[]" value="<?= (int)$dep['id']; ?>" id="notify_dep_<?= (int)$dep['id']; ?>">
                                         <label class="form-check-label" for="notify_dep_<?= (int)$dep['id']; ?>"><?= htmlspecialchars($dep['name']); ?></label>
@@ -117,7 +134,7 @@ use App\adms\Helpers\CSRFHelper;
                                     onclick="window.history.back();">
                                 Cancelar
                             </button>
-                            <button type="submit" class="btn btn-success btn-lg rounded-3 px-4 fw-bold">
+                            <button type="submit" class="btn btn-success btn-lg rounded-3 px-4 fw-bold" <?= !empty($this->data['cannot_create_no_department']) ? 'disabled' : '' ?>>
                                 Publicar Comunicado
                             </button>
                         </div>

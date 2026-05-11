@@ -2,8 +2,10 @@
 
 namespace App\adms\Controllers\informativos;
 
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\InformativosPermissionService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -28,6 +30,21 @@ class ExportRelatorioInformativoExcel
         if (!$informativo) {
             http_response_code(404);
             echo 'Informativo não encontrado';
+            return;
+        }
+
+        $perm = new ButtonPermissionUserRepository();
+        $relBtn = $perm->buttonPermission(['RelatorioInformativo']);
+        if (!is_array($relBtn) || count($relBtn) === 0) {
+            http_response_code(403);
+            echo 'Sem permissão';
+            return;
+        }
+        $userId = InformativosPermissionService::sessionUserId();
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+        if (!InformativosPermissionService::canManageRecord($informativo, $userId, $userDept)) {
+            http_response_code(403);
+            echo 'Sem permissão';
             return;
         }
 

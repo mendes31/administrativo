@@ -3,8 +3,10 @@
 namespace App\adms\Controllers\informativos;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\InformativosPermissionService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -46,9 +48,15 @@ class RelatorioInformativo
         // Criar o título da página
         $this->data['title_head'] = "Relatório de Informativos";
 
-        // Buscar todos os informativos para o select
+        // Buscar informativos para o select (apenas os que o usuário pode gerenciar, exceto super)
         $informativosRepo = new InformativosRepository();
-        $this->data['informativos'] = $informativosRepo->getAllInformativos(1, 1000, []);
+        $all = $informativosRepo->getAllInformativos(1, 1000, []);
+        $userId = InformativosPermissionService::sessionUserId();
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+        $this->data['informativos'] = array_values(array_filter(
+            $all,
+            static fn (array $row): bool => InformativosPermissionService::canManageRecord($row, $userId, $userDept)
+        ));
 
         // Configurar elementos de layout (menu e permissões)
         $pageElements = [
@@ -78,6 +86,24 @@ class RelatorioInformativo
         if (!$informativo) {
             $_SESSION['error'] = "Informativo não encontrado!";
             $this->viewRelatorio();
+            return;
+        }
+
+        $perm = new ButtonPermissionUserRepository();
+        $relBtn = $perm->buttonPermission(['RelatorioInformativo']);
+        if (!is_array($relBtn) || count($relBtn) === 0) {
+            $_SESSION['error'] = 'Você não tem permissão para acessar o relatório de informativos.';
+            $this->viewRelatorio();
+
+            return;
+        }
+
+        $userId = InformativosPermissionService::sessionUserId();
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+        if (!InformativosPermissionService::canManageRecord($informativo, $userId, $userDept)) {
+            $_SESSION['error'] = 'Você não tem permissão para gerar relatório deste informativo.';
+            $this->viewRelatorio();
+
             return;
         }
 

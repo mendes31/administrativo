@@ -5,10 +5,12 @@ namespace App\adms\Controllers\informativos;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TextEncodingHelper;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
-use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\InformativosPermissionService;
 use App\adms\Models\Services\WhatsappNotificationService;
+use App\adms\Views\Services\LoadViewService;
 
 class UpdateInformativo
 {
@@ -31,12 +33,22 @@ class UpdateInformativo
             exit;
         }
 
+        $userId = InformativosPermissionService::sessionUserId();
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+        if (!InformativosPermissionService::canManageRecord($informativo, $userId, $userDept)) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Você não tem permissão para editar este informativo.</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
+            exit;
+        }
+
         $this->data['informativo'] = $informativo;
         $this->data['categorias'] = $repo->getCategorias();
         // Departamentos alvo para notificação (para pré-selecionar no formulário)
         $this->data['notify_departments_ids'] = $repo->getNotifyDepartmentsIds((int)$id);
         $deptRepo = new DepartmentsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
+        $this->data['all_departments_for_notify'] = $deptRepo->getAllDepartmentsSelect();
+        $this->data['department_select_locked'] = !UserAccessHelper::hasFullSystemAccess();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->update((int)$id);
@@ -62,11 +74,30 @@ class UpdateInformativo
             return;
         }
 
+        $repoCheck = new InformativosRepository();
+        $rowFresh = $repoCheck->getInformativoById($id);
+        if (!$rowFresh) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Informativo não encontrado!</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
+            exit;
+        }
+        $uid = InformativosPermissionService::sessionUserId();
+        $udept = InformativosPermissionService::sessionUserDepartmentId();
+        if (!InformativosPermissionService::canManageRecord($rowFresh, $uid, $udept)) {
+            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Você não tem permissão para editar este informativo.</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-informativos');
+            exit;
+        }
+
         $titulo = trim(TextEncodingHelper::decodeEntities((string)($_POST['titulo'] ?? '')));
         $conteudo = trim(TextEncodingHelper::decodeEntities((string)($_POST['conteudo'] ?? '')));
         $categoriaId = (int)($_POST['categoria_id'] ?? 0);
         $categoriaNome = trim(TextEncodingHelper::decodeEntities((string)($_POST['categoria'] ?? '')));
-        $departmentId = (int)($_POST['department_id'] ?? 0);
+        $departmentId = InformativosPermissionService::resolveUpdateDepartmentId(
+            $rowFresh,
+            (int)($_POST['department_id'] ?? 0),
+            $udept
+        );
         $publishAt = trim($_POST['publish_at'] ?? '');
         $expireAt = trim($_POST['expire_at'] ?? '');
         $urgente = isset($_POST['urgente']) ? true : false;

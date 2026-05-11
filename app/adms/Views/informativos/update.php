@@ -58,14 +58,23 @@ $informativo = $this->data['informativo'];
                         </div>
 
                         <div class="mb-3">
+                            <?php $deptLocked = !empty($this->data['department_select_locked']); ?>
                             <label for="department_id" class="form-label">Departamento (publicante) <span class="text-danger">*</span></label>
-                            <select class="form-select" id="department_id" name="department_id" required>
-                                <option value="">Selecione o departamento</option>
+                            <select class="form-select" id="department_id" name="department_id" required <?= $deptLocked ? 'disabled' : '' ?>>
+                                <?php if (!$deptLocked): ?>
+                                    <option value="">Selecione o departamento</option>
+                                <?php endif; ?>
                                 <?php foreach (($this->data['departments'] ?? []) as $dep): ?>
                                     <?php $selected = ((int)($informativo['department_id'] ?? 0) === (int)$dep['id']) ? 'selected' : ''; ?>
                                     <option value="<?= (int)$dep['id'] ?>" <?= $selected ?>><?= \App\adms\Helpers\TextEncodingHelper::escape($dep['name'] ?? '') ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if ($deptLocked && !empty($informativo['department_id'])): ?>
+                                <input type="hidden" name="department_id" value="<?= (int)$informativo['department_id'] ?>">
+                            <?php endif; ?>
+                            <?php if ($deptLocked): ?>
+                                <div class="form-text">Somente perfis com permissão total podem alterar o departamento publicante.</div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="mb-3 row g-2">
@@ -170,7 +179,7 @@ $informativo = $this->data['informativo'];
                             <div class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
                                 <?php
                                 $notifyDeps = $this->data['notify_departments_ids'] ?? [];
-                                foreach (($this->data['departments'] ?? []) as $dep):
+                                foreach (($this->data['all_departments_for_notify'] ?? $this->data['departments'] ?? []) as $dep):
                                     $checked = in_array((int)$dep['id'], $notifyDeps, true) ? 'checked' : '';
                                 ?>
                                     <div class="form-check">

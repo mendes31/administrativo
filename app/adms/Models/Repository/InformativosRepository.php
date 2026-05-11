@@ -23,7 +23,13 @@ class InformativosRepository extends DbConnection
         
         $whereConditions = [];
         $params = [];
-        
+
+        // Listagem para quem pode criar/editar: ativos de qualquer autor + todos os próprios (qualquer status)
+        if (!empty($filters['editor_list_scope_user_id'])) {
+            $whereConditions[] = '(i.usuario_id = :editor_list_uid OR i.ativo = 1)';
+            $params[':editor_list_uid'] = (int) $filters['editor_list_scope_user_id'];
+        }
+
         if (!empty($filters['categoria_id'])) {
             $whereConditions[] = 'i.categoria_id = :categoria_id';
             $params[':categoria_id'] = (int)$filters['categoria_id'];
@@ -100,7 +106,12 @@ class InformativosRepository extends DbConnection
     {
         $whereConditions = [];
         $params = [];
-        
+
+        if (!empty($filters['editor_list_scope_user_id'])) {
+            $whereConditions[] = '(usuario_id = :editor_list_uid OR ativo = 1)';
+            $params[':editor_list_uid'] = (int) $filters['editor_list_scope_user_id'];
+        }
+
         if (!empty($filters['categoria_id'])) {
             $whereConditions[] = 'categoria_id = :categoria_id';
             $params[':categoria_id'] = (int)$filters['categoria_id'];

@@ -19,12 +19,16 @@ $informativo = $this->data['informativo'];
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-eye me-2"></i>Detalhes do Informativo</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
-                <?php if (isset($this->data['buttonPermission']['UpdateInformativo'])): ?>
+                <?php
+                $btnPerm = $this->data['buttonPermission'] ?? [];
+                $canManageInf = !empty($this->data['can_manage_informativo']);
+                ?>
+                <?php if ($canManageInf && is_array($btnPerm) && in_array('UpdateInformativo', $btnPerm, true)): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>update-informativo/<?php echo $informativo['id']; ?>" class="btn btn-warning btn-sm mb-1">
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php endif; ?>
-                <?php if (isset($this->data['buttonPermission']['DeleteInformativo'])): ?>
+                <?php if ($canManageInf && is_array($btnPerm) && in_array('DeleteInformativo', $btnPerm, true)): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>delete-informativo/<?php echo $informativo['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Tem certeza que deseja excluir este informativo?');">
                         <i class="fas fa-trash me-1"></i>Excluir
                     </a>

@@ -5,10 +5,12 @@ namespace App\adms\Controllers\informativos;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TextEncodingHelper;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
-use App\adms\Views\Services\LoadViewService;
+use App\adms\Models\Services\InformativosPermissionService;
 use App\adms\Models\Services\WhatsappNotificationService;
+use App\adms\Views\Services\LoadViewService;
 
 class CreateInformativo
 {
@@ -24,9 +26,9 @@ class CreateInformativo
         
         $repo = new InformativosRepository();
         $this->data['categorias'] = $repo->getCategorias();
-        $deptRepo = new DepartmentsRepository();
-        $this->data['departments'] = $deptRepo->getAllDepartmentsSelect();
-        
+        $this->configureDepartmentsForForm();
+        $this->data['all_departments_for_notify'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
+
         $pageElements = [
             'title_head' => 'Criar Informativo',
             'menu' => 'create-informativo',
@@ -40,6 +42,42 @@ class CreateInformativo
         $loadView->loadView();
     }
 
+    /**
+     * Super usuário: todos os departamentos. Demais: só o da sessão (somente leitura na view).
+     */
+    private function configureDepartmentsForForm(): void
+    {
+        $deptRepo = new DepartmentsRepository();
+        $all = $deptRepo->getAllDepartmentsSelect();
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            $this->data['departments'] = $all;
+            $this->data['department_select_locked'] = false;
+            $this->data['cannot_create_no_department'] = false;
+
+            return;
+        }
+
+        if ($userDept !== null) {
+            $this->data['departments'] = array_values(array_filter(
+                $all,
+                static fn (array $d): bool => (int) ($d['id'] ?? 0) === $userDept
+            ));
+            if ($this->data['departments'] === []) {
+                $this->data['departments'] = [['id' => $userDept, 'name' => 'Departamento #' . $userDept]];
+            }
+            $this->data['department_select_locked'] = true;
+            $this->data['cannot_create_no_department'] = false;
+
+            return;
+        }
+
+        $this->data['departments'] = [];
+        $this->data['department_select_locked'] = true;
+        $this->data['cannot_create_no_department'] = true;
+    }
+
     private function create(): void
     {
         if (!CSRFHelper::validateCSRFToken('create_informativo', $_POST['csrf_token'] ?? '')) {
@@ -51,7 +89,15 @@ class CreateInformativo
         $conteudo = trim(TextEncodingHelper::decodeEntities((string)($_POST['conteudo'] ?? '')));
         $categoriaId = (int)($_POST['categoria_id'] ?? 0);
         $categoriaNome = trim(TextEncodingHelper::decodeEntities((string)($_POST['categoria'] ?? '')));
-        $departmentId = (int)($_POST['department_id'] ?? 0);
+        $postedDept = (int)($_POST['department_id'] ?? 0);
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $userDept = InformativosPermissionService::sessionUserDepartmentId();
+        $departmentId = InformativosPermissionService::resolveCreateDepartmentId($postedDept, $userId, $userDept);
+        if ($departmentId === null || $departmentId <= 0) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não é possível publicar: seu usuário não possui departamento vinculado. Solicite ao administrador ou use um perfil com permissão total.</div>';
+
+            return;
+        }
         $publishAt = trim($_POST['publish_at'] ?? '');
         $expireAt = trim($_POST['expire_at'] ?? '');
         $urgente = isset($_POST['urgente']);
