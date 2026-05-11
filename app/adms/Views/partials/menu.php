@@ -1401,11 +1401,13 @@ if (!function_exists('countPermittedSubmenus')) {
                                 // Para menus sem submenu, verifica se tem permissão própria
                                 if ($hasPermitted) {
                                     $active = '';
-                                    // Matches com base no controller (menuAtivo)
-                                    $baseNameMatch = ($menuAtivo == basename($menu['url']));
-                                    $firstSegmentMatch = false;
                                     $path = parse_url($menu['url'], PHP_URL_PATH);
-                                    $parts = explode('/', trim((string)$path, '/'));
+                                    $pathStr = is_string($path) ? $path : '';
+                                    $menuSlugBase = $pathStr !== '' ? basename($pathStr) : '';
+                                    // Matches com base no controller (menuAtivo) — slug do path, não basename() na URL completa
+                                    $baseNameMatch = ($menuAtivo === $menuSlugBase);
+                                    $firstSegmentMatch = false;
+                                    $parts = explode('/', trim($pathStr, '/'));
                                     $basePath = trim((string)(parse_url($_ENV['URL_ADM'] ?? '', PHP_URL_PATH) ?? ''), '/');
                                     if (!empty($basePath) && !empty($parts) && $parts[0] === $basePath) {
                                         array_shift($parts);
@@ -1427,8 +1429,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                     $currentBaseName = basename((string)$currentUrlPath);
                                     $currentPathNoBase = implode('/', $currentSegments);
                                     // Evita false positive quando basename atual é numérico
-                                    $menuUrlBaseName = basename($menu['url']);
-                                    $urlBaseNameMatch = (!ctype_digit($currentBaseName ?? '')) && ($currentBaseName === $menuUrlBaseName);
+                                    $urlBaseNameMatch = (!ctype_digit($currentBaseName ?? '')) && ($currentBaseName === $menuSlugBase);
                                     $urlFirstSegMatch = ($currentFirstSeg !== '' && $currentFirstSeg === $menuFirstSeg);
                                     $urlFullMatch = ($currentPathNoBase !== '' && $menuPathNoBase !== '' && rtrim($currentPathNoBase, '/') === rtrim($menuPathNoBase, '/'));
 
