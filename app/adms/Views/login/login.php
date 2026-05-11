@@ -135,15 +135,21 @@ use App\adms\Helpers\CSRFHelper;
             include './app/adms/Views/partials/alerts.php';
             ?>
 
-            <form action="" method="POST" id="form-login">
+            <form action="" method="POST" id="form-login" autocomplete="off">
 
 
-                <!-- Campo usuário -->
+                <!-- Campo usuário: autocomplete off + readonly até o foco reduz sugestão de e-mail/dados salvos do Chrome -->
                 <div class="form-floating mb-3">
-                    <input type="text" name="username" class="form-control" id="username" placeholder="Digite seu usuário" value="<?php echo $this->data['form']['username'] ?? ''; ?>" 
-                           oninput="this.value = this.value.replace(/\s/g, '')" 
+                    <input type="text" name="username" class="form-control" id="username" placeholder="Digite seu usuário" value="<?php echo $this->data['form']['username'] ?? ''; ?>"
+                           oninput="this.value = this.value.replace(/\s/g, '')"
                            onpaste="this.value = this.value.replace(/\s/g, '')"
-                           autocomplete="username" required>
+                           readonly
+                           onfocus="this.removeAttribute('readonly');"
+                           autocomplete="off"
+                           autocapitalize="none"
+                           spellcheck="false"
+                           inputmode="text"
+                           required>
                     <label for="username">Usuário</label>
                 </div>
 
@@ -374,13 +380,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Adicionar foco automático no campo usuário
-    const usernameField = document.getElementById('username');
-    if (usernameField) {
-        usernameField.focus();
-        console.log('Foco definido no campo usuário');
-    }
-
     // Reset do estado quando a página é recarregada
     window.addEventListener('beforeunload', function() {
         formSubmitting = false;
@@ -389,8 +388,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Verificar se há estado salvo para restaurar após login
     checkSavedState();
 
-    // Verificar se há usuário salvo para mostrar apenas campo senha
+    // Usuário salvo no navegador: preenche usuário; senão mantém campo livre (readonly some no foco)
     checkSavedUser();
+
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    if (localStorage.getItem('saved_username')) {
+        if (passwordEl) {
+            passwordEl.focus();
+            console.log('Foco no campo senha (usuário já salvo neste navegador)');
+        }
+    } else if (usernameEl) {
+        usernameEl.focus();
+        console.log('Foco definido no campo usuário');
+    }
 
     console.log('=== LOGIN SCRIPT CONFIGURADO ===');
 });
@@ -617,6 +628,7 @@ function checkSavedUser() {
         // Preencher campo usuário
         const usernameField = document.getElementById('username');
         if (usernameField) {
+            usernameField.removeAttribute('readonly');
             usernameField.value = savedUser;
             usernameField.disabled = true;
             usernameField.classList.add('form-control-plaintext');
@@ -673,6 +685,7 @@ function continueWithUser() {
     // Manter usuário preenchido e desabilitado
     const usernameField = document.getElementById('username');
     if (usernameField) {
+        usernameField.removeAttribute('readonly');
         usernameField.disabled = true;
         usernameField.classList.add('form-control-plaintext');
         usernameField.classList.remove('form-control');
@@ -724,6 +737,7 @@ function changeUser() {
         usernameField.classList.remove('form-control-plaintext');
         usernameField.classList.add('form-control');
         usernameField.value = '';
+        usernameField.setAttribute('readonly', '');
         usernameField.focus();
     }
     
@@ -756,6 +770,7 @@ function clearSavedUser() {
         usernameField.classList.remove('form-control-plaintext');
         usernameField.classList.add('form-control');
         usernameField.value = '';
+        usernameField.setAttribute('readonly', '');
         usernameField.focus();
     }
     
