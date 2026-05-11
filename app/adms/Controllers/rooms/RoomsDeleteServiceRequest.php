@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\rooms;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomServiceRequestAccessHelper;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
 
 /**
@@ -26,6 +27,18 @@ class RoomsDeleteServiceRequest
         }
 
         $repo = new RoomServiceRequestsRepository();
+        $row = $repo->getById($id);
+        if (!$row) {
+            $_SESSION['error'] = 'Solicitação não encontrada.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-service-requests');
+            exit;
+        }
+        if (!RoomServiceRequestAccessHelper::currentUserMayDeleteServiceRequest($row)) {
+            $_SESSION['error'] = 'Não tem permissão para excluir esta solicitação.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-service-requests');
+            exit;
+        }
+
         $repo->delete($id);
 
         $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Solicitação excluída com sucesso!</div>';

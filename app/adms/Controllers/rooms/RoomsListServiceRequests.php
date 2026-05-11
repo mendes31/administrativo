@@ -4,6 +4,8 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\UserAccessHelper;
+use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -33,6 +35,13 @@ class RoomsListServiceRequests
             $filters['has_booking'] = $_GET['has_booking'];
         }
 
+        if (!UserAccessHelper::hasFullSystemAccess()) {
+            $uid = (int) ($_SESSION['user_id'] ?? 0);
+            if ($uid > 0) {
+                $filters['requester_or_booking_organizer_user_id'] = $uid;
+            }
+        }
+
         $repo = new RoomServiceRequestsRepository();
         $this->data['requests'] = $repo->getAll($filters, $page, $limit);
         $total = $repo->count($filters);
@@ -49,6 +58,13 @@ class RoomsListServiceRequests
         $groupsRepo = new RoomRequestGroupsRepository();
         $this->data['groups'] = $groupsRepo->getAll(true);
         $this->data['filters'] = $filters;
+        $this->data['service_requests_list_only_own'] = !UserAccessHelper::hasFullSystemAccess();
+
+        $barRepo = new BookingAdditionalRequestsRepository();
+        $sessionUid = (int) ($_SESSION['user_id'] ?? 0);
+        $this->data['booking_additional_requests'] = UserAccessHelper::hasFullSystemAccess()
+            ? $barRepo->listRecentForAdmin(150)
+            : $barRepo->listInvolvingUser($sessionUid, 100);
 
         $pageElements = [
             'title_head' => 'Solicitações (Salas)',
@@ -58,6 +74,8 @@ class RoomsListServiceRequests
                 'RoomsViewServiceRequest',
                 'RoomsUpdateServiceRequest',
                 'RoomsDeleteServiceRequest',
+                'ViewBooking',
+                'UpdateBooking',
             ],
         ];
 

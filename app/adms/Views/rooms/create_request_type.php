@@ -53,6 +53,7 @@ use App\adms\Helpers\CSRFHelper;
                             <?php endforeach; ?>
                         </select>
                         <div class="form-text">Defina a equipe/fila responsável. Os membros poderão assumir as solicitações.</div>
+                        <div class="form-text">Se ativar «Requer responsável» abaixo, esta equipa passa a ser <strong>obrigatória</strong> ao gravar o tipo.</div>
                     </div>
 
                     <div class="col-md-4">

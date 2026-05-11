@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\MeetingRoomsRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -66,6 +67,7 @@ class ListMeetingRooms
         
         $this->data['buildings'] = $buildings;
         $this->data['floors'] = $floors;
+        $this->data['csrf_import_room_bookings'] = CSRFHelper::generateCSRFToken('import_room_bookings');
 
         $pageElements = [
             'title_head' => 'Listar Salas de Reunião',

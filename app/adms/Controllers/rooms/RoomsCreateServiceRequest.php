@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\RoomServiceRequestNotificationHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\RoomBookingsRepository;
+use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\RoomRequestTypesRepository;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -47,6 +48,11 @@ class RoomsCreateServiceRequest
                 'RoomsListServiceRequests',
             ],
         ];
+
+        $this->data['can_change_service_request_requester'] = UserAccessHelper::hasFullSystemAccess();
+        $this->data['service_request_requester_users'] = $this->data['can_change_service_request_requester']
+            ? (new UsersRepository())->getUsersForRoomParticipantPicker()
+            : [];
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data ?? [], $pageLayoutService->configurePageElements($pageElements));
@@ -186,9 +192,26 @@ class RoomsCreateServiceRequest
             return;
         }
 
+        $sessionUid = (int) ($_SESSION['user_id'] ?? 0);
+        $requesterUserId = $sessionUid;
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            $postedRequester = (int) ($_POST['requester_user_id'] ?? 0);
+            if ($postedRequester > 0) {
+                $uRow = (new UsersRepository())->getUser($postedRequester);
+                if ($uRow !== false) {
+                    $requesterUserId = $postedRequester;
+                }
+            }
+        }
+        if ($requesterUserId <= 0) {
+            $_SESSION['error'] = 'Não foi possível identificar o solicitante. Inicie sessão novamente.';
+
+            return;
+        }
+
         $repo = new RoomServiceRequestsRepository();
         $payload = [
-            'requester_user_id' => (int)($_SESSION['user_id'] ?? 0),
+            'requester_user_id' => $requesterUserId,
             'request_type_id' => $requestTypeId,
             'request_description' => $description !== '' ? $description : null,
             'quantity' => $quantity,

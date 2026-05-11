@@ -125,6 +125,8 @@ class LoadPageAdmAccessLevel
             'ExtendSession' => "\\App\\adms\\Controllers\\session\\ExtendSession",
             // Reserva de salas: bloqueio temporário de intervalo (book-room).
             'RoomBookingSlotHold' => "\\App\\adms\\Controllers\\rooms\\RoomBookingSlotHold",
+            // Reserva de salas: modelo CSV + POST de importação por sala (rota técnica; permissão no controller).
+            'ImportRoomBookings' => "\\App\\adms\\Controllers\\rooms\\ImportRoomBookings",
         ];
         if (isset($internalAjaxMap[$this->urlController])) {
             $this->classLoad = $internalAjaxMap[$this->urlController];
@@ -313,6 +315,26 @@ class LoadPageAdmAccessLevel
 
             $accessLevelPage = new PagesRoutesRepository();
             if ($accessLevelPage->checkUserPagePermission($this->page['id_ap'])) {
+                return true;
+            }
+
+            $ctrl = (string) ($this->page['controller'] ?? '');
+            // Listagem de salas: alinhado ao menu (quem vê/edita/apaga salas acede à lista mesmo sem página "ListMeetingRooms").
+            if ($ctrl === 'ListMeetingRooms' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'ListMeetingRooms', 'ViewMeetingRoom', 'UpdateMeetingRoom', 'DeleteMeetingRoom',
+            ])) {
+                return true;
+            }
+            // Calendário: quem lista ou reserva salas deve conseguir abrir o calendário.
+            if ($ctrl === 'RoomCalendar' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'RoomCalendar', 'ListMeetingRooms', 'BookRoom',
+            ])) {
+                return true;
+            }
+            // Lista de reservas: utilizadores com fluxo de reserva sem página "ListBookings" explícita.
+            if ($ctrl === 'ListBookings' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'ListBookings', 'ViewBooking', 'CreateBooking', 'UpdateBooking', 'CancelBooking',
+            ])) {
                 return true;
             }
         }

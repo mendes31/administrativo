@@ -169,6 +169,74 @@ class BookingAdditionalRequestsRepository extends DbConnection
     }
 
     /**
+     * Pedidos adicionais em que o utilizador é organizador da reserva ou responsável pelo pedido.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listInvolvingUser(int $userId, int $limit = 100): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $limit = max(1, min(500, $limit));
+        $sql = "SELECT bar.*,
+                       rb.title AS booking_title,
+                       rb.start_datetime AS booking_start_datetime,
+                       rb.end_datetime AS booking_end_datetime,
+                       rb.user_id AS booking_organizer_user_id,
+                       COALESCE(mr.name, '') AS room_name,
+                       ru.name AS responsible_name,
+                       COALESCE(rt.name, bar.request_type) AS request_type_display_name
+                FROM adms_booking_additional_requests bar
+                INNER JOIN adms_room_bookings rb ON bar.booking_id = rb.id
+                LEFT JOIN adms_meeting_rooms mr ON rb.room_id = mr.id
+                INNER JOIN adms_users ru ON bar.responsible_user_id = ru.id
+                LEFT JOIN adms_room_request_types rt ON rt.code = bar.request_type
+                WHERE (rb.user_id = :u1 OR bar.responsible_user_id = :u2)
+                ORDER BY rb.start_datetime DESC, bar.id DESC
+                LIMIT {$limit}";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':u1', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':u2', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Lista recente para administrador (visão global).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listRecentForAdmin(int $limit = 150): array
+    {
+        $limit = max(1, min(500, $limit));
+        $sql = "SELECT bar.*,
+                       rb.title AS booking_title,
+                       rb.start_datetime AS booking_start_datetime,
+                       rb.end_datetime AS booking_end_datetime,
+                       rb.user_id AS booking_organizer_user_id,
+                       COALESCE(mr.name, '') AS room_name,
+                       ru.name AS responsible_name,
+                       org.name AS organizer_name,
+                       COALESCE(rt.name, bar.request_type) AS request_type_display_name
+                FROM adms_booking_additional_requests bar
+                INNER JOIN adms_room_bookings rb ON bar.booking_id = rb.id
+                LEFT JOIN adms_meeting_rooms mr ON rb.room_id = mr.id
+                INNER JOIN adms_users ru ON bar.responsible_user_id = ru.id
+                INNER JOIN adms_users org ON rb.user_id = org.id
+                LEFT JOIN adms_room_request_types rt ON rt.code = bar.request_type
+                ORDER BY bar.created_at DESC, bar.id DESC
+                LIMIT {$limit}";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Deletar todas as solicitações de uma reserva
      */
     public function deleteByBookingId(int $bookingId): bool

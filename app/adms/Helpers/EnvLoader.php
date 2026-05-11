@@ -21,8 +21,9 @@ class EnvLoader
      */
     public static function load(): bool
     {
-        // Verificar se o .env já foi carregado
-        if (isset($_ENV['DB_HOST'])) {
+        // Só considerar carregado se o essencial existir (Apache/sistema podem definir só DB_HOST).
+        $dbName = $_ENV['DB_NAME'] ?? $_ENV['DB_DATABASE'] ?? $_ENV['DATABASE_NAME'] ?? $_ENV['MYSQL_DATABASE'] ?? '';
+        if (isset($_ENV['DB_HOST'], $_ENV['DB_USER']) && $dbName !== '') {
             return true;
         }
 

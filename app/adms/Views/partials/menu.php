@@ -794,6 +794,7 @@ $menus = [
                 'label' => 'Calendário',
                 'url' => $_ENV['URL_ADM'] . 'room-calendar',
                 'permission' => 'RoomCalendar',
+                'any_of' => ['RoomCalendar', 'ListMeetingRooms', 'BookRoom'],
                 'icon' => 'fas fa-calendar'
             ],
             [
@@ -803,7 +804,8 @@ $menus = [
                     [
                         'label' => 'Listar Salas',
                         'url' => $_ENV['URL_ADM'] . 'list-meeting-rooms',
-                        'permission' => 'ListMeetingRooms'
+                        'permission' => 'ListMeetingRooms',
+                        'any_of' => ['ListMeetingRooms', 'ViewMeetingRoom', 'UpdateMeetingRoom', 'DeleteMeetingRoom'],
                     ],
                     [
                         'label' => 'Criar Sala',
@@ -819,7 +821,8 @@ $menus = [
                     [
                         'label' => 'Todas as Reservas',
                         'url' => $_ENV['URL_ADM'] . 'list-bookings',
-                        'permission' => 'ListBookings'
+                        'permission' => 'ListBookings',
+                        'any_of' => ['ListBookings', 'ViewBooking', 'CreateBooking', 'UpdateBooking', 'CancelBooking'],
                     ],
                     [
                         'label' => 'Lista de Espera',
@@ -1080,19 +1083,55 @@ $menus = [
 ];
 
 
+/** Item de menu visível: permission OU qualquer entrada em any_of (lista de controllers). */
+if (!function_exists('menuEntryAllowed')) {
+    function menuEntryAllowed(array $item, array $menuPermission): bool
+    {
+        if (!empty($item['any_of']) && is_array($item['any_of'])) {
+            foreach ($item['any_of'] as $perm) {
+                if (in_array($perm, $menuPermission, true)) {
+                    return true;
+                }
+            }
+        }
+        if (isset($item['permission']) && in_array($item['permission'], $menuPermission, true)) {
+            return true;
+        }
+
+        return false;
+    }
+}
+
+/** menuAtivo / override coincide com permission ou com algum any_of */
+if (!function_exists('menuEntryMatchesAtivo')) {
+    function menuEntryMatchesAtivo(array $item, string|bool|null $menuAtivo): bool
+    {
+        if ($menuAtivo === null || $menuAtivo === false || $menuAtivo === '') {
+            return false;
+        }
+        $token = (string) $menuAtivo;
+        if (isset($item['permission']) && $item['permission'] === $token) {
+            return true;
+        }
+        if (!empty($item['any_of']) && is_array($item['any_of']) && in_array($token, $item['any_of'], true)) {
+            return true;
+        }
+
+        return false;
+    }
+}
+
 // Função para verificar se há pelo menos um submenu permitido
 if (!function_exists('hasPermittedSubmenu')) {
     function hasPermittedSubmenu($submenu, $menuPermission) {
         foreach ($submenu as $item) {
-            // Verifica se o item tem permissão e se está nas permissões do usuário
-            if (isset($item['permission']) && in_array($item['permission'], $menuPermission)) {
-                return true;
-            }
-            // Verifica submenus aninhados recursivamente
             if (isset($item['submenu']) && is_array($item['submenu'])) {
                 if (hasPermittedSubmenu($item['submenu'], $menuPermission)) {
                     return true;
                 }
+            }
+            if (menuEntryAllowed($item, $menuPermission)) {
+                return true;
             }
         }
         return false;
@@ -1104,10 +1143,9 @@ if (!function_exists('countPermittedSubmenus')) {
     function countPermittedSubmenus($submenu, $menuPermission) {
         $count = 0;
         foreach ($submenu as $item) {
-            if (isset($item['permission']) && in_array($item['permission'], $menuPermission)) {
+            if (menuEntryAllowed($item, $menuPermission)) {
                 $count++;
             }
-            // Verifica submenus aninhados recursivamente
             if (isset($item['submenu']) && is_array($item['submenu'])) {
                 $count += countPermittedSubmenus($item['submenu'], $menuPermission);
             }
@@ -1159,7 +1197,7 @@ if (!function_exists('countPermittedSubmenus')) {
                     function renderMenu($menus, $menuPermission, $menuAtivo = null, $nivel = 0, $parentId = 'sidenavAccordion') {
                         foreach ($menus as $index => $menu) {
                             $hasSubmenu = !empty($menu['submenu']);
-                            $hasPermitted = isset($menu['permission']) ? in_array($menu['permission'], $menuPermission) : false;
+                            $hasPermitted = menuEntryAllowed($menu, $menuPermission);
                             
                             if ($hasSubmenu) {
                                 // Verifica se há pelo menos um submenu permitido
@@ -1168,12 +1206,12 @@ if (!function_exists('countPermittedSubmenus')) {
                                         // Se o submenu tem submenus aninhados, verifica recursivamente
                                         return hasPermittedSubmenu($submenu['submenu'], $menuPermission);
                                     }
-                                    return isset($submenu['permission']) && in_array($submenu['permission'], $menuPermission);
+                                    return menuEntryAllowed($submenu, $menuPermission);
                                 });
                                 
                                 // Verifica também se há submenus diretos permitidos
                                 $directPermittedSubmenus = array_filter($menu['submenu'], function($submenu) use ($menuPermission) {
-                                    return isset($submenu['permission']) && in_array($submenu['permission'], $menuPermission);
+                                    return menuEntryAllowed($submenu, $menuPermission);
                                 });
                                 
                                 // Se não há submenus diretos permitidos, verifica se há submenus aninhados permitidos
@@ -1224,7 +1262,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                     $currentBaseName = basename((string)$currentUrlPath);
                                     $currentPathNoBase = implode('/', $currentSegments);
                                     foreach ($menu['submenu'] as $submenu) {
-                                        if (isset($submenu['permission']) && in_array($submenu['permission'], $menuPermission)) {
+                                        if (menuEntryAllowed($submenu, $menuPermission)) {
                                             // Determinar primeiro segmento do caminho da URL (ex.: password-policy/1 -> password-policy)
                                             $firstSegment = '';
                                             if (isset($submenu['url'])) {
@@ -1238,7 +1276,11 @@ if (!function_exists('countPermittedSubmenus')) {
                                             }
                                             // Prioriza override explícito
                                             $override = $_SESSION['menu_override'] ?? null;
-                                            if ($override && ($override === ($submenu['permission'] ?? null) || $override === basename($submenu['url'] ?? ''))) {
+                                            if ($override && (
+                                                $override === ($submenu['permission'] ?? null)
+                                                || (!empty($submenu['any_of']) && is_array($submenu['any_of']) && in_array($override, $submenu['any_of'], true))
+                                                || $override === basename($submenu['url'] ?? '')
+                                            )) {
                                                 $submenuActive = true;
                                                 break;
                                             }
@@ -1246,7 +1288,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                             if ((isset($menu['id']) && $menuAtivo == $menu['id'])
                                                 || (isset($submenu['url']) && $menuAtivo == basename($submenu['url']))
                                                 || ($firstSegment !== '' && $menuAtivo == $firstSegment)
-                                                || (isset($submenu['permission']) && $menuAtivo == $submenu['permission'])) {
+                                                || menuEntryMatchesAtivo($submenu, $menuAtivo)) {
                                                 $submenuActive = true;
                                                 break;
                                             }
@@ -1269,7 +1311,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                         // Verifica submenus aninhados
                                         if (isset($submenu['submenu'])) {
                                             foreach ($submenu['submenu'] as $nestedSubmenu) {
-                                                if (isset($nestedSubmenu['permission']) && in_array($nestedSubmenu['permission'], $menuPermission)) {
+                                                if (menuEntryAllowed($nestedSubmenu, $menuPermission)) {
                                                     $nestedFirst = '';
                                                     if (isset($nestedSubmenu['url'])) {
                                                         $npath = parse_url($nestedSubmenu['url'], PHP_URL_PATH);
@@ -1283,7 +1325,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                                     // Match por controller/permission
                                                     if ((isset($nestedSubmenu['url']) && $menuAtivo == basename($nestedSubmenu['url']))
                                                         || ($nestedFirst !== '' && $menuAtivo == $nestedFirst)
-                                                        || (isset($nestedSubmenu['permission']) && $menuAtivo == $nestedSubmenu['permission'])) {
+                                                        || menuEntryMatchesAtivo($nestedSubmenu, $menuAtivo)) {
                                                         $submenuActive = true;
                                                         break 2;
                                                     }
@@ -1305,7 +1347,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                                 // Suporte a terceiro nível (ex.: LGPD -> AIPD -> Templates AIPD -> Template X)
                                                 if (isset($nestedSubmenu['submenu']) && is_array($nestedSubmenu['submenu'])) {
                                                     foreach ($nestedSubmenu['submenu'] as $deepSubmenu) {
-                                                        if (isset($deepSubmenu['permission']) && in_array($deepSubmenu['permission'], $menuPermission)) {
+                                                        if (menuEntryAllowed($deepSubmenu, $menuPermission)) {
                                                             $deepFirst = '';
                                                             if (isset($deepSubmenu['url'])) {
                                                                 $dpath = parse_url($deepSubmenu['url'], PHP_URL_PATH);
@@ -1318,7 +1360,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                                             }
                                                             if ((isset($deepSubmenu['url']) && $menuAtivo == basename($deepSubmenu['url']))
                                                                 || ($deepFirst !== '' && $menuAtivo == $deepFirst)
-                                                                || (isset($deepSubmenu['permission']) && $menuAtivo == $deepSubmenu['permission'])) {
+                                                                || menuEntryMatchesAtivo($deepSubmenu, $menuAtivo)) {
                                                                 $submenuActive = true;
                                                                 break 3;
                                                             }
@@ -1373,7 +1415,7 @@ if (!function_exists('countPermittedSubmenus')) {
                                     if ($menuFirstSeg !== '' && $menuAtivo == $menuFirstSeg) {
                                         $firstSegmentMatch = true;
                                     }
-                                    $permissionMatch = (isset($menu['permission']) && $menuAtivo == $menu['permission']);
+                                    $permissionMatch = menuEntryMatchesAtivo($menu, $menuAtivo);
 
                                     // Matches com base na URL atual
                                     $currentUrlPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);

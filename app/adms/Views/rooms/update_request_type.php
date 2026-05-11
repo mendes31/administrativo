@@ -56,6 +56,7 @@ $type = $this->data['requestType'] ?? [];
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="form-text">Com «Requer responsável» ativo, a equipa é <strong>obrigatória</strong> (atendimento em «Criar solicitação»). Na reserva, «Responsável» no pedido adicional é utilizador, não esta equipa.</div>
                     </div>
 
                     <div class="col-md-4">

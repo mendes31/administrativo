@@ -84,4 +84,39 @@ class PagesRoutesRepository extends DbConnection
         return ($result && isset($result['permission']) && $result['permission'] == 1) ? true : false;
     }
 
+    /**
+     * Permissão se o utilizador tiver pelo menos uma das páginas (controllers) com permission=1.
+     * Usado quando a rota é a listagem mas o nível de acesso concede só "visualizar/editar" (ex.: salas de reunião).
+     *
+     * @param list<string> $controllers Nomes de classe em PascalCase (coluna adms_pages.controller)
+     */
+    public function checkUserAnyPagePermissionForControllers(array $controllers): bool
+    {
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            return true;
+        }
+
+        $controllers = array_values(array_unique(array_filter(array_map('strval', $controllers))));
+        if ($controllers === []) {
+            return false;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($controllers), '?'));
+        $sql = "SELECT 1
+                FROM adms_users_access_levels AS aual
+                INNER JOIN adms_access_levels_pages AS alp
+                    ON alp.adms_access_level_id = aual.adms_access_level_id
+                    AND alp.permission = 1
+                INNER JOIN adms_pages AS ap ON ap.id = alp.adms_page_id AND ap.page_status = 1
+                WHERE aual.adms_user_id = ?
+                  AND ap.controller IN ($placeholders)
+                LIMIT 1";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $params = array_merge([(int) ($_SESSION['user_id'] ?? 0)], $controllers);
+        $stmt->execute($params);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
 }

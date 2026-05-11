@@ -152,6 +152,17 @@ use App\adms\Helpers\ImageHelper;
                                                 <i class="fas fa-calendar-plus me-1"></i>Reservar
                                             </a>
                                         <?php endif; ?>
+                                        <?php if (in_array('UpdateMeetingRoom', $this->data['buttonPermission'] ?? [], true)) { ?>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary w-100 mb-2 js-open-import-bookings"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalImportRoomBookings"
+                                                    data-room-id="<?= (int) $room['id'] ?>"
+                                                    data-room-name="<?= htmlspecialchars($room['name'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    title="Baixar modelo e importar reservas desta sala">
+                                                <i class="fas fa-file-import me-1"></i>Importar / modelo
+                                            </button>
+                                        <?php } ?>
                                         <div class="btn-group w-100" role="group">
                                             <?php if (in_array('ViewMeetingRoom', $this->data['buttonPermission'] ?? [])) { ?>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>view-meeting-room/<?= $room['id'] ?>" 
@@ -190,6 +201,54 @@ use App\adms\Helpers\ImageHelper;
         </div>
     </div>
 </div>
+
+<?php if (in_array('UpdateMeetingRoom', $this->data['buttonPermission'] ?? [], true)) { ?>
+<div class="modal fade" id="modalImportRoomBookings" tabindex="-1" aria-labelledby="modalImportRoomBookingsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImportRoomBookingsLabel">Importar reservas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">Sala: <strong id="importModalRoomName"></strong></p>
+                <p class="small mb-3">1) Baixe o modelo (CSV com separador <strong>;</strong>). 2) Preencha as linhas. 3) Envie o arquivo. Linhas com conflito de horário na sala serão ignoradas.</p>
+                <a href="#" class="btn btn-outline-primary w-100 mb-3" id="importModalDownloadTemplate" download>
+                    <i class="fas fa-download me-2"></i>Baixar modelo para preenchimento
+                </a>
+                <form method="post" action="<?php echo $_ENV['URL_ADM']; ?>import-room-bookings" enctype="multipart/form-data" id="formImportRoomBookings">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($this->data['csrf_import_room_bookings'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="room_id" id="importModalRoomId" value="">
+                    <div class="mb-3">
+                        <label for="import_file" class="form-label">Arquivo (.csv, .xlsx)</label>
+                        <input type="file" class="form-control" name="import_file" id="import_file" accept=".csv,.xlsx,.xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-upload me-2"></i>Importar agora
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var base = <?php echo json_encode(rtrim($_ENV['URL_ADM'] ?? '', '/') . '/', JSON_HEX_TAG | JSON_HEX_APOS); ?>;
+    var modalEl = document.getElementById('modalImportRoomBookings');
+    if (!modalEl) return;
+    modalEl.addEventListener('show.bs.modal', function (ev) {
+        var btn = ev.relatedTarget;
+        if (!btn || !btn.classList || !btn.classList.contains('js-open-import-bookings')) return;
+        var rid = btn.getAttribute('data-room-id') || '';
+        var rname = btn.getAttribute('data-room-name') || '';
+        document.getElementById('importModalRoomId').value = rid;
+        document.getElementById('importModalRoomName').textContent = rname;
+        var dl = document.getElementById('importModalDownloadTemplate');
+        dl.href = base + 'import-room-bookings?room_id=' + encodeURIComponent(rid) + '&template=1';
+    });
+})();
+</script>
+<?php } ?>
 
 <style>
 .room-card {

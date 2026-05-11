@@ -5,6 +5,8 @@ namespace App\adms\Controllers\rooms;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\BookingParticipantNotificationHelper;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomAdditionalRequestResponsiblePolicy;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\BookingParticipantsRepository;
 use App\adms\Helpers\RoomWaitlistService;
@@ -20,6 +22,9 @@ use App\adms\Views\Services\LoadViewService;
  */
 class UpdateBooking
 {
+    /** Antecedência mínima (segundos) para permitir alterar solicitações adicionais na reserva. */
+    private const SECONDS_BEFORE_EVENT_START_TO_EDIT_ADDITIONAL_REQUESTS = 3600;
+
     private array|string|null $data = null;
 
     public function index(string|int|null $id = null): void
@@ -101,6 +106,14 @@ class UpdateBooking
         $this->data['rooms'] = $roomsRepo->getAll(['status' => 'active'], 1, 1000);
         $this->data['users'] = $usersRepo->getUsersForRoomParticipantPicker();
         $this->data['requestTypes'] = $requestTypesRepo->getAll(true);
+        $this->data['can_change_booking_additional_request_responsible'] = $isSuperAdmin;
+        $this->data['booking_additional_request_session_user_id'] = (int) ($_SESSION['user_id'] ?? 0);
+        $this->data['booking_additional_request_session_user_name'] = (string) ($_SESSION['user_name'] ?? '');
+
+        $startTsForLock = strtotime((string) ($booking['start_datetime'] ?? ''));
+        $this->data['can_edit_booking_additional_requests'] = UserAccessHelper::hasFullSystemAccess()
+            || ($startTsForLock !== false
+                && time() < $startTsForLock - self::SECONDS_BEFORE_EVENT_START_TO_EDIT_ADDITIONAL_REQUESTS);
 
         $seriesId = trim((string) ($booking['recurrence_series_id'] ?? ''));
         $this->data['edit_recurrence_series'] = $seriesId !== '';
@@ -235,6 +248,18 @@ class UpdateBooking
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: A duração máxima permitida é de ' . $room['booking_duration_limit_hours'] . ' horas!</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
             exit;
+        }
+
+        $mayEditAdditionalRequests = UserAccessHelper::hasFullSystemAccess()
+            || ($startTimestamp - $now) > self::SECONDS_BEFORE_EVENT_START_TO_EDIT_ADDITIONAL_REQUESTS;
+        if (!$mayEditAdditionalRequests) {
+            $addReqRepo = new BookingAdditionalRequestsRepository();
+            $storedAdditional = $addReqRepo->getByBookingId($id);
+            if ($this->additionalRequestsPostDiffersFromStored($additionalRequests, $storedAdditional)) {
+                $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Impossível editar as solicitações adicionais: falta menos de 1 hora para o início do evento. Contacte a equipa responsável.</div>';
+                header('Location: ' . $_ENV['URL_ADM'] . 'update-booking/' . $id);
+                exit;
+            }
         }
 
         $startSql = date('Y-m-d H:i:s', $startTimestamp);
@@ -501,6 +526,51 @@ class UpdateBooking
     }
 
     /**
+     * @param array<int|string, mixed> $postRows
+     * @param list<array<string, mixed>> $dbRows
+     */
+    private function additionalRequestsPostDiffersFromStored(array $postRows, array $dbRows): bool
+    {
+        return $this->canonicalAdditionalRequestsSignature($postRows, false)
+            !== $this->canonicalAdditionalRequestsSignature($dbRows, true);
+    }
+
+    /**
+     * @param array<int|string, mixed> $rows
+     */
+    private function canonicalAdditionalRequestsSignature(array $rows, bool $fromDb): string
+    {
+        $items = [];
+        foreach ($rows as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            if ($fromDb) {
+                $type = trim((string) ($r['request_type'] ?? ''));
+                $desc = trim((string) ($r['request_description'] ?? ''));
+                $qtyRaw = $r['quantity'] ?? null;
+                $qty = $qtyRaw === null || $qtyRaw === '' ? null : (int) $qtyRaw;
+                $resp = (int) ($r['responsible_user_id'] ?? 0);
+            } else {
+                $type = trim((string) ($r['type'] ?? ''));
+                $desc = trim((string) ($r['description'] ?? ''));
+                $qtyRaw = $r['quantity'] ?? null;
+                $qty = $qtyRaw === null || $qtyRaw === '' ? null : (int) $qtyRaw;
+                $resp = (int) ($r['responsible_user_id'] ?? 0);
+            }
+            if ($type === '') {
+                continue;
+            }
+            $items[] = ['type' => $type, 'responsible_user_id' => $resp, 'quantity' => $qty, 'description' => $desc];
+        }
+        usort($items, static function (array $a, array $b): int {
+            return strcmp($a['type'] . "\0" . $a['description'], $b['type'] . "\0" . $b['description']);
+        });
+
+        return (string) json_encode($items);
+    }
+
+    /**
      * Atualizar solicitações adicionais
      */
     private function updateAdditionalRequests(int $bookingId, array $requests): void
@@ -513,6 +583,7 @@ class UpdateBooking
         // Adicionar novas solicitações
         if (!empty($requests) && is_array($requests)) {
             $requestTypesRepo = new RoomRequestTypesRepository();
+            $usersRepo = new UsersRepository();
             $organizerId = (int) ($_SESSION['user_id'] ?? 0);
 
             foreach ($requests as $request) {
@@ -525,12 +596,17 @@ class UpdateBooking
                     continue;
                 }
 
-                $responsibleUserId = !empty($request['responsible_user_id']) ? (int) $request['responsible_user_id'] : 0;
-                if ($responsibleUserId <= 0 && !empty($requestType['requires_responsible'])) {
-                    $responsibleUserId = (int) ($requestType['default_responsible_user_id'] ?? 0);
-                }
-                if ($responsibleUserId <= 0) {
-                    $responsibleUserId = $organizerId;
+                $postedResp = !empty($request['responsible_user_id']) ? (int) $request['responsible_user_id'] : 0;
+                $responsibleUserId = RoomAdditionalRequestResponsiblePolicy::resolveForBookingAdditionalRequest(
+                    $postedResp,
+                    $organizerId,
+                    $requestType
+                );
+                if ($responsibleUserId > 0) {
+                    $userRow = $usersRepo->getUser($responsibleUserId);
+                    if ($userRow === false) {
+                        $responsibleUserId = $organizerId > 0 ? $organizerId : 0;
+                    }
                 }
                 if ($responsibleUserId <= 0) {
                     continue;

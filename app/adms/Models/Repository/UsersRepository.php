@@ -454,6 +454,28 @@ class UsersRepository extends DbConnection
         return $u ?: false;
     }
 
+    /**
+     * Resolve usuário para importação de reservas: username exato ou e-mail (case-insensitive).
+     */
+    public function findUserIdForRoomImport(string $term): ?int
+    {
+        $term = trim($term);
+        if ($term === '') {
+            return null;
+        }
+        $byUser = $this->getUserByUsername($term);
+        if ($byUser && !empty($byUser['id'])) {
+            return (int) $byUser['id'];
+        }
+        $sql = 'SELECT id FROM adms_users WHERE LOWER(TRIM(email)) = LOWER(:e) LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':e', $term, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row && !empty($row['id']) ? (int) $row['id'] : null;
+    }
+
     // getUserByEmailUsernameOrCpf mantido apenas para compatibilidade com código antigo.
 
     /**

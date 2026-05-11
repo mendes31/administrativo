@@ -73,6 +73,11 @@ class RoomsCreateRequestType
             return;
         }
 
+        if (!empty($data['requires_responsible']) && empty($data['default_responsible_group_id'])) {
+            $_SESSION['error'] = 'Com «Requer responsável» ativo, selecione a equipe responsável (padrão). Essa equipe é usada no atendimento das solicitações do módulo (Criar solicitação).';
+            return;
+        }
+
         $repo->create($data);
         $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Tipo de solicitação criado com sucesso!</div>';
         header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-request-types');

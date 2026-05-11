@@ -7,6 +7,10 @@ $defaultDate = $prefill['service_date'] ?? date('Y-m-d');
 $defaultStart = $prefill['start_time'] ?? '';
 $defaultEnd = $prefill['end_time'] ?? '';
 $defaultLocation = $prefill['location'] ?? '';
+$canChangeServiceRequestRequester = !empty($this->data['can_change_service_request_requester']);
+$serviceRequestRequesterUsers = $this->data['service_request_requester_users'] ?? [];
+$sessionRequesterId = (int) ($_SESSION['user_id'] ?? 0);
+$sessionRequesterName = (string) ($_SESSION['user_name'] ?? '');
 ?>
 <?php include __DIR__ . '/partials/module_head.php'; ?>
 <div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
@@ -58,6 +62,25 @@ $defaultLocation = $prefill['location'] ?? '';
                 <?php endif; ?>
 
                 <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label"<?= $canChangeServiceRequestRequester ? ' for="requester_user_id"' : ''; ?>>Solicitante *</label>
+                        <?php if ($canChangeServiceRequestRequester): ?>
+                            <select name="requester_user_id" id="requester_user_id" class="form-select" required>
+                                <?php foreach ($serviceRequestRequesterUsers as $u): ?>
+                                    <option value="<?php echo (int) ($u['id'] ?? 0); ?>" <?php echo (int) ($u['id'] ?? 0) === $sessionRequesterId ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars((string) ($u['name'] ?? '')); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text">Super administrador: pode registar a solicitação em nome de outro utilizador.</div>
+                        <?php else: ?>
+                            <input type="hidden" name="requester_user_id" value="<?php echo $sessionRequesterId; ?>">
+                            <div id="requester_display" class="form-control-plaintext border rounded px-3 py-2 bg-light">
+                                <?php echo htmlspecialchars($sessionRequesterName !== '' ? $sessionRequesterName : ('ID ' . (string) $sessionRequesterId)); ?>
+                            </div>
+                            <div class="form-text">A solicitação fica associada ao utilizador em sessão.</div>
+                        <?php endif; ?>
+                    </div>
                     <div class="col-md-6">
                         <label for="request_type_id" class="form-label">Tipo de Solicitação *</label>
                         <select name="request_type_id" id="request_type_id" class="form-select" required>

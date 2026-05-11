@@ -32,6 +32,15 @@ class RoomServiceRequestsRepository extends DbConnection
             $params[':requester_user_id'] = (int)$filters['requester_user_id'];
         }
 
+        if (!empty($filters['requester_or_booking_organizer_user_id'])) {
+            $ro = (int) $filters['requester_or_booking_organizer_user_id'];
+            if ($ro > 0) {
+                $where[] = '(sr.requester_user_id = :robo_u1 OR EXISTS (SELECT 1 FROM adms_room_bookings b WHERE b.id = sr.booking_id AND b.user_id = :robo_u2))';
+                $params[':robo_u1'] = $ro;
+                $params[':robo_u2'] = $ro;
+            }
+        }
+
         if (isset($filters['has_booking'])) {
             if ($filters['has_booking'] === true || $filters['has_booking'] === '1' || $filters['has_booking'] === 1) {
                 $where[] = 'sr.booking_id IS NOT NULL';
@@ -77,6 +86,15 @@ class RoomServiceRequestsRepository extends DbConnection
         if (!empty($filters['requester_user_id'])) {
             $where[] = 'sr.requester_user_id = :requester_user_id';
             $params[':requester_user_id'] = (int)$filters['requester_user_id'];
+        }
+
+        if (!empty($filters['requester_or_booking_organizer_user_id'])) {
+            $ro = (int) $filters['requester_or_booking_organizer_user_id'];
+            if ($ro > 0) {
+                $where[] = '(sr.requester_user_id = :robo_u1 OR EXISTS (SELECT 1 FROM adms_room_bookings b WHERE b.id = sr.booking_id AND b.user_id = :robo_u2))';
+                $params[':robo_u1'] = $ro;
+                $params[':robo_u2'] = $ro;
+            }
         }
 
         if (isset($filters['has_booking'])) {
@@ -131,6 +149,7 @@ class RoomServiceRequestsRepository extends DbConnection
                        u.email AS requester_email,
                        cu.name AS claimed_by_name,
                        rb.title AS booking_title,
+                       rb.user_id AS booking_organizer_user_id,
                        mr.name AS booking_room_name
                 FROM adms_room_service_requests sr
                 INNER JOIN adms_room_request_types rt ON sr.request_type_id = rt.id

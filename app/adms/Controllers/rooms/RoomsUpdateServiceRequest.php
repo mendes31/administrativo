@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomServiceRequestAccessHelper;
 use App\adms\Helpers\RoomServiceRequestNotificationHelper;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\RoomRequestTypesRepository;
@@ -30,6 +31,12 @@ class RoomsUpdateServiceRequest
         $request = $repo->getById($id);
         if (!$request) {
             $_SESSION['error'] = 'Solicitação não encontrada.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-service-requests');
+            return;
+        }
+
+        if (!RoomServiceRequestAccessHelper::currentUserMayEditServiceRequest($request)) {
+            $_SESSION['error'] = 'Não tem permissão para editar esta solicitação.';
             header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-service-requests');
             return;
         }
@@ -63,6 +70,11 @@ class RoomsUpdateServiceRequest
 
     private function update(array $original): void
     {
+        if (!RoomServiceRequestAccessHelper::currentUserMayEditServiceRequest($original)) {
+            $_SESSION['error'] = 'Não tem permissão para editar esta solicitação.';
+            return;
+        }
+
         if (!CSRFHelper::validateCSRFToken('form_update_room_service_request', $_POST['csrf_token'] ?? '')) {
             $_SESSION['error'] = 'Token de segurança inválido. Tente novamente.';
             return;

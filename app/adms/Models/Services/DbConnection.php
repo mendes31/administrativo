@@ -6,12 +6,6 @@ use App\adms\Helpers\GenerateLog;
 use PDO;
 use PDOException;
 
-// Reforço do carregamento do .env
-if (!isset($_ENV['DB_HOST'])) {
-    require_once __DIR__ . '/../../Helpers/EnvLoader.php';
-    \App\adms\Helpers\EnvLoader::load();
-}
-
 /**
  * Classe responsável pela conexão com o banco de dados.
  *
@@ -25,6 +19,27 @@ if (!isset($_ENV['DB_HOST'])) {
  */
 abstract class DbConnection
 {
+    private static function envDbReady(): bool
+    {
+        $name = self::resolveDbName();
+
+        return isset($_ENV['DB_HOST'], $_ENV['DB_USER']) && $name !== '';
+    }
+
+    /**
+     * Nome da base: DB_NAME (padrão do projeto) ou alternativas comuns (.env de outros stacks).
+     */
+    private static function resolveDbName(): string
+    {
+        foreach (['DB_NAME', 'DB_DATABASE', 'DATABASE_NAME', 'MYSQL_DATABASE'] as $key) {
+            if (!empty($_ENV[$key])) {
+                return trim((string) $_ENV[$key]);
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Conexão PDO compartilhada entre todas as instâncias que estendem DbConnection.
      *
@@ -53,17 +68,34 @@ abstract class DbConnection
             // Criar nova conexão com o banco de dados se não existir
             if (self::$connect === null) {
 
-                // Conexão com a porta
-                // $this->connect = new PDO("mysql:host={$_ENV['DB_HOST']};port={$_ENV['DB_PORT']};dbname=" . $_ENV['DB_NAME'], $_ENV['DB_USER'], $_ENV['DB_PASS']);
+                if (!self::envDbReady()) {
+                    require_once __DIR__ . '/../../Helpers/EnvLoader.php';
+                    \App\adms\Helpers\EnvLoader::load();
+                }
 
-                // Conexão sem a porta, forçando charset/collation corretos
-                $dsn = "mysql:host={$_ENV['DB_HOST']};dbname=" . $_ENV['DB_NAME'] . ";charset=utf8mb4";
+                $dbName = self::resolveDbName();
+                if ($dbName === '' || !isset($_ENV['DB_HOST'], $_ENV['DB_USER'])) {
+                    GenerateLog::generateLog('alert', 'Configuração de banco incompleta.', [
+                        'DB_HOST' => isset($_ENV['DB_HOST']),
+                        'DB_NAME' => $dbName !== '',
+                        'DB_USER' => isset($_ENV['DB_USER']),
+                    ]);
+                    die('Erro de configuração: defina DB_NAME (ou DB_DATABASE) e credenciais no ficheiro .env na raiz do projeto.');
+                }
+
+                $host = trim((string) $_ENV['DB_HOST']);
+                $port = trim((string) ($_ENV['DB_PORT'] ?? '3306'));
+                $dsnPort = ($port !== '' && $port !== '3306')
+                    ? ";port={$port}"
+                    : '';
+                $dsn = "mysql:host={$host}{$dsnPort};dbname={$dbName};charset=utf8mb4";
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
                 ];
-                self::$connect = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], $options);
+                $dbPass = array_key_exists('DB_PASS', $_ENV) ? (string) $_ENV['DB_PASS'] : '';
+                self::$connect = new PDO($dsn, (string) $_ENV['DB_USER'], $dbPass, $options);
                 
 
                 // echo "Conexão realizada com sucesso!<br>";

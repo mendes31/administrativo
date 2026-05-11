@@ -7,6 +7,10 @@ $users = $this->data['users'] ?? [];
 $requestTypes = $this->data['requestTypes'] ?? [];
 $participants = $this->data['participants'] ?? [];
 $additionalRequests = $this->data['additionalRequests'] ?? [];
+$canChangeBookingAdditionalRequestResponsible = !empty($this->data['can_change_booking_additional_request_responsible']);
+$bookingAdditionalRequestSessionUserId = (int) ($this->data['booking_additional_request_session_user_id'] ?? 0);
+$bookingAdditionalRequestSessionUserName = (string) ($this->data['booking_additional_request_session_user_name'] ?? '');
+$canEditBookingAdditionalRequests = !empty($this->data['can_edit_booking_additional_requests']);
 
 // Converter datetime para formato datetime-local
 $startDatetime = !empty($form['start_datetime']) ? date('Y-m-d\TH:i', strtotime($form['start_datetime'])) : '';
@@ -141,29 +145,51 @@ $participantIds = $form['participant_ids'] ?? [];
                 <!-- Solicitações Adicionais -->
                 <div class="col-12">
                     <h5 class="border-bottom pb-2 mb-3 mt-4">Solicitações Adicionais</h5>
+                    <?php if (!$canEditBookingAdditionalRequests): ?>
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-lock me-2"></i>
+                            Impossível editar as solicitações adicionais: falta <strong>menos de 1 hora</strong> para o início do evento.
+                            Contacte a equipa responsável.
+                        </div>
+                    <?php endif; ?>
                 </div>
                 
+                <?php if ($canEditBookingAdditionalRequests): ?>
                 <div class="col-12">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="addRequestBtn">
                         <i class="fas fa-plus me-1"></i>Adicionar Solicitação
                     </button>
                 </div>
+                <?php endif; ?>
                 
                 <div class="col-12" id="additionalRequestsContainer">
                     <?php 
                     $requestCounter = 0;
                     foreach ($additionalRequests as $request): 
                         $requestCounter++;
+                        $reqTypeCode = (string) ($request['request_type'] ?? '');
+                        $reqTypeLabel = $reqTypeCode;
+                        foreach ($requestTypes as $type) {
+                            if (($type['code'] ?? '') === $reqTypeCode) {
+                                $reqTypeLabel = (string) ($type['name'] ?? $reqTypeCode);
+                                break;
+                            }
+                        }
+                        $qtyRaw = $request['quantity'] ?? null;
+                        $qtyStr = ($qtyRaw === null || $qtyRaw === '') ? '' : (string) (int) $qtyRaw;
                     ?>
-                        <div class="card mb-3 request-item" data-request-id="request_<?= $requestCounter ?>">
+                        <div class="card mb-3 request-item<?= $canEditBookingAdditionalRequests ? '' : ' request-item-locked' ?>" data-request-id="request_<?= $requestCounter ?>">
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-12 d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">Solicitação Adicional</h6>
+                                        <?php if ($canEditBookingAdditionalRequests): ?>
                                         <button type="button" class="btn btn-sm btn-danger remove-request" data-request-id="request_<?= $requestCounter ?>">
                                             <i class="fas fa-times"></i> Remover
                                         </button>
+                                        <?php endif; ?>
                                     </div>
+                                    <?php if ($canEditBookingAdditionalRequests): ?>
                                     <div class="col-md-4">
                                         <label class="form-label">Tipo <span class="text-danger">*</span></label>
                                         <select name="additional_requests[<?= $requestCounter ?>][type]" class="form-select request-type" required>
@@ -179,8 +205,9 @@ $participantIds = $form['participant_ids'] ?? [];
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-4 request-responsible-col">
                                         <label class="form-label">Responsável <span class="text-danger">*</span></label>
+                                        <?php if ($canChangeBookingAdditionalRequestResponsible): ?>
                                         <select name="additional_requests[<?= $requestCounter ?>][responsible_user_id]" class="form-select request-responsible" required>
                                             <option value="">Selecione...</option>
                                             <?php foreach ($users as $user): ?>
@@ -190,6 +217,11 @@ $participantIds = $form['participant_ids'] ?? [];
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <?php else: ?>
+                                        <input type="hidden" name="additional_requests[<?= $requestCounter ?>][responsible_user_id]" value="<?= (int) ($_SESSION['user_id'] ?? 0) ?>">
+                                        <div class="form-control-plaintext border rounded px-3 py-2 bg-light"><?= htmlspecialchars($bookingAdditionalRequestSessionUserName !== '' ? $bookingAdditionalRequestSessionUserName : ('ID ' . (string) (int) ($_SESSION['user_id'] ?? 0))) ?></div>
+                                        <small class="text-muted">Utilizador em sessão (não editável)</small>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">Quantidade</label>
@@ -204,6 +236,28 @@ $participantIds = $form['participant_ids'] ?? [];
                                                   class="form-control" rows="2" 
                                                   placeholder="Descreva a solicitação..."><?= htmlspecialchars($request['request_description'] ?? '') ?></textarea>
                                     </div>
+                                    <?php else: ?>
+                                    <input type="hidden" name="additional_requests[<?= $requestCounter ?>][type]" value="<?= htmlspecialchars($reqTypeCode) ?>">
+                                    <input type="hidden" name="additional_requests[<?= $requestCounter ?>][responsible_user_id]" value="<?= (int) ($request['responsible_user_id'] ?? 0) ?>">
+                                    <input type="hidden" name="additional_requests[<?= $requestCounter ?>][quantity]" value="<?= htmlspecialchars($qtyStr) ?>">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tipo</label>
+                                        <div class="form-control-plaintext border rounded px-3 py-2 bg-light"><?= htmlspecialchars($reqTypeLabel) ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Responsável</label>
+                                        <div class="form-control-plaintext border rounded px-3 py-2 bg-light"><?= htmlspecialchars((string) ($request['responsible_name'] ?? '')) ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Quantidade</label>
+                                        <div class="form-control-plaintext border rounded px-3 py-2 bg-light"><?= $qtyStr !== '' ? htmlspecialchars($qtyStr) : '—' ?></div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea name="additional_requests[<?= $requestCounter ?>][description]" 
+                                                  class="form-control bg-light" rows="2" readonly><?= htmlspecialchars($request['request_description'] ?? '') ?></textarea>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -228,11 +282,42 @@ $participantIds = $form['participant_ids'] ?? [];
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let requestCounter = <?= $requestCounter ?>;
+    const CAN_EDIT_ADDITIONAL_REQUESTS = <?= json_encode($canEditBookingAdditionalRequests) ?>;
     const requestTypes = <?= json_encode($requestTypes) ?>;
     const users = <?= json_encode($users) ?>;
+    const RR = {
+        canChange: <?= json_encode($canChangeBookingAdditionalRequestResponsible) ?>,
+        sessionUserId: <?= (int) $bookingAdditionalRequestSessionUserId ?>,
+        sessionUserName: <?= json_encode($bookingAdditionalRequestSessionUserName) ?>
+    };
+
+    function escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function responsibleFieldHtml(counter) {
+        if (RR.canChange) {
+            return `
+                            <select name="additional_requests[${counter}][responsible_user_id]" class="form-select request-responsible" required>
+                                <option value="">Selecione...</option>
+                                ${users.map(user => `
+                                    <option value="${user.id}">${escapeHtml(user.name)}</option>
+                                `).join('')}
+                            </select>`;
+        }
+        return `
+                            <input type="hidden" name="additional_requests[${counter}][responsible_user_id]" value="${RR.sessionUserId}">
+                            <div class="form-control-plaintext border rounded px-3 py-2 bg-light">${escapeHtml(RR.sessionUserName)}</div>
+                            <small class="text-muted">Utilizador em sessão (não editável)</small>`;
+    }
     
     // Adicionar solicitação adicional
-    document.getElementById('addRequestBtn').addEventListener('click', function() {
+    const addRequestBtn = document.getElementById('addRequestBtn');
+    if (CAN_EDIT_ADDITIONAL_REQUESTS && addRequestBtn) addRequestBtn.addEventListener('click', function() {
         const container = document.getElementById('additionalRequestsContainer');
         const requestId = 'request_' + (++requestCounter);
         
@@ -260,14 +345,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 `).join('')}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 request-responsible-col">
                             <label class="form-label">Responsável <span class="text-danger">*</span></label>
-                            <select name="additional_requests[${requestCounter}][responsible_user_id]" class="form-select request-responsible" required>
-                                <option value="">Selecione...</option>
-                                ${users.map(user => `
-                                    <option value="${user.id}">${user.name}</option>
-                                `).join('')}
-                            </select>
+                            ${responsibleFieldHtml(requestCounter)}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Quantidade</label>
@@ -292,6 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Remover solicitação
     document.addEventListener('click', function(e) {
+        if (!CAN_EDIT_ADDITIONAL_REQUESTS) return;
         if (e.target.closest('.remove-request')) {
             const requestId = e.target.closest('.remove-request').dataset.requestId;
             document.querySelector(`[data-request-id="${requestId}"]`).remove();
@@ -305,45 +386,53 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const typeSelect = item.querySelector('.request-type');
         const quantityInput = item.querySelector('.request-quantity');
+        const responsibleCol = item.querySelector('.request-responsible-col');
         const responsibleSelect = item.querySelector('.request-responsible');
-        
-        if (typeSelect) {
-            typeSelect.addEventListener('change', function() {
-                const option = this.options[this.selectedIndex];
-                const requiresQuantity = option.dataset.requiresQuantity === '1';
-                const requiresResponsible = option.dataset.requiresResponsible === '1';
-                const defaultResponsible = option.dataset.defaultResponsible;
-                
+
+        function applyTypeConstraints() {
+            if (!typeSelect) return;
+            const option = typeSelect.options[typeSelect.selectedIndex];
+            const requiresQuantity = option.dataset.requiresQuantity === '1';
+            const requiresResponsible = option.dataset.requiresResponsible === '1';
+            const defaultResponsible = option.dataset.defaultResponsible || '';
+
+            if (quantityInput) {
+                const qtyCol = quantityInput.closest('.col-md-4');
                 if (requiresQuantity) {
                     quantityInput.required = true;
-                    quantityInput.closest('.col-md-4').style.display = 'block';
+                    if (qtyCol) qtyCol.style.display = 'block';
                 } else {
                     quantityInput.required = false;
-                    quantityInput.closest('.col-md-4').style.display = 'none';
+                    if (qtyCol) qtyCol.style.display = 'none';
                 }
-                
-                if (requiresResponsible) {
-                    responsibleSelect.required = true;
-                    responsibleSelect.closest('.col-md-4').style.display = 'block';
-                } else {
-                    responsibleSelect.required = false;
-                    responsibleSelect.closest('.col-md-4').style.display = 'none';
-                }
-                
-                if (defaultResponsible) {
+            }
+
+            if (responsibleCol) {
+                responsibleCol.style.display = requiresResponsible ? 'block' : 'none';
+            }
+            if (responsibleSelect) {
+                responsibleSelect.required = requiresResponsible;
+                if (defaultResponsible && RR.canChange) {
                     responsibleSelect.value = defaultResponsible;
                 }
-            });
+            }
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', applyTypeConstraints);
+            applyTypeConstraints();
         }
     }
     
-    // Configurar eventos para solicitações existentes
-    document.querySelectorAll('.request-item').forEach(item => {
-        const requestId = item.dataset.requestId;
-        if (requestId) {
-            setupRequestItem(requestId);
-        }
-    });
+    // Configurar eventos para solicitações existentes (só em modo editável)
+    if (CAN_EDIT_ADDITIONAL_REQUESTS) {
+        document.querySelectorAll('.request-item').forEach(item => {
+            const requestId = item.dataset.requestId;
+            if (requestId) {
+                setupRequestItem(requestId);
+            }
+        });
+    }
     
     // Validação de data/hora
     const startDatetime = document.getElementById('start_datetime');

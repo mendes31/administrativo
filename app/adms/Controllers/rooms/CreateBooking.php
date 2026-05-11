@@ -4,6 +4,8 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomAdditionalRequestResponsiblePolicy;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Helpers\BookingParticipantNotificationHelper;
 use App\adms\Helpers\RoomBookingRecurrencePlanner;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
@@ -51,6 +53,10 @@ class CreateBooking
 
         // Pré-selecionar sala se room_id foi passado via GET
         $this->data['selected_room_id'] = !empty($_GET['room_id']) ? (int)$_GET['room_id'] : null;
+
+        $this->data['can_change_booking_additional_request_responsible'] = UserAccessHelper::hasFullSystemAccess();
+        $this->data['booking_additional_request_session_user_id'] = (int) ($_SESSION['user_id'] ?? 0);
+        $this->data['booking_additional_request_session_user_name'] = (string) ($_SESSION['user_name'] ?? '');
 
         $pageElements = [
             'title_head' => 'Criar Reserva de Sala',
@@ -458,6 +464,7 @@ class CreateBooking
     {
         $requestsRepo = new BookingAdditionalRequestsRepository();
         $requestTypesRepo = new RoomRequestTypesRepository();
+        $usersRepo = new UsersRepository();
         $organizerId = (int) ($_SESSION['user_id'] ?? 0);
 
         foreach ($requests as $request) {
@@ -470,12 +477,17 @@ class CreateBooking
                 continue;
             }
 
-            $responsibleUserId = !empty($request['responsible_user_id']) ? (int) $request['responsible_user_id'] : 0;
-            if ($responsibleUserId <= 0 && !empty($requestType['requires_responsible'])) {
-                $responsibleUserId = (int) ($requestType['default_responsible_user_id'] ?? 0);
-            }
-            if ($responsibleUserId <= 0) {
-                $responsibleUserId = $organizerId;
+            $postedResp = !empty($request['responsible_user_id']) ? (int) $request['responsible_user_id'] : 0;
+            $responsibleUserId = RoomAdditionalRequestResponsiblePolicy::resolveForBookingAdditionalRequest(
+                $postedResp,
+                $organizerId,
+                $requestType
+            );
+            if ($responsibleUserId > 0) {
+                $userRow = $usersRepo->getUser($responsibleUserId);
+                if ($userRow === false) {
+                    $responsibleUserId = $organizerId > 0 ? $organizerId : 0;
+                }
             }
             if ($responsibleUserId <= 0) {
                 continue;

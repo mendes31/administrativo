@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\RoomServiceRequestAccessHelper;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -28,6 +29,12 @@ class RoomsViewServiceRequest
         $request = $repo->getById($id);
         if (!$request) {
             $_SESSION['error'] = 'Solicitação não encontrada.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-service-requests');
+            return;
+        }
+
+        if (!RoomServiceRequestAccessHelper::currentUserMayViewServiceRequest($request)) {
+            $_SESSION['error'] = 'Não tem permissão para ver esta solicitação.';
             header('Location: ' . $_ENV['URL_ADM'] . 'rooms-list-service-requests');
             return;
         }

@@ -4,6 +4,9 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_booking');
 $rooms = $this->data['rooms'] ?? [];
 $users = $this->data['users'] ?? [];
 $requestTypes = $this->data['requestTypes'] ?? [];
+$canChangeBookingAdditionalRequestResponsible = !empty($this->data['can_change_booking_additional_request_responsible']);
+$bookingAdditionalRequestSessionUserId = (int) ($this->data['booking_additional_request_session_user_id'] ?? 0);
+$bookingAdditionalRequestSessionUserName = (string) ($this->data['booking_additional_request_session_user_name'] ?? '');
 ?>
 <?php include __DIR__ . '/partials/module_head.php'; ?>
 <div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
@@ -160,6 +163,35 @@ document.addEventListener('DOMContentLoaded', function() {
     let requestCounter = 0;
     const requestTypes = <?= json_encode($requestTypes) ?>;
     const users = <?= json_encode($users) ?>;
+    const RR = {
+        canChange: <?= json_encode($canChangeBookingAdditionalRequestResponsible) ?>,
+        sessionUserId: <?= (int) $bookingAdditionalRequestSessionUserId ?>,
+        sessionUserName: <?= json_encode($bookingAdditionalRequestSessionUserName) ?>
+    };
+
+    function escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function responsibleFieldHtml(counter) {
+        if (RR.canChange) {
+            return `
+                            <select name="additional_requests[${counter}][responsible_user_id]" class="form-select request-responsible" required>
+                                <option value="">Selecione...</option>
+                                ${users.map(user => `
+                                    <option value="${user.id}">${escapeHtml(user.name)}</option>
+                                `).join('')}
+                            </select>`;
+        }
+        return `
+                            <input type="hidden" name="additional_requests[${counter}][responsible_user_id]" value="${RR.sessionUserId}">
+                            <div class="form-control-plaintext border rounded px-3 py-2 bg-light">${escapeHtml(RR.sessionUserName)}</div>
+                            <small class="text-muted">Utilizador em sessão (não editável)</small>`;
+    }
     
     // Adicionar solicitação adicional
     document.getElementById('addRequestBtn').addEventListener('click', function() {
@@ -190,14 +222,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 `).join('')}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 request-responsible-col">
                             <label class="form-label">Responsável <span class="text-danger">*</span></label>
-                            <select name="additional_requests[${requestCounter}][responsible_user_id]" class="form-select request-responsible" required>
-                                <option value="">Selecione...</option>
-                                ${users.map(user => `
-                                    <option value="${user.id}">${user.name}</option>
-                                `).join('')}
-                            </select>
+                            ${responsibleFieldHtml(requestCounter)}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Quantidade</label>
@@ -237,38 +264,42 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const typeSelect = item.querySelector('.request-type');
         const quantityInput = item.querySelector('.request-quantity');
+        const responsibleCol = item.querySelector('.request-responsible-col');
         const responsibleSelect = item.querySelector('.request-responsible');
-        
-        // Quando o tipo muda, ajustar campos
-        typeSelect.addEventListener('change', function() {
-            const option = this.options[this.selectedIndex];
+
+        function applyTypeConstraints() {
+            if (!typeSelect) return;
+            const option = typeSelect.options[typeSelect.selectedIndex];
             const requiresQuantity = option.dataset.requiresQuantity === '1';
             const requiresResponsible = option.dataset.requiresResponsible === '1';
-            const defaultResponsible = option.dataset.defaultResponsible;
-            
-            // Ajustar quantidade
-            if (requiresQuantity) {
-                quantityInput.required = true;
-                quantityInput.closest('.col-md-4').style.display = 'block';
-            } else {
-                quantityInput.required = false;
-                quantityInput.closest('.col-md-4').style.display = 'none';
+            const defaultResponsible = option.dataset.defaultResponsible || '';
+
+            if (quantityInput) {
+                const qtyCol = quantityInput.closest('.col-md-4');
+                if (requiresQuantity) {
+                    quantityInput.required = true;
+                    if (qtyCol) qtyCol.style.display = 'block';
+                } else {
+                    quantityInput.required = false;
+                    if (qtyCol) qtyCol.style.display = 'none';
+                }
             }
-            
-            // Ajustar responsável
-            if (requiresResponsible) {
-                responsibleSelect.required = true;
-                responsibleSelect.closest('.col-md-4').style.display = 'block';
-            } else {
-                responsibleSelect.required = false;
-                responsibleSelect.closest('.col-md-4').style.display = 'none';
+
+            if (responsibleCol) {
+                responsibleCol.style.display = requiresResponsible ? 'block' : 'none';
             }
-            
-            // Definir responsável padrão se houver
-            if (defaultResponsible) {
-                responsibleSelect.value = defaultResponsible;
+            if (responsibleSelect) {
+                responsibleSelect.required = requiresResponsible;
+                if (defaultResponsible && RR.canChange) {
+                    responsibleSelect.value = defaultResponsible;
+                }
             }
-        });
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', applyTypeConstraints);
+            applyTypeConstraints();
+        }
     }
     
     // Validação de data/hora
