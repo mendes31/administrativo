@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -52,6 +53,46 @@ class UsersAccessLevelsRepository extends DbConnection
         return $result ? array_column($result, 'adms_access_level_id') : false;
     }
 
+    /**
+     * Linha completa em adms_users_access_levels (por PK).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getUsersAccessLevelRowById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_users_access_levels WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findUsersAccessLevelRow(int $userId, int $accessLevelId): ?array
+    {
+        if ($userId <= 0 || $accessLevelId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_users_access_levels
+             WHERE adms_user_id = :u AND adms_access_level_id = :l LIMIT 1'
+        );
+        $stmt->bindValue(':u', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':l', $accessLevelId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     // Obter todos os níveis de acesso
     public function getAllAccessLevels(): array|bool
     {
@@ -85,12 +126,10 @@ class UsersAccessLevelsRepository extends DbConnection
         // var_dump($userAccessLevelsArray);
 
         try {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
             // Recuperar os níveis de acesso do usuário em formato de array
             $userAccessLevelsArrayDB = $this->getUserAccessLevelArray($data['adms_user_id']);
             $userAccessLevelsArrayDB = $userAccessLevelsArrayDB ? $userAccessLevelsArrayDB : [];
-
-            // var_dump($userAccessLevelsArrayDB);
-            // exit;      
 
             // Perceorrer o array com os valores de acesso e liberar acesso
             foreach ($data['userAccessLevelsArray'] as $userAccessLevel) {
@@ -121,6 +160,21 @@ class UsersAccessLevelsRepository extends DbConnection
                     // Executar a query 
                     $stmt->execute();
 
+                    $newId = (int) $this->getConnection()->lastInsertId();
+                    if ($newId > 0) {
+                        $newRow = $this->getUsersAccessLevelRowById($newId);
+                        if (is_array($newRow)) {
+                            LogAlteracaoService::registrarAlteracao(
+                                'adms_users_access_levels',
+                                $newId,
+                                $usuarioId,
+                                'INSERT',
+                                [],
+                                $newRow
+                            );
+                        }
+                    }
+
                     GenerateLog::generateLog("info", "Novo nível de acesso cadastrado para o usuário.", ['id' => $data['adms_user_id'], 'adms_access_level_id' => $userAccessLevel]);
                 }
 
@@ -130,6 +184,7 @@ class UsersAccessLevelsRepository extends DbConnection
 
             // Percorrer o array com os níveis de acesso e bloquear o acesso
             foreach ($userAccessLevelsArrayDB as $userAccessLevel) {
+                $oldRow = $this->findUsersAccessLevelRow((int) $data['adms_user_id'], (int) $userAccessLevel);
 
                 // QUERY para apagar o nível de acesso do usuário
                 $sql = 'DELETE FROM adms_users_access_levels 
@@ -144,6 +199,20 @@ class UsersAccessLevelsRepository extends DbConnection
 
                 // Executar a QUERY
                 $stmt->execute();
+
+                if (is_array($oldRow)) {
+                    $pk = (int) ($oldRow['id'] ?? 0);
+                    if ($pk > 0) {
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_users_access_levels',
+                            $pk,
+                            $usuarioId,
+                            'DELETE',
+                            $oldRow,
+                            []
+                        );
+                    }
+                }
 
                 GenerateLog::generateLog("info", "Removido nível de acesso para o usuário.", ['id' => $data['adms_user_id'], 'adms_access_level_id' => $userAccessLevel]);
             }

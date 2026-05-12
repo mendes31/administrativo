@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class InformativosRepository extends DbConnection
@@ -642,8 +643,24 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':usuario_id', $data['usuario_id'], PDO::PARAM_INT);
         
         $stmt->execute();
-        
-        return (int) $this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getInformativoById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_informativos',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
     
     /**
@@ -654,6 +671,8 @@ class InformativosRepository extends DbConnection
      */
     public function updateInformativo(int $id, array $data): bool
     {
+        $oldRow = $this->getInformativoById($id);
+
         $sql = "UPDATE adms_informativos 
                 SET titulo = :titulo, conteudo = :conteudo, resumo = :resumo, categoria = :categoria,
                     categoria_id = :categoria_id, department_id = :department_id,
@@ -679,7 +698,23 @@ class InformativosRepository extends DbConnection
         $stmt->bindValue(':publish_at', $data['publish_at'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':expire_at', $data['expire_at'] ?? null, PDO::PARAM_STR);
         
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getInformativoById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_informativos',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
     
     /**
@@ -689,11 +724,26 @@ class InformativosRepository extends DbConnection
      */
     public function deleteInformativo(int $id): bool
     {
+        $oldRow = $this->getInformativoById($id);
+
         $sql = "DELETE FROM adms_informativos WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_informativos',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
     
     /**

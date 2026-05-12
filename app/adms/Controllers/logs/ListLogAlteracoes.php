@@ -6,6 +6,10 @@ use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\BookingParticipantsRepository;
 use App\adms\Models\Repository\BookingWaitlistRepository;
 use App\adms\Models\Repository\AccessLevelsPagesRepository;
+use App\adms\Models\Repository\DocumentPositionsRepository;
+use App\adms\Models\Repository\UsersAccessLevelsRepository;
+use App\adms\Models\Repository\PerformanceCompetenciesRepository;
+use App\adms\Models\Repository\RhEntrevistasRepository;
 use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
 use App\adms\Models\Repository\CrmDocumentsRepository;
@@ -109,6 +113,33 @@ class ListLogAlteracoes
         switch ($tabela) {
             case 'adms_users':
                 return $_ENV['URL_ADM'] . 'view-user/' . $objetoId;
+            case 'adms_users_access_levels':
+                $ual = (new UsersAccessLevelsRepository())->getUsersAccessLevelRowById($objetoId);
+                if ($ual && !empty($ual['adms_user_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-user/' . (int) $ual['adms_user_id'];
+                }
+
+                return null;
+            case 'adms_document_positions':
+                $dp = (new DocumentPositionsRepository())->getDocumentPosition($objetoId);
+                if (is_array($dp) && !empty($dp['adms_document_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-document/' . (int) $dp['adms_document_id'];
+                }
+
+                return null;
+            case 'adms_performance_competencies':
+                $pc = (new PerformanceCompetenciesRepository())->getById($objetoId);
+                if ($pc && !empty($pc['performance_review_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-performance-review/' . (int) $pc['performance_review_id'];
+                }
+
+                return null;
+            case 'adms_performance_reviews':
+                return $_ENV['URL_ADM'] . 'view-performance-review/' . $objetoId;
+            case 'adms_performance_goals':
+                return $_ENV['URL_ADM'] . 'view-performance-goal/' . $objetoId;
+            case 'adms_performance_feedbacks':
+                return $_ENV['URL_ADM'] . 'view-performance-feedback/' . $objetoId;
             case 'adms_customer':
                 return $_ENV['URL_ADM'] . 'view-customer/' . $objetoId;
             case 'adms_departments':
@@ -179,6 +210,17 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'rh-vagas-view/' . $objetoId;
             case 'rh_candidatos':
                 return $_ENV['URL_ADM'] . 'rh-candidatos-view/' . $objetoId;
+            case 'rh_entrevistas':
+                $ent = (new RhEntrevistasRepository())->getById($objetoId);
+                if ($ent && !empty($ent['rh_candidato_id'])) {
+                    return $_ENV['URL_ADM'] . 'rh-candidatos-view/' . (int) $ent['rh_candidato_id'];
+                }
+
+                return null;
+            case 'adms_informativos':
+                return $_ENV['URL_ADM'] . 'view-informativo/' . $objetoId;
+            case 'adms_request_types':
+                return $_ENV['URL_ADM'] . 'update-request-type/' . $objetoId;
             case 'lgpd_ripd':
                 return $_ENV['URL_ADM'] . 'lgpd-ripd-view/' . $objetoId;
             case 'lgpd_ropa':
@@ -224,6 +266,10 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'update-policy-category/' . $objetoId;
             case 'crm_activities':
                 return $_ENV['URL_ADM'] . 'crm-view-activity/' . $objetoId;
+            case 'crm_opportunities':
+                return $_ENV['URL_ADM'] . 'crm-view-opportunity/' . $objetoId;
+            case 'crm_partners':
+                return $_ENV['URL_ADM'] . 'crm-view-partner/' . $objetoId;
             case 'crm_notes':
                 $note = (new CrmNotesRepository())->getNoteById($objetoId);
                 if (is_array($note)) {
@@ -298,6 +344,10 @@ class ListLogAlteracoes
                 }
 
                 return $_ENV['URL_ADM'] . 'booking-waitlist';
+            case 'adms_payroll_document_types':
+                return $_ENV['URL_ADM'] . 'update-payroll-document-type/' . $objetoId;
+            case 'adms_bank_transfers':
+                return $_ENV['URL_ADM'] . 'view-transfer/' . $objetoId;
             default:
                 return null; // Tabela não mapeada
         }

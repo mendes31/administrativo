@@ -37,6 +37,11 @@ $documents = $this->data['documents'] ?? [];
                        onclick="return confirm('Tem certeza que deseja excluir esta oportunidade?')">
                         <i class="fas fa-trash"></i> Excluir
                     </a>
+                    <?php
+                    $log_resumo = $this->data['log_resumo'] ?? [];
+                    $log_btn_class = 'btn btn-outline-info btn-sm me-1';
+                    include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                    ?>
                     <a href="<?= $_ENV['URL_ADM'] ?>crm-kanban-pipeline" class="btn btn-secondary btn-sm">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>

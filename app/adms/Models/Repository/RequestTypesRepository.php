@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -104,7 +105,23 @@ class RequestTypesRepository extends DbConnection
         
         $stmt->execute();
         
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_request_types',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -138,12 +155,30 @@ class RequestTypesRepository extends DbConnection
                 WHERE id = :id";
         
         $stmt = $this->getConnection()->prepare($sql);
+
+        $oldRow = $this->getById($id);
         
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
         
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_request_types',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -161,12 +196,27 @@ class RequestTypesRepository extends DbConnection
         if ((int)($result['total'] ?? 0) > 0) {
             return false; // Não pode deletar se está em uso
         }
+
+        $oldRow = $this->getById($id);
         
         $sql = "DELETE FROM adms_request_types WHERE id = :id";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_request_types',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 }

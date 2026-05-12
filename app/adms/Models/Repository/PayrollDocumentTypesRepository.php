@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -152,7 +153,23 @@ class PayrollDocumentTypesRepository extends DbConnection
         $stmt->bindValue(':sort_order', (int)($data['sort_order'] ?? 0), PDO::PARAM_INT);
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->findById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_types',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function update(int $id, array $data): bool
@@ -191,7 +208,24 @@ class PayrollDocumentTypesRepository extends DbConnection
         $stmt->bindValue(':is_active', !empty($data['is_active']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':sort_order', (int)($data['sort_order'] ?? 0), PDO::PARAM_INT);
 
-        return $stmt->execute();
+        $oldRow = $this->findById($id);
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->findById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_types',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function countUsageByCode(string $code): int
@@ -222,6 +256,19 @@ class PayrollDocumentTypesRepository extends DbConnection
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_payroll_document_types WHERE id = :id LIMIT 1');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($row)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_payroll_document_types',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $row,
+                []
+            );
+        }
+
+        return $ok;
     }
 }

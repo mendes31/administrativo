@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -32,7 +33,42 @@ class PerformanceCompetenciesRepository extends DbConnection
         
         $stmt->execute();
         
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_performance_competencies',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
+    }
+
+    /**
+     * Buscar registro por ID (tabela adms_performance_competencies).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $sql = 'SELECT * FROM adms_performance_competencies WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
     }
 
     /**
@@ -89,8 +125,36 @@ class PerformanceCompetenciesRepository extends DbConnection
             }
             $stmt->bindValue($key, $value, $type);
         }
-        
-        return $stmt->execute();
+
+        $oldRow = $this->getById($id);
+        $ok = $stmt->execute();
+        if (!$ok || !is_array($oldRow)) {
+            return $ok;
+        }
+        $newRow = $this->getById($id);
+        if (!is_array($newRow)) {
+            return $ok;
+        }
+        $changed = false;
+        foreach (['current_level', 'target_level', 'assessed_level', 'comments'] as $f) {
+            if (($oldRow[$f] ?? null) != ($newRow[$f] ?? null)) {
+                $changed = true;
+                break;
+            }
+        }
+        if ($changed) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_performance_competencies',
+                $id,
+                $usuarioId,
+                'UPDATE',
+                $oldRow,
+                $newRow
+            );
+        }
+
+        return $ok;
     }
 }
 

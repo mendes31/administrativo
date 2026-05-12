@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Helpers\GenerateLog;
 use PDO;
 use Exception;
@@ -44,7 +45,23 @@ class RhEntrevistasRepository extends DbConnection
             if (!$stmt->execute()) {
                 return false;
             }
-            return (int) $pdo->lastInsertId();
+            $newId = (int) $pdo->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getById($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'rh_entrevistas',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao cadastrar entrevista.', [
                 'rh_candidato_id' => $data['rh_candidato_id'] ?? null,
@@ -89,7 +106,23 @@ class RhEntrevistasRepository extends DbConnection
             $stmt->bindValue(':resultado', $data['resultado'] ?? null, ($data['resultado'] ?? null) !== null && ($data['resultado'] ?? '') !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':feedback', $data['feedback'] ?? null, ($data['feedback'] ?? null) !== null && ($data['feedback'] ?? '') !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($antes)) {
+                $depois = $this->getById($id);
+                if (is_array($depois)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'rh_entrevistas',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $antes,
+                        $depois
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao atualizar entrevista.', [
                 'id' => $id,
@@ -106,9 +139,23 @@ class RhEntrevistasRepository extends DbConnection
     {
         try {
             $pdo = $this->getConnection();
+            $antes = $this->getById($id);
             $stmt = $pdo->prepare('DELETE FROM rh_entrevistas WHERE id = :id');
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($antes)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'rh_entrevistas',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $antes,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao excluir entrevista.', ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -255,6 +302,24 @@ class RhEntrevistasRepository extends DbConnection
         }
         try {
             $pdo = $this->getConnection();
+            $stmtIds = $pdo->prepare(
+                'SELECT id FROM rh_entrevistas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id'
+            );
+            $stmtIds->bindValue(':candidato_id', $rhCandidatoId, PDO::PARAM_INT);
+            $stmtIds->bindValue(':vaga_id', $rhVagaId, PDO::PARAM_INT);
+            $stmtIds->execute();
+            $idRows = $stmtIds->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $oldById = [];
+            foreach ($idRows as $r) {
+                $rid = (int) ($r['id'] ?? 0);
+                if ($rid > 0) {
+                    $row = $this->getById($rid);
+                    if (is_array($row)) {
+                        $oldById[$rid] = $row;
+                    }
+                }
+            }
+
             $sql = 'UPDATE rh_entrevistas
                     SET resultado = :resultado, updated_at = NOW()
                     WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id';
@@ -262,7 +327,28 @@ class RhEntrevistasRepository extends DbConnection
             $stmt->bindValue(':resultado', $resultado, PDO::PARAM_STR);
             $stmt->bindValue(':candidato_id', $rhCandidatoId, PDO::PARAM_INT);
             $stmt->bindValue(':vaga_id', $rhVagaId, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $oldById !== []) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                foreach ($oldById as $rid => $oldRow) {
+                    $newRow = $this->getById((int) $rid);
+                    if (!is_array($newRow)) {
+                        continue;
+                    }
+                    if (($oldRow['resultado'] ?? null) != ($newRow['resultado'] ?? null)) {
+                        LogAlteracaoService::registrarAlteracao(
+                            'rh_entrevistas',
+                            (int) $rid,
+                            $usuarioId,
+                            'UPDATE',
+                            $oldRow,
+                            $newRow
+                        );
+                    }
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao atualizar resultado da entrevista por vínculo.', [
                 'rh_candidato_id' => $rhCandidatoId,

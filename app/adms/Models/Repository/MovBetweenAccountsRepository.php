@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -203,6 +204,22 @@ class MovBetweenAccountsRepository extends DbConnection
 
             $conn->commit();
             // echo "<pre>Repository: Commit realizado</pre>";
+            $tid = (int) $transferId;
+            if ($tid > 0) {
+                $row = $this->getBankTransferRowById($tid);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_bank_transfers',
+                        $tid,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
             return $transferId;
 
         } catch (Exception $e) {
@@ -260,7 +277,9 @@ class MovBetweenAccountsRepository extends DbConnection
      */
     public function updateMovBetweenAccounts(array $data): bool
     {
-        echo "<pre>Repository: Dados da transferência: "; var_dump($data); echo "</pre>";
+        $transferId = (int) ($data['id'] ?? 0);
+        $oldTransferRow = $transferId > 0 ? $this->getBankTransferRowById($transferId) : null;
+
         try {
             $conn = $this->getConnection();
             $conn->beginTransaction();
@@ -321,6 +340,22 @@ class MovBetweenAccountsRepository extends DbConnection
             $stmt->execute();
 
             $conn->commit();
+
+            if ($transferId > 0 && is_array($oldTransferRow)) {
+                $newRow = $this->getBankTransferRowById($transferId);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_bank_transfers',
+                        $transferId,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldTransferRow,
+                        $newRow
+                    );
+                }
+            }
+
             return true;
 
         } catch (Exception $e) {
@@ -333,5 +368,20 @@ class MovBetweenAccountsRepository extends DbConnection
             ]);
             return false;
         }
+    }
+
+    /**
+     * Linha bruta da tabela adms_bank_transfers (auditoria).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function getBankTransferRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_bank_transfers WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }

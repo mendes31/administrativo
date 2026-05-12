@@ -10,6 +10,7 @@ use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmDocumentsRepository;
 use App\adms\Models\Repository\CrmTagsRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -67,6 +68,10 @@ class CrmViewPartner
         $customFieldsRepo = new CrmCustomFieldsRepository();
         $this->data['custom_fields'] = $customFieldsRepo->getFieldsByEntity('partner');
         $this->data['custom_field_values'] = $customFieldsRepo->getPartnerFieldValues((int)$id);
+
+        $pid = (int) $this->data['partner']['id'];
+        $returnUrl = $_ENV['URL_ADM'] . 'crm-view-partner/' . $pid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('crm_partners', $pid, $returnUrl);
 
         // Layout
         $pageElements = [

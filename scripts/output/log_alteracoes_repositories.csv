@@ -34,7 +34,7 @@ CrmTagsRepository;app/adms/Models/Repository/CrmTagsRepository.php;1;1;0;0
 CustomerRepository;app/adms/Models/Repository/CustomerRepository.php;1;1;0;0
 DashboardsRepository;app/adms/Models/Repository/DashboardsRepository.php;0;1;1;0
 DepartmentsRepository;app/adms/Models/Repository/DepartmentsRepository.php;1;1;0;0
-DocumentPositionsRepository;app/adms/Models/Repository/DocumentPositionsRepository.php;0;1;1;0
+DocumentPositionsRepository;app/adms/Models/Repository/DocumentPositionsRepository.php;1;1;0;0
 DocumentsRepository;app/adms/Models/Repository/DocumentsRepository.php;1;1;0;0
 DynamicReportsRepository;app/adms/Models/Repository/DynamicReportsRepository.php;0;1;1;0
 EmployeePayrollDocumentsRepository;app/adms/Models/Repository/EmployeePayrollDocumentsRepository.php;0;1;1;0
@@ -55,7 +55,7 @@ GamificationQuizRepository;app/adms/Models/Repository/GamificationQuizRepository
 GamificationRankingExclusions;app/adms/Models/Repository/GamificationRankingExclusions.php;0;0;0;0
 GamificationTimelineRulesRepository;app/adms/Models/Repository/GamificationTimelineRulesRepository.php;0;1;1;0
 GroupsPagesRepository;app/adms/Models/Repository/GroupsPagesRepository.php;1;1;0;0
-InformativosRepository;app/adms/Models/Repository/InformativosRepository.php;0;1;1;0
+InformativosRepository;app/adms/Models/Repository/InformativosRepository.php;1;1;0;0
 InstallmentsReceiveRepository;app/adms/Models/Repository/InstallmentsReceiveRepository.php;0;1;1;0
 InstallmentsRepository;app/adms/Models/Repository/InstallmentsRepository.php;0;1;1;0
 InvBalancesRepository;app/adms/Models/Repository/inventory/InvBalancesRepository.php;0;1;1;0
@@ -94,7 +94,7 @@ LogJustificativasRepository;app/adms/Models/Repository/LogJustificativasReposito
 LogsRepository;app/adms/Models/Repository/LogsRepository.php;0;1;0;1
 MeetingRoomsRepository;app/adms/Models/Repository/MeetingRoomsRepository.php;1;1;0;0
 MenuPermissionUserRepository;app/adms/Models/Repository/MenuPermissionUserRepository.php;0;0;0;0
-MovBetweenAccountsRepository;app/adms/Models/Repository/MovBetweenAccountsRepository.php;0;1;1;0
+MovBetweenAccountsRepository;app/adms/Models/Repository/MovBetweenAccountsRepository.php;1;1;0;0
 NotificationsRepository;app/adms/Models/Repository/NotificationsRepository.php;0;1;1;0
 PackagesRepository;app/adms/Models/Repository/PackagesRepository.php;1;1;0;0
 PagesRepository;app/adms/Models/Repository/PagesRepository.php;1;1;0;0
@@ -106,11 +106,11 @@ PayRepository;app/adms/Models/Repository/PayRepository.php;1;1;0;0
 PayrollCronConfigRepository;app/adms/Models/Repository/PayrollCronConfigRepository.php;1;1;0;0
 PayrollDocumentEventsRepository;app/adms/Models/Repository/PayrollDocumentEventsRepository.php;0;1;1;0
 PayrollDocumentOtpRepository;app/adms/Models/Repository/PayrollDocumentOtpRepository.php;0;1;1;0
-PayrollDocumentTypesRepository;app/adms/Models/Repository/PayrollDocumentTypesRepository.php;0;1;1;0
-PerformanceCompetenciesRepository;app/adms/Models/Repository/PerformanceCompetenciesRepository.php;0;1;1;0
-PerformanceFeedbacksRepository;app/adms/Models/Repository/PerformanceFeedbacksRepository.php;0;1;1;0
-PerformanceGoalsRepository;app/adms/Models/Repository/PerformanceGoalsRepository.php;0;1;1;0
-PerformanceReviewsRepository;app/adms/Models/Repository/PerformanceReviewsRepository.php;0;1;1;0
+PayrollDocumentTypesRepository;app/adms/Models/Repository/PayrollDocumentTypesRepository.php;1;1;0;0
+PerformanceCompetenciesRepository;app/adms/Models/Repository/PerformanceCompetenciesRepository.php;1;1;0;0
+PerformanceFeedbacksRepository;app/adms/Models/Repository/PerformanceFeedbacksRepository.php;1;1;0;0
+PerformanceGoalsRepository;app/adms/Models/Repository/PerformanceGoalsRepository.php;1;1;0;0
+PerformanceReviewsRepository;app/adms/Models/Repository/PerformanceReviewsRepository.php;1;1;0;0
 PoliciesRepository;app/adms/Models/Repository/PoliciesRepository.php;1;1;0;0
 PositionsRepository;app/adms/Models/Repository/PositionsRepository.php;1;1;0;0
 ProjCommentsRepository;app/adms/Models/Repository/projects/ProjCommentsRepository.php;0;1;1;0
@@ -120,10 +120,10 @@ ProjStageGroupsRepository;app/adms/Models/Repository/projects/ProjStageGroupsRep
 ProjStagesRepository;app/adms/Models/Repository/projects/ProjStagesRepository.php;0;1;1;0
 ReceiptsRepository;app/adms/Models/Repository/ReceiptsRepository.php;1;1;0;0
 ReceiveRepository;app/adms/Models/Repository/ReceiveRepository.php;1;1;0;0
-RequestTypesRepository;app/adms/Models/Repository/RequestTypesRepository.php;0;1;1;0
+RequestTypesRepository;app/adms/Models/Repository/RequestTypesRepository.php;1;1;0;0
 ResetPasswordRepository;app/adms/Models/Repository/ResetPasswordRepository.php;0;1;1;0
 RhCandidatosRepository;app/adms/Models/Repository/RhCandidatosRepository.php;1;1;0;0
-RhEntrevistasRepository;app/adms/Models/Repository/RhEntrevistasRepository.php;0;1;1;0
+RhEntrevistasRepository;app/adms/Models/Repository/RhEntrevistasRepository.php;1;1;0;0
 RhVagasRepository;app/adms/Models/Repository/RhVagasRepository.php;1;1;0;0
 RoomBookingSlotHoldRepository;app/adms/Models/Repository/RoomBookingSlotHoldRepository.php;1;1;0;0
 RoomBookingsRepository;app/adms/Models/Repository/RoomBookingsRepository.php;1;1;0;0
@@ -144,7 +144,7 @@ TrainingUsersRepository;app/adms/Models/Repository/TrainingUsersRepository.php;1
 UniqueValueRepository;app/adms/Models/Repository/UniqueValueRepository.php;0;0;0;0
 UserCalendarRepository;app/adms/Models/Repository/UserCalendarRepository.php;1;1;0;0
 UserImageRepository;app/adms/Models/Repository/UserImageRepository.php;0;1;1;0
-UsersAccessLevelsRepository;app/adms/Models/Repository/UsersAccessLevelsRepository.php;0;1;1;0
+UsersAccessLevelsRepository;app/adms/Models/Repository/UsersAccessLevelsRepository.php;1;1;0;0
 UsersDepartmentsRepository;app/adms/Models/Repository/UsersDepartmentsRepository.php;0;0;0;0
 UsersRepository;app/adms/Models/Repository/UsersRepository.php;1;1;0;0
 WorkShiftsRepository;app/adms/Models/Repository/WorkShiftsRepository.php;1;1;0;0

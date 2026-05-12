@@ -8,6 +8,7 @@ use App\adms\Models\Repository\CrmActivitiesRepository;
 use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmDocumentsRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class CrmViewOpportunity
         $customFieldsRepo = new CrmCustomFieldsRepository();
         $this->data['custom_fields'] = $customFieldsRepo->getFieldsByEntity('opportunity');
         $this->data['custom_field_values'] = $customFieldsRepo->getOpportunityFieldValues((int)$id);
+
+        $oid = (int) $this->data['opportunity']['id'];
+        $returnUrl = $_ENV['URL_ADM'] . 'crm-view-opportunity/' . $oid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('crm_opportunities', $oid, $returnUrl);
 
         // Layout
         $pageElements = [

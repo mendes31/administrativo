@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -125,10 +126,24 @@ class DocumentPositionsRepository extends DbConnection
             // Executar a QUERY
             $stmt->execute();
 
-            // Retornar o ID do documento recém cadastrado
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getDocumentPosition($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_document_positions',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
 
-            
+            return $newId;
+
         } catch (Exception $e) {
             // Gerar log de erro
             GenerateLog::generateLog("error", "Documento não cadastrado.", ['mandatory' => $data['mandatory'], 'adms_document_id' => $data['adms_document_id'], 'adms_position_id' => $data['adms_position_id'], 'error' => $e->getMessage()]);
@@ -149,6 +164,8 @@ class DocumentPositionsRepository extends DbConnection
     public function updateDocumentPosition(array $data): bool
     {
         try {
+            $oldRow = $this->getDocumentPosition((int) $data['id']);
+
             // QUERY para atualizar documento
             $sql = 'UPDATE adms_document_positions SET mandatory = :mandatory, adms_document_id = :adms_document_id, adms_position_id = :adms_position_id, updated_at = :updated_at';
 
@@ -166,7 +183,23 @@ class DocumentPositionsRepository extends DbConnection
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
 
             // Executar a QUERY
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getDocumentPosition((int) $data['id']);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_document_positions',
+                        (int) $data['id'],
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             // Gerar log de erro
             GenerateLog::generateLog("error", "Documento não editado.", ['id' => $data['id'], 'error' => $e->getMessage()]);
@@ -186,6 +219,8 @@ class DocumentPositionsRepository extends DbConnection
     public function deleteDocumentPosition(int $id): bool
     {
         try {
+            $oldRow = $this->getDocumentPosition($id);
+
             // QUERY para deletar documento
             $sql = 'DELETE FROM adms_document_positions WHERE id = :id LIMIT 1';
 
@@ -200,6 +235,18 @@ class DocumentPositionsRepository extends DbConnection
             $affectedRows = $stmt->rowCount();
 
             if ($affectedRows > 0) {
+                if (is_array($oldRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_document_positions',
+                        $id,
+                        $usuarioId,
+                        'DELETE',
+                        $oldRow,
+                        []
+                    );
+                }
+
                 return true;
             } else {
                 // Gerar log de erro

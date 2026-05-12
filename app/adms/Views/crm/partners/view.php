@@ -75,6 +75,11 @@ function formatPhone($phone) {
                        class="btn btn-warning mb-2 me-2">
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
+                    <?php
+                    $log_resumo = $this->data['log_resumo'] ?? [];
+                    $log_btn_class = 'btn btn-outline-info mb-2 me-2';
+                    include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                    ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>crm-list-partners" class="btn btn-secondary mb-2">
                         <i class="fas fa-arrow-left me-1"></i>Voltar
                     </a>
