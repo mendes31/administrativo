@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateInventoryOperation
@@ -40,6 +41,13 @@ class UpdateInventoryOperation
         ];
         $pls = new PageLayoutService();
         $this->data = array_merge($this->data, $pls->configurePageElements($pageElements));
+
+        $oid = (int) ($this->data['form']['id'] ?? 0);
+        if ($oid > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'update-inventory-operation/' . $oid;
+            $this->data['log_resumo'] = LogResumoService::getResumo('inv_operations', $oid, $returnUrl);
+        }
+
         $loadView = new LoadViewService('adms/Views/inventory/operations/update', $this->data);
         $loadView->loadView();
     }
@@ -79,6 +87,7 @@ class UpdateInventoryOperation
         }
 
         $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao atualizar a operação.</div>";
+        $this->data['form'] = $repo->getOne($id) ?: [];
         $this->view();
     }
 }

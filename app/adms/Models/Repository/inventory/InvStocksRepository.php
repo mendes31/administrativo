@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class InvStocksRepository extends DbConnection
@@ -55,12 +56,32 @@ class InvStocksRepository extends DbConnection
         $stmt->bindValue(':code', $data['code']);
         $stmt->bindValue(':branch', !empty($data['adms_branch_id']) ? (int)$data['adms_branch_id'] : null, !empty($data['adms_branch_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
-        if ($stmt->execute()) { return (int)$this->getConnection()->lastInsertId(); }
+        if ($stmt->execute()) {
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRowById($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'inv_stocks',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
+        }
+
         return false;
     }
 
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getRowById($id);
         $sql = 'UPDATE inv_stocks SET name = :name, code = :code, adms_branch_id = :branch, active = :active, updated_at = NOW() WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':name', $data['name']);
@@ -68,20 +89,63 @@ class InvStocksRepository extends DbConnection
         $stmt->bindValue(':branch', !empty($data['adms_branch_id']) ? (int)$data['adms_branch_id'] : null, !empty($data['adms_branch_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'inv_stocks',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
     {
+        $oldRow = $this->getRowById($id);
         $stmt = $this->getConnection()->prepare('DELETE FROM inv_stocks WHERE id = :id');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'inv_stocks',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
     public function getAllForSelect(): array
     {
         $sql = 'SELECT id, name FROM inv_stocks WHERE active = 1 ORDER BY name ASC';
         $stmt = $this->getConnection()->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM inv_stocks WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

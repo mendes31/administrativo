@@ -382,6 +382,10 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'update-inventory-category/' . $objetoId;
             case 'inv_positions':
                 return $_ENV['URL_ADM'] . 'update-inventory-position/' . $objetoId;
+            case 'inv_stocks':
+                return $_ENV['URL_ADM'] . 'update-inventory-stock/' . $objetoId;
+            case 'inv_operations':
+                return $_ENV['URL_ADM'] . 'update-inventory-operation/' . $objetoId;
             default:
                 return null; // Tabela não mapeada
         }

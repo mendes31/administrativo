@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -118,7 +119,23 @@ class InvOperationsRepository extends DbConnection
             $stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->execute();
-            return (int)$this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getOne($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'inv_operations',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao criar operação de estoque', [
                 'error' => $e->getMessage(),
@@ -131,6 +148,7 @@ class InvOperationsRepository extends DbConnection
 
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getOne($id);
         try {
             $sql = 'UPDATE inv_operations 
                     SET code = :code, name = :name, description = :description, 
@@ -144,7 +162,23 @@ class InvOperationsRepository extends DbConnection
             $stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getOne($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'inv_operations',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao atualizar operação de estoque', [
                 'error' => $e->getMessage(),
@@ -156,10 +190,24 @@ class InvOperationsRepository extends DbConnection
 
     public function delete(int $id): bool
     {
+        $oldRow = $this->getOne($id);
         try {
             $stmt = $this->getConnection()->prepare('DELETE FROM inv_operations WHERE id = :id');
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'inv_operations',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao excluir operação de estoque', [
                 'error' => $e->getMessage(),

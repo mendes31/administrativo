@@ -19,11 +19,16 @@ use App\adms\Helpers\CSRFHelper;
     </ol>
   </div>
 
-  <div class="card mb-4 border-light shadow">
-    <div class="card-header hstack gap-2">
+    <div class="card mb-4 border-light shadow">
+    <div class="card-header hstack gap-2 flex-wrap align-items-center">
       <span>Editar</span>
-      <span class="ms-auto d-sm-flex flex-row">
+      <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1 align-items-center">
         <?php if (in_array('ListInventoryOperations', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}list-inventory-operations' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> "; } ?>
+        <?php
+        $log_resumo = $this->data['log_resumo'] ?? [];
+        $log_btn_class = 'btn btn-outline-info btn-sm';
+        include __DIR__ . '/../../partials/button_log_alteracoes.php';
+        ?>
       </span>
     </div>
 

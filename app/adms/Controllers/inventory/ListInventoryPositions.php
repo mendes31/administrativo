@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\inventory\InvPositionsRepository;
 use App\adms\Models\Repository\inventory\InvStocksRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInventoryPositions
@@ -24,6 +25,13 @@ class ListInventoryPositions
         $repo = new InvPositionsRepository();
         $this->data['rows'] = $repo->getAll($page, $perPage, $filters);
         $total = $repo->countAll($filters);
+
+        $returnList = $_ENV['URL_ADM'] . 'list-inventory-positions';
+        foreach ($this->data['rows'] as &$row) {
+            $pid = (int) ($row['id'] ?? 0);
+            $row['log_resumo'] = $pid > 0 ? LogResumoService::getResumo('inv_positions', $pid, $returnList) : [];
+        }
+        unset($row);
 
         $stocksRepo = new InvStocksRepository();
         $this->data['stocks'] = $stocksRepo->getAllForSelect();

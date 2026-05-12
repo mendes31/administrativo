@@ -4,6 +4,7 @@ namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\inventory\InvStocksRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInventoryStocks
@@ -23,6 +24,13 @@ class ListInventoryStocks
         $repo = new InvStocksRepository();
         $this->data['rows'] = $repo->getAll($page, $perPage, $filters);
         $total = $repo->countAll($filters);
+
+        $returnList = $_ENV['URL_ADM'] . 'list-inventory-stocks';
+        foreach ($this->data['rows'] as &$row) {
+            $rid = (int) ($row['id'] ?? 0);
+            $row['log_resumo'] = $rid > 0 ? LogResumoService::getResumo('inv_stocks', $rid, $returnList) : [];
+        }
+        unset($row);
 
         $pagination = \App\adms\Controllers\Services\PaginationService::generatePagination(
             $total, $perPage, $page, 'list-inventory-stocks', array_filter([

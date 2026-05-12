@@ -4,6 +4,7 @@ namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInventoryOperations
@@ -23,6 +24,13 @@ class ListInventoryOperations
         $repo = new InvOperationsRepository();
         $this->data['rows'] = $repo->getAll($page, $perPage, $filters);
         $total = $repo->countAll($filters);
+
+        $returnList = $_ENV['URL_ADM'] . 'list-inventory-operations';
+        foreach ($this->data['rows'] as &$row) {
+            $rid = (int) ($row['id'] ?? 0);
+            $row['log_resumo'] = $rid > 0 ? LogResumoService::getResumo('inv_operations', $rid, $returnList) : [];
+        }
+        unset($row);
 
         $pagination = \App\adms\Controllers\Services\PaginationService::generatePagination(
             $total,

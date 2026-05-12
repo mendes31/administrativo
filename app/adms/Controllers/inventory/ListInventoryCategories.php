@@ -4,6 +4,7 @@ namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInventoryCategories
@@ -19,6 +20,13 @@ class ListInventoryCategories
         $repo = new InvCategoriesRepository();
         $this->data['rows'] = $repo->getAll($page, $perPage, $filters);
         $total = $repo->countAll($filters);
+
+        $returnList = $_ENV['URL_ADM'] . 'list-inventory-categories';
+        foreach ($this->data['rows'] as &$row) {
+            $cid = (int) ($row['id'] ?? 0);
+            $row['log_resumo'] = $cid > 0 ? LogResumoService::getResumo('inv_categories', $cid, $returnList) : [];
+        }
+        unset($row);
 
         $pagination = \App\adms\Controllers\Services\PaginationService::generatePagination(
             $total, $perPage, $page, 'list-inventory-categories', array_filter(['name' => $filters['name'], 'per_page' => $perPage])

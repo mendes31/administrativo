@@ -38,6 +38,12 @@
             <td><?= htmlspecialchars($row['code']) ?></td>
             <td><?= htmlspecialchars($row['name']) ?></td>
             <td class="text-end">
+              <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+              <?php
+              $log_resumo = $row['log_resumo'] ?? [];
+              $log_btn_class = 'btn btn-sm btn-outline-info';
+              include __DIR__ . '/../../partials/button_log_alteracoes.php';
+              ?>
               <?php if (!empty($this->data['buttonPermission']) && in_array('UpdateInventoryUnit', $this->data['buttonPermission'])): ?>
                 <a class="btn btn-sm btn-outline-primary" href="<?= $_ENV['URL_ADM'] ?>update-inventory-unit/<?= $row['id'] ?>">Editar</a>
               <?php endif; ?>
@@ -48,6 +54,7 @@
                 <button class="btn btn-sm btn-outline-danger" formaction="<?= $_ENV['URL_ADM'] ?>delete-inventory-unit" onclick="return confirm('Excluir unidade?')">Excluir</button>
               </form>
               <?php endif; ?>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>
