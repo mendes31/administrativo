@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdDataMappingRepository;
 use App\adms\Models\Repository\LgpdFontesColetaRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class LgpdDataMappingView
@@ -23,6 +24,9 @@ class LgpdDataMappingView
             header("Location: {$_ENV['URL_ADM']}lgpd-data-mapping");
             return;
         }
+        $idInt = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-data-mapping-view/' . $idInt;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_data_mapping', $idInt, $returnUrl);
 
         // Carregar fontes de coleta associadas a este data mapping
         $this->data['fontes_data_mapping'] = $fontesRepo->getFontesByDataMapping($id);

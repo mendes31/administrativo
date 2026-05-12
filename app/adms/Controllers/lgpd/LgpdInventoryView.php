@@ -4,6 +4,7 @@ namespace App\adms\Controllers\lgpd;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdInventoryRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class LgpdInventoryView
@@ -20,6 +21,9 @@ class LgpdInventoryView
             header("Location: {$_ENV['URL_ADM']}lgpd-inventory");
             return;
         }
+        $idInt = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-inventory-view/' . $idInt;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_inventory', $idInt, $returnUrl);
 
         // Buscar os grupos de dados associados a este inventário
         $this->data['data_groups'] = $repo->getDataGroupsByInventoryId($id);

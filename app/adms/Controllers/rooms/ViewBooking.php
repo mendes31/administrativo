@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\RoomBookingsRepository;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -63,6 +64,9 @@ class ViewBooking
         // Solicitações de serviço (tipos / equipes — adms_room_service_requests, opcionalmente vinculadas)
         $serviceReqRepo = new RoomServiceRequestsRepository();
         $this->data['serviceRequests'] = $serviceReqRepo->getByBookingId($id);
+
+        $returnUrl = $_ENV['URL_ADM'] . 'view-booking/' . $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_room_bookings', $id, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Reserva',

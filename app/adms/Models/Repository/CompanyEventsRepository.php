@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class CompanyEventsRepository extends DbConnection
@@ -155,11 +156,28 @@ class CompanyEventsRepository extends DbConnection
             ':department_id' => isset($data['department_id']) ? (int)$data['department_id'] : null,
             ':ativo' => !empty($data['ativo']) ? 1 : 0,
         ]);
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_company_events',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function updateEvent(int $id, array $data): bool
     {
+        $oldData = $this->getById($id);
         $sql = 'UPDATE adms_company_events SET
                     title = :title, description = :description, location = :location,
                     starts_at = :starts_at, ends_at = :ends_at, publish_at = :publish_at, expire_at = :expire_at,
@@ -168,7 +186,7 @@ class CompanyEventsRepository extends DbConnection
                     department_id = :department_id, ativo = :ativo, updated_at = NOW()
                 WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':title' => $data['title'],
             ':description' => $data['description'] ?? null,
@@ -185,6 +203,22 @@ class CompanyEventsRepository extends DbConnection
             ':department_id' => isset($data['department_id']) ? (int)$data['department_id'] : null,
             ':ativo' => !empty($data['ativo']) ? 1 : 0,
         ]);
+        if ($ok && is_array($oldData)) {
+            $newData = $this->getById($id);
+            if (is_array($newData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_company_events',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function getById(int $id): ?array
@@ -648,6 +682,7 @@ class CompanyEventsRepository extends DbConnection
 
     public function deleteEvent(int $id): bool
     {
+        $oldData = $this->getById($id);
         $rsvpIds = $this->getConnection()->prepare('SELECT id FROM adms_company_event_rsvps WHERE event_id = :e');
         $rsvpIds->execute([':e' => $id]);
         $ids = $rsvpIds->fetchAll(PDO::FETCH_COLUMN) ?: [];
@@ -657,7 +692,20 @@ class CompanyEventsRepository extends DbConnection
         $this->getConnection()->prepare('DELETE FROM adms_company_event_rsvps WHERE event_id = :e')->execute([':e' => $id]);
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_company_events WHERE id = :id');
         $stmt->execute([':id' => $id]);
-        return $stmt->rowCount() > 0;
+        $deleted = $stmt->rowCount() > 0;
+        if ($deleted && is_array($oldData)) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_company_events',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $deleted;
     }
 
     /**

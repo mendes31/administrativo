@@ -28,11 +28,14 @@ use App\adms\Helpers\CSRFHelper;
             <span class="ms-auto d-sm-flex flex-row">
             <?php
                 if (in_array('LgpdDataMappingEdit', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}lgpd-data-mapping-edit/{$this->data['dataMapping']['id']}' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a> ";
+                    echo "<a href='{$_ENV['URL_ADM']}lgpd-data-mapping-edit/{$this->data['data_mapping']['id']}' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a> ";
                 }
                 if (in_array('LgpdDataMapping', $this->data['buttonPermission'])) {
                     echo "<a href='{$_ENV['URL_ADM']}lgpd-data-mapping' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> ";
                 }
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm me-1 mb-1';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
                 ?>
             </span>
 

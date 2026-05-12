@@ -55,6 +55,11 @@ $data_groups = $this->data['data_groups'];
                     <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-tia" class="btn btn-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Voltar
                     </a>
+                    <?php
+                    $log_resumo = $this->data['log_resumo'] ?? [];
+                    $log_btn_class = 'btn btn-outline-info me-2';
+                    include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                    ?>
                 </div>
             </div>
         </div>

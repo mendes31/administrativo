@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -26,7 +27,26 @@ class LgpdConsentimentoArquivosRepository extends DbConnection
             $stmt->bindValue(':mime_type', $data['mime_type'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':tamanho_bytes', $data['tamanho_bytes'] ?? null, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok) {
+                $newId = (int) $this->getConnection()->lastInsertId();
+                if ($newId > 0) {
+                    $newData = $this->getById($newId);
+                    if (is_array($newData)) {
+                        $usuarioId = $_SESSION['user_id'] ?? 1;
+                        LogAlteracaoService::registrarAlteracao(
+                            'lgpd_consentimento_arquivos',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $newData
+                        );
+                    }
+                }
+            }
+
+            return $ok;
         } catch (\Exception $e) {
             error_log('Erro ao salvar arquivo de consentimento: ' . $e->getMessage());
             error_log('Stack trace: ' . $e->getTraceAsString());
@@ -90,6 +110,18 @@ class LgpdConsentimentoArquivosRepository extends DbConnection
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $result = $stmt->execute();
+
+            if ($result && $stmt->rowCount() > 0) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_consentimento_arquivos',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $arquivo,
+                    []
+                );
+            }
 
             // Se deletou do banco, tentar remover o arquivo físico
             if ($result && !empty($arquivo['arquivo_path'])) {

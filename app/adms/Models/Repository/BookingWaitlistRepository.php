@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -10,6 +11,18 @@ use PDO;
  */
 class BookingWaitlistRepository extends DbConnection
 {
+    public function getById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_booking_waitlist WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function getNextPriority(int $roomId): int
     {
         $sql = 'SELECT COALESCE(MAX(priority), 0) + 1 AS next_p
@@ -61,7 +74,23 @@ class BookingWaitlistRepository extends DbConnection
         $stmt->bindValue(':status', $data['status'] ?? 'waiting', PDO::PARAM_STR);
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_waitlist',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -241,11 +270,36 @@ class BookingWaitlistRepository extends DbConnection
         $sql = "UPDATE adms_booking_waitlist
                 SET status = 'notified', notified_at = NOW(), updated_at = NOW()
                 WHERE id IN ($placeholders) AND status = 'waiting'";
+        $before = [];
+        foreach ($ids as $wid) {
+            $row = $this->getById($wid);
+            if ($row !== null) {
+                $before[$wid] = $row;
+            }
+        }
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($ids as $i => $id) {
             $stmt->bindValue($i + 1, $id, PDO::PARAM_INT);
         }
         $stmt->execute();
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        foreach ($before as $wid => $oldRow) {
+            $newRow = $this->getById((int) $wid);
+            if (
+                $newRow !== null
+                && (string) ($oldRow['status'] ?? '') === 'waiting'
+                && (string) ($newRow['status'] ?? '') === 'notified'
+            ) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_waitlist',
+                    (int) $wid,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
     }
 
     /**
@@ -259,6 +313,18 @@ class BookingWaitlistRepository extends DbConnection
         int $bookingId
     ): array {
         $losers = $this->findLoserUserIds($roomId, $startDatetime, $endDatetime, $winnerUserId);
+        $sqlSel = 'SELECT * FROM adms_booking_waitlist
+                WHERE room_id = :room_id_sel
+                  AND status IN (\'waiting\', \'notified\')
+                  AND desired_start_datetime < :end_dt_sel
+                  AND desired_end_datetime > :start_dt_sel';
+        $sel = $this->getConnection()->prepare($sqlSel);
+        $sel->bindValue(':room_id_sel', $roomId, PDO::PARAM_INT);
+        $sel->bindValue(':start_dt_sel', $startDatetime, PDO::PARAM_STR);
+        $sel->bindValue(':end_dt_sel', $endDatetime, PDO::PARAM_STR);
+        $sel->execute();
+        $beforeRows = $sel->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
         $sql = 'UPDATE adms_booking_waitlist SET
                     status = IF(user_id = :winner, \'accepted\', \'expired\'),
                     booking_id = IF(user_id = :winner2, :booking_id, NULL),
@@ -275,6 +341,25 @@ class BookingWaitlistRepository extends DbConnection
         $stmt->bindValue(':start_dt', $startDatetime, PDO::PARAM_STR);
         $stmt->bindValue(':end_dt', $endDatetime, PDO::PARAM_STR);
         $stmt->execute();
+
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        foreach ($beforeRows as $oldRow) {
+            $wid = (int) ($oldRow['id'] ?? 0);
+            if ($wid <= 0) {
+                continue;
+            }
+            $newRow = $this->getById($wid);
+            if ($newRow !== null) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_waitlist',
+                    $wid,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
 
         return $losers;
     }

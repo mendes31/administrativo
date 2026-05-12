@@ -4,6 +4,7 @@ namespace App\adms\Controllers\lgpd;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdTiaRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use Exception;
 
@@ -47,6 +48,9 @@ class LgpdTiaView
             
             // Buscar grupos de dados relacionados
             $this->data['data_groups'] = $this->tiaRepo->getDataGroupsByTiaId($id);
+
+            $returnUrl = $_ENV['URL_ADM'] . 'lgpd-tia-view/' . $id;
+            $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_tia', $id, $returnUrl);
             
             // Configurar elementos da página
             $pageElements = [

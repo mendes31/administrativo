@@ -102,6 +102,11 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php endif; ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-light btn-sm mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <a href="<?php echo htmlspecialchars($urlAdm); ?>list-company-events"
                    class="btn btn-light btn-sm mb-1 d-none d-md-inline-block">
                     <i class="fas fa-arrow-left me-1"></i>Voltar

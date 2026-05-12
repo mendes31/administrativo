@@ -2,6 +2,9 @@
 
 namespace App\adms\Controllers\logs;
 
+use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
+use App\adms\Models\Repository\BookingParticipantsRepository;
+use App\adms\Models\Repository\BookingWaitlistRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -148,6 +151,8 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'lgpd-consentimentos-view/' . $objetoId;
             case 'adms_meeting_rooms':
                 return $_ENV['URL_ADM'] . 'view-meeting-room/' . $objetoId;
+            case 'adms_company_events':
+                return $_ENV['URL_ADM'] . 'view-company-event/' . $objetoId;
             case 'rh_vagas':
                 return $_ENV['URL_ADM'] . 'rh-vagas-view/' . $objetoId;
             case 'rh_candidatos':
@@ -158,6 +163,14 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'lgpd-ropa-view/' . $objetoId;
             case 'lgpd_aipd':
                 return $_ENV['URL_ADM'] . 'lgpd-aipd-view/' . $objetoId;
+            case 'lgpd_data_mapping':
+                return $_ENV['URL_ADM'] . 'lgpd-data-mapping-view/' . $objetoId;
+            case 'lgpd_inventory':
+                return $_ENV['URL_ADM'] . 'lgpd-inventory-view/' . $objetoId;
+            case 'lgpd_tia':
+                return $_ENV['URL_ADM'] . 'lgpd-tia-view/' . $objetoId;
+            case 'lgpd_consentimento_arquivos':
+                return $_ENV['URL_ADM'] . 'lgpd-consentimentos';
             case 'adms_room_request_types':
                 return $_ENV['URL_ADM'] . 'rooms-update-request-type/' . $objetoId;
             case 'adms_room_request_groups':
@@ -181,6 +194,29 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'rooms-calendar-integration-settings';
             case 'adms_user_calendar_entries':
                 return $_ENV['URL_ADM'] . 'my-calendar';
+            case 'adms_room_bookings':
+                return $_ENV['URL_ADM'] . 'view-booking/' . $objetoId;
+            case 'adms_booking_additional_requests':
+                $bar = (new BookingAdditionalRequestsRepository())->getById($objetoId);
+                if ($bar && !empty($bar['booking_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-booking/' . (int) $bar['booking_id'];
+                }
+
+                return null;
+            case 'adms_booking_participants':
+                $bp = (new BookingParticipantsRepository())->getById($objetoId);
+                if ($bp && !empty($bp['booking_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-booking/' . (int) $bp['booking_id'];
+                }
+
+                return null;
+            case 'adms_booking_waitlist':
+                $wl = (new BookingWaitlistRepository())->getById($objetoId);
+                if ($wl && !empty($wl['booking_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-booking/' . (int) $wl['booking_id'];
+                }
+
+                return $_ENV['URL_ADM'] . 'booking-waitlist';
             default:
                 return null; // Tabela não mapeada
         }

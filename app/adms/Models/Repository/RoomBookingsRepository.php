@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -36,8 +37,24 @@ class RoomBookingsRepository extends DbConnection
         $stmt->bindValue(':recurrence_series_id', $rid !== '' ? $rid : null, $rid !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
         
         $stmt->execute();
-        
-        return (int)$this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_bookings',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -250,7 +267,9 @@ class RoomBookingsRepository extends DbConnection
         if (empty($updates)) {
             return false;
         }
-        
+
+        $oldData = $this->getById($id);
+
         $updates[] = "updated_at = NOW()";
         
         $sql = "UPDATE adms_room_bookings 
@@ -262,8 +281,24 @@ class RoomBookingsRepository extends DbConnection
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
-        
-        return $stmt->execute();
+
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($oldData)) {
+            $newData = $this->getById($id);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_bookings',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -271,12 +306,27 @@ class RoomBookingsRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        $oldData = $this->getById($id);
         $sql = "DELETE FROM adms_room_bookings WHERE id = :id";
-        
+
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        
-        return $stmt->execute();
+
+        $stmt->execute();
+        $deleted = $stmt->rowCount() > 0;
+        if ($deleted && is_array($oldData)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_room_bookings',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $deleted;
     }
 
     /**

@@ -114,6 +114,11 @@ $statusText = match($booking['status'] ?? '') {
                                 <i class="fas fa-list me-2"></i>Listar Reservas
                             </a>
                         <?php } ?>
+                        <?php
+                        $log_resumo = $this->data['log_resumo'] ?? [];
+                        $log_btn_class = 'btn btn-outline-info';
+                        include __DIR__ . '/../partials/button_log_alteracoes.php';
+                        ?>
                         <?php if (in_array('UpdateBooking', $this->data['buttonPermission'] ?? []) && $booking['status'] !== 'cancelled' && $booking['status'] !== 'completed') { ?>
                             <a href="<?php echo $_ENV['URL_ADM']; ?>update-booking/<?= $booking['id'] ?>" class="btn btn-warning">
                                 <i class="fas fa-edit me-2"></i>Editar Reserva

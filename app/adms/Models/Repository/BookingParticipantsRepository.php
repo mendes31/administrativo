@@ -5,12 +5,46 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class BookingParticipantsRepository extends DbConnection
 {
+    public function getById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_booking_participants WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function deleteByBookingId(int $bookingId): void
     {
+        $list = $this->getConnection()->prepare(
+            'SELECT * FROM adms_booking_participants WHERE booking_id = :bid'
+        );
+        $list->bindValue(':bid', $bookingId, PDO::PARAM_INT);
+        $list->execute();
+        $rows = $list->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        foreach ($rows as $row) {
+            $pid = (int) ($row['id'] ?? 0);
+            if ($pid > 0) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_participants',
+                    $pid,
+                    $usuarioId,
+                    'DELETE',
+                    $row,
+                    []
+                );
+            }
+        }
+
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_booking_participants WHERE booking_id = :bid');
         $stmt->bindValue(':bid', $bookingId, PDO::PARAM_INT);
         $stmt->execute();
@@ -19,6 +53,27 @@ class BookingParticipantsRepository extends DbConnection
     /** Remove só participantes internos (preserva convidados externos na edição). */
     public function deleteInternalParticipantsByBookingId(int $bookingId): void
     {
+        $list = $this->getConnection()->prepare(
+            'SELECT * FROM adms_booking_participants WHERE booking_id = :bid AND user_id IS NOT NULL'
+        );
+        $list->bindValue(':bid', $bookingId, PDO::PARAM_INT);
+        $list->execute();
+        $rows = $list->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        foreach ($rows as $row) {
+            $pid = (int) ($row['id'] ?? 0);
+            if ($pid > 0) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_participants',
+                    $pid,
+                    $usuarioId,
+                    'DELETE',
+                    $row,
+                    []
+                );
+            }
+        }
+
         $stmt = $this->getConnection()->prepare(
             'DELETE FROM adms_booking_participants WHERE booking_id = :bid AND user_id IS NOT NULL'
         );
@@ -58,6 +113,22 @@ class BookingParticipantsRepository extends DbConnection
         $stmt->bindValue(':rsvp_token', $token);
         $stmt->execute();
 
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_participants',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
         return $token;
     }
 
@@ -82,6 +153,22 @@ class BookingParticipantsRepository extends DbConnection
         $stmt->bindValue(':status', 'pending');
         $stmt->bindValue(':rsvp_token', $token);
         $stmt->execute();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_participants',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
 
         return $token;
     }
@@ -122,6 +209,20 @@ class BookingParticipantsRepository extends DbConnection
         if (!in_array($status, $allowed, true)) {
             return false;
         }
+        $token = trim($token);
+        if ($token === '') {
+            return false;
+        }
+        $stmtFind = $this->getConnection()->prepare(
+            'SELECT id FROM adms_booking_participants WHERE rsvp_token = :t LIMIT 1'
+        );
+        $stmtFind->bindValue(':t', $token);
+        $stmtFind->execute();
+        $foundId = (int) ($stmtFind->fetchColumn() ?: 0);
+        if ($foundId <= 0) {
+            return false;
+        }
+        $oldData = $this->getById($foundId);
         $sql = 'UPDATE adms_booking_participants
                 SET status = :status, rsvp_responded_at = NOW()
                 WHERE rsvp_token = :t';
@@ -129,7 +230,23 @@ class BookingParticipantsRepository extends DbConnection
         $stmt->bindValue(':status', $status);
         $stmt->bindValue(':t', $token);
 
-        return $stmt->execute() && $stmt->rowCount() > 0;
+        $ok = $stmt->execute() && $stmt->rowCount() > 0;
+        if ($ok && is_array($oldData)) {
+            $newData = $this->getById($foundId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_booking_participants',
+                    $foundId,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -148,6 +265,7 @@ class BookingParticipantsRepository extends DbConnection
             if ($pid <= 0) {
                 continue;
             }
+            $oldData = $this->getById($pid);
             $token = $this->generateUniqueToken();
             $up = $this->getConnection()->prepare(
                 'UPDATE adms_booking_participants
@@ -161,6 +279,20 @@ class BookingParticipantsRepository extends DbConnection
             $up->bindValue(':id', $pid, PDO::PARAM_INT);
             $up->bindValue(':bid', $bookingId, PDO::PARAM_INT);
             $up->execute();
+            if (is_array($oldData) && $up->rowCount() > 0) {
+                $newData = $this->getById($pid);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_booking_participants',
+                        $pid,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
         }
     }
 

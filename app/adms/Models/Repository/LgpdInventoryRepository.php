@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -191,10 +192,22 @@ class LgpdInventoryRepository extends DbConnection
             
             $stmt->execute();
             
-            $inventoryId = $this->getConnection()->lastInsertId();
+            $inventoryId = (int) $this->getConnection()->lastInsertId();
             
-            if ($inventoryId) {
+            if ($inventoryId > 0) {
                 GenerateLog::generateLog("info", "Inventário LGPD cadastrado com sucesso.", ['inventory_id' => $inventoryId, 'data_subject' => $data['data_subject'] ?? 'N/A']);
+                $newData = $this->getById($inventoryId);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_inventory',
+                        $inventoryId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
             }
             
             return $inventoryId;
@@ -214,6 +227,7 @@ class LgpdInventoryRepository extends DbConnection
     public function update(array $data): bool
     {
         try {
+            $oldData = $this->getById((int) $data['id']);
             $sql = 'UPDATE lgpd_inventory SET 
                     area = :area, 
                     data_type = :data_type, 
@@ -235,11 +249,26 @@ class LgpdInventoryRepository extends DbConnection
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
             
-            $stmt->execute();
+            $ok = $stmt->execute();
             
             GenerateLog::generateLog("info", "Inventário LGPD atualizado com sucesso.", ['inventory_id' => $data['id'], 'data_subject' => $data['data_subject'] ?? 'N/A']);
+
+            if ($ok && is_array($oldData)) {
+                $newData = $this->getById((int) $data['id']);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_inventory',
+                        (int) $data['id'],
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
             
-            return true;
+            return $ok;
             
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Inventário LGPD não atualizado.", ['inventory_id' => $data['id'] ?? 'N/A', 'error' => $e->getMessage()]);
@@ -256,11 +285,25 @@ class LgpdInventoryRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getById($id);
             $sql = 'DELETE FROM lgpd_inventory WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldData) && $stmt->rowCount() > 0) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_inventory',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Inventário LGPD não excluído.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;

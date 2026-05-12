@@ -7,6 +7,7 @@ use App\adms\Helpers\CompanyEventRsvpAccessHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewCompanyEvent
@@ -77,6 +78,8 @@ class ViewCompanyEvent
         $this->data['can_edit'] = in_array('UpdateCompanyEvent', $btnPerms, true);
         $this->data['can_admin_rsvp_others'] = CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $userId, $btnPerms);
         $this->data['event_id'] = $eventId;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-company-event/' . $eventId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_company_events', $eventId, $returnUrl);
 
         $this->data['prefill_manage_rsvp'] = null;
         if (!empty($event['requires_rsvp']) && CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $userId, $btnPerms)) {

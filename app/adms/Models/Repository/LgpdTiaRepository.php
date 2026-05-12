@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -174,9 +175,9 @@ class LgpdTiaRepository extends DbConnection
             $stmt->bindParam(':status', $data['status'], PDO::PARAM_STR);
             
             $result = $stmt->execute();
-            
-            if ($result && !empty($data['data_groups'])) {
-                $tiaId = $this->getConnection()->lastInsertId();
+            $tiaId = (int) $this->getConnection()->lastInsertId();
+
+            if ($result && $tiaId > 0 && !empty($data['data_groups'])) {
                 $this->associateDataGroups($tiaId, $data['data_groups']);
             }
             
@@ -184,6 +185,21 @@ class LgpdTiaRepository extends DbConnection
             
             // Gerar log
             GenerateLog::generateLog('INFO', 'TIA criado com sucesso: ' . $data['codigo'], []);
+
+            if ($result && $tiaId > 0) {
+                $newData = $this->getTiaById($tiaId);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_tia',
+                        $tiaId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
             
             return true;
         } catch (Exception $e) {
@@ -203,6 +219,8 @@ class LgpdTiaRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldData = $this->getTiaById($id);
+
             $this->getConnection()->beginTransaction();
             
             $query = "UPDATE lgpd_tia SET 
@@ -243,6 +261,21 @@ class LgpdTiaRepository extends DbConnection
             
             // Gerar log
             GenerateLog::generateLog('INFO', 'TIA atualizado com sucesso: ID ' . $id, []);
+
+            if (is_array($oldData)) {
+                $newData = $this->getTiaById($id);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_tia',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
             
             return true;
         } catch (Exception $e) {
@@ -261,6 +294,8 @@ class LgpdTiaRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getTiaById($id);
+
             $this->getConnection()->beginTransaction();
             
             // Excluir relacionamentos com grupos de dados
@@ -277,9 +312,18 @@ class LgpdTiaRepository extends DbConnection
             
             $this->getConnection()->commit();
             
-            if ($result) {
+            if ($result && $stmt->rowCount() > 0 && is_array($oldData)) {
                 // Gerar log
                 GenerateLog::generateLog('INFO', 'TIA excluído com sucesso: ID ' . $id, []);
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_tia',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
             }
             
             return $result;
