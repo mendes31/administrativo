@@ -19,6 +19,10 @@ use App\adms\Models\Repository\CompetencyMatrixRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\RoomBookingSlotHoldRepository;
 use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
+use App\adms\Models\Repository\TimelineRepository;
+use App\adms\Models\Repository\EmploymentHistoryRepository;
+use App\adms\Models\Repository\PayrollDocumentEventsRepository;
+use App\adms\Models\Repository\PayrollDocumentOtpRepository;
 use App\adms\Models\Repository\KpiDashboardRepository;
 use App\adms\Models\Repository\GamificationQuizRepository;
 use App\adms\Models\Repository\EvaluationAttemptsRepository;
@@ -478,6 +482,55 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'update-inventory-stock/' . $objetoId;
             case 'inv_operations':
                 return $_ENV['URL_ADM'] . 'update-inventory-operation/' . $objetoId;
+            case 'adms_notifications':
+                return $_ENV['URL_ADM'] . 'notificacoes';
+            case 'adms_timeline_posts':
+                return $_ENV['URL_ADM'] . 'timeline?post=' . $objetoId;
+            case 'adms_timeline_comments':
+                return $_ENV['URL_ADM'] . 'timeline?comment=' . $objetoId;
+            case 'adms_timeline_polls':
+                $pollPostId = (new TimelineRepository())->findPostIdByPollId($objetoId);
+                if ($pollPostId !== null && $pollPostId > 0) {
+                    return $_ENV['URL_ADM'] . 'timeline?post=' . $pollPostId;
+                }
+
+                return $_ENV['URL_ADM'] . 'timeline';
+            case 'adms_timeline_reports':
+                $reportPostId = (new TimelineRepository())->getPostIdForTimelineReport($objetoId);
+                if ($reportPostId !== null && $reportPostId > 0) {
+                    return $_ENV['URL_ADM'] . 'timeline?post=' . $reportPostId;
+                }
+
+                return $_ENV['URL_ADM'] . 'timeline-moderate';
+            case 'adms_employee_requests':
+                return $_ENV['URL_ADM'] . 'view-employee-request/' . $objetoId;
+            case 'adms_employee_tickets':
+                return $_ENV['URL_ADM'] . 'view-employee-ticket/' . $objetoId;
+            case 'adms_employment_history':
+                $ehRow = (new EmploymentHistoryRepository())->getById($objetoId);
+                if (is_array($ehRow) && !empty($ehRow['adms_user_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-user/' . (int) $ehRow['adms_user_id'];
+                }
+
+                return null;
+            case 'adms_employee_payroll_documents':
+                return $_ENV['URL_ADM'] . 'view-payroll-document/' . $objetoId;
+            case 'adms_payroll_import_batches':
+                return $_ENV['URL_ADM'] . 'import-payroll-documents';
+            case 'adms_payroll_document_events':
+                $evDocId = (new PayrollDocumentEventsRepository())->getDocumentIdForEvent($objetoId);
+                if ($evDocId !== null && $evDocId > 0) {
+                    return $_ENV['URL_ADM'] . 'view-payroll-document/' . $evDocId;
+                }
+
+                return $_ENV['URL_ADM'] . 'import-payroll-documents';
+            case 'adms_payroll_document_otp_challenges':
+                $otpDocId = (new PayrollDocumentOtpRepository())->getDocumentIdForChallenge($objetoId);
+                if ($otpDocId !== null && $otpDocId > 0) {
+                    return $_ENV['URL_ADM'] . 'view-payroll-document/' . $otpDocId;
+                }
+
+                return $_ENV['URL_ADM'] . 'my-payroll-documents';
             default:
                 return null; // Tabela não mapeada
         }

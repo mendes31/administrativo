@@ -21,6 +21,12 @@ $feedback = $this->data['feedback'];
         </ol>
     </div>
 
+    <?php
+    $log_resumo = $this->data['log_resumo'] ?? [];
+    $log_btn_class = 'btn btn-outline-info btn-sm mb-3';
+    include __DIR__ . '/../../partials/button_log_alteracoes.php';
+    ?>
+
     <!-- CARD DE RESULTADO GERAL -->
     <div class="card mb-4 border-<?= $aprovado ? 'success' : 'danger' ?> border-3 shadow-lg">
         <div class="card-header bg-<?= $aprovado ? 'success' : 'danger' ?> text-white">

@@ -9,6 +9,7 @@ use App\adms\Models\Repository\EmploymentHistoryRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\UsersDepartmentsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -96,8 +97,9 @@ class ViewUser
         $this->data['employmentHistory'] = $historyRepo->getByUserId((int) $id);
         $this->data['totalTenure'] = $historyRepo->calculateTotalTenure((int) $id);
 
-        // Chamar o método para salvar o log
-        GenerateLog::generateLog("error", "Usuário não encontrado.", ['id' => (int) $id]);
+        $uid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-user/' . $uid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_users', $uid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

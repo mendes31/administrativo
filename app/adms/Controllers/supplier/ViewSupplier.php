@@ -5,6 +5,7 @@ namespace App\adms\Controllers\supplier;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\SupplierRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewSupplier
 
         // Registrar a visualização do Fornecedor
         GenerateLog::generateLog("info", "Visualizado o Fornecedor.", ['id' => (int) $id]);
+
+        $sid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-supplier/' . $sid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_supplier', $sid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

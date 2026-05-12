@@ -4,6 +4,7 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -50,6 +51,10 @@ class ViewEmployeeRequest
                   !in_array($request['status'], ['rejected', 'cancelled', 'approved']);
         
         $this->data['canEdit'] = $canEdit;
+
+        $reqId = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-employee-request/' . $reqId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_employee_requests', $reqId, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Solicitação',

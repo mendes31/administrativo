@@ -6,6 +6,7 @@ namespace App\adms\Controllers\strategicPlans;
 
 use App\adms\Models\Repository\StrategicPlansRepository;
 use App\adms\Models\Repository\StrategicIndicatorsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 
@@ -64,6 +65,9 @@ class ViewPlanIndicators
         $this->data['plan'] = $plan;
         $this->data['indicators'] = $indicators;
         $this->data['planMetrics'] = $planMetrics;
+
+        $returnUrl = $_ENV['URL_ADM'] . 'view-plan-indicators/' . $planId;
+        $this->data['log_resumo'] = LogResumoService::getResumoStrategicPlanContext($planId, $returnUrl);
 
         // Carrega a view usando o padrão do projeto
         $loadView = new LoadViewService("adms/Views/strategicPlans/view-plan-indicators", $this->data);

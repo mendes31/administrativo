@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -37,8 +38,26 @@ class EmployeeRequestsRepository extends DbConnection
         $stmt->bindValue(':attachments', $data['attachments'] ? json_encode($data['attachments']) : null);
         
         $stmt->execute();
-        
-        return (int)$this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawEmployeeRequestRow($newId);
+            if (is_array($row)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0
+                    ? (int) $_SESSION['user_id']
+                    : (int) ($data['employee_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_requests',
+                    $newId,
+                    $actor,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -149,6 +168,7 @@ class EmployeeRequestsRepository extends DbConnection
      */
     public function approveByManager(int $id, int $approvedBy): bool
     {
+        $before = $this->getRawEmployeeRequestRow($id);
         $sql = "UPDATE adms_employee_requests 
                 SET status = 'pending_hr_approval', 
                     manager_approved_by = :approved_by, 
@@ -159,8 +179,22 @@ class EmployeeRequestsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':approved_by', $approvedBy, PDO::PARAM_INT);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmployeeRequestRow($id);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_requests',
+                    $id,
+                    $approvedBy,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -168,6 +202,7 @@ class EmployeeRequestsRepository extends DbConnection
      */
     public function rejectByManager(int $id, int $approvedBy, string $reason): bool
     {
+        $before = $this->getRawEmployeeRequestRow($id);
         $sql = "UPDATE adms_employee_requests 
                 SET status = 'rejected', 
                     manager_approved_by = :approved_by, 
@@ -180,8 +215,22 @@ class EmployeeRequestsRepository extends DbConnection
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':approved_by', $approvedBy, PDO::PARAM_INT);
         $stmt->bindValue(':reason', $reason);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmployeeRequestRow($id);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_requests',
+                    $id,
+                    $approvedBy,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -189,6 +238,7 @@ class EmployeeRequestsRepository extends DbConnection
      */
     public function approveByHR(int $id, int $approvedBy): bool
     {
+        $before = $this->getRawEmployeeRequestRow($id);
         $sql = "UPDATE adms_employee_requests 
                 SET status = 'approved', 
                     hr_approved_by = :approved_by, 
@@ -201,8 +251,22 @@ class EmployeeRequestsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':approved_by', $approvedBy, PDO::PARAM_INT);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmployeeRequestRow($id);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_requests',
+                    $id,
+                    $approvedBy,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -210,6 +274,7 @@ class EmployeeRequestsRepository extends DbConnection
      */
     public function rejectByHR(int $id, int $approvedBy, string $reason): bool
     {
+        $before = $this->getRawEmployeeRequestRow($id);
         $sql = "UPDATE adms_employee_requests 
                 SET status = 'rejected', 
                     hr_approved_by = :approved_by, 
@@ -222,8 +287,22 @@ class EmployeeRequestsRepository extends DbConnection
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':approved_by', $approvedBy, PDO::PARAM_INT);
         $stmt->bindValue(':reason', $reason);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmployeeRequestRow($id);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_requests',
+                    $id,
+                    $approvedBy,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -297,6 +376,8 @@ class EmployeeRequestsRepository extends DbConnection
         if (empty($fields)) {
             return false;
         }
+
+        $before = $this->getRawEmployeeRequestRow($id);
         
         $values[':id'] = $id;
         $fields[] = "updated_at = NOW()";
@@ -312,8 +393,39 @@ class EmployeeRequestsRepository extends DbConnection
             }
             $stmt->bindValue($key, $value, $type);
         }
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmployeeRequestRow($id);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['employee_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_requests',
+                    $id,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawEmployeeRequestRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_employee_requests WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 
     /**

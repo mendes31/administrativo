@@ -6,6 +6,7 @@ namespace App\adms\Controllers\strategicIndicators;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\StrategicIndicatorsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -49,6 +50,10 @@ class ViewStrategicIndicator
             header("Location: " . $_ENV['URL_ADM'] . "strategic-indicators-list");
             exit;
         }
+
+        $iid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-strategic-indicator/' . $iid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_strategic_indicators', $iid, $returnUrl);
 
         // Define dados da página (título, menu ativo, permissões de botões)
         $pageElements = [

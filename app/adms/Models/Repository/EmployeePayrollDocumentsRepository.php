@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -33,11 +34,30 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':created_by_user_id', (int)$row['created_by_user_id'], PDO::PARAM_INT);
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $batchId = (int) $this->getConnection()->lastInsertId();
+        if ($batchId > 0) {
+            $snap = $this->getRawPayrollImportBatchRow($batchId);
+            if (is_array($snap)) {
+                $actor = (int) ($snap['created_by_user_id'] ?? 0) > 0
+                    ? (int) $snap['created_by_user_id']
+                    : ((int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_import_batches',
+                    $batchId,
+                    $actor,
+                    'INSERT',
+                    [],
+                    $snap
+                );
+            }
+        }
+
+        return $batchId;
     }
 
     public function updateBatchStats(int $batchId, int $matched, int $unmatched, ?string $logJson): void
     {
+        $before = $this->getRawPayrollImportBatchRow($batchId);
         $sql = 'UPDATE adms_payroll_import_batches SET pages_matched = :m, pages_unmatched = :u, log_json = :log WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':m', $matched, PDO::PARAM_INT);
@@ -45,6 +65,20 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':log', $logJson, PDO::PARAM_STR);
         $stmt->bindValue(':id', $batchId, PDO::PARAM_INT);
         $stmt->execute();
+        if (is_array($before) && $stmt->rowCount() > 0) {
+            $after = $this->getRawPayrollImportBatchRow($batchId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['created_by_user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_import_batches',
+                    $batchId,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
     }
 
     /**
@@ -52,7 +86,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
      */
     public function deleteExistingForUserRef(int $userId, string $documentType, int $year, ?int $month): void
     {
-        $sql = 'SELECT id, storage_path FROM adms_employee_payroll_documents
+        $sql = 'SELECT * FROM adms_employee_payroll_documents
                 WHERE user_id = :uid AND document_type = :dt AND reference_year = :y
                 AND (reference_month <=> :m)';
         $stmt = $this->getConnection()->prepare($sql);
@@ -66,6 +100,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1;
         foreach ($rows as $r) {
             $path = (string)($r['storage_path'] ?? '');
             if ($path !== '') {
@@ -88,6 +123,19 @@ class EmployeePayrollDocumentsRepository extends DbConnection
                 $del->bindValue(':m', $month, PDO::PARAM_INT);
             }
             $del->execute();
+            foreach ($rows as $r) {
+                $did = (int) ($r['id'] ?? 0);
+                if ($did > 0) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_employee_payroll_documents',
+                        $did,
+                        $actor,
+                        'DELETE',
+                        $r,
+                        []
+                    );
+                }
+            }
         }
     }
 
@@ -137,11 +185,38 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         if ($ids === []) {
             return [];
         }
+        $beforeById = [];
+        foreach ($ids as $did) {
+            if ($did <= 0) {
+                continue;
+            }
+            $snap = $this->getRawPayrollDocumentRow($did);
+            if (is_array($snap)) {
+                $beforeById[$did] = $snap;
+            }
+        }
         (new PayrollDocumentOtpRepository())->invalidateOpenForDocumentIds($ids);
         $in = implode(',', $ids);
         $this->getConnection()->exec(
             "UPDATE adms_employee_payroll_documents SET status_version = 'superseded' WHERE id IN ({$in})"
         );
+        $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1;
+        foreach ($ids as $did) {
+            if ($did <= 0 || !isset($beforeById[$did])) {
+                continue;
+            }
+            $after = $this->getRawPayrollDocumentRow($did);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_payroll_documents',
+                    $did,
+                    $actor,
+                    'UPDATE',
+                    $beforeById[$did],
+                    $after
+                );
+            }
+        }
 
         return $ids;
     }
@@ -219,7 +294,25 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':pub_at', $row['published_at'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $snap = $this->getRawPayrollDocumentRow($newId);
+            if (is_array($snap)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0
+                    ? (int) $_SESSION['user_id']
+                    : (int) ($row['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_payroll_documents',
+                    $newId,
+                    $actor,
+                    'INSERT',
+                    [],
+                    $snap
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -272,6 +365,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         string $authMethod,
         string $documentHashAtSign
     ): bool {
+        $before = $this->getById($documentId);
         $ua = $userAgent !== null ? mb_substr($userAgent, 0, 512) : null;
         $sql = 'UPDATE adms_employee_payroll_documents SET
             signature_status = \'signed\',
@@ -290,12 +384,27 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt->bindValue(':id', $documentId, PDO::PARAM_INT);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->execute();
+        $changed = $stmt->rowCount() > 0;
+        if ($changed && is_array($before)) {
+            $after = $this->getById($documentId);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_payroll_documents',
+                    $documentId,
+                    $userId,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
 
-        return $stmt->rowCount() > 0;
+        return $changed;
     }
 
     public function updateSignedBundleStoragePath(int $documentId, ?string $relativePath): void
     {
+        $before = $this->getById($documentId);
         $sql = 'UPDATE adms_employee_payroll_documents SET signed_bundle_storage_path = :p WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         if ($relativePath !== null && $relativePath !== '') {
@@ -305,15 +414,44 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
         $stmt->bindValue(':id', $documentId, PDO::PARAM_INT);
         $stmt->execute();
+        if (is_array($before) && $stmt->rowCount() > 0) {
+            $after = $this->getById($documentId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_payroll_documents',
+                    $documentId,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
     }
 
     public function updateReminderStage(int $documentId, int $stage): void
     {
+        $before = $this->getById($documentId);
         $sql = 'UPDATE adms_employee_payroll_documents SET reminder_stage = :s WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':s', $stage, PDO::PARAM_INT);
         $stmt->bindValue(':id', $documentId, PDO::PARAM_INT);
         $stmt->execute();
+        if (is_array($before) && $stmt->rowCount() > 0) {
+            $after = $this->getById($documentId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_payroll_documents',
+                    $documentId,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
     }
 
     /**
@@ -406,7 +544,8 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
 
         $conn = $this->getConnection();
-        $stmt = $conn->prepare('SELECT id, storage_path, signed_bundle_storage_path FROM adms_employee_payroll_documents WHERE import_batch_id = :bid');
+        $batchBefore = $this->getRawPayrollImportBatchRow($batchId);
+        $stmt = $conn->prepare('SELECT * FROM adms_employee_payroll_documents WHERE import_batch_id = :bid');
         $stmt->bindValue(':bid', $batchId, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -432,9 +571,38 @@ class EmployeePayrollDocumentsRepository extends DbConnection
             $delBatch = $conn->prepare('DELETE FROM adms_payroll_import_batches WHERE id = :id');
             $delBatch->bindValue(':id', $batchId, PDO::PARAM_INT);
             $delBatch->execute();
+            $batchDeleted = $delBatch->rowCount() > 0;
             $conn->commit();
+            if ($batchDeleted) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0
+                    ? (int) $_SESSION['user_id']
+                    : (int) (is_array($batchBefore) ? ($batchBefore['created_by_user_id'] ?? 1) : 1);
+                foreach ($rows as $snap) {
+                    $did = (int) ($snap['id'] ?? 0);
+                    if ($did > 0) {
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_employee_payroll_documents',
+                            $did,
+                            $actor,
+                            'DELETE',
+                            $snap,
+                            []
+                        );
+                    }
+                }
+                if (is_array($batchBefore)) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_payroll_import_batches',
+                        $batchId,
+                        $actor,
+                        'DELETE',
+                        $batchBefore,
+                        []
+                    );
+                }
+            }
 
-            return $delBatch->rowCount() > 0;
+            return $batchDeleted;
         } catch (\Throwable $e) {
             $conn->rollBack();
             throw $e;
@@ -543,6 +711,30 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         $stmt = $this->getConnection()->query($sql);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawPayrollImportBatchRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_payroll_import_batches WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawPayrollDocumentRow(int $id): ?array
+    {
+        return $this->getById($id);
     }
 
     private function hasPayrollAccessLogsTable(): bool

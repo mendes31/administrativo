@@ -5,6 +5,7 @@ namespace App\adms\Controllers\documents;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\DocumentsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewDocument
 
         // Registrar a visualização do documento
         GenerateLog::generateLog("info", "Visualizado o documento.", ['id' => (int) $id]);
+
+        $docId = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-document/' . $docId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_documents', $docId, $returnUrl);
 
         // Definir o título da página
         $this->data['title_head'] = " Documento";

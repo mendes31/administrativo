@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\BranchesRepository;
 use App\adms\Models\Repository\LogsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -51,6 +52,10 @@ class ViewBranch
 
         // Registrar a visualização da Filial
         GenerateLog::generateLog("info", "Visualizada a Filial.", ['id' => (int) $id]);
+
+        $brid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-branch/' . $brid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_branches', $brid, $returnUrl);
 
         // Definir o título da página
         $pageElements = [

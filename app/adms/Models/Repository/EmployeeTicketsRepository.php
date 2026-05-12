@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -39,7 +40,22 @@ class EmployeeTicketsRepository extends DbConnection
         
         // Criar histórico inicial
         $this->addHistory($ticketId, $data['employee_id'], 'created', null, null, 'Chamado criado');
-        
+
+        $row = $this->getRawEmployeeTicketRow($ticketId);
+        if (is_array($row)) {
+            $actor = (int) ($_SESSION['user_id'] ?? 0) > 0
+                ? (int) $_SESSION['user_id']
+                : (int) ($data['employee_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_employee_tickets',
+                $ticketId,
+                $actor,
+                'INSERT',
+                [],
+                $row
+            );
+        }
+
         return $ticketId;
     }
 
@@ -144,6 +160,7 @@ class EmployeeTicketsRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
+        $before = $this->getRawEmployeeTicketRow($id);
         $fields = [];
         $values = [];
         
@@ -179,8 +196,39 @@ class EmployeeTicketsRepository extends DbConnection
             }
             $stmt->bindValue($key, $value, $type);
         }
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmployeeTicketRow($id);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['employee_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employee_tickets',
+                    $id,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawEmployeeTicketRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_employee_tickets WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 
     /**

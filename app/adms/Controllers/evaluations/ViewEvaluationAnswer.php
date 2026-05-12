@@ -7,6 +7,7 @@ use App\adms\Models\Repository\EvaluationAnswersRepository;
 use App\adms\Models\Repository\EvaluationQuestionsRepository;
 use App\adms\Models\Repository\EvaluationModelsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -75,7 +76,8 @@ class ViewEvaluationAnswer
         }
 
         // Verificar se a resposta está correta (se houver resposta correta definida)
-        if (!empty($question['resposta_correta']) && !empty($answer['resposta'])) {
+        $question = $this->data['question'] ?? null;
+        if (is_array($question) && !empty($question['resposta_correta']) && !empty($answer['resposta'])) {
             $this->data['correta'] = (trim(strtolower($answer['resposta'])) === trim(strtolower($question['resposta_correta'])));
         }
 
@@ -86,6 +88,10 @@ class ViewEvaluationAnswer
             'corrigido' => 'Corrigido'
         ];
         $this->data['status_legivel'] = $statusLegiveis[$answer['status']] ?? $answer['status'];
+
+        $aid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-evaluation-answer/' . $aid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_evaluation_answers', $aid, $returnUrl);
 
         // Definir o título da página, ativar o item de menu e apresentar ou ocultar botões
         $pageElements = [

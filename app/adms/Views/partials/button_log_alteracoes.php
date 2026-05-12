@@ -1,12 +1,13 @@
 <?php
 /**
- * Botão "Log de Alterações" (só aparece se existir pelo menos um registo em adms_log_alteracoes).
+ * Botão "Log de Alterações" — apresentação apenas quando já existem alterações registadas.
+ *
+ * Critério: pelo menos uma linha em `adms_log_alteracoes` para o par tabela/objeto (ou filtro equivalente
+ * passado pelo controlador). Sem histórico, o botão não é mostrado (evita ligações vazias na UI).
  *
  * Variáveis esperadas no escopo antes do include:
- * - $log_resumo: array{has_logs?: bool, count?: int, list_url?: string} (ex.: $this->data['log_resumo'] de LogResumoService::getResumo)
+ * - $log_resumo: array{has_logs?: bool, count?: int, list_url?: string} (ex.: `LogResumoService::getResumo`)
  * - $log_btn_class (opcional): classes CSS do botão (default: btn btn-outline-info)
- *
- * O botão só é renderizado quando existem list_url e count maior que zero.
  */
 $log_resumo = $log_resumo ?? [];
 $log_btn_class = $log_btn_class ?? 'btn btn-outline-info';

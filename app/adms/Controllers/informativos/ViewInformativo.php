@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Services\InformativosPermissionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewInformativo
@@ -32,6 +33,9 @@ class ViewInformativo
         }
 
         $this->data['informativo'] = $informativo;
+        $infId = (int) $informativo['id'];
+        $returnUrl = $_ENV['URL_ADM'] . 'view-informativo/' . $infId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_informativos', $infId, $returnUrl);
         $uid = InformativosPermissionService::sessionUserId();
         $this->data['can_manage_informativo'] = InformativosPermissionService::canManageRecord(
             $informativo,

@@ -5,6 +5,7 @@ namespace App\adms\Controllers\frequency;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\FrequencyRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewFrequency
 
         // Registrar a visualização do Frequencia
         GenerateLog::generateLog("info", "Visualizado o Frequencia.", ['id' => (int) $id]);
+
+        $fid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-frequency/' . $fid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_frequencies', $fid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

@@ -48,6 +48,11 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                             </ul>
                         </div>
                     <?php endif; ?>
+                    <?php
+                    $log_resumo = $this->data['log_resumo'] ?? [];
+                    $log_btn_class = 'btn btn-outline-info';
+                    include __DIR__ . '/../partials/button_log_alteracoes.php';
+                    ?>
                     <a href="<?= $_ENV['URL_ADM'] ?>create-dashboard/<?= $report['id'] ?>" class="btn btn-success">
                         <i class="fas fa-chart-bar"></i> Criar Dashboard
                     </a>

@@ -5,6 +5,7 @@ namespace App\adms\Controllers\paymentMethod;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\PaymentMethodsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewPaymentMethod
 
         // Registrar a visualização do Formas de Pagamento
         GenerateLog::generateLog("info", "Visualizado a Forma de Pagamento.", ['id' => (int) $id]);
+
+        $pmid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-payment-method/' . $pmid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_payment_methods', $pmid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

@@ -43,6 +43,11 @@ $typeInfo = $typeLabels[$feedback['feedback_type']] ?? ['label' => $feedback['fe
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-light btn-sm';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
             </div>
         </div>
         <div class="card-body">

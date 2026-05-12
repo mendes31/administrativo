@@ -41,6 +41,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_account_plan');
                 if (in_array('UpdateAccountPlan', $this->data['buttonPermission'])) {
                     echo "<a href='{$_ENV['URL_ADM']}update-account-plan/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a> ";
                 }
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm me-1 mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
                 if (in_array('DeleteAccountPlan', $this->data['buttonPermission'])) {
                 ?>
 

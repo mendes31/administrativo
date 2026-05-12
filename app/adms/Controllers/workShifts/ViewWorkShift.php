@@ -5,6 +5,7 @@ namespace App\adms\Controllers\workShifts;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\WorkShiftsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewWorkShift
@@ -32,6 +33,10 @@ class ViewWorkShift
         }
 
         GenerateLog::generateLog('info', 'Visualizado turno de trabalho.', ['id' => (int) $id]);
+
+        $wsid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-work-shift/' . $wsid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_work_shifts', $wsid, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar turno de trabalho',

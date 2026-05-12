@@ -5,6 +5,7 @@ namespace App\adms\Controllers\groupsPages;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\GroupsPagesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewGroupPage
 
         // Registrar a visualização do grupo de página
         GenerateLog::generateLog("info", "Visualizado o grupo de página .", ['id' => (int) $id]);
+
+        $gid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-group-page/' . $gid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_groups_pages', $gid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

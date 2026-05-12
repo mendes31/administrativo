@@ -4,6 +4,7 @@ namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\PerformanceGoalsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -29,6 +30,10 @@ class ViewPerformanceGoal
             header("Location: {$_ENV['URL_ADM']}list-performance-goals");
             return;
         }
+
+        $gid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-performance-goal/' . $gid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_performance_goals', $gid, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Meta de Desempenho',

@@ -5,6 +5,7 @@ namespace App\adms\Controllers\evaluations;
 use App\adms\Models\Repository\EvaluationAttemptsRepository;
 use App\adms\Models\Repository\EvaluationQuestionsRepository;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Services\EvaluationGradingService;
@@ -51,6 +52,10 @@ class ViewEvaluationResult
             header('Location: ' . $_ENV['URL_ADM'] . 'minhas-avaliacoes');
             exit;
         }
+
+        $aid = (int) $attemptId;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-evaluation-result/' . $aid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_evaluation_attempts', $aid, $returnUrl);
 
         // Decodificar respostas
         $respostas = json_decode($attempt['respostas'], true);

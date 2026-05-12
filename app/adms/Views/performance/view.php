@@ -31,6 +31,11 @@ use App\adms\Helpers\FormatHelper;
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <?php if (in_array('ListPerformanceReviews', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-performance-reviews" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Voltar

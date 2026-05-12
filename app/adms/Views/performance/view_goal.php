@@ -32,6 +32,11 @@ use App\adms\Helpers\CSRFHelper;
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
             </div>
         </div>
         <div class="card-body">

@@ -127,6 +127,11 @@ $planMetrics = $this->data['planMetrics'] ?? [];
                 <a href="<?php echo $_ENV['URL_ADM']; ?>view-strategic-plan/<?= $plan['id'] ?>" class="btn btn-info btn-sm mb-1">
                     <i class="fas fa-eye"></i> Ver Plano
                 </a>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
             </span>
         </div>
         <div class="card-body">

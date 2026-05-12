@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -43,6 +44,23 @@ class PayrollDocumentEventsRepository extends DbConnection
         $ua = $userAgent !== null ? mb_substr($userAgent, 0, 512) : null;
         $stmt->bindValue(':ua', $ua, $ua === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmt->execute();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $snap = $this->getRawEventRow($newId);
+            if (is_array($snap)) {
+                $actor = ($userId !== null && $userId > 0)
+                    ? $userId
+                    : ((int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_events',
+                    $newId,
+                    $actor,
+                    'INSERT',
+                    [],
+                    $snap
+                );
+            }
+        }
     }
 
     /**
@@ -101,6 +119,41 @@ class PayrollDocumentEventsRepository extends DbConnection
         $stmt = $this->getConnection()->query($sql);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawEventRow(int $id): ?array
+    {
+        if (!$this->hasTable() || $id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_payroll_document_events WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    public function getDocumentIdForEvent(int $eventId): ?int
+    {
+        if (!$this->hasTable() || $eventId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT employee_payroll_document_id FROM adms_payroll_document_events WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $eventId, PDO::PARAM_INT);
+        $stmt->execute();
+        $v = $stmt->fetchColumn();
+        if ($v === false || $v === null) {
+            return null;
+        }
+        $id = (int) $v;
+
+        return $id > 0 ? $id : null;
     }
 
     private function hasTable(): bool

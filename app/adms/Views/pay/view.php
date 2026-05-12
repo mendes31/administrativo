@@ -51,6 +51,9 @@ if (!empty($filtros)) {
                 if (in_array('UpdatePay', $this->data['buttonPermission']) && $this->data['pay']['paid'] != 1 && !$hasMovements) {
                     echo "<a href='{$_ENV['URL_ADM']}update-pay/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a>";
                 }
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm me-1 mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
                 if (in_array('DeletePay', $this->data['buttonPermission']) && $this->data['pay']['paid'] != 1 && !$hasMovements) {
                     echo '<form id="formDelete' . $id . '" action="' . $_ENV['URL_ADM'] . 'delete-pay" method="POST" style="display:inline;">';
                     echo '<input type="hidden" name="csrf_token" value="' . $csrf_token . '">';

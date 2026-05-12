@@ -7,6 +7,7 @@ use App\adms\Models\Repository\TrainingPositionsRepository;
 use App\adms\Models\Repository\TrainingUsersRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\ScreenResolutionHelper;
@@ -80,6 +81,10 @@ class ViewTraining
 
         // Registrar visualização
         GenerateLog::generateLog("info", "Visualizado treinamento", ['id' => $id, 'nome' => $training['nome']]);
+
+        $tid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-training/' . $tid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_trainings', $tid, $returnUrl);
     }
 
     private function loadView(): void

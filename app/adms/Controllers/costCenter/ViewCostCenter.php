@@ -5,6 +5,7 @@ namespace App\adms\Controllers\costCenter;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\CostCentersRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewCostCenter
 
         // Registrar a visualização do Centro de Custo
         GenerateLog::generateLog("info", "Visualizado o Centro de Custo.", ['id' => (int) $id]);
+
+        $ccid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-cost-center/' . $ccid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_cost_centers', $ccid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

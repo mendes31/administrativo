@@ -9,6 +9,16 @@ use App\adms\Helpers\EnvLoader;
 
 class LogAlteracaoService
 {
+    /** Tabelas que não devem ser registadas aqui (recursão, infra sensível ou volume excessivo). */
+    private const TABLES_BLOCKED_FROM_ALTERACAO_LOG = [
+        'adms_log_alteracoes',
+        'adms_log_alteracoes_detalhes',
+        'adms_log_justificativas',
+        'adms_log_acessos',
+        'adms_sessions',
+        'adms_slow_request_profiles',
+    ];
+
     /**
      * Registra uma alteração sensível no sistema.
      *
@@ -30,6 +40,11 @@ class LogAlteracaoService
     ): void {
         // Garantir que o timezone está configurado corretamente
         EnvLoader::loadWithTimezone();
+
+        $tabelaNorm = strtolower(trim($tabela));
+        if ($tabelaNorm !== '' && in_array($tabelaNorm, self::TABLES_BLOCKED_FROM_ALTERACAO_LOG, true)) {
+            return;
+        }
         
         $logRepo = new LogAlteracoesRepository();
         $detalheRepo = new LogAlteracoesDetalhesRepository();

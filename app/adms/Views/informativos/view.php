@@ -28,6 +28,11 @@ $informativo = $this->data['informativo'];
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php endif; ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <?php if ($canManageInf && is_array($btnPerm) && in_array('DeleteInformativo', $btnPerm, true)): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>delete-informativo/<?php echo $informativo['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Tem certeza que deseja excluir este informativo?');">
                         <i class="fas fa-trash me-1"></i>Excluir

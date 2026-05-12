@@ -60,6 +60,31 @@ function hasRegistrarAlteracao(string $content): bool
     return str_contains($content, 'registrarAlteracao(');
 }
 
+/**
+ * Repositórios em que NÃO se deve exigir LogAlteracaoService por segurança ou adequação:
+ * - LogAlteracoes* / Logs*: pipeline do próprio log (risco de recursão ou ruído).
+ * - LogAlteracoesDetalhesRepository: escrito apenas por LogAlteracaoService.
+ * - LogJustificativasRepository: texto livre associado a logs; evitar cadeia log-sobre-log.
+ * - LoginRepository: mutações muito frequentes (tentativas/bloqueio); risco de amplificação e dados sensíveis.
+ * - AdmsSessionsRepository: contém session_id; alto volume; trilha em adms_log_acessos quando aplicável.
+ * - AdmsSlowRequestProfileRepository: telemetria de performance, não auditoria de negócio.
+ */
+function repositoryExcludedFromMutatingGapAudit(string $class): bool
+{
+    static $extra = [
+        'LogAlteracoesDetalhesRepository',
+        'LogJustificativasRepository',
+        'LoginRepository',
+        'AdmsSessionsRepository',
+        'AdmsSlowRequestProfileRepository',
+    ];
+    if (in_array($class, $extra, true)) {
+        return true;
+    }
+
+    return (bool) preg_match('/^(Log(Alteracoes|Acessos)|Logs)Repository$/', $class);
+}
+
 /** @return list<string> */
 function extractRepositoryNews(string $content): array
 {
@@ -101,7 +126,7 @@ if ($fh === false) {
 }
 fwrite($fh, "repository_class;relative_path;has_registrar_alteracao;has_mutating_sql;gap_mutating_without_log;infra_log_tables\n");
 foreach ($repoMap as $class => $info) {
-    $infra = (bool) preg_match('/^(Log(Alteracoes|Acessos)|Logs)Repository$/', $class);
+    $infra = repositoryExcludedFromMutatingGapAudit($class);
     $gap = !$infra && $info['has_mut'] && !$info['has_log'] ? '1' : '0';
     $line = sprintf(
         "%s;%s;%s;%s;%s;%s\n",
@@ -143,7 +168,7 @@ foreach (iterPhpFiles($ctrlDir) as $absPath) {
             $unknown[] = $rClass;
             continue;
         }
-        $isInfra = (bool) preg_match('/^(Log(Alteracoes|Acessos)|Logs)Repository$/', $rClass);
+        $isInfra = repositoryExcludedFromMutatingGapAudit($rClass);
         if (!$isInfra && $repoMap[$rClass]['has_mut'] && !$repoMap[$rClass]['has_log']) {
             $missing[] = $rClass;
         }

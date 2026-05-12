@@ -379,6 +379,11 @@ $nextVersion = $currentVersion > 0 ? ($currentVersion + 1) : 1;
                             <i class="fas fa-edit me-2"></i>Editar
                         </a>
                     <?php endif; ?>
+                    <?php
+                    $log_resumo = $this->data['log_resumo'] ?? [];
+                    $log_btn_class = 'btn btn-outline-info me-2';
+                    include __DIR__ . '/../partials/button_log_alteracoes.php';
+                    ?>
                     <?php if (!isset($this->data['training']['is_current_version']) || (int)$this->data['training']['is_current_version'] === 1): ?>
                         <a href="<?php echo $_ENV['URL_ADM']; ?>training-positions/<?php echo $this->data['training']['id']; ?>" 
                            class="btn btn-info me-2">

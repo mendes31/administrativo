@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\AccessLevelsRepository;
 use App\adms\Models\Repository\LogsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -60,6 +61,10 @@ class ViewAccessLevel
 
         // Registrar a visualização do nível de acesso
         GenerateLog::generateLog("info", "Visualizado o nível de acesso.", ['id' => (int) $id]);
+
+        $alid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-access-level/' . $alid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_access_levels', $alid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

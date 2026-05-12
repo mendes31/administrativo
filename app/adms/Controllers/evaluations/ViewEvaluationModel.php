@@ -5,6 +5,7 @@ namespace App\adms\Controllers\evaluations;
 use App\adms\Models\Repository\EvaluationModelsRepository;
 use App\adms\Models\Repository\EvaluationQuestionsRepository;
 use App\adms\Models\Repository\EvaluationAssignmentsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 
@@ -66,6 +67,10 @@ class ViewEvaluationModel
             0,
             10
         );
+
+        $mid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-evaluation-model/' . $mid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_evaluation_models', $mid, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Modelo de Avaliação',

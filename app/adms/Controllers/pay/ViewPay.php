@@ -7,6 +7,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\PartialValuesRepository;
 use App\adms\Models\Repository\PaymentsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -69,6 +70,10 @@ class ViewPay
 
         // Registrar a visualização do Conta à Pagar
         GenerateLog::generateLog("info", "Visualizado o Conta à Pagar.", ['id' => (int) $id]);
+
+        $payId = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-pay/' . $payId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_pay', $payId, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

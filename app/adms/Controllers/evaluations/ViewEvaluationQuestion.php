@@ -5,6 +5,7 @@ namespace App\adms\Controllers\evaluations;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EvaluationQuestionsRepository;
 use App\adms\Models\Repository\EvaluationModelsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -69,6 +70,10 @@ class ViewEvaluationQuestion
             'numerica' => 'Numérica'
         ];
         $this->data['tipo_legivel'] = $tiposLegiveis[$question['tipo']] ?? $question['tipo'];
+
+        $qid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-evaluation-question/' . $qid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_evaluation_questions', $qid, $returnUrl);
 
         // Definir o título da página, ativar o item de menu e apresentar ou ocultar botões
         $pageElements = [

@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -40,8 +41,26 @@ class EmploymentHistoryRepository extends DbConnection
         $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);
         
         $stmt->execute();
-        
-        return (int)$this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawEmploymentHistoryRow($newId);
+            if (is_array($row)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0
+                    ? (int) $_SESSION['user_id']
+                    : (int) ($data['adms_user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employment_history',
+                    $newId,
+                    $actor,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -133,6 +152,12 @@ class EmploymentHistoryRepository extends DbConnection
      */
     public function updateTermination(int $userId, string $dataDesligamento, ?string $motivo = null, ?string $tipoImpactoDesligamento = null): bool
     {
+        $cur = $this->getCurrentPeriod($userId);
+        if ($cur === false || empty($cur['id'])) {
+            return false;
+        }
+        $hid = (int) $cur['id'];
+        $before = $this->getRawEmploymentHistoryRow($hid);
         $sql = "UPDATE adms_employment_history 
                 SET data_desligamento = :data_desligamento,
                     motivo_desligamento = :motivo_desligamento,
@@ -152,8 +177,23 @@ class EmploymentHistoryRepository extends DbConnection
             $tipoImpactoDesligamento !== null && $tipoImpactoDesligamento !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
         );
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmploymentHistoryRow($hid);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : $userId;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employment_history',
+                    $hid,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -174,6 +214,7 @@ class EmploymentHistoryRepository extends DbConnection
 
     public function markInactivationEmailSent(int $historyId): bool
     {
+        $before = $this->getRawEmploymentHistoryRow($historyId);
         $sql = "UPDATE adms_employment_history
                 SET inactivation_email_sent_at = NOW(),
                     inactivation_email_error = NULL,
@@ -181,11 +222,28 @@ class EmploymentHistoryRepository extends DbConnection
                 WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $historyId, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmploymentHistoryRow($historyId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employment_history',
+                    $historyId,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function markInactivationEmailFailed(int $historyId, ?string $error): bool
     {
+        $before = $this->getRawEmploymentHistoryRow($historyId);
         $sql = "UPDATE adms_employment_history
                 SET inactivation_email_error = :error,
                     updated_at = NOW()
@@ -193,7 +251,23 @@ class EmploymentHistoryRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $historyId, PDO::PARAM_INT);
         $stmt->bindValue(':error', $error);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmploymentHistoryRow($historyId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employment_history',
+                    $historyId,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -201,6 +275,7 @@ class EmploymentHistoryRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
+        $before = $this->getRawEmploymentHistoryRow($id);
         $sql = "UPDATE adms_employment_history 
                 SET data_admissao = :data_admissao,
                     data_desligamento = :data_desligamento,
@@ -224,8 +299,23 @@ class EmploymentHistoryRepository extends DbConnection
         );
         $stmt->bindValue(':tipo_periodo', $data['tipo_periodo'] ?? 'Admissão');
         $stmt->bindValue(':observacoes', !empty($data['observacoes']) ? $data['observacoes'] : null);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $after = $this->getRawEmploymentHistoryRow($id);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['adms_user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_employment_history',
+                    $id,
+                    $actor,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -233,10 +323,24 @@ class EmploymentHistoryRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        $before = $this->getRawEmploymentHistoryRow($id);
         $sql = "DELETE FROM adms_employment_history WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+            $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['adms_user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_employment_history',
+                $id,
+                $actor,
+                'DELETE',
+                $before,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     /**
@@ -271,6 +375,22 @@ class EmploymentHistoryRepository extends DbConnection
                 ? "{$anos} ano(s), {$meses} mês(es) e {$dias} dia(s)"
                 : ($meses > 0 ? "{$meses} mês(es) e {$dias} dia(s)" : "{$dias} dia(s)")
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawEmploymentHistoryRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_employment_history WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

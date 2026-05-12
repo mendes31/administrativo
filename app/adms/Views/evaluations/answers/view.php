@@ -30,6 +30,11 @@ $urlAdm = $_ENV['URL_ADM'];
                         <i class="mdi mdi-pencil"></i> Editar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
                 <?php if (in_array('DeleteEvaluationAnswer', $this->data['buttonPermission'])) { ?>
                     <a href="<?= $urlAdm ?>delete-evaluation-answer/<?= $this->data['answer']['id'] ?>" class="btn btn-danger btn-sm" 
                        onclick="return confirm('Tem certeza que deseja excluir esta resposta?')">

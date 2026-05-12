@@ -40,6 +40,12 @@ $atribuicoesRecentes = $this->data['atribuicoes_recentes'] ?? [];
                     </a>
                 <?php endif; ?>
                 
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-light btn-sm';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
+
                 <!-- Botão de impressão sempre visível -->
                 <a href="<?= $_ENV['URL_ADM'] ?>print-evaluation-blank/<?= $model['id'] ?>" 
                    class="btn btn-info btn-sm" target="_blank">

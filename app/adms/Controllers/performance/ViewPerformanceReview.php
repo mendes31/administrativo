@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Models\Repository\PerformanceCompetenciesRepository;
 use App\adms\Models\Repository\PerformanceGoalsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -46,6 +47,10 @@ class ViewPerformanceReview
         }
 
         $this->data['review'] = $review;
+
+        $rid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-performance-review/' . $rid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_performance_reviews', $rid, $returnUrl);
 
         // Buscar competências avaliadas
         $competenciesRepo = new PerformanceCompetenciesRepository();

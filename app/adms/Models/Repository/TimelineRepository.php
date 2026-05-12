@@ -5,6 +5,7 @@ namespace App\adms\Models\Repository;
 use App\adms\Helpers\TimelineHashtagHelper;
 use App\adms\Helpers\TimelineReactionHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class TimelineRepository extends DbConnection
@@ -51,6 +52,20 @@ class TimelineRepository extends DbConnection
                 if ($imgPath === null || $imgPath === '') continue;
                 $ins->execute([':p' => $postId, ':img' => $imgPath, ':ord' => $ord]);
                 $ord++;
+            }
+        }
+
+        if ($postId > 0) {
+            $row = $this->getPostById($postId);
+            if (is_array($row)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_posts',
+                    $postId,
+                    $userId,
+                    'INSERT',
+                    [],
+                    $row
+                );
             }
         }
 
@@ -159,6 +174,19 @@ class TimelineRepository extends DbConnection
             }
             $ins->execute([':p' => $pollId, ':t' => mb_substr($txt, 0, 255), ':o' => $ord]);
             $ord++;
+        }
+
+        $pollRow = $this->getRawTimelinePollRow($pollId);
+        if (is_array($pollRow)) {
+            $actor = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_timeline_polls',
+                $pollId,
+                $actor,
+                'INSERT',
+                [],
+                $pollRow
+            );
         }
 
         return $pollId;
@@ -488,6 +516,7 @@ class TimelineRepository extends DbConnection
         if ($content === '') {
             $content = ' ';
         }
+        $oldRow = $this->getPostById($postId);
         $sql = 'UPDATE adms_timeline_posts SET content = :c, updated_at = NOW(), edited_at = NOW()
                 WHERE id = :id AND user_id = :uid AND status = "active"';
         $stmt = $this->getConnection()->prepare($sql);
@@ -496,7 +525,22 @@ class TimelineRepository extends DbConnection
             ':id' => $postId,
             ':uid' => $authorUserId,
         ]);
-        return $stmt->rowCount() > 0;
+        $ok = $stmt->rowCount() > 0;
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getPostById($postId);
+            if (is_array($newRow)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_posts',
+                    $postId,
+                    $authorUserId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function addComment(int $postId, int $userId, string $content): int
@@ -509,7 +553,22 @@ class TimelineRepository extends DbConnection
                 VALUES (:p, :u, :c, "active", NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':p' => $postId, ':u' => $userId, ':c' => mb_substr($content, 0, 2000)]);
-        return (int)$this->getConnection()->lastInsertId();
+        $cid = (int) $this->getConnection()->lastInsertId();
+        if ($cid > 0) {
+            $row = $this->getRawTimelineCommentRow($cid);
+            if (is_array($row)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_comments',
+                    $cid,
+                    $userId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $cid;
     }
 
     /**
@@ -695,7 +754,22 @@ class TimelineRepository extends DbConnection
             ':reason' => mb_substr($reason, 0, 120),
             ':det' => $details !== null ? mb_substr($details, 0, 5000) : null,
         ]);
-        return (int)$this->getConnection()->lastInsertId();
+        $rid = (int) $this->getConnection()->lastInsertId();
+        if ($rid > 0) {
+            $rrow = $this->getRawTimelineReportRow($rid);
+            if (is_array($rrow)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_reports',
+                    $rid,
+                    $reporterId,
+                    'INSERT',
+                    [],
+                    $rrow
+                );
+            }
+        }
+
+        return $rid;
     }
 
     /**
@@ -715,18 +789,50 @@ class TimelineRepository extends DbConnection
 
     public function hidePost(int $postId, int $moderatorId, string $reason): bool
     {
+        $oldRow = $this->getPostById($postId);
         $sql = 'UPDATE adms_timeline_posts SET status = "hidden", hidden_by = :m, hidden_reason = :rsn, updated_at = NOW() WHERE id = :id AND status = "active"';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':m' => $moderatorId, ':rsn' => mb_substr($reason, 0, 255), ':id' => $postId]);
-        return $stmt->rowCount() > 0;
+        $ok = $stmt->rowCount() > 0;
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getPostById($postId);
+            if (is_array($newRow)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_posts',
+                    $postId,
+                    $moderatorId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function markReportReviewed(int $reportId, int $moderatorId): bool
     {
+        $oldRow = $this->getRawTimelineReportRow($reportId);
         $sql = 'UPDATE adms_timeline_reports SET status = "reviewed", reviewed_by = :m, reviewed_at = NOW() WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':m' => $moderatorId, ':id' => $reportId]);
-        return $stmt->rowCount() > 0;
+        $ok = $stmt->rowCount() > 0;
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawTimelineReportRow($reportId);
+            if (is_array($newRow)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_reports',
+                    $reportId,
+                    $moderatorId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function getPostById(int $postId): ?array
@@ -1010,6 +1116,7 @@ class TimelineRepository extends DbConnection
 
     public function deletePostByAuthor(int $postId, int $authorUserId): bool
     {
+        $oldPost = $this->getPostById($postId);
         $sqlPost = 'DELETE FROM adms_timeline_posts WHERE id = :id AND user_id = :uid AND status = "active"';
 
         // Apagar na ordem certa para não deixar registros órfãos.
@@ -1036,6 +1143,17 @@ class TimelineRepository extends DbConnection
             $deleted = $stmtPost->rowCount() > 0;
 
             $pdo->commit();
+            if ($deleted && is_array($oldPost)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_posts',
+                    $postId,
+                    $authorUserId,
+                    'DELETE',
+                    $oldPost,
+                    []
+                );
+            }
+
             return $deleted;
         } catch (\Throwable $e) {
             try { $pdo->rollBack(); } catch (\Throwable $ignore) {}
@@ -1048,6 +1166,7 @@ class TimelineRepository extends DbConnection
         if ($moderatorUserId <= 0) {
             return false;
         }
+        $oldPost = $this->getPostById($postId);
         $sqlPost = 'DELETE FROM adms_timeline_posts WHERE id = :id AND status = "active"';
 
         $sqlDelMentions = 'DELETE FROM adms_timeline_mentions WHERE entity_type = "post" AND entity_id = :id';
@@ -1073,10 +1192,90 @@ class TimelineRepository extends DbConnection
             $deleted = $stmtPost->rowCount() > 0;
 
             $pdo->commit();
+            if ($deleted && is_array($oldPost)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_timeline_posts',
+                    $postId,
+                    $moderatorUserId,
+                    'DELETE',
+                    $oldPost,
+                    []
+                );
+            }
+
             return $deleted;
         } catch (\Throwable) {
             try { $pdo->rollBack(); } catch (\Throwable $ignore) {}
             return false;
         }
+    }
+
+    public function findPostIdByPollId(int $pollId): ?int
+    {
+        if ($pollId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT post_id FROM adms_timeline_polls WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $pollId]);
+        $v = $stmt->fetchColumn();
+
+        return $v !== false ? (int) $v : null;
+    }
+
+    public function getPostIdForTimelineReport(int $reportId): ?int
+    {
+        if ($reportId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT post_id FROM adms_timeline_reports WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $reportId]);
+        $v = $stmt->fetchColumn();
+
+        return $v !== false ? (int) $v : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawTimelineCommentRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_timeline_comments WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawTimelinePollRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_timeline_polls WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawTimelineReportRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_timeline_reports WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }

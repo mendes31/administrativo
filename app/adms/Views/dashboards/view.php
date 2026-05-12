@@ -26,6 +26,11 @@ $filtersConfig = $dashboard['filters_config'] ?? [];
                     <i class="fas fa-copy"></i> Duplicar
                 </button>
             <?php endif; ?>
+            <?php
+            $log_resumo = $this->data['log_resumo'] ?? [];
+            $log_btn_class = 'btn btn-outline-info';
+            include __DIR__ . '/../partials/button_log_alteracoes.php';
+            ?>
             <a href="<?= $_ENV['URL_ADM'] ?>dashboard-data-sources/<?= $dashboard['id'] ?>" class="btn btn-info">
                 <i class="fas fa-database"></i> Fontes de Dados
             </a>

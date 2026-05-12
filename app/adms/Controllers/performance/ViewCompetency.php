@@ -4,6 +4,7 @@ namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CompetenciesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -31,6 +32,10 @@ class ViewCompetency
         }
 
         $this->data['competency'] = $competency;
+
+        $cid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-competency/' . $cid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_competencies', $cid, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Competência',

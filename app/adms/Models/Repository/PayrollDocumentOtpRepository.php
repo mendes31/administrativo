@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class PayrollDocumentOtpRepository extends DbConnection
@@ -19,10 +20,32 @@ class PayrollDocumentOtpRepository extends DbConnection
             return;
         }
         $in = implode(',', $ids);
+        $sel = $this->getConnection()->query(
+            "SELECT * FROM adms_payroll_document_otp_challenges WHERE employee_payroll_document_id IN ({$in}) AND consumed_at IS NULL"
+        );
+        $beforeRows = $sel ? ($sel->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
         $this->getConnection()->exec(
             "UPDATE adms_payroll_document_otp_challenges SET consumed_at = NOW()
              WHERE employee_payroll_document_id IN ({$in}) AND consumed_at IS NULL"
         );
+        $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : 1;
+        foreach ($beforeRows as $r) {
+            $cid = (int) ($r['id'] ?? 0);
+            if ($cid <= 0) {
+                continue;
+            }
+            $after = $this->getRawChallengeRow($cid);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_otp_challenges',
+                    $cid,
+                    $actor,
+                    'UPDATE',
+                    $this->redactChallengeRow($r),
+                    $this->redactChallengeRow($after)
+                );
+            }
+        }
     }
 
     public function countChallengesLastHour(int $userId, int $documentId): int
@@ -61,7 +84,22 @@ class PayrollDocumentOtpRepository extends DbConnection
         $stmt->bindValue(':ch', $channel, PDO::PARAM_STR);
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $snap = $this->getRawChallengeRow($newId);
+            if (is_array($snap)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_otp_challenges',
+                    $newId,
+                    $userId,
+                    'INSERT',
+                    [],
+                    $this->redactChallengeRow($snap)
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -72,12 +110,38 @@ class PayrollDocumentOtpRepository extends DbConnection
         if (!$this->hasTable()) {
             return;
         }
-        $sql = 'UPDATE adms_payroll_document_otp_challenges SET consumed_at = NOW()
+        $sql = 'SELECT * FROM adms_payroll_document_otp_challenges
                 WHERE employee_payroll_document_id = :did AND user_id = :uid AND consumed_at IS NULL';
-        $stmt = $this->getConnection()->prepare($sql);
+        $sel = $this->getConnection()->prepare($sql);
+        $sel->bindValue(':did', $documentId, PDO::PARAM_INT);
+        $sel->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $sel->execute();
+        $beforeRows = $sel->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_payroll_document_otp_challenges SET consumed_at = NOW()
+                WHERE employee_payroll_document_id = :did AND user_id = :uid AND consumed_at IS NULL'
+        );
         $stmt->bindValue(':did', $documentId, PDO::PARAM_INT);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->execute();
+        $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : $userId;
+        foreach ($beforeRows as $r) {
+            $cid = (int) ($r['id'] ?? 0);
+            if ($cid <= 0) {
+                continue;
+            }
+            $after = $this->getRawChallengeRow($cid);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_otp_challenges',
+                    $cid,
+                    $actor,
+                    'UPDATE',
+                    $this->redactChallengeRow($r),
+                    $this->redactChallengeRow($after)
+                );
+            }
+        }
     }
 
     /**
@@ -100,20 +164,99 @@ class PayrollDocumentOtpRepository extends DbConnection
         return $row ?: null;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawChallengeRow(int $id): ?array
+    {
+        if (!$this->hasTable() || $id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_payroll_document_otp_challenges WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    public function getDocumentIdForChallenge(int $challengeId): ?int
+    {
+        if (!$this->hasTable() || $challengeId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT employee_payroll_document_id FROM adms_payroll_document_otp_challenges WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $challengeId, PDO::PARAM_INT);
+        $stmt->execute();
+        $v = $stmt->fetchColumn();
+        if ($v === false || $v === null) {
+            return null;
+        }
+        $id = (int) $v;
+
+        return $id > 0 ? $id : null;
+    }
+
     public function incrementAttempts(int $challengeId): void
     {
+        $before = $this->getRawChallengeRow($challengeId);
         $sql = 'UPDATE adms_payroll_document_otp_challenges SET attempts = attempts + 1 WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $challengeId, PDO::PARAM_INT);
         $stmt->execute();
+        if (is_array($before) && $stmt->rowCount() > 0) {
+            $after = $this->getRawChallengeRow($challengeId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_otp_challenges',
+                    $challengeId,
+                    $actor,
+                    'UPDATE',
+                    $this->redactChallengeRow($before),
+                    $this->redactChallengeRow($after)
+                );
+            }
+        }
     }
 
     public function markConsumed(int $challengeId): void
     {
+        $before = $this->getRawChallengeRow($challengeId);
         $sql = 'UPDATE adms_payroll_document_otp_challenges SET consumed_at = NOW() WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $challengeId, PDO::PARAM_INT);
         $stmt->execute();
+        if (is_array($before) && $stmt->rowCount() > 0) {
+            $after = $this->getRawChallengeRow($challengeId);
+            if (is_array($after)) {
+                $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($before['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_document_otp_challenges',
+                    $challengeId,
+                    $actor,
+                    'UPDATE',
+                    $this->redactChallengeRow($before),
+                    $this->redactChallengeRow($after)
+                );
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function redactChallengeRow(array $row): array
+    {
+        $o = $row;
+        if (array_key_exists('code_hash', $o) && $o['code_hash'] !== null && $o['code_hash'] !== '') {
+            $o['code_hash'] = '[redacted]';
+        }
+
+        return $o;
     }
 
     private function hasTable(): bool

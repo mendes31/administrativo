@@ -4,6 +4,7 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EmployeeTicketsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -37,6 +38,10 @@ class ViewEmployeeTicket
 
         $this->data['ticket'] = $ticket;
         $this->data['history'] = $history;
+
+        $tid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-employee-ticket/' . $tid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_employee_tickets', $tid, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Chamado',

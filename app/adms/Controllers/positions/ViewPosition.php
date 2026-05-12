@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -60,6 +61,10 @@ class ViewPosition
 
         // Registrar a visualização do Cargo
         GenerateLog::generateLog("info", "Visualizado o Cargo.", ['id' => (int) $id]);
+
+        $pid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-position/' . $pid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_positions', $pid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

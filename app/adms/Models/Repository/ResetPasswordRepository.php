@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -77,11 +78,27 @@ class ResetPasswordRepository extends DbConnection
             $stmt->bindValue(':recover_password', $data['recover_password'], PDO::PARAM_STR);
             $stmt->bindValue(':validate_recover_password', $data['validate_recover_password']);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
-            $stmt->bindValue(':id', $data['user']['id'], PDO::PARAM_INT);
+            $uid = (int) $data['user']['id'];
+            $stmt->bindValue(':id', $uid, PDO::PARAM_INT);
 
+            $before = $this->getUserRecoverySlice($uid);
+            $ok = $stmt->execute();
+            if ($ok && $stmt->rowCount() > 0 && is_array($before)) {
+                $after = $this->getUserRecoverySlice($uid);
+                if (is_array($after)) {
+                    $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : $uid;
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_users',
+                        $uid,
+                        $actor,
+                        'UPDATE',
+                        $this->maskForLogAlteracao($before),
+                        $this->maskForLogAlteracao($after)
+                    );
+                }
+            }
 
-            // Retornar TRUE quando conseguir executar a QUERY SQL, não considerando se alterou dados do registro
-            return $stmt->execute();
+            return $ok;
 
         } catch (Exception $e) { // Acessa o catch quando houver erro no try
 
@@ -119,9 +136,25 @@ class ResetPasswordRepository extends DbConnection
             // Substituir os links da QUERY pelo valor
             $stmt->bindValue(':password', $hashedPassword);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
-            $stmt->bindValue(':id', $data['user_id'], PDO::PARAM_INT);
+            $userId = (int) $data['user_id'];
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
 
+            $before = $this->getUserRecoverySlice($userId);
             $result = $stmt->execute();
+
+            if ($result && $stmt->rowCount() > 0 && is_array($before)) {
+                $after = $this->getUserRecoverySlice($userId);
+                if (is_array($after)) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_users',
+                        $userId,
+                        $userId,
+                        'UPDATE',
+                        $this->maskForLogAlteracao($before),
+                        $this->maskForLogAlteracao($after)
+                    );
+                }
+            }
 
             if ($result) {
                 // Registrar histórico de senha para o próprio usuário (reset via fluxo público)
@@ -185,5 +218,38 @@ class ResetPasswordRepository extends DbConnection
 
             return false;
         }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getUserRecoverySlice(int $userId): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+        $sql = 'SELECT id, password, recover_password, validate_recover_password, updated_at FROM adms_users WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function maskForLogAlteracao(array $row): array
+    {
+        $o = $row;
+        foreach (['password', 'recover_password', 'validate_recover_password'] as $k) {
+            if (array_key_exists($k, $o) && $o[$k] !== null && $o[$k] !== '') {
+                $o[$k] = '[redacted]';
+            }
+        }
+
+        return $o;
     }
 }

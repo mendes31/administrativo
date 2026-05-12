@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class NotificationsRepository extends DbConnection
@@ -38,7 +39,25 @@ class NotificationsRepository extends DbConnection
         if (!$stmt->execute()) {
             return false;
         }
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawNotificationRow($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 0) > 0
+                    ? (int) $_SESSION['user_id']
+                    : (int) ($data['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_notifications',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -140,11 +159,28 @@ class NotificationsRepository extends DbConnection
      */
     public function updateLinkUrl(int $id, string $linkUrl): bool
     {
+        $oldRow = $this->getRawNotificationRow($id);
         $sql = 'UPDATE adms_notifications SET link_url = :link_url WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':link_url', $linkUrl, PDO::PARAM_STR);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawNotificationRow($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : (int) ($oldRow['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_notifications',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -208,5 +244,21 @@ class NotificationsRepository extends DbConnection
         }
 
         return $map;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawNotificationRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_notifications WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }

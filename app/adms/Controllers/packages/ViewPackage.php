@@ -5,6 +5,7 @@ namespace App\adms\Controllers\packages;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\PackagesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewPackage
 
         // Registrar a visualização do pacote
         GenerateLog::generateLog("info", "Visualizado o pacote.", ['id' => (int) $id]);
+
+        $pkgId = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-package/' . $pkgId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_packages_pages', $pkgId, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

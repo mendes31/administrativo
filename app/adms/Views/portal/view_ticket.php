@@ -19,6 +19,11 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2">
             <span><i class="fas fa-ticket-alt me-2"></i><?= htmlspecialchars($this->data['ticket']['title']) ?></span>
             <span class="ms-auto">
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm me-2';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>list-employee-tickets" class="btn btn-sm btn-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Voltar
                 </a>

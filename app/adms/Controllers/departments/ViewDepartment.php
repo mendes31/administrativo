@@ -5,6 +5,7 @@ namespace App\adms\Controllers\departments;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewDepartment
 
         // Registrar a visualização do departamento
         GenerateLog::generateLog("info", "Visualizado o departamento.", ['id' => (int) $id]);
+
+        $did = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-department/' . $did;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_departments', $did, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

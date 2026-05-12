@@ -4,6 +4,7 @@ namespace App\adms\Controllers\dashboards;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\DashboardsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewDashboard
@@ -44,7 +45,10 @@ class ViewDashboard
         
         // Incrementar contador
         $repo->incrementViews($dashboardId);
-        
+
+        $returnUrl = $_ENV['URL_ADM'] . 'view-dashboard/' . $dashboardId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_dashboards', $dashboardId, $returnUrl);
+
         $pageElements = [
             'title_head' => $this->data['dashboard']['name'],
             // Mantém o menu principal de Dashboards em destaque

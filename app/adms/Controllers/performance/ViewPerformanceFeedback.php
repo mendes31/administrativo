@@ -4,6 +4,7 @@ namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\PerformanceFeedbacksRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -29,6 +30,10 @@ class ViewPerformanceFeedback
             header("Location: {$_ENV['URL_ADM']}list-performance-feedbacks");
             return;
         }
+
+        $fid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-performance-feedback/' . $fid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_performance_feedbacks', $fid, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Feedback de Desempenho',

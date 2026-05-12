@@ -2,11 +2,11 @@
 
 namespace App\adms\Models\Repository;
 
-use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\SlugImg;
 use App\adms\Helpers\Upload;
 use App\adms\Helpers\ValExtImg;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -173,6 +173,8 @@ class UserImageRepository extends DbConnection
     private function updateDatabaseImage(array $data): bool
     {
         try {
+            $userId = (int) $data['id'];
+            $before = $this->getUserImageRow($userId);
             // Gerar nome único para a imagem
             $slugImg = new SlugImg();
             $imageName = $slugImg->slug($data['image']['name']);
@@ -184,11 +186,25 @@ class UserImageRepository extends DbConnection
             
             error_log("UserImageRepository: Salvando no banco: " . $imageName);
             $stmt->bindValue(':updated_at', date("Y-m-d H:i:s"));
-            $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
             
             $result = $stmt->execute();
             
             if ($result) {
+                if ($stmt->rowCount() > 0 && is_array($before)) {
+                    $after = $this->getUserImageRow($userId);
+                    if (is_array($after)) {
+                        $actor = (int) ($_SESSION['user_id'] ?? 0) > 0 ? (int) $_SESSION['user_id'] : $userId;
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_users',
+                            $userId,
+                            $actor,
+                            'UPDATE',
+                            $before,
+                            $after
+                        );
+                    }
+                }
                 error_log("UserImageRepository: Banco atualizado com sucesso");
                 return true;
             }
@@ -199,6 +215,31 @@ class UserImageRepository extends DbConnection
         } catch (Exception $e) {
             error_log("UserImageRepository: Erro ao atualizar banco: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Campos relevantes para log de alteração da foto de perfil.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function getUserImageRow(int $userId): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+        try {
+            $sql = 'SELECT id, image, updated_at FROM adms_users WHERE id = :id LIMIT 1';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $row !== false ? $row : null;
+        } catch (Exception $e) {
+            error_log("UserImageRepository: Erro ao buscar linha para log: " . $e->getMessage());
+
+            return null;
         }
     }
 

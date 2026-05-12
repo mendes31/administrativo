@@ -5,6 +5,7 @@ namespace App\adms\Controllers\customer;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\CustomerRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewCustomer
 
         // Registrar a visualização do Cliente
         GenerateLog::generateLog("info", "Visualizado o Cliente.", ['id' => (int) $id]);
+
+        $cid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-customer/' . $cid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_customer', $cid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

@@ -28,8 +28,9 @@ class LogAlteracoesRepository extends DbConnection
             $params[':tabela'] = '%' . $filtros['tabela'] . '%';
         }
         if (!empty($filtros['objeto_id'])) {
-            $where[] = 'CAST(log.objeto_id AS CHAR) LIKE :objeto_id';
-            $params[':objeto_id'] = '%' . $filtros['objeto_id'] . '%';
+            // Igualdade exata: LIKE com % incluía substrings (ex.: filtro "1" retornava objeto_id 18).
+            $where[] = 'log.objeto_id = :objeto_id';
+            $params[':objeto_id'] = (string) $filtros['objeto_id'];
         }
         if (!empty($filtros['usuario_id'])) {
             $where[] = 'log.usuario_id = :usuario_id';
@@ -462,8 +463,8 @@ class LogAlteracoesRepository extends DbConnection
             $params[':tabela'] = '%' . $filtros['tabela'] . '%';
         }
         if (!empty($filtros['objeto_id'])) {
-            $where[] = 'CAST(objeto_id AS CHAR) LIKE :objeto_id';
-            $params[':objeto_id'] = '%' . $filtros['objeto_id'] . '%';
+            $where[] = 'objeto_id = :objeto_id';
+            $params[':objeto_id'] = (string) $filtros['objeto_id'];
         }
         if (!empty($filtros['usuario_nome'])) {
             $where[] = 'usuario_id IN (SELECT id FROM adms_users WHERE name LIKE :usuario_nome)';

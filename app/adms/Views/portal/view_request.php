@@ -30,6 +30,11 @@ use App\adms\Helpers\FormatHelper;
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm me-2';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>list-employee-requests" class="btn btn-sm btn-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Voltar
                 </a>

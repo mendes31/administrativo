@@ -82,7 +82,12 @@ $indicator = $this->data['indicator'] ?? [];
 
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <?php
+                        $log_resumo = $this->data['log_resumo'] ?? [];
+                        $log_btn_class = 'btn btn-outline-info';
+                        include __DIR__ . '/../partials/button_log_alteracoes.php';
+                        ?>
                         <a href="/adms/strategic-indicators-edit/<?= $indicator['id'] ?? '' ?>" class="btn btn-warning">
                             <i class="fas fa-edit me-2"></i>Editar
                         </a>

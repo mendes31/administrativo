@@ -5,6 +5,7 @@ namespace App\adms\Controllers\pages;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\PagesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewPage
 
         // Registrar a visualização da página
         GenerateLog::generateLog("info", "Visualizado a página.", ['id' => (int) $id]);
+
+        $pgid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-page/' . $pgid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_pages', $pgid, $returnUrl);
 
         // Definir o título da página
         $this->data['title_head'] = " Página";

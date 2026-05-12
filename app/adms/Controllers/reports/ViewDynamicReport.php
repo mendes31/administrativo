@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewDynamicReport
@@ -48,7 +49,11 @@ class ViewDynamicReport
             header('Location: ' . $_ENV['URL_ADM'] . 'list-dynamic-reports');
             exit;
         }
-        
+
+        $reportId = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-dynamic-report/' . $reportId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_dynamic_reports', $reportId, $returnUrl);
+
         $this->data['report']['cache_namespace'] = 'report_' . $id;
         $this->data['report']['force_refresh'] = $forceRefresh;
         $this->data['report']['incremental'] = $incremental;

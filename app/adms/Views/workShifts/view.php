@@ -36,6 +36,9 @@ $totalLabel = WorkShiftsRepository::formatMinutesLabel((int) ($ws['total_minutes
                 if (in_array('UpdateWorkShift', $this->data['buttonPermission'] ?? [])) { ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>update-work-shift/<?= $wid ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
                 <?php }
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
                 if (in_array('DeleteWorkShift', $this->data['buttonPermission'] ?? [])) { ?>
                     <form action="<?= $_ENV['URL_ADM']; ?>delete-work-shift" method="POST" class="d-inline">
                         <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">

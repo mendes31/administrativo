@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\MovBetweenAccountsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -63,6 +64,10 @@ class ViewTransfer
 
         // Registrar a visualização do Banco
         GenerateLog::generateLog("info", "Visualizado a transferência entre contas.", ['id' => (int) $id]);
+
+        $tid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-transfer/' . $tid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_bank_transfers', $tid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

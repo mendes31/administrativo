@@ -5,6 +5,7 @@ namespace App\adms\Controllers\accountsPlan;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\AccountPlanRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,10 @@ class ViewAccountPlan
 
         // Registrar a visualização do Plano de Contas
         GenerateLog::generateLog("info", "Visualizado o Plano de Contas.", ['id' => (int) $id]);
+
+        $apid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-account-plan/' . $apid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_accounts_plan', $apid, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu
