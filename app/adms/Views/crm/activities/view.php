@@ -20,10 +20,15 @@ $activity = $this->data['activity'] ?? [];
     <div class="row">
         <div class="col-md-8">
             <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-info text-white">
+                <div class="card-header bg-info text-white d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <h5 class="mb-0">
                         <i class="fas fa-info-circle me-2"></i>Detalhes da Atividade
                     </h5>
+                    <?php
+                    $log_resumo = $this->data['log_resumo'] ?? [];
+                    $log_btn_class = 'btn btn-sm btn-outline-light';
+                    include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                    ?>
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">

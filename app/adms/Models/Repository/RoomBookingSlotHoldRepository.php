@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -15,8 +16,45 @@ final class RoomBookingSlotHoldRepository extends DbConnection
 {
     private const TTL_SECONDS = 120;
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_room_booking_slot_holds WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function purgeExpired(): void
     {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_room_booking_slot_holds WHERE expires_at < NOW()'
+        );
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        foreach ($rows as $row) {
+            $hid = (int) ($row['id'] ?? 0);
+            if ($hid > 0) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_booking_slot_holds',
+                    $hid,
+                    $usuarioId,
+                    'DELETE',
+                    $row,
+                    []
+                );
+            }
+        }
         $this->getConnection()->exec('DELETE FROM adms_room_booking_slot_holds WHERE expires_at < NOW()');
     }
 
@@ -41,6 +79,8 @@ final class RoomBookingSlotHoldRepository extends DbConnection
         if ($existing) {
             $token = (string) ($existing['hold_token'] ?? '');
             if ($token !== '') {
+                $holdId = (int) ($existing['id'] ?? 0);
+                $oldData = $holdId > 0 ? $this->getById($holdId) : null;
                 $stmt = $this->getConnection()->prepare(
                     'UPDATE adms_room_booking_slot_holds SET expires_at = :e, user_display_name = :n WHERE hold_token = :t AND user_id = :u'
                 );
@@ -49,6 +89,20 @@ final class RoomBookingSlotHoldRepository extends DbConnection
                 $stmt->bindValue(':t', $token);
                 $stmt->bindValue(':u', $userId, PDO::PARAM_INT);
                 $stmt->execute();
+                if ($holdId > 0 && is_array($oldData) && $stmt->rowCount() > 0) {
+                    $newData = $this->getById($holdId);
+                    if (is_array($newData)) {
+                        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_room_booking_slot_holds',
+                            $holdId,
+                            $usuarioId,
+                            'UPDATE',
+                            $oldData,
+                            $newData
+                        );
+                    }
+                }
 
                 return ['ok' => true, 'token' => $token, 'expires_at' => $expires];
             }
@@ -69,6 +123,22 @@ final class RoomBookingSlotHoldRepository extends DbConnection
         $stmt->bindValue(':x', $expires);
         $stmt->execute();
 
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_booking_slot_holds',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
         return ['ok' => true, 'token' => $token, 'expires_at' => $expires];
     }
 
@@ -78,6 +148,19 @@ final class RoomBookingSlotHoldRepository extends DbConnection
         if ($token === '' || $userId <= 0) {
             return false;
         }
+        $stmtFind = $this->getConnection()->prepare(
+            'SELECT * FROM adms_room_booking_slot_holds
+             WHERE hold_token = :t AND user_id = :u AND expires_at >= NOW()
+             LIMIT 1'
+        );
+        $stmtFind->bindValue(':t', $token);
+        $stmtFind->bindValue(':u', $userId, PDO::PARAM_INT);
+        $stmtFind->execute();
+        $oldData = $stmtFind->fetch(PDO::FETCH_ASSOC) ?: null;
+        if ($oldData === null) {
+            return false;
+        }
+        $holdId = (int) ($oldData['id'] ?? 0);
         $expires = date('Y-m-d H:i:s', time() + self::TTL_SECONDS);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_room_booking_slot_holds SET expires_at = :x
@@ -87,6 +170,20 @@ final class RoomBookingSlotHoldRepository extends DbConnection
         $stmt->bindValue(':t', $token);
         $stmt->bindValue(':u', $userId, PDO::PARAM_INT);
         $stmt->execute();
+        if ($stmt->rowCount() > 0 && $holdId > 0) {
+            $newData = $this->getById($holdId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_booking_slot_holds',
+                    $holdId,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
 
         return $stmt->rowCount() > 0;
     }
@@ -96,6 +193,27 @@ final class RoomBookingSlotHoldRepository extends DbConnection
         $token = trim($token);
         if ($token === '' || $userId <= 0) {
             return;
+        }
+        $list = $this->getConnection()->prepare(
+            'SELECT * FROM adms_room_booking_slot_holds WHERE hold_token = :t AND user_id = :u'
+        );
+        $list->bindValue(':t', $token);
+        $list->bindValue(':u', $userId, PDO::PARAM_INT);
+        $list->execute();
+        $rows = $list->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        foreach ($rows as $row) {
+            $hid = (int) ($row['id'] ?? 0);
+            if ($hid > 0) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_booking_slot_holds',
+                    $hid,
+                    $usuarioId,
+                    'DELETE',
+                    $row,
+                    []
+                );
+            }
         }
         $stmt = $this->getConnection()->prepare(
             'DELETE FROM adms_room_booking_slot_holds WHERE hold_token = :t AND user_id = :u'

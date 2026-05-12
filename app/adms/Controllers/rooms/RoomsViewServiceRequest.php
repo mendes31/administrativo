@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\RoomServiceRequestAccessHelper;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\RoomServiceRequestsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -45,7 +46,10 @@ class RoomsViewServiceRequest
             // claim redireciona
         }
 
+        $this->data = [];
         $this->data['request'] = $request;
+        $returnUrl = $_ENV['URL_ADM'] . 'rooms-view-service-request/' . $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_room_service_requests', $id, $returnUrl);
         $this->data['csrf_claim'] = CSRFHelper::generateCSRFToken('form_claim_room_service_request');
 
         $pageElements = [

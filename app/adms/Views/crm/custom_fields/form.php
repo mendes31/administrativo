@@ -15,15 +15,24 @@ if ($isEdit && !empty($field['field_options'])) {
     <?php include './app/adms/Views/partials/alerts.php'; ?>
     
     <!-- Cabeçalho -->
-    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3 flex-wrap gap-2">
         <h1 class="mt-2">
             <i class="fas fa-<?= $isEdit ? 'edit' : 'plus' ?> text-primary me-2"></i>
             <?= $isEdit ? 'Editar' : 'Novo' ?> Campo Customizável
         </h1>
-        <a href="<?= $_ENV['URL_ADM'] ?>crm-list-custom-fields?entity_type=<?= $field['entity_type'] ?? '' ?>" 
-           class="btn btn-secondary btn-sm">
-            <i class="fas fa-arrow-left"></i> Voltar
-        </a>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <?php if ($isEdit): ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
+            <?php endif; ?>
+            <a href="<?= $_ENV['URL_ADM'] ?>crm-list-custom-fields?entity_type=<?= $field['entity_type'] ?? '' ?>" 
+               class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
     </div>
 
     <!-- Formulário -->

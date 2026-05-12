@@ -5,6 +5,7 @@ namespace App\adms\Models\Repository;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use Generator;
 use PDO;
@@ -57,6 +58,83 @@ class AccessLevelsPagesRepository extends DbConnection
     public static function getLastErrorMessage(): ?string
     {
         return self::$lastErrorMessage;
+    }
+
+    /**
+     * Linha em adms_access_levels_pages por PK (para link no log de alterações).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getAccessLevelPageRowById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_access_levels_pages WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findAccessLevelPageRow(int $levelId, int $pageId): ?array
+    {
+        if ($levelId <= 0 || $pageId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_access_levels_pages
+             WHERE adms_access_level_id = :l AND adms_page_id = :p LIMIT 1'
+        );
+        $stmt->bindValue(':l', $levelId, PDO::PARAM_INT);
+        $stmt->bindValue(':p', $pageId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $oldRow
+     * @param array<string, mixed>|null $newRow
+     */
+    private function logAdmsAccessLevelPageMutation(?array $oldRow, ?array $newRow, int $usuarioId): void
+    {
+        if (!is_array($newRow)) {
+            return;
+        }
+        $pk = (int) ($newRow['id'] ?? 0);
+        if ($pk <= 0) {
+            return;
+        }
+        if ($oldRow === null) {
+            LogAlteracaoService::registrarAlteracao(
+                'adms_access_levels_pages',
+                $pk,
+                $usuarioId,
+                'INSERT',
+                [],
+                $newRow
+            );
+
+            return;
+        }
+        if ((int) ($oldRow['permission'] ?? -1) !== (int) ($newRow['permission'] ?? -2)) {
+            LogAlteracaoService::registrarAlteracao(
+                'adms_access_levels_pages',
+                $pk,
+                $usuarioId,
+                'UPDATE',
+                $oldRow,
+                $newRow
+            );
+        }
     }
 
     /**
@@ -187,6 +265,16 @@ class AccessLevelsPagesRepository extends DbConnection
 
                 // Criar QUERY somente se o nível de acesso não tem página cadastrada
                 if ($accessLevelPages ?? false) {
+                    $alId = (int) $accessLevelId;
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    $oldByPage = [];
+                    foreach ($accessLevelPages as $pageId) {
+                        $pageId = (int) $pageId;
+                        if ($pageId <= 0) {
+                            continue;
+                        }
+                        $oldByPage[$pageId] = $this->findAccessLevelPageRow($alId, $pageId);
+                    }
 
                     // UPSERT: UNIQUE (adms_access_level_id, adms_page_id) evita duplicados; alinha permission se já existir
                     $sql = 'INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at) VALUES '
@@ -198,6 +286,11 @@ class AccessLevelsPagesRepository extends DbConnection
 
                     // Executar a QUERY
                     $stmt->execute($values);
+
+                    foreach (array_keys($oldByPage) as $pageId) {
+                        $newRow = $this->findAccessLevelPageRow($alId, (int) $pageId);
+                        $this->logAdmsAccessLevelPageMutation($oldByPage[$pageId] ?? null, $newRow, $usuarioId);
+                    }
 
                     // Criar o array com ID do nível de acesso para salvar no log
                     $accessLevelArrayId[] = $accessLevelId;
@@ -270,6 +363,7 @@ class AccessLevelsPagesRepository extends DbConnection
             $stmtInsert = $conn->prepare($sqlInsert);
 
             $now = date('Y-m-d H:i:s');
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
 
             foreach ($pages as $page) {
                 $pageId      = (int)($page['id'] ?? 0);
@@ -286,12 +380,17 @@ class AccessLevelsPagesRepository extends DbConnection
                 $isDefault  = $defaultPage === 1;
                 $permission = ($isPublic || $isDefault || $isBasic) ? 1 : 0;
 
+                $oldRow = $this->findAccessLevelPageRow($accessLevelId, $pageId);
+
                 $stmtInsert->bindValue(':permission', $permission, PDO::PARAM_INT);
                 $stmtInsert->bindValue(':level_id', $accessLevelId, PDO::PARAM_INT);
                 $stmtInsert->bindValue(':page_id', $pageId, PDO::PARAM_INT);
                 $stmtInsert->bindValue(':created_at', $now);
                 $stmtInsert->bindValue(':updated_at', $now);
                 $stmtInsert->execute();
+
+                $newRow = $this->findAccessLevelPageRow($accessLevelId, $pageId);
+                $this->logAdmsAccessLevelPageMutation($oldRow, $newRow, $usuarioId);
             }
 
             $conn->commit();
@@ -349,6 +448,13 @@ class AccessLevelsPagesRepository extends DbConnection
             $conn = $this->getConnection();
             $conn->beginTransaction();
 
+            $stmtOldTarget = $conn->prepare(
+                'SELECT * FROM adms_access_levels_pages WHERE adms_access_level_id = :target_id'
+            );
+            $stmtOldTarget->bindValue(':target_id', $targetLevelId, PDO::PARAM_INT);
+            $stmtOldTarget->execute();
+            $deletedRows = $stmtOldTarget->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
             // Apagar todas as permissões atuais do nível destino
             $sqlDelete = 'DELETE FROM adms_access_levels_pages
                           WHERE adms_access_level_id = :target_id';
@@ -377,6 +483,40 @@ class AccessLevelsPagesRepository extends DbConnection
             $stmtCopy->execute();
 
             $conn->commit();
+
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            foreach ($deletedRows as $old) {
+                $pk = (int) ($old['id'] ?? 0);
+                if ($pk > 0) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_access_levels_pages',
+                        $pk,
+                        $usuarioId,
+                        'DELETE',
+                        $old,
+                        []
+                    );
+                }
+            }
+            $stmtNewTarget = $this->getConnection()->prepare(
+                'SELECT * FROM adms_access_levels_pages WHERE adms_access_level_id = :target_id'
+            );
+            $stmtNewTarget->bindValue(':target_id', $targetLevelId, PDO::PARAM_INT);
+            $stmtNewTarget->execute();
+            $newRows = $stmtNewTarget->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            foreach ($newRows as $row) {
+                $pk = (int) ($row['id'] ?? 0);
+                if ($pk > 0) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_access_levels_pages',
+                        $pk,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
 
             GenerateLog::generateLog('info', 'Permissões de nível de acesso copiadas.', [
                 'source_level' => $sourceLevelId,
@@ -450,6 +590,7 @@ class AccessLevelsPagesRepository extends DbConnection
         try {
             // Marca o ponto inicial de uma transação SQL
             $this->getConnection()->beginTransaction();
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
 
             // Criar o elemento permissions no array quando não vem do formulário
             $data['permissions'] = $data['permissions'] ?? [];
@@ -516,6 +657,8 @@ class AccessLevelsPagesRepository extends DbConnection
                 
                 error_log('Processando página ID: ' . $pageId . ' com permissão: ' . $permissionValue);
 
+                $oldRow = $this->findAccessLevelPageRow($accessLevelId, $pageId);
+
                 $now = date('Y-m-d H:i:s');
                 $sql = 'INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
                         VALUES (:permission, :adms_access_level_id, :adms_page_id, :created_at, :updated_at)
@@ -527,6 +670,8 @@ class AccessLevelsPagesRepository extends DbConnection
                 $stmt->bindValue(':created_at', $now);
                 $stmt->bindValue(':updated_at', $now);
                 $stmt->execute();
+                $newRow = $this->findAccessLevelPageRow($accessLevelId, $pageId);
+                $this->logAdmsAccessLevelPageMutation($oldRow, $newRow, $usuarioId);
                 error_log('Página gravada (upsert): ' . $pageId . ' com permissão: ' . $permissionValue);
 
                 if (is_array($resultAccessLevelsPagesPermissions) && array_key_exists($pageId, $resultAccessLevelsPagesPermissions)) {

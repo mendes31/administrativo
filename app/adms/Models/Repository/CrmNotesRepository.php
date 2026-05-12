@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -91,7 +92,23 @@ class CrmNotesRepository extends DbConnection
 
             $stmt->execute();
 
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newRow = $this->getNoteById($newId);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_notes',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newRow
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao criar nota", [
                 'data' => $data,
@@ -128,12 +145,27 @@ class CrmNotesRepository extends DbConnection
     public function deleteNote(int $id): bool
     {
         try {
+            $oldData = $this->getNoteById($id);
             $sql = 'DELETE FROM crm_notes WHERE id = :id';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+            if ($deleted && is_array($oldData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'crm_notes',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $deleted;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar nota", [
                 'id' => $id,

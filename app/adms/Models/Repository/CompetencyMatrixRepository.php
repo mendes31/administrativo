@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -54,6 +55,25 @@ class CompetencyMatrixRepository extends DbConnection
     }
 
     /**
+     * Linha completa da matriz por PK (para log / links).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getMatrixRowById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $sql = 'SELECT * FROM adms_competency_matrix WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
      * Criar ou atualizar nível requerido na matriz
      */
     public function upsert(array $data): bool
@@ -81,8 +101,45 @@ class CompetencyMatrixRepository extends DbConnection
         $stmt->bindValue(':competency_id', $data['competency_id'], PDO::PARAM_INT);
         $stmt->bindValue(':required_level', $data['required_level'], PDO::PARAM_INT);
         $stmt->bindValue(':is_mandatory', $data['is_mandatory'] ?? false, PDO::PARAM_BOOL);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if (!$ok) {
+            return false;
+        }
+
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        $newRow = $this->getRequiredLevel((int) $data['position_id'], (int) $data['competency_id']);
+        if (!is_array($newRow)) {
+            return true;
+        }
+        $rowPk = (int) ($newRow['id'] ?? 0);
+        if ($rowPk <= 0) {
+            return true;
+        }
+
+        if ($existing === null) {
+            LogAlteracaoService::registrarAlteracao(
+                'adms_competency_matrix',
+                $rowPk,
+                $usuarioId,
+                'INSERT',
+                [],
+                $newRow
+            );
+        } elseif (
+            (int) ($existing['required_level'] ?? 0) !== (int) ($newRow['required_level'] ?? 0)
+            || (bool) ($existing['is_mandatory'] ?? false) !== (bool) ($newRow['is_mandatory'] ?? false)
+        ) {
+            LogAlteracaoService::registrarAlteracao(
+                'adms_competency_matrix',
+                $rowPk,
+                $usuarioId,
+                'UPDATE',
+                $existing,
+                $newRow
+            );
+        }
+
+        return true;
     }
 
     /**
@@ -90,14 +147,30 @@ class CompetencyMatrixRepository extends DbConnection
      */
     public function delete(int $positionId, int $competencyId): bool
     {
+        $oldRow = $this->getRequiredLevel($positionId, $competencyId);
         $sql = "DELETE FROM adms_competency_matrix 
                 WHERE position_id = :position_id AND competency_id = :competency_id";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':position_id', $positionId, PDO::PARAM_INT);
         $stmt->bindValue(':competency_id', $competencyId, PDO::PARAM_INT);
-        
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $rowPk = (int) ($oldRow['id'] ?? 0);
+            if ($rowPk > 0) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_competency_matrix',
+                    $rowPk,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**

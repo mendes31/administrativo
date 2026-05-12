@@ -4,6 +4,7 @@ namespace App\adms\Controllers\crm;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CrmAutomationsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -34,6 +35,10 @@ class CrmViewAutomation
             header("Location: " . $_ENV['URL_ADM'] . "crm-list-automations");
             exit;
         }
+
+        $aid = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'crm-view-automation/' . $aid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('crm_automations', $aid, $returnUrl);
 
         // Buscar logs de execução
         $this->data['logs'] = $repo->getAutomationLogs((int)$id, 100);

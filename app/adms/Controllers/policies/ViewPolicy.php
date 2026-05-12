@@ -4,6 +4,7 @@ namespace App\adms\Controllers\policies;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\PoliciesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewPolicy
@@ -28,7 +29,10 @@ class ViewPolicy
             return;
         }
 
+        $this->data = [];
         $this->data['policy'] = $policy;
+        $returnUrl = $_ENV['URL_ADM'] . 'view-policy/' . $policyId;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_policies', $policyId, $returnUrl);
 
         // Se usuário logado, buscar status de leitura/ciência para exibir na view
         if (!empty($_SESSION['user_id'])) {

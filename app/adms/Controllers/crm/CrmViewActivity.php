@@ -4,6 +4,7 @@ namespace App\adms\Controllers\crm;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CrmActivitiesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -36,6 +37,9 @@ class CrmViewActivity
         }
 
         $this->data['activity'] = $activity;
+        $aid = (int) $activity['id'];
+        $returnUrl = $_ENV['URL_ADM'] . 'crm-view-activity/' . $aid;
+        $this->data['log_resumo'] = LogResumoService::getResumo('crm_activities', $aid, $returnUrl);
 
         // Layout
         $pageElements = [

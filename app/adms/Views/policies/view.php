@@ -27,6 +27,11 @@ $policy = $this->data['policy'] ?? [];
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php endif; ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <?php if (in_array('DeletePolicy', $this->data['buttonPermission'] ?? [], true)): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>delete-policy/<?php echo (int) ($policy['id'] ?? 0); ?>"
                        class="btn btn-danger btn-sm mb-1"

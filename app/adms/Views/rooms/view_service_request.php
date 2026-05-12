@@ -30,6 +30,11 @@ $r = $this->data['request'] ?? [];
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-sm btn-outline-info w-100 w-sm-auto';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rooms-list-service-requests" class="btn btn-sm btn-secondary w-100 w-sm-auto">Voltar</a>
             </div>
         </div>

@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -86,7 +87,23 @@ class CrmAutomationsRepository extends DbConnection
             $stmt->bindValue(':created_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
             
             $stmt->execute();
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newData = $this->getAutomationById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_automations',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao criar automação", [
                 'error' => $e->getMessage()
@@ -101,6 +118,15 @@ class CrmAutomationsRepository extends DbConnection
     public function updateAutomation(array $data): bool
     {
         try {
+            $id = (int) ($data['id'] ?? 0);
+            if ($id <= 0) {
+                return false;
+            }
+            $oldData = $this->getAutomationById($id);
+            if (!is_array($oldData)) {
+                return false;
+            }
+
             $sql = 'UPDATE crm_automations SET
                         name = :name,
                         description = :description,
@@ -126,7 +152,23 @@ class CrmAutomationsRepository extends DbConnection
             $stmt->bindValue(':is_active', $data['is_active'] ?? 1, PDO::PARAM_INT);
             $stmt->bindValue(':priority', $data['priority'] ?? 0, PDO::PARAM_INT);
             
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $stmt->rowCount() > 0) {
+                $newData = $this->getAutomationById($id);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_automations',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao atualizar automação", [
                 'error' => $e->getMessage()
@@ -141,10 +183,25 @@ class CrmAutomationsRepository extends DbConnection
     public function deleteAutomation(int $id): bool
     {
         try {
+            $oldData = $this->getAutomationById($id);
             $sql = 'DELETE FROM crm_automations WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+            if ($deleted && is_array($oldData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'crm_automations',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $deleted;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar automação", [
                 'error' => $e->getMessage()
@@ -178,6 +235,7 @@ class CrmAutomationsRepository extends DbConnection
     public function logExecution(int $automationId, string $entityType, int $entityId, string $status, ?string $errorMessage = null, ?array $executionData = null): bool
     {
         try {
+            $oldAuto = $this->getAutomationById($automationId);
             $sql = 'INSERT INTO crm_automation_logs 
                     (automation_id, entity_type, entity_id, status, error_message, execution_data, executed_at)
                     VALUES (:automation_id, :entity_type, :entity_id, :status, :error_message, :execution_data, NOW())';
@@ -200,6 +258,20 @@ class CrmAutomationsRepository extends DbConnection
             $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
             $stmtUpdate->bindValue(':id', $automationId, PDO::PARAM_INT);
             $stmtUpdate->execute();
+            if ($stmtUpdate->rowCount() > 0 && is_array($oldAuto)) {
+                $newAuto = $this->getAutomationById($automationId);
+                if (is_array($newAuto)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_automations',
+                        $automationId,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldAuto,
+                        $newAuto
+                    );
+                }
+            }
             
             return true;
         } catch (Exception $e) {

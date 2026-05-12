@@ -122,7 +122,23 @@ class CrmActivitiesRepository extends DbConnection
 
             $stmt->execute();
 
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newData = $this->getActivityById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_activities',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Atividade não cadastrada.", [
                 'error' => $e->getMessage()
@@ -138,6 +154,15 @@ class CrmActivitiesRepository extends DbConnection
     public function updateActivity(array $data): bool
     {
         try {
+            $id = (int) ($data['id'] ?? 0);
+            if ($id <= 0) {
+                return false;
+            }
+            $oldData = $this->getActivityById($id);
+            if (!is_array($oldData)) {
+                return false;
+            }
+
             $sql = 'UPDATE crm_activities SET
                         type = :type,
                         partner_id = :partner_id,
@@ -169,9 +194,23 @@ class CrmActivitiesRepository extends DbConnection
             $stmt->bindValue(':updated_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
 
-            $result = $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $stmt->rowCount() > 0) {
+                $newData = $this->getActivityById($id);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_activities',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
 
-            return $result;
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Atividade não atualizada.", [
                 'id' => $data['id'] ?? null,
@@ -188,6 +227,11 @@ class CrmActivitiesRepository extends DbConnection
     public function completeActivity(int $id, array $data = []): bool
     {
         try {
+            $oldData = $this->getActivityById($id);
+            if (!is_array($oldData)) {
+                return false;
+            }
+
             $sql = 'UPDATE crm_activities SET
                         status = "Concluída",
                         completed_date = NOW(),
@@ -202,7 +246,23 @@ class CrmActivitiesRepository extends DbConnection
             $stmt->bindValue(':updated_by', $_SESSION['user_id'] ?? 1, PDO::PARAM_INT);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $stmt->rowCount() > 0) {
+                $newData = $this->getActivityById($id);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_activities',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Atividade não concluída.", [
                 'id' => $id,
@@ -488,12 +548,27 @@ class CrmActivitiesRepository extends DbConnection
     public function deleteActivity(int $id): bool
     {
         try {
+            $oldData = $this->getActivityById($id);
             $sql = 'DELETE FROM crm_activities WHERE id = :id';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+            if ($deleted && is_array($oldData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'crm_activities',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $deleted;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar atividade", [
                 'id' => $id,

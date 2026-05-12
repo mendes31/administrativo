@@ -5,7 +5,13 @@ namespace App\adms\Controllers\logs;
 use App\adms\Models\Repository\BookingAdditionalRequestsRepository;
 use App\adms\Models\Repository\BookingParticipantsRepository;
 use App\adms\Models\Repository\BookingWaitlistRepository;
+use App\adms\Models\Repository\AccessLevelsPagesRepository;
+use App\adms\Models\Repository\CrmNotesRepository;
+use App\adms\Models\Repository\CrmCustomFieldsRepository;
+use App\adms\Models\Repository\CrmDocumentsRepository;
+use App\adms\Models\Repository\CompetencyMatrixRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
+use App\adms\Models\Repository\RoomBookingSlotHoldRepository;
 use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
@@ -135,6 +141,22 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'view-page/' . $objetoId;
             case 'adms_access_levels':
                 return $_ENV['URL_ADM'] . 'view-access-level/' . $objetoId;
+            case 'adms_access_levels_pages':
+                $alpRow = (new AccessLevelsPagesRepository())->getAccessLevelPageRowById($objetoId);
+                if ($alpRow && !empty($alpRow['adms_access_level_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-access-level/' . (int) $alpRow['adms_access_level_id'];
+                }
+
+                return null;
+            case 'adms_competencies':
+                return $_ENV['URL_ADM'] . 'view-competency/' . $objetoId;
+            case 'adms_competency_matrix':
+                $cm = (new CompetencyMatrixRepository())->getMatrixRowById($objetoId);
+                if ($cm && !empty($cm['position_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-position/' . (int) $cm['position_id'];
+                }
+
+                return null;
             case 'lgpd_bases_legais':
                 return $_ENV['URL_ADM'] . 'lgpd-bases-legais-view/' . $objetoId;
             case 'lgpd_finalidades':
@@ -196,6 +218,65 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'my-calendar';
             case 'adms_room_bookings':
                 return $_ENV['URL_ADM'] . 'view-booking/' . $objetoId;
+            case 'adms_policies':
+                return $_ENV['URL_ADM'] . 'view-policy/' . $objetoId;
+            case 'adms_policies_categorias':
+                return $_ENV['URL_ADM'] . 'update-policy-category/' . $objetoId;
+            case 'crm_activities':
+                return $_ENV['URL_ADM'] . 'crm-view-activity/' . $objetoId;
+            case 'crm_notes':
+                $note = (new CrmNotesRepository())->getNoteById($objetoId);
+                if (is_array($note)) {
+                    if (!empty($note['opportunity_id'])) {
+                        return $_ENV['URL_ADM'] . 'crm-view-opportunity/' . (int) $note['opportunity_id'];
+                    }
+                    if (!empty($note['partner_id'])) {
+                        return $_ENV['URL_ADM'] . 'crm-view-partner/' . (int) $note['partner_id'];
+                    }
+                }
+
+                return null;
+            case 'crm_automations':
+                return $_ENV['URL_ADM'] . 'crm-view-automation/' . $objetoId;
+            case 'crm_custom_fields':
+                return $_ENV['URL_ADM'] . 'crm-update-custom-field/' . $objetoId;
+            case 'crm_custom_field_values_partners':
+                $cfvRepo = new CrmCustomFieldsRepository();
+                $pv = $cfvRepo->getPartnerFieldValueRowById($objetoId);
+                if ($pv && !empty($pv['partner_id'])) {
+                    return $_ENV['URL_ADM'] . 'crm-view-partner/' . (int) $pv['partner_id'];
+                }
+
+                return null;
+            case 'crm_custom_field_values_opportunities':
+                $cfvRepo2 = new CrmCustomFieldsRepository();
+                $ov = $cfvRepo2->getOpportunityFieldValueRowById($objetoId);
+                if ($ov && !empty($ov['opportunity_id'])) {
+                    return $_ENV['URL_ADM'] . 'crm-view-opportunity/' . (int) $ov['opportunity_id'];
+                }
+
+                return null;
+            case 'crm_documents':
+                $doc = (new CrmDocumentsRepository())->getDocumentById($objetoId);
+                if (is_array($doc)) {
+                    if (!empty($doc['opportunity_id'])) {
+                        return $_ENV['URL_ADM'] . 'crm-view-opportunity/' . (int) $doc['opportunity_id'];
+                    }
+                    if (!empty($doc['partner_id'])) {
+                        return $_ENV['URL_ADM'] . 'crm-view-partner/' . (int) $doc['partner_id'];
+                    }
+                }
+
+                return null;
+            case 'adms_room_service_requests':
+                return $_ENV['URL_ADM'] . 'rooms-view-service-request/' . $objetoId;
+            case 'adms_room_booking_slot_holds':
+                $hold = (new RoomBookingSlotHoldRepository())->getById($objetoId);
+                if ($hold && !empty($hold['room_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-meeting-room/' . (int) $hold['room_id'];
+                }
+
+                return null;
             case 'adms_booking_additional_requests':
                 $bar = (new BookingAdditionalRequestsRepository())->getById($objetoId);
                 if ($bar && !empty($bar['booking_id'])) {

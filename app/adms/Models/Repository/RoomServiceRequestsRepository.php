@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -199,7 +200,23 @@ class RoomServiceRequestsRepository extends DbConnection
         $stmt->bindValue(':responsible_group_id', $data['responsible_group_id'] ?? null, PDO::PARAM_INT);
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_service_requests',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -267,6 +284,8 @@ class RoomServiceRequestsRepository extends DbConnection
             return false;
         }
 
+        $oldData = $this->getById($id);
+
         $sets[] = 'updated_at = NOW()';
 
         $sql = "UPDATE adms_room_service_requests
@@ -278,15 +297,46 @@ class RoomServiceRequestsRepository extends DbConnection
             $stmt->bindValue($k, $v);
         }
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($oldData)) {
+            $newData = $this->getById($id);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_service_requests',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
     {
+        $oldData = $this->getById($id);
         $sql = "DELETE FROM adms_room_service_requests WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $stmt->execute();
+        $deleted = $stmt->rowCount() > 0;
+        if ($deleted && is_array($oldData)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_room_service_requests',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $deleted;
     }
 }
 

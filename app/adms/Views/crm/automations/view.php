@@ -17,14 +17,19 @@ $actionConfig = !empty($automation['action_config']) ? json_decode($automation['
             <i class="fas fa-robot text-primary me-2"></i>
             Detalhes da Automação
         </h1>
-        <div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <?php
+            $log_resumo = $this->data['log_resumo'] ?? [];
+            $log_btn_class = 'btn btn-outline-info btn-sm';
+            include __DIR__ . '/../../partials/button_log_alteracoes.php';
+            ?>
+            <a href="<?= $_ENV['URL_ADM'] ?>crm-list-automations" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
             <a href="<?= $_ENV['URL_ADM'] ?>crm-delete-automation/<?= $automation['id'] ?>" 
                class="btn btn-danger btn-sm"
                onclick="return confirm('Tem certeza que deseja excluir esta automação?')">
                 <i class="fas fa-trash"></i> Excluir
-            </a>
-            <a href="<?= $_ENV['URL_ADM'] ?>crm-list-automations" class="btn btn-secondary btn-sm">
-                <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
     </div>

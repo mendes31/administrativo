@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class PoliciesRepository extends DbConnection
@@ -541,7 +542,23 @@ class PoliciesRepository extends DbConnection
 
         $stmt->execute();
 
-        return (int) $this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getPolicyById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_policies',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -574,7 +591,25 @@ class PoliciesRepository extends DbConnection
         $stmt->bindValue(':publish_at', $data['publish_at'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':expire_at', $data['expire_at'] ?? null, PDO::PARAM_STR);
 
-        return $stmt->execute();
+        $oldData = $this->getPolicyById($id);
+
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($oldData)) {
+            $newData = $this->getPolicyById($id);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_policies',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -582,11 +617,26 @@ class PoliciesRepository extends DbConnection
      */
     public function deletePolicy(int $id): bool
     {
+        $oldData = $this->getPolicyById($id);
         $sql = "DELETE FROM adms_policies WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-        return $stmt->execute();
+        $stmt->execute();
+        $deleted = $stmt->rowCount() > 0;
+        if ($deleted && is_array($oldData)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_policies',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $deleted;
     }
 
     /**
@@ -619,11 +669,28 @@ class PoliciesRepository extends DbConnection
         $stmt->bindValue(':ativo', $ativo, PDO::PARAM_BOOL);
         $stmt->execute();
 
-        return (int) $this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getCategoriaById($newId);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_policies_categorias',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function updateCategoria(int $id, string $name, bool $ativo): bool
     {
+        $oldData = $this->getCategoriaById($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_policies_categorias
              SET name = :name, ativo = :ativo, updated_at = NOW()
@@ -633,15 +700,46 @@ class PoliciesRepository extends DbConnection
         $stmt->bindValue(':name', $name, PDO::PARAM_STR);
         $stmt->bindValue(':ativo', $ativo, PDO::PARAM_BOOL);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $stmt->rowCount() > 0 && is_array($oldData)) {
+            $newData = $this->getCategoriaById($id);
+            if (is_array($newData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_policies_categorias',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function deleteCategoria(int $id): bool
     {
+        $oldData = $this->getCategoriaById($id);
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_policies_categorias WHERE id = :id');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-        return $stmt->execute();
+        $stmt->execute();
+        $deleted = $stmt->rowCount() > 0;
+        if ($deleted && is_array($oldData)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_policies_categorias',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $deleted;
     }
 
     /**

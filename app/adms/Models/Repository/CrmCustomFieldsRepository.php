@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -73,29 +74,138 @@ class CrmCustomFieldsRepository extends DbConnection
     }
 
     /**
+     * Linha completa em crm_custom_field_values_partners (por PK).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPartnerFieldValueRowById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM crm_custom_field_values_partners WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Linha completa em crm_custom_field_values_opportunities (por PK).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getOpportunityFieldValueRowById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM crm_custom_field_values_opportunities WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findPartnerFieldValueRow(int $partnerId, int $customFieldId): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM crm_custom_field_values_partners
+             WHERE partner_id = :p AND custom_field_id = :f LIMIT 1'
+        );
+        $stmt->bindValue(':p', $partnerId, PDO::PARAM_INT);
+        $stmt->bindValue(':f', $customFieldId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findOpportunityFieldValueRow(int $opportunityId, int $customFieldId): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM crm_custom_field_values_opportunities
+             WHERE opportunity_id = :o AND custom_field_id = :f LIMIT 1'
+        );
+        $stmt->bindValue(':o', $opportunityId, PDO::PARAM_INT);
+        $stmt->bindValue(':f', $customFieldId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
      * Salvar valores de campos customizados para parceiro
      */
     public function savePartnerFieldValues(int $partnerId, array $fieldValues): bool
     {
         try {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
             foreach ($fieldValues as $fieldId => $value) {
+                $customFieldId = (int) $fieldId;
+                if ($customFieldId <= 0) {
+                    continue;
+                }
                 // Se for array (checkbox), converter para string separada por vírgulas
                 if (is_array($value)) {
                     $value = implode(',', $value);
                 }
-                
+
+                $oldRow = $this->findPartnerFieldValueRow($partnerId, $customFieldId);
+
                 $sql = 'INSERT INTO crm_custom_field_values_partners 
                         (partner_id, custom_field_id, field_value, created_at, updated_at)
                         VALUES (:partner_id, :custom_field_id, :field_value, NOW(), NOW())
                         ON DUPLICATE KEY UPDATE field_value = :field_value, updated_at = NOW()';
-                
+
                 $stmt = $this->getConnection()->prepare($sql);
                 $stmt->bindValue(':partner_id', $partnerId, PDO::PARAM_INT);
-                $stmt->bindValue(':custom_field_id', $fieldId, PDO::PARAM_INT);
+                $stmt->bindValue(':custom_field_id', $customFieldId, PDO::PARAM_INT);
                 $stmt->bindValue(':field_value', $value);
                 $stmt->execute();
+
+                $newRow = $this->findPartnerFieldValueRow($partnerId, $customFieldId);
+                if (!is_array($newRow)) {
+                    continue;
+                }
+                $rowPk = (int) ($newRow['id'] ?? 0);
+                if ($rowPk <= 0) {
+                    continue;
+                }
+                if ($oldRow === null) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_custom_field_values_partners',
+                        $rowPk,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newRow
+                    );
+                } elseif ((string) ($oldRow['field_value'] ?? '') !== (string) ($newRow['field_value'] ?? '')) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_custom_field_values_partners',
+                        $rowPk,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
             }
-            
+
             return true;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao salvar campos customizados do parceiro", [
@@ -112,24 +222,59 @@ class CrmCustomFieldsRepository extends DbConnection
     public function saveOpportunityFieldValues(int $opportunityId, array $fieldValues): bool
     {
         try {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
             foreach ($fieldValues as $fieldId => $value) {
+                $customFieldId = (int) $fieldId;
+                if ($customFieldId <= 0) {
+                    continue;
+                }
                 // Se for array (checkbox), converter para string separada por vírgulas
                 if (is_array($value)) {
                     $value = implode(',', $value);
                 }
-                
+
+                $oldRow = $this->findOpportunityFieldValueRow($opportunityId, $customFieldId);
+
                 $sql = 'INSERT INTO crm_custom_field_values_opportunities 
                         (opportunity_id, custom_field_id, field_value, created_at, updated_at)
                         VALUES (:opportunity_id, :custom_field_id, :field_value, NOW(), NOW())
                         ON DUPLICATE KEY UPDATE field_value = :field_value, updated_at = NOW()';
-                
+
                 $stmt = $this->getConnection()->prepare($sql);
                 $stmt->bindValue(':opportunity_id', $opportunityId, PDO::PARAM_INT);
-                $stmt->bindValue(':custom_field_id', $fieldId, PDO::PARAM_INT);
+                $stmt->bindValue(':custom_field_id', $customFieldId, PDO::PARAM_INT);
                 $stmt->bindValue(':field_value', $value);
                 $stmt->execute();
+
+                $newRow = $this->findOpportunityFieldValueRow($opportunityId, $customFieldId);
+                if (!is_array($newRow)) {
+                    continue;
+                }
+                $rowPk = (int) ($newRow['id'] ?? 0);
+                if ($rowPk <= 0) {
+                    continue;
+                }
+                if ($oldRow === null) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_custom_field_values_opportunities',
+                        $rowPk,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newRow
+                    );
+                } elseif ((string) ($oldRow['field_value'] ?? '') !== (string) ($newRow['field_value'] ?? '')) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_custom_field_values_opportunities',
+                        $rowPk,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
             }
-            
+
             return true;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao salvar campos customizados da oportunidade", [
@@ -163,7 +308,23 @@ class CrmCustomFieldsRepository extends DbConnection
             $stmt->bindValue(':is_active', ($data['status'] ?? 'active') === 'active' ? 1 : 0, PDO::PARAM_INT);
             
             $stmt->execute();
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newData = $this->getFieldById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_custom_fields',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao criar campo customizado", [
                 'error' => $e->getMessage()
@@ -213,6 +374,15 @@ class CrmCustomFieldsRepository extends DbConnection
     public function updateField(array $data): bool
     {
         try {
+            $id = (int) ($data['id'] ?? 0);
+            if ($id <= 0) {
+                return false;
+            }
+            $oldData = $this->getFieldById($id);
+            if (!is_array($oldData)) {
+                return false;
+            }
+
             $sql = 'UPDATE crm_custom_fields SET
                         entity_type = :entity_type,
                         field_name = :field_name,
@@ -236,7 +406,23 @@ class CrmCustomFieldsRepository extends DbConnection
             $stmt->bindValue(':display_order', $data['display_order'] ?? 0, PDO::PARAM_INT);
             $stmt->bindValue(':is_active', ($data['status'] ?? 'active') === 'active' ? 1 : 0, PDO::PARAM_INT);
             
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $stmt->rowCount() > 0) {
+                $newData = $this->getFieldById($id);
+                if (is_array($newData)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'crm_custom_fields',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao atualizar campo customizado", [
                 'error' => $e->getMessage()
@@ -251,10 +437,25 @@ class CrmCustomFieldsRepository extends DbConnection
     public function deleteField(int $id): bool
     {
         try {
+            $oldData = $this->getFieldById($id);
             $sql = 'DELETE FROM crm_custom_fields WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+            if ($deleted && is_array($oldData)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'crm_custom_fields',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $deleted;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar campo customizado", [
                 'error' => $e->getMessage()

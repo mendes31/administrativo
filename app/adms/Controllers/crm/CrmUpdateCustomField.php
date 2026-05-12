@@ -4,6 +4,7 @@ namespace App\adms\Controllers\crm;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -40,6 +41,9 @@ class CrmUpdateCustomField
             header("Location: " . $_ENV['URL_ADM'] . "crm-list-custom-fields");
             exit;
         }
+
+        $returnUrl = $_ENV['URL_ADM'] . 'crm-update-custom-field/' . (int) $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('crm_custom_fields', (int) $id, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Editar Campo Customizável - CRM',
