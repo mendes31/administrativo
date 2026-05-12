@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\projects;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -110,7 +111,23 @@ class ProjStagesRepository extends DbConnection
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->execute();
 
-            return (int)$this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getStageRowById($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'proj_stages',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao criar etapa de projeto', ['error' => $e->getMessage()]);
             return false;
@@ -120,6 +137,7 @@ class ProjStagesRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldRow = $this->getStageRowById($id);
             $sql = "UPDATE proj_stages
                        SET name = :name,
                            description = :description,
@@ -140,7 +158,23 @@ class ProjStagesRepository extends DbConnection
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getStageRowById($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'proj_stages',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao atualizar etapa de projeto', ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -150,10 +184,24 @@ class ProjStagesRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldRow = $this->getStageRowById($id);
             $sql = "DELETE FROM proj_stages WHERE id = :id LIMIT 1";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'proj_stages',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao apagar etapa de projeto', ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -229,6 +277,19 @@ class ProjStagesRepository extends DbConnection
             $map[(int)$row['id']] = (int)($row['estimated_workdays'] ?? 0);
         }
         return $map;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getStageRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM proj_stages WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

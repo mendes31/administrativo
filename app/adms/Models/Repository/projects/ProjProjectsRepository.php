@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository\projects;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Helpers\GenerateLog;
 use PDO;
 use Exception;
@@ -142,7 +143,23 @@ class ProjProjectsRepository extends DbConnection
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->execute();
 
-            return (int)$this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getOne($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'proj_projects',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao criar projeto', ['error' => $e->getMessage()]);
             return false;
@@ -152,6 +169,7 @@ class ProjProjectsRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldRow = $this->getOne($id);
             $sql = "UPDATE proj_projects
                        SET type = :type,
                            name = :name,
@@ -190,7 +208,23 @@ class ProjProjectsRepository extends DbConnection
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getOne($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'proj_projects',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao atualizar projeto', ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -200,10 +234,24 @@ class ProjProjectsRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldRow = $this->getOne($id);
             $sql = "DELETE FROM proj_projects WHERE id = :id LIMIT 1";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'proj_projects',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao apagar projeto', ['id' => $id, 'error' => $e->getMessage()]);
             return false;

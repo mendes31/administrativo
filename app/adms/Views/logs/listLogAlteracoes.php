@@ -27,6 +27,10 @@ $queryString = http_build_query($getParams);
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
             <form method="get" class="row g-2 mb-3 align-items-end" id="filtroLogAlteracoes">
+                <?php if (!empty($this->data['filtros']['strategic_plan_context'])): ?>
+                    <input type="hidden" name="strategic_plan_context"
+                           value="<?= htmlspecialchars((string) $this->data['filtros']['strategic_plan_context'], ENT_QUOTES, 'UTF-8') ?>">
+                <?php endif; ?>
                 <div class="col-md-2">
                     <label for="tabela" class="form-label mb-1">Tabela</label>
                     <input type="text" name="tabela" id="tabela" class="form-control" value="<?= htmlspecialchars($this->data['filtros']['tabela'] ?? '') ?>">

@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\projects;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -113,7 +114,23 @@ class ProjStageGroupsRepository extends DbConnection
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->execute();
 
-            return (int)$this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getGroupRowById($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'proj_stage_groups',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao criar grupo de etapas de projeto', [
                 'error' => $e->getMessage(),
@@ -125,6 +142,7 @@ class ProjStageGroupsRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldRow = $this->getGroupRowById($id);
             $sql = "UPDATE proj_stage_groups
                        SET name = :name,
                            description = :description,
@@ -139,7 +157,23 @@ class ProjStageGroupsRepository extends DbConnection
             $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getGroupRowById($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'proj_stage_groups',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao atualizar grupo de etapas de projeto', [
                 'id' => $id,
@@ -152,11 +186,25 @@ class ProjStageGroupsRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldRow = $this->getGroupRowById($id);
             $sql = "DELETE FROM proj_stage_groups WHERE id = :id LIMIT 1";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'proj_stage_groups',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Falha ao apagar grupo de etapas de projeto', [
                 'id' => $id,
@@ -236,6 +284,7 @@ class ProjStageGroupsRepository extends DbConnection
         $conn = $this->getConnection();
 
         try {
+            $itemsBefore = $this->fetchGroupItemsRaw($groupId);
             $conn->beginTransaction();
 
             $stmtDelete = $conn->prepare('DELETE FROM proj_stage_group_items WHERE stage_group_id = :group_id');
@@ -283,6 +332,22 @@ class ProjStageGroupsRepository extends DbConnection
             }
 
             $conn->commit();
+
+            $itemsAfter = $this->fetchGroupItemsRaw($groupId);
+            $jsonBefore = json_encode($itemsBefore, JSON_UNESCAPED_UNICODE);
+            $jsonAfter = json_encode($itemsAfter, JSON_UNESCAPED_UNICODE);
+            if ($jsonBefore !== $jsonAfter) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'proj_stage_groups',
+                    $groupId,
+                    $usuarioId,
+                    'UPDATE',
+                    ['stage_group_items' => $jsonBefore],
+                    ['stage_group_items' => $jsonAfter]
+                );
+            }
+
             return true;
         } catch (Exception $e) {
             if ($conn->inTransaction()) {
@@ -296,6 +361,33 @@ class ProjStageGroupsRepository extends DbConnection
 
             return false;
         }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchGroupItemsRaw(int $groupId): array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM proj_stage_group_items WHERE stage_group_id = :gid ORDER BY id ASC'
+        );
+        $stmt->bindValue(':gid', $groupId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getGroupRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM proj_stage_groups WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

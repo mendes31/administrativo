@@ -24,8 +24,11 @@ use App\adms\Helpers\CSRFHelper;
         <div class="card-header hstack gap-2">
             <span>Editar Projeto</span>
 
-            <span class="ms-auto d-sm-flex flex-row">
+            <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
                 <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
                 if (in_array('ListProjects', $this->data['buttonPermission'] ?? [])) {
                     echo "<a href='{$_ENV['URL_ADM']}list-projects' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> ";
                 }

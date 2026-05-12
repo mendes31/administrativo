@@ -146,10 +146,15 @@ $plan = $this->data['plan'] ?? [];
 
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>edit-strategic-plan/<?= $plan['id'] ?>" class="btn btn-warning">
                             <i class="fas fa-edit me-2"></i>Editar
                         </a>
+                        <?php
+                        $log_resumo = $this->data['log_resumo'] ?? [];
+                        $log_btn_class = 'btn btn-outline-info';
+                        include __DIR__ . '/../partials/button_log_alteracoes.php';
+                        ?>
                         <a href="<?php echo $_ENV['URL_ADM']; ?>list-strategic-plans" class="btn btn-secondary">
                             <i class="fas fa-arrow-left me-2"></i>Voltar
                         </a>

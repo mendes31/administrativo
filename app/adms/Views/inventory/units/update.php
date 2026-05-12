@@ -1,6 +1,15 @@
 <?php if (!isset($this)) { exit; } $unit = $this->data['unit'] ?? []; ?>
 <div class="card">
-  <div class="card-header">Editar Unidade de Medida</div>
+  <div class="card-header hstack flex-wrap gap-2 align-items-center">
+    <span>Editar Unidade de Medida</span>
+    <span class="ms-auto d-flex flex-wrap gap-1">
+      <?php
+      $log_resumo = $this->data['log_resumo'] ?? [];
+      $log_btn_class = 'btn btn-outline-info btn-sm';
+      include __DIR__ . '/../../partials/button_log_alteracoes.php';
+      ?>
+    </span>
+  </div>
   <div class="card-body">
     <form method="post">
       <input type="hidden" name="csrf_token" value="<?= \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_update_inventory_unit') ?>">

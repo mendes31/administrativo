@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\strategicPlans;
 
 use App\adms\Models\Repository\StrategicPlansRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 
@@ -71,6 +72,12 @@ class ViewStrategicPlan
 
         // Adicionar dados do plano
         $this->data['plan'] = $plan;
+
+        $planId = (int) ($plan['id'] ?? 0);
+        if ($planId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'view-strategic-plan/' . $planId;
+            $this->data['log_resumo'] = LogResumoService::getResumoStrategicPlanContext($planId, $returnUrl);
+        }
 
         // Carrega a view usando o padrão do projeto
         $loadView = new LoadViewService("adms/Views/strategicPlans/view-strategic-plan", $this->data);

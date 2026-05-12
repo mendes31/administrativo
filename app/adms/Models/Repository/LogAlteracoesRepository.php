@@ -51,7 +51,15 @@ class LogAlteracoesRepository extends DbConnection
             $where[] = 'log.tipo_operacao = :tipo';
             $params[':tipo'] = $filtros['tipo'];
         }
-        
+        if (!empty($filtros['strategic_plan_context'])) {
+            $spId = (int) $filtros['strategic_plan_context'];
+            if ($spId > 0) {
+                $where[] = '((log.tabela = \'adms_strategic_plans\' AND log.objeto_id = :sp_ctx_plan) OR (log.tabela = \'adms_strategic_plan_observations\' AND log.objeto_id IN (SELECT id FROM adms_strategic_plan_observations WHERE strategic_plan_id = :sp_ctx_obs_plan)))';
+                $params[':sp_ctx_plan'] = $spId;
+                $params[':sp_ctx_obs_plan'] = $spId;
+            }
+        }
+
         $sql = 'SELECT log.*, usr.name as usuario_nome FROM adms_log_alteracoes log LEFT JOIN adms_users usr ON log.usuario_id = usr.id';
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -377,6 +385,14 @@ class LogAlteracoesRepository extends DbConnection
         if (!empty($filtros['tipo'])) {
             $where[] = 'tipo_operacao = :tipo';
             $params[':tipo'] = $filtros['tipo'];
+        }
+        if (!empty($filtros['strategic_plan_context'])) {
+            $spId = (int) $filtros['strategic_plan_context'];
+            if ($spId > 0) {
+                $where[] = '((tabela = \'adms_strategic_plans\' AND objeto_id = :sp_ctx_plan_c) OR (tabela = \'adms_strategic_plan_observations\' AND objeto_id IN (SELECT id FROM adms_strategic_plan_observations WHERE strategic_plan_id = :sp_ctx_obs_plan_c)))';
+                $params[':sp_ctx_plan_c'] = $spId;
+                $params[':sp_ctx_obs_plan_c'] = $spId;
+            }
         }
         $sql = 'SELECT COUNT(*) as total FROM adms_log_alteracoes';
         if ($where) {

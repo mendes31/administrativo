@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateInventoryUnit
@@ -35,6 +36,13 @@ class UpdateInventoryUnit
         ];
         $pls = new PageLayoutService();
         $this->data = array_merge($this->data, $pls->configurePageElements($pageElements));
+
+        $uid = (int) ($this->data['unit']['id'] ?? 0);
+        if ($uid > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'update-inventory-unit/' . $uid;
+            $this->data['log_resumo'] = LogResumoService::getResumo('inv_units', $uid, $returnUrl);
+        }
+
         $loadView = new LoadViewService('adms/Views/inventory/units/update', $this->data);
         $loadView->loadView();
     }
@@ -44,6 +52,7 @@ class UpdateInventoryUnit
         $form = $this->data['form'] ?? [];
         if (empty($form['code']) || empty($form['name'])) {
             $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Código e Nome são obrigatórios.</div>";
+            $this->data['unit'] = $repo->getOne($unitId) ?: [];
             $this->view();
             return;
         }
@@ -53,6 +62,7 @@ class UpdateInventoryUnit
             exit;
         }
         $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao atualizar unidade.</div>";
+        $this->data['unit'] = $repo->getOne($unitId) ?: [];
         $this->view();
     }
 }

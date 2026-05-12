@@ -9,7 +9,9 @@ use App\adms\Models\Repository\AccessLevelsPagesRepository;
 use App\adms\Models\Repository\DocumentPositionsRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\PerformanceCompetenciesRepository;
+use App\adms\Models\Repository\projects\ProjCommentsRepository;
 use App\adms\Models\Repository\RhEntrevistasRepository;
+use App\adms\Models\Repository\StrategicPlanObservationsRepository;
 use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
 use App\adms\Models\Repository\CrmDocumentsRepository;
@@ -41,6 +43,7 @@ class ListLogAlteracoes
             'tipo' => $_GET['tipo'] ?? '',
             'data_inicio' => $_GET['data_inicio'] ?? '',
             'data_fim' => $_GET['data_fim'] ?? '',
+            'strategic_plan_context' => $_GET['strategic_plan_context'] ?? '',
         ];
         
         // Parâmetros de ordenação
@@ -50,7 +53,8 @@ class ListLogAlteracoes
         // Se veio filtrando por tabela + objeto_id e não foi especificada ordenação,
         // ordenar por data_alteracao (do mais recente para o mais antigo)
         if ($orderBy === null) {
-            if (!empty($filtros['tabela']) && !empty($filtros['objeto_id'])) {
+            if ((!empty($filtros['tabela']) && !empty($filtros['objeto_id']))
+                || !empty($filtros['strategic_plan_context'])) {
                 $orderBy = 'data_alteracao';
             } else {
                 $orderBy = 'id';
@@ -348,6 +352,36 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'update-payroll-document-type/' . $objetoId;
             case 'adms_bank_transfers':
                 return $_ENV['URL_ADM'] . 'view-transfer/' . $objetoId;
+            case 'adms_strategic_plans':
+                return $_ENV['URL_ADM'] . 'view-strategic-plan/' . $objetoId;
+            case 'adms_strategic_indicators':
+                return $_ENV['URL_ADM'] . 'view-strategic-indicator/' . $objetoId;
+            case 'adms_strategic_plan_observations':
+                $obs = (new StrategicPlanObservationsRepository())->getById($objetoId);
+                if (is_array($obs) && !empty($obs['strategic_plan_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-strategic-plan-observations/' . (int) $obs['strategic_plan_id'];
+                }
+
+                return null;
+            case 'proj_projects':
+                return $_ENV['URL_ADM'] . 'update-project/' . $objetoId;
+            case 'proj_stages':
+                return $_ENV['URL_ADM'] . 'update-project-stage/' . $objetoId;
+            case 'proj_stage_groups':
+                return $_ENV['URL_ADM'] . 'update-stage-group/' . $objetoId;
+            case 'proj_comments':
+                $projCommentPid = (new ProjCommentsRepository())->getProjectIdForComment($objetoId);
+                if ($projCommentPid !== null) {
+                    return $_ENV['URL_ADM'] . 'update-project/' . $projCommentPid;
+                }
+
+                return null;
+            case 'inv_units':
+                return $_ENV['URL_ADM'] . 'update-inventory-unit/' . $objetoId;
+            case 'inv_categories':
+                return $_ENV['URL_ADM'] . 'update-inventory-category/' . $objetoId;
+            case 'inv_positions':
+                return $_ENV['URL_ADM'] . 'update-inventory-position/' . $objetoId;
             default:
                 return null; // Tabela não mapeada
         }

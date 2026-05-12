@@ -3,9 +3,15 @@ $plan = $this->data['plan'] ?? [];
 $observations = $this->data['observations'] ?? [];
 ?>
 <div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Observações - <?= htmlspecialchars($plan['title'] ?? 'Plano Estratégico') ?></h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+    <div class="mb-1 hstack gap-2 flex-wrap align-items-center">
+        <h2 class="mt-3 mb-0">Observações - <?= htmlspecialchars($plan['title'] ?? 'Plano Estratégico') ?></h2>
+        <span class="ms-auto d-flex flex-wrap gap-2 align-items-center mt-2 mt-md-0">
+            <?php
+            $log_resumo = $this->data['log_resumo'] ?? [];
+            $log_btn_class = 'btn btn-outline-info btn-sm';
+            include __DIR__ . '/../partials/button_log_alteracoes.php';
+            ?>
+            <ol class="breadcrumb mb-0 mt-3">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -14,6 +20,7 @@ $observations = $this->data['observations'] ?? [];
             </li>
             <li class="breadcrumb-item">Observações</li>
         </ol>
+        </span>
     </div>
 
     <div class="row">

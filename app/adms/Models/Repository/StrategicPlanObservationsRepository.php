@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class StrategicPlanObservationsRepository extends DbConnection
@@ -22,7 +23,23 @@ class StrategicPlanObservationsRepository extends DbConnection
             'user_id' => $userId,
             'observation' => $observation
         ]);
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getTableRowById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? ($userId ?: 1));
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_strategic_plan_observations',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -120,6 +137,19 @@ class StrategicPlanObservationsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute(['id' => $id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getTableRowById(int $id): ?array
+    {
+        $sql = 'SELECT * FROM adms_strategic_plan_observations WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
         return $result ?: null;
     }
 }

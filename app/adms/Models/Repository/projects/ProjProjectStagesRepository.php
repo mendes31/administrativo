@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository\projects;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Helpers\GenerateLog;
 use PDO;
 use Exception;
@@ -73,6 +74,7 @@ class ProjProjectStagesRepository extends DbConnection
         $conn = $this->getConnection();
 
         try {
+            $stagesBefore = $this->fetchProjectStagesRaw($projectId);
             $conn->beginTransaction();
 
             // Apagar etapas atuais
@@ -168,6 +170,22 @@ class ProjProjectStagesRepository extends DbConnection
             }
 
             $conn->commit();
+
+            $stagesAfter = $this->fetchProjectStagesRaw($projectId);
+            $encBefore = json_encode($stagesBefore, JSON_UNESCAPED_UNICODE);
+            $encAfter = json_encode($stagesAfter, JSON_UNESCAPED_UNICODE);
+            if ($encBefore !== $encAfter) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'proj_projects',
+                    $projectId,
+                    $usuarioId,
+                    'UPDATE',
+                    ['project_stages_snapshot' => $encBefore],
+                    ['project_stages_snapshot' => $encAfter]
+                );
+            }
+
             return true;
         } catch (Exception $e) {
             if ($conn->inTransaction()) {
@@ -203,6 +221,23 @@ class ProjProjectStagesRepository extends DbConnection
             $ids[] = (int)$row['id'];
         }
         return $ids;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchProjectStagesRaw(int $projectId): array
+    {
+        if ($projectId <= 0) {
+            return [];
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM proj_project_stages WHERE project_id = :project_id ORDER BY sequence ASC, id ASC'
+        );
+        $stmt->bindValue(':project_id', $projectId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 }
 

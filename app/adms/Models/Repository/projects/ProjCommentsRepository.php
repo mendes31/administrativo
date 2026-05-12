@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository\projects;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class ProjCommentsRepository extends DbConnection
@@ -93,6 +94,44 @@ class ProjCommentsRepository extends DbConnection
             $stmtM->execute();
         }
 
+        if ($commentId > 0) {
+            $row = $this->getCommentRowById($commentId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? ($userId ?: 1));
+                LogAlteracaoService::registrarAlteracao(
+                    'proj_comments',
+                    $commentId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
         return $commentId;
+    }
+
+    public function getProjectIdForComment(int $commentId): ?int
+    {
+        $stmt = $this->getConnection()->prepare('SELECT project_id FROM proj_comments WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $commentId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row && isset($row['project_id']) ? (int) $row['project_id'] : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getCommentRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM proj_comments WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }

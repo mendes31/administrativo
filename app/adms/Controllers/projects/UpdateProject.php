@@ -13,6 +13,7 @@ use App\adms\Models\Repository\projects\ProjProjectsRepository;
 use App\adms\Models\Repository\projects\ProjProjectStagesRepository;
 use App\adms\Models\Repository\projects\ProjStagesRepository;
 use App\adms\Models\Repository\projects\ProjStageGroupsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Models\Services\WorkdayCalendarService;
 use App\adms\Models\Services\WhatsappNotificationService;
 use App\adms\Views\Services\LoadViewService;
@@ -205,6 +206,12 @@ class UpdateProject
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data ?? [], $pageLayoutService->configurePageElements($pageElements));
+
+        $projectId = (int) ($this->data['form']['id'] ?? 0);
+        if ($projectId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'update-project/' . $projectId;
+            $this->data['log_resumo'] = LogResumoService::getResumo('proj_projects', $projectId, $returnUrl);
+        }
 
         $loadView = new LoadViewService('adms/Views/projects/update', $this->data);
         $loadView->loadView();

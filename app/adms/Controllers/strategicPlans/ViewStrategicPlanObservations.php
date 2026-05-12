@@ -6,6 +6,7 @@ namespace App\adms\Controllers\strategicPlans;
 
 use App\adms\Models\Repository\StrategicPlansRepository;
 use App\adms\Models\Repository\StrategicPlanObservationsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -63,6 +64,12 @@ class ViewStrategicPlanObservations
         // Preparar dados para a view
         $this->data['plan'] = $plan;
         $this->data['observations'] = $observations;
+
+        $planId = (int) ($plan['id'] ?? 0);
+        if ($planId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'view-strategic-plan-observations/' . $planId;
+            $this->data['log_resumo'] = LogResumoService::getResumoStrategicPlanContext($planId, $returnUrl);
+        }
 
         // Configurar elementos da página
         $pageElements = [

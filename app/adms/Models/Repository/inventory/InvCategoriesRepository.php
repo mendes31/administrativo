@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class InvCategoriesRepository extends DbConnection
@@ -47,23 +48,73 @@ class InvCategoriesRepository extends DbConnection
     {
         $stmt = $this->getConnection()->prepare('INSERT INTO inv_categories (name, created_at) VALUES (:name, NOW())');
         $stmt->bindValue(':name', $data['name']);
-        if ($stmt->execute()) { return (int)$this->getConnection()->lastInsertId(); }
+        if ($stmt->execute()) {
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRowById($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'inv_categories',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
+        }
+
         return false;
     }
 
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getRowById($id);
         $stmt = $this->getConnection()->prepare('UPDATE inv_categories SET name = :name, updated_at = NOW() WHERE id = :id');
         $stmt->bindValue(':name', $data['name']);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'inv_categories',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
     {
+        $oldRow = $this->getRowById($id);
         $stmt = $this->getConnection()->prepare('DELETE FROM inv_categories WHERE id = :id');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'inv_categories',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
     public function getAllForSelect(): array
     {
@@ -71,6 +122,19 @@ class InvCategoriesRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM inv_categories WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

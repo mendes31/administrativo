@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class StrategicPlansRepository extends DbConnection
@@ -52,14 +53,31 @@ class StrategicPlansRepository extends DbConnection
             'comment' => $data['comment'],
             'direction_comment' => $data['direction_comment'],
         ]);
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_strategic_plans',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getById($id);
         $sql = 'UPDATE adms_strategic_plans SET department_id = :department_id, responsible_id = :responsible_id, title = :title, what = :what, why = :why, where_field = :where_field, who_field = :who_field, start_date = :start_date, end_date = :end_date, how = :how, how_much = :how_much, completed = :completed, status = :status, comment = :comment, direction_comment = :direction_comment, updated_at = NOW() WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             'department_id' => $data['department_id'],
             'responsible_id' => $data['responsible_id'],
             'title' => $data['title'],
@@ -77,12 +95,42 @@ class StrategicPlansRepository extends DbConnection
             'direction_comment' => $data['direction_comment'],
             'id' => $id,
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_strategic_plans',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
     {
+        $oldRow = $this->getById($id);
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_strategic_plans WHERE id = :id');
-        return $stmt->execute(['id' => $id]);
+        $ok = $stmt->execute(['id' => $id]);
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_strategic_plans',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     /**
