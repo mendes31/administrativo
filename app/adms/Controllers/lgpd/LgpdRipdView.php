@@ -4,6 +4,7 @@ namespace App\adms\Controllers\lgpd;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdRipdRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 use Exception;
 
@@ -44,6 +45,9 @@ class LgpdRipdView
             }
             
             $this->data['ripd'] = $ripd;
+
+            $returnUrl = $_ENV['URL_ADM'] . 'lgpd-ripd-view/' . $id;
+            $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_ripd', $id, $returnUrl);
             
             // Configurar elementos da página
             $pageElements = [

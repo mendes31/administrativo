@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\UrlAdmHelper;
 use App\adms\Models\Repository\PayrollCronConfigRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -28,6 +29,11 @@ class PayrollCronConfig
         $this->data['cron_row'] = $repo->getRow();
         $this->data['token_configured'] = $repo->hasHttpCronToken();
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('form_payroll_cron_config');
+        $cronId = (int) ($this->data['cron_row']['id'] ?? 0);
+        if ($cronId > 0) {
+            $returnUrl = UrlAdmHelper::to('payroll-cron-config');
+            $this->data['log_resumo'] = LogResumoService::getResumo('adms_payroll_cron_config', $cronId, $returnUrl);
+        }
 
         $pageElements = [
             'title_head' => 'Cron — lembretes de folha (RH)',

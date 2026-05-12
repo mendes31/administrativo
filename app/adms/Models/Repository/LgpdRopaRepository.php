@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -213,8 +214,24 @@ class LgpdRopaRepository extends DbConnection
             $stmt->bindValue(':responsavel', $data['responsavel'] ?? null);
             $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);
             $stmt->execute();
-            
-            return $this->getConnection()->lastInsertId();
+
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newData = $this->getById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_ropa',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Registro ROPA não cadastrado.", ['codigo' => $data['codigo'], 'error' => $e->getMessage()]);
             return false;
@@ -230,6 +247,7 @@ class LgpdRopaRepository extends DbConnection
     public function update(array $data): bool
     {
         try {
+            $oldData = $this->getById((int) $data['id']);
             $sql = 'UPDATE lgpd_ropa SET codigo = :codigo, atividade = :atividade, departamento_id = :departamento_id, 
                     base_legal = :base_legal, retencao = :retencao, riscos = :riscos, processing_purpose = :processing_purpose, 
                     data_subject = :data_subject, personal_data = :personal_data, sharing = :sharing, inventory_id = :inventory_id, 
@@ -254,8 +272,24 @@ class LgpdRopaRepository extends DbConnection
             $stmt->bindValue(':responsavel', $data['responsavel'] ?? null);
             $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
-            
-            return $stmt->execute();
+
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldData)) {
+                $newData = $this->getById((int) $data['id']);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_ropa',
+                        (int) $data['id'],
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Registro ROPA não editado.", ['id' => $data['id'], 'error' => $e->getMessage()]);
             return false;
@@ -271,11 +305,25 @@ class LgpdRopaRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getById($id);
             $sql = 'DELETE FROM lgpd_ropa WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            
-            return $stmt->execute();
+
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldData) && $stmt->rowCount() > 0) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_ropa',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Registro ROPA não apagado.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;

@@ -61,6 +61,11 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_ropa');
 
                     </form>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm me-1 mb-1';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
 
             </span>
         </div>

@@ -40,13 +40,11 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-arrow-left me-1"></i>Voltar
                 </a>
-                <?php if (!empty($this->data['log_resumo']['has_logs'])): ?>
-                    <a href="<?= htmlspecialchars($this->data['log_resumo']['list_url']); ?>"
-                       class="btn btn-outline-info btn-sm">
-                        <i class="fas fa-history me-1"></i>
-                        Log de Alterações (<?= (int)$this->data['log_resumo']['count']; ?>)
-                    </a>
-                <?php endif; ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
             </div>
         </div>
         <div class="card-body">

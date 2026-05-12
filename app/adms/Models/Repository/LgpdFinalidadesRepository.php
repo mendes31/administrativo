@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -116,8 +117,23 @@ class LgpdFinalidadesRepository extends DbConnection
             $stmt->bindValue(':exemplo', $data['exemplo'] ?? null);
             $stmt->bindValue(':status', $data['status']);
             $stmt->execute();
-            
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newData = $this->getById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_finalidades',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Finalidade não cadastrada.", ['finalidade' => $data['finalidade'], 'error' => $e->getMessage()]);
             return false;
@@ -133,14 +149,30 @@ class LgpdFinalidadesRepository extends DbConnection
     public function update(array $data): bool
     {
         try {
+            $oldData = $this->getById((int) $data['id']);
             $sql = 'UPDATE lgpd_finalidades SET finalidade = :finalidade, exemplo = :exemplo, status = :status, updated_at = NOW() WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':finalidade', $data['finalidade']);
             $stmt->bindValue(':exemplo', $data['exemplo'] ?? null);
             $stmt->bindValue(':status', $data['status']);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
-            
-            return $stmt->execute();
+            $result = $stmt->execute();
+            if ($result && is_array($oldData)) {
+                $newData = $this->getById((int) $data['id']);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_finalidades',
+                        (int) $data['id'],
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $result;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Finalidade não editada.", ['id' => $data['id'], 'error' => $e->getMessage()]);
             return false;
@@ -156,11 +188,24 @@ class LgpdFinalidadesRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getById($id);
             $sql = 'DELETE FROM lgpd_finalidades WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            
-            return $stmt->execute();
+            $result = $stmt->execute();
+            if ($result && is_array($oldData) && $stmt->rowCount() > 0) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_finalidades',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $result;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Finalidade não apagada.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;

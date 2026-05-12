@@ -40,8 +40,8 @@ class LgpdTiposDadosEdit
         $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
 
         // Validar o CSRF token e a existência do ID do tipo
-        if (isset($this->data['form']['csrf_token']) && 
-            CSRFHelper::validateCSRFToken('form_edit_tipo_dados', $this->data['form']['csrf_token'])) 
+        if (isset($this->data['form']['csrf_token']) &&
+            CSRFHelper::validateCSRFToken('form_update_tipo_dado', $this->data['form']['csrf_token']))
         {
             // Editar o Tipo
             $this->editTipoDados();
@@ -117,7 +117,7 @@ class LgpdTiposDadosEdit
         // Verificar o resultado da atualização
         if ($result) {
             $_SESSION['success'] = "Tipo de Dados editado com sucesso!";
-            header("Location: {$_ENV['URL_ADM']}view-lgpd-tipos-dados/{$this->data['form']['id']}");
+            header("Location: {$_ENV['URL_ADM']}lgpd-tipos-dados-view/{$this->data['form']['id']}");
         } else {
             $this->data['errors'][] = "Tipo de Dados não editado!";
             $this->viewTipoDados();

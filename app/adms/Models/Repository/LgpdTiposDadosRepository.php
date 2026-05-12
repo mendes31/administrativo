@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -116,8 +117,23 @@ class LgpdTiposDadosRepository extends DbConnection
             $stmt->bindValue(':exemplos', $data['exemplos'] ?? '');
             $stmt->bindValue(':status', $data['status']);
             $stmt->execute();
-            
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $newData = $this->getById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_tipos_dados',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Tipo de Dados não cadastrado.", ['tipo_dado' => $data['tipo_dado'], 'error' => $e->getMessage()]);
             return false;
@@ -133,14 +149,30 @@ class LgpdTiposDadosRepository extends DbConnection
     public function update(array $data): bool
     {
         try {
+            $oldData = $this->getById((int) $data['id']);
             $sql = 'UPDATE lgpd_tipos_dados SET tipo_dado = :tipo_dado, exemplos = :exemplos, status = :status, updated_at = NOW() WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':tipo_dado', $data['tipo_dado']);
             $stmt->bindValue(':exemplos', $data['exemplos'] ?? '');
             $stmt->bindValue(':status', $data['status']);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
-            
-            return $stmt->execute();
+            $result = $stmt->execute();
+            if ($result && is_array($oldData)) {
+                $newData = $this->getById((int) $data['id']);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_tipos_dados',
+                        (int) $data['id'],
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $result;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Tipo de Dados não editado.", ['id' => $data['id'], 'error' => $e->getMessage()]);
             return false;
@@ -156,11 +188,24 @@ class LgpdTiposDadosRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getById($id);
             $sql = 'DELETE FROM lgpd_tipos_dados WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            
-            return $stmt->execute();
+            $result = $stmt->execute();
+            if ($result && is_array($oldData) && $stmt->rowCount() > 0) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_tipos_dados',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $result;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Tipo de Dados não apagado.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;

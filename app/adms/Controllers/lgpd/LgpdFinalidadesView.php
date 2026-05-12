@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LgpdFinalidadesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,9 @@ class LgpdFinalidadesView
 
         // Registrar a visualização da Finalidade
         GenerateLog::generateLog("info", "Visualizada a Finalidade.", ['id' => (int) $id]);
+
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-finalidades-view/' . (int) $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_finalidades', (int) $id, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

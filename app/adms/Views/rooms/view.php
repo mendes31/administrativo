@@ -37,6 +37,11 @@ use App\adms\Helpers\ImageHelper;
                         <i class="fa-solid fa-trash"></i> Apagar
                     </a>
                 <?php } ?>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
+                include __DIR__ . '/../partials/button_log_alteracoes.php';
+                ?>
             </span>
         </div>
         <div class="card-body">

@@ -4,6 +4,7 @@ namespace App\adms\Controllers\lgpd;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdRopaRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class LgpdRopaView
@@ -24,6 +25,8 @@ class LgpdRopaView
             header("Location: {$_ENV['URL_ADM']}lgpd-ropa");
             return;
         }
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-ropa-view/' . (int) $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_ropa', (int) $id, $returnUrl);
         $pageElements = [
             'title_head' => 'Visualizar ROPA',
             'menu' => 'ListLgpdRopa',

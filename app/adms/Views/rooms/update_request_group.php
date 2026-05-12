@@ -19,6 +19,14 @@ $memberIds = $this->data['groupMemberIds'] ?? [];
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+    <div class="mb-2 d-flex flex-wrap gap-2">
+        <?php
+        $log_resumo = $this->data['log_resumo'] ?? [];
+        $log_btn_class = 'btn btn-outline-info btn-sm';
+        include __DIR__ . '/../partials/button_log_alteracoes.php';
+        ?>
+    </div>
+
     <div class="card border-light shadow">
         <div class="card-header rooms-card-header">
             <i class="fas fa-edit me-2"></i>Editar Grupo

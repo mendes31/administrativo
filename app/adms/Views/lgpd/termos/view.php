@@ -22,13 +22,11 @@ use App\adms\Helpers\FormatHelper;
                            onclick="return confirm('Tem certeza que deseja excluir este termo?')">
                             <i class="fas fa-trash me-1"></i>Excluir
                         </a>
-                        <?php if (!empty($this->data['log_resumo']['has_logs'])): ?>
-                            <a href="<?= htmlspecialchars($this->data['log_resumo']['list_url']); ?>"
-                               class="btn btn-outline-light btn-sm">
-                                <i class="fas fa-history me-1"></i>
-                                Log de Alterações (<?= (int)$this->data['log_resumo']['count']; ?>)
-                            </a>
-                        <?php endif; ?>
+                        <?php
+                        $log_resumo = $this->data['log_resumo'] ?? [];
+                        $log_btn_class = 'btn btn-outline-light btn-sm';
+                        include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                        ?>
                     </div>
                 </div>
                 <div class="card-body">

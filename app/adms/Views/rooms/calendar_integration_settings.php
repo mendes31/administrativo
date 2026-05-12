@@ -4,13 +4,20 @@ $s = $this->data['settings'] ?? [];
 ?>
 <?php include __DIR__ . '/partials/module_head.php'; ?>
 <div class="container-fluid rooms-module-page px-2 px-sm-3 px-md-4">
-    <div class="mb-3 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+    <div class="mb-3 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center flex-wrap">
         <h2 class="rooms-page-title mt-2 mt-md-3 mb-0">Integração calendário (Outlook / Google)</h2>
-        <ol class="breadcrumb mb-0 mt-1 mt-md-3 ms-md-auto small">
+        <div class="ms-md-auto d-flex flex-wrap gap-2 align-items-center mt-1 mt-md-3">
+            <?php
+            $log_resumo = $this->data['log_resumo'] ?? [];
+            $log_btn_class = 'btn btn-outline-info btn-sm';
+            include __DIR__ . '/../partials/button_log_alteracoes.php';
+            ?>
+        <ol class="breadcrumb mb-0 small">
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-meeting-rooms" class="text-decoration-none">Salas</a></li>
             <li class="breadcrumb-item">Integração</li>
         </ol>
+        </div>
     </div>
 
     <div class="card border-light shadow">

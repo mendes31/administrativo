@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class AdmsSapApiConfigRepository extends DbConnection
@@ -19,9 +20,10 @@ class AdmsSapApiConfigRepository extends DbConnection
 
     public function saveConfig(array $data): bool
     {
-        $current = $this->getConfig();
+        $oldData = $this->getConfig();
+        $isUpdate = $oldData && !empty($oldData['id']);
 
-        if ($current && !empty($current['id'])) {
+        if ($isUpdate) {
             $sql = 'UPDATE adms_sap_api_config SET 
                         base_url = :base_url,
                         api_token = :api_token,
@@ -32,7 +34,7 @@ class AdmsSapApiConfigRepository extends DbConnection
                         updated_at = NOW()
                     WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':id', $current['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':id', $oldData['id'], PDO::PARAM_INT);
         } else {
             $sql = 'INSERT INTO adms_sap_api_config (
                         base_url, api_token, timeout_ms, page_size, health_endpoint, is_active, created_at, updated_at
@@ -49,7 +51,33 @@ class AdmsSapApiConfigRepository extends DbConnection
         $stmt->bindValue(':health_endpoint', $data['health_endpoint']);
         $stmt->bindValue(':is_active', $data['is_active'], PDO::PARAM_INT);
 
-        return $stmt->execute();
+        $result = $stmt->execute();
+
+        if ($result) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            $newData = $this->getConfig();
+            if ($isUpdate && $oldData) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_sap_api_config',
+                    (int) $oldData['id'],
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            } elseif (!$isUpdate && $newData) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_sap_api_config',
+                    (int) ($newData['id'] ?? 0),
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $result;
     }
 }
 

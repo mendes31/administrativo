@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class AdmsMcpApiConfigRepository extends DbConnection
@@ -19,16 +20,17 @@ class AdmsMcpApiConfigRepository extends DbConnection
 
     public function saveConfig(array $data): bool
     {
-        $current = $this->getConfig();
+        $oldData = $this->getConfig();
+        $isUpdate = $oldData && !empty($oldData['id']);
 
-        if ($current && !empty($current['id'])) {
+        if ($isUpdate) {
             $sql = 'UPDATE adms_mcp_api_config SET 
                         base_url = :base_url,
                         is_active = :is_active,
                         updated_at = NOW()
                     WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':id', $current['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':id', $oldData['id'], PDO::PARAM_INT);
         } else {
             $sql = 'INSERT INTO adms_mcp_api_config (
                         base_url, is_active, created_at, updated_at
@@ -41,7 +43,33 @@ class AdmsMcpApiConfigRepository extends DbConnection
         $stmt->bindValue(':base_url', $data['base_url']);
         $stmt->bindValue(':is_active', $data['is_active'], PDO::PARAM_INT);
 
-        return $stmt->execute();
+        $result = $stmt->execute();
+
+        if ($result) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            $newData = $this->getConfig();
+            if ($isUpdate && $oldData) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_mcp_api_config',
+                    (int) $oldData['id'],
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            } elseif (!$isUpdate && $newData) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_mcp_api_config',
+                    (int) ($newData['id'] ?? 0),
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $result;
     }
 }
 

@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -198,11 +199,27 @@ class LgpdRipdRepository extends DbConnection
             $result = $stmt->execute();
             
             if ($result) {
+                $newId = (int) $this->getConnection()->lastInsertId();
                 $this->getConnection()->commit();
                 error_log("Repository - RIPD criado com sucesso, commit realizado");
                 
                 // Gerar log
                 GenerateLog::generateLog('INFO', 'RIPD criado com sucesso: ' . $data['codigo'], []);
+
+                if ($newId > 0) {
+                    $newData = $this->getRipdById($newId);
+                    if (is_array($newData)) {
+                        $usuarioId = $_SESSION['user_id'] ?? 1;
+                        LogAlteracaoService::registrarAlteracao(
+                            'lgpd_ripd',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $newData
+                        );
+                    }
+                }
                 
                 return true;
             }
@@ -226,6 +243,8 @@ class LgpdRipdRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldData = $this->getRipdById($id);
+
             $this->getConnection()->beginTransaction();
             
             $query = "UPDATE lgpd_ripd SET 
@@ -271,6 +290,21 @@ class LgpdRipdRepository extends DbConnection
                 
                 // Gerar log
                 GenerateLog::generateLog('INFO', 'RIPD atualizado com sucesso: ID ' . $id, []);
+
+                if (is_array($oldData)) {
+                    $newData = $this->getRipdById($id);
+                    if (is_array($newData)) {
+                        $usuarioId = $_SESSION['user_id'] ?? 1;
+                        LogAlteracaoService::registrarAlteracao(
+                            'lgpd_ripd',
+                            $id,
+                            $usuarioId,
+                            'UPDATE',
+                            $oldData,
+                            $newData
+                        );
+                    }
+                }
                 
                 return true;
             }
@@ -292,6 +326,8 @@ class LgpdRipdRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getRipdById($id);
+
             $this->getConnection()->beginTransaction();
             
             $query = "DELETE FROM lgpd_ripd WHERE id = :id";
@@ -301,9 +337,18 @@ class LgpdRipdRepository extends DbConnection
             
             $this->getConnection()->commit();
             
-            if ($result) {
+            if ($result && $stmt->rowCount() > 0 && is_array($oldData)) {
                 // Gerar log
                 GenerateLog::generateLog('INFO', 'RIPD excluído com sucesso: ID ' . $id, []);
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_ripd',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
             }
             
             return $result;

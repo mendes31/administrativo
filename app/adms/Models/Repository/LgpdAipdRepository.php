@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -197,10 +198,27 @@ class LgpdAipdRepository extends DbConnection
             
             // Associar grupos de dados se fornecidos
             if (!empty($data['data_groups']) && is_array($data['data_groups'])) {
-                $this->associateDataGroups($aipdId, $data['data_groups']);
+                $this->associateDataGroups((int) $aipdId, $data['data_groups']);
             }
             
             $this->getConnection()->commit();
+
+            $newId = (int) $aipdId;
+            if ($newId > 0) {
+                $newData = $this->getAipdById($newId);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_aipd',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
+            }
+
             return true;
             
         } catch (\Exception $e) {
@@ -219,6 +237,8 @@ class LgpdAipdRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldData = $this->getAipdById($id);
+
             $this->getConnection()->beginTransaction();
             
             $sql = 'UPDATE lgpd_aipd SET titulo = :titulo, descricao = :descricao, ropa_id = :ropa_id, 
@@ -247,6 +267,22 @@ class LgpdAipdRepository extends DbConnection
             $this->updateDataGroups($id, $data['data_groups'] ?? []);
             
             $this->getConnection()->commit();
+
+            if (is_array($oldData)) {
+                $newData = $this->getAipdById($id);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_aipd',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
             return true;
             
         } catch (\Exception $e) {
@@ -264,6 +300,8 @@ class LgpdAipdRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getAipdById($id);
+
             $this->getConnection()->beginTransaction();
             
             // Excluir associações com grupos de dados
@@ -279,6 +317,19 @@ class LgpdAipdRepository extends DbConnection
             $stmt->execute();
             
             $this->getConnection()->commit();
+
+            if (is_array($oldData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_aipd',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
             return true;
             
         } catch (\Exception $e) {

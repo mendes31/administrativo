@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LgpdTiposDadosRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -59,6 +60,9 @@ class LgpdTiposDadosView
 
         // Registrar a visualização do Tipo
         GenerateLog::generateLog("info", "Visualizado o Tipo de Dados.", ['id' => (int) $id]);
+
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-tipos-dados-view/' . (int) $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_tipos_dados', (int) $id, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

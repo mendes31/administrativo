@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -57,11 +58,28 @@ class RoomRequestGroupsRepository extends DbConnection
         $stmt->bindValue(':description', $data['description'] ?? null);
         $stmt->bindValue(':is_active', !empty($data['is_active']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->execute();
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_request_groups',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function update(int $id, array $data): bool
     {
+        $oldData = $this->getById($id);
         $stmt = $this->getConnection()->prepare(
             "UPDATE adms_room_request_groups
              SET name = :name,
@@ -74,11 +92,28 @@ class RoomRequestGroupsRepository extends DbConnection
         $stmt->bindValue(':name', $data['name']);
         $stmt->bindValue(':description', $data['description'] ?? null);
         $stmt->bindValue(':is_active', !empty($data['is_active']) ? 1 : 0, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldData)) {
+            $newData = $this->getById($id);
+            if (is_array($newData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_request_groups',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
     {
+        $oldData = $this->getById($id);
         // Não deletar se algum tipo estiver vinculado
         $check = $this->getConnection()->prepare("SELECT COUNT(*) AS total FROM adms_room_request_types WHERE default_responsible_group_id = :id");
         $check->bindValue(':id', $id, PDO::PARAM_INT);
@@ -95,7 +130,20 @@ class RoomRequestGroupsRepository extends DbConnection
 
         $del = $this->getConnection()->prepare("DELETE FROM adms_room_request_groups WHERE id = :id");
         $del->bindValue(':id', $id, PDO::PARAM_INT);
-        return $del->execute();
+        $ok = $del->execute();
+        if ($ok && is_array($oldData) && $del->rowCount() > 0) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_room_request_groups',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     public function getMemberUserIds(int $groupId): array

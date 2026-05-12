@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -44,7 +45,26 @@ class LgpdFontesColetaRepository extends DbConnection
             $stmt->bindValue(':nome', $data['nome'], PDO::PARAM_STR);
             $stmt->bindValue(':descricao', $data['descricao'], PDO::PARAM_STR);
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok) {
+                $newId = (int) $this->getConnection()->lastInsertId();
+                if ($newId > 0) {
+                    $newData = $this->findById($newId);
+                    if (is_array($newData)) {
+                        $usuarioId = $_SESSION['user_id'] ?? 1;
+                        LogAlteracaoService::registrarAlteracao(
+                            'lgpd_fontes_coleta',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $newData
+                        );
+                    }
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Fonte de coleta não cadastrada.", ['nome' => $data['nome'], 'error' => $e->getMessage()]);
             return false;
@@ -54,13 +74,30 @@ class LgpdFontesColetaRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldData = $this->findById($id);
             $sql = "UPDATE lgpd_fontes_coleta SET nome = :nome, descricao = :descricao, ativo = :ativo, updated_at = NOW() WHERE id = :id";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->bindValue(':nome', $data['nome'], PDO::PARAM_STR);
             $stmt->bindValue(':descricao', $data['descricao'], PDO::PARAM_STR);
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $oldData !== null) {
+                $newData = $this->findById($id);
+                if (is_array($newData)) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_fontes_coleta',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                }
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Fonte de coleta não editada.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -70,10 +107,24 @@ class LgpdFontesColetaRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->findById($id);
             $sql = "DELETE FROM lgpd_fontes_coleta WHERE id = :id";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $oldData !== null && $stmt->rowCount() > 0) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'lgpd_fontes_coleta',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldData,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Fonte de coleta não apagada.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;

@@ -7,6 +7,7 @@ namespace App\adms\Controllers\rooms;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\RoomCalendarSettingsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Models\Services\RoomExternalCalendarConfig;
 use App\adms\Views\Services\LoadViewService;
 
@@ -45,6 +46,11 @@ final class RoomsCalendarIntegrationSettings
 
         $this->data['settings'] = $repo->getSingleton();
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('form_rooms_calendar_integration');
+        $rowId = (int) ($this->data['settings']['id'] ?? 1);
+        if ($rowId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'rooms-calendar-integration-settings';
+            $this->data['log_resumo'] = LogResumoService::getResumo('adms_room_calendar_settings', $rowId, $returnUrl);
+        }
 
         $pageElements = [
             'title_head' => 'Integração calendário (Salas)',

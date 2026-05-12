@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -38,18 +39,45 @@ class PayrollCronConfigRepository extends DbConnection
     public function saveHttpCronToken(string $token): bool
     {
         $token = trim($token);
-        $row = $this->getRow();
+        $oldData = $this->getRow();
         $conn = $this->getConnection();
-        if (!empty($row['id'])) {
+        $usuarioId = $_SESSION['user_id'] ?? 1;
+        if (!empty($oldData['id'])) {
             $stmt = $conn->prepare('UPDATE adms_payroll_cron_config SET http_cron_token = :t, updated_at = NOW() WHERE id = :id');
-            $stmt->bindValue(':id', (int)$row['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':id', (int) $oldData['id'], PDO::PARAM_INT);
             $stmt->bindValue(':t', $token, $token === '' ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $ok = $stmt->execute();
+            if ($ok) {
+                $newData = $this->getRow();
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_cron_config',
+                    (int) $oldData['id'],
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
 
-            return $stmt->execute();
+            return $ok;
         }
         $stmt = $conn->prepare('INSERT INTO adms_payroll_cron_config (http_cron_token, created_at, updated_at) VALUES (:t, NOW(), NOW())');
         $stmt->bindValue(':t', $token, $token === '' ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $ok = $stmt->execute();
+        if ($ok) {
+            $newData = $this->getRow();
+            if (!empty($newData['id'])) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_payroll_cron_config',
+                    (int) $newData['id'],
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
 
-        return $stmt->execute();
+        return $ok;
     }
 }

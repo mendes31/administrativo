@@ -27,10 +27,16 @@ $weekDays = [
 
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
 
-    <div class="mb-1 hstack gap-2">
+    <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3">Calendário - Feriados e Dias Úteis</h2>
 
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center mb-3 mt-3">
+            <?php
+            $log_resumo = $this->data['log_resumo'] ?? [];
+            $log_btn_class = 'btn btn-outline-info btn-sm';
+            include __DIR__ . '/../partials/button_log_alteracoes.php';
+            ?>
+        <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
             </li>
@@ -38,6 +44,7 @@ $weekDays = [
             <li class="breadcrumb-item">Configurações</li>
             <li class="breadcrumb-item active">Calendário</li>
         </ol>
+        </div>
     </div>
 
     <div class="card mb-4 border-light shadow">

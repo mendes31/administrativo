@@ -111,7 +111,10 @@ use App\adms\Helpers\FormatHelper;
                 <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-classificacoes-dados-delete/<?php echo $this->data['classificacaoDados']['id']; ?>" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta classificação de dados?')">
                     <i class="fas fa-trash me-1"></i>Excluir
                 </a>
-            </div>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
         </div>
     </div>
 </div> 

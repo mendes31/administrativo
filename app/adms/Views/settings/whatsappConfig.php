@@ -26,14 +26,21 @@ try {
     }
     ?>
     
-    <div class="mb-1 hstack gap-2">
+    <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3">
             <i class="fab fa-whatsapp me-2"></i>Configuração de WhatsApp
         </h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center mb-3 mt-3">
+            <?php
+            $log_resumo = $this->data['log_resumo'] ?? [];
+            $log_btn_class = 'btn btn-outline-info btn-sm';
+            include __DIR__ . '/../partials/button_log_alteracoes.php';
+            ?>
+        <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>dashboard">Dashboard</a></li>
             <li class="breadcrumb-item active">Configuração WhatsApp</li>
         </ol>
+        </div>
     </div>
 
     <div class="row">

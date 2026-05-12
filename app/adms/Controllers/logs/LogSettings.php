@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\AdmsLogSettingsRepository;
 use App\adms\Models\Repository\AdmsSlowRequestProfileRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class LogSettings
@@ -31,6 +32,11 @@ class LogSettings
             'csrf_download_session_logs' => CSRFHelper::generateCSRFToken('download_session_logs'),
             'csrf_download_slow_profiles' => CSRFHelper::generateCSRFToken('download_slow_profiles'),
         ];
+        $cfgId = (int) ($settings['id'] ?? 0);
+        if ($cfgId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'log-settings';
+            $data['log_resumo'] = LogResumoService::getResumo('adms_log_settings', $cfgId, $returnUrl);
+        }
 
         $pageLayout = new PageLayoutService();
         $data = array_merge($data, $pageLayout->configurePageElements($data));

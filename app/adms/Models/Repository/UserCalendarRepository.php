@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -181,6 +182,7 @@ class UserCalendarRepository extends DbConnection
 
     public function updatePersonal(int $userId, int $entryId, string $title, ?string $description, string $startSql, string $endSql): bool
     {
+        $oldData = $this->getPersonalById($userId, $entryId);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_user_calendar_entries
              SET title = :title, description = :desc, start_datetime = :s, end_datetime = :e, updated_at = NOW()
@@ -193,7 +195,23 @@ class UserCalendarRepository extends DbConnection
         $stmt->bindValue(':id', $entryId, PDO::PARAM_INT);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
 
-        return $stmt->execute() && $stmt->rowCount() > 0;
+        if (!$stmt->execute() || $stmt->rowCount() === 0) {
+            return false;
+        }
+        $newData = $this->getPersonalById($userId, $entryId);
+        if ($oldData && $newData) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_user_calendar_entries',
+                $entryId,
+                $usuarioId,
+                'UPDATE',
+                $oldData,
+                $newData
+            );
+        }
+
+        return true;
     }
 
     /**
@@ -218,19 +236,51 @@ class UserCalendarRepository extends DbConnection
         $stmt->bindValue(':desc', $description !== null && $description !== '' ? $description : null, $description !== null && $description !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':s', $startSql);
         $stmt->bindValue(':e', $endSql);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            return 0;
+        }
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getPersonalById($userId, $newId);
+            if ($newData) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_user_calendar_entries',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
 
-        return (int) $this->getConnection()->lastInsertId();
+        return $newId;
     }
 
     public function deletePersonal(int $userId, int $entryId): bool
     {
+        $oldData = $this->getPersonalById($userId, $entryId);
         $stmt = $this->getConnection()->prepare(
             'DELETE FROM adms_user_calendar_entries WHERE id = :id AND user_id = :uid'
         );
         $stmt->bindValue(':id', $entryId, PDO::PARAM_INT);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        if (!$stmt->execute() || $stmt->rowCount() === 0) {
+            return false;
+        }
+        if ($oldData) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_user_calendar_entries',
+                $entryId,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
 
-        return $stmt->execute() && $stmt->rowCount() > 0;
+        return true;
     }
 }

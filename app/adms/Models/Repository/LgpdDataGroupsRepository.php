@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use Generator;
 use PDO;
@@ -169,6 +170,21 @@ class LgpdDataGroupsRepository extends DbConnection
 
             if ($result) {
                 GenerateLog::generateLog("info", "Grupo de dados LGPD criado com sucesso.", ['name' => $data['name']]);
+                $newId = (int) $this->getConnection()->lastInsertId();
+                if ($newId > 0) {
+                    $newData = $this->getById($newId);
+                    if (is_array($newData)) {
+                        $usuarioId = $_SESSION['user_id'] ?? 1;
+                        LogAlteracaoService::registrarAlteracao(
+                            'lgpd_data_groups',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $newData
+                        );
+                    }
+                }
             }
 
             return $result;
@@ -188,6 +204,7 @@ class LgpdDataGroupsRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldData = $this->getById($id);
             $sql = "UPDATE lgpd_data_groups 
                     SET name = :name, category = :category, example_fields = :example_fields, 
                         is_sensitive = :is_sensitive, notes = :notes, updated_at = NOW()
@@ -205,6 +222,20 @@ class LgpdDataGroupsRepository extends DbConnection
 
             if ($result) {
                 GenerateLog::generateLog("info", "Grupo de dados LGPD atualizado com sucesso.", ['id' => $id, 'name' => $data['name']]);
+                if (is_array($oldData)) {
+                    $newData = $this->getById($id);
+                    if (is_array($newData)) {
+                        $usuarioId = $_SESSION['user_id'] ?? 1;
+                        LogAlteracaoService::registrarAlteracao(
+                            'lgpd_data_groups',
+                            $id,
+                            $usuarioId,
+                            'UPDATE',
+                            $oldData,
+                            $newData
+                        );
+                    }
+                }
             }
 
             return $result;
@@ -223,6 +254,7 @@ class LgpdDataGroupsRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldData = $this->getById($id);
             // Verificar se o grupo está sendo usado no inventário
             $sqlCheck = "SELECT COUNT(*) as count FROM lgpd_inventory_data_groups WHERE lgpd_data_group_id = :id";
             $stmtCheck = $this->getConnection()->prepare($sqlCheck);
@@ -243,6 +275,17 @@ class LgpdDataGroupsRepository extends DbConnection
 
             if ($result) {
                 GenerateLog::generateLog("info", "Grupo de dados LGPD excluído com sucesso.", ['id' => $id]);
+                if (is_array($oldData) && $stmt->rowCount() > 0) {
+                    $usuarioId = $_SESSION['user_id'] ?? 1;
+                    LogAlteracaoService::registrarAlteracao(
+                        'lgpd_data_groups',
+                        $id,
+                        $usuarioId,
+                        'DELETE',
+                        $oldData,
+                        []
+                    );
+                }
             }
 
             return $result;

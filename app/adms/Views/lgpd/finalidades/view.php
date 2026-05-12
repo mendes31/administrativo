@@ -99,7 +99,10 @@ use App\adms\Helpers\FormatHelper;
                 <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-finalidades-delete/<?php echo $this->data['finalidade']['id']; ?>" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta finalidade?')">
                     <i class="fas fa-trash me-1"></i>Excluir
                 </a>
-            </div>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
         </div>
     </div>
 </div> 

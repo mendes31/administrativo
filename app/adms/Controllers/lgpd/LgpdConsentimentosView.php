@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdConsentimentosRepository;
 use App\adms\Models\Repository\LgpdConsentimentoArquivosRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -56,6 +57,9 @@ class LgpdConsentimentosView
         } else {
             $this->data['termo_vinculado'] = null;
         }
+
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-consentimentos-view/' . $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_consentimentos', (int) $id, $returnUrl);
 
         // Carregar informações do usuário vinculado (se houver)
         if (!empty($this->data['consentimento']['adms_user_id'])) {

@@ -5,6 +5,7 @@ namespace App\adms\Controllers\rooms;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\ImageHelper;
 use App\adms\Models\Repository\MeetingRoomsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -36,6 +37,9 @@ class ViewMeetingRoom
         }
 
         $this->data['room'] = $room;
+
+        $returnUrl = $_ENV['URL_ADM'] . 'view-meeting-room/' . $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_meeting_rooms', $id, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Sala de Reunião',

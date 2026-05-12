@@ -17,6 +17,14 @@ $updated = isset($this->data['cron_row']['updated_at']) ? (string)$this->data['c
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+    <div class="mb-2 d-flex flex-wrap gap-2">
+        <?php
+        $log_resumo = $this->data['log_resumo'] ?? [];
+        $log_btn_class = 'btn btn-outline-secondary btn-sm';
+        include __DIR__ . '/../partials/button_log_alteracoes.php';
+        ?>
+    </div>
+
     <div class="alert alert-info border-0 shadow-sm small mb-3 rounded-3">
         <strong>O que faz:</strong> envia <strong>notificações internas</strong> (sino do portal) aos colaboradores que ainda não deram ciência a documentos de folha, segundo a <strong>régua D+X</strong> definida em cada <a href="<?= htmlspecialchars($urlAdm) ?>list-payroll-document-types">tipo de documento</a>.
         Por defeito o sistema corre isto <strong>no máximo uma vez por 24 horas</strong>, no primeiro <strong>login</strong> ou acesso ao <strong>dashboard</strong> (igual à retenção de currículos / outros serviços em <code>storage/cache/system/</code>).

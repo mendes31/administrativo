@@ -5,6 +5,7 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\LgpdClassificacoesDadosRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -47,6 +48,7 @@ class LgpdClassificacoesDadosView
         // Instanciar o Repository para recuperar o registro do banco de dados
         $viewClassificacoes = new LgpdClassificacoesDadosRepository();
         $this->data['classificacao'] = $viewClassificacoes->getById((int) $id);
+        $this->data['classificacaoDados'] = $this->data['classificacao'];
 
         // Verificar se encontrou o registro no banco de dados
         if (!$this->data['classificacao']) {
@@ -59,6 +61,9 @@ class LgpdClassificacoesDadosView
 
         // Registrar a visualização da Classificação
         GenerateLog::generateLog("info", "Visualizada a Classificação de Dados.", ['id' => (int) $id]);
+
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-classificacoes-dados-view/' . (int) $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_classificacoes_dados', (int) $id, $returnUrl);
 
         // Definir o título da página
         // Ativar o item de menu

@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -100,7 +101,23 @@ class RoomRequestTypesRepository extends DbConnection
 
         $stmt->execute();
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if (is_array($newData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_request_types',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -108,6 +125,7 @@ class RoomRequestTypesRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
+        $oldData = $this->getById($id);
         $allowed = [
             'name',
             'description',
@@ -146,7 +164,23 @@ class RoomRequestTypesRepository extends DbConnection
             $stmt->bindValue($k, $v);
         }
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldData)) {
+            $newData = $this->getById($id);
+            if (is_array($newData)) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_room_request_types',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -154,6 +188,7 @@ class RoomRequestTypesRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        $oldData = $this->getById($id);
         // Verificar se há reservas usando este tipo
         $checkSql = "SELECT COUNT(*) AS total
                      FROM adms_booking_additional_requests
@@ -170,8 +205,20 @@ class RoomRequestTypesRepository extends DbConnection
         $sql = "DELETE FROM adms_room_request_types WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldData) && $stmt->rowCount() > 0) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_room_request_types',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
 
-        return $stmt->execute();
+        return $ok;
     }
 }
 

@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class AdmsLogSettingsRepository extends DbConnection
@@ -94,6 +95,27 @@ class AdmsLogSettingsRepository extends DbConnection
         $ok = $stmt->execute();
         if ($ok) {
             self::$cachedSettings = null;
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            $newData = $this->getSettings();
+            if (!empty($current['id'])) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_log_settings',
+                    (int) $current['id'],
+                    $usuarioId,
+                    'UPDATE',
+                    $current,
+                    $newData
+                );
+            } elseif (!empty($newData['id'])) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_log_settings',
+                    (int) $newData['id'],
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
         }
         return $ok;
     }

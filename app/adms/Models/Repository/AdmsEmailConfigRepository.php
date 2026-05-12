@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class AdmsEmailConfigRepository extends DbConnection
@@ -19,8 +20,9 @@ class AdmsEmailConfigRepository extends DbConnection
     public function saveConfig(array $data): bool
     {
         // Se já existe, faz update, senão faz insert
-        $config = $this->getConfig();
-        if ($config && !empty($config['id'])) {
+        $oldData = $this->getConfig();
+        $isUpdate = $oldData && !empty($oldData['id']);
+        if ($isUpdate) {
             $sql = 'UPDATE adms_email_config 
                        SET host = :host, 
                            username = :username, 
@@ -33,7 +35,7 @@ class AdmsEmailConfigRepository extends DbConnection
                            updated_at = NOW() 
                      WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':id', $config['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':id', $oldData['id'], PDO::PARAM_INT);
         } else {
             $sql = 'INSERT INTO adms_email_config 
                         (host, username, password, port, encryption, from_email, from_name, test_recipient, created_at, updated_at) 
@@ -49,6 +51,32 @@ class AdmsEmailConfigRepository extends DbConnection
         $stmt->bindValue(':from_email', $data['from_email']);
         $stmt->bindValue(':from_name', $data['from_name']);
         $stmt->bindValue(':test_recipient', $data['test_recipient'] ?? null);
-        return $stmt->execute();
+        $result = $stmt->execute();
+
+        if ($result) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            $newData = $this->getConfig();
+            if ($isUpdate && $oldData) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_email_config',
+                    (int) $oldData['id'],
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            } elseif (!$isUpdate && $newData) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_email_config',
+                    (int) ($newData['id'] ?? 0),
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $result;
     }
 } 

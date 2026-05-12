@@ -5,6 +5,7 @@ namespace App\adms\Controllers\settings;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\AdmsWhatsAppConfigRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Helpers\SendWhatsAppService;
 use App\adms\Helpers\CSRFHelper;
 
@@ -51,6 +52,11 @@ class WhatsAppConfig
                 'buttonPermission' => ['WhatsAppConfig'],
                 'whatsapp_config' => $whatsappConfig,
             ];
+            $cfgId = (int) ($whatsappConfig['id'] ?? 0);
+            if ($cfgId > 0) {
+                $returnUrl = $_ENV['URL_ADM'] . 'whats-app-config';
+                $data['log_resumo'] = LogResumoService::getResumo('adms_whatsapp_config', $cfgId, $returnUrl);
+            }
             
             $log("Dados preparados, chamando PageLayoutService");
             

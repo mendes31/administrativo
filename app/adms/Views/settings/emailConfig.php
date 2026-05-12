@@ -10,6 +10,13 @@ $config = $this->data['email_config'] ?? [];
                 </div>
                 <div class="card-body">
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
+                    <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                        <?php
+                        $log_resumo = $this->data['log_resumo'] ?? [];
+                        $log_btn_class = 'btn btn-outline-secondary btn-sm';
+                        include __DIR__ . '/../partials/button_log_alteracoes.php';
+                        ?>
+                    </div>
                     <!-- Dicas de configuração -->
                     <div class="alert alert-info">
                         <h6><i class="fas fa-info-circle"></i> Dicas para Gmail:</h6>

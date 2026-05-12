@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\RoomRequestTypesRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -50,6 +51,8 @@ class RoomsUpdateRequestType
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data ?? [], $pageLayoutService->configurePageElements($pageElements));
+        $returnUrl = $_ENV['URL_ADM'] . 'rooms-update-request-type/' . $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_room_request_types', $id, $returnUrl);
 
         $loadView = new LoadViewService('adms/Views/rooms/update_request_type', $this->data);
         $loadView->loadView();

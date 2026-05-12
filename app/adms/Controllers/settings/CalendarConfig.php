@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\CalendarRepository;
 use App\adms\Models\Services\BrazilHolidaysService;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class CalendarConfig
@@ -52,6 +53,11 @@ class CalendarConfig
             'year' => $year,
             'holidays' => $holidays,
         ];
+        $settingsId = (int) ($settings['id'] ?? 0);
+        if ($settingsId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'calendar-config';
+            $data['log_resumo'] = LogResumoService::getResumo('calendar_settings', $settingsId, $returnUrl);
+        }
 
         $pageLayout = new PageLayoutService();
         $data = array_merge($data, $pageLayout->configurePageElements($data));

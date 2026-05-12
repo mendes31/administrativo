@@ -99,7 +99,10 @@ use App\adms\Helpers\FormatHelper;
                 <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-categorias-titulares-delete/<?php echo $this->data['categoria_titular']['id']; ?>" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta categoria de titular?')">
                     <i class="fas fa-trash me-1"></i>Excluir
                 </a>
-            </div>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
         </div>
     </div>
 </div> 

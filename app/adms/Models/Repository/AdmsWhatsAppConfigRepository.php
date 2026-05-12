@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -40,13 +41,14 @@ class AdmsWhatsAppConfigRepository extends DbConnection
             error_log("=== REPOSITORY saveConfig ===");
             
             // Verificar se já existe configuração
-            $config = $this->getConfig();
+            $oldData = $this->getConfig();
+            $isUpdate = $oldData && !empty($oldData['id']);
             
-            error_log("Config existente: " . print_r($config, true));
+            error_log("Config existente: " . print_r($oldData, true));
             
-            if ($config && !empty($config['id'])) {
+            if ($isUpdate) {
                 // UPDATE
-                error_log("Modo: UPDATE (ID: " . $config['id'] . ")");
+                error_log("Modo: UPDATE (ID: " . $oldData['id'] . ")");
                 
                 $sql = 'UPDATE adms_whatsapp_config SET
                             api_provider = :api_provider,
@@ -61,7 +63,7 @@ class AdmsWhatsAppConfigRepository extends DbConnection
                         WHERE id = :id';
                 
                 $stmt = $this->getConnection()->prepare($sql);
-                $stmt->bindValue(':id', $config['id'], PDO::PARAM_INT);
+                $stmt->bindValue(':id', $oldData['id'], PDO::PARAM_INT);
             } else {
                 // INSERT
                 error_log("Modo: INSERT (primeira configuração)");
@@ -93,6 +95,28 @@ class AdmsWhatsAppConfigRepository extends DbConnection
             if (!$result) {
                 $errorInfo = $stmt->errorInfo();
                 error_log("PDO Error Info: " . print_r($errorInfo, true));
+            } else {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                $newData = $this->getConfig();
+                if ($isUpdate && $oldData) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_whatsapp_config',
+                        (int) $oldData['id'],
+                        $usuarioId,
+                        'UPDATE',
+                        $oldData,
+                        $newData
+                    );
+                } elseif (!$isUpdate && !empty($newData['id'])) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_whatsapp_config',
+                        (int) $newData['id'],
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newData
+                    );
+                }
             }
             
             return $result;

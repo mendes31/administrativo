@@ -132,6 +132,55 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'view-page/' . $objetoId;
             case 'adms_access_levels':
                 return $_ENV['URL_ADM'] . 'view-access-level/' . $objetoId;
+            case 'lgpd_bases_legais':
+                return $_ENV['URL_ADM'] . 'lgpd-bases-legais-view/' . $objetoId;
+            case 'lgpd_finalidades':
+                return $_ENV['URL_ADM'] . 'lgpd-finalidades-view/' . $objetoId;
+            case 'lgpd_tipos_dados':
+                return $_ENV['URL_ADM'] . 'lgpd-tipos-dados-view/' . $objetoId;
+            case 'lgpd_classificacoes_dados':
+                return $_ENV['URL_ADM'] . 'lgpd-classificacoes-dados-view/' . $objetoId;
+            case 'lgpd_categorias_titulares':
+                return $_ENV['URL_ADM'] . 'lgpd-categorias-titulares-view/' . $objetoId;
+            case 'lgpd_termos':
+                return $_ENV['URL_ADM'] . 'lgpd-termos-view/' . $objetoId;
+            case 'lgpd_consentimentos':
+                return $_ENV['URL_ADM'] . 'lgpd-consentimentos-view/' . $objetoId;
+            case 'adms_meeting_rooms':
+                return $_ENV['URL_ADM'] . 'view-meeting-room/' . $objetoId;
+            case 'rh_vagas':
+                return $_ENV['URL_ADM'] . 'rh-vagas-view/' . $objetoId;
+            case 'rh_candidatos':
+                return $_ENV['URL_ADM'] . 'rh-candidatos-view/' . $objetoId;
+            case 'lgpd_ripd':
+                return $_ENV['URL_ADM'] . 'lgpd-ripd-view/' . $objetoId;
+            case 'lgpd_ropa':
+                return $_ENV['URL_ADM'] . 'lgpd-ropa-view/' . $objetoId;
+            case 'lgpd_aipd':
+                return $_ENV['URL_ADM'] . 'lgpd-aipd-view/' . $objetoId;
+            case 'adms_room_request_types':
+                return $_ENV['URL_ADM'] . 'rooms-update-request-type/' . $objetoId;
+            case 'adms_room_request_groups':
+                return $_ENV['URL_ADM'] . 'rooms-update-request-group/' . $objetoId;
+            case 'adms_email_config':
+                return $_ENV['URL_ADM'] . 'list-email-config';
+            case 'adms_sap_api_config':
+                return $_ENV['URL_ADM'] . 'sap-api-config';
+            case 'adms_mcp_api_config':
+                return $_ENV['URL_ADM'] . 'mcp-api-config';
+            case 'adms_whatsapp_config':
+                return $_ENV['URL_ADM'] . 'whats-app-config';
+            case 'adms_log_settings':
+                return $_ENV['URL_ADM'] . 'log-settings';
+            case 'adms_payroll_cron_config':
+                return $_ENV['URL_ADM'] . 'payroll-cron-config';
+            case 'calendar_settings':
+            case 'calendar_holidays':
+                return $_ENV['URL_ADM'] . 'calendar-config';
+            case 'adms_room_calendar_settings':
+                return $_ENV['URL_ADM'] . 'rooms-calendar-integration-settings';
+            case 'adms_user_calendar_entries':
+                return $_ENV['URL_ADM'] . 'my-calendar';
             default:
                 return null; // Tabela não mapeada
         }

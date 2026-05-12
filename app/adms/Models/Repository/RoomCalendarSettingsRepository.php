@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -58,6 +59,12 @@ class RoomCalendarSettingsRepository extends DbConnection
 
     private function doSave(array $data, ?int $updatedByUserId = null): bool
     {
+        $conn = $this->getConnection();
+        $oldStmt = $conn->prepare('SELECT * FROM adms_room_calendar_settings WHERE id = :id LIMIT 1');
+        $oldStmt->bindValue(':id', self::ROW_ID, PDO::PARAM_INT);
+        $oldStmt->execute();
+        $oldRow = $oldStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
         $sql = 'UPDATE adms_room_calendar_settings SET
                 outlook_sync_enabled = :outlook_sync_enabled,
                 google_sync_enabled = :google_sync_enabled,
@@ -68,7 +75,7 @@ class RoomCalendarSettingsRepository extends DbConnection
                 updated_by = :updated_by
                 WHERE id = :id';
 
-        $stmt = $this->getConnection()->prepare($sql);
+        $stmt = $conn->prepare($sql);
         $stmt->bindValue(':id', self::ROW_ID, PDO::PARAM_INT);
         $stmt->bindValue(':outlook_sync_enabled', !empty($data['outlook_sync_enabled']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':google_sync_enabled', !empty($data['google_sync_enabled']) ? 1 : 0, PDO::PARAM_INT);
@@ -81,7 +88,24 @@ class RoomCalendarSettingsRepository extends DbConnection
             $stmt->bindValue(':updated_by', null, PDO::PARAM_NULL);
         }
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && $oldRow) {
+            $newStmt = $conn->prepare('SELECT * FROM adms_room_calendar_settings WHERE id = :id LIMIT 1');
+            $newStmt->bindValue(':id', self::ROW_ID, PDO::PARAM_INT);
+            $newStmt->execute();
+            $newRow = $newStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_room_calendar_settings',
+                self::ROW_ID,
+                $usuarioId,
+                'UPDATE',
+                $oldRow,
+                $newRow
+            );
+        }
+
+        return $ok;
     }
 
     private function emptyToNull(mixed $v): ?string

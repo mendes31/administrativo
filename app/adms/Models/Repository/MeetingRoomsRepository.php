@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 /**
@@ -40,8 +41,23 @@ class MeetingRoomsRepository extends DbConnection
         $stmt->bindValue(':created_by', $data['created_by'], PDO::PARAM_INT);
         
         $stmt->execute();
-        
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if ($newData !== null) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_meeting_rooms',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $newData
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -191,8 +207,25 @@ class MeetingRoomsRepository extends DbConnection
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
+
+        $oldData = $this->getById($id);
+        $result = $stmt->execute();
+        if ($result && $oldData !== null) {
+            $newData = $this->getById($id);
+            if ($newData !== null) {
+                $usuarioId = $_SESSION['user_id'] ?? 1;
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_meeting_rooms',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldData,
+                    $newData
+                );
+            }
+        }
         
-        return $stmt->execute();
+        return $result;
     }
 
     /**
@@ -200,12 +233,26 @@ class MeetingRoomsRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        $oldData = $this->getById($id);
         $sql = "DELETE FROM adms_meeting_rooms WHERE id = :id";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result && $oldData !== null && $stmt->rowCount() > 0) {
+            $usuarioId = $_SESSION['user_id'] ?? 1;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_meeting_rooms',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldData,
+                []
+            );
+        }
+
+        return $result;
     }
 
     /**

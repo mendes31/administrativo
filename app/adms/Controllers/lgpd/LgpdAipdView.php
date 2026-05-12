@@ -4,6 +4,7 @@ namespace App\adms\Controllers\lgpd;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\LgpdAipdRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -49,7 +50,11 @@ class LgpdAipdView
             'metodologia' => $aipd['observacoes'], // Usar observacoes como metodologia
             'observacoes' => $aipd['observacoes']
         ];
-        $this->data['data_groups'] = $repo->getDataGroupsByAipdId($id);
+        $this->data['data_groups'] = $repo->getDataGroupsByAipdId((int) $id);
+
+        $idInt = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'lgpd-aipd-view/' . $idInt;
+        $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_aipd', $idInt, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar AIPD',

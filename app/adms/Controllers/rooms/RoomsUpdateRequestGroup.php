@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\RoomRequestGroupsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -51,6 +52,8 @@ class RoomsUpdateRequestGroup
 
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data ?? [], $pageLayoutService->configurePageElements($pageElements));
+        $returnUrl = $_ENV['URL_ADM'] . 'rooms-update-request-group/' . $id;
+        $this->data['log_resumo'] = LogResumoService::getResumo('adms_room_request_groups', $id, $returnUrl);
 
         $loadView = new LoadViewService('adms/Views/rooms/update_request_group', $this->data);
         $loadView->loadView();
