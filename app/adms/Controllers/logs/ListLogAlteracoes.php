@@ -10,7 +10,6 @@ use App\adms\Models\Repository\DocumentPositionsRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\PerformanceCompetenciesRepository;
 use App\adms\Models\Repository\projects\ProjCommentsRepository;
-use App\adms\Models\Repository\RhEntrevistasRepository;
 use App\adms\Models\Repository\StrategicPlanObservationsRepository;
 use App\adms\Models\Repository\CrmNotesRepository;
 use App\adms\Models\Repository\CrmCustomFieldsRepository;
@@ -229,12 +228,7 @@ class ListLogAlteracoes
             case 'rh_candidatos':
                 return $_ENV['URL_ADM'] . 'rh-candidatos-view/' . $objetoId;
             case 'rh_entrevistas':
-                $ent = (new RhEntrevistasRepository())->getById($objetoId);
-                if ($ent && !empty($ent['rh_candidato_id'])) {
-                    return $_ENV['URL_ADM'] . 'rh-candidatos-view/' . (int) $ent['rh_candidato_id'];
-                }
-
-                return null;
+                return $_ENV['URL_ADM'] . 'rh-entrevistas-view/' . $objetoId;
             case 'adms_informativos':
                 return $_ENV['URL_ADM'] . 'view-informativo/' . $objetoId;
             case 'adms_request_types':

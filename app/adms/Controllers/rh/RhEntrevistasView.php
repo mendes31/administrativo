@@ -5,6 +5,7 @@ namespace App\adms\Controllers\rh;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhEntrevistasRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class RhEntrevistasView
@@ -30,6 +31,10 @@ class RhEntrevistasView
         }
 
         $this->data['entrevista'] = $entrevista;
+
+        $idInt = (int) $id;
+        $returnUrl = $_ENV['URL_ADM'] . 'rh-entrevistas-view/' . $idInt;
+        $this->data['log_resumo'] = LogResumoService::getResumo('rh_entrevistas', $idInt, $returnUrl);
 
         $pageElements = [
             'title_head' => 'Visualizar Entrevista',

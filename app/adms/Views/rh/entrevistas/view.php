@@ -25,6 +25,11 @@ $e = $this->data['entrevista'] ?? [];
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-arrow-left me-1"></i>Voltar
                 </a>
+                <?php
+                $log_resumo = $this->data['log_resumo'] ?? [];
+                $log_btn_class = 'btn btn-outline-info btn-sm';
+                include __DIR__ . '/../../partials/button_log_alteracoes.php';
+                ?>
             </div>
         </div>
         <div class="card-body">
