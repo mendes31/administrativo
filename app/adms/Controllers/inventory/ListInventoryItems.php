@@ -4,6 +4,7 @@ namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInventoryItems
@@ -23,6 +24,13 @@ class ListInventoryItems
         $repo = new InvItemsRepository();
         $this->data['items'] = $repo->getAll($page, $perPage, $filters);
         $total = $repo->countAll($filters);
+
+        $returnList = $_ENV['URL_ADM'] . 'list-inventory-items';
+        foreach ($this->data['items'] as &$item) {
+            $iid = (int) ($item['id'] ?? 0);
+            $item['log_resumo'] = $iid > 0 ? LogResumoService::getResumoInventoryItemContext($iid, $returnList) : [];
+        }
+        unset($item);
 
         $pagination = \App\adms\Controllers\Services\PaginationService::generatePagination(
             $total,

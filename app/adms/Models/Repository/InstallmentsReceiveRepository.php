@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -73,14 +74,6 @@ class InstallmentsReceiveRepository extends DbConnection
      */
     public function createReceive(array $dataForm, array $data, $nova_num_doc, $novo_vencimento, $novo_valor, $installment_number = null, $issue_date = null): bool|int
     {
-        var_dump([
-            'dataForm' => $dataForm,
-            'data' => $data,
-            'nova_num_doc' => $nova_num_doc,
-            'novo_vencimento' => $novo_vencimento,
-            'novo_valor' => $novo_valor,
-        ]);
-       
         $original = $data[0];
         $name = $this->getCustomerName($original['partner_id']);
         try {
@@ -118,7 +111,23 @@ class InstallmentsReceiveRepository extends DbConnection
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':updated_at', null, PDO::PARAM_NULL);
             $stmt->execute();
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRawReceiveRow($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_receive',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Conta não cadastrada.", ['description' => $original['description'] ?? '', 'error' => $e->getMessage()]);
             return false;
@@ -134,10 +143,24 @@ class InstallmentsReceiveRepository extends DbConnection
     public function deleteReceive(int $id): bool
     {
         try {
+            $oldRow = $this->getRawReceiveRow($id);
             $sql = 'DELETE FROM adms_receive WHERE id = :id LIMIT 1';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_receive',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar conta.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -195,6 +218,22 @@ class InstallmentsReceiveRepository extends DbConnection
   
         $stmt->execute();    
         return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawReceiveRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_receive WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 
 }

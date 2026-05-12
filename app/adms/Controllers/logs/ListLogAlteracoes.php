@@ -19,6 +19,9 @@ use App\adms\Models\Repository\CompetencyMatrixRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\RoomBookingSlotHoldRepository;
 use App\adms\Models\Repository\LogAlteracoesDetalhesRepository;
+use App\adms\Models\Repository\KpiDashboardRepository;
+use App\adms\Models\Repository\GamificationQuizRepository;
+use App\adms\Models\Repository\EvaluationAttemptsRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 
@@ -44,6 +47,7 @@ class ListLogAlteracoes
             'data_inicio' => $_GET['data_inicio'] ?? '',
             'data_fim' => $_GET['data_fim'] ?? '',
             'strategic_plan_context' => $_GET['strategic_plan_context'] ?? '',
+            'inventory_item_context' => $_GET['inventory_item_context'] ?? '',
         ];
         
         // Parâmetros de ordenação
@@ -54,7 +58,8 @@ class ListLogAlteracoes
         // ordenar por data_alteracao (do mais recente para o mais antigo)
         if ($orderBy === null) {
             if ((!empty($filtros['tabela']) && !empty($filtros['objeto_id']))
-                || !empty($filtros['strategic_plan_context'])) {
+                || !empty($filtros['strategic_plan_context'])
+                || !empty($filtros['inventory_item_context'])) {
                 $orderBy = 'data_alteracao';
             } else {
                 $orderBy = 'id';
@@ -93,7 +98,12 @@ class ListLogAlteracoes
         // Quando filtrado por uma combinação específica de tabela + objeto_id,
         // buscar também todos os detalhes de alterações desse registro
         $this->data['detalhes_registro'] = [];
-        if (!empty($filtros['tabela']) && !empty($filtros['objeto_id']) && !empty($this->data['logs'])) {
+        if (!empty($this->data['logs'])
+            && (
+                (!empty($filtros['tabela']) && !empty($filtros['objeto_id']))
+                || !empty($filtros['strategic_plan_context'])
+                || !empty($filtros['inventory_item_context'])
+            )) {
             $logIds = array_column($this->data['logs'], 'id');
             $detRepo = new LogAlteracoesDetalhesRepository();
             $this->data['detalhes_registro'] = $detRepo->getByLogIds($logIds);
@@ -376,6 +386,88 @@ class ListLogAlteracoes
                 }
 
                 return null;
+            case 'adms_dashboards':
+            case 'adms_dashboard_reports':
+            case 'adms_dashboard_relationships':
+                return $_ENV['URL_ADM'] . 'view-dashboard/' . $objetoId;
+            case 'adms_spreadsheets':
+                return $_ENV['URL_ADM'] . 'list-dashboards';
+            case 'adms_kpi_dashboards':
+                return $_ENV['URL_ADM'] . 'view-kpi-dashboard?id=' . $objetoId;
+            case 'adms_kpi_widgets':
+                $w = (new KpiDashboardRepository())->findWidgetDashboardId($objetoId);
+                if ($w !== null) {
+                    return $_ENV['URL_ADM'] . 'view-kpi-dashboard?id=' . $w;
+                }
+
+                return null;
+            case 'adms_dynamic_reports':
+            case 'adms_dynamic_report_shared_users':
+                return $_ENV['URL_ADM'] . 'dynamic-report-builder?id=' . $objetoId;
+            case 'adms_gamification_timeline_rules':
+                return $_ENV['URL_ADM'] . 'update-gamification-timeline-rule/' . $objetoId;
+            case 'adms_gamification_quizzes':
+                return $_ENV['URL_ADM'] . 'update-gamification-quiz/' . $objetoId;
+            case 'adms_gamification_quiz_questions':
+                $gq = (new GamificationQuizRepository())->findQuestionById((int) $objetoId);
+                if (is_array($gq) && !empty($gq['quiz_id'])) {
+                    return $_ENV['URL_ADM'] . 'list-gamification-quiz-questions/' . (int) $gq['quiz_id'];
+                }
+
+                return $_ENV['URL_ADM'] . 'list-gamification-quizzes';
+            case 'adms_gamification_quiz_options':
+                $gqRepo = new GamificationQuizRepository();
+                $qzId = $gqRepo->findQuizIdForOptionId((int) $objetoId);
+                if ($qzId === null) {
+                    $qrow = $gqRepo->findQuestionById((int) $objetoId);
+                    if (is_array($qrow) && !empty($qrow['quiz_id'])) {
+                        $qzId = (int) $qrow['quiz_id'];
+                    }
+                }
+                if ($qzId !== null && $qzId > 0) {
+                    return $_ENV['URL_ADM'] . 'list-gamification-quiz-questions/' . $qzId;
+                }
+
+                return $_ENV['URL_ADM'] . 'list-gamification-quizzes';
+            case 'adms_gamification_levels':
+            case 'adms_gamification_badges':
+            case 'adms_gamification_weekly_missions':
+            case 'adms_gamification_settings':
+            case 'adms_gamification_user_badges':
+            case 'adms_gamification_anti_fraud_events':
+            case 'adms_gamification_user_mission_progress':
+                return $_ENV['URL_ADM'] . 'gamification-engagement-dashboard';
+            case 'adms_gamification_point_ledger':
+                return $_ENV['URL_ADM'] . 'list-gamification-point-ledger';
+            case 'adms_evaluation_models':
+                return $_ENV['URL_ADM'] . 'update-evaluation-model/' . $objetoId;
+            case 'adms_evaluation_questions':
+                return $_ENV['URL_ADM'] . 'update-evaluation-question/' . $objetoId;
+            case 'adms_evaluation_assignments':
+                return $_ENV['URL_ADM'] . 'list-evaluation-assignments';
+            case 'adms_evaluation_attempts':
+                $att = (new EvaluationAttemptsRepository())->getById((int) $objetoId);
+                if (is_array($att) && !empty($att['assignment_id'])) {
+                    return $_ENV['URL_ADM'] . 'evaluation-history/' . (int) $att['assignment_id'];
+                }
+
+                return $_ENV['URL_ADM'] . 'list-evaluation-assignments';
+            case 'adms_evaluation_answers':
+                return $_ENV['URL_ADM'] . 'view-evaluation-answer/' . $objetoId;
+            case 'inv_items':
+                return $_ENV['URL_ADM'] . 'view-inventory-item/' . $objetoId;
+            case 'inv_item_bom':
+            case 'inv_item_operations':
+                return $_ENV['URL_ADM'] . 'update-inventory-item/' . $objetoId;
+            case 'inv_balances':
+                $bRow = (new \App\adms\Models\Repository\inventory\InvBalancesRepository())->getBalanceRowById($objetoId);
+                if (is_array($bRow) && !empty($bRow['inv_item_id'])) {
+                    return $_ENV['URL_ADM'] . 'view-inventory-item/' . (int) $bRow['inv_item_id'];
+                }
+
+                return null;
+            case 'inv_movements':
+                return $_ENV['URL_ADM'] . 'report-inventory-history?' . http_build_query(['movement_id' => $objetoId]);
             case 'inv_units':
                 return $_ENV['URL_ADM'] . 'update-inventory-unit/' . $objetoId;
             case 'inv_categories':

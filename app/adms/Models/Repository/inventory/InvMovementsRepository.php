@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -137,6 +138,19 @@ class InvMovementsRepository extends DbConnection
             }
 
             $conn->commit();
+            $movRow = $this->getMovementRowById($conn, $movementId);
+            if (is_array($movRow)) {
+                $usuarioId = (int) ($movement['user_id'] ?? ($_SESSION['user_id'] ?? 1));
+                LogAlteracaoService::registrarAlteracao(
+                    'inv_movements',
+                    $movementId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $movRow
+                );
+            }
+
             return $movementId;
         } catch (Exception $e) {
             $conn->rollBack();
@@ -191,6 +205,7 @@ class InvMovementsRepository extends DbConnection
         if (!empty($filters['to'])) { $wheres[] = 'm.movement_date <= :to'; $params[':to'] = $filters['to'] . ' 23:59:59'; }
         if (!empty($filters['inv_item_id'])) { $wheres[] = 'mi.inv_item_id = :item'; $params[':item'] = (int)$filters['inv_item_id']; }
         if (!empty($filters['inv_stock_id'])) { $wheres[] = '(m.from_stock_id = :stock OR m.to_stock_id = :stock)'; $params[':stock'] = (int)$filters['inv_stock_id']; }
+        if (!empty($filters['movement_id'])) { $wheres[] = 'm.id = :movement_id'; $params[':movement_id'] = (int)$filters['movement_id']; }
         $whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
 
         $sql = 'SELECT m.id, m.type, m.movement_date, m.user_id, m.from_stock_id, m.to_stock_id, m.reason_id, m.equipment_id,
@@ -217,6 +232,7 @@ class InvMovementsRepository extends DbConnection
         if (!empty($filters['to'])) { $wheres[] = 'm.movement_date <= :to'; $params[':to'] = $filters['to'] . ' 23:59:59'; }
         if (!empty($filters['inv_item_id'])) { $wheres[] = 'mi.inv_item_id = :item'; $params[':item'] = (int)$filters['inv_item_id']; }
         if (!empty($filters['inv_stock_id'])) { $wheres[] = '(m.from_stock_id = :stock OR m.to_stock_id = :stock)'; $params[':stock'] = (int)$filters['inv_stock_id']; }
+        if (!empty($filters['movement_id'])) { $wheres[] = 'm.id = :movement_id'; $params[':movement_id'] = (int)$filters['movement_id']; }
         $whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
         $stmt = $this->getConnection()->prepare('SELECT COUNT(*) FROM inv_movements m JOIN inv_movement_items mi ON mi.inv_movement_id = m.id ' . $whereSql);
         foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
@@ -263,6 +279,19 @@ class InvMovementsRepository extends DbConnection
         $stmt->execute();
         $val = $stmt->fetchColumn();
         return $val !== false ? (float)$val : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getMovementRowById(\PDO $conn, int $id): ?array
+    {
+        $stmt = $conn->prepare('SELECT * FROM inv_movements WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -191,6 +192,24 @@ class EvaluationModelsRepository extends DbConnection
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
+            if ($this->result) {
+                $newId = (int) $this->getConnection()->lastInsertId();
+                if ($newId > 0) {
+                    $row = $this->getRawModelRow($newId);
+                    if (is_array($row)) {
+                        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_evaluation_models',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $row
+                        );
+                    }
+                }
+            }
+
             return $this->result;
         } catch (Exception $e) {
             GenerateLog::generateLog('ERROR', "Erro ao criar modelo de avaliação: " . $e->getMessage(), null);
@@ -209,6 +228,7 @@ class EvaluationModelsRepository extends DbConnection
     public function updateModel(int $id, array $data): bool
     {
         try {
+            $oldRow = $this->getRawModelRow($id);
             $sql = 'UPDATE adms_evaluation_models 
                     SET adms_training_id = :training_id, titulo = :titulo, 
                         codigo_documento = :codigo_documento, versao_documento = :versao_documento,
@@ -225,6 +245,21 @@ class EvaluationModelsRepository extends DbConnection
             $stmt->bindValue(':ativo', $data['ativo'] ?? 1, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
+            if ($this->result && is_array($oldRow)) {
+                $newRow = $this->getRawModelRow($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_models',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
             return $this->result;
         } catch (Exception $e) {
             GenerateLog::generateLog('ERROR', "Erro ao atualizar modelo de avaliação: " . $e->getMessage(), null);
@@ -242,12 +277,25 @@ class EvaluationModelsRepository extends DbConnection
     public function deleteModel(int $id): bool
     {
         try {
+            $oldRow = $this->getRawModelRow($id);
             $sql = 'DELETE FROM adms_evaluation_models WHERE id = :id';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
+            if ($this->result && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_evaluation_models',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
             return $this->result;
         } catch (Exception $e) {
             GenerateLog::generateLog('ERROR', "Erro ao deletar modelo de avaliação: " . $e->getMessage(), null);
@@ -264,5 +312,21 @@ class EvaluationModelsRepository extends DbConnection
     public function getResult(): bool
     {
         return $this->result;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawModelRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_evaluation_models WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 } 

@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -110,7 +111,23 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
 			$stmt->execute();
-			return (int)$this->getConnection()->lastInsertId();
+			$newId = (int) $this->getConnection()->lastInsertId();
+			if ($newId > 0) {
+				$row = $this->getItemRowById($newId);
+				if (is_array($row)) {
+					$usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+					LogAlteracaoService::registrarAlteracao(
+						'inv_items',
+						$newId,
+						$usuarioId,
+						'INSERT',
+						[],
+						$row
+					);
+				}
+			}
+
+			return $newId;
 		} catch (Exception $e) {
 			GenerateLog::generateLog('error', 'Falha ao criar item de estoque', ['error' => $e->getMessage(), 'code' => $data['code'] ?? '']);
 			return false;
@@ -120,6 +137,7 @@ class InvItemsRepository extends DbConnection
 	public function update(int $id, array $data): bool
 	{
 		try {
+			$oldRow = $this->getItemRowById($id);
             $sql = 'UPDATE inv_items SET code = :code, erp_code = :erp_code, description = :description, inv_unit_id = :inv_unit_id, inv_category_id = :inv_category_id,
 				admin_type = :admin_type, average_cost = :average_cost, last_cost = :last_cost, min_stock = :min_stock, max_stock = :max_stock,
 				active = :active, updated_at = :updated_at WHERE id = :id';
@@ -137,7 +155,23 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
 			$stmt->bindValue(':id', $id, PDO::PARAM_INT);
-			return $stmt->execute();
+			$ok = $stmt->execute();
+			if ($ok && is_array($oldRow)) {
+				$newRow = $this->getItemRowById($id);
+				if (is_array($newRow)) {
+					$usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+					LogAlteracaoService::registrarAlteracao(
+						'inv_items',
+						$id,
+						$usuarioId,
+						'UPDATE',
+						$oldRow,
+						$newRow
+					);
+				}
+			}
+
+			return $ok;
 		} catch (Exception $e) {
 			GenerateLog::generateLog('error', 'Falha ao atualizar item de estoque', ['error' => $e->getMessage(), 'id' => $id]);
 			return false;
@@ -147,10 +181,24 @@ class InvItemsRepository extends DbConnection
 	public function delete(int $id): bool
 	{
 		try {
+			$oldRow = $this->getItemRowById($id);
 			$sql = 'DELETE FROM inv_items WHERE id = :id';
 			$stmt = $this->getConnection()->prepare($sql);
 			$stmt->bindValue(':id', $id, PDO::PARAM_INT);
-			return $stmt->execute();
+			$ok = $stmt->execute();
+			if ($ok && is_array($oldRow)) {
+				$usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+				LogAlteracaoService::registrarAlteracao(
+					'inv_items',
+					$id,
+					$usuarioId,
+					'DELETE',
+					$oldRow,
+					[]
+				);
+			}
+
+			return $ok;
 		} catch (Exception $e) {
 			GenerateLog::generateLog('error', 'Falha ao excluir item de estoque', ['error' => $e->getMessage(), 'id' => $id]);
 			return false;
@@ -172,6 +220,19 @@ class InvItemsRepository extends DbConnection
 		$sql = 'SELECT id, code, description, admin_type FROM inv_items WHERE active = 1 ORDER BY description ASC';
 		$stmt = $this->getConnection()->query($sql);
 		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+	}
+
+	/**
+	 * @return array<string, mixed>|null
+	 */
+	private function getItemRowById(int $id): ?array
+	{
+		$stmt = $this->getConnection()->prepare('SELECT * FROM inv_items WHERE id = :id LIMIT 1');
+		$stmt->bindValue(':id', $id, PDO::PARAM_INT);
+		$stmt->execute();
+		$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+		return $row !== false ? $row : null;
 	}
 }
 

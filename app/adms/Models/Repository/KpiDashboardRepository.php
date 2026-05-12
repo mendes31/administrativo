@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class KpiDashboardRepository extends DbConnection
@@ -68,8 +69,24 @@ class KpiDashboardRepository extends DbConnection
         $stmt->bindValue(':is_public', $data['is_public'] ?? false, PDO::PARAM_BOOL);
         $stmt->bindValue(':created_by', $data['created_by'], PDO::PARAM_INT);
         $stmt->execute();
-        
-        return (int) $this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawDashboardRowById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_kpi_dashboards',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -77,6 +94,7 @@ class KpiDashboardRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getRawDashboardRowById($id);
         $sql = "UPDATE adms_kpi_dashboards 
                 SET name = :name, 
                     description = :description, 
@@ -93,8 +111,24 @@ class KpiDashboardRepository extends DbConnection
         $stmt->bindValue(':layout', $data['layout'] ?? 'grid', PDO::PARAM_STR);
         $stmt->bindValue(':refresh_interval', $data['refresh_interval'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':is_public', $data['is_public'] ?? false, PDO::PARAM_BOOL);
-        
-        return $stmt->execute();
+
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawDashboardRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_kpi_dashboards',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -102,10 +136,24 @@ class KpiDashboardRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        $oldRow = $this->getRawDashboardRowById($id);
         $sql = "DELETE FROM adms_kpi_dashboards WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_kpi_dashboards',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     /**
@@ -124,6 +172,16 @@ class KpiDashboardRepository extends DbConnection
         $stmt->execute();
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function findWidgetDashboardId(int $widgetId): ?int
+    {
+        $stmt = $this->getConnection()->prepare('SELECT dashboard_id FROM adms_kpi_widgets WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $widgetId, PDO::PARAM_INT);
+        $stmt->execute();
+        $v = $stmt->fetchColumn();
+
+        return $v !== false ? (int) $v : null;
     }
 
     /**
@@ -154,8 +212,24 @@ class KpiDashboardRepository extends DbConnection
         $stmt->bindValue(':target_value', $data['target_value'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':config_json', $data['config_json'] ?? null, PDO::PARAM_STR);
         $stmt->execute();
-        
-        return (int) $this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawWidgetRowById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_kpi_widgets',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -163,6 +237,7 @@ class KpiDashboardRepository extends DbConnection
      */
     public function updateWidget(int $id, array $data): bool
     {
+        $oldRow = $this->getRawWidgetRowById($id);
         $sql = "UPDATE adms_kpi_widgets 
                 SET title = :title,
                     widget_type = :widget_type,
@@ -191,8 +266,24 @@ class KpiDashboardRepository extends DbConnection
         $stmt->bindValue(':value_suffix', $data['value_suffix'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':target_value', $data['target_value'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':config_json', $data['config_json'] ?? null, PDO::PARAM_STR);
-        
-        return $stmt->execute();
+
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawWidgetRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_kpi_widgets',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -200,10 +291,49 @@ class KpiDashboardRepository extends DbConnection
      */
     public function deleteWidget(int $id): bool
     {
+        $oldRow = $this->getRawWidgetRowById($id);
         $sql = "DELETE FROM adms_kpi_widgets WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_kpi_widgets',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawDashboardRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_kpi_dashboards WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawWidgetRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_kpi_widgets WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
-

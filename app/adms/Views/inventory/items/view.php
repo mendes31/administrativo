@@ -6,13 +6,18 @@
       <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>list-inventory-items" class="text-decoration-none">Itens</a></li>
       <li class="breadcrumb-item active">Visualizar</li>
     </ol>
-    <span class="ms-auto d-sm-flex flex-row">
+    <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1 align-items-center">
       <?php if (!empty($this->data['buttonPermission']) && in_array('ListInventoryItems', $this->data['buttonPermission'])): ?>
         <a href="<?= $_ENV['URL_ADM'] ?>list-inventory-items" class="btn btn-info btn-sm me-1 mb-1"><i class="fa-solid fa-list"></i> Listar</a>
       <?php endif; ?>
       <?php if (!empty($this->data['buttonPermission']) && in_array('UpdateInventoryItem', $this->data['buttonPermission'])): ?>
         <a href="<?= $_ENV['URL_ADM'] . 'update-inventory-item/' . ($item['id'] ?? '') ?>" class="btn btn-warning btn-sm me-1 mb-1"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
       <?php endif; ?>
+      <?php
+      $log_resumo = $this->data['log_resumo'] ?? [];
+      $log_btn_class = 'btn btn-outline-info btn-sm';
+      include __DIR__ . '/../../partials/button_log_alteracoes.php';
+      ?>
     </span>
   </div>
 </div>

@@ -37,6 +37,10 @@
           <?php endforeach; ?>
         </select>
       </div>
+      <div class="col-12 col-md-2">
+        <label class="form-label">ID movimento</label>
+        <input type="number" class="form-control" name="movement_id" min="1" step="1" value="<?= htmlspecialchars((string)($_GET['movement_id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="Opcional">
+      </div>
       <div class="col-12 d-flex gap-2 align-items-end">
         <button class="btn btn-primary">Filtrar</button>
         <a class="btn btn-outline-secondary" href="<?= $_ENV['URL_ADM'] ?>report-inventory-history">Limpar</a>

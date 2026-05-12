@@ -18,9 +18,9 @@ use App\adms\Helpers\CSRFHelper;
 	</div>
 
 	<div class="card mb-4 border-light shadow">
-		<div class="card-header hstack gap-2">
+		<div class="card-header hstack gap-2 flex-wrap align-items-center">
 			<span>Listar</span>
-			<span class="ms-auto">
+			<span class="ms-auto d-flex flex-wrap gap-1">
 				<?php if (in_array('CreateInventoryItem', $this->data['buttonPermission'])) {
 					echo "<a href='{$_ENV['URL_ADM']}create-inventory-item' class='btn btn-success btn-sm'><i class='fa-regular fa-square-plus'></i> Cadastrar</a> ";
 				} ?>
@@ -82,6 +82,12 @@ use App\adms\Helpers\CSRFHelper;
 								<td class="text-end"><?php echo number_format((float)($item['total_qty'] ?? 0), 4, ',', '.'); ?></td>
 								<td><?php echo $item['active'] ? 'Sim' : 'Não'; ?></td>
 								<td class="text-center">
+									<div class="d-inline-flex flex-wrap gap-1 justify-content-center">
+									<?php
+									$log_resumo = $item['log_resumo'] ?? [];
+									$log_btn_class = 'btn btn-sm btn-outline-info';
+									include __DIR__ . '/../../partials/button_log_alteracoes.php';
+									?>
 									<?php if (in_array('ViewInventoryItem', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$item['id']}' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Ver</a> "; }
 									if (in_array('UpdateInventoryItem', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}update-inventory-item/{$item['id']}' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a> "; }
 									if (in_array('DeleteInventoryItem', $this->data['buttonPermission'])) {
@@ -93,6 +99,7 @@ use App\adms\Helpers\CSRFHelper;
 										echo "</form>";
 									}
 									?>
+									</div>
 							</td>
 							</tr>
 						<?php } } ?>

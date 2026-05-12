@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Repository\inventory\InvBalancesRepository;
 use App\adms\Models\Repository\inventory\InvMovementsRepository;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewInventoryItem
@@ -56,6 +57,12 @@ class ViewInventoryItem
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+
+        $itemId = (int) $id;
+        if ($itemId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId;
+            $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemId, $returnUrl);
+        }
 
         $loadView = new LoadViewService('adms/Views/inventory/items/view', $this->data);
         $loadView->loadView();

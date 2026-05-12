@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Helpers\GenerateLog;
 use PDO;
 use Exception;
@@ -20,6 +21,10 @@ class EvaluationAssignmentsRepository extends DbConnection
     public function insert(array $data): int|bool
     {
         try {
+            $userId = (int) ($data['adms_user_id'] ?? 0);
+            $modelId = (int) ($data['evaluation_model_id'] ?? 0);
+            $before = $this->getRawAssignmentByUserAndModel($userId, $modelId);
+
             $sql = 'INSERT INTO adms_evaluation_assignments 
                     (evaluation_model_id, adms_user_id, created_by, data_atribuicao, 
                      data_limite, status, tentativas, nota_maxima, created_at, updated_at)
@@ -40,8 +45,35 @@ class EvaluationAssignmentsRepository extends DbConnection
             $stmt->bindValue(':nota_maxima', $data['nota_maxima'] ?? null, PDO::PARAM_STR);
             
             $stmt->execute();
-            
-            return $this->getConnection()->lastInsertId();
+
+            $after = $this->getRawAssignmentByUserAndModel($userId, $modelId);
+            if (is_array($after)) {
+                $aid = (int) $after['id'];
+                $logUid = (int) ($_SESSION['user_id'] ?? 1);
+                if ($before === null) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_assignments',
+                        $aid,
+                        $logUid,
+                        'INSERT',
+                        [],
+                        $after
+                    );
+                } else {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_assignments',
+                        $aid,
+                        $logUid,
+                        'UPDATE',
+                        $before,
+                        $after
+                    );
+                }
+
+                return $aid;
+            }
+
+            return (int) $this->getConnection()->lastInsertId() ?: false;
             
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao inserir atribuição de avaliação", [
@@ -59,6 +91,7 @@ class EvaluationAssignmentsRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         try {
+            $oldRow = $this->getRawAssignmentById($id);
             $sql = 'UPDATE adms_evaluation_assignments 
                     SET status = :status,
                         tentativas = :tentativas,
@@ -74,7 +107,23 @@ class EvaluationAssignmentsRepository extends DbConnection
             $stmt->bindValue(':nota_maxima', $data['nota_maxima'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':data_limite', $data['data_limite'] ?? null, PDO::PARAM_STR);
             
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getRawAssignmentById($id);
+                if (is_array($newRow)) {
+                    $logUid = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_assignments',
+                        $id,
+                        $logUid,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
             
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao atualizar atribuição", [
@@ -196,6 +245,7 @@ class EvaluationAssignmentsRepository extends DbConnection
     public function cancelAssignment(int $id, int $canceladoPor, string $motivo): bool
     {
         try {
+            $oldRow = $this->getRawAssignmentById($id);
             $sql = 'UPDATE adms_evaluation_assignments 
                     SET status = \'cancelado\',
                         cancelado_em = NOW(),
@@ -209,7 +259,22 @@ class EvaluationAssignmentsRepository extends DbConnection
             $stmt->bindValue(':cancelado_por', $canceladoPor, PDO::PARAM_INT);
             $stmt->bindValue(':motivo', $motivo, PDO::PARAM_STR);
             
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $newRow = $this->getRawAssignmentById($id);
+                if (is_array($newRow)) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_assignments',
+                        $id,
+                        (int) ($_SESSION['user_id'] ?? 1),
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
+            return $ok;
             
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao cancelar atribuição", [
@@ -331,6 +396,42 @@ class EvaluationAssignmentsRepository extends DbConnection
         }
         
         return false;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawAssignmentById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_evaluation_assignments WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawAssignmentByUserAndModel(int $userId, int $modelId): ?array
+    {
+        if ($userId <= 0 || $modelId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_evaluation_assignments 
+             WHERE adms_user_id = :user_id AND evaluation_model_id = :model_id LIMIT 1'
+        );
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':model_id', $modelId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

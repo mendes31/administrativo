@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -45,6 +46,8 @@ class InvItemOperationsRepository extends DbConnection
         try {
             $conn->beginTransaction();
 
+            $oldSnapshot = $this->snapshotOperationsJson($conn, $invItemId);
+
             // Apagar rota atual
             $stmtDelete = $conn->prepare('DELETE FROM inv_item_operations WHERE inv_item_id = :inv_item_id');
             $stmtDelete->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
@@ -72,6 +75,20 @@ class InvItemOperationsRepository extends DbConnection
             }
 
             $conn->commit();
+
+            $newSnapshot = $this->snapshotOperationsJson($conn, $invItemId);
+            if ($oldSnapshot !== $newSnapshot) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'inv_item_operations',
+                    $invItemId,
+                    $usuarioId,
+                    'UPDATE',
+                    ['snapshot' => $oldSnapshot],
+                    ['snapshot' => $newSnapshot]
+                );
+            }
+
             return true;
         } catch (Exception $e) {
             if ($conn->inTransaction()) {
@@ -83,6 +100,16 @@ class InvItemOperationsRepository extends DbConnection
             ]);
             return false;
         }
+    }
+
+    private function snapshotOperationsJson(\PDO $conn, int $invItemId): string
+    {
+        $stmt = $conn->prepare('SELECT * FROM inv_item_operations WHERE inv_item_id = :id ORDER BY id ASC');
+        $stmt->bindValue(':id', $invItemId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return json_encode($rows, JSON_UNESCAPED_UNICODE);
     }
 }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class GamificationTimelineRulesRepository extends DbConnection
@@ -62,6 +63,7 @@ class GamificationTimelineRulesRepository extends DbConnection
         if ($id <= 0) {
             return false;
         }
+        $oldRow = $this->findById($id);
         $points = isset($data['points']) ? max(0, min(999999, (int)$data['points'])) : null;
         $title = isset($data['title']) ? trim((string)$data['title']) : null;
         $description = array_key_exists('description', $data) ? ($data['description'] !== null ? trim((string)$data['description']) : null) : null;
@@ -105,8 +107,23 @@ class GamificationTimelineRulesRepository extends DbConnection
         $fields[] = 'updated_at = NOW()';
         $sql = 'UPDATE adms_gamification_timeline_rules SET ' . implode(', ', $fields) . ' WHERE id = :id LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
+        $ok = $stmt->execute($params);
+        if ($ok) {
+            $newRow = $this->findById($id);
+            if (is_array($oldRow) && is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_timeline_rules',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
 
-        return $stmt->execute($params);
+        return $ok;
     }
 
     /**
@@ -137,7 +154,7 @@ class GamificationTimelineRulesRepository extends DbConnection
              VALUES (:event_key, :title, :description, :points, :max_day, :max_total, :is_active, NOW(), NOW())'
         );
 
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':event_key' => mb_substr($eventKey, 0, 120),
             ':title' => mb_substr($title, 0, 191),
             ':description' => $description === '' ? null : mb_substr($description, 0, 255),
@@ -146,5 +163,24 @@ class GamificationTimelineRulesRepository extends DbConnection
             ':max_total' => $maxTotal,
             ':is_active' => $isActive,
         ]);
+        if ($ok) {
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->findById($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_gamification_timeline_rules',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+        }
+
+        return $ok;
     }
 }

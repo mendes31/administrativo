@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class GamificationProgramRepository extends DbConnection
@@ -206,7 +207,27 @@ class GamificationProgramRepository extends DbConnection
             'INSERT IGNORE INTO adms_gamification_user_badges (user_id, badge_id, meta_json, awarded_at)
              VALUES (:u, :b, :meta, NOW())'
         );
-        return $stmt->execute([':u' => $userId, ':b' => $badgeId, ':meta' => $metaJson]) && $stmt->rowCount() > 0;
+        $executed = $stmt->execute([':u' => $userId, ':b' => $badgeId, ':meta' => $metaJson]);
+        if (!$executed || $stmt->rowCount() <= 0) {
+            return false;
+        }
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawGamificationUserBadge($newId);
+            if (is_array($row)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_user_badges',
+                    $newId,
+                    $uid,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return true;
     }
 
     public function listBadgesByUser(int $userId): array
@@ -384,7 +405,20 @@ class GamificationProgramRepository extends DbConnection
             );
             $stmt->execute();
 
-            return $stmt->rowCount();
+            $n = $stmt->rowCount();
+            if ($n > 0) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_user_mission_progress',
+                    0,
+                    $uid,
+                    'UPDATE',
+                    ['backfill_snapshots_rows' => (string) $n],
+                    ['backfill_snapshots_rows' => '0']
+                );
+            }
+
+            return $n;
         } catch (\Throwable) {
             return 0;
         }
@@ -476,6 +510,21 @@ class GamificationProgramRepository extends DbConnection
             ':reason' => mb_substr(trim($reason), 0, 160),
             ':details' => $detailsJson,
         ]);
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawGamificationAntiFraudEvent($newId);
+            if (is_array($row)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_anti_fraud_events',
+                    $newId,
+                    $uid,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
     }
 
     public function getEngagementIndicators(string $monthRef): array
@@ -552,10 +601,31 @@ class GamificationProgramRepository extends DbConnection
 
     public function updateSetting(string $key, string $value): bool
     {
+        $key = trim($key);
+        $oldRow = $this->getRawGamificationSettingByKey($key);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_settings SET setting_value = :v, updated_at = NOW() WHERE setting_key = :k LIMIT 1'
         );
-        return $stmt->execute([':k' => trim($key), ':v' => trim($value)]);
+        $ok = $stmt->execute([':k' => $key, ':v' => trim($value)]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationSettingByKey($key);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                $oid = (int) ($newRow['id'] ?? $oldRow['id'] ?? 0);
+                if ($oid > 0) {
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_gamification_settings',
+                        $oid,
+                        $uid,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+        }
+
+        return $ok;
     }
 
     public function settingExists(string $key): bool
@@ -578,15 +648,32 @@ class GamificationProgramRepository extends DbConnection
              VALUES (:k, :v, :d, NOW(), NOW())'
         );
         $desc = $description !== null ? trim($description) : '';
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':k' => mb_substr($k, 0, 120),
             ':v' => trim($value),
             ':d' => $desc === '' ? null : mb_substr($desc, 0, 255),
         ]);
+        if ($ok) {
+            $row = $this->getRawGamificationSettingByKey($k);
+            if (is_array($row) && (int) ($row['id'] ?? 0) > 0) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_settings',
+                    (int) $row['id'],
+                    $uid,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function updateLevel(int $id, array $data): bool
     {
+        $oldRow = $this->getRawGamificationLevel($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_levels
              SET name = :name,
@@ -598,7 +685,7 @@ class GamificationProgramRepository extends DbConnection
              WHERE id = :id
              LIMIT 1'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':name' => mb_substr(trim((string)($data['name'] ?? '')), 0, 120),
             ':min_points' => max(0, (int)($data['min_points'] ?? 0)),
@@ -606,6 +693,22 @@ class GamificationProgramRepository extends DbConnection
             ':sort_order' => max(0, (int)($data['sort_order'] ?? 0)),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationLevel($id);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_levels',
+                    $id,
+                    $uid,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function createLevel(array $data): bool
@@ -615,25 +718,62 @@ class GamificationProgramRepository extends DbConnection
              (name, min_points, badge_color, sort_order, is_active, created_at, updated_at)
              VALUES (:name, :min_points, :badge_color, :sort_order, :is_active, NOW(), NOW())'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':name' => mb_substr(trim((string)($data['name'] ?? '')), 0, 120),
             ':min_points' => max(0, (int)($data['min_points'] ?? 0)),
             ':badge_color' => mb_substr(trim((string)($data['badge_color'] ?? 'secondary')), 0, 20),
             ':sort_order' => max(0, (int)($data['sort_order'] ?? 0)),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
+        if ($ok) {
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRawGamificationLevel($newId);
+                if (is_array($row)) {
+                    $uid = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_gamification_levels',
+                        $newId,
+                        $uid,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+        }
+
+        return $ok;
     }
 
     public function deactivateLevel(int $id): bool
     {
+        $oldRow = $this->getRawGamificationLevel($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_levels SET is_active = 0, updated_at = NOW() WHERE id = :id LIMIT 1'
         );
-        return $stmt->execute([':id' => $id]);
+        $ok = $stmt->execute([':id' => $id]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationLevel($id);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_levels',
+                    $id,
+                    $uid,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function updateBadge(int $id, array $data): bool
     {
+        $oldRow = $this->getRawGamificationBadge($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_badges
              SET name = :name,
@@ -647,7 +787,7 @@ class GamificationProgramRepository extends DbConnection
              WHERE id = :id
              LIMIT 1'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':name' => mb_substr(trim((string)($data['name'] ?? '')), 0, 120),
             ':slug' => mb_substr(trim((string)($data['slug'] ?? '')), 0, 140),
@@ -657,6 +797,22 @@ class GamificationProgramRepository extends DbConnection
             ':icon' => mb_substr(trim((string)($data['icon'] ?? '')), 0, 80),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationBadge($id);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_badges',
+                    $id,
+                    $uid,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function createBadge(array $data): bool
@@ -671,7 +827,7 @@ class GamificationProgramRepository extends DbConnection
              (name, slug, description, criteria_key, criteria_value_json, icon, is_active, created_at, updated_at)
              VALUES (:name, :slug, :description, :criteria_key, :criteria_value_json, :icon, :is_active, NOW(), NOW())'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':name' => mb_substr($name, 0, 120),
             ':slug' => mb_substr($slug, 0, 140),
             ':description' => mb_substr(trim((string)($data['description'] ?? '')), 0, 255),
@@ -680,18 +836,55 @@ class GamificationProgramRepository extends DbConnection
             ':icon' => mb_substr(trim((string)($data['icon'] ?? 'fa-award')), 0, 80),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
+        if ($ok) {
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRawGamificationBadge($newId);
+                if (is_array($row)) {
+                    $uid = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_gamification_badges',
+                        $newId,
+                        $uid,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+        }
+
+        return $ok;
     }
 
     public function deactivateBadge(int $id): bool
     {
+        $oldRow = $this->getRawGamificationBadge($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_badges SET is_active = 0, updated_at = NOW() WHERE id = :id LIMIT 1'
         );
-        return $stmt->execute([':id' => $id]);
+        $ok = $stmt->execute([':id' => $id]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationBadge($id);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_badges',
+                    $id,
+                    $uid,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function updateMission(int $id, array $data): bool
     {
+        $oldRow = $this->getRawGamificationWeeklyMission($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_weekly_missions
              SET title = :title,
@@ -705,7 +898,7 @@ class GamificationProgramRepository extends DbConnection
              WHERE id = :id
              LIMIT 1'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':title' => mb_substr(trim((string)($data['title'] ?? '')), 0, 160),
             ':description' => mb_substr(trim((string)($data['description'] ?? '')), 0, 255),
@@ -715,6 +908,22 @@ class GamificationProgramRepository extends DbConnection
             ':sort_order' => max(0, (int)($data['sort_order'] ?? 0)),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationWeeklyMission($id);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_weekly_missions',
+                    $id,
+                    $uid,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function createMission(array $data): bool
@@ -724,7 +933,7 @@ class GamificationProgramRepository extends DbConnection
              (title, description, event_key, target_value, reward_points, sort_order, is_active, created_at, updated_at)
              VALUES (:title, :description, :event_key, :target_value, :reward_points, :sort_order, :is_active, NOW(), NOW())'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':title' => mb_substr(trim((string)($data['title'] ?? '')), 0, 160),
             ':description' => mb_substr(trim((string)($data['description'] ?? '')), 0, 255),
             ':event_key' => mb_substr(trim((string)($data['event_key'] ?? 'timeline_comment_created')), 0, 64),
@@ -733,13 +942,138 @@ class GamificationProgramRepository extends DbConnection
             ':sort_order' => max(0, (int)($data['sort_order'] ?? 0)),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
+        if ($ok) {
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRawGamificationWeeklyMission($newId);
+                if (is_array($row)) {
+                    $uid = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_gamification_weekly_missions',
+                        $newId,
+                        $uid,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+        }
+
+        return $ok;
     }
 
     public function deactivateMission(int $id): bool
     {
+        $oldRow = $this->getRawGamificationWeeklyMission($id);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_weekly_missions SET is_active = 0, updated_at = NOW() WHERE id = :id LIMIT 1'
         );
-        return $stmt->execute([':id' => $id]);
+        $ok = $stmt->execute([':id' => $id]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawGamificationWeeklyMission($id);
+            if (is_array($newRow)) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_weekly_missions',
+                    $id,
+                    $uid,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawGamificationSettingByKey(string $key): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_gamification_settings WHERE setting_key = :k LIMIT 1'
+        );
+        $stmt->execute([':k' => trim($key)]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawGamificationLevel(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_gamification_levels WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawGamificationBadge(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_gamification_badges WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawGamificationWeeklyMission(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_gamification_weekly_missions WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawGamificationUserBadge(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_gamification_user_badges WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawGamificationAntiFraudEvent(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_gamification_anti_fraud_events WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }

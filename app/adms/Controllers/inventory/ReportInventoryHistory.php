@@ -19,7 +19,8 @@ class ReportInventoryHistory
             'from' => $_GET['from'] ?? '',
             'to' => $_GET['to'] ?? '',
             'inv_item_id' => $_GET['inv_item_id'] ?? '',
-            'inv_stock_id' => $_GET['inv_stock_id'] ?? ''
+            'inv_stock_id' => $_GET['inv_stock_id'] ?? '',
+            'movement_id' => $_GET['movement_id'] ?? '',
         ];
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;

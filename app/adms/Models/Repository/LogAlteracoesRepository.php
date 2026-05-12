@@ -59,6 +59,17 @@ class LogAlteracoesRepository extends DbConnection
                 $params[':sp_ctx_obs_plan'] = $spId;
             }
         }
+        if (!empty($filtros['inventory_item_context'])) {
+            $iid = (int) $filtros['inventory_item_context'];
+            if ($iid > 0) {
+                $where[] = '((log.tabela = \'inv_items\' AND log.objeto_id = :inv_ctx_item) OR (log.tabela = \'inv_item_bom\' AND log.objeto_id = :inv_ctx_bom) OR (log.tabela = \'inv_item_operations\' AND log.objeto_id = :inv_ctx_ops) OR (log.tabela = \'inv_balances\' AND log.objeto_id IN (SELECT id FROM inv_balances WHERE inv_item_id = :inv_ctx_bal)) OR (log.tabela = \'inv_movements\' AND log.objeto_id IN (SELECT DISTINCT inv_movement_id FROM inv_movement_items WHERE inv_item_id = :inv_ctx_mov)))';
+                $params[':inv_ctx_item'] = $iid;
+                $params[':inv_ctx_bom'] = $iid;
+                $params[':inv_ctx_ops'] = $iid;
+                $params[':inv_ctx_bal'] = $iid;
+                $params[':inv_ctx_mov'] = $iid;
+            }
+        }
 
         $sql = 'SELECT log.*, usr.name as usuario_nome FROM adms_log_alteracoes log LEFT JOIN adms_users usr ON log.usuario_id = usr.id';
         if ($where) {
@@ -177,6 +188,48 @@ class LogAlteracoesRepository extends DbConnection
                         } else {
                             $identificador = $log['objeto_id'];
                         }
+                        break;
+                    case 'inv_item_bom':
+                    case 'inv_item_operations':
+                        $invItRepo = new \App\adms\Models\Repository\inventory\InvItemsRepository();
+                        $invIt = $invItRepo->getOne((int) $log['objeto_id']);
+                        $identificador = $invIt && !empty($invIt['description'])
+                            ? ('Item #' . $log['objeto_id'] . ': ' . $invIt['description'])
+                            : (string) $log['objeto_id'];
+                        break;
+                    case 'inv_balances':
+                        $balRepo = new \App\adms\Models\Repository\inventory\InvBalancesRepository();
+                        $bRow = $balRepo->getBalanceRowById((int) $log['objeto_id']);
+                        $identificador = is_array($bRow)
+                            ? ('Saldo item ' . ($bRow['inv_item_id'] ?? '') . ' / balanço #' . $log['objeto_id'])
+                            : (string) $log['objeto_id'];
+                        break;
+                    case 'inv_movements':
+                        $identificador = 'Movimento estoque #' . $log['objeto_id'];
+                        break;
+                    case 'adms_dashboard_reports':
+                    case 'adms_dashboard_relationships':
+                        $dashRepo = new DashboardsRepository();
+                        $dash = $dashRepo->getById((int) $log['objeto_id']);
+                        $suffix = $log['tabela'] === 'adms_dashboard_reports' ? 'relatórios no dashboard' : 'relações entre relatórios';
+                        $identificador = $dash && !empty($dash['name'])
+                            ? ($dash['name'] . ' · ' . $suffix)
+                            : ('Dashboard #' . $log['objeto_id'] . ' · ' . $suffix);
+                        break;
+                    case 'adms_dynamic_report_shared_users':
+                        $drRepo = new DynamicReportsRepository();
+                        $dr = $drRepo->getById((int) $log['objeto_id']);
+                        $identificador = $dr && !empty($dr['name'])
+                            ? ($dr['name'] . ' · partilhas')
+                            : ('Relatório #' . $log['objeto_id'] . ' · partilhas');
+                        break;
+                    case 'adms_kpi_widgets':
+                        $kpiRepo = new KpiDashboardRepository();
+                        $did = $kpiRepo->findWidgetDashboardId((int) $log['objeto_id']);
+                        $kdash = $did !== null ? $kpiRepo->findById($did) : null;
+                        $identificador = $kdash && !empty($kdash['name'])
+                            ? ($kdash['name'] . ' · widget #' . $log['objeto_id'])
+                            : ('Widget KPI #' . $log['objeto_id']);
                         break;
                     // Adicione outros cases específicos conforme necessário
                     default:
@@ -306,6 +359,48 @@ class LogAlteracoesRepository extends DbConnection
                         $identificador = $log['objeto_id'];
                     }
                     break;
+                case 'inv_item_bom':
+                case 'inv_item_operations':
+                    $invItRepo2 = new \App\adms\Models\Repository\inventory\InvItemsRepository();
+                    $invIt2 = $invItRepo2->getOne((int) $log['objeto_id']);
+                    $identificador = $invIt2 && !empty($invIt2['description'])
+                        ? ('Item #' . $log['objeto_id'] . ': ' . $invIt2['description'])
+                        : (string) $log['objeto_id'];
+                    break;
+                case 'inv_balances':
+                    $balRepo2 = new \App\adms\Models\Repository\inventory\InvBalancesRepository();
+                    $bRow2 = $balRepo2->getBalanceRowById((int) $log['objeto_id']);
+                    $identificador = is_array($bRow2)
+                        ? ('Saldo item ' . ($bRow2['inv_item_id'] ?? '') . ' / balanço #' . $log['objeto_id'])
+                        : (string) $log['objeto_id'];
+                    break;
+                case 'inv_movements':
+                    $identificador = 'Movimento estoque #' . $log['objeto_id'];
+                    break;
+                case 'adms_dashboard_reports':
+                case 'adms_dashboard_relationships':
+                    $dashRepo2 = new DashboardsRepository();
+                    $dash2 = $dashRepo2->getById((int) $log['objeto_id']);
+                    $suffix2 = $log['tabela'] === 'adms_dashboard_reports' ? 'relatórios no dashboard' : 'relações entre relatórios';
+                    $identificador = $dash2 && !empty($dash2['name'])
+                        ? ($dash2['name'] . ' · ' . $suffix2)
+                        : ('Dashboard #' . $log['objeto_id'] . ' · ' . $suffix2);
+                    break;
+                case 'adms_dynamic_report_shared_users':
+                    $drRepo2 = new DynamicReportsRepository();
+                    $dr2 = $drRepo2->getById((int) $log['objeto_id']);
+                    $identificador = $dr2 && !empty($dr2['name'])
+                        ? ($dr2['name'] . ' · partilhas')
+                        : ('Relatório #' . $log['objeto_id'] . ' · partilhas');
+                    break;
+                case 'adms_kpi_widgets':
+                    $kpiRepo2 = new KpiDashboardRepository();
+                    $did2 = $kpiRepo2->findWidgetDashboardId((int) $log['objeto_id']);
+                    $kdash2 = $did2 !== null ? $kpiRepo2->findById($did2) : null;
+                    $identificador = $kdash2 && !empty($kdash2['name'])
+                        ? ($kdash2['name'] . ' · widget #' . $log['objeto_id'])
+                        : ('Widget KPI #' . $log['objeto_id']);
+                    break;
                 default:
                     $identificador = $this->getIdentificadorGenerico($log['tabela'], (int)$log['objeto_id']);
                     if ($identificador === '-' || empty($identificador)) {
@@ -392,6 +487,17 @@ class LogAlteracoesRepository extends DbConnection
                 $where[] = '((tabela = \'adms_strategic_plans\' AND objeto_id = :sp_ctx_plan_c) OR (tabela = \'adms_strategic_plan_observations\' AND objeto_id IN (SELECT id FROM adms_strategic_plan_observations WHERE strategic_plan_id = :sp_ctx_obs_plan_c)))';
                 $params[':sp_ctx_plan_c'] = $spId;
                 $params[':sp_ctx_obs_plan_c'] = $spId;
+            }
+        }
+        if (!empty($filtros['inventory_item_context'])) {
+            $iid = (int) $filtros['inventory_item_context'];
+            if ($iid > 0) {
+                $where[] = '((tabela = \'inv_items\' AND objeto_id = :inv_ctx_item_c) OR (tabela = \'inv_item_bom\' AND objeto_id = :inv_ctx_bom_c) OR (tabela = \'inv_item_operations\' AND objeto_id = :inv_ctx_ops_c) OR (tabela = \'inv_balances\' AND objeto_id IN (SELECT id FROM inv_balances WHERE inv_item_id = :inv_ctx_bal_c)) OR (tabela = \'inv_movements\' AND objeto_id IN (SELECT DISTINCT inv_movement_id FROM inv_movement_items WHERE inv_item_id = :inv_ctx_mov_c)))';
+                $params[':inv_ctx_item_c'] = $iid;
+                $params[':inv_ctx_bom_c'] = $iid;
+                $params[':inv_ctx_ops_c'] = $iid;
+                $params[':inv_ctx_bal_c'] = $iid;
+                $params[':inv_ctx_mov_c'] = $iid;
             }
         }
         $sql = 'SELECT COUNT(*) as total FROM adms_log_alteracoes';

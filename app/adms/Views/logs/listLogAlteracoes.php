@@ -31,6 +31,10 @@ $queryString = http_build_query($getParams);
                     <input type="hidden" name="strategic_plan_context"
                            value="<?= htmlspecialchars((string) $this->data['filtros']['strategic_plan_context'], ENT_QUOTES, 'UTF-8') ?>">
                 <?php endif; ?>
+                <?php if (!empty($this->data['filtros']['inventory_item_context'])): ?>
+                    <input type="hidden" name="inventory_item_context"
+                           value="<?= htmlspecialchars((string) $this->data['filtros']['inventory_item_context'], ENT_QUOTES, 'UTF-8') ?>">
+                <?php endif; ?>
                 <div class="col-md-2">
                     <label for="tabela" class="form-label mb-1">Tabela</label>
                     <input type="text" name="tabela" id="tabela" class="form-control" value="<?= htmlspecialchars($this->data['filtros']['tabela'] ?? '') ?>">

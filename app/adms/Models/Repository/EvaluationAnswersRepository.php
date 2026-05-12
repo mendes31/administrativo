@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -222,6 +223,24 @@ class EvaluationAnswersRepository extends DbConnection
             $stmt->bindValue(':updated_at', $data['updated_at'], PDO::PARAM_STR);
             
             $this->result = $stmt->execute();
+
+            if ($this->result) {
+                $newId = (int) $this->getConnection()->lastInsertId();
+                if ($newId > 0) {
+                    $row = $this->getAnswerById($newId);
+                    if (is_array($row)) {
+                        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_evaluation_answers',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $row
+                        );
+                    }
+                }
+            }
             
             if ($this->result) {
                 GenerateLog::generateLog("info", "Resposta de avaliação criada com sucesso", [
@@ -250,6 +269,7 @@ class EvaluationAnswersRepository extends DbConnection
     public function update(array $data, int $id): bool
     {
         try {
+            $oldRow = $this->getAnswerById($id);
             $sql = 'UPDATE adms_evaluation_answers 
                     SET usuario_id = :usuario_id, evaluation_model_id = :evaluation_model_id, 
                         evaluation_question_id = :evaluation_question_id, resposta = :resposta, 
@@ -269,6 +289,21 @@ class EvaluationAnswersRepository extends DbConnection
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             
             $this->result = $stmt->execute();
+
+            if ($this->result && is_array($oldRow)) {
+                $newRow = $this->getAnswerById($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_answers',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
             
             if ($this->result) {
                 GenerateLog::generateLog("info", "Resposta de avaliação atualizada com sucesso", [
@@ -295,11 +330,24 @@ class EvaluationAnswersRepository extends DbConnection
     public function delete(int $id): bool
     {
         try {
+            $oldRow = $this->getAnswerById($id);
             $sql = 'DELETE FROM adms_evaluation_answers WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             
             $this->result = $stmt->execute();
+
+            if ($this->result && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_evaluation_answers',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
             
             if ($this->result) {
                 GenerateLog::generateLog("info", "Resposta de avaliação deletada com sucesso", [

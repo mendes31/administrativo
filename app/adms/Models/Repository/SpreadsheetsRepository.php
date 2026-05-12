@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 
 /**
  * Repository para gerenciar planilhas
@@ -42,8 +43,24 @@ class SpreadsheetsRepository extends DbConnection
         $stmt->bindValue(':status', $data['status'] ?? true, \PDO::PARAM_BOOL);
         
         $stmt->execute();
-        
-        return (int)$this->getConnection()->lastInsertId();
+
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawRowById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_spreadsheets',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -111,6 +128,7 @@ class SpreadsheetsRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getRawRowById($id);
         $fields = [];
         $values = [];
         
@@ -145,8 +163,24 @@ class SpreadsheetsRepository extends DbConnection
             }
             $stmt->bindValue($key, $value, $type);
         }
-        
-        return $stmt->execute();
+
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_spreadsheets',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     /**
@@ -154,10 +188,24 @@ class SpreadsheetsRepository extends DbConnection
      */
     public function delete(int $id): bool
     {
+        $oldRow = $this->getRawRowById($id);
         $sql = "UPDATE adms_spreadsheets SET status = 0, updated_at = NOW() WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_spreadsheets',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     /**
@@ -175,6 +223,20 @@ class SpreadsheetsRepository extends DbConnection
         $stmt->execute();
         
         return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawRowById(int $id): ?array
+    {
+        $sql = 'SELECT * FROM adms_spreadsheets WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

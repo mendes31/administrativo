@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class DashboardsRepository extends DbConnection
@@ -110,22 +111,24 @@ class DashboardsRepository extends DbConnection
     /**
      * Adicionar relatório ao dashboard
      */
-    public function addReport(int $dashboardId, int $reportId, bool $isPrimary = false): bool
+    public function addReport(int $dashboardId, int $reportId, bool $isPrimary = false, bool $suppressReportsAudit = false): bool
     {
+        $snapBefore = $suppressReportsAudit ? null : $this->snapshotDashboardReportsJson($dashboardId);
+
         // Verificar se já existe
         $sql = "SELECT 1 FROM adms_dashboard_reports WHERE dashboard_id = :dashboard_id AND report_id = :report_id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':dashboard_id' => $dashboardId, ':report_id' => $reportId]);
-        
+
         if ($stmt->fetch()) {
             return true; // Já existe
         }
-        
+
         // Se é primário, remover flag de outros
         if ($isPrimary) {
             $this->getConnection()->exec("UPDATE adms_dashboard_reports SET is_primary = 0 WHERE dashboard_id = {$dashboardId}");
         }
-        
+
         // Calcular próximo display_order ANTES do INSERT (evita erro 1093)
         $sql = "SELECT COALESCE(MAX(display_order), 0) + 1 AS next_order 
                 FROM adms_dashboard_reports 
@@ -133,44 +136,68 @@ class DashboardsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':dashboard_id' => $dashboardId]);
         $nextOrder = $stmt->fetchColumn() ?: 1;
-        
+
         // Inserir novo
         $sql = "INSERT INTO adms_dashboard_reports (dashboard_id, report_id, is_primary, display_order)
                 VALUES (:dashboard_id, :report_id, :is_primary, :display_order)";
-        
+
         $stmt = $this->getConnection()->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':dashboard_id' => $dashboardId,
             ':report_id' => $reportId,
             ':is_primary' => $isPrimary ? 1 : 0,
-            ':display_order' => $nextOrder
+            ':display_order' => $nextOrder,
         ]);
+
+        if ($ok && $snapBefore !== null) {
+            $snapAfter = $this->snapshotDashboardReportsJson($dashboardId);
+            if ($snapBefore !== $snapAfter) {
+                $this->logDashboardReportsSnapshotChange($dashboardId, $snapBefore, $snapAfter);
+            }
+        }
+
+        return $ok;
     }
-    
+
     /**
      * Remover relatório do dashboard
      */
     public function removeReport(int $dashboardId, int $reportId): bool
     {
+        $snapBefore = $this->snapshotDashboardReportsJson($dashboardId);
         $sql = "DELETE FROM adms_dashboard_reports WHERE dashboard_id = :dashboard_id AND report_id = :report_id";
         $stmt = $this->getConnection()->prepare($sql);
-        return $stmt->execute([':dashboard_id' => $dashboardId, ':report_id' => $reportId]);
+        $ok = $stmt->execute([':dashboard_id' => $dashboardId, ':report_id' => $reportId]);
+        if ($ok) {
+            $snapAfter = $this->snapshotDashboardReportsJson($dashboardId);
+            if ($snapBefore !== $snapAfter) {
+                $this->logDashboardReportsSnapshotChange($dashboardId, $snapBefore, $snapAfter);
+            }
+        }
+
+        return $ok;
     }
-    
+
     /**
      * Atualizar relatórios do dashboard (substituir todos)
      */
     public function updateReports(int $dashboardId, array $reportIds): bool
     {
+        $snapBefore = $this->snapshotDashboardReportsJson($dashboardId);
         // Remover todos os relatórios atuais
         $this->getConnection()->exec("DELETE FROM adms_dashboard_reports WHERE dashboard_id = {$dashboardId}");
-        
+
         // Adicionar novos
         foreach ($reportIds as $index => $reportId) {
             $isPrimary = ($index === 0); // Primeiro é primário
-            $this->addReport($dashboardId, (int)$reportId, $isPrimary);
+            $this->addReport($dashboardId, (int) $reportId, $isPrimary, true);
         }
-        
+
+        $snapAfter = $this->snapshotDashboardReportsJson($dashboardId);
+        if ($snapBefore !== $snapAfter) {
+            $this->logDashboardReportsSnapshotChange($dashboardId, $snapBefore, $snapAfter);
+        }
+
         return true;
     }
 
@@ -208,6 +235,7 @@ class DashboardsRepository extends DbConnection
      */
     public function replaceRelationships(int $dashboardId, array $relationships): void
     {
+        $oldSnap = $this->snapshotDashboardRelationshipsJson($dashboardId);
         $conn = $this->getConnection();
         $conn->beginTransaction();
 
@@ -247,6 +275,19 @@ class DashboardsRepository extends DbConnection
             $conn->rollBack();
             throw $e;
         }
+
+        $newSnap = $this->snapshotDashboardRelationshipsJson($dashboardId);
+        if ($oldSnap !== $newSnap) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_dashboard_relationships',
+                $dashboardId,
+                $usuarioId,
+                'UPDATE',
+                ['snapshot' => $oldSnap],
+                ['snapshot' => $newSnap]
+            );
+        }
     }
     
     /**
@@ -276,13 +317,26 @@ class DashboardsRepository extends DbConnection
         $stmt->bindValue(':filters_config', json_encode($data['filters_config'] ?? []));
         $stmt->bindValue(':layout', $data['layout'] ?? 'default');
         $stmt->execute();
-        
+
         $dashboardId = (int) $this->getConnection()->lastInsertId();
 
         if (!empty($data['relationships']) && is_array($data['relationships'])) {
             $this->replaceRelationships($dashboardId, $data['relationships']);
         }
-        
+
+        $row = $this->getRawDashboardRowById($dashboardId);
+        if (is_array($row)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_dashboards',
+                $dashboardId,
+                $usuarioId,
+                'INSERT',
+                [],
+                $row
+            );
+        }
+
         return $dashboardId;
     }
     
@@ -291,6 +345,7 @@ class DashboardsRepository extends DbConnection
      */
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getRawDashboardRowById($id);
         $sql = "UPDATE adms_dashboards SET 
                 name = :name,
                 description = :description,
@@ -303,7 +358,7 @@ class DashboardsRepository extends DbConnection
                 layout = :layout,
                 updated_at = NOW()
                 WHERE id = :id";
-        
+
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':name', $data['name']);
@@ -315,27 +370,106 @@ class DashboardsRepository extends DbConnection
         $stmt->bindValue(':charts_config', json_encode($data['charts_config'] ?? []));
         $stmt->bindValue(':filters_config', json_encode($data['filters_config'] ?? []));
         $stmt->bindValue(':layout', $data['layout'] ?? 'default');
-        
+
         $executed = $stmt->execute();
-        
+
         if ($executed && array_key_exists('relationships', $data) && is_array($data['relationships'])) {
             $this->replaceRelationships($id, $data['relationships']);
         }
-        
+
+        if ($executed && is_array($oldRow)) {
+            $newRow = $this->getRawDashboardRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_dashboards',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
         return $executed;
     }
-    
+
     /**
      * Deletar dashboard
      */
     public function delete(int $id): bool
     {
+        $oldRow = $this->getRawDashboardRowById($id);
         $sql = "UPDATE adms_dashboards SET status = 0 WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_dashboards',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
-    
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawDashboardRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_dashboards WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    private function snapshotDashboardReportsJson(int $dashboardId): string
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_dashboard_reports WHERE dashboard_id = :id ORDER BY display_order ASC, report_id ASC'
+        );
+        $stmt->bindValue(':id', $dashboardId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return json_encode($rows, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function snapshotDashboardRelationshipsJson(int $dashboardId): string
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_dashboard_relationships WHERE dashboard_id = :id ORDER BY id ASC'
+        );
+        $stmt->bindValue(':id', $dashboardId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return json_encode($rows, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function logDashboardReportsSnapshotChange(int $dashboardId, string $before, string $after): void
+    {
+        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+        LogAlteracaoService::registrarAlteracao(
+            'adms_dashboard_reports',
+            $dashboardId,
+            $usuarioId,
+            'UPDATE',
+            ['snapshot' => $before],
+            ['snapshot' => $after]
+        );
+    }
+
     /**
      * Incrementar contador de visualizações
      */

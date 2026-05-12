@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class DynamicReportsRepository extends DbConnection
@@ -164,6 +165,7 @@ class DynamicReportsRepository extends DbConnection
         }
 
         $conn = $this->getConnection();
+        $oldShareSnap = json_encode($this->getSharedUserIds($reportId));
         $conn->beginTransaction();
         try {
             $del = $conn->prepare('DELETE FROM adms_dynamic_report_shared_users WHERE report_id = :rid');
@@ -180,6 +182,19 @@ class DynamicReportsRepository extends DbConnection
         } catch (\Throwable $e) {
             $conn->rollBack();
             throw $e;
+        }
+
+        $newShareSnap = json_encode($this->getSharedUserIds($reportId));
+        if ($oldShareSnap !== $newShareSnap) {
+            $usuarioId = (int) $actingUserId;
+            LogAlteracaoService::registrarAlteracao(
+                'adms_dynamic_report_shared_users',
+                $reportId,
+                $usuarioId,
+                'UPDATE',
+                ['shared_user_ids' => $oldShareSnap],
+                ['shared_user_ids' => $newShareSnap]
+            );
         }
     }
 
@@ -265,6 +280,21 @@ class DynamicReportsRepository extends DbConnection
         return $report ?: null;
     }
 
+    /**
+     * Linha bruta de adms_dynamic_reports (sem decodificar JSON) para auditoria.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function getRawReportRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_dynamic_reports WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_dynamic_reports (name, description, created_by, is_public, data_source, custom_sql, query_mode, fields, filters, groupby, orderby, visualization_type, chart_config, refresh_interval, category, is_active)
@@ -289,18 +319,35 @@ class DynamicReportsRepository extends DbConnection
             ':category' => $data['category'] ?? null,
             ':is_active' => $data['is_active'] ?? 1
         ]);
-        return (int) $this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->getRawReportRowById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_dynamic_reports',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function update(int $id, array $data): bool
     {
+        $oldRow = $this->getRawReportRowById($id);
         $sql = "UPDATE adms_dynamic_reports SET name = :name, description = :description, is_public = :is_public, 
                 data_source = :data_source, custom_sql = :custom_sql, query_mode = :query_mode, fields = :fields, filters = :filters, groupby = :groupby, orderby = :orderby,
                 visualization_type = :visualization_type, chart_config = :chart_config, refresh_interval = :refresh_interval,
                 category = :category, updated_at = NOW() WHERE id = :id";
-        
+
         $stmt = $this->getConnection()->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id, ':name' => $data['name'], ':description' => $data['description'] ?? null,
             ':is_public' => $data['is_public'] ?? 0, ':data_source' => $data['data_source'] ?? null,
             ':custom_sql' => $data['custom_sql'] ?? null, ':query_mode' => $data['query_mode'] ?? 'builder',
@@ -310,14 +357,44 @@ class DynamicReportsRepository extends DbConnection
             ':chart_config' => json_encode($data['chart_config'] ?? []),
             ':refresh_interval' => $data['refresh_interval'] ?? null, ':category' => $data['category'] ?? null
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->getRawReportRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_dynamic_reports',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
     {
+        $oldRow = $this->getRawReportRowById($id);
         $sql = "DELETE FROM adms_dynamic_reports WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_dynamic_reports',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     public function logExecution(int $reportId, int $userId, float $executionTime, int $rowsReturned): void

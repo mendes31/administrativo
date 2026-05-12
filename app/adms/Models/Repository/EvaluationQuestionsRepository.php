@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -215,6 +216,24 @@ class EvaluationQuestionsRepository extends DbConnection
             $stmt->bindValue(':ordem', $data['ordem'] ?? 1, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
+            if ($this->result) {
+                $newId = (int) $this->getConnection()->lastInsertId();
+                if ($newId > 0) {
+                    $row = $this->getRawQuestionRow($newId);
+                    if (is_array($row)) {
+                        $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                        LogAlteracaoService::registrarAlteracao(
+                            'adms_evaluation_questions',
+                            $newId,
+                            $usuarioId,
+                            'INSERT',
+                            [],
+                            $row
+                        );
+                    }
+                }
+            }
+
             return $this->result;
         } catch (Exception $e) {
             GenerateLog::generateLog('ERROR', "Erro ao criar pergunta de avaliação: " . $e->getMessage(), [
@@ -235,6 +254,7 @@ class EvaluationQuestionsRepository extends DbConnection
     public function updateQuestion(int $id, array $data): bool
     {
         try {
+            $oldRow = $this->getRawQuestionRow($id);
             $sql = 'UPDATE adms_evaluation_questions 
                     SET evaluation_model_id = :model_id, pergunta = :pergunta, tipo = :tipo, 
                         opcoes = :opcoes, resposta_correta = :resposta_correta, 
@@ -254,6 +274,21 @@ class EvaluationQuestionsRepository extends DbConnection
             $stmt->bindValue(':ordem', $data['ordem'] ?? 1, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
+            if ($this->result && is_array($oldRow)) {
+                $newRow = $this->getRawQuestionRow($id);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_questions',
+                        $id,
+                        $usuarioId,
+                        'UPDATE',
+                        $oldRow,
+                        $newRow
+                    );
+                }
+            }
+
             return $this->result;
         } catch (Exception $e) {
             GenerateLog::generateLog('ERROR', "Erro ao atualizar pergunta de avaliação: " . $e->getMessage(), null);
@@ -271,12 +306,25 @@ class EvaluationQuestionsRepository extends DbConnection
     public function deleteQuestion(int $id): bool
     {
         try {
+            $oldRow = $this->getRawQuestionRow($id);
             $sql = 'DELETE FROM adms_evaluation_questions WHERE id = :id';
 
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
             $this->result = $stmt->execute();
+            if ($this->result && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_evaluation_questions',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
             return $this->result;
         } catch (Exception $e) {
             GenerateLog::generateLog('ERROR', "Erro ao deletar pergunta de avaliação: " . $e->getMessage(), null);
@@ -293,5 +341,21 @@ class EvaluationQuestionsRepository extends DbConnection
     public function getResult(): bool
     {
         return $this->result;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawQuestionRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_evaluation_questions WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 } 

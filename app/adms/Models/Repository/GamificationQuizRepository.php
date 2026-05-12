@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class GamificationQuizRepository extends DbConnection
@@ -147,7 +148,23 @@ class GamificationQuizRepository extends DbConnection
             ':cb' => !empty($data['created_by']) ? (int)$data['created_by'] : null,
         ]);
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->findById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_quizzes',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     /**
@@ -158,6 +175,7 @@ class GamificationQuizRepository extends DbConnection
         if ($id <= 0) {
             return false;
         }
+        $oldRow = $this->findById($id);
         $sql = 'UPDATE adms_gamification_quizzes SET
                 title = :title,
                 slug = :slug,
@@ -172,7 +190,7 @@ class GamificationQuizRepository extends DbConnection
                 WHERE id = :id LIMIT 1';
         $stmt = $this->getConnection()->prepare($sql);
 
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':title' => mb_substr(trim((string)($data['title'] ?? '')), 0, 191),
             ':slug' => strtolower(trim((string)($data['slug'] ?? ''))),
@@ -185,6 +203,22 @@ class GamificationQuizRepository extends DbConnection
             ':af' => !empty($data['available_from']) ? $data['available_from'] : null,
             ':au' => !empty($data['available_until']) ? $data['available_until'] : null,
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->findById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_quizzes',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function delete(int $id): bool
@@ -192,9 +226,23 @@ class GamificationQuizRepository extends DbConnection
         if ($id <= 0) {
             return false;
         }
+        $oldRow = $this->findById($id);
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_gamification_quizzes WHERE id = :id LIMIT 1');
 
-        return $stmt->execute([':id' => $id]);
+        $ok = $stmt->execute([':id' => $id]);
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_gamification_quizzes',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     public function countCompletedAttempts(int $quizId, int $userId): int
@@ -397,18 +445,35 @@ class GamificationQuizRepository extends DbConnection
             ':pc' => max(0, min(999999, $pointsCorrect)),
         ]);
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->findQuestionById($newId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_quiz_questions',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function updateQuestion(int $id, int $quizId, string $body, string $type, int $sortOrder, int $pointsCorrect): bool
     {
         $type = $type === 'multiple' ? 'multiple' : 'single';
+        $oldRow = $this->findQuestion($id, $quizId);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_quiz_questions SET body = :b, question_type = :t, sort_order = :o, points_correct = :pc, updated_at = NOW()
              WHERE id = :id AND quiz_id = :q LIMIT 1'
         );
 
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':q' => $quizId,
             ':b' => $body,
@@ -416,6 +481,22 @@ class GamificationQuizRepository extends DbConnection
             ':o' => max(0, $sortOrder),
             ':pc' => max(0, min(999999, $pointsCorrect)),
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->findQuestion($id, $quizId);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_quiz_questions',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function findQuestion(int $id, int $quizId): ?array
@@ -445,11 +526,25 @@ class GamificationQuizRepository extends DbConnection
 
     public function deleteQuestion(int $id, int $quizId): bool
     {
+        $oldRow = $this->findQuestion($id, $quizId);
         $stmt = $this->getConnection()->prepare(
             'DELETE FROM adms_gamification_quiz_questions WHERE id = :id AND quiz_id = :q LIMIT 1'
         );
 
-        return $stmt->execute([':id' => $id, ':q' => $quizId]);
+        $ok = $stmt->execute([':id' => $id, ':q' => $quizId]);
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_gamification_quiz_questions',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     public function createOption(int $questionId, string $label, bool $isCorrect, int $sortOrder): int
@@ -465,29 +560,74 @@ class GamificationQuizRepository extends DbConnection
             ':o' => max(0, $sortOrder),
         ]);
 
-        return (int)$this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $row = $this->findOption($newId, $questionId);
+            if (is_array($row)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_quiz_options',
+                    $newId,
+                    $usuarioId,
+                    'INSERT',
+                    [],
+                    $row
+                );
+            }
+        }
+
+        return $newId;
     }
 
     public function updateOption(int $id, int $questionId, string $label, bool $isCorrect, int $sortOrder): bool
     {
+        $oldRow = $this->findOption($id, $questionId);
         $stmt = $this->getConnection()->prepare(
             'UPDATE adms_gamification_quiz_options SET label = :l, is_correct = :c, sort_order = :o
              WHERE id = :id AND question_id = :q LIMIT 1'
         );
 
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':id' => $id,
             ':q' => $questionId,
             ':l' => mb_substr(trim($label), 0, 500),
             ':c' => $isCorrect ? 1 : 0,
             ':o' => max(0, $sortOrder),
         ]);
+        if ($ok && is_array($oldRow)) {
+            $newRow = $this->findOption($id, $questionId);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_gamification_quiz_options',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
     }
 
     public function deleteOptionsForQuestion(int $questionId): void
     {
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_gamification_quiz_options WHERE question_id = :q');
         $stmt->execute([':q' => $questionId]);
+        $n = $stmt->rowCount();
+        if ($n > 0) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_gamification_quiz_options',
+                $questionId,
+                $usuarioId,
+                'DELETE',
+                ['bulk_deleted_for_question_id' => (string) $questionId, 'rows' => (string) $n],
+                []
+            );
+        }
     }
 
     public function findOption(int $id, int $questionId): ?array
@@ -503,11 +643,25 @@ class GamificationQuizRepository extends DbConnection
 
     public function deleteOption(int $id, int $questionId): bool
     {
+        $oldRow = $this->findOption($id, $questionId);
         $stmt = $this->getConnection()->prepare(
             'DELETE FROM adms_gamification_quiz_options WHERE id = :id AND question_id = :q LIMIT 1'
         );
 
-        return $stmt->execute([':id' => $id, ':q' => $questionId]);
+        $ok = $stmt->execute([':id' => $id, ':q' => $questionId]);
+        if ($ok && is_array($oldRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_gamification_quiz_options',
+                $id,
+                $usuarioId,
+                'DELETE',
+                $oldRow,
+                []
+            );
+        }
+
+        return $ok;
     }
 
     /**
@@ -538,5 +692,21 @@ class GamificationQuizRepository extends DbConnection
         }
 
         return $out;
+    }
+
+    public function findQuizIdForOptionId(int $optionId): ?int
+    {
+        if ($optionId <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT q.quiz_id FROM adms_gamification_quiz_options o
+             INNER JOIN adms_gamification_quiz_questions q ON q.id = o.question_id
+             WHERE o.id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $optionId]);
+        $v = $stmt->fetchColumn();
+
+        return $v !== false ? (int) $v : null;
     }
 }

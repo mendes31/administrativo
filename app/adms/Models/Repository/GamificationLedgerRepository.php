@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
 class GamificationLedgerRepository extends DbConnection
@@ -198,6 +199,18 @@ class GamificationLedgerRepository extends DbConnection
         );
         $stmtP->execute([':pid' => $postId]);
         $n += $stmtP->rowCount();
+
+        if ($n > 0) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'adms_gamification_point_ledger',
+                $postId,
+                $usuarioId,
+                'DELETE',
+                ['timeline_post_id' => (string) $postId, 'ledger_rows_removed' => (string) $n],
+                []
+            );
+        }
 
         return $n;
     }

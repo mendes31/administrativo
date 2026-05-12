@@ -12,6 +12,7 @@ use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Services\InventoryCostService;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateInventoryItem
@@ -88,6 +89,12 @@ class UpdateInventoryItem
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
+        $itemCtxId = (int) ($this->data['form']['id'] ?? 0);
+        if ($itemCtxId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemCtxId;
+            $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemCtxId, $returnUrl);
+        }
+
         $loadView = new LoadViewService('adms/Views/inventory/items/update', $this->data);
         $loadView->loadView();
 
@@ -154,6 +161,7 @@ class UpdateInventoryItem
         }
 
         $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao atualizar o item.</div>";
+        $this->data['form'] = $repo->getOne($id) ?: [];
         $this->viewUpdate();
     }
 

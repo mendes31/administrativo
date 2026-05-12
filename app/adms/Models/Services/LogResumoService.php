@@ -71,4 +71,30 @@ class LogResumoService
             'list_url' => $listUrl,
         ];
     }
+
+    /**
+     * Logs relacionados a um item de inventário (cadastro, BOM, rota, saldos, movimentos).
+     *
+     * @return array{has_logs:bool,count:int,list_url:string}
+     */
+    public static function getResumoInventoryItemContext(int $invItemId, ?string $returnUrl = null): array
+    {
+        $repo = new LogAlteracoesRepository();
+        $count = $repo->countAll([
+            'inventory_item_context' => (string) $invItemId,
+        ]);
+
+        $listUrl = $_ENV['URL_ADM'] . 'list-log-alteracoes'
+            . '?inventory_item_context=' . urlencode((string) $invItemId);
+
+        if ($returnUrl) {
+            $listUrl .= '&return_url=' . urlencode($returnUrl);
+        }
+
+        return [
+            'has_logs' => $count > 0,
+            'count' => (int) $count,
+            'list_url' => $listUrl,
+        ];
+    }
 }

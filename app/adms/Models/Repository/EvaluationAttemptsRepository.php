@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Helpers\GenerateLog;
 use PDO;
 use Exception;
@@ -42,8 +43,24 @@ class EvaluationAttemptsRepository extends DbConnection
             $stmt->bindValue(':tempo_gasto', $data['tempo_gasto'] ?? null, PDO::PARAM_INT);
             
             $stmt->execute();
-            
-            return $this->getConnection()->lastInsertId();
+
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRawAttemptRow($newId);
+                if (is_array($row)) {
+                    $logUid = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_evaluation_attempts',
+                        $newId,
+                        $logUid,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return (int) $this->getConnection()->lastInsertId();
             
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao inserir tentativa de avaliação", [
@@ -234,12 +251,32 @@ class EvaluationAttemptsRepository extends DbConnection
     public function deleteByAssignment(int $assignmentId): bool
     {
         try {
+            $stmtCount = $this->getConnection()->prepare(
+                'SELECT COUNT(*) FROM adms_evaluation_attempts WHERE assignment_id = :aid'
+            );
+            $stmtCount->bindValue(':aid', $assignmentId, PDO::PARAM_INT);
+            $stmtCount->execute();
+            $n = (int) $stmtCount->fetchColumn();
+
             $sql = 'DELETE FROM adms_evaluation_attempts WHERE assignment_id = :assignment_id';
             
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':assignment_id', $assignmentId, PDO::PARAM_INT);
             
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && $n > 0) {
+                $logUid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_evaluation_attempts',
+                    $assignmentId,
+                    $logUid,
+                    'DELETE',
+                    ['bulk_deleted_for_assignment_id' => (string) $assignmentId, 'rows' => (string) $n],
+                    []
+                );
+            }
+
+            return $ok;
             
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar tentativas", [
@@ -248,6 +285,22 @@ class EvaluationAttemptsRepository extends DbConnection
             ]);
             return false;
         }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawAttemptRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_evaluation_attempts WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
     }
 }
 

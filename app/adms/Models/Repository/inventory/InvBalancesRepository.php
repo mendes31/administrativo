@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 use Exception;
 
@@ -39,6 +40,19 @@ class InvBalancesRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getBalanceRowById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare('SELECT * FROM inv_balances WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
     public function increase(int $itemId, int $stockId, ?int $positionId, ?string $batchCode, ?string $expirationDate, float $qty, float $unitCost): void
     {
         $conn = $this->getConnection();
@@ -55,6 +69,19 @@ class InvBalancesRepository extends DbConnection
             $stmt->bindValue(':avg', round($newAverage, 6));
             $stmt->bindValue(':id', $row['id'], PDO::PARAM_INT);
             $stmt->execute();
+            $balanceId = (int) $row['id'];
+            $newRow = $this->getBalanceRowById($balanceId);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'inv_balances',
+                    $balanceId,
+                    $usuarioId,
+                    'UPDATE',
+                    $row,
+                    $newRow
+                );
+            }
         } else {
             $sql = 'INSERT INTO inv_balances (inv_item_id, inv_stock_id, inv_position_id, batch_code, expiration_date, qty, average_cost, created_at)
                     VALUES (:item,:stock,:position,:batch,:exp,:qty,:avg,NOW())';
@@ -67,6 +94,21 @@ class InvBalancesRepository extends DbConnection
             $stmt->bindValue(':qty', $qty);
             $stmt->bindValue(':avg', round($unitCost, 6));
             $stmt->execute();
+            $newId = (int) $conn->lastInsertId();
+            if ($newId > 0) {
+                $newRow = $this->getBalanceRowById($newId);
+                if (is_array($newRow)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'inv_balances',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $newRow
+                    );
+                }
+            }
         }
     }
 
@@ -86,6 +128,19 @@ class InvBalancesRepository extends DbConnection
         $stmt->bindValue(':qty', $newQty);
         $stmt->bindValue(':id', $row['id'], PDO::PARAM_INT);
         $stmt->execute();
+        $balanceId = (int) $row['id'];
+        $newRow = $this->getBalanceRowById($balanceId);
+        if (is_array($newRow)) {
+            $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+            LogAlteracaoService::registrarAlteracao(
+                'inv_balances',
+                $balanceId,
+                $usuarioId,
+                'UPDATE',
+                $row,
+                $newRow
+            );
+        }
     }
 
     // Relatório de saldos atual por item/estoque/posição/lote/validade

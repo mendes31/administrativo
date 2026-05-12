@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
@@ -74,7 +75,6 @@ class InstallmentsRepository extends DbConnection
     public function createPay(array $dataForm, array $data, $nova_num_doc, $novo_vencimento, $novo_valor, $installment_number = null, $issue_date = null): bool|int
     {
         $original = $data[0];
-        var_dump($original);
         $name = $this->getSupplierName($original['partner_id']);
         try {
             $sql = 'INSERT INTO adms_pay (
@@ -117,7 +117,23 @@ class InstallmentsRepository extends DbConnection
             $stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
             $stmt->bindValue(':updated_at', null, PDO::PARAM_NULL);
             $stmt->execute();
-            return $this->getConnection()->lastInsertId();
+            $newId = (int) $this->getConnection()->lastInsertId();
+            if ($newId > 0) {
+                $row = $this->getRawPayRow($newId);
+                if (is_array($row)) {
+                    $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                    LogAlteracaoService::registrarAlteracao(
+                        'adms_pay',
+                        $newId,
+                        $usuarioId,
+                        'INSERT',
+                        [],
+                        $row
+                    );
+                }
+            }
+
+            return $newId;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Conta não cadastrada.", ['description' => $original['description'] ?? '', 'error' => $e->getMessage()]);
             return false;
@@ -133,10 +149,24 @@ class InstallmentsRepository extends DbConnection
     public function deletePay(int $id): bool
     {
         try {
+            $oldRow = $this->getRawPayRow($id);
             $sql = 'DELETE FROM adms_pay WHERE id = :id LIMIT 1';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $ok = $stmt->execute();
+            if ($ok && is_array($oldRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_pay',
+                    $id,
+                    $usuarioId,
+                    'DELETE',
+                    $oldRow,
+                    []
+                );
+            }
+
+            return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog("error", "Erro ao deletar conta.", ['id' => $id, 'error' => $e->getMessage()]);
             return false;
@@ -193,6 +223,21 @@ class InstallmentsRepository extends DbConnection
     
         return (int)$stmt->fetchColumn() > 0;
     }
-    
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getRawPayRow(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM adms_pay WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
 
 }
