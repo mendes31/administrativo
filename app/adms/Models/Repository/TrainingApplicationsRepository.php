@@ -280,4 +280,67 @@ class TrainingApplicationsRepository extends DbConnection
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    /**
+     * Aplicações de treino no período: realizadas (data_realizacao) ou pendentes/agendadas sem realização com data_agendada ou cadastro no período.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listForPeopleReportsByPeriod(string $periodStart, string $periodEnd): array
+    {
+        // SQL simplificado: sem comparar DATE a '' (strict SQL); placeholders posicionais (compatível com qualquer EMULATE_PREPARES).
+        $sql = 'SELECT
+                    ta.id,
+                    ta.status,
+                    ta.data_realizacao,
+                    ta.data_agendada,
+                    ta.created_at,
+                    ta.nota,
+                    u.id AS user_id,
+                    u.name AS user_name,
+                    d.name AS department_name,
+                    p.name AS position_name,
+                    t.id AS training_id,
+                    t.nome AS training_name,
+                    t.codigo AS training_code,
+                    t.versao AS training_version
+                FROM adms_training_applications ta
+                INNER JOIN adms_users u ON u.id = ta.adms_user_id
+                LEFT JOIN adms_departments d ON d.id = u.user_department_id
+                LEFT JOIN adms_positions p ON p.id = u.user_position_id
+                INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
+                WHERE (
+                    (ta.data_realizacao IS NOT NULL AND DATE(ta.data_realizacao) BETWEEN ? AND ?)
+                    OR (
+                        ta.data_realizacao IS NULL
+                        AND LOWER(COALESCE(ta.status, \'\')) NOT IN (\'concluido\', \'concluído\')
+                        AND (
+                            (ta.data_agendada IS NOT NULL AND DATE(ta.data_agendada) BETWEEN ? AND ?)
+                            OR (ta.data_agendada IS NULL AND DATE(ta.created_at) BETWEEN ? AND ?)
+                        )
+                    )
+                )
+                ORDER BY
+                    u.name ASC,
+                    u.id ASC,
+                    CASE WHEN ta.data_realizacao IS NOT NULL THEN 0 ELSE 1 END,
+                    COALESCE(ta.data_realizacao, ta.data_agendada, ta.created_at) DESC,
+                    ta.id DESC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(1, $periodStart, PDO::PARAM_STR);
+        $stmt->bindValue(2, $periodEnd, PDO::PARAM_STR);
+        $stmt->bindValue(3, $periodStart, PDO::PARAM_STR);
+        $stmt->bindValue(4, $periodEnd, PDO::PARAM_STR);
+        $stmt->bindValue(5, $periodStart, PDO::PARAM_STR);
+        $stmt->bindValue(6, $periodEnd, PDO::PARAM_STR);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as $k => $row) {
+            $rows[$k]['report_row_type'] = !empty($row['data_realizacao']) ? 'realizado' : 'pendente';
+        }
+
+        return $rows;
+    }
 } 

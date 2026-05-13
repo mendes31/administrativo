@@ -305,9 +305,15 @@ git push origin dev-master
 003 - LoadPageAdm.php - Não encontrou a controller  
 004 - LoadPageAdm.php - Não encontrou o método  
 005 - LoadViewService.php - Não encontrou a VIEW
-006 - Atualização Atualização
 
-O `index.php` principal usa **`LoadPageAdmAccessLevel`** (rotas e permissões em `adms_pages`). A lista antiga referia **`LoadPageAdm`** (lista fixa de controllers); os códigos **002/003** não são os mesmos entre os dois roteadores.
+**001** — falha de conexão (`DbConnection`).  
+**003–006** — ver tabela *Fluxo atual* (`LoadPageAdmAccessLevel`); não confundir com o **roteador legado** (`LoadPageAdm`).
+
+No fluxo atual, o **004** aparece quando o **método da controller não é invocável** *ou* quando a **action lança exceção** (SQL inválido, PDO com placeholders duplicados, etc.); a mensagem para o utilizador é a mesma (“Erro 004…”).
+
+A listagem antiga que associava **002–004** todos a `LoadPageAdm.php` (“não encontrou método”) descrevia apenas o **roteador legado**; o `index.php` usa **`LoadPageAdmAccessLevel`** e `adms_pages`.
+
+**Sub-rotas** (ex.: `people-reports/export-training-csv`): não é necessário cadastrar cada segmento em `adms_pages`; basta a página pai `people-reports` com `controller` = `PeopleReports` e `controller_url` = `people-reports`. O segundo segmento vira nome do método (`exportTrainingCsv`). A permissão de acesso segue a da página pai.
 
 ### Fluxo atual (`LoadPageAdmAccessLevel` + `PagesRoutesRepository`)
 
@@ -315,7 +321,7 @@ O `index.php` principal usa **`LoadPageAdmAccessLevel`** (rotas e permissões em
 |--------|--------|-------------|
 | **001** | `DbConnection` / conexão | Falha de conexão com o banco de dados. |
 | **003** | `LoadPageAdmAccessLevel` | Página/rota **não cadastrada** em `adms_pages` (ou `page_status` ≠ 1), ou pacote inexistente no `JOIN`. |
-| **004** | `LoadPageAdmAccessLevel` | Método da controller não invocável ou exceção ao executar a action. |
+| **004** | `LoadPageAdmAccessLevel` | Método da controller não invocável **ou** exceção ao executar a action (ex.: `PDOException` / SQL). |
 | **005** | `LoadViewService` | Arquivo da view (`.php`) não encontrado no caminho sob `app/`. |
 | **006** | `LoadPageAdmAccessLevel` | Classe da controller **não carregada pelo autoload**. Causas comuns: (1) em **Linux**, caixa de `directory` / pacote diferente das pastas; (2) **`adms_pages.controller` com slug** em vez de PascalCase. Em *list-pages* há colunas **Classe (PHP)** e **URL (slug)**. |
 

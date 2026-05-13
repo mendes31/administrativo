@@ -118,7 +118,16 @@ class PerformanceReviewsRepository extends DbConnection
             $where[] = '(e.name LIKE :search OR pr.comments LIKE :search)';
             $params[':search'] = '%' . $filters['search'] . '%';
         }
-        
+
+        if (!empty($filters['review_date_from'])) {
+            $where[] = 'DATE(pr.review_date) >= :review_date_from';
+            $params[':review_date_from'] = $filters['review_date_from'];
+        }
+        if (!empty($filters['review_date_to'])) {
+            $where[] = 'DATE(pr.review_date) <= :review_date_to';
+            $params[':review_date_to'] = $filters['review_date_to'];
+        }
+
         // Super admin vê tudo, gestor vê sua equipe, colaborador vê apenas as suas
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
@@ -173,7 +182,16 @@ class PerformanceReviewsRepository extends DbConnection
             $where[] = 'pr.status = :status';
             $params[':status'] = $filters['status'];
         }
-        
+
+        if (!empty($filters['review_date_from'])) {
+            $where[] = 'DATE(pr.review_date) >= :review_date_from';
+            $params[':review_date_from'] = $filters['review_date_from'];
+        }
+        if (!empty($filters['review_date_to'])) {
+            $where[] = 'DATE(pr.review_date) <= :review_date_to';
+            $params[':review_date_to'] = $filters['review_date_to'];
+        }
+
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;
         
