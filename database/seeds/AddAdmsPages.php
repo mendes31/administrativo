@@ -711,7 +711,18 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Enviar WhatsApp CRM', 'controller' => 'CrmSendWhatsApp', 'controller_url' => 'crm-send-whatsapp', 'directory' => 'crm', 'obs' => 'Enviar mensagem WhatsApp do CRM.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
 
             // ===== PORTAL DE VENDAS (SAP) — placeholder de grupo 40 (resolvido para id real abaixo) =====
-            ['name'=> 'Portal de Vendas — Início', 'controller' => 'SalesPortalLaunchpad', 'controller_url' => 'sales-portal-launchpad', 'directory' => 'salesPortal', 'obs' => 'Launchpad do portal de vendas integrado ao SAP B1.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Painel', 'controller' => 'SalesPortalLaunchpad', 'controller_url' => 'sales-portal-launchpad', 'directory' => 'salesPortal', 'obs' => 'Painel do portal de vendas integrado ao SAP B1.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Cotações', 'controller' => 'SalesPortalListQuotations', 'controller_url' => 'sales-portal-list-quotations', 'directory' => 'salesPortal', 'obs' => 'Listagem de cotações (OQuot) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Ver cotação', 'controller' => 'SalesPortalViewQuotation', 'controller_url' => 'sales-portal-view-quotation', 'directory' => 'salesPortal', 'obs' => 'Detalhe de cotação (Quotations) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Nova cotação', 'controller' => 'SalesPortalCreateQuotation', 'controller_url' => 'sales-portal-create-quotation', 'directory' => 'salesPortal', 'obs' => 'Formulário para criar cotação (POST Quotations) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Gravar cotação', 'controller' => 'SalesPortalSaveQuotation', 'controller_url' => 'sales-portal-save-quotation', 'directory' => 'salesPortal', 'obs' => 'POST interno para gravar cotação na Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Converter cotação em pedido', 'controller' => 'SalesPortalConvertQuotationToOrder', 'controller_url' => 'sales-portal-convert-quotation-to-order', 'directory' => 'salesPortal', 'obs' => 'POST: cria pedido a partir da cotação e fecha a cotação na Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Pedidos', 'controller' => 'SalesPortalListOrders', 'controller_url' => 'sales-portal-list-orders', 'directory' => 'salesPortal', 'obs' => 'Listagem de pedidos de venda (Orders) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Ver pedido', 'controller' => 'SalesPortalViewOrder', 'controller_url' => 'sales-portal-view-order', 'directory' => 'salesPortal', 'obs' => 'Detalhe de pedido de venda (Orders) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Novo pedido', 'controller' => 'SalesPortalCreateOrder', 'controller_url' => 'sales-portal-create-order', 'directory' => 'salesPortal', 'obs' => 'Formulário para criar pedido de venda (POST Orders) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Gravar pedido', 'controller' => 'SalesPortalSaveOrder', 'controller_url' => 'sales-portal-save-order', 'directory' => 'salesPortal', 'obs' => 'POST interno para gravar pedido de venda na Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Faturas', 'controller' => 'SalesPortalListInvoices', 'controller_url' => 'sales-portal-list-invoices', 'directory' => 'salesPortal', 'obs' => 'Listagem de faturas de cliente (Invoices) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Portal de Vendas — Ver fatura', 'controller' => 'SalesPortalViewInvoice', 'controller_url' => 'sales-portal-view-invoice', 'directory' => 'salesPortal', 'obs' => 'Detalhe de fatura de cliente (Invoices) via Service Layer.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
             
             // ===== GRUPO 35: RELATÓRIOS DINÂMICOS =====
             ['name'=> 'Listar Relatórios Dinâmicos (Locais)', 'controller' => 'ListDynamicReports', 'controller_url' => 'list-dynamic-reports', 'directory' => 'reports', 'obs' => 'Página para listar relatórios dinâmicos locais criados pelo usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
@@ -1129,10 +1140,227 @@ class AddAdmsPages extends AbstractSeed
             }
         }
 
+        $listQuotationsPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListQuotations' LIMIT 1")->fetch();
+        $launchpadPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalLaunchpad' LIMIT 1")->fetch();
+        if ($listQuotationsPage && $launchpadPage && $this->hasTable('adms_access_levels_pages')) {
+            $listQuotationsPageId = (int) ($listQuotationsPage['id'] ?? 0);
+            $launchpadPageId = (int) ($launchpadPage['id'] ?? 0);
+            if ($listQuotationsPageId > 0 && $launchpadPageId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$listQuotationsPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$launchpadPageId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$launchpadPageId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$listQuotationsPageId}"
+                );
+            }
+        }
+
+        $viewQuotationPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalViewQuotation' LIMIT 1")->fetch();
+        $listQuotationsForAcl = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListQuotations' LIMIT 1")->fetch();
+        if ($viewQuotationPage && $listQuotationsForAcl && $this->hasTable('adms_access_levels_pages')) {
+            $viewQuotationPageId = (int) ($viewQuotationPage['id'] ?? 0);
+            $listQuotationsAclId = (int) ($listQuotationsForAcl['id'] ?? 0);
+            if ($viewQuotationPageId > 0 && $listQuotationsAclId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$viewQuotationPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listQuotationsAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listQuotationsAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$viewQuotationPageId}"
+                );
+            }
+        }
+
+        $convertQuotationPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalConvertQuotationToOrder' LIMIT 1")->fetch();
+        $viewQuotationForConvertAcl = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalViewQuotation' LIMIT 1")->fetch();
+        if ($convertQuotationPage && $viewQuotationForConvertAcl && $this->hasTable('adms_access_levels_pages')) {
+            $convertQuotationPageId = (int) ($convertQuotationPage['id'] ?? 0);
+            $viewQuotationConvertAclId = (int) ($viewQuotationForConvertAcl['id'] ?? 0);
+            if ($convertQuotationPageId > 0 && $viewQuotationConvertAclId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$convertQuotationPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$viewQuotationConvertAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$viewQuotationConvertAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$convertQuotationPageId}"
+                );
+            }
+        }
+
+        $listOrdersPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListOrders' LIMIT 1")->fetch();
+        $listQuotationsForOrdersAcl = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListQuotations' LIMIT 1")->fetch();
+        if ($listOrdersPage && $listQuotationsForOrdersAcl && $this->hasTable('adms_access_levels_pages')) {
+            $listOrdersPageId = (int) ($listOrdersPage['id'] ?? 0);
+            $listQuotationsOrdersAclId = (int) ($listQuotationsForOrdersAcl['id'] ?? 0);
+            if ($listOrdersPageId > 0 && $listQuotationsOrdersAclId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$listOrdersPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listQuotationsOrdersAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listQuotationsOrdersAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$listOrdersPageId}"
+                );
+            }
+        }
+
+        $viewOrderPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalViewOrder' LIMIT 1")->fetch();
+        $listOrdersForAcl = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListOrders' LIMIT 1")->fetch();
+        if ($viewOrderPage && $listOrdersForAcl && $this->hasTable('adms_access_levels_pages')) {
+            $viewOrderPageId = (int) ($viewOrderPage['id'] ?? 0);
+            $listOrdersAclId = (int) ($listOrdersForAcl['id'] ?? 0);
+            if ($viewOrderPageId > 0 && $listOrdersAclId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$viewOrderPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listOrdersAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listOrdersAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$viewOrderPageId}"
+                );
+            }
+        }
+
+        $listInvoicesPage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListInvoices' LIMIT 1")->fetch();
+        $listOrdersForInvoicesAcl = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListOrders' LIMIT 1")->fetch();
+        if ($listInvoicesPage && $listOrdersForInvoicesAcl && $this->hasTable('adms_access_levels_pages')) {
+            $listInvoicesPageId = (int) ($listInvoicesPage['id'] ?? 0);
+            $listOrdersInvoicesAclId = (int) ($listOrdersForInvoicesAcl['id'] ?? 0);
+            if ($listInvoicesPageId > 0 && $listOrdersInvoicesAclId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$listInvoicesPageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listOrdersInvoicesAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listOrdersInvoicesAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$listInvoicesPageId}"
+                );
+            }
+        }
+
+        $viewInvoicePage = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalViewInvoice' LIMIT 1")->fetch();
+        $listInvoicesForAcl = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListInvoices' LIMIT 1")->fetch();
+        if ($viewInvoicePage && $listInvoicesForAcl && $this->hasTable('adms_access_levels_pages')) {
+            $viewInvoicePageId = (int) ($viewInvoicePage['id'] ?? 0);
+            $listInvoicesAclId = (int) ($listInvoicesForAcl['id'] ?? 0);
+            if ($viewInvoicePageId > 0 && $listInvoicesAclId > 0) {
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$viewInvoicePageId}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listInvoicesAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listInvoicesAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$viewInvoicePageId}"
+                );
+            }
+        }
+
+        $listQuotationsAclRow = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListQuotations' LIMIT 1")->fetch();
+        $listQuotationsAclId = (int) ($listQuotationsAclRow['id'] ?? 0);
+        if ($listQuotationsAclId > 0 && $this->hasTable('adms_access_levels_pages')) {
+            foreach (['SalesPortalCreateQuotation', 'SalesPortalSaveQuotation'] as $portalCtrl) {
+                $esc = str_replace("'", "''", $portalCtrl);
+                $pg = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = '{$esc}' LIMIT 1");
+                $pid = (int) ($pg['id'] ?? 0);
+                if ($pid <= 0) {
+                    continue;
+                }
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$pid}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listQuotationsAclId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listQuotationsAclId}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$pid}"
+                );
+            }
+        }
+
+        $listOrdersAclRowForCreate = $this->query("SELECT id FROM adms_pages WHERE controller = 'SalesPortalListOrders' LIMIT 1")->fetch();
+        $listOrdersAclIdForCreate = (int) ($listOrdersAclRowForCreate['id'] ?? 0);
+        if ($listOrdersAclIdForCreate > 0 && $this->hasTable('adms_access_levels_pages')) {
+            foreach (['SalesPortalCreateOrder', 'SalesPortalSaveOrder'] as $portalCtrl) {
+                $esc = str_replace("'", "''", $portalCtrl);
+                $pg = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = '{$esc}' LIMIT 1");
+                $pid = (int) ($pg['id'] ?? 0);
+                if ($pid <= 0) {
+                    continue;
+                }
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT alp.permission, alp.adms_access_level_id, {$pid}, NOW(), NOW()
+                     FROM adms_access_levels_pages alp
+                     WHERE alp.adms_page_id = {$listOrdersAclIdForCreate}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages AS t
+                     INNER JOIN adms_access_levels_pages AS r
+                       ON r.adms_access_level_id = t.adms_access_level_id AND r.adms_page_id = {$listOrdersAclIdForCreate}
+                     SET t.permission = r.permission, t.updated_at = NOW()
+                     WHERE t.adms_page_id = {$pid}"
+                );
+            }
+        }
+
         // Matriz de permissões: páginas do Portal de Vendas (SAP) — uma linha por nível (permission = 0 se não existir).
         if ($this->hasTable('adms_access_levels_pages') && $this->hasTable('adms_access_levels')) {
             $portalControllers = [
                 'SalesPortalLaunchpad',
+                'SalesPortalListQuotations',
+                'SalesPortalViewQuotation',
+                'SalesPortalListOrders',
+                'SalesPortalViewOrder',
+                'SalesPortalListInvoices',
+                'SalesPortalViewInvoice',
+                'SalesPortalCreateOrder',
+                'SalesPortalSaveOrder',
+                'SalesPortalCreateQuotation',
+                'SalesPortalSaveQuotation',
+                'SalesPortalConvertQuotationToOrder',
             ];
             foreach ($portalControllers as $ctrl) {
                 $esc = str_replace("'", "''", $ctrl);

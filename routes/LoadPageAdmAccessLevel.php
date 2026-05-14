@@ -109,6 +109,8 @@ class LoadPageAdmAccessLevel
             'TimelineSearchUsers' => "\\App\\adms\\Controllers\\timeline\\TimelineSearchUsers",
             // Busca de colaboradores para RSVP manual (gestor/creator).
             'CompanyEventsSearchUsers' => "\\App\\adms\\Controllers\\companyEvents\\CompanyEventsSearchUsers",
+            'SalesPortalSearchBusinessPartners' => "\\App\\adms\\Controllers\\salesPortal\\SalesPortalSearchBusinessPartners",
+            'SalesPortalSearchItems' => "\\App\\adms\\Controllers\\salesPortal\\SalesPortalSearchItems",
             // POST do formulário da timeline; mesmo motivo (cadastro/ directory incorreto no banco gerava Erro 004).
             'CreateTimelinePost' => "\\App\\adms\\Controllers\\timeline\\CreateTimelinePost",
             // JSON da timeline (curtidas, comentários, denúncia) — evita Erro 004/HTML quando adms_pages está inconsistente.

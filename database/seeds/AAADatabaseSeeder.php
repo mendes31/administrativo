@@ -25,6 +25,7 @@ class AAADatabaseSeeder extends AbstractSeed
             'AddAdmsGroupsPages',
             'AddAdmsPages',
             'SyncAccessLevelsPages',
+            'SyncSapIntegrationPagesAcl',
             'AddGamificationDefaultRules',
             'AddGamificationProgramDefaults',
         ];

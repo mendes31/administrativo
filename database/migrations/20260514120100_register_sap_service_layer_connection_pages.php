@@ -5,7 +5,8 @@ declare(strict_types=1);
 use Phinx\Migration\AbstractMigration;
 
 /**
- * Regista páginas do módulo Service Layer SAP (Configurações) em instalações já existentes.
+ * Regista páginas do módulo API SAP (integração) em instalações já existentes.
+ * A matriz de permissões por nível fica a cargo das seeds (ex.: {@see SyncAccessLevelsPages}, {@see SyncSapIntegrationPagesAcl}).
  */
 final class RegisterSapServiceLayerConnectionPages extends AbstractMigration
 {
@@ -49,17 +50,6 @@ final class RegisterSapServiceLayerConnectionPages extends AbstractMigration
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->save();
-
-            $newRow = $this->fetchRow('SELECT LAST_INSERT_ID() AS id');
-            $newId = (int) ($newRow['id'] ?? 0);
-            if ($newId <= 0 || !$this->hasTable('adms_access_levels_pages')) {
-                continue;
-            }
-            $this->execute(
-                "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-                 SELECT 0, al.id, {$newId}, '{$now}', '{$now}'
-                 FROM adms_access_levels al"
-            );
         }
     }
 

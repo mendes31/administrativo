@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\adms\Controllers\salesPortal;
 
 use App\adms\Controllers\Services\PageLayoutService;
@@ -12,9 +14,16 @@ class SalesPortalLaunchpad
     public function index(): void
     {
         $pageElements = [
-            'title_head' => 'Portal de Vendas (SAP)',
+            'title_head' => 'Painel — Portal de Vendas (SAP)',
             'menu' => 'sales-portal-launchpad',
-            'buttonPermission' => [],
+            'buttonPermission' => [
+                'SalesPortalLaunchpad',
+                'SalesPortalListQuotations',
+                'SalesPortalListOrders',
+                'SalesPortalListInvoices',
+                'SalesPortalCreateQuotation',
+                'SalesPortalCreateOrder',
+            ],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data ?? [], $pageLayoutService->configurePageElements($pageElements));

@@ -386,6 +386,17 @@ class PageLayoutService
             'SalesDashboardData',
             // Portal de Vendas (SAP B1)
             'SalesPortalLaunchpad',
+            'SalesPortalListQuotations',
+            'SalesPortalViewQuotation',
+            'SalesPortalListOrders',
+            'SalesPortalViewOrder',
+            'SalesPortalListInvoices',
+            'SalesPortalViewInvoice',
+            'SalesPortalCreateQuotation',
+            'SalesPortalSaveQuotation',
+            'SalesPortalCreateOrder',
+            'SalesPortalSaveOrder',
+            'SalesPortalConvertQuotationToOrder',
             // Dashboards Personalizados
             'ListDashboards',
             'CreateDashboard',

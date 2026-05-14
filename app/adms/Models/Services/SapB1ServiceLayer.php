@@ -218,12 +218,39 @@ class SapB1ServiceLayer
         if (!empty($filters['select'])) {
             $params['$select'] = $filters['select'];
         }
-        
+        if (!empty($filters['orderby'])) {
+            $params['$orderby'] = (string) $filters['orderby'];
+        }
+
         $url .= '?' . http_build_query($params);
-        
+
         return $this->makeRequest($url, 'GET');
     }
-    
+
+    /**
+     * Pesquisa artigos vendáveis (ativos) para preenchimento da grelha — só leitura na UI;
+     * no POST da cotação envia-se apenas `ItemCode` (e quantidade; preço opcional).
+     *
+     * @return array{success: bool, data?: list<array<string, mixed>>, error?: string}
+     */
+    public function searchSalesItems(string $q, int $top = 40): array
+    {
+        $top = max(1, min(100, $top));
+        $q = trim($q);
+        $parts = ["Valid eq 'tYES'"];
+        if ($q !== '') {
+            $safe = str_replace("'", "''", $q);
+            $parts[] = "(startswith(ItemCode,'{$safe}') or contains(ItemCode,'{$safe}') or startswith(ItemName,'{$safe}') or contains(ItemName,'{$safe}'))";
+        }
+        $filter = implode(' and ', $parts);
+
+        return $this->getItems([
+            'filter' => $filter,
+            'select' => 'ItemCode,ItemName',
+            'orderby' => 'ItemCode',
+        ], $top);
+    }
+
     /**
      * Buscar parceiros de negócio (exemplo)
      */
@@ -242,9 +269,228 @@ class SapB1ServiceLayer
         if (!empty($filters['select'])) {
             $params['$select'] = $filters['select'];
         }
+        if (!empty($filters['orderby'])) {
+            $params['$orderby'] = (string) $filters['orderby'];
+        }
         
         $url .= '?' . http_build_query($params);
         
+        return $this->makeRequest($url, 'GET');
+    }
+
+    /**
+     * Pesquisa clientes (PN tipo cliente) para seleção de CardCode no portal.
+     * Usa `CardType eq 'cCustomer'` e filtro opcional por código ou nome.
+     *
+     * @return array{success: bool, data?: list<array<string, mixed>>, error?: string}
+     */
+    public function searchCustomerBusinessPartners(string $q, int $top = 40): array
+    {
+        $top = max(1, min(100, $top));
+        $q = trim($q);
+        $parts = ["CardType eq 'cCustomer'"];
+        if ($q !== '') {
+            $safe = str_replace("'", "''", $q);
+            $parts[] = "(startswith(CardCode,'{$safe}') or contains(CardCode,'{$safe}') or startswith(CardName,'{$safe}') or contains(CardName,'{$safe}'))";
+        }
+        $filter = implode(' and ', $parts);
+
+        return $this->getBusinessPartners([
+            'filter' => $filter,
+            'select' => 'CardCode,CardName',
+            'orderby' => 'CardName',
+        ], $top);
+    }
+
+    /**
+     * Lista cotações de vendas (entidade OData `Quotations`).
+     *
+     * @param array{card_code?: string, filter?: string, select?: string} $filters
+     * @return array{success: bool, data?: list<array<string, mixed>>, rows_count?: int, error?: string}
+     */
+    public function getQuotations(array $filters = [], int $top = 50): array
+    {
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $url = rtrim($this->baseUrl, '/') . '/Quotations';
+
+        $params = [
+            '$top' => max(1, min(200, $top)),
+            '$orderby' => 'DocEntry desc',
+        ];
+        if (!empty($filters['select'])) {
+            $params['$select'] = $filters['select'];
+        } else {
+            $params['$select'] = 'DocEntry,DocNum,DocDate,CardCode,CardName,DocTotal,DocCurrency,DocumentStatus';
+        }
+
+        $parts = [];
+        if (!empty($filters['card_code'])) {
+            $card = (string) $filters['card_code'];
+            $card = str_replace("'", "''", $card);
+            $parts[] = "CardCode eq '{$card}'";
+        }
+        if (!empty($filters['filter'])) {
+            $parts[] = '(' . $filters['filter'] . ')';
+        }
+        if ($parts !== []) {
+            $params['$filter'] = implode(' and ', $parts);
+        }
+
+        $url .= '?' . http_build_query($params);
+
+        return $this->makeRequest($url, 'GET');
+    }
+
+    /**
+     * Obtém uma cotação por DocEntry (chave OData em `Quotations`).
+     *
+     * @return array{success: bool, data?: array<string, mixed>, rows_count?: int, error?: string}
+     */
+    public function getQuotationByDocEntry(int $docEntry, bool $expandDocumentLines = true): array
+    {
+        if ($docEntry <= 0) {
+            return ['success' => false, 'error' => 'DocEntry inválido.'];
+        }
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $url = rtrim($this->baseUrl, '/') . '/Quotations(' . $docEntry . ')';
+        if ($expandDocumentLines) {
+            $url .= '?' . http_build_query(['$expand' => 'DocumentLines']);
+        }
+
+        return $this->makeRequest($url, 'GET');
+    }
+
+    /**
+     * Lista pedidos de venda (entidade OData `Orders`).
+     *
+     * @param array{card_code?: string, filter?: string, select?: string} $filters
+     * @return array{success: bool, data?: list<array<string, mixed>>, rows_count?: int, error?: string}
+     */
+    public function getOrders(array $filters = [], int $top = 50): array
+    {
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $url = rtrim($this->baseUrl, '/') . '/Orders';
+
+        $params = [
+            '$top' => max(1, min(200, $top)),
+            '$orderby' => 'DocEntry desc',
+        ];
+        if (!empty($filters['select'])) {
+            $params['$select'] = $filters['select'];
+        } else {
+            $params['$select'] = 'DocEntry,DocNum,DocDate,CardCode,CardName,DocTotal,DocCurrency,DocumentStatus';
+        }
+
+        $parts = [];
+        if (!empty($filters['card_code'])) {
+            $card = (string) $filters['card_code'];
+            $card = str_replace("'", "''", $card);
+            $parts[] = "CardCode eq '{$card}'";
+        }
+        if (!empty($filters['filter'])) {
+            $parts[] = '(' . $filters['filter'] . ')';
+        }
+        if ($parts !== []) {
+            $params['$filter'] = implode(' and ', $parts);
+        }
+
+        $url .= '?' . http_build_query($params);
+
+        return $this->makeRequest($url, 'GET');
+    }
+
+    /**
+     * Obtém um pedido de venda por DocEntry (`Orders`).
+     *
+     * @return array{success: bool, data?: array<string, mixed>, rows_count?: int, error?: string}
+     */
+    public function getOrderByDocEntry(int $docEntry, bool $expandDocumentLines = true): array
+    {
+        if ($docEntry <= 0) {
+            return ['success' => false, 'error' => 'DocEntry inválido.'];
+        }
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $url = rtrim($this->baseUrl, '/') . '/Orders(' . $docEntry . ')';
+        if ($expandDocumentLines) {
+            $url .= '?' . http_build_query(['$expand' => 'DocumentLines']);
+        }
+
+        return $this->makeRequest($url, 'GET');
+    }
+
+    /**
+     * Lista faturas de cliente (entidade OData `Invoices`).
+     *
+     * @param array{card_code?: string, filter?: string, select?: string} $filters
+     * @return array{success: bool, data?: list<array<string, mixed>>, rows_count?: int, error?: string}
+     */
+    public function getInvoices(array $filters = [], int $top = 50): array
+    {
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $url = rtrim($this->baseUrl, '/') . '/Invoices';
+
+        $params = [
+            '$top' => max(1, min(200, $top)),
+            '$orderby' => 'DocEntry desc',
+        ];
+        if (!empty($filters['select'])) {
+            $params['$select'] = $filters['select'];
+        } else {
+            $params['$select'] = 'DocEntry,DocNum,DocDate,CardCode,CardName,DocTotal,DocCurrency,DocumentStatus';
+        }
+
+        $parts = [];
+        if (!empty($filters['card_code'])) {
+            $card = (string) $filters['card_code'];
+            $card = str_replace("'", "''", $card);
+            $parts[] = "CardCode eq '{$card}'";
+        }
+        if (!empty($filters['filter'])) {
+            $parts[] = '(' . $filters['filter'] . ')';
+        }
+        if ($parts !== []) {
+            $params['$filter'] = implode(' and ', $parts);
+        }
+
+        $url .= '?' . http_build_query($params);
+
+        return $this->makeRequest($url, 'GET');
+    }
+
+    /**
+     * Obtém uma fatura de cliente por DocEntry (`Invoices`).
+     *
+     * @return array{success: bool, data?: array<string, mixed>, rows_count?: int, error?: string}
+     */
+    public function getInvoiceByDocEntry(int $docEntry, bool $expandDocumentLines = true): array
+    {
+        if ($docEntry <= 0) {
+            return ['success' => false, 'error' => 'DocEntry inválido.'];
+        }
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $url = rtrim($this->baseUrl, '/') . '/Invoices(' . $docEntry . ')';
+        if ($expandDocumentLines) {
+            $url .= '?' . http_build_query(['$expand' => 'DocumentLines']);
+        }
+
         return $this->makeRequest($url, 'GET');
     }
 
@@ -266,6 +512,25 @@ class SapB1ServiceLayer
         $url = rtrim($this->baseUrl, '/') . '/' . $path;
 
         return $this->performJsonRequest($url, 'POST', $body);
+    }
+
+    /**
+     * PATCH JSON num recurso OData (ex.: fechar cotação).
+     *
+     * @param string $resourcePath segmento após a base (ex.: "Quotations(8)")
+     * @param array<string, mixed> $body
+     * @return array{success: bool, http_code?: int, data?: mixed, error?: string, raw?: string}
+     */
+    public function patchResource(string $resourcePath, array $body): array
+    {
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $path = ltrim($resourcePath, '/');
+        $url = rtrim($this->baseUrl, '/') . '/' . $path;
+
+        return $this->performJsonRequest($url, 'PATCH', $body);
     }
 
     /**

@@ -1057,9 +1057,28 @@ $menus = [
         'id' => 'portal-vendas-sap',
         'icon' => 'fa-solid fa-store',
         'label' => 'Portal de Vendas (SAP)',
-        'url' => $_ENV['URL_ADM'] . 'sales-portal-launchpad',
-        'permission' => 'SalesPortalLaunchpad',
-        'submenu' => [],
+        'submenu' => [
+            [
+                'label' => 'Painel',
+                'url' => $_ENV['URL_ADM'] . 'sales-portal-launchpad',
+                'permission' => 'SalesPortalLaunchpad',
+            ],
+            [
+                'label' => 'Cotações',
+                'url' => $_ENV['URL_ADM'] . 'sales-portal-list-quotations',
+                'permission' => 'SalesPortalListQuotations',
+            ],
+            [
+                'label' => 'Pedidos',
+                'url' => $_ENV['URL_ADM'] . 'sales-portal-list-orders',
+                'permission' => 'SalesPortalListOrders',
+            ],
+            [
+                'label' => 'Faturas',
+                'url' => $_ENV['URL_ADM'] . 'sales-portal-list-invoices',
+                'permission' => 'SalesPortalListInvoices',
+            ],
+        ],
     ],
     [
         'id' => 'relatorios',
@@ -1137,7 +1156,7 @@ if (!function_exists('menuEntryMatchesAtivo')) {
 
 // Função para verificar se há pelo menos um submenu permitido
 if (!function_exists('hasPermittedSubmenu')) {
-    function hasPermittedSubmenu($submenu, $menuPermission) {
+    function hasPermittedSubmenu(array $submenu, array $menuPermission): bool {
         foreach ($submenu as $item) {
             if (isset($item['submenu']) && is_array($item['submenu'])) {
                 if (hasPermittedSubmenu($item['submenu'], $menuPermission)) {
@@ -1154,7 +1173,7 @@ if (!function_exists('hasPermittedSubmenu')) {
 
 // Função para contar submenus permitidos
 if (!function_exists('countPermittedSubmenus')) {
-    function countPermittedSubmenus($submenu, $menuPermission) {
+    function countPermittedSubmenus(array $submenu, array $menuPermission): int {
         $count = 0;
         foreach ($submenu as $item) {
             if (menuEntryAllowed($item, $menuPermission)) {
@@ -1208,7 +1227,7 @@ if (!function_exists('countPermittedSubmenus')) {
 
                 // Função recursiva para renderizar submenus aninhados
                 if (!function_exists('renderMenu')) {
-                    function renderMenu($menus, $menuPermission, $menuAtivo = null, $nivel = 0, $parentId = 'sidenavAccordion') {
+                    function renderMenu(array $menus, array $menuPermission, string|bool|null $menuAtivo = null, int $nivel = 0, string $parentId = 'sidenavAccordion'): void {
                         foreach ($menus as $index => $menu) {
                             $hasSubmenu = !empty($menu['submenu']);
                             $hasPermitted = menuEntryAllowed($menu, $menuPermission);
@@ -1471,7 +1490,7 @@ if (!function_exists('countPermittedSubmenus')) {
                 if (isset($_SESSION['menu_override']) && is_string($_SESSION['menu_override']) && $_SESSION['menu_override'] !== '') {
                     $menuAtivo = $_SESSION['menu_override'];
                 }
-                renderMenu($menus, $this->data['menuPermission'], $menuAtivo);
+                renderMenu($menus, (array) ($this->data['menuPermission'] ?? []), $menuAtivo);
                 ?>
             </div>
         </div>
