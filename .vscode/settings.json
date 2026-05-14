@@ -6,7 +6,6 @@
         "**/node_modules/**",
         "**/.cursor/**",
         "**/.cursor/extensions/**",
-        "**/vendor/**",
         "**/intelephense/lib/stub/**",
         "**/node_modules/intelephense/**"
     ],
