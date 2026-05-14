@@ -62,6 +62,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Sessões', 'obs' => 'Gerenciamento de sessões do sistema'], // Nº 32
             ['name' => 'Estoque', 'obs' => 'Módulo de estoque'], // Nº 33
             ['name' => 'CRM', 'obs' => 'Gestão de Relacionamento com Clientes'], // Nº 34
+            ['name' => 'Portal de Vendas (SAP)', 'obs' => 'Portal comercial integrado ao SAP Business One'],
             ['name' => 'Relatórios Dinâmicos', 'obs' => 'Construtor de relatórios e dashboards personalizados'], // Nº 35
             ['name' => 'Gestão de Pessoas', 'obs' => 'Módulo completo de Gestão de Pessoas (RH)'], // Nº 36
             ['name' => 'Reserva de Salas', 'obs' => 'Módulo de agendamento e reserva de salas de reunião'], // Nº 37

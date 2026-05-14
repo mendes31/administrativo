@@ -700,11 +700,18 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Configuração SAP API', 'controller' => 'SapApiConfig', 'controller_url' => 'sap-api-config', 'directory' => 'settings', 'obs' => 'Configuração de integração via API com o SAP B1.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Salvar Configuração SAP API', 'controller' => 'SaveSapApiConfig', 'controller_url' => 'save-sap-api-config', 'directory' => 'settings', 'obs' => 'Salvar parâmetros da API SAP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Testar Configuração SAP API', 'controller' => 'TestSapApiConfig', 'controller_url' => 'test-sap-api-config', 'directory' => 'settings', 'obs' => 'Executar health-check da API SAP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
+            ['name'=> 'API SAP (integração)', 'controller' => 'SapServiceLayerConnections', 'controller_url' => 'sap-service-layer-connections', 'directory' => 'settings', 'obs' => 'Conexões nomeadas à API gateway SAP (o administrativo não chama o b1s directamente).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
+            ['name'=> 'Salvar conexão API SAP', 'controller' => 'SaveSapServiceLayerConnection', 'controller_url' => 'save-sap-service-layer-connection', 'directory' => 'settings', 'obs' => 'Criar ou actualizar conexão à API SAP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
+            ['name'=> 'Eliminar conexão API SAP', 'controller' => 'DeleteSapServiceLayerConnection', 'controller_url' => 'delete-sap-service-layer-connection', 'directory' => 'settings', 'obs' => 'Remover conexão à API SAP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
+            ['name'=> 'Testar conexão API SAP', 'controller' => 'TestSapServiceLayerConnection', 'controller_url' => 'test-sap-service-layer-connection', 'directory' => 'settings', 'obs' => 'GET de health na API gateway.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Configuração API MCP', 'controller' => 'McpApiConfig', 'controller_url' => 'mcp-api-config', 'directory' => 'settings', 'obs' => 'Configuração de integração com servidor MCP para chat/consultas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Salvar Configuração API MCP', 'controller' => 'SaveMcpApiConfig', 'controller_url' => 'save-mcp-api-config', 'directory' => 'settings', 'obs' => 'Salvar parâmetros da API MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Chat MCP (Assistente)', 'controller' => 'McpChat', 'controller_url' => 'mcp-chat', 'directory' => 'settings', 'obs' => 'Permissão para usar o chat integrado ao servidor MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Calendário e Feriados', 'controller' => 'CalendarConfig', 'controller_url' => 'calendar-config', 'directory' => 'settings', 'obs' => 'Configuração de calendário de trabalho e feriados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Enviar WhatsApp CRM', 'controller' => 'CrmSendWhatsApp', 'controller_url' => 'crm-send-whatsapp', 'directory' => 'crm', 'obs' => 'Enviar mensagem WhatsApp do CRM.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
+
+            // ===== PORTAL DE VENDAS (SAP) — placeholder de grupo 40 (resolvido para id real abaixo) =====
+            ['name'=> 'Portal de Vendas — Início', 'controller' => 'SalesPortalLaunchpad', 'controller_url' => 'sales-portal-launchpad', 'directory' => 'salesPortal', 'obs' => 'Launchpad do portal de vendas integrado ao SAP B1.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
             
             // ===== GRUPO 35: RELATÓRIOS DINÂMICOS =====
             ['name'=> 'Listar Relatórios Dinâmicos (Locais)', 'controller' => 'ListDynamicReports', 'controller_url' => 'list-dynamic-reports', 'directory' => 'reports', 'obs' => 'Página para listar relatórios dinâmicos locais criados pelo usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 35],
@@ -911,6 +918,12 @@ class AddAdmsPages extends AbstractSeed
         }
         $lgpdGroupId = (int)$lgpdGroup['id'];
 
+        $portalVendasSapGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Portal de Vendas (SAP)' LIMIT 1");
+        if (!$portalVendasSapGroup) {
+            throw new \Exception("ERRO: O grupo 'Portal de Vendas (SAP)' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages (ou groupsToEnsure).");
+        }
+        $portalVendasSapGroupId = (int) $portalVendasSapGroup['id'];
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -938,6 +951,8 @@ class AddAdmsPages extends AbstractSeed
                     $groupId = $logsGroupId;
                 } elseif ($groupId == 39) {
                     $groupId = $comunicacaoSocialGroupId;
+                } elseif ($groupId == 40) {
+                    $groupId = $portalVendasSapGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
                     // Páginas de Dashboards KPI adicionadas nesta seed usam 0 como placeholder
                     $groupId = $dashboardsKpiGroupId;
@@ -1055,6 +1070,30 @@ class AddAdmsPages extends AbstractSeed
                             WHERE keep_acl.adms_page_id = p.id
                        )"
                 );
+
+                // Portal de Vendas (SAP): páginas privadas sem permissão por defeito.
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET default_page = 0, updated_at = NOW()
+                     WHERE adms_groups_page_id = {$portalVendasSapGroupId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages alp
+                     INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                     SET alp.permission = 0,
+                         alp.updated_at = NOW()
+                     WHERE p.adms_groups_page_id = {$portalVendasSapGroupId}
+                       AND p.public_page = 0
+                       AND NOT EXISTS (
+                            SELECT 1
+                            FROM (
+                                SELECT adms_page_id
+                                FROM adms_access_levels_pages
+                                WHERE permission = 1
+                            ) keep_acl
+                            WHERE keep_acl.adms_page_id = p.id
+                       )"
+                );
             }
         } else {
             echo "ℹ️ AddAdmsPages: sem novas páginas, hardening de ACL/default não executado.\n";
@@ -1086,6 +1125,26 @@ class AddAdmsPages extends AbstractSeed
                      SELECT alp.permission, alp.adms_access_level_id, {$auditPageId}, NOW(), NOW()
                      FROM adms_access_levels_pages alp
                      WHERE alp.adms_page_id = {$listTrainingsPageId}"
+                );
+            }
+        }
+
+        // Matriz de permissões: páginas do Portal de Vendas (SAP) — uma linha por nível (permission = 0 se não existir).
+        if ($this->hasTable('adms_access_levels_pages') && $this->hasTable('adms_access_levels')) {
+            $portalControllers = [
+                'SalesPortalLaunchpad',
+            ];
+            foreach ($portalControllers as $ctrl) {
+                $esc = str_replace("'", "''", $ctrl);
+                $pg = $this->fetchRow("SELECT id FROM adms_pages WHERE controller = '{$esc}' LIMIT 1");
+                $pid = (int) ($pg['id'] ?? 0);
+                if ($pid <= 0) {
+                    continue;
+                }
+                $this->execute(
+                    "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     SELECT 0, al.id, {$pid}, NOW(), NOW()
+                     FROM adms_access_levels al"
                 );
             }
         }

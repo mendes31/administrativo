@@ -8,6 +8,13 @@ Documento de referência para implementação futura. Padrões verificados no c�
 - **Reutilizar**: `LoadPageAdmAccessLevel`, `adms_pages` / seeds, `PageLayoutService`, partials (`head`, menu, alerts, botão log), `SapB1ServiceLayer` + extensão para entidades de vendas, `LogAlteracaoService` / `LogResumoService`, padrão CRM (controllers, views, repositories).
 - **Benefício**: um só deploy, mesmas permissões e auditoria, menos duplicação de identidade e de integração SL.
 
+**Fase 1 (implementada):** launchpad `SalesPortalLaunchpad`, grupo e página em seeds, menu, `LoadPageAdm`, `PageLayoutService`. **Política de acesso:** quem tem permissão no módulo **Portal de Vendas (SAP)** pode operar para **qualquer** parceiro no B1; o `CardCode` vem da escolha no ecrã ou do payload enviado à Service Layer, **sem** tabela local de vínculo utilizador ↔ cliente.
+
+### O que é o `CardCode` no SAP B1
+
+- No **SAP Business One**, cada **cliente** (parceiro de negócio do tipo cliente) tem um código único **`CardCode`**. Cotações, pedidos e documentos de vendas referem esse código.
+- O **administrativo** mantém utilizadores próprios (`adms_users`) com permissões no PHP. A permissão ao módulo do portal **não** restringe a um único PN: em cada fluxo, o utilizador (ou o formulário) indica **para qual** cliente se actua; o backend valida permissão de módulo e chama a SL com o `CardCode` escolhido (ou listado).
+
 ---
 
 ## 1. Decisão de produto (menu)
@@ -28,7 +35,7 @@ Documento de referência para implementação futura. Padrões verificados no c�
 | Nome da classe | PascalCase = ficheiro | `SalesPortalLaunchpad`, `SalesPortalListQuotations`, … |
 | `adms_pages.directory` | Igual ao segmento da pasta | `salesPortal` |
 | `controller_url` | kebab-case | `sales-portal-launchpad`, `sales-portal-list-quotations`, … |
-| Repositories | `app/adms/Models/Repository/` | `SalesPortalUserLinksRepository`, … |
+| Repositories | `app/adms/Models/Repository/` | Serviços/repositórios por domínio (ex.: rascunhos locais se existirem), **não** mapeamento fixo user ↔ PN |
 | Views | `app/adms/Views/sales_portal/` ou `salesPortal/` | Preferir **snake_case de pasta** só se o projeto já misturar — hoje CRM usa `Views/crm/`; usar **`Views/salesPortal/`** alinhado a `companyEvents` (camelCase) |
 
 **Roteador legado** (`routes/LoadPageAdm.php`): acrescentar cada controller em `$listPgPrivate` e `salesPortal` em `$listDirectory` (igual CRM).
@@ -41,19 +48,11 @@ Documento de referência para implementação futura. Padrões verificados no c�
 
 Antes de criar ficheiro, listar `database/migrations/` e escolher timestamp **posterior** ao último existente (ex.: `YYYYMMDDHHMMSS`).
 
-### 3.1 `20XXXXXXXXXXXX_create_sales_portal_user_links.php` (exemplo de nome final a ajustar)
+### 3.1 Tabela `sales_portal_user_links` (removida)
 
-- **Tabela** `sales_portal_user_links` (prefixo sem `adms_` alinhado a `crm_`).
-- Colunas sugeridas:
-  - `id` PK AI UNSIGNED
-  - `adms_user_id` UNSIGNED, **UNIQUE**, FK → `adms_users.id` (`ON DELETE CASCADE` ou `RESTRICT` conforme política; preferir RESTRICT + soft validation)
-  - `sap_card_code` VARCHAR(15) ou tamanho usado no B1, NOT NULL após validação na app
-  - `default_whscode` VARCHAR(8) NULL (depósito padrão B1, se aplicável)
-  - `active` TINYINT(1) DEFAULT 1
-  - `created_by`, `updated_by` UNSIGNED NULL, FK users
-  - `created_at`, `updated_at` TIMESTAMP
-- **Índices**: `UNIQUE(adms_user_id)`, índice em `sap_card_code`, `active`.
-- **Segurança**: `hasTable` + early return no `change()`; sem dados sensíveis em migration; comentários Phinx em colunas.
+- Existiu uma migration inicial que criava `sales_portal_user_links`; foi **descontinuada** em favor da regra «permissão de módulo = todos os parceiros».
+- A migration `RemoveSalesPortalUserPartnerLinks` remove a tabela (se existir), apaga as páginas CRUD associadas em `adms_pages` e as linhas em `adms_access_levels_pages`.
+- **Não** voltar a introduzir vínculo 1:1 utilizador ↔ `CardCode` sem decisão de produto explícita.
 
 ### 3.2 Migrations adicionais (fases)
 
@@ -93,15 +92,15 @@ Antes de criar ficheiro, listar `database/migrations/` e escolher timestamp **po
 
 ## 5. Repositories
 
-- `SalesPortalUserLinksRepository`: `getByUserId`, `getById`, `insert`, `update`, `listForAdmin` (se houver tela de cadastro), validação de `sap_card_code` (trim, comprimento, charset).
-- Toda escrita que altere dados persistidos: chamar `LogAlteracaoService::registrarAlteracao('sales_portal_user_links', $id, …)` em **insert/update/delete**, como em CRM/outros repositórios.
-- Serviços SAP: classes em `Models/Services/` que **não** substituem repositories para dados locais; apenas orquestram `SapB1ServiceLayer`.
+- Dados mestres de clientes e documentos ficam no **B1**; repositórios PHP servem apenas para **cache opcional**, **rascunhos** ou **metadados** do administrativo, com o mesmo padrão de auditoria (`LogAlteracaoService`) quando houver tabelas `sales_portal_*` locais.
+- **Não** usar repositório para impor «CardCode do utilizador logado»; a UI ou o corpo do pedido escolhe o PN dentro do âmbito permitido pelo módulo.
+- Serviços SAP: classes em `Models/Services/` orquestram `SapB1ServiceLayer` sem duplicar login.
 
 ---
 
 ## 6. Controllers
 
-- Espelhar `CrmViewPartner`: validar ID, redirecionar com `$_SESSION['msg']`, carregar dados, `LogResumoService::getResumo` nas telas de **detalhe** de registo local, `PageLayoutService` com `title_head`, `menu` = `controller_url` da listagem ou launchpad, `buttonPermission` = lista de controllers de ações na barra (ex.: `['SalesPortalUpdateUserLink', …]`).
+- Espelhar `CrmViewPartner` onde fizer sentido: validar inputs, redirecionar com `$_SESSION['msg']`, `PageLayoutService` com `title_head`, `menu` = `controller_url` da listagem ou launchpad, `buttonPermission` = controllers de ações **da mesma página** (listar/editar/apagar documento ou rascunho).
 - **CSRF**: onde houver POST, usar o mesmo helper/padrão já usado no CRM (`CSRFHelper` ou equivalente do módulo).
 - **Permissões**: não contornar `LoadPageAdmAccessLevel`; páginas devem existir em `adms_pages`.
 
@@ -120,10 +119,10 @@ Antes de criar ficheiro, listar `database/migrations/` e escolher timestamp **po
 
 | Ficheiro / peça | Ação |
 |-----------------|------|
-| `LogAlteracaoService` | Chamadas nos writes do `SalesPortalUserLinksRepository` (e outras tabelas `sales_portal_*`). |
-| `ListLogAlteracoes::getLinkRegistro` | Novos `case 'sales_portal_user_links':` → `return URL_ADM . 'sales-portal-view-user-link/' . $objetoId;` (ajustar URL à página real de visualização). |
-| Views de visualização | Definir `$this->data['log_resumo'] = LogResumoService::getResumo('sales_portal_user_links', $id, $returnUrl);` |
-| Partial | `include ... button_log_alteracoes.php` com `$log_resumo` e `$log_btn_class` (igual `crm/partners/view.php`). |
+| `LogAlteracaoService` | Chamadas nos writes de qualquer tabela `sales_portal_*` local (rascunhos, etc.). |
+| `ListLogAlteracoes::getLinkRegistro` | Um `case` por tabela com URL de visualização no administrativo. |
+| Views de visualização | `LogResumoService::getResumo('<tabela>', $id, $returnUrl)` quando aplicável. |
+| Partial | `button_log_alteracoes.php` como no CRM. |
 
 ---
 
@@ -144,12 +143,10 @@ Antes de criar ficheiro, listar `database/migrations/` e escolher timestamp **po
 
 ## 11. Ordem de implementação sugerida
 
-1. Migration `sales_portal_user_links` + repository + log + tela admin “vínculo usuário ↔ CardCode” (valida stack MVC).
-2. Seed grupo + páginas + ACL fechada + `LoadPageAdm` + menu.
-3. `ListLogAlteracoes` + partial nas views.
-4. Estender `SapB1ServiceLayer` (ou serviço novo) para leituras: itens, estoque, PN.
-5. Telas launchpad + listagens leitura (histórico / financeiro consultivo).
-6. Fluxos de escrita B1 (cotação/pedido) com tratamento de erro SL e mensagens ao utilizador.
+1. Seed grupo + páginas + ACL + `LoadPageAdm` + menu + launchpad (valida stack MVC).
+2. Estender `SapB1ServiceLayer` (ou serviço novo) para leituras: PN, itens, estoque, documentos.
+3. Telas com **seleção de parceiro** (lista/search `CardCode`) e fluxos de escrita B1 (`Orders`, `Quotations`, …) com tratamento de erro SL.
+4. `ListLogAlteracoes` + partials nas views que persistirem dados locais.
 
 ---
 
@@ -175,3 +172,4 @@ Antes de criar ficheiro, listar `database/migrations/` e escolher timestamp **po
 - Seed páginas + grupo dinâmico: `database/seeds/AddAdmsPages.php` (linhas ~882–944)
 - Migration CRM exemplo: `database/migrations/20251028100000_create_crm_partners.php`
 - Service Layer: `app/adms/Models/Services/SapB1ServiceLayer.php`
+- Remoção do vínculo user–PN: `database/migrations/20260513150000_remove_sales_portal_user_partner_links.php`

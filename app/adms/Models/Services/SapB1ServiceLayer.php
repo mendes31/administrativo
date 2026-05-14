@@ -1,28 +1,76 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\adms\Models\Services;
 
+use App\adms\Models\Repository\AdmsSapServiceLayerConnectionRepository;
+
 /**
- * SAP Business One Service Layer Client
- * 
- * Conecta ao SAP B1 via Service Layer (REST API) para executar queries
+ * SAP Business One Service Layer — cliente **directo** ao endpoint OData (b1s/v1).
+ *
+ * No desenho actual do administrativo, o fluxo preferido é: PHP → **API gateway** → Service Layer
+ * (ver `SapGatewayHttpClient` e a tela «API SAP (integração)»). Mantém-se esta classe para
+ * cenários em que o mesmo host exponha o Login SL ou para scripts técnicos pontuais.
  */
 class SapB1ServiceLayer
 {
-    private string $baseUrl;
-    private string $username;
-    private string $password;
-    private string $companyDB;
+    private string $baseUrl = '';
+
+    private string $username = '';
+
+    private string $password = '';
+
+    private string $companyDB = '';
+
+    private ?int $connectionId = null;
+
     private ?string $sessionId = null;
+
     private ?string $routeId = null;
+
     private array $cookies = [];
-    
-    public function __construct()
+
+    public function __construct(?int $connectionId = null)
     {
-        $this->baseUrl = $_ENV['SAP_SL_URL'] ?? '';
-        $this->username = $_ENV['SAP_SL_USERNAME'] ?? '';
-        $this->password = $_ENV['SAP_SL_PASSWORD'] ?? '';
-        $this->companyDB = $_ENV['SAP_SL_COMPANY'] ?? '';
+        $this->connectionId = $connectionId;
+        $repo = new AdmsSapServiceLayerConnectionRepository();
+        $row = $connectionId !== null && $connectionId > 0
+            ? $repo->getById($connectionId)
+            : $repo->getDefaultOrFirstActive();
+
+        if (!$row || empty($row['is_active'])) {
+            return;
+        }
+
+        $this->baseUrl = rtrim((string) ($row['base_url'] ?? ''), '/');
+        $this->username = (string) ($row['username'] ?? '');
+        $this->password = (string) ($row['password'] ?? '');
+        $this->companyDB = (string) ($row['company_db'] ?? '');
+        $this->connectionId = (int) ($row['id'] ?? 0) ?: null;
+
+        $baseLower = strtolower($this->baseUrl);
+        $looksLikeServiceLayer = str_contains($baseLower, 'b1s');
+        if (!$looksLikeServiceLayer) {
+            $this->baseUrl = '';
+            $this->username = '';
+            $this->password = '';
+            $this->companyDB = '';
+            $this->connectionId = null;
+        }
+    }
+
+    public function getConnectionId(): ?int
+    {
+        return $this->connectionId;
+    }
+
+    public function hasCredentials(): bool
+    {
+        return $this->baseUrl !== ''
+            && $this->companyDB !== ''
+            && $this->username !== ''
+            && $this->password !== '';
     }
     
     /**
@@ -199,62 +247,154 @@ class SapB1ServiceLayer
         
         return $this->makeRequest($url, 'GET');
     }
-    
+
     /**
-     * Fazer requisição genérica
+     * POST JSON num recurso OData (ex.: Orders, Quotations, Invoices).
+     * Trata 201 Created e devolve mensagem de erro da Service Layer quando possível.
+     *
+     * @param string $resourcePath segmento após a base, sem barra inicial (ex.: "Orders")
+     * @param array<string, mixed> $body
+     * @return array{success: bool, http_code?: int, data?: mixed, error?: string, raw?: string}
+     */
+    public function postResource(string $resourcePath, array $body): array
+    {
+        if (empty($this->sessionId) && !$this->login()) {
+            return ['success' => false, 'error' => 'Conexão falhou'];
+        }
+
+        $path = ltrim($resourcePath, '/');
+        $url = rtrim($this->baseUrl, '/') . '/' . $path;
+
+        return $this->performJsonRequest($url, 'POST', $body);
+    }
+
+    /**
+     * Fazer requisição genérica (GET / POST simples)
      */
     private function makeRequest(string $url, string $method = 'GET', ?array $data = null): array
     {
+        $out = $this->performJsonRequest($url, $method, $data);
+        if (!$out['success']) {
+            return [
+                'success' => false,
+                'error' => $out['error'] ?? 'Erro na requisição',
+            ];
+        }
+
+        $result = $out['data'];
+        if (!is_array($result)) {
+            return [
+                'success' => true,
+                'data' => $result,
+                'rows_count' => 1,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'data' => $result['value'] ?? $result,
+            'rows_count' => isset($result['value']) && is_array($result['value']) ? count($result['value']) : 1,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $data
+     * @return array{success: bool, http_code?: int, data?: mixed, error?: string, raw?: string}
+     */
+    private function performJsonRequest(string $url, string $method, ?array $data): array
+    {
         try {
             $ch = curl_init($url);
-            
+
             $headers = [
                 'Content-Type: application/json',
                 'Accept: application/json',
-                'Cookie: B1SESSION=' . $this->sessionId . '; ROUTEID=' . $this->routeId
+                'Cookie: B1SESSION=' . $this->sessionId . '; ROUTEID=' . $this->routeId,
             ];
-            
+
             $options = [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false
+                CURLOPT_SSL_VERIFYHOST => false,
             ];
-            
+
+            $method = strtoupper($method);
             if ($method === 'POST') {
                 $options[CURLOPT_POST] = true;
-                if ($data) {
-                    $options[CURLOPT_POSTFIELDS] = json_encode($data);
+                if ($data !== null) {
+                    $options[CURLOPT_POSTFIELDS] = json_encode($data, JSON_THROW_ON_ERROR);
+                }
+            } elseif ($method !== 'GET') {
+                $options[CURLOPT_CUSTOMREQUEST] = $method;
+                if ($data !== null) {
+                    $options[CURLOPT_POSTFIELDS] = json_encode($data, JSON_THROW_ON_ERROR);
                 }
             }
-            
+
             curl_setopt_array($ch, $options);
-            
+
             $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            
-            if ($httpCode !== 200) {
+
+            $decoded = null;
+            if (is_string($response) && $response !== '') {
+                try {
+                    $decoded = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+                } catch (\JsonException) {
+                    $decoded = null;
+                }
+            }
+
+            $ok = $httpCode >= 200 && $httpCode < 300;
+            if ($ok) {
                 return [
-                    'success' => false,
-                    'error' => "HTTP $httpCode"
+                    'success' => true,
+                    'http_code' => $httpCode,
+                    'data' => $decoded,
+                    'raw' => is_string($response) ? $response : '',
                 ];
             }
-            
-            $result = json_decode($response, true);
-            
+
+            $err = self::extractSlErrorMessage($decoded) ?? "HTTP $httpCode";
+
             return [
-                'success' => true,
-                'data' => $result['value'] ?? $result,
-                'rows_count' => isset($result['value']) ? count($result['value']) : 1
+                'success' => false,
+                'http_code' => $httpCode,
+                'error' => $err,
+                'data' => $decoded,
+                'raw' => is_string($response) ? $response : '',
             ];
-            
+        } catch (\JsonException $e) {
+            return [
+                'success' => false,
+                'error' => 'JSON inválido: ' . $e->getMessage(),
+            ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * @param mixed $decoded
+     */
+    private static function extractSlErrorMessage($decoded): ?string
+    {
+        if (!is_array($decoded)) {
+            return null;
+        }
+        if (isset($decoded['error']['message']['value']) && is_string($decoded['error']['message']['value'])) {
+            return $decoded['error']['message']['value'];
+        }
+        if (isset($decoded['error']['message']) && is_string($decoded['error']['message'])) {
+            return $decoded['error']['message'];
+        }
+
+        return null;
     }
     
     /**

@@ -284,6 +284,10 @@ class PageLayoutService
             'SapApiConfig',
             'SaveSapApiConfig',
             'TestSapApiConfig',
+            'SapServiceLayerConnections',
+            'SaveSapServiceLayerConnection',
+            'DeleteSapServiceLayerConnection',
+            'TestSapServiceLayerConnection',
             'McpApiConfig',
             'SaveMcpApiConfig',
             'WhatsAppConfig',
@@ -380,6 +384,8 @@ class PageLayoutService
             // Dashboard de Vendas SAP B1
             'SalesDashboard',
             'SalesDashboardData',
+            // Portal de Vendas (SAP B1)
+            'SalesPortalLaunchpad',
             // Dashboards Personalizados
             'ListDashboards',
             'CreateDashboard',

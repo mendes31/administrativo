@@ -50,6 +50,12 @@ $menus = [
                             'icon' => 'fas fa-link'
                         ],
                         [
+                            'label' => 'API SAP (integração)',
+                            'url' => $_ENV['URL_ADM'] . 'sap-service-layer-connections',
+                            'permission' => 'SapServiceLayerConnections',
+                            'icon' => 'fas fa-cloud'
+                        ],
+                        [
                             'label' => 'Configuração API MCP',
                             'url' => $_ENV['URL_ADM'] . 'mcp-api-config',
                             'permission' => 'McpApiConfig',
@@ -1047,6 +1053,14 @@ $menus = [
         ]
     ],
     
+    [
+        'id' => 'portal-vendas-sap',
+        'icon' => 'fa-solid fa-store',
+        'label' => 'Portal de Vendas (SAP)',
+        'url' => $_ENV['URL_ADM'] . 'sales-portal-launchpad',
+        'permission' => 'SalesPortalLaunchpad',
+        'submenu' => [],
+    ],
     [
         'id' => 'relatorios',
         'icon' => 'fa-solid fa-chart-line',
