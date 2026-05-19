@@ -40,37 +40,15 @@ class ButtonPermissionUserRepository extends DbConnection
             return $button;
         }
 
-        // Regra normal para outros usuários
-        // Criar uma string de placeholders do mesmo tamanho do array de controllers
-        $placeholders = implode(', ', array_fill(0, count($button), '?'));
+        // Reutiliza cache de controllers permitidos (mesma fonte do menu)
+        $allowedSet = array_flip((new MenuPermissionUserRepository())->getAllowedControllersForUser());
+        $out = [];
+        foreach ($button as $controller) {
+            if (isset($allowedSet[$controller])) {
+                $out[] = $controller;
+            }
+        }
 
-        //QUERY para verificar a permissão do usuário em relação às páginas
-        $sql = "SELECT
-                    ap.controller
-                FROM 
-                    adms_users_access_levels AS aual
-                LEFT JOIN
-                    adms_access_levels_pages AS alp ON alp.adms_access_level_id = aual.adms_access_level_id
-                LEFT JOIN 
-                    adms_pages AS ap ON ap.id = alp.adms_page_id
-                WHERE 
-                    aual.adms_user_id = ?
-                    AND ap.controller IN ($placeholders)
-                    AND alp.permission = 1";
-
-        // Preparar a QUERY
-        $stmt = $this->getConnection()->prepare($sql);
-
-        // Combinar o valor do 'user_id' com o array de botões (controllers)
-        $params = array_merge([$_SESSION['user_id']], $button);
-
-        // Executar a QUERY com os parâmetros
-        $stmt->execute($params);
-
-        // Ler os registros
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Retornar apenas os valores de 'controller' como array simples
-        return $result ? array_column($result, 'controller') : [];
+        return $out;
     }
 }

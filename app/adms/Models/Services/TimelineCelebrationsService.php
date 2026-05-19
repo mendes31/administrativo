@@ -18,6 +18,20 @@ class TimelineCelebrationsService
      */
     public static function ensureTodayPostsCreated(): void
     {
+        $today = date('Y-m-d');
+        if (($_SESSION['timeline_celebrations_ran'] ?? '') === $today) {
+            return;
+        }
+
+        $flagDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'system';
+        $flagFile = $flagDir . DIRECTORY_SEPARATOR . 'timeline_celebrations_' . $today . '.flag';
+        if (is_file($flagFile)) {
+            $_SESSION['timeline_celebrations_ran'] = $today;
+
+            return;
+        }
+
         $usersRepo = new UsersRepository();
         $timelineRepo = new TimelineRepository();
         $institutionalUserId = self::resolveInstitutionalUserId($usersRepo);
@@ -36,9 +50,7 @@ class TimelineCelebrationsService
 
         if ($birthdaysToday !== []) {
             // Se já existir um post institucional de aniversário hoje, não cria outro.
-            if (self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '👏 Parabéns para:')) {
-                return;
-            }
+            if (!self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '👏 Parabéns para:')) {
             $lines = [];
             $birthdayUserIds = [];
             foreach ($birthdaysToday as $item) {
@@ -58,10 +70,11 @@ class TimelineCelebrationsService
             $footer .= "🚀 Que este novo ciclo venha com ainda mais sucesso!";
             $content = $intro . $bulletList . $footer;
 
-            if ($institutionalUserId > 0) {
-                $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
-                if ($postId > 0 && $birthdayUserIds !== []) {
-                    $timelineRepo->replaceMentions('post', $postId, $birthdayUserIds);
+                if ($institutionalUserId > 0) {
+                    $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                    if ($postId > 0 && $birthdayUserIds !== []) {
+                        $timelineRepo->replaceMentions('post', $postId, $birthdayUserIds);
+                    }
                 }
             }
         }
@@ -114,17 +127,20 @@ class TimelineCelebrationsService
             $footer = "\n\n💚 Valeu demais pela parceria, dedicação e por fazerem parte do time!\n\n🚀 Bora pra mais anos juntos!";
             $content = $intro . $bulletList . $footer;
 
-            if ($institutionalUserId > 0) {
-                // Se já existir um post institucional de tempo de empresa hoje, não cria outro.
-                if (self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '🔥 Tempo de empresa:')) {
-                    return;
-                }
+            if ($institutionalUserId > 0
+                && !self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '🔥 Tempo de empresa:')) {
                 $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
                 if ($postId > 0 && $tenureUserIds !== []) {
                     $timelineRepo->replaceMentions('post', $postId, $tenureUserIds);
                 }
             }
         }
+
+        if (!is_dir($flagDir)) {
+            @mkdir($flagDir, 0775, true);
+        }
+        @touch($flagFile);
+        $_SESSION['timeline_celebrations_ran'] = $today;
     }
 
     /**

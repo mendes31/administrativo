@@ -111,6 +111,9 @@ class ValidationUserLogin
                 $_SESSION['user_position'] = $pos_name;
                 $_SESSION['user_access_level_id'] = $user_access_level_id;
                 $_SESSION['user_super_usuario'] = !empty($super_usuario) ? 1 : 0;
+                $levelsRepo = new \App\adms\Models\Repository\UsersAccessLevelsRepository();
+                $_SESSION['adms_user_access_level_ids'] = $levelsRepo->getUserAccessLevelArray((int) $id) ?: [];
+                (new \App\adms\Models\Repository\MenuPermissionUserRepository())->warmSessionCache((int) $id);
                 // Limpar mensagem de erro da sessão após login bem-sucedido
                 unset($_SESSION['error']);
                 // Log temporário para depuração de sessões

@@ -71,20 +71,22 @@ final class TimelineFeedEnricher
         }
         unset($p);
 
-        $mentionIds = [];
+        $mentionIds = TimelineMentionHelper::collectMentionIdsFromPosts($posts, $userRepo);
         foreach ($posts as $p) {
-            $mentionIds = array_merge(
-                $mentionIds,
-                TimelineMentionHelper::extractMentionedUserIds((string)($p['content'] ?? ''), $userRepo, null, false)
-            );
+            $shared = $p['shared_post'] ?? null;
+            if (is_array($shared)) {
+                $mentionIds = array_values(array_unique(array_merge(
+                    $mentionIds,
+                    TimelineMentionHelper::collectMentionIdsFromPosts([$shared], $userRepo)
+                )));
+            }
         }
-        $mentionIds = array_values(array_unique($mentionIds));
         $mentionNameMap = $userRepo->getIdNameMapForIds($mentionIds);
 
         $postIds = array_map(static fn ($p) => (int)($p['id'] ?? 0), $posts);
         $reactionMap = $repo->getUserReactionMap($viewerUserId, $postIds);
         $reactionSummaries = $repo->getReactionSummariesByPostIds($postIds);
-        $pollMap = $repo->getPollsByPostIds($postIds, $viewerUserId);
+        $pollMap = $repo->getPollsByPostIds($postIds, $viewerUserId, false);
 
         return [
             'posts' => $posts,

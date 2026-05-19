@@ -538,11 +538,14 @@ class PageLayoutService
             return array_merge($data, ['menuPermission' => []]);
         }
 
-        // Verificar se o usuário tem o nível de acesso Super Administrador.
-        // Nível de acesso Super Administrador tem acesso a todos os botões, não precisa validar as permissões no banco de dados
-        $usersAccessLevels = new UsersAccessLevelsRepository();
-        $userAccessLevelsArray = $usersAccessLevels->getUserAccessLevelArray($_SESSION['user_id']);
-        $userAccessLevelsArray = $userAccessLevelsArray ? $userAccessLevelsArray : [];
+        // Níveis de acesso do usuário (cache em sessão — evita query em toda navegação)
+        $userAccessLevelsArray = $_SESSION['adms_user_access_level_ids'] ?? null;
+        if (!is_array($userAccessLevelsArray)) {
+            $usersAccessLevels = new UsersAccessLevelsRepository();
+            $userAccessLevelsArray = $usersAccessLevels->getUserAccessLevelArray((int) $_SESSION['user_id']);
+            $userAccessLevelsArray = $userAccessLevelsArray ? $userAccessLevelsArray : [];
+            $_SESSION['adms_user_access_level_ids'] = $userAccessLevelsArray;
+        }
         if (in_array(1, $userAccessLevelsArray, true)) {
             // Super Administrador tem acesso a todos os botões solicitados
             // Garantir que o array de buttonPermission seja retornado completo (não vazio)

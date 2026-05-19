@@ -1,16 +1,18 @@
 <?php
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
-$policyId = null;
-try {
-    $repo = new AdmsPasswordPolicyRepository();
-    $policy = $repo->getPolicy();
-    if ($policy && isset($policy->id)) {
-        $policyId = $policy->id;
+
+static $admsMenuPasswordPolicyId = null;
+if ($admsMenuPasswordPolicyId === null) {
+    try {
+        $repo = new AdmsPasswordPolicyRepository();
+        $policy = $repo->getPolicy();
+        $admsMenuPasswordPolicyId = ($policy && isset($policy->id)) ? $policy->id : null;
+    } catch (\Throwable $e) {
+        $admsMenuPasswordPolicyId = null;
     }
-} catch (\Throwable $e) {
-    $policyId = null;
 }
+$policyId = $admsMenuPasswordPolicyId;
 
 $menus = [
     [

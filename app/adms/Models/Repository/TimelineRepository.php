@@ -249,9 +249,7 @@ class TimelineRepository extends DbConnection
         if (mb_strlen($searchQuery) > 200) {
             $searchQuery = mb_substr($searchQuery, 0, 200);
         }
-        $sql = 'SELECT p.*, u.name AS author_name, u.image AS author_image,
-                       (SELECT COUNT(*) FROM adms_timeline_likes l WHERE l.post_id = p.id) AS likes_count,
-                       (SELECT COUNT(*) FROM adms_timeline_comments c WHERE c.post_id = p.id AND c.status = "active") AS comments_count
+        $sql = 'SELECT p.*, u.name AS author_name, u.image AS author_image
                 FROM adms_timeline_posts p
                 INNER JOIN adms_users u ON u.id = p.user_id
                 WHERE p.status = "active"';
@@ -279,7 +277,9 @@ class TimelineRepository extends DbConnection
         $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $posts = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $this->attachEngagementCounts($posts);
     }
 
     /**
@@ -297,9 +297,7 @@ class TimelineRepository extends DbConnection
         }
         $page = max(1, $page);
         $offset = ($page - 1) * $perPage;
-        $sql = 'SELECT p.*, u.name AS author_name, u.image AS author_image,
-                       (SELECT COUNT(*) FROM adms_timeline_likes l WHERE l.post_id = p.id) AS likes_count,
-                       (SELECT COUNT(*) FROM adms_timeline_comments c WHERE c.post_id = p.id AND c.status = "active") AS comments_count
+        $sql = 'SELECT p.*, u.name AS author_name, u.image AS author_image
                 FROM adms_timeline_posts p
                 INNER JOIN adms_users u ON u.id = p.user_id
                 LEFT JOIN adms_timeline_mentions m 
@@ -315,7 +313,59 @@ class TimelineRepository extends DbConnection
         $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $posts = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $this->attachEngagementCounts($posts);
+    }
+
+    /**
+     * Contagens de curtidas/comentários em lote (evita subqueries correlacionadas por post).
+     *
+     * @param array<int, array<string, mixed>> $posts
+     * @return array<int, array<string, mixed>>
+     */
+    public function attachEngagementCounts(array $posts): array
+    {
+        if ($posts === []) {
+            return [];
+        }
+
+        $postIds = array_values(array_unique(array_filter(
+            array_map(static fn ($p) => (int) ($p['id'] ?? 0), $posts),
+            static fn ($id) => $id > 0
+        )));
+        if ($postIds === []) {
+            return $posts;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+        $likesMap = [];
+        $stmtLikes = $this->getConnection()->prepare(
+            "SELECT post_id, COUNT(*) AS c FROM adms_timeline_likes WHERE post_id IN ($placeholders) GROUP BY post_id"
+        );
+        $stmtLikes->execute($postIds);
+        while ($row = $stmtLikes->fetch(PDO::FETCH_ASSOC)) {
+            $likesMap[(int) ($row['post_id'] ?? 0)] = (int) ($row['c'] ?? 0);
+        }
+
+        $commentsMap = [];
+        $stmtComments = $this->getConnection()->prepare(
+            "SELECT post_id, COUNT(*) AS c FROM adms_timeline_comments
+             WHERE post_id IN ($placeholders) AND status = 'active' GROUP BY post_id"
+        );
+        $stmtComments->execute($postIds);
+        while ($row = $stmtComments->fetch(PDO::FETCH_ASSOC)) {
+            $commentsMap[(int) ($row['post_id'] ?? 0)] = (int) ($row['c'] ?? 0);
+        }
+
+        foreach ($posts as &$post) {
+            $pid = (int) ($post['id'] ?? 0);
+            $post['likes_count'] = $likesMap[$pid] ?? 0;
+            $post['comments_count'] = $commentsMap[$pid] ?? 0;
+        }
+        unset($post);
+
+        return $posts;
     }
 
     public function countActivePostsByUserId(int $userId): int
@@ -945,7 +995,7 @@ class TimelineRepository extends DbConnection
      * @param array<int> $postIds
      * @return array<int, array<string, mixed>>
      */
-    public function getPollsByPostIds(array $postIds, int $currentUserId = 0): array
+    public function getPollsByPostIds(array $postIds, int $currentUserId = 0, bool $includeVoterDetails = true): array
     {
         $postIds = array_values(array_unique(array_filter(array_map('intval', $postIds), static fn ($v) => $v > 0)));
         if ($postIds === []) {
@@ -1008,25 +1058,33 @@ class TimelineRepository extends DbConnection
             $countByOption[(int)($r['option_id'] ?? 0)] = (int)($r['c'] ?? 0);
         }
 
-        $votersStmt = $this->getConnection()->prepare(
-            "SELECT v.option_id, u.id AS user_id, u.name, u.username
-             FROM adms_timeline_poll_votes v
-             INNER JOIN adms_users u ON u.id = v.user_id
-             WHERE v.poll_id IN ($pl)
-             ORDER BY v.option_id ASC, v.created_at ASC"
-        );
-        $votersStmt->execute($pollIds);
         $votersByOption = [];
-        while ($r = $votersStmt->fetch(PDO::FETCH_ASSOC)) {
-            $oid = (int)($r['option_id'] ?? 0);
-            if ($oid <= 0) {
-                continue;
+        if ($includeVoterDetails) {
+            $votersStmt = $this->getConnection()->prepare(
+                "SELECT v.option_id, u.id AS user_id, u.name, u.username
+                 FROM adms_timeline_poll_votes v
+                 INNER JOIN adms_users u ON u.id = v.user_id
+                 WHERE v.poll_id IN ($pl)
+                 ORDER BY v.option_id ASC, v.created_at ASC"
+            );
+            $votersStmt->execute($pollIds);
+            while ($r = $votersStmt->fetch(PDO::FETCH_ASSOC)) {
+                $oid = (int)($r['option_id'] ?? 0);
+                if ($oid <= 0) {
+                    continue;
+                }
+                if (!isset($votersByOption[$oid])) {
+                    $votersByOption[$oid] = [];
+                }
+                if (count($votersByOption[$oid]) >= 30) {
+                    continue;
+                }
+                $votersByOption[$oid][] = [
+                    'user_id' => (int)($r['user_id'] ?? 0),
+                    'name' => (string)($r['name'] ?? ''),
+                    'username' => (string)($r['username'] ?? ''),
+                ];
             }
-            $votersByOption[$oid][] = [
-                'user_id' => (int)($r['user_id'] ?? 0),
-                'name' => (string)($r['name'] ?? ''),
-                'username' => (string)($r['username'] ?? ''),
-            ];
         }
 
         $voteByPoll = [];

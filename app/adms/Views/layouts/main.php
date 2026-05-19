@@ -159,95 +159,11 @@ if (!isset($_SESSION['session_id']) || $_SESSION['session_id'] !== session_id())
 $limite = 1800;
 $lockOffsetMinutes = 1;
 
-// Checagem de sessÃ£o invalidada
-if (isset($_SESSION['user_id']) && isset($_SESSION['session_id'])) {
-    $sessionRepo = new \App\adms\Models\Repository\AdmsSessionsRepository();
-    $sess = $sessionRepo->getSessionByUserIdAndSessionId($_SESSION['user_id'], session_id());
-    
-    $motivos = [];
-    
-    // 1) Validação básica: sessão precisa existir e estar com status 'ativa'
-    if (!$sess) {
-        $motivos[] = 'SessÃ£o nÃ£o encontrada no banco';
-    } elseif (($sess['status'] ?? null) !== 'ativa') {
-        $motivos[] = 'SessÃ£o inativa';
-    }
-    
-    if (!empty($motivos)) {
-        $msg = implode(' e ', $motivos) . '! Contate o Administrador do sistema.';
-        @file_put_contents(__DIR__ . '/../../logs/session_investigar.log',
-            date('Y-m-d H:i:s') . ' [main] QUEDA SESSAO BASICA user_id=' . ($_SESSION['user_id'] ?? 'null') .
-            ' php_session_id=' . session_id() .
-            ' motivos=' . implode(', ', $motivos) .
-            ' sessRow=' . json_encode($sess) .
-            ' url=' . ($_SERVER['REQUEST_URI'] ?? 'null') . PHP_EOL,
-            FILE_APPEND
-        );
-        file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
-            date('Y-m-d H:i:s') . ' - [main] QUEDA DE SESSÃƒO (bÃ¡sica) - user_id: ' . ($_SESSION['user_id'] ?? 'null') . 
-            ' | session_id(): ' . session_id() . 
-            ' | Motivos: ' . implode(', ', $motivos) . 
-            ' | Status da sessÃ£o: ' . ($sess['status'] ?? 'null') . 
-            ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') . 
-            ' | GET: ' . json_encode($_GET) . "\n",
-            FILE_APPEND
-        );
-        
-        // Limpar sessão e cookie
-        $_SESSION = [];
-        if (ini_get('session.use_cookies')) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params['path'], $params['domain'],
-                $params['secure'], $params['httponly']
-            );
-        }
-        
-        if (!strpos($_SERVER['REQUEST_URI'] ?? '', 'login')) {
-            header("Location: {$_ENV['URL_ADM']}login?msg=" . urlencode($msg));
-            exit;
-        }
-    }
-    
-    // 2) Política de expiração por tempo (servidor é a fonte da verdade)
-    $policyRepo = new \App\adms\Models\Repository\AdmsPasswordPolicyRepository();
-    $policy = $policyRepo->getPolicy();
-    $expirarPorTempo = ($policy && isset($policy->expirar_sessao_por_tempo) && $policy->expirar_sessao_por_tempo === 'Sim');
-    $limite = ($policy && isset($policy->tempo_expiracao_sessao)) ? ((int)$policy->tempo_expiracao_sessao * 60) : 1800;
-    $lockOffsetMinutes = ($policy && isset($policy->tempo_bloqueio_tela)) ? (int)$policy->tempo_bloqueio_tela : 1;
-    
-    if ($expirarPorTempo && $sess) {
-        $agora = time();
-        $ultimaAtividade = strtotime($sess['updated_at'] ?? $sess['created_at'] ?? 'now');
-        $decorrido = $agora - $ultimaAtividade;
-        
-        if ($decorrido > $limite) {
-            file_put_contents(__DIR__ . '/../../logs/session_debug2.log',
-                date('Y-m-d H:i:s') . ' - [main] EXPIRAÃ‡ÃƒO POR TEMPO - user_id: ' . ($_SESSION['user_id'] ?? 'null') . 
-                ' | session_id(): ' . session_id() . 
-                ' | Tempo limite: ' . $limite . 's' .
-                ' | Tempo decorrido: ' . $decorrido . 's' .
-                ' | URL: ' . ($_SERVER['REQUEST_URI'] ?? 'null') . "\n",
-                FILE_APPEND
-            );
-            
-            // Invalida sessão no banco e limpa sessão em memória
-            $sessionRepo->invalidateSessionByUserIdAndSessionId((int)$_SESSION['user_id'], (string)$_SESSION['session_id']);
-            $_SESSION = [];
-            if (ini_get('session.use_cookies')) {
-                $params = session_get_cookie_params();
-                setcookie(session_name(), '', time() - 42000,
-                    $params['path'], $params['domain'],
-                    $params['secure'], $params['httponly']
-                );
-            }
-            header('Location: ' . $_ENV['URL_ADM'] . 'login?error=' . urlencode('Sua sessÃ£o expirou por inatividade. FaÃ§a login novamente.'));
-            exit;
-        }
-    }
-    
-    // 3) Sessão válida: atualizar atividade
-    $sessionRepo->updateSessionActivity((int)$_SESSION['user_id'], (string)$_SESSION['session_id']);
+// Validação de sessão + heartbeat (cache leve — evita SELECT/UPDATE em toda navegação)
+if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
+    $sessionLayout = \App\adms\Helpers\AdmsLayoutSessionHelper::validateAndTouchSession();
+    $limite = (int) ($sessionLayout['limite'] ?? 1800);
+    $lockOffsetMinutes = (int) ($sessionLayout['lock_offset_minutes'] ?? 1);
 }
 
 // Log temporÃ¡rio desativado no servidor (evita erro quando sem diretÃ³rio logs)

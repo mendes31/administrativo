@@ -21,6 +21,44 @@ final class TimelineMentionHelper
      * @param bool $expandGroupMentions Quando false, @todos, @everyone e @depto-id não geram lista de IDs (ex.: mapa na view).
      * @return array<int>
      */
+    /**
+     * Extrai IDs de menções de vários posts em lote (1 query de usernames).
+     *
+     * @param array<int, array<string, mixed>> $posts
+     * @return array<int>
+     */
+    public static function collectMentionIdsFromPosts(array $posts, UsersRepository $repo): array
+    {
+        $ids = [];
+        $usernames = [];
+
+        foreach ($posts as $post) {
+            $text = (string) ($post['content'] ?? '');
+            if (preg_match_all('/@(\d+)/u', $text, $numeric)) {
+                foreach ($numeric[1] as $d) {
+                    $ids[] = (int) $d;
+                }
+            }
+            if (preg_match_all('/@([a-zA-Z0-9._-]+)/u', $text, $named)) {
+                foreach ($named[1] as $tok) {
+                    if (!ctype_digit($tok)) {
+                        $usernames[] = $tok;
+                    }
+                }
+            }
+        }
+
+        $usernames = array_values(array_unique($usernames));
+        if ($usernames !== []) {
+            $map = $repo->getActiveUsersByUsernames($usernames);
+            foreach ($map as $row) {
+                $ids[] = (int) ($row['id'] ?? 0);
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids, static fn ($v) => $v > 0)));
+    }
+
     public static function extractMentionedUserIds(
         string $text,
         UsersRepository $repo,

@@ -230,8 +230,10 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
             <?php endif; ?>
             <?php if (!empty($postRow['video_path'])): ?>
                 <div class="mb-2 mx-n3">
-                    <video class="timeline-post-media w-100 rounded" controls playsinline preload="metadata"
-                           src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo \App\adms\Helpers\ImageHelper::encodePathForServeFile((string)$postRow['video_path']); ?>"></video>
+                    <video class="timeline-post-media timeline-post-video-lazy w-100 rounded"
+                           controls playsinline preload="none"
+                           data-src="<?php echo htmlspecialchars($urlAdm); ?>serve-file?path=<?php echo \App\adms\Helpers\ImageHelper::encodePathForServeFile((string)$postRow['video_path']); ?>"
+                           aria-label="Vídeo da publicação"></video>
                 </div>
             <?php elseif (!empty($imgs)): ?>
                 <div class="mb-2 mx-n3">

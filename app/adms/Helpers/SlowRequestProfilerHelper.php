@@ -7,6 +7,9 @@ use App\adms\Models\Repository\AdmsSlowRequestProfileRepository;
 
 final class SlowRequestProfilerHelper
 {
+    /** @var array{enabled: bool, threshold_ms: int, retention_days: int}|null */
+    private static ?array $profilerConfig = null;
+
     public static function registerRequestStart(): void
     {
         if (!defined('ADMS_REQUEST_START_TS')) {
@@ -28,8 +31,8 @@ final class SlowRequestProfilerHelper
                 return;
             }
 
-            $repo = new AdmsLogSettingsRepository();
-            if (!$repo->isSlowProfilerEnabled()) {
+            $config = self::getProfilerConfig();
+            if (!$config['enabled']) {
                 return;
             }
 
@@ -40,8 +43,7 @@ final class SlowRequestProfilerHelper
             }
 
             $durationMs = (int)round((microtime(true) - ADMS_REQUEST_START_TS) * 1000);
-            $thresholdMs = $repo->getSlowProfilerThresholdMs();
-            if ($durationMs < $thresholdMs) {
+            if ($durationMs < $config['threshold_ms']) {
                 return;
             }
 
@@ -49,7 +51,7 @@ final class SlowRequestProfilerHelper
                 'uri' => $uri,
                 'method' => $method,
                 'duration_ms' => $durationMs,
-                'threshold_ms' => $thresholdMs,
+                'threshold_ms' => $config['threshold_ms'],
                 'user_id' => $_SESSION['user_id'] ?? null,
             ]);
 
@@ -64,7 +66,7 @@ final class SlowRequestProfilerHelper
             ]);
 
             if (random_int(1, 25) === 1) {
-                $profileRepo->cleanupOldProfiles($repo->getSlowProfilerRetentionDays());
+                $profileRepo->cleanupOldProfiles($config['retention_days']);
             }
         } catch (\Throwable $e) {
             self::debugLog('error', [
@@ -73,6 +75,25 @@ final class SlowRequestProfilerHelper
                 'line' => $e->getLine(),
             ]);
         }
+    }
+
+    /**
+     * @return array{enabled: bool, threshold_ms: int, retention_days: int}
+     */
+    private static function getProfilerConfig(): array
+    {
+        if (self::$profilerConfig !== null) {
+            return self::$profilerConfig;
+        }
+
+        $repo = new AdmsLogSettingsRepository();
+        self::$profilerConfig = [
+            'enabled' => $repo->isSlowProfilerEnabled(),
+            'threshold_ms' => $repo->getSlowProfilerThresholdMs(),
+            'retention_days' => $repo->getSlowProfilerRetentionDays(),
+        ];
+
+        return self::$profilerConfig;
     }
 
     private static function debugLog(string $type, array $data): void

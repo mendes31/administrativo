@@ -11,11 +11,17 @@ class AdmsPasswordPolicyRepository extends DbConnection
 {
     protected string $table = 'adms_password_policy';
 
+    private static ?AdmsPasswordPolicy $cachedPolicy = null;
+
     /**
      * Buscar a política de senha mais recente.
      */
     public function getPolicy(): ?AdmsPasswordPolicy
     {
+        if (self::$cachedPolicy !== null) {
+            return self::$cachedPolicy;
+        }
+
         $sql = "SELECT * FROM {$this->table} ORDER BY id DESC LIMIT 1";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
@@ -27,9 +33,17 @@ class AdmsPasswordPolicyRepository extends DbConnection
             }
             $policy->expirar_sessao_por_tempo = $data['expirar_sessao_por_tempo'] ?? 'Não';
             $policy->tempo_expiracao_sessao = (int)($data['tempo_expiracao_sessao'] ?? 30);
+            self::$cachedPolicy = $policy;
+
             return $policy;
         }
+
         return null;
+    }
+
+    public static function clearCache(): void
+    {
+        self::$cachedPolicy = null;
     }
 
     /**

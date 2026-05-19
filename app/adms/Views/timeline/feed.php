@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=37">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=38">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -535,6 +535,41 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     let timelineLikeCsrf = <?php echo json_encode($this->data['csrf_timeline_like'] ?? ''); ?>;
     let timelineReportCsrf = <?php echo json_encode($this->data['csrf_timeline_report'] ?? ''); ?>;
     let timelineDeleteCsrf = <?php echo json_encode($csrfDelete); ?>;
+
+    function initTimelineLazyVideos(root) {
+        var scope = root || document;
+        var videos = scope.querySelectorAll('video.timeline-post-video-lazy[data-src]');
+        if (!videos.length) {
+            return;
+        }
+        function attachSrc(video) {
+            var url = video.getAttribute('data-src');
+            if (!url) {
+                return;
+            }
+            video.src = url;
+            video.removeAttribute('data-src');
+            video.preload = 'metadata';
+        }
+        if (!('IntersectionObserver' in window)) {
+            videos.forEach(attachSrc);
+            return;
+        }
+        var observer = new IntersectionObserver(function (entries, obs) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                attachSrc(entry.target);
+                obs.unobserve(entry.target);
+            });
+        }, { root: null, rootMargin: '240px 0px', threshold: 0.01 });
+        videos.forEach(function (video) {
+            observer.observe(video);
+        });
+    }
+    initTimelineLazyVideos();
+    window.initTimelineLazyVideos = initTimelineLazyVideos;
 
     var reactionOrder = ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'];
     var reactionLabels = { like: 'Curtir', love: 'Amei', care: 'Cuidar', haha: 'Risada', wow: 'Uau', sad: 'Triste', angry: 'Raiva' };

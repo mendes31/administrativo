@@ -9,6 +9,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\AccessLevelsPagesRepository;
 use App\adms\Models\Repository\AccessLevelsRepository;
+use App\adms\Models\Repository\MenuPermissionUserRepository;
 use App\adms\Models\Repository\PagesRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -118,6 +119,7 @@ class ListAccessLevelsPermissions
         $result = $repo->copyAccessLevelPermissions($sourceId, $targetId);
 
         if ($result) {
+            MenuPermissionUserRepository::bumpGlobalPermissionCacheVersion();
             $_SESSION['success'] = 'Permissões copiadas com sucesso para o nível de acesso destino.';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-access-levels-permissions/' . $targetId);
             return;
@@ -250,7 +252,8 @@ class ListAccessLevelsPermissions
         $result = $accessLevelPagesUpdate->updateAccessLevelPages($this->data['form']);
 
         // Verifica o resultado da atualização
-        if($result){
+        if ($result) {
+            MenuPermissionUserRepository::bumpGlobalPermissionCacheVersion();
             if ($isAjax) {
                 error_log('Permissões salvas com sucesso via AJAX');
                 $this->returnJsonResponse(true, 'Permissões do nível de acesso editadas com sucesso!', [

@@ -7,7 +7,6 @@ use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TimelineFeedEnricher;
 use App\adms\Helpers\TimelineHashtagHelper;
-use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -128,27 +127,6 @@ class Timeline
             $pagFilters
         );
 
-        $permRepo = new ButtonPermissionUserRepository();
-        $perms = $permRepo->buttonPermission([
-            'CreateTimelinePost',
-            'TimelineModerate',
-            'TimelineReport',
-            'TimelineComment',
-            'TimelineViewComments',
-            'TimelineLike',
-            'TimelinePostReactions',
-            'TimelineShare',
-        ]);
-        $this->data['can_create'] = is_array($perms) && in_array('CreateTimelinePost', $perms, true);
-        $this->data['can_moderate'] = is_array($perms) && in_array('TimelineModerate', $perms, true);
-        $this->data['can_report'] = is_array($perms) && in_array('TimelineReport', $perms, true);
-        $this->data['can_comment'] = is_array($perms) && in_array('TimelineComment', $perms, true);
-        $this->data['can_like'] = is_array($perms) && in_array('TimelineLike', $perms, true);
-        $this->data['can_view_reactions'] = is_array($perms) && in_array('TimelinePostReactions', $perms, true);
-        $this->data['can_view_comments'] = is_array($perms)
-            && (in_array('TimelineComment', $perms, true) || in_array('TimelineViewComments', $perms, true));
-        $this->data['can_share'] = is_array($perms) && in_array('TimelineShare', $perms, true);
-
         // Feed geral (não é página de perfil da timeline)
         $this->data['timeline_profile_user_id'] = 0;
         $this->data['timeline_profile'] = null;
@@ -161,6 +139,17 @@ class Timeline
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+
+        $menuPermission = $this->data['menuPermission'] ?? [];
+        $this->data['can_create'] = in_array('CreateTimelinePost', $menuPermission, true);
+        $this->data['can_moderate'] = in_array('TimelineModerate', $menuPermission, true);
+        $this->data['can_report'] = in_array('TimelineReport', $menuPermission, true);
+        $this->data['can_comment'] = in_array('TimelineComment', $menuPermission, true);
+        $this->data['can_like'] = in_array('TimelineLike', $menuPermission, true);
+        $this->data['can_view_reactions'] = in_array('TimelinePostReactions', $menuPermission, true);
+        $this->data['can_view_comments'] = in_array('TimelineComment', $menuPermission, true)
+            || in_array('TimelineViewComments', $menuPermission, true);
+        $this->data['can_share'] = in_array('TimelineShare', $menuPermission, true);
 
         $loadView = new LoadViewService('adms/Views/timeline/feed', $this->data);
         $loadView->loadView();

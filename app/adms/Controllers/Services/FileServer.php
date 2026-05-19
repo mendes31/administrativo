@@ -105,6 +105,12 @@ class FileServer
         $fileSize = filesize($fullPath);
         $lastmod = filemtime($fullPath);
 
+        if (in_array($extension, ['mp4', 'webm'], true)) {
+            $this->serveVideoWithRange($fullPath, $mimeType, $fileSize);
+
+            return;
+        }
+
         // Para imagens: cache + 304 quando possível (menos bytes na rede em revisita)
         if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
             header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastmod) . ' GMT');
@@ -152,6 +158,71 @@ class FileServer
             return;
         }
         
+        exit;
+    }
+
+    /**
+     * Vídeos com suporte a Range (206) — evita baixar o arquivo inteiro só para metadata/seek.
+     */
+    private function serveVideoWithRange(string $fullPath, string $mimeType, int $fileSize): void
+    {
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        header('Accept-Ranges: bytes');
+        header('Content-Type: ' . $mimeType);
+        header('Content-Disposition: inline; filename="' . basename($fullPath) . '"');
+        header('Cache-Control: private, max-age=3600');
+
+        $start = 0;
+        $end = $fileSize - 1;
+
+        if (!empty($_SERVER['HTTP_RANGE']) && preg_match('/bytes=(\d*)-(\d*)/', (string) $_SERVER['HTTP_RANGE'], $matches)) {
+            if ($matches[1] !== '') {
+                $start = (int) $matches[1];
+            }
+            if ($matches[2] !== '') {
+                $end = (int) $matches[2];
+            }
+            if ($start > $end || $start >= $fileSize) {
+                http_response_code(416);
+                header("Content-Range: bytes */{$fileSize}");
+                exit;
+            }
+            $end = min($end, $fileSize - 1);
+            $length = $end - $start + 1;
+
+            http_response_code(206);
+            header("Content-Range: bytes {$start}-{$end}/{$fileSize}");
+            header('Content-Length: ' . $length);
+
+            $handle = fopen($fullPath, 'rb');
+            if ($handle === false) {
+                $this->sendError('Erro ao ler arquivo', 500);
+
+                return;
+            }
+            fseek($handle, $start);
+            $remaining = $length;
+            $chunkSize = 8192;
+            while ($remaining > 0 && !feof($handle)) {
+                $read = (int) min($chunkSize, $remaining);
+                $buffer = fread($handle, $read);
+                if ($buffer === false) {
+                    break;
+                }
+                echo $buffer;
+                $remaining -= strlen($buffer);
+            }
+            fclose($handle);
+            exit;
+        }
+
+        header('Content-Length: ' . $fileSize);
+        if (readfile($fullPath) === false) {
+            $this->sendError('Erro ao ler arquivo', 500);
+        }
         exit;
     }
 

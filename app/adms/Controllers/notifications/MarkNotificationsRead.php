@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\notifications;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\NotificationsRepository;
 
 class MarkNotificationsRead
@@ -33,6 +34,9 @@ class MarkNotificationsRead
 
         $repo = new NotificationsRepository();
         $ok = $repo->markAllAsRead($userId);
+        if ($ok) {
+            NavbarLayoutCacheHelper::clear();
+        }
         if (!$ok) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Não foi possível atualizar notificações']);

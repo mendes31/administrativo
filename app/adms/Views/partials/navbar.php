@@ -1,54 +1,29 @@
 <?php
 
-// Buscar informações do usuário logado, comunicados não lidos e notificações internas
+use App\adms\Helpers\NavbarLayoutCacheHelper;
+
 $userInfo = null;
 $navbarNotifCount = 0;
 $navbarNotifList = [];
 $navbarInternalCount = 0;
 $navbarInternalList = [];
 $mcpChatAvailable = false;
+$navbarTotalCount = 0;
 $navbarMarkAllCsrf = \App\adms\Helpers\CSRFHelper::generateCSRFToken('navbar_notifications_mark_all');
+
 if (!empty($_SESSION['user_id'])) {
-    try {
-        $userId = (int)$_SESSION['user_id'];
-        $userRepo = new \App\adms\Models\Repository\UsersRepository();
-        $userInfo = $userRepo->getUser($userId);
-        $infoRepo = new \App\adms\Models\Repository\InformativosRepository();
-        $policiesRepo = new \App\adms\Models\Repository\PoliciesRepository();
-        $notifRepo = new \App\adms\Models\Repository\NotificationsRepository();
-        $navbarNotifCountInformativos = $infoRepo->countNaoLidos($userId);
-        $navbarNotifListInformativos = $navbarNotifCountInformativos > 0 ? $infoRepo->getListNaoLidos($userId, 10) : [];
-
-        $navbarNotifCountPolicies = $policiesRepo->countNaoLidos($userId);
-        $navbarNotifListPolicies = $navbarNotifCountPolicies > 0 ? $policiesRepo->getListNaoLidos($userId, 10) : [];
-
-        $navbarInternalCount = $notifRepo->countUnread($userId);
-        $navbarInternalList = $navbarInternalCount > 0 ? $notifRepo->listUnreadForUser($userId, 10) : [];
-        $navbarTotalCount = $navbarNotifCountInformativos + $navbarNotifCountPolicies + $navbarInternalCount;
-
-        // Verificar se o chat MCP está habilitado e se o usuário tem permissão
-        $mcpConfigRepo = new \App\adms\Models\Repository\AdmsMcpApiConfigRepository();
-        $mcpConfig = $mcpConfigRepo->getConfig();
-        $mcpEnabled = !empty($mcpConfig) && !empty($mcpConfig['is_active']) && !empty($mcpConfig['base_url']);
-        $userCanMcpChat = false;
-
-        // Super Administrador ou Super usuário: mesmo acesso ao chat MCP se a integração estiver ativa
-        if (\App\adms\Helpers\UserAccessHelper::hasFullSystemAccess()) {
-            $userCanMcpChat = true;
-        } elseif (!empty($this->data['menuPermission'] ?? [])) {
-            // Demais níveis dependem da permissão configurada para a página lógica "McpChat"
-            $userCanMcpChat = in_array('McpChat', $this->data['menuPermission'], true);
-        }
-        $mcpChatAvailable = $mcpEnabled && $userCanMcpChat;
-    } catch (\Exception $e) {
-        $userInfo = null;
-        $navbarTotalCount = 0;
-        $navbarNotifList = [];
-        $navbarInternalList = [];
-        $mcpChatAvailable = false;
-    }
-} else {
-    $navbarTotalCount = 0;
+    $userId = (int) $_SESSION['user_id'];
+    $menuPermission = is_array($this->data['menuPermission'] ?? null) ? $this->data['menuPermission'] : [];
+    $nav = NavbarLayoutCacheHelper::get($userId, $menuPermission);
+    $userInfo = $nav['user_info'] ?? null;
+    $navbarNotifCountInformativos = (int) ($nav['navbar_notif_count_informativos'] ?? 0);
+    $navbarNotifListInformativos = $nav['navbar_notif_list_informativos'] ?? [];
+    $navbarNotifCountPolicies = (int) ($nav['navbar_notif_count_policies'] ?? 0);
+    $navbarNotifListPolicies = $nav['navbar_notif_list_policies'] ?? [];
+    $navbarInternalCount = (int) ($nav['navbar_internal_count'] ?? 0);
+    $navbarInternalList = $nav['navbar_internal_list'] ?? [];
+    $navbarTotalCount = (int) ($nav['navbar_total_count'] ?? 0);
+    $mcpChatAvailable = !empty($nav['mcp_chat_available']);
 }
 ?>
 

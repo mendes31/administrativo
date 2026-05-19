@@ -482,6 +482,12 @@
 }
 video.timeline-post-media {
     max-height: 480px;
+    object-fit: contain;
+    background: #000;
+}
+video.timeline-post-video-lazy:not([src]) {
+    min-height: 200px;
+    background: #1a1a1a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23adb5bd'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center/48px no-repeat;
 }
 
 /* Reações estilo Facebook (cores aproximadas) */

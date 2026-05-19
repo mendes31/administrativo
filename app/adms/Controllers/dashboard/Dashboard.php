@@ -3,7 +3,6 @@
 namespace App\adms\Controllers\dashboard;
 
 use App\adms\Controllers\Services\PageLayoutService;
-use App\adms\Models\Repository\MenuPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\NotificationsRepository;
@@ -36,119 +35,15 @@ class Dashboard
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';
         $userId = (int)($_SESSION['user_id'] ?? 0);
 
-        // Definir o título da página
-        // Ativar o item de menu
-        // Apresentar ou ocultar botão 
-        $informativosRepo = new InformativosRepository();
-        $informativos = $informativosRepo->getInformativosDashboard(50);
-        $this->data['informativos'] = $informativos;
-        $this->data['informativos_ativos'] = count(array_filter($informativos, fn($i) => $i['ativo']));
-        $this->data['informativos_nao_lidos'] = $userId > 0 ? $informativosRepo->countNaoLidos($userId) : 0;
-
-        // Políticas Internas para card de destaque
-        $policiesRepo = new PoliciesRepository();
-        $policiesDashboard = $policiesRepo->getPoliciesDashboard(50);
-        $this->data['policies_dashboard'] = $policiesDashboard;
-        $this->data['policies_urgentes'] = $policiesRepo->countPoliciesUrgentes();
-        $this->data['policies_ativas'] = count(array_filter($policiesDashboard, fn($p) => $p['ativo']));
-        $this->data['policies_nao_lidas'] = $userId > 0 ? $policiesRepo->countNaoLidos($userId) : 0;
-
-        // Notificações não lidas da timeline (reações/comentários/menções)
-        $notifRepo = new NotificationsRepository();
-        $this->data['timeline_notificacoes_nao_lidas'] = $userId > 0
-            ? $notifRepo->countUnreadByTypePrefix($userId, 'timeline_')
-            : 0;
-
-        // Categorias dos informativos
-        $categorias = [];
-        foreach ($informativos as $info) {
-            $cat = $info['categoria'] ?? 'Geral';
-            if (!isset($categorias[$cat])) {
-                $categorias[$cat] = [
-                    'count' => 0,
-                    'imagem' => null,
-                    'has_anexo' => false
-                ];
-            }
-            $categorias[$cat]['count']++;
-            if (!$categorias[$cat]['imagem'] && !empty($info['imagem'])) {
-                $categorias[$cat]['imagem'] = $info['imagem'];
-            }
-            if (!$categorias[$cat]['has_anexo'] && !empty($info['anexo'])) {
-                $categorias[$cat]['has_anexo'] = true;
-            }
-        }
-        $this->data['categorias_informativos'] = $categorias;
-
-        // Aniversariantes (repositório centralizado — mesma consulta e normalização de antes)
-        $usersRepo = new UsersRepository();
-        $mesAtual = (int) date('m');
-        $aniversariantesTodos = $usersRepo->listActiveUsersBirthdaysForDashboard();
-        $aniversariantes = array_values(array_filter(
-            $aniversariantesTodos,
-            static fn(array $item): bool => ((int) ($item['aniversario_mes'] ?? 0) === $mesAtual)
-        ));
-        $aniversariantesEmpresaTodos = $usersRepo->listActiveUsersCompanyAnniversariesForDashboard();
-        $aniversariantesEmpresa = array_values(array_filter(
-            $aniversariantesEmpresaTodos,
-            static fn(array $item): bool => ((int) ($item['aniversario_empresa_mes'] ?? 0) === $mesAtual)
-        ));
-
-        $hojeDiaMes = date('d/m');
-        $aniversariantesHoje = array_values(array_filter(
-            $aniversariantesTodos,
-            static fn(array $item): bool => (($item['aniversario'] ?? '') === $hojeDiaMes)
-        ));
-
-        $this->data['aniversariantes_dia'] = $aniversariantesHoje;
-        $this->data['qtd_aniversariantes_dia'] = count($aniversariantesHoje);
-        $this->data['aniversariantes_todos'] = $aniversariantesTodos;
-        $this->data['aniversariantes_mes'] = $aniversariantes;
-        $this->data['qtd_aniversariantes_mes'] = count($aniversariantes);
-        $this->data['aniversariantes_empresa_todos'] = $aniversariantesEmpresaTodos;
-        $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;
-        $this->data['qtd_aniversariantes_empresa_mes'] = count($aniversariantesEmpresa);
-
-        // Eventos corporativos (card + modal no dashboard)
-        try {
-            $eventsRepo = new CompanyEventsRepository();
-            $y = (int) date('Y');
-            $m = (int) date('n');
-            $displayPeriod = $eventsRepo->resolveDashboardDisplayMonth($y);
-            $displayYear = (int) $displayPeriod['year'];
-            $displayMonth = (int) $displayPeriod['month'];
-            $companyEvents = $eventsRepo->getEventsIntersectingMonth($displayYear, $displayMonth);
-            $rsvpByEvent = $userId > 0
-                ? $eventsRepo->buildDashboardRsvpMapForUser($companyEvents, $userId)
-                : [];
-            foreach ($companyEvents as &$ce) {
-                $ceId = (int) ($ce['id'] ?? 0);
-                $ce['rsvp'] = $userId > 0 ? ($rsvpByEvent[$ceId] ?? null) : null;
-            }
-            unset($ce);
-            $this->data['company_events_dashboard'] = $companyEvents;
-            $this->data['company_events_dashboard_year'] = $displayYear;
-            $this->data['company_events_dashboard_month'] = $displayMonth;
-            $this->data['company_events_month_count'] = ($displayYear === $y && $displayMonth === $m)
-                ? count($companyEvents)
-                : $eventsRepo->countEventsIntersectingMonth($y, $m);
-            $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
-            $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $userId);
-        } catch (\Throwable $e) {
-            $this->data['company_events_dashboard'] = [];
-            $this->data['company_events_month_count'] = 0;
-            $this->data['company_events_year_count'] = 0;
-            $this->data['company_events_unread_count'] = 0;
-        }
-
         $pageElements = [
             'title_head' => 'Dashboard',
             'menu' => 'dashboard',
             'buttonPermission' => [],
         ];
-        
+
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
+        $this->applyDashboardDefaults();
 
         $menuPermission = $this->data['menuPermission'] ?? [];
         // Regra estrita: cada card depende exclusivamente da permissão DashboardCard...
@@ -162,6 +57,26 @@ class Dashboard
         $this->data['show_my_calendar_card'] = in_array('DashboardCardMyCalendar', $menuPermission, true);
         $this->data['show_gamification_quizzes_card'] = in_array('DashboardCardGamificationQuizzes', $menuPermission, true);
         $this->data['show_room_booking_card'] = in_array('DashboardCardRoomBooking', $menuPermission, true);
+
+        if (!empty($this->data['show_informativos_card'])) {
+            $this->loadInformativosDashboardData($userId);
+        }
+        if (!empty($this->data['show_policies_card'])) {
+            $this->loadPoliciesDashboardData($userId);
+        }
+        if (!empty($this->data['show_timeline_card']) && $userId > 0) {
+            $this->data['timeline_notificacoes_nao_lidas'] = (new NotificationsRepository())
+                ->countUnreadByTypePrefix($userId, 'timeline_');
+        }
+        if (!empty($this->data['show_aniversariantes_card'])) {
+            $this->loadBirthdaysDashboardData();
+        }
+        if (!empty($this->data['show_tempo_empresa_card'])) {
+            $this->loadCompanyTenureDashboardData();
+        }
+        if (!empty($this->data['show_eventos_card'])) {
+            $this->loadCompanyEventsDashboardData($userId);
+        }
 
         $this->data['gamification_quizzes_catalog_count'] = 0;
         if ($userId > 0 && !empty($this->data['show_gamification_quizzes_card'])) {
@@ -222,10 +137,8 @@ class Dashboard
     {
         $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
         $y = (int) date('Y');
-        $yMin = $y - 1;
-        $yMax = $y + 1;
-        $rangeStart = sprintf('%04d-01-01 00:00:00', $yMin);
-        $rangeEnd = sprintf('%04d-12-31 23:59:59', $yMax);
+        $rangeStart = sprintf('%04d-01-01 00:00:00', $y);
+        $rangeEnd = sprintf('%04d-12-31 23:59:59', $y);
         $items = $calRepo->listUnifiedAgenda($userId, $rangeStart, $rangeEnd);
         $permViewBooking = in_array('ViewBooking', $menuPermission, true);
         $permViewCompanyEvent = in_array('ViewCompanyEvent', $menuPermission, true);
@@ -270,5 +183,159 @@ class Dashboard
         }
 
         return $out;
+    }
+
+    private function applyDashboardDefaults(): void
+    {
+        $this->data['informativos'] = [];
+        $this->data['informativos_ativos'] = 0;
+        $this->data['informativos_nao_lidos'] = 0;
+        $this->data['categorias_informativos'] = [];
+
+        $this->data['policies_dashboard'] = [];
+        $this->data['policies_urgentes'] = 0;
+        $this->data['policies_ativas'] = 0;
+        $this->data['policies_nao_lidas'] = 0;
+
+        $this->data['timeline_notificacoes_nao_lidas'] = 0;
+
+        $this->data['aniversariantes_dia'] = [];
+        $this->data['qtd_aniversariantes_dia'] = 0;
+        $this->data['aniversariantes_todos'] = [];
+        $this->data['aniversariantes_mes'] = [];
+        $this->data['qtd_aniversariantes_mes'] = 0;
+
+        $this->data['aniversariantes_empresa_todos'] = [];
+        $this->data['aniversariantes_empresa_mes'] = [];
+        $this->data['qtd_aniversariantes_empresa_mes'] = 0;
+
+        $this->data['company_events_dashboard'] = [];
+        $this->data['company_events_dashboard_year'] = (int) date('Y');
+        $this->data['company_events_dashboard_month'] = (int) date('n');
+        $this->data['company_events_month_count'] = 0;
+        $this->data['company_events_year_count'] = 0;
+        $this->data['company_events_unread_count'] = 0;
+
+        $this->data['gamification_quizzes_catalog_count'] = 0;
+        $this->data['meeting_rooms_active_count'] = 0;
+        $this->data['payroll_documents_total'] = 0;
+        $this->data['payroll_documents_latest'] = [];
+        $this->data['my_calendar_month_count'] = 0;
+        $this->data['my_calendar_modal_events_json'] = '[]';
+    }
+
+    private function loadInformativosDashboardData(int $userId): void
+    {
+        $repo = new InformativosRepository();
+        $informativos = $repo->getInformativosDashboard(12);
+        $this->data['informativos'] = $informativos;
+        $this->data['informativos_ativos'] = count(array_filter(
+            $informativos,
+            static fn (array $i): bool => !empty($i['ativo'])
+        ));
+        $this->data['informativos_nao_lidos'] = $userId > 0 ? $repo->countNaoLidos($userId) : 0;
+
+        $categorias = [];
+        foreach ($informativos as $info) {
+            $cat = $info['categoria'] ?? 'Geral';
+            if (!isset($categorias[$cat])) {
+                $categorias[$cat] = [
+                    'count' => 0,
+                    'imagem' => null,
+                    'has_anexo' => false,
+                ];
+            }
+            $categorias[$cat]['count']++;
+            if (!$categorias[$cat]['imagem'] && !empty($info['imagem'])) {
+                $categorias[$cat]['imagem'] = $info['imagem'];
+            }
+            if (!$categorias[$cat]['has_anexo'] && !empty($info['anexo'])) {
+                $categorias[$cat]['has_anexo'] = true;
+            }
+        }
+        $this->data['categorias_informativos'] = $categorias;
+    }
+
+    private function loadPoliciesDashboardData(int $userId): void
+    {
+        $repo = new PoliciesRepository();
+        $policiesDashboard = $repo->getPoliciesDashboard(12);
+        $this->data['policies_dashboard'] = $policiesDashboard;
+        $this->data['policies_urgentes'] = $repo->countPoliciesUrgentes();
+        $this->data['policies_ativas'] = count(array_filter(
+            $policiesDashboard,
+            static fn (array $p): bool => !empty($p['ativo'])
+        ));
+        $this->data['policies_nao_lidas'] = $userId > 0 ? $repo->countNaoLidos($userId) : 0;
+    }
+
+    private function loadBirthdaysDashboardData(): void
+    {
+        $usersRepo = new UsersRepository();
+        $mesAtual = (int) date('m');
+        $hojeDiaMes = date('d/m');
+
+        $aniversariantesTodos = $usersRepo->listActiveUsersBirthdaysForDashboard();
+        $aniversariantes = array_values(array_filter(
+            $aniversariantesTodos,
+            static fn (array $item): bool => ((int) ($item['aniversario_mes'] ?? 0) === $mesAtual)
+        ));
+        $aniversariantesHoje = array_values(array_filter(
+            $aniversariantesTodos,
+            static fn (array $item): bool => (($item['aniversario'] ?? '') === $hojeDiaMes)
+        ));
+
+        $this->data['aniversariantes_dia'] = $aniversariantesHoje;
+        $this->data['qtd_aniversariantes_dia'] = count($aniversariantesHoje);
+        $this->data['aniversariantes_todos'] = $aniversariantesTodos;
+        $this->data['aniversariantes_mes'] = $aniversariantes;
+        $this->data['qtd_aniversariantes_mes'] = count($aniversariantes);
+    }
+
+    private function loadCompanyTenureDashboardData(): void
+    {
+        $usersRepo = new UsersRepository();
+        $mesAtual = (int) date('m');
+        $aniversariantesEmpresaTodos = $usersRepo->listActiveUsersCompanyAnniversariesForDashboard();
+        $aniversariantesEmpresa = array_values(array_filter(
+            $aniversariantesEmpresaTodos,
+            static fn (array $item): bool => ((int) ($item['aniversario_empresa_mes'] ?? 0) === $mesAtual)
+        ));
+
+        $this->data['aniversariantes_empresa_todos'] = $aniversariantesEmpresaTodos;
+        $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;
+        $this->data['qtd_aniversariantes_empresa_mes'] = count($aniversariantesEmpresa);
+    }
+
+    private function loadCompanyEventsDashboardData(int $userId): void
+    {
+        try {
+            $eventsRepo = new CompanyEventsRepository();
+            $y = (int) date('Y');
+            $m = (int) date('n');
+            $displayPeriod = $eventsRepo->resolveDashboardDisplayMonth($y);
+            $displayYear = (int) $displayPeriod['year'];
+            $displayMonth = (int) $displayPeriod['month'];
+            $companyEvents = $eventsRepo->getEventsIntersectingMonth($displayYear, $displayMonth);
+            $rsvpByEvent = $userId > 0
+                ? $eventsRepo->buildDashboardRsvpMapForUser($companyEvents, $userId)
+                : [];
+            foreach ($companyEvents as &$ce) {
+                $ceId = (int) ($ce['id'] ?? 0);
+                $ce['rsvp'] = $userId > 0 ? ($rsvpByEvent[$ceId] ?? null) : null;
+            }
+            unset($ce);
+
+            $this->data['company_events_dashboard'] = $companyEvents;
+            $this->data['company_events_dashboard_year'] = $displayYear;
+            $this->data['company_events_dashboard_month'] = $displayMonth;
+            $this->data['company_events_month_count'] = ($displayYear === $y && $displayMonth === $m)
+                ? count($companyEvents)
+                : $eventsRepo->countEventsIntersectingMonth($y, $m);
+            $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
+            $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $userId);
+        } catch (\Throwable) {
+            // defaults já aplicados em applyDashboardDefaults()
+        }
     }
 }
