@@ -45,11 +45,15 @@ final class AddTimelineCommentsPostStatusIndex extends BaseMigration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $rows = $this->fetchAll(
-            'SHOW INDEX FROM `' . str_replace('`', '``', $table) . '` WHERE Key_name = :name',
-            ['name' => $indexName]
-        );
+        // Phinx fetchAll/query não faz bind de :param — usar SQL literal (nome do índice é constante interna).
+        $tableSql = '`' . str_replace('`', '``', $table) . '`';
+        $indexSql = str_replace(['\\', "'"], ['\\\\', "''"], $indexName);
+        $sql = "SHOW INDEX FROM {$tableSql} WHERE Key_name = '{$indexSql}'";
+        $result = $this->query($sql);
+        if ($result === false) {
+            return false;
+        }
 
-        return $rows !== [];
+        return $result->fetchAll() !== [];
     }
 }
