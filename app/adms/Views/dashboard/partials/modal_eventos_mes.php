@@ -4,8 +4,8 @@ $mesesPt = [
     5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
     9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
 ];
-$ySel = (int)date('Y');
-$mSel = 0;
+$ySel = (int)($this->data['company_events_dashboard_year'] ?? date('Y'));
+$mSel = (int)($this->data['company_events_dashboard_month'] ?? date('n'));
 $events = $this->data['company_events_dashboard'] ?? [];
 $urlAdm = $_ENV['URL_ADM'] ?? '';
 ?>
@@ -30,9 +30,9 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
                         <div class="col-5">
                             <label class="form-label small fw-semibold mb-1" for="eventosMesNum">Mês</label>
                             <select id="eventosMesNum" class="form-select form-select-sm">
-                            <option value="0" <?php echo $mSel === 0 ? 'selected' : ''; ?>>Todos os meses</option>
+                            <option value="0">Todos os meses</option>
                             <?php foreach ($mesesPt as $n => $nome): ?>
-                                <option value="<?php echo $n; ?>"><?php echo $nome; ?></option>
+                                <option value="<?php echo $n; ?>" <?php echo $mSel === $n ? 'selected' : ''; ?>><?php echo $nome; ?></option>
                             <?php endforeach; ?>
                             </select>
                         </div>
@@ -79,6 +79,15 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
         border: 1px solid #d9e5f0 !important;
         border-radius: 10px !important;
         box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+    }
+
+    #modalEventosMes .evento-mes-card.evento-mes-card-clickable {
+        cursor: pointer;
+    }
+
+    #modalEventosMes .evento-mes-card.evento-mes-card-clickable:hover {
+        border-color: #9ec5e8 !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
     }
 
     #modalEventosMes .evento-mes-card.evento-mes-past {
@@ -363,13 +372,14 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
                 esc(raw).replace(/\r\n|\r|\n/g, '<br>') +
                 '</div>' +
                 '<div class="evento-mes-desc-fade" aria-hidden="true"></div>' +
-                '<button type="button" class="btn btn-link btn-sm text-decoration-none p-0 mt-1 evento-mes-desc-toggle d-none" aria-expanded="false">Ler mais</button>' +
+                '<a href="' + escAttr(base + 'view-company-event/' + ev.id) + '" class="btn btn-link btn-sm text-decoration-none p-0 mt-1 evento-mes-ver-detalhes">Ver detalhes</a>' +
                 '</div>';
         }
 
+        const viewUrl = base + 'view-company-event/' + ev.id;
         const pastClass = past ? ' evento-mes-past' : '';
         return (
-            '<div class="card border-0 shadow-sm mb-2 evento-mes-card' + pastClass + '" data-event-id="' + ev.id + '">' +
+            '<div class="card border-0 shadow-sm mb-2 evento-mes-card evento-mes-card-clickable' + pastClass + '" data-event-id="' + ev.id + '" data-view-href="' + escAttr(viewUrl) + '" title="Clique para ver detalhes completos">' +
             '<div class="card-body p-2">' +
             '<div class="evento-mes-row d-flex align-items-start gap-3">' +
             '<div class="evento-mes-day-badge text-center flex-shrink-0" aria-hidden="true">' +
@@ -617,7 +627,25 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
             if (ano && mes) loadMonth(ano.value, mes.value);
         });
     }
+    function bindCardNavigation() {
+        const lista = document.getElementById('eventosMesLista');
+        if (!lista || lista.getAttribute('data-view-delegation') === '1') return;
+        lista.setAttribute('data-view-delegation', '1');
+        lista.addEventListener('click', function (e) {
+            if (e.target.closest('button, input, select, textarea, a.evento-mes-ver-detalhes, [data-guests-box], .evento-mes-guests-box')) {
+                return;
+            }
+            const card = e.target.closest('.evento-mes-card-clickable');
+            if (!card) return;
+            const href = card.getAttribute('data-view-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    }
+
     bindRsvpDelegation();
+    bindCardNavigation();
     initEventoMesDescToggles(document.getElementById('eventosMesLista'));
 })();
 </script>

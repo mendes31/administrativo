@@ -237,6 +237,74 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                             </script>
                         <?php endif; ?>
 
+                        <?php
+                        $eventImages = $this->data['event_images'] ?? [];
+                        $eventAnexo = $ev['anexo'] ?? null;
+                        ?>
+                        <?php if (!empty($eventImages) || !empty($eventAnexo)): ?>
+                            <div class="mb-4">
+                                <h5>Imagens e anexos</h5>
+                                <?php if (!empty($eventImages)): ?>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        <?php foreach ($eventImages as $imgRow): ?>
+                                            <?php
+                                            $imgPath = (string)($imgRow['image_path'] ?? '');
+                                            if ($imgPath === '') {
+                                                continue;
+                                            }
+                                            $imgUrl = \App\adms\Helpers\CompanyEventUploadHelper::serveUrl($imgPath);
+                                            ?>
+                                            <button type="button"
+                                                    class="btn p-0 border rounded overflow-hidden company-event-view-thumb"
+                                                    style="width: 140px; height: 100px;"
+                                                    data-img-url="<?php echo htmlspecialchars($imgUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                                                    title="Ampliar imagem">
+                                                <img src="<?php echo htmlspecialchars($imgUrl); ?>"
+                                                     alt="Imagem do evento"
+                                                     class="w-100 h-100"
+                                                     style="object-fit: cover;">
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($eventAnexo)): ?>
+                                    <a href="<?php echo htmlspecialchars(\App\adms\Helpers\CompanyEventUploadHelper::serveUrl((string)$eventAnexo)); ?>"
+                                       target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+                                        <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon((string)$eventAnexo, 'me-1'); ?>
+                                        Abrir / baixar anexo
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                            <div class="modal fade" id="companyEventImageModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-xl">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Imagem do evento</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                        </div>
+                                        <div class="modal-body text-center p-2">
+                                            <img id="companyEventImageModalImg" src="" alt="Imagem ampliada" class="img-fluid" style="max-height: 85vh; object-fit: contain;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <script>
+                            (function () {
+                                var modalEl = document.getElementById('companyEventImageModal');
+                                var imgEl = document.getElementById('companyEventImageModalImg');
+                                if (!modalEl || !imgEl) return;
+                                document.querySelectorAll('.company-event-view-thumb').forEach(function (btn) {
+                                    btn.addEventListener('click', function () {
+                                        var url = btn.getAttribute('data-img-url');
+                                        if (!url) return;
+                                        imgEl.src = url;
+                                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                                    });
+                                });
+                            })();
+                            </script>
+                        <?php endif; ?>
+
                         <?php if ($requiresRsvp): ?>
                             <div class="mb-4 border rounded p-3 p-md-4 bg-white shadow-sm">
                                 <h5 class="mb-3">

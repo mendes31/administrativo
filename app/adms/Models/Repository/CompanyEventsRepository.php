@@ -130,11 +130,11 @@ class CompanyEventsRepository extends DbConnection
     public function createEvent(array $data): int
     {
         $sql = 'INSERT INTO adms_company_events (
-                    title, description, location, starts_at, ends_at, publish_at, expire_at,
+                    title, description, anexo, location, starts_at, ends_at, publish_at, expire_at,
                     rsvp_deadline, cancellation_deadline, requires_rsvp, allows_guests, max_guests_per_user,
                     created_by, department_id, ativo, created_at, updated_at
                 ) VALUES (
-                    :title, :description, :location, :starts_at, :ends_at, :publish_at, :expire_at,
+                    :title, :description, :anexo, :location, :starts_at, :ends_at, :publish_at, :expire_at,
                     :rsvp_deadline, :cancellation_deadline, :requires_rsvp, :allows_guests, :max_guests,
                     :created_by, :department_id, :ativo, NOW(), NOW()
                 )';
@@ -142,6 +142,7 @@ class CompanyEventsRepository extends DbConnection
         $stmt->execute([
             ':title' => $data['title'],
             ':description' => $data['description'] ?? null,
+            ':anexo' => $data['anexo'] ?? null,
             ':location' => $data['location'] ?? null,
             ':starts_at' => $data['starts_at'],
             ':ends_at' => $data['ends_at'],
@@ -179,7 +180,7 @@ class CompanyEventsRepository extends DbConnection
     {
         $oldData = $this->getById($id);
         $sql = 'UPDATE adms_company_events SET
-                    title = :title, description = :description, location = :location,
+                    title = :title, description = :description, anexo = :anexo, location = :location,
                     starts_at = :starts_at, ends_at = :ends_at, publish_at = :publish_at, expire_at = :expire_at,
                     rsvp_deadline = :rsvp_deadline, cancellation_deadline = :cancellation_deadline,
                     requires_rsvp = :requires_rsvp, allows_guests = :allows_guests, max_guests_per_user = :max_guests,
@@ -190,6 +191,7 @@ class CompanyEventsRepository extends DbConnection
             ':id' => $id,
             ':title' => $data['title'],
             ':description' => $data['description'] ?? null,
+            ':anexo' => $data['anexo'] ?? null,
             ':location' => $data['location'] ?? null,
             ':starts_at' => $data['starts_at'],
             ':ends_at' => $data['ends_at'],
@@ -227,6 +229,125 @@ class CompanyEventsRepository extends DbConnection
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? $this->normalizeRow($row) : null;
+    }
+
+    public function updateAnexo(int $eventId, ?string $anexoPath): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_company_events SET anexo = :anexo, updated_at = NOW() WHERE id = :id'
+        );
+
+        return $stmt->execute([':id' => $eventId, ':anexo' => $anexoPath]);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getImagesForEvent(int $eventId): array
+    {
+        if ($eventId <= 0 || !$this->hasEventImagesTable()) {
+            return [];
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM adms_company_event_images WHERE event_id = :e ORDER BY sort_order ASC, id ASC'
+        );
+        $stmt->execute([':e' => $eventId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function countImagesForEvent(int $eventId): int
+    {
+        if ($eventId <= 0 || !$this->hasEventImagesTable()) {
+            return 0;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COUNT(*) AS c FROM adms_company_event_images WHERE event_id = :e'
+        );
+        $stmt->execute([':e' => $eventId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['c'] ?? 0);
+    }
+
+    /**
+     * @param array<int, string> $imagePaths
+     */
+    public function addImages(int $eventId, array $imagePaths): void
+    {
+        if ($eventId <= 0 || !$this->hasEventImagesTable() || $imagePaths === []) {
+            return;
+        }
+        $startOrder = $this->countImagesForEvent($eventId);
+        $stmt = $this->getConnection()->prepare(
+            'INSERT INTO adms_company_event_images (event_id, image_path, sort_order, created_at)
+             VALUES (:e, :p, :o, NOW())'
+        );
+        foreach (array_values($imagePaths) as $i => $path) {
+            $path = trim($path);
+            if ($path === '') {
+                continue;
+            }
+            $stmt->execute([
+                ':e' => $eventId,
+                ':p' => $path,
+                ':o' => $startOrder + $i,
+            ]);
+        }
+    }
+
+    /**
+     * @param int[] $imageIds
+     */
+    public function deleteImagesByIds(int $eventId, array $imageIds): void
+    {
+        if ($eventId <= 0 || !$this->hasEventImagesTable() || $imageIds === []) {
+            return;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $imageIds), static fn ($v) => $v > 0)));
+        if ($ids === []) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT id, image_path FROM adms_company_event_images WHERE event_id = ? AND id IN ($placeholders)";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute(array_merge([$eventId], $ids));
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as $row) {
+            \App\adms\Helpers\CompanyEventUploadHelper::deleteStoredFile((string)($row['image_path'] ?? ''));
+        }
+        $del = $this->getConnection()->prepare(
+            "DELETE FROM adms_company_event_images WHERE event_id = ? AND id IN ($placeholders)"
+        );
+        $del->execute(array_merge([$eventId], $ids));
+    }
+
+    public function deleteAllImagesForEvent(int $eventId): void
+    {
+        if ($eventId <= 0 || !$this->hasEventImagesTable()) {
+            return;
+        }
+        foreach ($this->getImagesForEvent($eventId) as $img) {
+            \App\adms\Helpers\CompanyEventUploadHelper::deleteStoredFile((string)($img['image_path'] ?? ''));
+        }
+        $stmt = $this->getConnection()->prepare('DELETE FROM adms_company_event_images WHERE event_id = :e');
+        $stmt->execute([':e' => $eventId]);
+    }
+
+    private function hasEventImagesTable(): bool
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        try {
+            $row = $this->getConnection()->query("SHOW TABLES LIKE 'adms_company_event_images'")->fetch(PDO::FETCH_NUM);
+            $cache = $row !== false;
+        } catch (\Throwable) {
+            $cache = false;
+        }
+
+        return $cache;
     }
 
     /**
@@ -297,6 +418,61 @@ class CompanyEventsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end]);
         return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
+     * Mês/ano padrão do modal no dashboard: mês atual se houver eventos;
+     * senão o próximo mês (no ano ou anos seguintes) com eventos ativos.
+     *
+     * @return array{year: int, month: int}
+     */
+    public function resolveDashboardDisplayMonth(?int $year = null): array
+    {
+        $year = $year ?? (int)date('Y');
+        $currentMonth = (int)date('n');
+
+        if ($this->countEventsIntersectingMonth($year, $currentMonth) > 0) {
+            return ['year' => $year, 'month' => $currentMonth];
+        }
+
+        for ($m = $currentMonth + 1; $m <= 12; $m++) {
+            if ($this->countEventsIntersectingMonth($year, $m) > 0) {
+                return ['year' => $year, 'month' => $m];
+            }
+        }
+
+        for ($y = $year + 1; $y <= $year + 2; $y++) {
+            for ($m = 1; $m <= 12; $m++) {
+                if ($this->countEventsIntersectingMonth($y, $m) > 0) {
+                    return ['year' => $y, 'month' => $m];
+                }
+            }
+        }
+
+        return ['year' => $year, 'month' => $currentMonth];
+    }
+
+    /**
+     * Conta eventos ativos/publicados que intersectam o mês informado.
+     */
+    public function countEventsIntersectingMonth(int $year, int $month): int
+    {
+        $month = max(1, min(12, $month));
+        $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
+        $end = date('Y-m-t 23:59:59', strtotime($start));
+
+        $sql = 'SELECT COUNT(*) AS total
+                FROM adms_company_events e
+                WHERE e.ativo = 1
+                  AND e.starts_at <= :end
+                  AND e.ends_at >= :start
+                  AND (e.publish_at IS NULL OR e.publish_at <= :end)
+                  AND (e.expire_at IS NULL OR e.expire_at >= :start)';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':start' => $start, ':end' => $end]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['total'] ?? 0);
     }
 
     /**
@@ -683,6 +859,10 @@ class CompanyEventsRepository extends DbConnection
     public function deleteEvent(int $id): bool
     {
         $oldData = $this->getById($id);
+        if (is_array($oldData)) {
+            \App\adms\Helpers\CompanyEventUploadHelper::deleteStoredFile($oldData['anexo'] ?? null);
+            $this->deleteAllImagesForEvent($id);
+        }
         $rsvpIds = $this->getConnection()->prepare('SELECT id FROM adms_company_event_rsvps WHERE event_id = :e');
         $rsvpIds->execute([':e' => $id]);
         $ids = $rsvpIds->fetchAll(PDO::FETCH_COLUMN) ?: [];

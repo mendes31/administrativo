@@ -36,7 +36,11 @@ $cancelDlTs = !empty($ev['cancellation_deadline']) ? strtotime((string)$ev['canc
 $rsvpPrazoEncerrado = ($rsvpDlTs !== false && $rsvpDlTs < time());
 $cancelPrazoEncerrado = ($cancelDlTs !== false && $cancelDlTs < time());
 ?>
-<div class="card border-0 shadow-sm mb-2 evento-mes-card<?php echo $eventEnded ? ' evento-mes-past' : ''; ?>" data-event-id="<?php echo $id; ?>">
+<?php $viewHref = htmlspecialchars($urlAdm . 'view-company-event/' . $id, ENT_QUOTES, 'UTF-8'); ?>
+<div class="card border-0 shadow-sm mb-2 evento-mes-card evento-mes-card-clickable<?php echo $eventEnded ? ' evento-mes-past' : ''; ?>"
+     data-event-id="<?php echo $id; ?>"
+     data-view-href="<?php echo $viewHref; ?>"
+     title="Clique para ver detalhes completos">
     <div class="card-body p-2">
         <div class="evento-mes-row d-flex align-items-start gap-3">
             <div class="evento-mes-day-badge text-center flex-shrink-0" aria-hidden="true">
@@ -75,7 +79,7 @@ $cancelPrazoEncerrado = ($cancelDlTs !== false && $cancelDlTs < time());
             <div class="evento-mes-desc-shell position-relative mt-1">
                 <div class="evento-mes-desc-inner evento-mes-desc-clamped small text-body mb-0"><?php echo nl2br(htmlspecialchars($ev['description'])); ?></div>
                 <div class="evento-mes-desc-fade" aria-hidden="true"></div>
-                <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 mt-1 evento-mes-desc-toggle d-none" aria-expanded="false">Ler mais</button>
+                <a href="<?php echo $viewHref; ?>" class="btn btn-link btn-sm text-decoration-none p-0 mt-1 evento-mes-ver-detalhes">Ver detalhes</a>
             </div>
         <?php endif; ?>
         <?php if (!empty($ev['rsvp_deadline'])): ?>

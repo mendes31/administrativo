@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CompanyEventRsvpAccessHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
@@ -32,6 +33,10 @@ class ViewCompanyEvent
         }
 
         $userId = (int)($_SESSION['user_id'] ?? 0);
+
+        if ($userId > 0 && isset($_GET['mark_notification']) && is_numeric($_GET['mark_notification'])) {
+            (new NotificationsRepository())->markAsRead((int)$_GET['mark_notification'], $userId);
+        }
 
         $pageElements = [
             'title_head' => 'Visualizar evento',
@@ -73,6 +78,7 @@ class ViewCompanyEvent
         $guests = $rsvpId > 0 ? $repo->getGuestsForRsvpId($rsvpId) : [];
 
         $this->data['event'] = $event;
+        $this->data['event_images'] = $repo->getImagesForEvent($eventId);
         $this->data['rsvp'] = $rsvp;
         $this->data['rsvp_guests'] = $guests;
         $this->data['can_edit'] = in_array('UpdateCompanyEvent', $btnPerms, true);

@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\CompanyEventMediaService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
@@ -11,7 +12,14 @@ use App\adms\Views\Services\LoadViewService;
 
 class CreateCompanyEvent
 {
+    private CompanyEventMediaService $mediaService;
+
     private array $data = [];
+
+    public function __construct()
+    {
+        $this->mediaService = new CompanyEventMediaService();
+    }
 
     public function index(): void
     {
@@ -37,7 +45,7 @@ class CreateCompanyEvent
     private function create(): void
     {
         if (!CSRFHelper::validateCSRFToken('company_event_create', $_POST['csrf_token'] ?? '')) {
-            $_SESSION['msg'] = '<div class="alert alert-danger">Token CSRF inválido.</div>';
+            $_SESSION['msg'] = $this->mediaService->alertHtml('danger', 'Token CSRF inválido.');
             return;
         }
 
@@ -45,7 +53,7 @@ class CreateCompanyEvent
         $starts = $this->normalizeDatetimeLocal(trim((string)($_POST['starts_at'] ?? '')));
         $ends = $this->normalizeDatetimeLocal(trim((string)($_POST['ends_at'] ?? '')));
         if ($title === '' || $starts === null || $ends === null) {
-            $_SESSION['msg'] = '<div class="alert alert-danger">Título e datas são obrigatórios.</div>';
+            $_SESSION['msg'] = $this->mediaService->alertHtml('danger', 'Título e datas são obrigatórios.');
             return;
         }
 
@@ -65,24 +73,30 @@ class CreateCompanyEvent
             'created_by' => (int)$_SESSION['user_id'],
             'department_id' => (int)($_POST['department_id'] ?? 0) ?: null,
             'ativo' => isset($_POST['ativo']),
+            'anexo' => null,
         ];
 
         if (strtotime($data['starts_at']) >= strtotime($data['ends_at'])) {
-            $_SESSION['msg'] = '<div class="alert alert-danger">Data/hora de término deve ser após o início.</div>';
+            $_SESSION['msg'] = $this->mediaService->alertHtml('danger', 'Data/hora de término deve ser após o início.');
             return;
         }
 
         $repo = new CompanyEventsRepository();
         $id = $repo->createEvent($data);
-        if ($id > 0) {
-            $_SESSION['msg'] = '<div class="alert alert-success">Evento criado.</div>';
-            header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
-            exit;
+        if ($id <= 0) {
+            $_SESSION['msg'] = $this->mediaService->alertHtml('danger', 'Erro ao criar evento.');
+            return;
         }
-        $_SESSION['msg'] = '<div class="alert alert-danger">Erro ao criar evento.</div>';
+
+        if (!$this->mediaService->persistMediaAfterCreate($id, $repo)) {
+            return;
+        }
+
+        $_SESSION['msg'] = $this->mediaService->alertHtml('success', 'Evento criado.');
+        header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
+        exit;
     }
 
-    /** Converte valor de input datetime-local para formato MySQL. */
     private function normalizeDatetimeLocal(string $raw): ?string
     {
         $s = str_replace('T', ' ', trim($raw));

@@ -172,7 +172,10 @@ class Dashboard
             $eventsRepo = new \App\adms\Models\Repository\CompanyEventsRepository();
             $y = (int)date('Y');
             $m = (int)date('n');
-            $companyEvents = $eventsRepo->getEventsIntersectingYear($y);
+            $displayPeriod = $eventsRepo->resolveDashboardDisplayMonth($y);
+            $displayYear = (int)$displayPeriod['year'];
+            $displayMonth = (int)$displayPeriod['month'];
+            $companyEvents = $eventsRepo->getEventsIntersectingMonth($displayYear, $displayMonth);
             $uid = $userId;
             foreach ($companyEvents as &$ce) {
                 $ceId = (int)($ce['id'] ?? 0);
@@ -183,6 +186,8 @@ class Dashboard
             }
             unset($ce);
             $this->data['company_events_dashboard'] = $companyEvents;
+            $this->data['company_events_dashboard_year'] = $displayYear;
+            $this->data['company_events_dashboard_month'] = $displayMonth;
             $this->data['company_events_month_count'] = count($eventsRepo->getEventsIntersectingMonth($y, $m));
             $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
             $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $uid);
