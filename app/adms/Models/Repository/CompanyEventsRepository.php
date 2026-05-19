@@ -428,28 +428,67 @@ class CompanyEventsRepository extends DbConnection
      */
     public function resolveDashboardDisplayMonth(?int $year = null): array
     {
-        $year = $year ?? (int)date('Y');
-        $currentMonth = (int)date('n');
+        $year = $year ?? (int) date('Y');
+        $currentMonth = (int) date('n');
 
-        if ($this->countEventsIntersectingMonth($year, $currentMonth) > 0) {
+        $countsCurrentYear = $this->getIntersectingMonthCountsForYear($year);
+
+        if (($countsCurrentYear[$currentMonth] ?? 0) > 0) {
             return ['year' => $year, 'month' => $currentMonth];
         }
 
         for ($m = $currentMonth + 1; $m <= 12; $m++) {
-            if ($this->countEventsIntersectingMonth($year, $m) > 0) {
+            if (($countsCurrentYear[$m] ?? 0) > 0) {
                 return ['year' => $year, 'month' => $m];
             }
         }
 
         for ($y = $year + 1; $y <= $year + 2; $y++) {
+            $counts = $this->getIntersectingMonthCountsForYear($y);
             for ($m = 1; $m <= 12; $m++) {
-                if ($this->countEventsIntersectingMonth($y, $m) > 0) {
+                if (($counts[$m] ?? 0) > 0) {
                     return ['year' => $y, 'month' => $m];
                 }
             }
         }
 
         return ['year' => $year, 'month' => $currentMonth];
+    }
+
+    /**
+     * Contagem de eventos por mês (1–12) em uma única consulta — evita N× COUNT no dashboard.
+     *
+     * @return array<int, int> mês => total
+     */
+    public function getIntersectingMonthCountsForYear(int $year): array
+    {
+        if ($year < 2000 || $year > 2100) {
+            return array_fill(1, 12, 0);
+        }
+
+        $selectParts = [];
+        $params = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $start = sprintf('%04d-%02d-01 00:00:00', $year, $m);
+            $end = date('Y-m-t 23:59:59', strtotime($start));
+            $selectParts[] = "SUM(CASE WHEN e.starts_at <= :end{$m} AND e.ends_at >= :start{$m}
+                AND (e.publish_at IS NULL OR e.publish_at <= :end{$m})
+                AND (e.expire_at IS NULL OR e.expire_at >= :start{$m}) THEN 1 ELSE 0 END) AS c{$m}";
+            $params[":start{$m}"] = $start;
+            $params[":end{$m}"] = $end;
+        }
+
+        $sql = 'SELECT ' . implode(', ', $selectParts) . ' FROM adms_company_events e WHERE e.ativo = 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $out = array_fill(1, 12, 0);
+        for ($m = 1; $m <= 12; $m++) {
+            $out[$m] = (int) ($row['c' . $m] ?? 0);
+        }
+
+        return $out;
     }
 
     /**
@@ -586,6 +625,134 @@ class CompanyEventsRepository extends DbConnection
         $stmt->execute([':e' => $eventId, ':u' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * RSVPs do usuário para vários eventos (dashboard / listagens).
+     *
+     * @param list<int> $eventIds
+     * @return array<int, array<string, mixed>> event_id => rsvp
+     */
+    public function getRsvpsMapForUserByEventIds(array $eventIds, int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $eventIds = array_values(array_unique(array_filter(array_map('intval', $eventIds), static fn(int $id): bool => $id > 0)));
+        if ($eventIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
+        $sql = "SELECT * FROM adms_company_event_rsvps WHERE user_id = ? AND event_id IN ({$placeholders})";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute(array_merge([$userId], $eventIds));
+
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $normalized = $this->normalizeRow($row);
+            $eid = (int) ($normalized['event_id'] ?? 0);
+            if ($eid > 0) {
+                $map[$eid] = $normalized;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Aplica auto-decline de RSVP após prazo (mesma regra de autoDeclineRsvpIfDeadlinePassed),
+     * usando linhas de evento já carregadas e mapa de RSVPs em lote.
+     *
+     * @param list<array<string, mixed>> $events Linhas com id, ativo, requires_rsvp, rsvp_deadline
+     * @param array<int, array<string, mixed>> $rsvpMap event_id => rsvp (será atualizado)
+     * @return array<int, array<string, mixed>> mapa atualizado
+     */
+    public function applyAutoDeclineRsvpsAfterDeadlineForUser(array $events, int $userId, array $rsvpMap): array
+    {
+        if ($userId <= 0 || $events === []) {
+            return $rsvpMap;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $updateStmt = $this->getConnection()->prepare(
+            'UPDATE adms_company_event_rsvps SET status = :st, responded_at = COALESCE(responded_at, NOW()), updated_at = NOW() WHERE id = :id'
+        );
+        $insertStmt = $this->getConnection()->prepare(
+            'INSERT INTO adms_company_event_rsvps (event_id, user_id, status, responded_at, created_at, updated_at)
+             VALUES (:e, :u, :st, NOW(), NOW(), NOW())'
+        );
+
+        foreach ($events as $event) {
+            $eventId = (int) ($event['id'] ?? 0);
+            if ($eventId <= 0 || empty($event['ativo'])) {
+                continue;
+            }
+            if (empty($event['requires_rsvp']) || empty($event['rsvp_deadline'])) {
+                continue;
+            }
+            if ($now <= (string) $event['rsvp_deadline']) {
+                continue;
+            }
+
+            $rsvp = $rsvpMap[$eventId] ?? null;
+            if ($rsvp) {
+                if (($rsvp['status'] ?? '') === 'pending') {
+                    $updateStmt->execute([':st' => 'declined', ':id' => (int) $rsvp['id']]);
+                    $rsvp['status'] = 'declined';
+                    $rsvpMap[$eventId] = $rsvp;
+                }
+                continue;
+            }
+
+            try {
+                $insertStmt->execute([':e' => $eventId, ':u' => $userId, ':st' => 'declined']);
+                $newId = (int) $this->getConnection()->lastInsertId();
+                $created = $newId > 0 ? $this->getRsvpById($newId) : null;
+                if ($created) {
+                    $rsvpMap[$eventId] = $created;
+                }
+            } catch (\Throwable) {
+                $again = $this->getRsvpForUser($eventId, $userId);
+                if ($again && (($again['status'] ?? '') === 'pending')) {
+                    $updateStmt->execute([':st' => 'declined', ':id' => (int) $again['id']]);
+                    $again['status'] = 'declined';
+                }
+                if ($again) {
+                    $rsvpMap[$eventId] = $again;
+                }
+            }
+        }
+
+        return $rsvpMap;
+    }
+
+    /**
+     * Carrega RSVPs do usuário e aplica auto-decline quando o prazo expirou (dashboard).
+     *
+     * @param list<array<string, mixed>> $events
+     * @return array<int, array<string, mixed>|null> event_id => rsvp ou null
+     */
+    public function buildDashboardRsvpMapForUser(array $events, int $userId): array
+    {
+        if ($userId <= 0 || $events === []) {
+            return [];
+        }
+
+        $eventIds = array_map(static fn(array $e): int => (int) ($e['id'] ?? 0), $events);
+        $rsvpMap = $this->getRsvpsMapForUserByEventIds($eventIds, $userId);
+        $rsvpMap = $this->applyAutoDeclineRsvpsAfterDeadlineForUser($events, $userId, $rsvpMap);
+
+        $out = [];
+        foreach ($events as $event) {
+            $eventId = (int) ($event['id'] ?? 0);
+            if ($eventId <= 0) {
+                continue;
+            }
+            $out[$eventId] = $rsvpMap[$eventId] ?? null;
+        }
+
+        return $out;
     }
 
     /**

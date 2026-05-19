@@ -86,6 +86,7 @@ $slowRetentionDays = (int)($settings['slow_request_retention_days'] ?? 7);
                                 <label class="form-label fw-semibold" for="slow_request_threshold_ms">
                                     Limite para considerar lenta (ms)
                                 </label>
+                                <div class="form-text">Recomendado: 500–700 ms. Valores muito baixos registram quase todas as páginas como lentas.</div>
                                 <input type="number"
                                        min="10"
                                        max="30000"

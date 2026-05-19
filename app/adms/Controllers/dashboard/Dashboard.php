@@ -11,6 +11,7 @@ use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\GamificationQuizRepository;
 use App\adms\Models\Repository\MeetingRoomsRepository;
+use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
@@ -79,79 +80,19 @@ class Dashboard
         }
         $this->data['categorias_informativos'] = $categorias;
 
-        // Buscar aniversariantes (data de nascimento) e aniversários de empresa (data de admissão)
+        // Aniversariantes (repositório centralizado — mesma consulta e normalização de antes)
         $usersRepo = new UsersRepository();
-        $mesAtual = (int)date('m');
-
-        // Aniversário de nascimento
-        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
-                       DATE_FORMAT(u.data_nascimento, "%d/%m") as aniversario,
-                       MONTH(u.data_nascimento) as aniversario_mes,
-                       u.data_nascimento,
-                       d.name as departamento
-                FROM adms_users u
-                LEFT JOIN adms_departments d ON u.user_department_id = d.id
-                WHERE u.status = 1
-                  AND u.data_nascimento IS NOT NULL
-                ORDER BY MONTH(u.data_nascimento) ASC, DAY(u.data_nascimento) ASC';
-        $stmt = $usersRepo->getConnection()->prepare($sql);
-        $stmt->execute();
-        $aniversariantesTodos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $mesAtual = (int) date('m');
+        $aniversariantesTodos = $usersRepo->listActiveUsersBirthdaysForDashboard();
         $aniversariantes = array_values(array_filter(
             $aniversariantesTodos,
-            static fn(array $item): bool => ((int)($item['aniversario_mes'] ?? 0) === $mesAtual)
+            static fn(array $item): bool => ((int) ($item['aniversario_mes'] ?? 0) === $mesAtual)
         ));
-
-        // Aniversário de empresa (data de admissão)
-        $sqlEmpresa = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
-                              DATE_FORMAT(u.data_admissao, "%d/%m") as aniversario_empresa,
-                              MONTH(u.data_admissao) as aniversario_empresa_mes,
-                              u.data_admissao,
-                              d.name as departamento
-                       FROM adms_users u
-                       LEFT JOIN adms_departments d ON u.user_department_id = d.id
-                       WHERE u.status = 1
-                         AND u.data_admissao IS NOT NULL
-                       ORDER BY MONTH(u.data_admissao) ASC, DAY(u.data_admissao) ASC';
-        $stmtEmpresa = $usersRepo->getConnection()->prepare($sqlEmpresa);
-        $stmtEmpresa->execute();
-        $aniversariantesEmpresaTodos = $stmtEmpresa->fetchAll(\PDO::FETCH_ASSOC);
+        $aniversariantesEmpresaTodos = $usersRepo->listActiveUsersCompanyAnniversariesForDashboard();
         $aniversariantesEmpresa = array_values(array_filter(
             $aniversariantesEmpresaTodos,
-            static fn(array $item): bool => ((int)($item['aniversario_empresa_mes'] ?? 0) === $mesAtual)
+            static fn(array $item): bool => ((int) ($item['aniversario_empresa_mes'] ?? 0) === $mesAtual)
         ));
-
-        // Ajuste: normalizar valor da coluna image e ignorar imagens padrão
-        foreach ([$aniversariantesTodos, $aniversariantesEmpresaTodos] as &$listaRef) {
-            foreach ($listaRef as &$aniv) {
-                if (empty($aniv['image'])) {
-                    $aniv['image'] = null;
-                    continue;
-                }
-
-                // Se for a imagem padrão (em qualquer formato de caminho), trata como "sem imagem"
-                $basename = basename((string)$aniv['image']);
-                if ($basename === 'icon_user.png') {
-                    $aniv['image'] = null;
-                }
-            }
-            unset($aniv);
-        }
-        unset($listaRef);
-
-        // Calcular anos de casa para aniversários de empresa
-        $anoAtual = (int)date('Y');
-        foreach ($aniversariantesEmpresaTodos as &$anivEmp) {
-            $anos = null;
-            if (!empty($anivEmp['data_admissao'])) {
-                $anoAdm = (int)date('Y', strtotime($anivEmp['data_admissao']));
-                if ($anoAdm > 0 && $anoAtual >= $anoAdm) {
-                    $anos = max(0, $anoAtual - $anoAdm);
-                }
-            }
-            $anivEmp['anos_empresa'] = $anos;
-        }
-        unset($anivEmp);
 
         $hojeDiaMes = date('d/m');
         $aniversariantesHoje = array_values(array_filter(
@@ -170,28 +111,29 @@ class Dashboard
 
         // Eventos corporativos (card + modal no dashboard)
         try {
-            $eventsRepo = new \App\adms\Models\Repository\CompanyEventsRepository();
-            $y = (int)date('Y');
-            $m = (int)date('n');
+            $eventsRepo = new CompanyEventsRepository();
+            $y = (int) date('Y');
+            $m = (int) date('n');
             $displayPeriod = $eventsRepo->resolveDashboardDisplayMonth($y);
-            $displayYear = (int)$displayPeriod['year'];
-            $displayMonth = (int)$displayPeriod['month'];
+            $displayYear = (int) $displayPeriod['year'];
+            $displayMonth = (int) $displayPeriod['month'];
             $companyEvents = $eventsRepo->getEventsIntersectingMonth($displayYear, $displayMonth);
-            $uid = $userId;
+            $rsvpByEvent = $userId > 0
+                ? $eventsRepo->buildDashboardRsvpMapForUser($companyEvents, $userId)
+                : [];
             foreach ($companyEvents as &$ce) {
-                $ceId = (int)($ce['id'] ?? 0);
-                if ($uid > 0 && $ceId > 0) {
-                    $eventsRepo->autoDeclineRsvpIfDeadlinePassed($ceId, $uid);
-                }
-                $ce['rsvp'] = $uid > 0 ? $eventsRepo->getRsvpForUser($ceId, $uid) : null;
+                $ceId = (int) ($ce['id'] ?? 0);
+                $ce['rsvp'] = $userId > 0 ? ($rsvpByEvent[$ceId] ?? null) : null;
             }
             unset($ce);
             $this->data['company_events_dashboard'] = $companyEvents;
             $this->data['company_events_dashboard_year'] = $displayYear;
             $this->data['company_events_dashboard_month'] = $displayMonth;
-            $this->data['company_events_month_count'] = count($eventsRepo->getEventsIntersectingMonth($y, $m));
+            $this->data['company_events_month_count'] = ($displayYear === $y && $displayMonth === $m)
+                ? count($companyEvents)
+                : $eventsRepo->countEventsIntersectingMonth($y, $m);
             $this->data['company_events_year_count'] = $eventsRepo->countEventsIntersectingYear($y);
-            $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $uid);
+            $this->data['company_events_unread_count'] = $eventsRepo->countUnreadIntersectingYear($y, $userId);
         } catch (\Throwable $e) {
             $this->data['company_events_dashboard'] = [];
             $this->data['company_events_month_count'] = 0;

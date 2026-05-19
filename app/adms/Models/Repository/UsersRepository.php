@@ -2856,4 +2856,84 @@ class UsersRepository extends DbConnection
         return $rows;
     }
 
+    /**
+     * Colaboradores ativos com data de nascimento (modais e card de aniversários no dashboard).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveUsersBirthdaysForDashboard(): array
+    {
+        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                       DATE_FORMAT(u.data_nascimento, "%d/%m") AS aniversario,
+                       MONTH(u.data_nascimento) AS aniversario_mes,
+                       u.data_nascimento,
+                       d.name AS departamento
+                FROM adms_users u
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE u.status = 1
+                  AND u.data_nascimento IS NOT NULL
+                ORDER BY MONTH(u.data_nascimento) ASC, DAY(u.data_nascimento) ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return $this->normalizeDashboardUserAvatarRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
+     * Colaboradores ativos com data de admissão (tempo de empresa no dashboard).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveUsersCompanyAnniversariesForDashboard(): array
+    {
+        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                       DATE_FORMAT(u.data_admissao, "%d/%m") AS aniversario_empresa,
+                       MONTH(u.data_admissao) AS aniversario_empresa_mes,
+                       u.data_admissao,
+                       d.name AS departamento
+                FROM adms_users u
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE u.status = 1
+                  AND u.data_admissao IS NOT NULL
+                ORDER BY MONTH(u.data_admissao) ASC, DAY(u.data_admissao) ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        $rows = $this->normalizeDashboardUserAvatarRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+
+        $anoAtual = (int) date('Y');
+        foreach ($rows as &$row) {
+            $anos = null;
+            if (!empty($row['data_admissao'])) {
+                $anoAdm = (int) date('Y', strtotime((string) $row['data_admissao']));
+                if ($anoAdm > 0 && $anoAtual >= $anoAdm) {
+                    $anos = max(0, $anoAtual - $anoAdm);
+                }
+            }
+            $row['anos_empresa'] = $anos;
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeDashboardUserAvatarRows(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            if (empty($row['image'])) {
+                $row['image'] = null;
+                continue;
+            }
+            if (basename((string) $row['image']) === 'icon_user.png') {
+                $row['image'] = null;
+            }
+        }
+        unset($row);
+
+        return $rows;
+    }
+
 }
