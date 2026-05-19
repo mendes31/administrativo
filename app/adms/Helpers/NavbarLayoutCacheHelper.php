@@ -110,9 +110,6 @@ final class NavbarLayoutCacheHelper
         }
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private static function emptyPayload(): array
     {
         return [

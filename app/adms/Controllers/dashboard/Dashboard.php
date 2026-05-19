@@ -10,6 +10,7 @@ use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\GamificationQuizRepository;
 use App\adms\Models\Repository\MeetingRoomsRepository;
+use App\adms\Models\Repository\CompanyEventsDashboardSupport;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
@@ -37,11 +38,9 @@ class Dashboard
 
         $this->data['aniversariantes_dia'] = [];
         $this->data['qtd_aniversariantes_dia'] = 0;
-        $this->data['aniversariantes_todos'] = [];
         $this->data['aniversariantes_mes'] = [];
         $this->data['qtd_aniversariantes_mes'] = 0;
 
-        $this->data['aniversariantes_empresa_todos'] = [];
         $this->data['aniversariantes_empresa_mes'] = [];
         $this->data['qtd_aniversariantes_empresa_mes'] = 0;
 
@@ -109,44 +108,28 @@ class Dashboard
     {
         $usersRepo = new UsersRepository();
         $mesAtual = (int) date('m');
-        $hojeDiaMes = date('d/m');
 
-        $aniversariantesTodos = $usersRepo->listActiveUsersBirthdaysForDashboard();
-        $aniversariantes = array_values(array_filter(
-            $aniversariantesTodos,
-            static fn (array $item): bool => ((int) ($item['aniversario_mes'] ?? 0) === $mesAtual)
-        ));
-        $aniversariantesHoje = array_values(array_filter(
-            $aniversariantesTodos,
-            static fn (array $item): bool => (($item['aniversario'] ?? '') === $hojeDiaMes)
-        ));
-
-        $this->data['aniversariantes_dia'] = $aniversariantesHoje;
-        $this->data['qtd_aniversariantes_dia'] = count($aniversariantesHoje);
-        $this->data['aniversariantes_todos'] = $aniversariantesTodos;
-        $this->data['aniversariantes_mes'] = $aniversariantes;
-        $this->data['qtd_aniversariantes_mes'] = count($aniversariantes);
+        $this->data['aniversariantes_dia'] = $usersRepo->listActiveUsersBirthdaysTodayForDashboard();
+        $this->data['qtd_aniversariantes_dia'] = count($this->data['aniversariantes_dia']);
+        $this->data['aniversariantes_mes'] = $usersRepo->listActiveUsersBirthdaysInMonth($mesAtual);
+        $this->data['qtd_aniversariantes_mes'] = $usersRepo->countActiveUsersBirthdaysInMonth($mesAtual);
     }
 
     private function loadCompanyTenureDashboardData(): void
     {
         $usersRepo = new UsersRepository();
         $mesAtual = (int) date('m');
-        $aniversariantesEmpresaTodos = $usersRepo->listActiveUsersCompanyAnniversariesForDashboard();
-        $aniversariantesEmpresa = array_values(array_filter(
-            $aniversariantesEmpresaTodos,
-            static fn (array $item): bool => ((int) ($item['aniversario_empresa_mes'] ?? 0) === $mesAtual)
-        ));
 
-        $this->data['aniversariantes_empresa_todos'] = $aniversariantesEmpresaTodos;
-        $this->data['aniversariantes_empresa_mes'] = $aniversariantesEmpresa;
-        $this->data['qtd_aniversariantes_empresa_mes'] = count($aniversariantesEmpresa);
+        $this->data['aniversariantes_empresa_mes'] = $usersRepo->listActiveUsersCompanyAnniversariesInMonth($mesAtual);
+        $this->data['qtd_aniversariantes_empresa_mes'] = $usersRepo->countActiveUsersCompanyAnniversariesInMonth($mesAtual);
     }
 
     private function loadCompanyEventsDashboardData(int $userId): void
     {
         try {
             $eventsRepo = new CompanyEventsRepository();
+            /** @var CompanyEventsDashboardSupport $eventsDashboard */
+            $eventsDashboard = $eventsRepo;
             $y = (int) date('Y');
             $m = (int) date('n');
             $displayPeriod = $eventsRepo->resolveDashboardDisplayMonth($y);
@@ -154,7 +137,7 @@ class Dashboard
             $displayMonth = (int) $displayPeriod['month'];
             $companyEvents = $eventsRepo->getEventsIntersectingMonth($displayYear, $displayMonth);
             $rsvpByEvent = $userId > 0
-                ? $eventsRepo->buildDashboardRsvpMapForUser($companyEvents, $userId)
+                ? $eventsDashboard->buildDashboardRsvpMapForUser($companyEvents, $userId)
                 : [];
             foreach ($companyEvents as &$ce) {
                 $ceId = (int) ($ce['id'] ?? 0);
@@ -238,13 +221,8 @@ class Dashboard
 
     public function index()
     {
-        // Atualizar retenção/anomização de currículos (LGPD) no primeiro acesso do dia
         CandidateRetentionService::ensureUpdated();
-
-        // Lembretes de ciência em documentos de folha (RH), no máximo 1× por 24 h
         PayrollDocumentRemindersService::ensureUpdated();
-
-        // Informativos: throttle global + flock (ver InformativosStatusUpdaterService)
         InformativosStatusUpdaterService::ensureUpdated();
 
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';

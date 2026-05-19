@@ -546,24 +546,20 @@ class PageLayoutService
             $userAccessLevelsArray = $userAccessLevelsArray ? $userAccessLevelsArray : [];
             $_SESSION['adms_user_access_level_ids'] = $userAccessLevelsArray;
         }
+        $menuPermissionRepo = new MenuPermissionUserRepository();
+
         if (in_array(1, $userAccessLevelsArray, true)) {
-            // Super Administrador tem acesso a todos os botões solicitados
-            // Garantir que o array de buttonPermission seja retornado completo (não vazio)
             if (empty($data['buttonPermission'] ?? [])) {
-                // Se não foi passado nenhum botão, retornar array vazio
                 $data['buttonPermission'] = [];
             }
-            // Se foi passado, manter o array original (já contém todos os botões solicitados)
-            return array_merge($data, ['menuPermission' => $menu]);
+            $data['menuPermission'] = $menuPermissionRepo->getFilteredMenuForLayout($menu);
+
+            return $data;
         }
 
-        // Apresentar ou ocultar botão
         $buttonPermission = new ButtonPermissionUserRepository();
         $data['buttonPermission'] = $buttonPermission->buttonPermission($data['buttonPermission'] ?? []);
-
-        // Apresentar ou ocultar item de menu
-        $menuPermission = new MenuPermissionUserRepository();
-        $data['menuPermission'] = $menuPermission->menuPermission($menu);
+        $data['menuPermission'] = $menuPermissionRepo->getFilteredMenuForLayout($menu);
 
         return $data;
     }

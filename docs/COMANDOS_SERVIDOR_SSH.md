@@ -95,6 +95,14 @@ Em releases que incluam deduplicação, índice único `(adms_access_level_id, a
 
 **Seeds:** a entrada **Aplicar Avaliação (OBSOLETO)** foi retirada de `AddAdmsPages`; voltar a correr essa seed **não** recria essa rota. Não é obrigatório correr seed só por causa desta alteração se a migration já limpou produção.
 
+### Timeline — índice em comentários (performance do feed)
+
+Migration `20260519150000_add_timeline_comments_post_status_index.php`: cria índice composto `(post_id, status)` em `adms_timeline_comments` para acelerar contagens de comentários ativos no feed. **Não altera dados nem regras** — só o plano de execução do MySQL.
+
+```bash
+php vendor/bin/phinx migrate -c database/phinx.php -e production
+```
+
 ## 🌱 **PASSO 4: Executar as Seeds**10
 
 ```bash

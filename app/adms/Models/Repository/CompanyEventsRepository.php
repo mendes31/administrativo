@@ -7,7 +7,7 @@ use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
 
-class CompanyEventsRepository extends DbConnection
+class CompanyEventsRepository extends DbConnection implements CompanyEventsDashboardSupport
 {
     /**
      * Registra leitura de um evento para o usuário (upsert).

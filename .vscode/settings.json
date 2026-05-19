@@ -1,7 +1,8 @@
 {
-    "intelephense.environment.phpVersion": "8.0.0",
+    "intelephense.environment.phpVersion": "8.2.0",
     "intelephense.diagnostics.undefinedFunctions": false,
     "intelephense.diagnostics.undefinedTypes": false,
+    "intelephense.diagnostics.undefinedMethods": false,
     "intelephense.files.exclude": [
         "**/node_modules/**",
         "**/.cursor/**",
@@ -12,9 +13,11 @@
     ],
     "intelephense.diagnostics.undefinedSymbols": false,
     "intelephense.diagnostics.run": "onSave",
+    "intelephense.files.maxSize": 5000000,
     "files.exclude": {
         "**/.cursor/extensions/**/node_modules/intelephense/lib/stub/**": true
     },
     "intelephense.diagnostics.enable": true,
-    "intelephense.diagnostics.completedLanguages": []
+    "intelephense.diagnostics.completedLanguages": [],
+    "css.lint.vendorPrefix": "ignore"
 }

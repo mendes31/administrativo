@@ -28,7 +28,7 @@ class Upload
     /**
      * @return bool Retorna true quando executar o processo com sucesso e false quando houver erro
      */
-    function getResult(): bool
+    public function getResult(): bool
     {
         return $this->result;
     }
@@ -40,7 +40,7 @@ class Upload
      * @param string $directory
      * @param string $tmpName
      * @param string $name
-     * @return void
+     * @return bool
      */
     public function upload(string $directory, string $tmpName, string $name): bool
     {

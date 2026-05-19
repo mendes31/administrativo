@@ -9,10 +9,59 @@ use PDO;
 class MenuPermissionUserRepository extends DbConnection
 {
     public const SESSION_CACHE_KEY = 'adms_menu_allowed_controllers';
+    private const FILTERED_LAYOUT_MENU_KEY = 'adms_page_layout_menu_permission';
 
     public static function clearSessionCache(): void
     {
-        unset($_SESSION[self::SESSION_CACHE_KEY]);
+        unset($_SESSION[self::SESSION_CACHE_KEY], $_SESSION[self::FILTERED_LAYOUT_MENU_KEY]);
+    }
+
+    /**
+     * Menu filtrado para o layout (cache em sessão — evita intersect em toda página).
+     *
+     * @param array<int, string> $fullMenu
+     * @return array<int, string>
+     */
+    public function getFilteredMenuForLayout(array $fullMenu): array
+    {
+        if ($fullMenu === []) {
+            return [];
+        }
+
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $globalVersion = self::getGlobalPermissionCacheVersion();
+        $cached = $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] ?? null;
+        if (
+            is_array($cached)
+            && (int) ($cached['user_id'] ?? 0) === $userId
+            && (string) ($cached['version'] ?? '') === $globalVersion
+            && is_array($cached['controllers'] ?? null)
+        ) {
+            return $cached['controllers'];
+        }
+
+        $levelIds = $_SESSION['adms_user_access_level_ids'] ?? [];
+        if (UserAccessHelper::hasFullSystemAccess()
+            || (is_array($levelIds) && in_array(1, $levelIds, true))) {
+            $filtered = $fullMenu;
+        } else {
+            $filtered = $this->menuPermission($fullMenu);
+            if (!is_array($filtered)) {
+                $filtered = [];
+            }
+        }
+
+        $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] = [
+            'user_id' => $userId,
+            'version' => $globalVersion,
+            'controllers' => $filtered,
+        ];
+
+        return $filtered;
     }
 
     public static function bumpGlobalPermissionCacheVersion(): void

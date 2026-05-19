@@ -1188,7 +1188,7 @@ class UsersRepository extends DbConnection
                 error_log("DEBUG updateUser - Processando imagem: " . print_r($data['image'], true));
                 
                 // Processar upload da nova imagem
-                if ($this->upload($data, $data['image'])) {
+                if ($this->uploadUserImage($data, $data['image'])) {
                     error_log("DEBUG updateUser - Upload realizado com sucesso");
                     
                     // Deletar imagem antiga se existir
@@ -1465,7 +1465,7 @@ class UsersRepository extends DbConnection
 
             // Processar upload da nova imagem
             error_log("DEBUG updateUserImage - Iniciando upload...");
-            if ($this->upload($data, $data['image'])) {
+            if ($this->uploadUserImage($data, $data['image'])) {
                 error_log("DEBUG updateUserImage - Upload realizado com sucesso");
                 // Atualizar banco com nova imagem
                 $sql = 'UPDATE adms_users SET image = :image, updated_at = :updated_at WHERE id = :id';
@@ -1593,7 +1593,7 @@ class UsersRepository extends DbConnection
                 $result = $stmt->execute();
             } else {
                 // Processar upload da nova imagem
-                if ($this->upload($data, $data['image'])) {
+                if ($this->uploadUserImage($data, $data['image'])) {
                     // Deletar imagem antiga
                     $this->deleteImage($data);
                     
@@ -1696,7 +1696,7 @@ class UsersRepository extends DbConnection
      * Chama o metodo edit para atualizar as informações no banco de dados
      * @return bool
      */
-    private function upload(array $data, array $dataImage): bool
+    private function uploadUserImage(array $data, array $dataImage): bool
     {
         // Validação de segurança
         if (!is_array($dataImage) || !isset($dataImage['name']) || !isset($dataImage['tmp_name'])) {
@@ -1708,10 +1708,10 @@ class UsersRepository extends DbConnection
 
         $directory = "public/adms/uploads/users/" . $data['id'] . "/";
 
-        $uploadImgRes = new Upload();
-        $result = $uploadImgRes->upload($directory, $dataImage['tmp_name'], $this->nameImg);
+        $uploadHelper = new Upload();
+        $uploadHelper->upload($directory, $dataImage['tmp_name'], $this->nameImg);
 
-        if ($result && $uploadImgRes->getResult()) {
+        if ($uploadHelper->getResult()) {
             return true;
         }
         return false;
@@ -2877,6 +2877,137 @@ class UsersRepository extends DbConnection
         $stmt->execute();
 
         return $this->normalizeDashboardUserAvatarRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    public function countActiveUsersBirthdaysInMonth(int $month): int
+    {
+        if ($month < 1 || $month > 12) {
+            return 0;
+        }
+        $sql = 'SELECT COUNT(*) AS c FROM adms_users
+                WHERE status = 1 AND data_nascimento IS NOT NULL AND MONTH(data_nascimento) = :mes';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':mes', $month, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['c'] ?? 0);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveUsersBirthdaysInMonth(int $month): array
+    {
+        if ($month < 1 || $month > 12) {
+            return [];
+        }
+        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                       DATE_FORMAT(u.data_nascimento, "%d/%m") AS aniversario,
+                       MONTH(u.data_nascimento) AS aniversario_mes,
+                       u.data_nascimento,
+                       d.name AS departamento
+                FROM adms_users u
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE u.status = 1
+                  AND u.data_nascimento IS NOT NULL
+                  AND MONTH(u.data_nascimento) = :mes
+                ORDER BY DAY(u.data_nascimento) ASC, u.name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':mes', $month, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $this->normalizeDashboardUserAvatarRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    public function countActiveUsersBirthdaysToday(): int
+    {
+        $sql = 'SELECT COUNT(*) AS c FROM adms_users
+                WHERE status = 1
+                  AND data_nascimento IS NOT NULL
+                  AND DATE_FORMAT(data_nascimento, "%d/%m") = DATE_FORMAT(CURDATE(), "%d/%m")';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['c'] ?? 0);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveUsersBirthdaysTodayForDashboard(): array
+    {
+        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                       DATE_FORMAT(u.data_nascimento, "%d/%m") AS aniversario,
+                       MONTH(u.data_nascimento) AS aniversario_mes,
+                       u.data_nascimento,
+                       d.name AS departamento
+                FROM adms_users u
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE u.status = 1
+                  AND u.data_nascimento IS NOT NULL
+                  AND DATE_FORMAT(u.data_nascimento, "%d/%m") = DATE_FORMAT(CURDATE(), "%d/%m")
+                ORDER BY u.name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return $this->normalizeDashboardUserAvatarRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    public function countActiveUsersCompanyAnniversariesInMonth(int $month): int
+    {
+        if ($month < 1 || $month > 12) {
+            return 0;
+        }
+        $sql = 'SELECT COUNT(*) AS c FROM adms_users
+                WHERE status = 1 AND data_admissao IS NOT NULL AND MONTH(data_admissao) = :mes';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':mes', $month, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['c'] ?? 0);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveUsersCompanyAnniversariesInMonth(int $month): array
+    {
+        if ($month < 1 || $month > 12) {
+            return [];
+        }
+        $sql = 'SELECT u.id, u.name, u.image, u.user_department_id, u.user_position_id,
+                       DATE_FORMAT(u.data_admissao, "%d/%m") AS aniversario_empresa,
+                       MONTH(u.data_admissao) AS aniversario_empresa_mes,
+                       u.data_admissao,
+                       d.name AS departamento
+                FROM adms_users u
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE u.status = 1
+                  AND u.data_admissao IS NOT NULL
+                  AND MONTH(u.data_admissao) = :mes
+                ORDER BY DAY(u.data_admissao) ASC, u.name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':mes', $month, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $this->normalizeDashboardUserAvatarRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+
+        $anoAtual = (int) date('Y');
+        foreach ($rows as &$row) {
+            $anos = null;
+            if (!empty($row['data_admissao'])) {
+                $anoAdm = (int) date('Y', strtotime((string) $row['data_admissao']));
+                if ($anoAdm > 0 && $anoAtual >= $anoAdm) {
+                    $anos = max(0, $anoAtual - $anoAdm);
+                }
+            }
+            $row['anos_empresa'] = $anos;
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**

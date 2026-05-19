@@ -13,6 +13,7 @@ use Phinx\Migration\AbstractMigration;
  * @method bool hasTable(string $tableName)
  * @method MigrationTableAdapter table(string $tableName, array $options = [])
  * @method int execute(string $sql, array $params = [])
+ * @method array<int, array<string, mixed>> fetchAll(string $sql, array $params = [])
  */
 abstract class BaseMigration extends AbstractMigration
 {

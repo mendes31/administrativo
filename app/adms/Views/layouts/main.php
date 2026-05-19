@@ -75,7 +75,7 @@ $viewDir = strtolower((string)basename((string)dirname($viewPath)));
 
 // Matriz explícita: páginas que normalmente usam DataTables/máscaras.
 $dataTablesViewFiles = [
-    'list.php', 'dashboard.php', 'relatorioresultado.php', 'traininghistory.php',
+    'list.php', 'relatorioresultado.php', 'traininghistory.php',
     'kpidashboard.php', 'people_analytics.php', 'view.php'
 ];
 $dataTablesViewDirs = [
@@ -96,7 +96,7 @@ $loadInputMasks = in_array($viewFile, $inputMaskViewFiles, true) || in_array($vi
 
 // Fallback defensivo para não quebrar telas fora da matriz.
 if (!$loadDataTables) {
-    $loadDataTables = (bool)preg_match('/\/(list|dashboard|relatorio|report|analytics|matrix|history|kpi)/i', $viewPath);
+    $loadDataTables = (bool)preg_match('/\/(list|relatorio|report|analytics|matrix|history|kpi)/i', $viewPath);
 }
 if (!$loadInputMasks) {
     $loadInputMasks = (bool)preg_match('/\/(create|update|profile|pay|receive|rooms|users|portal|crm|departments|positions|costCenter|accessLevels)/i', $viewPath);

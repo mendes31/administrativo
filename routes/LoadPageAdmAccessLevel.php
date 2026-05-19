@@ -121,6 +121,7 @@ class LoadPageAdmAccessLevel
             'TimelineComment' => "\\App\\adms\\Controllers\\timeline\\TimelineComment",
             'TimelineReport'  => "\\App\\adms\\Controllers\\timeline\\TimelineReport",
             'MarkNotificationsRead' => "\\App\\adms\\Controllers\\notifications\\MarkNotificationsRead",
+            'DashboardBirthdaysAjax' => "\\App\\adms\\Controllers\\dashboard\\DashboardBirthdaysAjax",
             // Renovação de sessão (AJAX) — evita falha de rota se adms_pages estiver incompleto.
             'ExtendSession' => "\\App\\adms\\Controllers\\session\\ExtendSession",
             // Reserva de salas: bloqueio temporário de intervalo (book-room).

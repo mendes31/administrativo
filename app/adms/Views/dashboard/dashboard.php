@@ -319,36 +319,15 @@
                             <span id="aniversariantesMesCount" class="badge rounded-pill text-bg-light border birthday-month-count">0</span>
                         </div>
                     </div>
-
-                    <div class="row g-3" id="aniversariantesMesGrid">
-                        <?php foreach ($this->data['aniversariantes_todos'] ?? [] as $aniv): ?>
-                            <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-mes-item" data-mes="<?php echo (int)($aniv['aniversario_mes'] ?? 0); ?>">
-                                <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
-                                    <div class="mb-2">
-                                        <?php if (\App\adms\Helpers\ImageHelper::userImageExists((int)($aniv['id'] ?? 0), (string)($aniv['image'] ?? ''))): ?>
-                                            <?php
-                                            $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
-                                            echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                                'class' => 'rounded-circle mb-2 birthday-avatar',
-                                                'style' => 'width: 86px; height: 86px; object-fit: cover;',
-                                            ], 'icon_user.png', 'users');
-                                            ?>
-                                        <?php else: ?>
-                                            <?php echo $renderAvatarFallback((string)($aniv['name'] ?? '')); ?>
-                                        <?php endif; ?>
-                                    </div>
-                                    <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
-                                    <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
-                                    <div class="text-muted small mt-1 birthday-date-pill"><i class="fas fa-birthday-cake text-warning me-1"></i><span class="fw-bold" style="color:#ff9800;"> <?php echo $aniv['aniversario']; ?></span></div>
-                                    <div class="mt-2">
-                                        <a href="<?php echo htmlspecialchars($_ENV['URL_ADM']); ?>timeline-profile/<?php echo (int)$aniv['id']; ?>?from=birthday"
-                                           class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-comment-dots me-1"></i>Parabenizar na Timeline
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="row g-3" id="aniversariantesMesGrid" data-initial-month="<?php echo (int) date('n'); ?>">
+                        <?php
+                        $birthdayMonthItems = $this->data['aniversariantes_mes'] ?? [];
+                        $urlAdm = $_ENV['URL_ADM'] ?? '';
+                        include __DIR__ . '/partials/birthday_month_cards.php';
+                        ?>
+                    </div>
+                    <div id="aniversariantesMesLoading" class="text-center text-muted py-3 d-none">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Carregando…
                     </div>
                     <div id="aniversariantesMesEmpty" class="text-center text-muted py-3 d-none">
                         Nenhum aniversariante encontrado para o mês selecionado.
@@ -452,55 +431,15 @@
                             <span id="aniversariantesEmpresaMesCount" class="badge rounded-pill text-bg-light border birthday-month-count">0</span>
                         </div>
                     </div>
-                    <div class="row g-3" id="aniversariantesEmpresaMesGrid">
-                        <?php foreach ($this->data['aniversariantes_empresa_todos'] ?? [] as $aniv): ?>
-                            <div class="col-12 col-md-6 col-lg-4 d-flex aniversariante-empresa-mes-item" data-mes="<?php echo (int)($aniv['aniversario_empresa_mes'] ?? 0); ?>">
-                                <div class="card birthday-person-card text-center p-4 flex-fill d-flex flex-column align-items-center justify-content-center">
-                                    <div class="mb-2">
-                                        <?php if (\App\adms\Helpers\ImageHelper::userImageExists((int)($aniv['id'] ?? 0), (string)($aniv['image'] ?? ''))): ?>
-                                            <?php
-                                            $avatarPath = 'users/' . $aniv['id'] . '/' . $aniv['image'];
-                                            echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                                                'class' => 'rounded-circle mb-2 birthday-avatar',
-                                                'style' => 'width: 86px; height: 86px; object-fit: cover;',
-                                            ], 'icon_user.png', 'users');
-                                            ?>
-                                        <?php else: ?>
-                                            <?php echo $renderAvatarFallback((string)($aniv['name'] ?? '')); ?>
-                                        <?php endif; ?>
-                                    </div>
-                                    <h6 class="fw-bold mb-0"><?php echo htmlspecialchars($aniv['name']); ?></h6>
-                                    <div class="text-muted small mb-1"><?php echo htmlspecialchars($aniv['departamento'] ?? ''); ?></div>
-                                    <?php
-                                        $anosEmpresa = isset($aniv['anos_empresa']) ? (int)$aniv['anos_empresa'] : null;
-                                    ?>
-                                    <div class="text-muted small mt-1">
-                                        <i class="fas fa-briefcase text-primary me-1"></i>
-                                        <span class="fw-bold" style="color:#1976d2;">
-                                            <?php echo $aniv['aniversario_empresa'] ?? ''; ?>
-                                        </span>
-                                        <?php if ($anosEmpresa === 0): ?>
-                                            <br>
-                                            <span class="small fw-semibold"
-                                                  style="display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:#e8f5e9;color:#2e7d32;">
-                                                Novo Colaborador
-                                            </span>
-                                        <?php elseif ($anosEmpresa !== null && $anosEmpresa > 0): ?>
-                                            <br>
-                                            <span class="small text-muted">
-                                                <?php echo $anosEmpresa; ?> ano(s) de casa
-                                            </span>
-                                        <?php endif; ?>
-                                        <div class="mt-2">
-                                            <a href="<?php echo htmlspecialchars($_ENV['URL_ADM']); ?>timeline-profile/<?php echo (int)$aniv['id']; ?>?from=tenure&years=<?php echo $anosEmpresa === null ? '' : (int)$anosEmpresa; ?>"
-                                               class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-comment-dots me-1"></i>Reconhecer na Timeline
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="row g-3" id="aniversariantesEmpresaMesGrid" data-initial-month="<?php echo (int) date('n'); ?>">
+                        <?php
+                        $companyTenureMonthItems = $this->data['aniversariantes_empresa_mes'] ?? [];
+                        $urlAdm = $_ENV['URL_ADM'] ?? '';
+                        include __DIR__ . '/partials/company_tenure_month_cards.php';
+                        ?>
+                    </div>
+                    <div id="aniversariantesEmpresaMesLoading" class="text-center text-muted py-3 d-none">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Carregando…
                     </div>
                     <div id="aniversariantesEmpresaMesEmpty" class="text-center text-muted py-3 d-none">
                         Nenhum colaborador encontrado para o mês selecionado.
@@ -894,6 +833,7 @@
 }
 .dashboard-recent-card .dashboard-informativo-resumo {
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -902,6 +842,7 @@
 }
 .dashboard-recent-title {
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -1067,6 +1008,7 @@
 /* Limitar resumo nos cards do dashboard (não crescer no mobile) */
 .dashboard-informativo-resumo {
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -1377,83 +1319,112 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Calendário de aniversariantes por mês (modal do mês)
-    const aniversariantesMesFilter = document.getElementById('aniversariantesMesFilter');
-    const aniversariantesMesItems = Array.from(document.querySelectorAll('.aniversariante-mes-item'));
-    const aniversariantesMesEmpty = document.getElementById('aniversariantesMesEmpty');
-    const aniversariantesMesModal = document.getElementById('modalAniversariantesMes');
-    const aniversariantesMesCount = document.getElementById('aniversariantesMesCount');
-    const aniversariantesEmpresaMesFilter = document.getElementById('aniversariantesEmpresaMesFilter');
-    const aniversariantesEmpresaMesItems = Array.from(document.querySelectorAll('.aniversariante-empresa-mes-item'));
-    const aniversariantesEmpresaMesEmpty = document.getElementById('aniversariantesEmpresaMesEmpty');
-    const aniversariantesEmpresaMesModal = document.getElementById('modalAniversariantesEmpresa');
-    const aniversariantesEmpresaMesCount = document.getElementById('aniversariantesEmpresaMesCount');
+    // Modais de aniversário / tempo de empresa: mês atual no carregamento; outros meses via AJAX
+    const dashboardBirthdaysAjaxUrl = <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/dashboard-birthdays-ajax', JSON_THROW_ON_ERROR); ?>;
+    const birthdayMonthCache = {};
+    const tenureMonthCache = {};
 
-    function applyAniversariantesMesFilter() {
-        if (!aniversariantesMesFilter || aniversariantesMesItems.length === 0) return;
-        const selectedMonth = parseInt(aniversariantesMesFilter.value || '0', 10);
-        let visibleCount = 0;
-
-        aniversariantesMesItems.forEach(function (item) {
-            const itemMonth = parseInt(item.getAttribute('data-mes') || '0', 10);
-            const show = selectedMonth === 0 || itemMonth === selectedMonth;
-            item.classList.toggle('d-none', !show);
-            if (show) visibleCount++;
-        });
-
-        if (aniversariantesMesEmpty) {
-            aniversariantesMesEmpty.classList.toggle('d-none', visibleCount > 0);
+    function setupDashboardMonthModal(config) {
+        const filter = document.getElementById(config.filterId);
+        const grid = document.getElementById(config.gridId);
+        const empty = document.getElementById(config.emptyId);
+        const loading = document.getElementById(config.loadingId);
+        const countEl = document.getElementById(config.countId);
+        const modal = document.getElementById(config.modalId);
+        const cache = config.cache;
+        if (!filter || !grid) {
+            return;
         }
-        if (aniversariantesMesCount) {
-            aniversariantesMesCount.textContent = `${visibleCount} no mês`;
-        }
-    }
+        const initialMonth = parseInt(grid.getAttribute('data-initial-month') || String(currentMonthNumber), 10);
+        cache[initialMonth] = grid.innerHTML;
 
-    if (aniversariantesMesFilter) {
-        aniversariantesMesFilter.addEventListener('change', applyAniversariantesMesFilter);
-    }
-    if (aniversariantesMesModal) {
-        aniversariantesMesModal.addEventListener('shown.bs.modal', function () {
-            if (aniversariantesMesFilter) {
-                aniversariantesMesFilter.value = String(currentMonthNumber);
+        function updateUi(count) {
+            const n = typeof count === 'number' ? count : grid.querySelectorAll(config.itemSelector).length;
+            if (countEl) {
+                countEl.textContent = n + ' no mês';
             }
-            applyAniversariantesMesFilter();
-        });
-    }
-    applyAniversariantesMesFilter();
-
-    function applyAniversariantesEmpresaMesFilter() {
-        if (!aniversariantesEmpresaMesFilter || aniversariantesEmpresaMesItems.length === 0) return;
-        const selectedMonth = parseInt(aniversariantesEmpresaMesFilter.value || '0', 10);
-        let visibleCount = 0;
-
-        aniversariantesEmpresaMesItems.forEach(function (item) {
-            const itemMonth = parseInt(item.getAttribute('data-mes') || '0', 10);
-            const show = selectedMonth === 0 || itemMonth === selectedMonth;
-            item.classList.toggle('d-none', !show);
-            if (show) visibleCount++;
-        });
-
-        if (aniversariantesEmpresaMesEmpty) {
-            aniversariantesEmpresaMesEmpty.classList.toggle('d-none', visibleCount > 0);
-        }
-        if (aniversariantesEmpresaMesCount) {
-            aniversariantesEmpresaMesCount.textContent = `${visibleCount} no mês`;
-        }
-    }
-
-    if (aniversariantesEmpresaMesFilter) {
-        aniversariantesEmpresaMesFilter.addEventListener('change', applyAniversariantesEmpresaMesFilter);
-    }
-    if (aniversariantesEmpresaMesModal) {
-        aniversariantesEmpresaMesModal.addEventListener('shown.bs.modal', function () {
-            if (aniversariantesEmpresaMesFilter) {
-                aniversariantesEmpresaMesFilter.value = String(currentMonthNumber);
+            if (empty) {
+                empty.classList.toggle('d-none', n > 0);
             }
-            applyAniversariantesEmpresaMesFilter();
+        }
+
+        function loadMonth(month) {
+            if (month < 1 || month > 12) {
+                return;
+            }
+            if (cache[month]) {
+                grid.innerHTML = cache[month];
+                updateUi();
+                return;
+            }
+            if (loading) {
+                loading.classList.remove('d-none');
+            }
+            grid.classList.add('opacity-50');
+            const url = dashboardBirthdaysAjaxUrl + '?type=' + encodeURIComponent(config.ajaxType) + '&month=' + month;
+            fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data && data.success) {
+                        cache[month] = data.html || '';
+                        grid.innerHTML = cache[month];
+                        updateUi(data.count);
+                    } else {
+                        grid.innerHTML = '';
+                        updateUi(0);
+                    }
+                })
+                .catch(function () {
+                    grid.innerHTML = '';
+                    updateUi(0);
+                })
+                .finally(function () {
+                    if (loading) {
+                        loading.classList.add('d-none');
+                    }
+                    grid.classList.remove('opacity-50');
+                });
+        }
+
+        filter.addEventListener('change', function () {
+            loadMonth(parseInt(filter.value || '0', 10));
         });
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', function () {
+                filter.value = String(currentMonthNumber);
+                loadMonth(currentMonthNumber);
+            });
+        }
+        updateUi();
     }
-    applyAniversariantesEmpresaMesFilter();
+
+    setupDashboardMonthModal({
+        filterId: 'aniversariantesMesFilter',
+        gridId: 'aniversariantesMesGrid',
+        emptyId: 'aniversariantesMesEmpty',
+        loadingId: 'aniversariantesMesLoading',
+        countId: 'aniversariantesMesCount',
+        modalId: 'modalAniversariantesMes',
+        cache: birthdayMonthCache,
+        ajaxType: 'birthday',
+        itemSelector: '.aniversariante-mes-item',
+    });
+    setupDashboardMonthModal({
+        filterId: 'aniversariantesEmpresaMesFilter',
+        gridId: 'aniversariantesEmpresaMesGrid',
+        emptyId: 'aniversariantesEmpresaMesEmpty',
+        loadingId: 'aniversariantesEmpresaMesLoading',
+        countId: 'aniversariantesEmpresaMesCount',
+        modalId: 'modalAniversariantesEmpresa',
+        cache: tenureMonthCache,
+        ajaxType: 'tenure',
+        itemSelector: '.aniversariante-empresa-mes-item',
+    });
 
     <?php if (!empty($this->data['show_my_calendar_card'])): ?>
     (function () {
