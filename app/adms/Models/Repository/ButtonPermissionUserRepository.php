@@ -41,7 +41,8 @@ class ButtonPermissionUserRepository extends DbConnection
         }
 
         // Reutiliza cache de controllers permitidos (mesma fonte do menu)
-        $allowedSet = array_flip((new MenuPermissionUserRepository())->getAllowedControllersForUser());
+        $menuPermissionRepo = new MenuPermissionUserRepository();
+        $allowedSet = array_flip($menuPermissionRepo->getAllowedControllersForUser());
         $out = [];
         foreach ($button as $controller) {
             if (isset($allowedSet[$controller])) {

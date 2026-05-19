@@ -8,7 +8,7 @@ use PDO;
 
 class MenuPermissionUserRepository extends DbConnection
 {
-    private const SESSION_CACHE_KEY = 'adms_menu_allowed_controllers';
+    public const SESSION_CACHE_KEY = 'adms_menu_allowed_controllers';
 
     public static function clearSessionCache(): void
     {

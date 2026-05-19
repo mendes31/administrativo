@@ -238,6 +238,56 @@ class TimelineRepository extends DbConnection
     }
 
     /**
+     * Contagens de curtidas/comentários em lote (evita subqueries correlacionadas por post).
+     *
+     * @param array<int, array<string, mixed>> $posts
+     * @return array<int, array<string, mixed>>
+     */
+    public function attachEngagementCounts(array $posts): array
+    {
+        if ($posts === []) {
+            return [];
+        }
+
+        $postIds = array_values(array_unique(array_filter(
+            array_map(static fn ($p) => (int) ($p['id'] ?? 0), $posts),
+            static fn ($id) => $id > 0
+        )));
+        if ($postIds === []) {
+            return $posts;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+        $likesMap = [];
+        $stmtLikes = $this->getConnection()->prepare(
+            "SELECT post_id, COUNT(*) AS c FROM adms_timeline_likes WHERE post_id IN ($placeholders) GROUP BY post_id"
+        );
+        $stmtLikes->execute($postIds);
+        while ($row = $stmtLikes->fetch(PDO::FETCH_ASSOC)) {
+            $likesMap[(int) ($row['post_id'] ?? 0)] = (int) ($row['c'] ?? 0);
+        }
+
+        $commentsMap = [];
+        $stmtComments = $this->getConnection()->prepare(
+            "SELECT post_id, COUNT(*) AS c FROM adms_timeline_comments
+             WHERE post_id IN ($placeholders) AND status = 'active' GROUP BY post_id"
+        );
+        $stmtComments->execute($postIds);
+        while ($row = $stmtComments->fetch(PDO::FETCH_ASSOC)) {
+            $commentsMap[(int) ($row['post_id'] ?? 0)] = (int) ($row['c'] ?? 0);
+        }
+
+        foreach ($posts as &$post) {
+            $pid = (int) ($post['id'] ?? 0);
+            $post['likes_count'] = $likesMap[$pid] ?? 0;
+            $post['comments_count'] = $commentsMap[$pid] ?? 0;
+        }
+        unset($post);
+
+        return $posts;
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function getFeedPosts(int $page, int $perPage, ?string $tag = null, ?string $searchQuery = null): array
@@ -316,56 +366,6 @@ class TimelineRepository extends DbConnection
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         return $this->attachEngagementCounts($posts);
-    }
-
-    /**
-     * Contagens de curtidas/comentários em lote (evita subqueries correlacionadas por post).
-     *
-     * @param array<int, array<string, mixed>> $posts
-     * @return array<int, array<string, mixed>>
-     */
-    public function attachEngagementCounts(array $posts): array
-    {
-        if ($posts === []) {
-            return [];
-        }
-
-        $postIds = array_values(array_unique(array_filter(
-            array_map(static fn ($p) => (int) ($p['id'] ?? 0), $posts),
-            static fn ($id) => $id > 0
-        )));
-        if ($postIds === []) {
-            return $posts;
-        }
-
-        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
-        $likesMap = [];
-        $stmtLikes = $this->getConnection()->prepare(
-            "SELECT post_id, COUNT(*) AS c FROM adms_timeline_likes WHERE post_id IN ($placeholders) GROUP BY post_id"
-        );
-        $stmtLikes->execute($postIds);
-        while ($row = $stmtLikes->fetch(PDO::FETCH_ASSOC)) {
-            $likesMap[(int) ($row['post_id'] ?? 0)] = (int) ($row['c'] ?? 0);
-        }
-
-        $commentsMap = [];
-        $stmtComments = $this->getConnection()->prepare(
-            "SELECT post_id, COUNT(*) AS c FROM adms_timeline_comments
-             WHERE post_id IN ($placeholders) AND status = 'active' GROUP BY post_id"
-        );
-        $stmtComments->execute($postIds);
-        while ($row = $stmtComments->fetch(PDO::FETCH_ASSOC)) {
-            $commentsMap[(int) ($row['post_id'] ?? 0)] = (int) ($row['c'] ?? 0);
-        }
-
-        foreach ($posts as &$post) {
-            $pid = (int) ($post['id'] ?? 0);
-            $post['likes_count'] = $likesMap[$pid] ?? 0;
-            $post['comments_count'] = $commentsMap[$pid] ?? 0;
-        }
-        unset($post);
-
-        return $posts;
     }
 
     public function countActivePostsByUserId(int $userId): int

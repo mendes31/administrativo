@@ -1125,7 +1125,11 @@ if (!function_exists('menuEntryMatchesAtivo')) {
 
 // Função para verificar se há pelo menos um submenu permitido
 if (!function_exists('hasPermittedSubmenu')) {
-    function hasPermittedSubmenu($submenu, $menuPermission) {
+    /**
+     * @param array<int, array<string, mixed>> $submenu
+     * @param array<int, string> $menuPermission
+     */
+    function hasPermittedSubmenu(array $submenu, array $menuPermission): bool {
         foreach ($submenu as $item) {
             if (isset($item['submenu']) && is_array($item['submenu'])) {
                 if (hasPermittedSubmenu($item['submenu'], $menuPermission)) {
@@ -1142,7 +1146,11 @@ if (!function_exists('hasPermittedSubmenu')) {
 
 // Função para contar submenus permitidos
 if (!function_exists('countPermittedSubmenus')) {
-    function countPermittedSubmenus($submenu, $menuPermission) {
+    /**
+     * @param array<int, array<string, mixed>> $submenu
+     * @param array<int, string> $menuPermission
+     */
+    function countPermittedSubmenus(array $submenu, array $menuPermission): int {
         $count = 0;
         foreach ($submenu as $item) {
             if (menuEntryAllowed($item, $menuPermission)) {
@@ -1196,7 +1204,17 @@ if (!function_exists('countPermittedSubmenus')) {
 
                 // Função recursiva para renderizar submenus aninhados
                 if (!function_exists('renderMenu')) {
-                    function renderMenu($menus, $menuPermission, $menuAtivo = null, $nivel = 0, $parentId = 'sidenavAccordion') {
+                    /**
+                     * @param array<int, array<string, mixed>> $menus
+                     * @param array<int, string> $menuPermission
+                     */
+                    function renderMenu(
+                        array $menus,
+                        array $menuPermission,
+                        ?string $menuAtivo = null,
+                        int $nivel = 0,
+                        string $parentId = 'sidenavAccordion'
+                    ): void {
                         foreach ($menus as $index => $menu) {
                             $hasSubmenu = !empty($menu['submenu']);
                             $hasPermitted = menuEntryAllowed($menu, $menuPermission);
