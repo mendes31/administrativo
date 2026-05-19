@@ -205,6 +205,7 @@ class PageLayoutService
             'DashboardCardPayrollDocuments',
             'DashboardCardMyCalendar',
             'DashboardCardGamificationQuizzes',
+            'DashboardCardRoomBooking',
             'ListPolicies',
             'ListMovBetweenAccounts',
             'ListPages',

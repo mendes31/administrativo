@@ -90,6 +90,7 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Card Dashboard - Tempo de Empresa', 'controller' => 'DashboardCardTempoEmpresa', 'controller_url' => 'dashboard-card-tempo-empresa', 'directory' => 'dashboard', 'obs' => 'Controla visibilidade do card de Tempo de Empresa no dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
             ['name'=> 'Card Dashboard - Meus Documentos', 'controller' => 'DashboardCardPayrollDocuments', 'controller_url' => 'dashboard-card-payroll-documents', 'directory' => 'dashboard', 'obs' => 'Controla visibilidade do card de Meus Documentos no dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
             ['name'=> 'Card Dashboard - Meu calendário', 'controller' => 'DashboardCardMyCalendar', 'controller_url' => 'dashboard-card-my-calendar', 'directory' => 'dashboard', 'obs' => 'Controla visibilidade do card de Meu calendário no dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
+            ['name'=> 'Card Dashboard - Reserva de Salas', 'controller' => 'DashboardCardRoomBooking', 'controller_url' => 'dashboard-card-room-booking', 'directory' => 'dashboard', 'obs' => 'Controla visibilidade do card de Reserva de Salas no dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
 
             // ===== GRUPO 2: USUÁRIOS =====
             ['name'=> 'Cadastrar Usuário', 'controller' => 'CreateUser', 'controller_url' => 'create-user', 'directory' => 'users', 'obs' => 'Página com o formulário cadastrar usuário.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 2],
@@ -979,6 +980,7 @@ class AddAdmsPages extends AbstractSeed
                 "UPDATE adms_pages
                  SET default_page = 0, updated_at = NOW()
                  WHERE controller = 'DashboardCardMyCalendar'
+                   OR controller = 'DashboardCardRoomBooking'
                    OR controller = 'DashboardCardGamificationQuizzes'
                    OR directory = 'gamification'
                    OR adms_groups_page_id = {$reservaSalasGroupId}"
@@ -992,6 +994,7 @@ class AddAdmsPages extends AbstractSeed
                          alp.updated_at = NOW()
                      WHERE p.public_page = 0
                        AND (p.controller = 'DashboardCardMyCalendar'
+                            OR p.controller = 'DashboardCardRoomBooking'
                             OR p.controller = 'DashboardCardGamificationQuizzes'
                             OR p.directory = 'gamification'
                             OR p.adms_groups_page_id = {$reservaSalasGroupId})

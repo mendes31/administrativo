@@ -3,7 +3,6 @@
 namespace App\adms\Controllers\rooms;
 
 use App\adms\Controllers\Services\PageLayoutService;
-use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\MeetingRoomsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -19,54 +18,8 @@ class ListMeetingRooms
     {
         $this->data = [];
 
-        $page = $page ? (int)$page : 1;
-        $limit = 20;
-
-        $filters = [];
-        
-        if (!empty($_GET['status'])) {
-            $filters['status'] = $_GET['status'];
-        }
-        
-        if (!empty($_GET['building'])) {
-            $filters['building'] = $_GET['building'];
-        }
-        
-        if (!empty($_GET['floor'])) {
-            $filters['floor'] = $_GET['floor'];
-        }
-        
-        if (!empty($_GET['search'])) {
-            $filters['search'] = $_GET['search'];
-        }
-        
-        if (!empty($_GET['min_capacity'])) {
-            $filters['min_capacity'] = (int)$_GET['min_capacity'];
-        }
-
         $repository = new MeetingRoomsRepository();
-        $rooms = $repository->getAll($filters, $page, $limit);
-        $total = $repository->count($filters);
-
-        $this->data['rooms'] = $rooms;
-        $this->data['filters'] = $filters;
-        
-        $pagination = PaginationService::generatePagination(
-            $total,
-            $limit,
-            $page,
-            'list-meeting-rooms',
-            $filters
-        );
-        $this->data['pagination'] = $pagination['html'] ?? '';
-
-        // Buscar prédios e andares únicos para filtros
-        $allRooms = $repository->getAll([], 1, 1000);
-        $buildings = array_unique(array_filter(array_column($allRooms, 'building')));
-        $floors = array_unique(array_filter(array_column($allRooms, 'floor')));
-        
-        $this->data['buildings'] = $buildings;
-        $this->data['floors'] = $floors;
+        $this->data['rooms'] = $repository->getAll([], 1, 100);
         $this->data['csrf_import_room_bookings'] = CSRFHelper::generateCSRFToken('import_room_bookings');
 
         $pageElements = [
@@ -80,12 +33,11 @@ class ListMeetingRooms
                 'BookRoom',
             ],
         ];
-        
+
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
-        
+
         $loadView = new LoadViewService('adms/Views/rooms/list', $this->data);
         $loadView->loadView();
     }
 }
-

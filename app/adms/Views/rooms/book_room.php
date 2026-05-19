@@ -3,6 +3,7 @@ use App\adms\Helpers\FormatHelper;
 $room = $this->data['room'] ?? [];
 $view = $this->data['view'] ?? 'month';
 $bookings = $this->data['bookings'] ?? [];
+$bookRoomCurrentUserId = (int)($this->data['book_room_current_user_id'] ?? $_SESSION['user_id'] ?? 0);
 
 // Meses em português
 $mesesPT = [
@@ -162,6 +163,10 @@ foreach ($bookings as $date => $dateBookings) {
                 <?php else: ?>
                     <strong>Como reservar:</strong> Clique duas vezes em uma data no calendário para ver os horários disponíveis e criar uma reserva.
                 <?php endif; ?>
+                <span class="d-block mt-1 small">
+                    <span class="badge rounded-pill me-1" style="background:#fd7e14;">&nbsp;</span> As suas reservas
+                    <span class="badge rounded-pill me-1 ms-2" style="background:#2E9263;">&nbsp;</span> Outras reservas
+                </span>
             </div>
 
             <?php if ($view === 'week'): ?>
@@ -218,7 +223,9 @@ foreach ($bookings as $date => $dateBookings) {
                                 $userName = htmlspecialchars($booking['user_name'] ?? '');
                                 $shortTitle = strlen($title) > 20 ? substr($title, 0, 17) . '...' : $title;
                                 $shortUser = strlen($userName) > 15 ? substr($userName, 0, 12) . '...' : $userName;
-                                echo '<div class="booking-preview-item" title="' . $startTime . ' - ' . $endTime . ' ' . htmlspecialchars($booking['title']) . ' - ' . $userName . '">';
+                                $isMine = ((int)($booking['user_id'] ?? 0) === $bookRoomCurrentUserId);
+                                $previewClass = 'booking-preview-item' . ($isMine ? ' booking-preview-item--mine' : '');
+                                echo '<div class="' . $previewClass . '" title="' . $startTime . ' - ' . $endTime . ' ' . htmlspecialchars($booking['title']) . ' - ' . $userName . ($isMine ? ' (sua reserva)' : '') . '">';
                                 echo '<span class="booking-time">' . $startTime . ' - ' . $endTime . '</span> ';
                                 echo '<span class="booking-title">' . $shortTitle . '</span>';
                                 if (!empty($userName)) {
@@ -501,6 +508,15 @@ foreach ($bookings as $date => $dateBookings) {
     background: #258556;
 }
 
+.booking-preview-item--mine {
+    background: #fd7e14;
+    box-shadow: inset 0 0 0 1px #e8590c;
+}
+
+.booking-preview-item--mine:hover {
+    background: #e8590c;
+}
+
 .booking-time {
     font-weight: 600;
     margin-right: 0.3rem;
@@ -575,6 +591,20 @@ foreach ($bookings as $date => $dateBookings) {
 
 .time-slot-item.booked:hover {
     background: #f5c6cb;
+}
+
+.time-slot-item.booked-mine {
+    background: #ffe8cc;
+    border-color: #fd7e14;
+}
+
+.time-slot-item.booked-mine:hover {
+    background: #ffd4a3;
+}
+
+.time-slot-item.booked-mine .time-slot-user {
+    color: #b45309;
+    font-weight: 600;
 }
 
 .time-slot-item.past {
@@ -660,6 +690,15 @@ foreach ($bookings as $date => $dateBookings) {
 .day-booking-user {
     font-size: 0.85rem;
     color: #6c757d;
+}
+
+.day-booking-item--mine {
+    border-left: 4px solid #fd7e14;
+    background: #fff8f0;
+}
+
+.day-booking-item--mine .day-booking-time {
+    color: #e8590c;
 }
 
 .day-booking-actions .btn-action {
@@ -1055,6 +1094,9 @@ async function openDayTimeSlotsModal(date) {
             slotDiv.classList.add('past');
         } else if (booking) {
             slotDiv.classList.add('booked');
+            if (parseInt(booking.user_id, 10) === bookRoomCurrentUserId) {
+                slotDiv.classList.add('booked-mine');
+            }
         } else {
             slotDiv.classList.add('available');
         }
@@ -1070,7 +1112,7 @@ async function openDayTimeSlotsModal(date) {
                 <div class="time-slot-time">${time}</div>
                 <div class="time-slot-info">
                     <div class="time-slot-title">${escapeHtml(booking.title)}</div>
-                    <div class="time-slot-user">Reservado por: ${escapeHtml(booking.user_name)}</div>
+                    <div class="time-slot-user">Reservado por: ${escapeHtml(booking.user_name)}${parseInt(booking.user_id, 10) === bookRoomCurrentUserId ? ' — sua reserva' : ''}</div>
                 </div>
             `;
             slotDiv.addEventListener('click', () => openWaitlistModal(datetime));
@@ -1146,7 +1188,7 @@ async function openDayTimeSlotsModal(date) {
             }
 
             const bookingDiv = document.createElement('div');
-            bookingDiv.className = 'day-booking-item';
+            bookingDiv.className = 'day-booking-item' + (parseInt(booking.user_id, 10) === bookRoomCurrentUserId ? ' day-booking-item--mine' : '');
             bookingDiv.innerHTML = `
                 <div class="day-booking-item-header">
                     <span class="day-booking-time">${startTime} - ${endTime}</span>

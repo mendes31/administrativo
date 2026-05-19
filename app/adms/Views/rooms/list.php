@@ -1,5 +1,4 @@
 <?php
-use App\adms\Helpers\FormatHelper;
 use App\adms\Helpers\ImageHelper;
 ?>
 <?php include __DIR__ . '/partials/module_head.php'; ?>
@@ -29,54 +28,6 @@ use App\adms\Helpers\ImageHelper;
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
-            <form method="GET" class="row g-2 mb-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="status" class="form-label mb-1">Status</label>
-                    <select name="status" id="status" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="active" <?= (($this->data['filters']['status'] ?? '') === 'active') ? 'selected' : '' ?>>Ativa</option>
-                        <option value="inactive" <?= (($this->data['filters']['status'] ?? '') === 'inactive') ? 'selected' : '' ?>>Inativa</option>
-                        <option value="maintenance" <?= (($this->data['filters']['status'] ?? '') === 'maintenance') ? 'selected' : '' ?>>Em Manutenção</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="building" class="form-label mb-1">Bloco/Prédio</label>
-                    <select name="building" id="building" class="form-select">
-                        <option value="">Todos</option>
-                        <?php foreach (($this->data['buildings'] ?? []) as $building): ?>
-                            <option value="<?= htmlspecialchars($building) ?>" <?= (($this->data['filters']['building'] ?? '') === $building) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($building) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="floor" class="form-label mb-1">Andar</label>
-                    <select name="floor" id="floor" class="form-select">
-                        <option value="">Todos</option>
-                        <?php foreach (($this->data['floors'] ?? []) as $floor): ?>
-                            <option value="<?= htmlspecialchars($floor) ?>" <?= (($this->data['filters']['floor'] ?? '') === $floor) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($floor) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="min_capacity" class="form-label mb-1">Capacidade Mín.</label>
-                    <input type="number" name="min_capacity" id="min_capacity" class="form-control" 
-                           min="1" value="<?= htmlspecialchars($this->data['filters']['min_capacity'] ?? '') ?>">
-                </div>
-                <div class="col-md-3">
-                    <label for="search" class="form-label mb-1">Buscar</label>
-                    <input type="text" name="search" id="search" class="form-control" 
-                           placeholder="Nome, descrição ou localização..." 
-                           value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
-                </div>
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filtrar</button>
-                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-meeting-rooms?limpar=1" class="btn btn-secondary"><i class="fas fa-times"></i> Limpar</a>
-                </div>
-            </form>
 
             <?php if (empty($this->data['rooms'])): ?>
                 <div class="alert alert-info" role="alert">
@@ -191,12 +142,6 @@ use App\adms\Helpers\ImageHelper;
                         </div>
                     <?php endforeach; ?>
                 </div>
-                
-                <?php if (!empty($this->data['pagination'])): ?>
-                    <div class="mt-4">
-                        <?= $this->data['pagination'] ?>
-                    </div>
-                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -262,4 +207,3 @@ use App\adms\Helpers\ImageHelper;
     flex: 1;
 }
 </style>
-

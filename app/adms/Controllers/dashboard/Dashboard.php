@@ -10,6 +10,7 @@ use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\GamificationQuizRepository;
+use App\adms\Models\Repository\MeetingRoomsRepository;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
@@ -218,6 +219,7 @@ class Dashboard
         $this->data['show_payroll_documents_card'] = in_array('DashboardCardPayrollDocuments', $menuPermission, true);
         $this->data['show_my_calendar_card'] = in_array('DashboardCardMyCalendar', $menuPermission, true);
         $this->data['show_gamification_quizzes_card'] = in_array('DashboardCardGamificationQuizzes', $menuPermission, true);
+        $this->data['show_room_booking_card'] = in_array('DashboardCardRoomBooking', $menuPermission, true);
 
         $this->data['gamification_quizzes_catalog_count'] = 0;
         if ($userId > 0 && !empty($this->data['show_gamification_quizzes_card'])) {
@@ -225,6 +227,15 @@ class Dashboard
                 $this->data['gamification_quizzes_catalog_count'] = count((new GamificationQuizRepository())->listPublishedAvailableForUser($userId));
             } catch (\Throwable) {
                 $this->data['gamification_quizzes_catalog_count'] = 0;
+            }
+        }
+
+        $this->data['meeting_rooms_active_count'] = 0;
+        if (!empty($this->data['show_room_booking_card'])) {
+            try {
+                $this->data['meeting_rooms_active_count'] = (new MeetingRoomsRepository())->count(['status' => 'active']);
+            } catch (\Throwable) {
+                $this->data['meeting_rooms_active_count'] = 0;
             }
         }
 

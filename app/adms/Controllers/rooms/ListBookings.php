@@ -19,7 +19,13 @@ class ListBookings
     {
         $this->data = [];
 
-        $page = $page ? (int)$page : 1;
+        if (isset($_GET['page']) && is_numeric($_GET['page'])) {
+            $page = max(1, (int) $_GET['page']);
+        } elseif ($page !== null && $page !== '') {
+            $page = max(1, (int) $page);
+        } else {
+            $page = 1;
+        }
         $limit = 20;
 
         $filters = [];

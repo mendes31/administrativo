@@ -84,7 +84,7 @@ final class RoomBookingSpreadsheetImportService
 
             $data = [];
             foreach ($map as $canonical => $idx) {
-                $data[$canonical] = isset($cells[$idx]) ? trim((string) $cells[$idx]) : '';
+                $data[$canonical] = self::normalizeSpreadsheetCell($cells[$idx] ?? null, $canonical);
             }
 
             $parsed = self::parseBookingRow($data, $tz, $lineNo);
@@ -106,7 +106,8 @@ final class RoomBookingSpreadsheetImportService
             if ($bookingsRepo->hasConflict($roomId, $p['start'], $p['end'], null)) {
                 $warnings[] = "Linha {$lineNo}: conflito de horário na sala — ignorada ({$p['start']} → {$p['end']}). "
                     . 'Lido na planilha: data=' . self::previewCellForMessage($data['data'] ?? '')
-                    . ', hora_inicio=' . self::previewCellForMessage($data['hora_inicio'] ?? '')
+                    . ' (gravado como ' . substr($p['start'], 0, 10) . '), '
+                    . 'hora_inicio=' . self::previewCellForMessage($data['hora_inicio'] ?? '')
                     . ', hora_fim=' . self::previewCellForMessage($data['hora_fim'] ?? '') . '.';
                 $skipped++;
                 $lineNo++;
@@ -151,7 +152,7 @@ final class RoomBookingSpreadsheetImportService
             '2026-04-15;08:00;09:00;Exemplo de reunião;seu.login;Texto opcional',
             '',
             '# Sala: ' . $roomName,
-            '# data: AAAA-MM-DD ou DD/MM/AAAA (padrao BR se dia e mes 1–12); 5/18/2026 (Excel US) = 18 de maio',
+            '# data: AAAA-MM-DD, DD/MM/AAAA (01/06/2026) ou M/D/AAAA do Excel (6/1/2026 = 1 de junho)',
             '# hora_inicio / hora_fim: HH:MM (24h)',
             '# usuario: login (username) ou e-mail cadastrado no sistema',
             '# separador: ponto e virgula (;) ou virgula (,) — o importador detecta automaticamente',
@@ -288,9 +289,18 @@ final class RoomBookingSpreadsheetImportService
             }
         }
 
-        $iso = DateTimeImmutable::createFromFormat('!Y-m-d', $s, $tz);
-        if ($iso instanceof DateTimeImmutable) {
-            return $iso->format('Y-m-d');
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $s, $isoMatch)) {
+            $iso = DateTimeImmutable::createFromFormat('!Y-m-d', $isoMatch[1], $tz);
+            if ($iso instanceof DateTimeImmutable) {
+                return $iso->format('Y-m-d');
+            }
+        }
+
+        foreach (['!Y-m-d H:i:s', '!Y-m-d H:i', '!Y-m-d'] as $fmt) {
+            $iso = DateTimeImmutable::createFromFormat($fmt, $s, $tz);
+            if ($iso instanceof DateTimeImmutable) {
+                return $iso->format('Y-m-d');
+            }
         }
 
         $slash = self::parseSlashOrDashCalendarDate($s, $tz);
@@ -307,8 +317,10 @@ final class RoomBookingSpreadsheetImportService
     }
 
     /**
-     * Datas com / ou -: prioridade ao calendário brasileiro (DD/MM/AAAA), mas se o 2.º número > 12
-     * trata-se de formato americano M/D/AAAA vindo do Excel (ex.: 5/18/2026 = 18 de maio).
+     * Datas com / ou -.
+     * - Dia > 12 → DD/MM/AAAA (BR).
+     * - Mês > 12 no 2.º número → M/D/AAAA (Excel US, ex.: 5/21/2026).
+     * - Ambos ≤ 12: BR se houver zero à esquerda (01/06/2026); senão M/D/AAAA (Excel: 6/1/2026 = 1º de junho).
      */
     private static function parseSlashOrDashCalendarDate(string $s, \DateTimeZone $tz): ?string
     {
@@ -324,8 +336,11 @@ final class RoomBookingSpreadsheetImportService
             $dt = DateTimeImmutable::createFromFormat('!d/m/Y', $norm, $tz);
         } elseif ($b > 12) {
             $dt = DateTimeImmutable::createFromFormat('!m/d/Y', $norm, $tz);
-        } else {
+        } elseif (preg_match('/^0\d|[\/\-]0\d/', $s)) {
             $dt = DateTimeImmutable::createFromFormat('!d/m/Y', $norm, $tz);
+        } else {
+            // Excel (locale US) exporta 6/1/2026, 6/4/2026 — mês/dia; não 6 de janeiro.
+            $dt = DateTimeImmutable::createFromFormat('!m/d/Y', $norm, $tz);
         }
 
         return $dt instanceof DateTimeImmutable ? $dt->format('Y-m-d') : null;
@@ -355,7 +370,7 @@ final class RoomBookingSpreadsheetImportService
                 }
             }
         }
-        if (preg_match('/^(\d{1,2}):(\d{2})$/', $s, $m)) {
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $s, $m)) {
             $h = (int) $m[1];
             $min = (int) $m[2];
             if ($h >= 0 && $h <= 23 && $min >= 0 && $min <= 59) {
@@ -364,6 +379,49 @@ final class RoomBookingSpreadsheetImportService
         }
 
         return null;
+    }
+
+    /**
+     * Normaliza célula do Excel/CSV (DateTime, serial numérico, RichText) para string usada no parser.
+     */
+    private static function normalizeSpreadsheetCell(mixed $cell, string $field): string
+    {
+        if ($cell === null || $cell === '') {
+            return '';
+        }
+
+        if ($cell instanceof \DateTimeInterface) {
+            return match ($field) {
+                'data' => $cell->format('Y-m-d'),
+                'hora_inicio', 'hora_fim' => $cell->format('H:i'),
+                default => trim($cell->format('Y-m-d H:i:s')),
+            };
+        }
+
+        if (is_float($cell) || is_int($cell)) {
+            $n = (float) $cell;
+            $tzName = $_ENV['APP_TIMEZONE'] ?? 'America/Sao_Paulo';
+            if (in_array($field, ['hora_inicio', 'hora_fim'], true) && $n >= 0.0 && $n < 1.0) {
+                try {
+                    return SpreadsheetDate::excelToDateTimeObject($n, $tzName)->format('H:i');
+                } catch (\Throwable) {
+                    return trim((string) $cell);
+                }
+            }
+            if ($field === 'data' && $n >= self::EXCEL_SERIAL_MIN && $n < self::EXCEL_SERIAL_MAX) {
+                try {
+                    return SpreadsheetDate::excelToDateTimeObject($n, $tzName)->format('Y-m-d');
+                } catch (\Throwable) {
+                    return trim((string) $cell);
+                }
+            }
+        }
+
+        if (is_object($cell) && method_exists($cell, 'getPlainText')) {
+            return trim((string) $cell->getPlainText());
+        }
+
+        return trim((string) $cell);
     }
 
     /**

@@ -1,4 +1,15 @@
 <?php
+/**
+ * Partial da vista semanal — incluído por book_room.php.
+ *
+ * @var array<string, array<int, array<string, mixed>>> $bookings Reservas por data (Y-m-d)
+ * @var list<\DateTime> $weekDays Dias da semana em exibição
+ * @var int $bookRoomCurrentUserId ID do utilizador logado (destaque laranja)
+ */
+$bookings = $bookings ?? [];
+$weekDays = $weekDays ?? [];
+$bookRoomCurrentUserId = (int)($bookRoomCurrentUserId ?? 0);
+
 // Horários do dia (8h às 18h, intervalos de 30 minutos)
 $timeSlots = [];
 for ($hour = 8; $hour < 18; $hour++) {
@@ -24,6 +35,9 @@ foreach ($bookings as $date => $dateBookings) {
 }
 
 $today = date('Y-m-d');
+if ($bookRoomCurrentUserId <= 0) {
+    $bookRoomCurrentUserId = (int)($_SESSION['user_id'] ?? 0);
+}
 ?>
 <div class="week-calendar-view p-3">
     <div class="week-calendar-grid">
@@ -59,7 +73,8 @@ $today = date('Y-m-d');
                     if ($isPast) {
                         $slotClass .= ' past';
                     } elseif ($booking) {
-                        $slotClass .= ' booked';
+                        $isMine = ((int)($booking['user_id'] ?? 0) === $bookRoomCurrentUserId);
+                        $slotClass .= $isMine ? ' booked booked-mine' : ' booked';
                     } else {
                         $slotClass .= ' available';
                     }
@@ -76,7 +91,7 @@ $today = date('Y-m-d');
                              title="Disponível - Clique para reservar"
                          <?php endif; ?>>
                         <?php if ($booking): ?>
-                            <div class="week-booking-block" style="background-color: #f8d7da; border-left: 3px solid #dc3545;">
+                            <div class="week-booking-block<?= $isMine ? ' week-booking-block--mine' : '' ?>">
                                 <div class="week-booking-time"><?= $time ?></div>
                                 <div class="week-booking-title"><?= htmlspecialchars($booking['title']) ?></div>
                                 <div class="week-booking-user"><?= htmlspecialchars($booking['user_name'] ?? '') ?></div>
@@ -259,6 +274,19 @@ $today = date('Y-m-d');
     background: #f1b0b7 !important;
 }
 
+.week-time-slot.booked-mine {
+    background: #ffe8cc !important;
+    border-left: 3px solid #fd7e14;
+}
+
+.week-time-slot.booked-mine:nth-child(2n+3) {
+    background: #ffd4a3 !important;
+}
+
+.week-time-slot.booked-mine:hover {
+    background: #ffc285 !important;
+}
+
 .week-time-slot.past {
     background: #e9ecef !important;
     opacity: 0.5;
@@ -275,6 +303,14 @@ $today = date('Y-m-d');
     border-radius: 3px;
     font-size: 0.7rem;
     color: #721c24;
+    background-color: #f8d7da;
+    border-left: 3px solid #dc3545;
+}
+
+.week-booking-block--mine {
+    color: #7c2d12;
+    background-color: #ffe8cc;
+    border-left: 3px solid #fd7e14;
 }
 
 .week-booking-time {
