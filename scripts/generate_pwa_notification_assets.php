@@ -364,10 +364,50 @@ function renderFullBleedIcon(GdImage $src, int $srcW, int $srcH, int $size, arra
     return $dst;
 }
 
+/** Escala da folha no badge (barra de status Android). ~0,90 ≈ tamanho de apps comuns. */
+const BADGE_LEAF_SCALE = 0.90;
+
+/**
+ * Folha branca sobre fundo preto (export do design) → badge transparente.
+ */
+function renderBadgeFromBlackBgLeaf(GdImage $src, int $srcW, int $srcH, int $size, float $scale = BADGE_LEAF_SCALE): GdImage
+{
+    $dst = imagecreatetruecolor($size, $size);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+    imagefill($dst, 0, 0, $transparent);
+    imagealphablending($dst, true);
+    $white = imagecolorallocate($dst, 255, 255, 255);
+
+    $drawSize = max(1, (int) round($size * $scale));
+    $x0 = (int) floor(($size - $drawSize) / 2);
+    $y0 = (int) floor(($size - $drawSize) / 2);
+
+    for ($dy = 0; $dy < $drawSize; $dy++) {
+        for ($dx = 0; $dx < $drawSize; $dx++) {
+            $sx = (int) floor($dx * ($srcW - 1) / max(1, $drawSize - 1));
+            $sy = (int) floor($dy * ($srcH - 1) / max(1, $drawSize - 1));
+            $rgba = imagecolorat($src, $sx, $sy);
+            $r = ($rgba >> 16) & 0xFF;
+            $g = ($rgba >> 8) & 0xFF;
+            $b = $rgba & 0xFF;
+            if ($r >= 150 && $g >= 150 && $b >= 150) {
+                imagesetpixel($dst, $x0 + $dx, $y0 + $dy, $white);
+            }
+        }
+    }
+
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+
+    return $dst;
+}
+
 /**
  * Badge Android: silhueta branca opaca em fundo 100% transparente (status bar).
  */
-function renderBadgeFromCleanIcon(GdImage $src, int $srcW, int $srcH, int $size, float $scale = 0.76): GdImage
+function renderBadgeFromCleanIcon(GdImage $src, int $srcW, int $srcH, int $size, float $scale = BADGE_LEAF_SCALE): GdImage
 {
     $dst = imagecreatetruecolor($size, $size);
     imagealphablending($dst, false);
@@ -426,7 +466,7 @@ function renderBadge(GdImage $src, int $srcW, int $srcH, int $size, array $leafM
     imagealphablending($dst, true);
     $white = imagecolorallocate($dst, 255, 255, 255);
 
-    $padding = (int) max(2, round($size * 0.08));
+    $padding = (int) max(1, round($size * (1 - BADGE_LEAF_SCALE) / 2));
     $target = $size - ($padding * 2);
     $dstX0 = $padding;
     $dstY0 = $padding;
@@ -467,17 +507,31 @@ $iconMaskableOut = $root . '/public/adms/image/pwa-icon-maskable-512.png';
 @mkdir(dirname($badgeOut), 0775, true);
 @mkdir(dirname($icon512Out), 0775, true);
 
+$badgeSourcePath = $root . '/public/adms/image/folha-badge-source.png';
+$badgeSrc = is_file($badgeSourcePath) ? loadSourceImage($badgeSourcePath) : false;
+
 if ($isCleanSource) {
     // any: preenche quadrado; maskable: ~72% para não cortar folha no círculo Android
     $icon192 = renderFromCleanIcon($src, $srcW, $srcH, 192, $orange, 1.0);
     $icon512 = renderFromCleanIcon($src, $srcW, $srcH, 512, $orange, 1.0);
     $iconMaskable = renderFromCleanIcon($src, $srcW, $srcH, 512, $orange, 0.72);
-    $badge96 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 96);
-    $badge72 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 72);
 } else {
     $icon192 = renderFullBleedIcon($src, $srcW, $srcH, 192, $orange, 0.72, $leafMask);
     $icon512 = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.78, $leafMask);
     $iconMaskable = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.68, $leafMask);
+}
+
+if ($badgeSrc !== false) {
+    $bW = imagesx($badgeSrc);
+    $bH = imagesy($badgeSrc);
+    $badge96 = renderBadgeFromBlackBgLeaf($badgeSrc, $bW, $bH, 96);
+    $badge72 = renderBadgeFromBlackBgLeaf($badgeSrc, $bW, $bH, 72);
+    imagedestroy($badgeSrc);
+    echo "Badge: folha-badge-source.png (escala " . BADGE_LEAF_SCALE . ")\n";
+} elseif ($isCleanSource) {
+    $badge96 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 96);
+    $badge72 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 72);
+} else {
     $badge96 = renderBadge($src, $srcW, $srcH, 96, $leafMask);
     $badge72 = renderBadge($src, $srcW, $srcH, 72, $leafMask);
 }

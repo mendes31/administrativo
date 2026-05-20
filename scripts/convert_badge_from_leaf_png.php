@@ -32,7 +32,7 @@ imagefill($dst, 0, 0, $transparent);
 imagealphablending($dst, true);
 $white = imagecolorallocate($dst, 255, 255, 255);
 
-$scale = 0.76;
+$scale = 0.90;
 $drawSize = max(1, (int) round($size * $scale));
 $x0 = (int) floor(($size - $drawSize) / 2);
 $y0 = (int) floor(($size - $drawSize) / 2);
