@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
 window.__PushNotificationsInit = {
     urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
     csrfToken: <?php echo json_encode(CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>,
-    swVersion: '20260520-10'
+    swVersion: '20260520-11'
 };
 
 function openProfilePhotoModal() {

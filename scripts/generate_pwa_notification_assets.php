@@ -367,14 +367,109 @@ function renderFullBleedIcon(GdImage $src, int $srcW, int $srcH, int $size, arra
 /** Tamanho mestre do badge (Android usa o PNG inteiro; 192px = mais nitidez). */
 const BADGE_MASTER_SIZE = 192;
 
-/** Folha ocupa quase todo o quadrado antes de engrossar a silhueta. */
-const BADGE_LEAF_SCALE = 1.0;
+/** Folha dentro do quadrado mantendo proporção (evita achatamento). */
+const BADGE_LEAF_SCALE = 0.92;
 
-/** Expande pixels brancos para o ícone parecer maior na barra (não só margem menor). */
-const BADGE_DILATE_RADIUS = 2;
+/** Sem dilatação — evitava distorcer a silhueta na barra do Android. */
+const BADGE_DILATE_RADIUS = 0;
+
+function isBadgeWhitePixel(int $r, int $g, int $b): bool
+{
+    return $r >= 150 && $g >= 150 && $b >= 150 && !isOrangeBackground($r, $g, $b);
+}
+
+/** @return array{0:int,1:int,2:int,3:int} */
+function getWhiteShapeBoundingBox(GdImage $src, int $w, int $h): array
+{
+    $minX = $w;
+    $minY = $h;
+    $maxX = 0;
+    $maxY = 0;
+
+    for ($y = 0; $y < $h; $y++) {
+        for ($x = 0; $x < $w; $x++) {
+            $rgba = imagecolorat($src, $x, $y);
+            $r = ($rgba >> 16) & 0xFF;
+            $g = ($rgba >> 8) & 0xFF;
+            $b = $rgba & 0xFF;
+            if (!isBadgeWhitePixel($r, $g, $b)) {
+                continue;
+            }
+            $minX = min($minX, $x);
+            $minY = min($minY, $y);
+            $maxX = max($maxX, $x);
+            $maxY = max($maxY, $y);
+        }
+    }
+
+    if ($maxX <= $minX) {
+        return [0, 0, $w - 1, $h - 1];
+    }
+
+    return [$minX, $minY, $maxX, $maxY];
+}
+
+/**
+ * Recorta a folha e redimensiona com proporção preservada (fit dentro do quadrado).
+ */
+function renderBadgeFitProportional(GdImage $src, int $srcW, int $srcH, int $size, float $scale = BADGE_LEAF_SCALE): GdImage
+{
+    [$minX, $minY, $maxX, $maxY] = getWhiteShapeBoundingBox($src, $srcW, $srcH);
+    $cropW = max(1, $maxX - $minX + 1);
+    $cropH = max(1, $maxY - $minY + 1);
+
+    $maxSide = max(1, (int) round($size * $scale));
+    if ($cropW >= $cropH) {
+        $dstW = $maxSide;
+        $dstH = max(1, (int) round($maxSide * $cropH / $cropW));
+    } else {
+        $dstH = $maxSide;
+        $dstW = max(1, (int) round($maxSide * $cropW / $cropH));
+    }
+
+    $dst = imagecreatetruecolor($size, $size);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+    imagefill($dst, 0, 0, $transparent);
+
+    $crop = imagecreatetruecolor($cropW, $cropH);
+    imagealphablending($crop, false);
+    imagesavealpha($crop, true);
+    imagefill($crop, 0, 0, $transparent);
+    imagealphablending($crop, true);
+    $white = imagecolorallocate($crop, 255, 255, 255);
+
+    for ($y = 0; $y < $cropH; $y++) {
+        for ($x = 0; $x < $cropW; $x++) {
+            $rgba = imagecolorat($src, $minX + $x, $minY + $y);
+            $r = ($rgba >> 16) & 0xFF;
+            $g = ($rgba >> 8) & 0xFF;
+            $b = $rgba & 0xFF;
+            if (isBadgeWhitePixel($r, $g, $b)) {
+                imagesetpixel($crop, $x, $y, $white);
+            }
+        }
+    }
+
+    imagealphablending($dst, true);
+    $x0 = (int) floor(($size - $dstW) / 2);
+    $y0 = (int) floor(($size - $dstH) / 2);
+    imagecopyresampled($dst, $crop, $x0, $y0, 0, 0, $dstW, $dstH, $cropW, $cropH);
+    imagedestroy($crop);
+
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+
+    return $dst;
+}
 
 function finalizeBadgeImage(GdImage $img, int $size): GdImage
 {
+    if (BADGE_DILATE_RADIUS <= 0) {
+        return $img;
+    }
+
     $white = imagecolorallocate($img, 255, 255, 255);
     $snapshot = imagecreatetruecolor($size, $size);
     imagealphablending($snapshot, false);
@@ -389,7 +484,7 @@ function finalizeBadgeImage(GdImage $img, int $size): GdImage
                 if (($c & 0xFF) < 200) {
                     continue;
                 }
-                foreach ([[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] as [$dx, $dy]) {
+                foreach ([[0, 1], [0, -1], [1, 0], [-1, 0]] as [$dx, $dy]) {
                     $nx = $x + $dx;
                     $ny = $y + $dy;
                     if ($nx >= 0 && $ny >= 0 && $nx < $size && $ny < $size) {
@@ -452,124 +547,39 @@ function exportBadgeVariants(callable $renderFn, string $root): void
     echo "Gerado: {$out72}\n";
 }
 
-/**
- * Folha branca sobre fundo preto (export do design) → badge transparente.
- */
 function renderBadgeFromBlackBgLeaf(GdImage $src, int $srcW, int $srcH, int $size, float $scale = BADGE_LEAF_SCALE): GdImage
 {
-    $dst = imagecreatetruecolor($size, $size);
-    imagealphablending($dst, false);
-    imagesavealpha($dst, true);
-    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
-    imagefill($dst, 0, 0, $transparent);
-    imagealphablending($dst, true);
-    $white = imagecolorallocate($dst, 255, 255, 255);
-
-    $drawSize = max(1, (int) round($size * $scale));
-    $x0 = (int) floor(($size - $drawSize) / 2);
-    $y0 = (int) floor(($size - $drawSize) / 2);
-
-    for ($dy = 0; $dy < $drawSize; $dy++) {
-        for ($dx = 0; $dx < $drawSize; $dx++) {
-            $sx = (int) floor($dx * ($srcW - 1) / max(1, $drawSize - 1));
-            $sy = (int) floor($dy * ($srcH - 1) / max(1, $drawSize - 1));
-            $rgba = imagecolorat($src, $sx, $sy);
-            $r = ($rgba >> 16) & 0xFF;
-            $g = ($rgba >> 8) & 0xFF;
-            $b = $rgba & 0xFF;
-            if ($r >= 150 && $g >= 150 && $b >= 150) {
-                imagesetpixel($dst, $x0 + $dx, $y0 + $dy, $white);
-            }
-        }
-    }
-
-    imagealphablending($dst, false);
-    imagesavealpha($dst, true);
-
-    return $dst;
+    return renderBadgeFitProportional($src, $srcW, $srcH, $size, $scale);
 }
 
-/**
- * Badge Android: silhueta branca opaca em fundo 100% transparente (status bar).
- */
 function renderBadgeFromCleanIcon(GdImage $src, int $srcW, int $srcH, int $size, float $scale = BADGE_LEAF_SCALE): GdImage
 {
-    $dst = imagecreatetruecolor($size, $size);
-    imagealphablending($dst, false);
-    imagesavealpha($dst, true);
-    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
-    imagefill($dst, 0, 0, $transparent);
-    imagealphablending($dst, true);
-    $white = imagecolorallocate($dst, 255, 255, 255);
-
-    $drawSize = max(1, (int) round($size * $scale));
-    $x0 = (int) floor(($size - $drawSize) / 2);
-    $y0 = (int) floor(($size - $drawSize) / 2);
-
-    for ($dy = 0; $dy < $drawSize; $dy++) {
-        for ($dx = 0; $dx < $drawSize; $dx++) {
-            $sx = (int) floor($dx * ($srcW - 1) / max(1, $drawSize - 1));
-            $sy = (int) floor($dy * ($srcH - 1) / max(1, $drawSize - 1));
-            $rgba = imagecolorat($src, $sx, $sy);
-            $a = 127 - (($rgba >> 24) & 0x7F);
-            $r = ($rgba >> 16) & 0xFF;
-            $g = ($rgba >> 8) & 0xFF;
-            $b = $rgba & 0xFF;
-            if ($a < 40) {
-                continue;
-            }
-            if (isOrangeBackground($r, $g, $b)) {
-                continue;
-            }
-            if ($r >= 160 && $g >= 160 && $b >= 160) {
-                imagesetpixel($dst, $x0 + $dx, $y0 + $dy, $white);
-            }
-        }
-    }
-
-    imagealphablending($dst, false);
-    imagesavealpha($dst, true);
-
-    return $dst;
+    return renderBadgeFitProportional($src, $srcW, $srcH, $size, $scale);
 }
 
 function renderBadge(GdImage $src, int $srcW, int $srcH, int $size, array $leafMask): GdImage
 {
-    if ($leafMask === []) {
-        return renderBadgeFromCleanIcon($src, $srcW, $srcH, $size);
-    }
-
-    [$minX, $minY, $maxX, $maxY] = getLeafBoundingBox($leafMask, $srcW, $srcH);
-    $leafW = max(1, $maxX - $minX + 1);
-    $leafH = max(1, $maxY - $minY + 1);
-
-    $dst = imagecreatetruecolor($size, $size);
-    imagealphablending($dst, false);
-    imagesavealpha($dst, true);
-    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
-    imagefill($dst, 0, 0, $transparent);
-    imagealphablending($dst, true);
-    $white = imagecolorallocate($dst, 255, 255, 255);
-
-    $padding = (int) max(1, round($size * (1 - BADGE_LEAF_SCALE) / 2));
-    $target = $size - ($padding * 2);
-    $dstX0 = $padding;
-    $dstY0 = $padding;
-
-    for ($dy = 0; $dy < $target; $dy++) {
-        for ($dx = 0; $dx < $target; $dx++) {
-            $sx = $minX + (int) floor($dx * ($leafW - 1) / max(1, $target - 1));
-            $sy = $minY + (int) floor($dy * ($leafH - 1) / max(1, $target - 1));
-            if ($leafMask[$sy * $srcW + $sx]) {
-                imagesetpixel($dst, $dstX0 + $dx, $dstY0 + $dy, $white);
+    if ($leafMask !== []) {
+        $tmp = imagecreatetruecolor($srcW, $srcH);
+        imagealphablending($tmp, false);
+        imagesavealpha($tmp, true);
+        $transparent = imagecolorallocatealpha($tmp, 0, 0, 0, 127);
+        imagefill($tmp, 0, 0, $transparent);
+        $white = imagecolorallocate($tmp, 255, 255, 255);
+        for ($y = 0; $y < $srcH; $y++) {
+            for ($x = 0; $x < $srcW; $x++) {
+                if ($leafMask[$y * $srcW + $x]) {
+                    imagesetpixel($tmp, $x, $y, $white);
+                }
             }
         }
+        $badge = renderBadgeFitProportional($tmp, $srcW, $srcH, $size);
+        imagedestroy($tmp);
+
+        return $badge;
     }
 
-    imagealphablending($dst, false);
-    imagesavealpha($dst, true);
-
-    return $dst;
+    return renderBadgeFitProportional($src, $srcW, $srcH, $size);
 }
 
 if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') !== basename(__FILE__)) {
