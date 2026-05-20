@@ -18,8 +18,8 @@ if (!isset($_ENV['DB_HOST'])) {
 
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/logo/logo.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
-    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-1">
-    <meta name="theme-color" content="#198754">
+    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-2">
+    <meta name="theme-color" content="#2E9263">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -68,7 +68,7 @@ if (!isset($_ENV['DB_HOST'])) {
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-6';
+                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-7';
                 navigator.serviceWorker.register(swUrl).catch(function(error) {
                     console.warn('Falha ao registrar Service Worker (login):', error);
                 });

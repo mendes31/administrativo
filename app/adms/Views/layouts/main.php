@@ -111,7 +111,7 @@ if (!headers_sent() && isset($_SESSION['user_id'])) {
     '</script>';
 }
 
-$pushSwVersion = '20260520-6';
+$pushSwVersion = '20260520-7';
 $pushSessionSyncInit = null;
 if (!empty($_SESSION['user_id'])) {
     $pushSessionSyncInit = [
@@ -195,8 +195,8 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
-    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-1">
-    <meta name="theme-color" content="#198754">
+    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-2">
+    <meta name="theme-color" content="#2E9263">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -532,7 +532,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-6';
+                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-7';
                 fetch(swUrl, { method: 'GET', credentials: 'same-origin' })
                     .then(function (res) {
                         const ct = (res.headers.get('content-type') || '').toLowerCase();
@@ -553,7 +553,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <script>
     window.__PushSessionSyncInit = <?php echo json_encode($pushSessionSyncInit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     </script>
-    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-session-sync.js?v=3"></script>
+    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-session-sync.js?v=4"></script>
     <?php endif; ?>
 
     <script>

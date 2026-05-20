@@ -4,7 +4,7 @@
     var cfg = window.__PushNotificationsInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
     var csrfToken = cfg.csrfToken || '';
-    var swVersion = cfg.swVersion || '20260520-6';
+    var swVersion = cfg.swVersion || '20260520-7';
 
     var statusEl = document.getElementById('pushNotificationStatus');
     var btnEnable = document.getElementById('btnPushEnable');
@@ -97,6 +97,22 @@
         if (hint) {
             showAlert('warning', hint);
         }
+    }
+
+    function isEndpointInDevices(endpoint, devices) {
+        if (!endpoint || !devices || !devices.length) {
+            return false;
+        }
+        return devices.some(function (device) {
+            return device.endpoint === endpoint;
+        });
+    }
+
+    function markSubscribed(localSub, devices) {
+        refreshDevices(devices, localSub);
+        setStatus('Ativadas neste dispositivo', 'bg-success');
+        setButtons('subscribed');
+        hideAlert();
     }
 
     function showAlert(type, message) {
@@ -286,24 +302,36 @@
                             return;
                         }
 
-                        return persistSubscription(registration, localSub).then(function () {
-                            var endpoint = localSub.endpoint || '';
-                            return fetchJson(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint));
-                        }).then(function (verify) {
-                            refreshDevices(verify.devices || data.devices, localSub);
-                            if (verify.endpointRegistered) {
-                                setStatus('Ativadas neste dispositivo', 'bg-success');
-                                setButtons('subscribed');
-                                return;
-                            }
-                            setStatus('Pendente sincronização', 'bg-warning text-dark');
-                            setButtons('idle');
-                            showAlert('warning', 'Push ativo neste navegador, mas ainda não confirmado no servidor. Clique em "Ativar notificações" para concluir.');
-                        }).catch(function () {
-                            setStatus('Pendente sincronização', 'bg-warning text-dark');
-                            setButtons('idle');
-                            showAlert('warning', 'Não foi possível sincronizar com o servidor. Clique em "Ativar notificações" novamente.');
-                        });
+                        var endpoint = localSub.endpoint || '';
+
+                        return fetchJson(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint))
+                            .then(function (verify) {
+                                if (verify.endpointRegistered || isEndpointInDevices(endpoint, verify.devices || data.devices)) {
+                                    markSubscribed(localSub, verify.devices || data.devices);
+                                    return;
+                                }
+
+                                return persistSubscription(registration, localSub).then(function () {
+                                    return fetchJson(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint));
+                                }).then(function (afterSave) {
+                                    if (afterSave.endpointRegistered || isEndpointInDevices(endpoint, afterSave.devices || [])) {
+                                        markSubscribed(localSub, afterSave.devices || data.devices);
+                                        return;
+                                    }
+                                    setStatus('Pendente sincronização', 'bg-warning text-dark');
+                                    setButtons('idle');
+                                    showAlert('warning', 'Push ativo neste navegador, mas ainda não confirmado no servidor. Clique em "Ativar notificações" para concluir.');
+                                });
+                            })
+                            .catch(function (err) {
+                                if (isEndpointInDevices(endpoint, data.devices)) {
+                                    markSubscribed(localSub, data.devices);
+                                    return;
+                                }
+                                setStatus('Pendente sincronização', 'bg-warning text-dark');
+                                setButtons('idle');
+                                showAlert('warning', (err && err.message) ? err.message : 'Não foi possível sincronizar com o servidor. Clique em "Ativar notificações" novamente.');
+                            });
                     });
                 });
             })

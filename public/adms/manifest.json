@@ -4,8 +4,8 @@
   "start_url": "/administrativo/",
   "scope": "/administrativo/",
   "display": "standalone",
-  "background_color": "#fd5b03",
-  "theme_color": "#fd5b03",
+  "background_color": "#2E9263",
+  "theme_color": "#2E9263",
   "icons": [
     {
       "src": "image/pwa-icon-maskable-512.png",

@@ -70,7 +70,7 @@ class PushSubscribe
             $payload = $_POST;
         }
 
-        if (!CSRFHelper::validateCSRFToken('form_push_subscribe', (string) ($payload['csrf_token'] ?? ''))) {
+        if (!CSRFHelper::validateCSRFToken('form_push_subscribe', (string) ($payload['csrf_token'] ?? ''), false)) {
             http_response_code(422);
             echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
             return;
@@ -123,7 +123,7 @@ class PushSubscribe
             $payload = $_POST;
         }
 
-        if (!CSRFHelper::validateCSRFToken('form_push_subscribe', (string) ($payload['csrf_token'] ?? ''))) {
+        if (!CSRFHelper::validateCSRFToken('form_push_subscribe', (string) ($payload['csrf_token'] ?? ''), false)) {
             http_response_code(422);
             echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
             return;
