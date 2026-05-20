@@ -128,7 +128,7 @@ class PushNotificationService
                     'expired' => $report->isSubscriptionExpired(),
                 ];
 
-                if ($report->isSubscriptionExpired() && $row !== null) {
+                if ($this->isExpiredSubscriptionReport($report) && $row !== null) {
                     $subId = (int) ($row['id'] ?? 0);
                     if ($subId > 0) {
                         $subRepo->deleteById($subId);
@@ -151,6 +151,20 @@ class PushNotificationService
         }
 
         return $result;
+    }
+
+    private function isExpiredSubscriptionReport(\Minishlink\WebPush\MessageSentReport $report): bool
+    {
+        if ($report->isSubscriptionExpired()) {
+            return true;
+        }
+
+        $response = $report->getResponse();
+        if ($response !== null && $response->getStatusCode() === 410) {
+            return true;
+        }
+
+        return str_contains(strtolower($report->getReason() ?? ''), '410');
     }
 
     /**

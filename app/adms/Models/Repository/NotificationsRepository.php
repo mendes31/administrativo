@@ -2,8 +2,10 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
+use App\adms\Models\Services\PushNotificationService;
 use PDO;
 
 class NotificationsRepository extends DbConnection
@@ -16,7 +18,7 @@ class NotificationsRepository extends DbConnection
     /**
      * Cria uma notificação para um usuário.
      *
-     * @param array $data [ user_id, type, title, message?, link_url?, entity_type?, entity_id?, priority? ]
+     * @param array $data [ user_id, type, title, message?, link_url?, entity_type?, entity_id?, priority?, skip_push? ]
      * @return int|false ID da notificação ou false
      */
     public function create(array $data)
@@ -55,9 +57,83 @@ class NotificationsRepository extends DbConnection
                     $row
                 );
             }
+
+            $this->dispatchWebPushForNotification((int) $data['user_id'], $data, $newId);
         }
 
         return $newId;
+    }
+
+    /**
+     * Envia Web Push após gravar notificação in-app (falha no push não cancela o INSERT).
+     *
+     * @param array<string, mixed> $data
+     */
+    private function dispatchWebPushForNotification(int $userId, array $data, int $notificationId): void
+    {
+        if ($userId <= 0 || !empty($data['skip_push'])) {
+            return;
+        }
+
+        try {
+            if (!(new AdmsPushConfigRepository())->isEnabled()) {
+                return;
+            }
+
+            $title = trim((string) ($data['title'] ?? ''));
+            if ($title === '') {
+                $title = 'Portal Tiaraju';
+            }
+
+            $body = trim((string) ($data['message'] ?? ''));
+            if ($body === '') {
+                $body = $title;
+            }
+            if (mb_strlen($body) > 200) {
+                $body = mb_substr($body, 0, 197) . '...';
+            }
+
+            $url = $this->resolvePushUrl($data['link_url'] ?? null);
+
+            (new PushNotificationService())->sendToUser($userId, $title, $body, $url);
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('warning', 'Web Push após notificação in-app falhou (notificação gravada).', [
+                'notification_id' => $notificationId,
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function resolvePushUrl(?string $linkUrl): string
+    {
+        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+        $fallback = $base !== '' ? $base . '/notificacoes' : '/notificacoes';
+
+        $link = trim((string) $linkUrl);
+        if ($link === '') {
+            return $fallback;
+        }
+
+        if (preg_match('#^https?://#i', $link)) {
+            return $link;
+        }
+
+        if (str_starts_with($link, '/')) {
+            $parsed = parse_url($base);
+            if (is_array($parsed) && !empty($parsed['scheme']) && !empty($parsed['host'])) {
+                $origin = $parsed['scheme'] . '://' . $parsed['host'];
+                if (!empty($parsed['port'])) {
+                    $origin .= ':' . $parsed['port'];
+                }
+
+                return $origin . $link;
+            }
+
+            return $fallback;
+        }
+
+        return $base . '/' . ltrim($link, '/');
     }
 
     /**
