@@ -216,7 +216,7 @@ use App\adms\Helpers\PositionDisplayHelper;
                         <h6 class="small text-uppercase text-muted mb-2">Dispositivos com push ativo</h6>
                         <ul class="list-group list-group-flush small" id="pushDevicesList"></ul>
                         <p class="text-muted small mb-0 mt-2">
-                            Cada navegador conta como um dispositivo: <strong>Chrome no PC</strong> e <strong>Edge no PC</strong> são diferentes. O celular também é separado. Se só o celular recebe, abra <strong>Meu Perfil neste navegador do computador</strong> e clique em Ativar notificações.
+                            Cada navegador conta como um dispositivo: <strong>Chrome no PC</strong>, <strong>Edge no PC</strong> e <strong>Firefox</strong> são inscrições separadas — ative em cada um. O celular também é separado. O site precisa estar em <strong>HTTPS</strong> (exceto localhost). Safari no iPhone exige o PWA na Tela de Início.
                         </p>
                     </div>
                 </div>
@@ -338,4 +338,4 @@ function openProfilePhotoModal() {
     modal.show();
 }
 </script>
-<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=9"></script>
+<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=10"></script>

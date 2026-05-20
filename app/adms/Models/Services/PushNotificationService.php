@@ -177,8 +177,7 @@ class PushNotificationService
         $endpoint = (string) ($row['endpoint'] ?? '');
         if (
             str_contains($endpoint, 'fcm.googleapis.com')
-            || str_contains($endpoint, 'mozilla.com')
-            || str_contains($endpoint, 'windows.com')
+            || str_contains($endpoint, 'notify.windows.com')
         ) {
             return 'aes128gcm';
         }

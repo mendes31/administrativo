@@ -183,6 +183,9 @@
         if (currentBrowserKind() === 'chrome') {
             return 'Notificações bloqueadas no Chrome. Clique no cadeado na barra de endereço → Notificações → Permitir.';
         }
+        if (currentBrowserKind() === 'firefox') {
+            return 'Notificações bloqueadas no Firefox. Abra about:preferences#privacy → Permissões → Notificações → Configurações, permita este site, ou use o ícone ao lado da URL.';
+        }
         return 'Permissão de notificação negada. Libere nas configurações do navegador e tente novamente.';
     }
 
@@ -267,11 +270,37 @@
         });
     }
 
+    function insecureContextMessage() {
+        if (window.isSecureContext) {
+            return '';
+        }
+        var host = window.location.hostname || '';
+        if (host === 'localhost' || host === '127.0.0.1') {
+            return '';
+        }
+        return 'Push exige HTTPS (ou localhost). Neste endereço HTTP (' + host + ') o Firefox e o Edge costumam não funcionar; o Chrome às vezes parece funcionar, mas em produção use sempre https:// no domínio oficial.';
+    }
+
     function loadStatus() {
+        var insecureMsg = insecureContextMessage();
+        if (insecureMsg) {
+            setStatus('Requer HTTPS', 'bg-warning text-dark');
+            setButtons('unsupported');
+            showAlert('warning', insecureMsg);
+            return;
+        }
+
         if (!('Notification' in window) || !('PushManager' in window)) {
             setStatus('Não suportado', 'bg-secondary');
             setButtons('unsupported');
-            showAlert('secondary', 'Este navegador não suporta notificações push.');
+            var kind = currentBrowserKind();
+            if (kind === 'firefox') {
+                showAlert('secondary', 'Firefox nesta versão ou neste sistema não expõe Push API (comum em HTTP ou iOS). Use HTTPS no servidor ou teste no Firefox desktop com Windows/macOS/Linux.');
+            } else if (/Safari\//.test(navigator.userAgent || '') && !/Chrome|Chromium|Edg/.test(navigator.userAgent || '')) {
+                showAlert('secondary', 'Safari no iPhone/iPad só recebe push com o app instalado na Tela de Início (iOS 16.4+). No Mac, use Safari 17+ ou instale o PWA no Chrome/Edge.');
+            } else {
+                showAlert('secondary', 'Este navegador não suporta notificações push neste contexto.');
+            }
             return;
         }
 
