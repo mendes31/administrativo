@@ -159,7 +159,7 @@
                             setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
                             setButtons('idle');
                             if (data.subscribed || (data.subscriptionCount || 0) > 0) {
-                                showAlert('info', 'Você já ativou push em outro dispositivo. Clique em "Ativar notificações" para receber também neste navegador.');
+                                showAlert('info', 'Push já está ativo em outro aparelho. Cada navegador (Chrome, Edge, celular) precisa ativar separadamente — clique em "Ativar notificações" aqui.');
                             }
                             return;
                         }

@@ -257,7 +257,31 @@ class PushSubscriptionRepository extends DbConnection
      */
     private function formatDeviceLabel(array $row): string
     {
+        $endpoint = (string) ($row['endpoint'] ?? '');
         $ua = (string) ($row['user_agent'] ?? '');
+
+        if (str_contains($endpoint, 'notify.windows.com')) {
+            return 'Windows — Microsoft Edge';
+        }
+
+        if (str_contains($endpoint, 'fcm.googleapis.com')) {
+            if (stripos($ua, 'Android') !== false || stripos($ua, 'Mobile') !== false) {
+                $browser = stripos($ua, 'Edg') !== false
+                    ? 'Edge'
+                    : (stripos($ua, 'Chrome') !== false ? 'Chrome' : 'Navegador');
+                return 'Android — ' . $browser;
+            }
+
+            $browser = stripos($ua, 'Edg') !== false
+                ? 'Microsoft Edge'
+                : (stripos($ua, 'Chrome') !== false ? 'Chrome' : 'Navegador');
+            return 'Windows — ' . $browser;
+        }
+
+        if (str_contains($endpoint, 'mozilla.com')) {
+            return 'Firefox';
+        }
+
         if ($ua === '') {
             return 'Dispositivo desconhecido';
         }

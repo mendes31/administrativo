@@ -111,6 +111,15 @@ if (!headers_sent() && isset($_SESSION['user_id'])) {
     '</script>';
 }
 
+$pushSessionSyncInit = null;
+if (!empty($_SESSION['user_id'])) {
+    $pushSessionSyncInit = [
+        'urlAdm' => rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'),
+        'csrfToken' => \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_push_subscribe'),
+        'userId' => (int) $_SESSION['user_id'],
+    ];
+}
+
 // Teste de execuÃ§Ã£o do layout
 // echo "<!-- LAYOUT MAIN EXECUTADO -->";
 
@@ -538,15 +547,11 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     })();
     </script>
 
-    <?php if (!empty($_SESSION['user_id'])): ?>
+    <?php if ($pushSessionSyncInit !== null): ?>
     <script>
-    window.__PushSessionSyncInit = {
-        urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
-        csrfToken: <?php echo json_encode(\App\adms\Helpers\CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>,
-        userId: <?php echo (int) $_SESSION['user_id']; ?>
-    };
+    window.__PushSessionSyncInit = <?php echo json_encode($pushSessionSyncInit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     </script>
-    <script src="<?php echo rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'); ?>/public/adms/js/push-session-sync.js?v=1"></script>
+    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-session-sync.js?v=2"></script>
     <?php endif; ?>
 
     <script>

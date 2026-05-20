@@ -14,9 +14,17 @@
         return;
     }
 
-    var storageKey = 'adms_push_sync_' + userId;
+    var storageKey = 'adms_push_sync_v2_' + userId;
     if (sessionStorage.getItem(storageKey) === '1') {
         return;
+    }
+
+    function markChecked() {
+        try {
+            sessionStorage.setItem(storageKey, '1');
+        } catch (e) {
+            /* ignore */
+        }
     }
 
     function fetchJson(url, options) {
@@ -34,12 +42,20 @@
         });
     }
 
-    function markChecked() {
-        try {
-            sessionStorage.setItem(storageKey, '1');
-        } catch (e) {
-            /* ignore */
+    function syncSubscription(registration, subscription) {
+        var json = subscription.toJSON();
+        var encodings = registration.pushManager.supportedContentEncodings || [];
+        if (encodings.length > 0) {
+            json.contentEncoding = encodings[0];
         }
+        return fetchJson(urlAdm + '/push-subscribe/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                csrf_token: csrfToken,
+                subscription: json
+            })
+        });
     }
 
     fetchJson(urlAdm + '/push-subscribe')
@@ -67,19 +83,7 @@
                                     markChecked();
                                     return;
                                 }
-                                var json = subscription.toJSON();
-                                var encodings = registration.pushManager.supportedContentEncodings || [];
-                                if (encodings.length > 0) {
-                                    json.contentEncoding = encodings[0];
-                                }
-                                return fetchJson(urlAdm + '/push-subscribe/subscribe', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        csrf_token: csrfToken,
-                                        subscription: json
-                                    })
-                                }).then(function () {
+                                return syncSubscription(registration, subscription).then(function () {
                                     markChecked();
                                 });
                             });
@@ -87,6 +91,6 @@
                 });
         })
         .catch(function () {
-            markChecked();
+            /* Não marcar como verificado: permite nova tentativa após correção de layout/erro de rede. */
         });
 })();
