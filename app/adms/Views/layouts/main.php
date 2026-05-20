@@ -539,13 +539,10 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     </script>
 
     <?php if (!empty($_SESSION['user_id'])): ?>
-    <?php
-    use App\adms\Helpers\CSRFHelper;
-    ?>
     <script>
     window.__PushSessionSyncInit = {
         urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
-        csrfToken: <?php echo json_encode(CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>,
+        csrfToken: <?php echo json_encode(\App\adms\Helpers\CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>,
         userId: <?php echo (int) $_SESSION['user_id']; ?>
     };
     </script>
