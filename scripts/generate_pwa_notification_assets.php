@@ -364,8 +364,8 @@ function renderFullBleedIcon(GdImage $src, int $srcW, int $srcH, int $size, arra
     return $dst;
 }
 
-/** Escala da folha no badge (barra de status Android). ~0,90 ≈ tamanho de apps comuns. */
-const BADGE_LEAF_SCALE = 0.90;
+/** Escala da folha no badge (barra de status Android). */
+const BADGE_LEAF_SCALE = 0.94;
 
 /**
  * Folha branca sobre fundo preto (export do design) → badge transparente.
