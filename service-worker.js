@@ -1,6 +1,31 @@
-/* Tiaraju PWA Service Worker v20260520-5 */
+/* Tiaraju PWA Service Worker v20260520-6 */
+var PUSH_ICON_CACHE = 'tiaraju-push-icons-v2';
+
 self.addEventListener('install', function (event) {
-  self.skipWaiting();
+  var scope = self.registration && self.registration.scope
+    ? self.registration.scope
+    : (self.location.origin + '/');
+  var assets = [
+    'public/adms/image/pwa-icon-192.png',
+    'public/adms/image/pwa-badge-72.png',
+    'public/adms/image/pwa-badge-96.png'
+  ].map(function (path) {
+    return new URL(path, scope).href;
+  });
+
+  event.waitUntil(
+    caches.open(PUSH_ICON_CACHE).then(function (cache) {
+      return Promise.all(
+        assets.map(function (url) {
+          return cache.add(url).catch(function () {
+            return null;
+          });
+        })
+      );
+    }).then(function () {
+      return self.skipWaiting();
+    })
+  );
 });
 
 self.addEventListener('activate', function (event) {
@@ -36,16 +61,24 @@ function fetchAssetBlob(url) {
   if (!url) {
     return Promise.resolve(null);
   }
-  return fetch(url, { credentials: 'same-origin', cache: 'no-store' })
-    .then(function (res) {
-      if (!res.ok) {
-        return null;
+
+  return caches.open(PUSH_ICON_CACHE).then(function (cache) {
+    return cache.match(url).then(function (cached) {
+      if (cached) {
+        return cached.blob();
       }
-      return res.blob();
-    })
-    .catch(function () {
-      return null;
+      return fetch(url, { credentials: 'same-origin', cache: 'reload' }).then(function (res) {
+        if (!res.ok) {
+          return null;
+        }
+        var copy = res.clone();
+        cache.put(url, copy).catch(function () {});
+        return res.blob();
+      });
     });
+  }).catch(function () {
+    return null;
+  });
 }
 
 self.addEventListener('push', function (event) {
@@ -84,7 +117,6 @@ self.addEventListener('push', function (event) {
         options.icon = iconUrl;
       }
 
-      // Badge inválido/ausente → Android mostra sino genérico. Só usar se carregou PNG monocromático.
       if (blobs[1]) {
         options.badge = blobs[1];
       }

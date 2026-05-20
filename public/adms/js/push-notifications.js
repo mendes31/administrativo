@@ -4,7 +4,7 @@
     var cfg = window.__PushNotificationsInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
     var csrfToken = cfg.csrfToken || '';
-    var swVersion = cfg.swVersion || '20260520-5';
+    var swVersion = cfg.swVersion || '20260520-6';
 
     var statusEl = document.getElementById('pushNotificationStatus');
     var btnEnable = document.getElementById('btnPushEnable');
