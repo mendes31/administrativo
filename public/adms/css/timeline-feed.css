@@ -978,6 +978,12 @@ video.timeline-post-video-lazy:not([src]) {
     width: 96px;
     height: 96px;
     object-fit: cover;
+    background-color: #fd5b03;
+}
+
+.timeline-composer-avatar-img {
+    object-fit: cover;
+    background-color: #fd5b03;
 }
 .timeline-author-profile-link:hover {
     text-decoration: underline !important;

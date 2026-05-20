@@ -246,6 +246,48 @@ function sampleBrandOrange(GdImage $src, int $w, int $h): array
     return [$rs[$mid], $gs[$mid], $bs[$mid]];
 }
 
+/** Ícone já em full-bleed laranja (cantos opacos laranja). */
+function isCleanFullBleedIcon(GdImage $src, int $w, int $h): bool
+{
+    $orangeCorners = 0;
+    $points = [[0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1]];
+
+    foreach ($points as [$x, $y]) {
+        $rgba = imagecolorat($src, $x, $y);
+        $r = ($rgba >> 16) & 0xFF;
+        $g = ($rgba >> 8) & 0xFF;
+        $b = $rgba & 0xFF;
+        if (isOrangeBackground($r, $g, $b)) {
+            $orangeCorners++;
+        }
+    }
+
+    return $orangeCorners >= 3;
+}
+
+/**
+ * Redimensiona ícone limpo para caber em máscara circular (Android maskable ~80% útil).
+ *
+ * @param float $scale Fração do canvas (ex.: 1.0 = borda a borda, 0.72 = círculo seguro)
+ */
+function renderFromCleanIcon(GdImage $src, int $srcW, int $srcH, int $size, array $orange, float $scale): GdImage
+{
+    $dst = imagecreatetruecolor($size, $size);
+    imagesavealpha($dst, false);
+    imagealphablending($dst, true);
+
+    $orangeColor = imagecolorallocate($dst, $orange[0], $orange[1], $orange[2]);
+    imagefill($dst, 0, 0, $orangeColor);
+
+    $drawSize = max(1, (int) round($size * $scale));
+    $x0 = (int) floor(($size - $drawSize) / 2);
+    $y0 = (int) floor(($size - $drawSize) / 2);
+
+    imagecopyresampled($dst, $src, $x0, $y0, 0, 0, $drawSize, $drawSize, $srcW, $srcH);
+
+    return $dst;
+}
+
 /** @return array{0:int,1:int,2:int,3:int} */
 function getLeafBoundingBox(array $leafMask, int $w, int $h): array
 {
@@ -366,7 +408,8 @@ if ($src === false) {
 $srcW = imagesx($src);
 $srcH = imagesy($src);
 $orange = sampleBrandOrange($src, $srcW, $srcH);
-$leafMask = buildCentralLeafMask($src, $srcW, $srcH);
+$isCleanSource = isCleanFullBleedIcon($src, $srcW, $srcH);
+$leafMask = $isCleanSource ? [] : buildCentralLeafMask($src, $srcW, $srcH);
 
 $badgeOut = $root . '/public/adms/image/pwa-badge-96.png';
 $icon192Out = $root . '/public/adms/image/pwa-icon-192.png';
@@ -376,11 +419,21 @@ $iconMaskableOut = $root . '/public/adms/image/pwa-icon-maskable-512.png';
 @mkdir(dirname($badgeOut), 0775, true);
 @mkdir(dirname($icon512Out), 0775, true);
 
-$icon192 = renderFullBleedIcon($src, $srcW, $srcH, 192, $orange, 0.72, $leafMask);
-$icon512 = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.78, $leafMask);
-$iconMaskable = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.58, $leafMask);
-$badge96 = renderBadge($src, $srcW, $srcH, 96, $leafMask);
-$badge72 = renderBadge($src, $srcW, $srcH, 72, $leafMask);
+if ($isCleanSource) {
+    // any: preenche quadrado; maskable: ~72% para não cortar folha no círculo Android
+    $icon192 = renderFromCleanIcon($src, $srcW, $srcH, 192, $orange, 1.0);
+    $icon512 = renderFromCleanIcon($src, $srcW, $srcH, 512, $orange, 1.0);
+    $iconMaskable = renderFromCleanIcon($src, $srcW, $srcH, 512, $orange, 0.72);
+    $leafMask = buildCentralLeafMask($src, $srcW, $srcH);
+    $badge96 = renderBadge($src, $srcW, $srcH, 96, $leafMask);
+    $badge72 = renderBadge($src, $srcW, $srcH, 72, $leafMask);
+} else {
+    $icon192 = renderFullBleedIcon($src, $srcW, $srcH, 192, $orange, 0.72, $leafMask);
+    $icon512 = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.78, $leafMask);
+    $iconMaskable = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.68, $leafMask);
+    $badge96 = renderBadge($src, $srcW, $srcH, 96, $leafMask);
+    $badge72 = renderBadge($src, $srcW, $srcH, 72, $leafMask);
+}
 
 imagepng($badge96, $badgeOut, 9);
 imagepng($badge72, $root . '/public/adms/image/pwa-badge-72.png', 9);
@@ -397,6 +450,7 @@ imagedestroy($iconMaskable);
 
 $hex = sprintf('#%02x%02x%02x', $orange[0], $orange[1], $orange[2]);
 echo 'Fonte: ' . basename($source) . "\n";
+echo 'Modo: ' . ($isCleanSource ? 'icone_limpo (resize)' : 'extracao_folha') . "\n";
 echo "Cor laranja detectada: {$hex}\n";
 echo "Gerado: {$badgeOut}\n";
 echo "Gerado: {$root}/public/adms/image/pwa-badge-72.png\n";

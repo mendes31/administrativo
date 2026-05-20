@@ -152,6 +152,11 @@ body {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
+    background-color: #fd5b03;
+}
+
+.navbar img.rounded-circle {
+    background-color: #fd5b03;
 }
 
 
