@@ -1,4 +1,4 @@
-/* Tiaraju PWA Service Worker v20260520-3 */
+/* Tiaraju PWA Service Worker v20260520-5 */
 self.addEventListener('install', function (event) {
   self.skipWaiting();
 });
@@ -36,7 +36,7 @@ function fetchAssetBlob(url) {
   if (!url) {
     return Promise.resolve(null);
   }
-  return fetch(url, { mode: 'cors', credentials: 'omit', cache: 'reload' })
+  return fetch(url, { credentials: 'same-origin', cache: 'no-store' })
     .then(function (res) {
       if (!res.ok) {
         return null;
@@ -80,14 +80,13 @@ self.addEventListener('push', function (event) {
 
       if (blobs[0]) {
         options.icon = blobs[0];
-      } else {
+      } else if (iconUrl) {
         options.icon = iconUrl;
       }
 
+      // Badge inválido/ausente → Android mostra sino genérico. Só usar se carregou PNG monocromático.
       if (blobs[1]) {
         options.badge = blobs[1];
-      } else {
-        options.badge = badgeUrl;
       }
 
       return self.registration.showNotification(title, options);

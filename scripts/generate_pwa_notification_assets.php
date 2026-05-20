@@ -22,14 +22,48 @@ if (!extension_loaded('gd')) {
     exit(1);
 }
 
-$src = imagecreatefrompng($source);
+$src = loadSourceImage($source);
 if ($src === false) {
-    fwrite(STDERR, "Não foi possível ler PNG fonte.\n");
+    fwrite(STDERR, "Não foi possível ler imagem fonte (PNG/JPEG/WebP): {$source}\n");
     exit(1);
 }
 
 $srcW = imagesx($src);
 $srcH = imagesy($src);
+
+function loadSourceImage(string $path)
+{
+    if (!is_file($path)) {
+        return false;
+    }
+
+    $bytes = file_get_contents($path);
+    if ($bytes === false) {
+        return false;
+    }
+
+    $img = @imagecreatefromstring($bytes);
+    if ($img !== false) {
+        return $img;
+    }
+
+    $info = @getimagesize($path);
+    if ($info === false) {
+        return false;
+    }
+
+    return match ($info[2]) {
+        IMAGETYPE_PNG => imagecreatefrompng($path),
+        IMAGETYPE_JPEG => imagecreatefromjpeg($path),
+        IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? imagecreatefromwebp($path) : false,
+        default => false,
+    };
+}
+
+function isOrangeBackground(int $r, int $g, int $b): bool
+{
+    return $r >= 150 && $g >= 70 && $g <= 210 && $b <= 120 && ($r - $g) >= 30;
+}
 
 function isLeafPixel(int $r, int $g, int $b, int $a): bool
 {
@@ -37,16 +71,18 @@ function isLeafPixel(int $r, int $g, int $b, int $a): bool
         return false;
     }
 
+    if (isOrangeBackground($r, $g, $b)) {
+        return false;
+    }
+
     $max = max($r, $g, $b);
     $min = min($r, $g, $b);
 
-    // Folha branca: canal alto e pouca saturação (não laranja).
-    if ($max >= 210 && ($max - $min) <= 45) {
+    if ($max >= 200 && ($max - $min) <= 55) {
         return true;
     }
 
-    // Bordas suavizadas entre branco e laranja.
-    if ($max >= 170 && ($max - $min) <= 90 && $r >= $g && $g >= $b) {
+    if ($max >= 160 && ($max - $min) <= 100 && $r >= $g && $g >= $b) {
         return true;
     }
 
@@ -113,21 +149,28 @@ function renderResized($src, int $srcW, int $srcH, int $size): GdImage
     return $dst;
 }
 
+$icon512Out = $root . '/public/adms/uploads/users/1/pwa-icon-512.png';
+
 @mkdir(dirname($badgeOut), 0775, true);
+@mkdir(dirname($icon512Out), 0775, true);
 
 $badge96 = renderBadge($src, $srcW, $srcH, 96);
 $badge72 = renderBadge($src, $srcW, $srcH, 72);
 $icon192 = renderResized($src, $srcW, $srcH, 192);
+$icon512 = renderResized($src, $srcW, $srcH, 512);
 
 imagepng($badge96, $badgeOut, 9);
 imagepng($badge72, $root . '/public/adms/image/pwa-badge-72.png', 9);
 imagepng($icon192, $icon192Out, 9);
+imagepng($icon512, $icon512Out, 9);
 
 imagedestroy($src);
 imagedestroy($badge96);
 imagedestroy($badge72);
 imagedestroy($icon192);
+imagedestroy($icon512);
 
 echo "Gerado: {$badgeOut}\n";
 echo "Gerado: {$root}/public/adms/image/pwa-badge-72.png\n";
 echo "Gerado: {$icon192Out}\n";
+echo "Gerado: {$icon512Out}\n";
