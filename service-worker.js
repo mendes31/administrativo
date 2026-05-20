@@ -1,5 +1,5 @@
-/* Tiaraju PWA Service Worker v20260520-9 */
-var PUSH_ICON_CACHE = 'tiaraju-push-icons-v4';
+/* Tiaraju PWA Service Worker v20260520-10 */
+var PUSH_ICON_CACHE = 'tiaraju-push-icons-v5';
 
 self.addEventListener('install', function (event) {
   var scope = self.registration && self.registration.scope
@@ -7,8 +7,9 @@ self.addEventListener('install', function (event) {
     : (self.location.origin + '/');
   var assets = [
     'public/adms/image/pwa-icon-192.png',
-    'public/adms/image/pwa-badge-72.png',
-    'public/adms/image/pwa-badge-96.png'
+    'public/adms/image/pwa-badge-192.png',
+    'public/adms/image/pwa-badge-96.png',
+    'public/adms/image/pwa-badge-72.png'
   ].map(function (path) {
     return new URL(path, scope).href;
   });
@@ -108,7 +109,7 @@ self.addEventListener('push', function (event) {
 
   var base = getAssetsBase(payload);
   var iconUrl = resolveNotificationAsset(payload.icon, base) || (base + '/public/adms/image/pwa-icon-192.png');
-  var badgeUrl = resolveNotificationAsset(payload.badge, base) || (base + '/public/adms/image/pwa-badge-96.png');
+  var badgeUrl = resolveNotificationAsset(payload.badge, base) || (base + '/public/adms/image/pwa-badge-192.png');
   var title = payload.title || 'Portal Tiaraju';
 
   event.waitUntil(

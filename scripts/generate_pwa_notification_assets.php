@@ -364,8 +364,93 @@ function renderFullBleedIcon(GdImage $src, int $srcW, int $srcH, int $size, arra
     return $dst;
 }
 
-/** Escala da folha no badge (barra de status Android). */
-const BADGE_LEAF_SCALE = 0.94;
+/** Tamanho mestre do badge (Android usa o PNG inteiro; 192px = mais nitidez). */
+const BADGE_MASTER_SIZE = 192;
+
+/** Folha ocupa quase todo o quadrado antes de engrossar a silhueta. */
+const BADGE_LEAF_SCALE = 1.0;
+
+/** Expande pixels brancos para o ícone parecer maior na barra (não só margem menor). */
+const BADGE_DILATE_RADIUS = 2;
+
+function finalizeBadgeImage(GdImage $img, int $size): GdImage
+{
+    $white = imagecolorallocate($img, 255, 255, 255);
+    $snapshot = imagecreatetruecolor($size, $size);
+    imagealphablending($snapshot, false);
+    imagesavealpha($snapshot, true);
+    imagecopy($snapshot, $img, 0, 0, 0, 0, $size, $size);
+    imagealphablending($img, true);
+
+    for ($pass = 0; $pass < BADGE_DILATE_RADIUS; $pass++) {
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
+                $c = imagecolorat($snapshot, $x, $y);
+                if (($c & 0xFF) < 200) {
+                    continue;
+                }
+                foreach ([[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] as [$dx, $dy]) {
+                    $nx = $x + $dx;
+                    $ny = $y + $dy;
+                    if ($nx >= 0 && $ny >= 0 && $nx < $size && $ny < $size) {
+                        imagesetpixel($img, $nx, $ny, $white);
+                        imagesetpixel($snapshot, $nx, $ny, $white);
+                    }
+                }
+            }
+        }
+    }
+
+    imagedestroy($snapshot);
+    imagealphablending($img, false);
+    imagesavealpha($img, true);
+
+    return $img;
+}
+
+function downscaleBadge(GdImage $src, int $srcSize, int $dstSize): GdImage
+{
+    $dst = imagecreatetruecolor($dstSize, $dstSize);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+    imagefill($dst, 0, 0, $transparent);
+    imagealphablending($dst, true);
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $dstSize, $dstSize, $srcSize, $srcSize);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+
+    return $dst;
+}
+
+/**
+ * Gera badge 192px (principal) + versões 96 e 72.
+ *
+ * @param callable(int): GdImage $renderFn
+ */
+function exportBadgeVariants(callable $renderFn, string $root): void
+{
+    $master = $renderFn(BADGE_MASTER_SIZE);
+    finalizeBadgeImage($master, BADGE_MASTER_SIZE);
+
+    $out192 = $root . '/public/adms/image/pwa-badge-192.png';
+    $out96 = $root . '/public/adms/image/pwa-badge-96.png';
+    $out72 = $root . '/public/adms/image/pwa-badge-72.png';
+
+    imagepng($master, $out192, 9);
+    $badge96 = downscaleBadge($master, BADGE_MASTER_SIZE, 96);
+    $badge72 = downscaleBadge($master, BADGE_MASTER_SIZE, 72);
+    imagepng($badge96, $out96, 9);
+    imagepng($badge72, $out72, 9);
+
+    imagedestroy($master);
+    imagedestroy($badge96);
+    imagedestroy($badge72);
+
+    echo "Gerado: {$out192}\n";
+    echo "Gerado: {$out96}\n";
+    echo "Gerado: {$out72}\n";
+}
 
 /**
  * Folha branca sobre fundo preto (export do design) → badge transparente.
@@ -487,6 +572,10 @@ function renderBadge(GdImage $src, int $srcW, int $srcH, int $size, array $leafM
     return $dst;
 }
 
+if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') !== basename(__FILE__)) {
+    return;
+}
+
 $src = loadSourceImage($source);
 if ($src === false) {
     fwrite(STDERR, "Não foi possível ler imagem fonte.\n");
@@ -524,27 +613,31 @@ if ($isCleanSource) {
 if ($badgeSrc !== false) {
     $bW = imagesx($badgeSrc);
     $bH = imagesy($badgeSrc);
-    $badge96 = renderBadgeFromBlackBgLeaf($badgeSrc, $bW, $bH, 96);
-    $badge72 = renderBadgeFromBlackBgLeaf($badgeSrc, $bW, $bH, 72);
+    $badgeSrcCopy = $badgeSrc;
+    exportBadgeVariants(
+        static fn (int $size) => renderBadgeFromBlackBgLeaf($badgeSrcCopy, $bW, $bH, $size),
+        $root
+    );
     imagedestroy($badgeSrc);
-    echo "Badge: folha-badge-source.png (escala " . BADGE_LEAF_SCALE . ")\n";
+    echo 'Badge: folha-badge-source.png (master ' . BADGE_MASTER_SIZE . 'px, escala '
+        . BADGE_LEAF_SCALE . ', dilate ' . BADGE_DILATE_RADIUS . ")\n";
 } elseif ($isCleanSource) {
-    $badge96 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 96);
-    $badge72 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 72);
+    exportBadgeVariants(
+        static fn (int $size) => renderBadgeFromCleanIcon($src, $srcW, $srcH, $size),
+        $root
+    );
 } else {
-    $badge96 = renderBadge($src, $srcW, $srcH, 96, $leafMask);
-    $badge72 = renderBadge($src, $srcW, $srcH, 72, $leafMask);
+    exportBadgeVariants(
+        static fn (int $size) => renderBadge($src, $srcW, $srcH, $size, $leafMask),
+        $root
+    );
 }
 
-imagepng($badge96, $badgeOut, 9);
-imagepng($badge72, $root . '/public/adms/image/pwa-badge-72.png', 9);
 imagepng($icon192, $icon192Out, 9);
 imagepng($icon512, $icon512Out, 9);
 imagepng($iconMaskable, $iconMaskableOut, 9);
 
 imagedestroy($src);
-imagedestroy($badge96);
-imagedestroy($badge72);
 imagedestroy($icon192);
 imagedestroy($icon512);
 imagedestroy($iconMaskable);
@@ -553,8 +646,6 @@ $hex = sprintf('#%02x%02x%02x', $orange[0], $orange[1], $orange[2]);
 echo 'Fonte: ' . basename($source) . "\n";
 echo 'Modo: ' . ($isCleanSource ? 'icone_limpo (resize)' : 'extracao_folha') . "\n";
 echo "Cor laranja detectada: {$hex}\n";
-echo "Gerado: {$badgeOut}\n";
-echo "Gerado: {$root}/public/adms/image/pwa-badge-72.png\n";
 echo "Gerado: {$icon192Out}\n";
 echo "Gerado: {$icon512Out}\n";
 echo "Gerado: {$iconMaskableOut}\n";

@@ -4,7 +4,7 @@
     var cfg = window.__PushSessionSyncInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
     var csrfToken = cfg.csrfToken || '';
-    var swVersion = cfg.swVersion || '20260520-9';
+    var swVersion = cfg.swVersion || '20260520-10';
     var userId = cfg.userId || 0;
 
     function getServiceWorkerUrl() {
