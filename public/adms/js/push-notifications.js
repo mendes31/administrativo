@@ -117,23 +117,33 @@
 
                 return getServiceWorkerRegistration().then(function (registration) {
                     return registration.pushManager.getSubscription().then(function (localSub) {
-                        var isLocalSubscribed = localSub !== null;
                         hideAlert();
-                        if (isLocalSubscribed) {
-                            return persistSubscription(registration, localSub).then(function () {
+                        if (localSub === null) {
+                            setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
+                            setButtons('idle');
+                            if (data.subscribed || (data.subscriptionCount || 0) > 0) {
+                                showAlert('info', 'Você já ativou push em outro dispositivo. Clique em "Ativar notificações" para receber também neste navegador.');
+                            }
+                            return;
+                        }
+
+                        return persistSubscription(registration, localSub).then(function () {
+                            var endpoint = localSub.endpoint || '';
+                            return fetchJson(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint));
+                        }).then(function (verify) {
+                            if (verify.endpointRegistered) {
                                 setStatus('Ativadas neste dispositivo', 'bg-success');
                                 setButtons('subscribed');
-                            }).catch(function () {
-                                setStatus('Ativadas neste dispositivo', 'bg-success');
-                                setButtons('subscribed');
-                                showAlert('warning', 'Push ativo neste navegador, mas não foi possível sincronizar com o servidor. Clique em Desativar e Ativar novamente.');
-                            });
-                        }
-                        setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
-                        setButtons('idle');
-                        if (data.subscribed || (data.subscriptionCount || 0) > 0) {
-                            showAlert('info', 'Você já ativou push em outro dispositivo. Clique em "Ativar notificações" para receber também neste navegador.');
-                        }
+                                return;
+                            }
+                            setStatus('Pendente sincronização', 'bg-warning text-dark');
+                            setButtons('idle');
+                            showAlert('warning', 'Push ativo neste navegador, mas ainda não confirmado no servidor. Clique em "Ativar notificações" para concluir.');
+                        }).catch(function () {
+                            setStatus('Pendente sincronização', 'bg-warning text-dark');
+                            setButtons('idle');
+                            showAlert('warning', 'Não foi possível sincronizar com o servidor. Clique em "Ativar notificações" novamente.');
+                        });
                     });
                 });
             })
