@@ -4,7 +4,12 @@
     var cfg = window.__PushSessionSyncInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
     var csrfToken = cfg.csrfToken || '';
+    var swVersion = cfg.swVersion || '20260520-4';
     var userId = cfg.userId || 0;
+
+    function getServiceWorkerUrl() {
+        return urlAdm + '/service-worker.js?v=' + encodeURIComponent(swVersion);
+    }
 
     if (!urlAdm || !csrfToken || userId <= 0) {
         return;
@@ -64,7 +69,7 @@
                 markChecked();
                 return;
             }
-            return navigator.serviceWorker.register(urlAdm + '/service-worker.js')
+            return navigator.serviceWorker.register(getServiceWorkerUrl())
                 .then(function () { return navigator.serviceWorker.ready; })
                 .then(function (registration) {
                     return registration.pushManager.getSubscription().then(function (subscription) {

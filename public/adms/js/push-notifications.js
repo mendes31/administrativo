@@ -4,6 +4,7 @@
     var cfg = window.__PushNotificationsInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
     var csrfToken = cfg.csrfToken || '';
+    var swVersion = cfg.swVersion || '20260520-4';
 
     var statusEl = document.getElementById('pushNotificationStatus');
     var btnEnable = document.getElementById('btnPushEnable');
@@ -155,11 +156,75 @@
         });
     }
 
+    function getServiceWorkerUrl() {
+        return urlAdm + '/service-worker.js?v=' + encodeURIComponent(swVersion);
+    }
+
+    function permissionDeniedMessage() {
+        if (currentBrowserKind() === 'edge') {
+            return 'Notificações bloqueadas no Microsoft Edge. Abra edge://settings/content/notifications, coloque este site em "Permitir", ou clique no ícone de cadeado na barra de endereço → Permissões → Notificações.';
+        }
+        if (currentBrowserKind() === 'chrome') {
+            return 'Notificações bloqueadas no Chrome. Clique no cadeado na barra de endereço → Notificações → Permitir.';
+        }
+        return 'Permissão de notificação negada. Libere nas configurações do navegador e tente novamente.';
+    }
+
+    function permissionDefaultMessage() {
+        if (currentBrowserKind() === 'edge') {
+            return 'O Edge não exibiu o pedido de permissão. Verifique edge://settings/content/notifications (modo silencioso) ou clique no cadeado na barra de endereço e permita notificações manualmente. Depois clique em "Ativar notificações" novamente.';
+        }
+        return 'Permissão de notificação não concedida. Clique em "Ativar notificações" e escolha Permitir no navegador.';
+    }
+
+    function requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            return Promise.reject(new Error('Notificações não suportadas neste navegador.'));
+        }
+
+        if (Notification.permission === 'granted') {
+            return Promise.resolve('granted');
+        }
+
+        if (Notification.permission === 'denied') {
+            return Promise.reject(new Error(permissionDeniedMessage()));
+        }
+
+        return Notification.requestPermission().then(function (result) {
+            if (result === 'granted') {
+                return result;
+            }
+            if (result === 'denied') {
+                throw new Error(permissionDeniedMessage());
+            }
+            throw new Error(permissionDefaultMessage());
+        });
+    }
+
+    function createPushSubscription(registration, publicKey) {
+        var subscribeOptions = {
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        };
+
+        return registration.pushManager.getSubscription().then(function (existing) {
+            if (!existing) {
+                return registration.pushManager.subscribe(subscribeOptions);
+            }
+
+            return registration.pushManager.subscribe(subscribeOptions).catch(function () {
+                return existing.unsubscribe().then(function () {
+                    return registration.pushManager.subscribe(subscribeOptions);
+                });
+            });
+        });
+    }
+
     function getServiceWorkerRegistration() {
         if (!('serviceWorker' in navigator)) {
             return Promise.reject(new Error('Service Worker não suportado neste navegador.'));
         }
-        var swUrl = urlAdm + '/service-worker.js';
+        var swUrl = getServiceWorkerUrl();
         return navigator.serviceWorker.register(swUrl).then(function () {
             return navigator.serviceWorker.ready;
         });
@@ -211,8 +276,12 @@
                         if (localSub === null) {
                             setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
                             setButtons('idle');
-                            if (data.subscribed || (data.subscriptionCount || 0) > 0) {
-                                showAlert('info', 'Push já está ativo em outro aparelho. Cada navegador (Chrome, Edge, celular) precisa ativar separadamente — clique em "Ativar notificações" aqui.');
+                            if (Notification.permission === 'denied') {
+                                showAlert('warning', permissionDeniedMessage());
+                            } else if (currentBrowserKind() === 'edge' && Notification.permission === 'default') {
+                                showAlert('info', 'No Microsoft Edge, clique em "Ativar notificações" para o navegador pedir permissão (Chrome e Edge registram push separadamente neste PC).');
+                            } else if (data.subscribed || (data.subscriptionCount || 0) > 0) {
+                                showAlert('info', 'Push já está ativo em outro aparelho ou navegador. Cada navegador (Chrome, Edge, celular) precisa ativar separadamente — clique em "Ativar notificações" aqui.');
                             }
                             return;
                         }
@@ -258,14 +327,8 @@
                     throw new Error('Chave pública VAPID não configurada.');
                 }
                 return getServiceWorkerRegistration().then(function (registration) {
-                    return Notification.requestPermission().then(function (permission) {
-                        if (permission !== 'granted') {
-                            throw new Error('Permissão de notificação negada pelo navegador.');
-                        }
-                        return registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array(data.publicKey)
-                        }).then(function (subscription) {
+                    return requestNotificationPermission().then(function () {
+                        return createPushSubscription(registration, data.publicKey).then(function (subscription) {
                             return persistSubscription(registration, subscription);
                         });
                     });

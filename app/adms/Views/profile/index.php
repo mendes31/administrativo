@@ -324,7 +324,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 window.__PushNotificationsInit = {
     urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
-    csrfToken: <?php echo json_encode(CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>
+    csrfToken: <?php echo json_encode(CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>,
+    swVersion: '20260520-4'
 };
 
 function openProfilePhotoModal() {
@@ -337,4 +338,4 @@ function openProfilePhotoModal() {
     modal.show();
 }
 </script>
-<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=6"></script>
+<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=7"></script>
