@@ -60,11 +60,14 @@ class PushNotificationService
             return $result;
         }
 
+        $assets = $this->resolvePushAssets($icon, null);
         $payload = json_encode([
             'title' => $title,
             'body' => $body,
             'url' => $url ?: (rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/notificacoes'),
-            'icon' => $icon ?: (rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/public/adms/uploads/users/1/pwa-icon-512.png'),
+            'icon' => $assets['icon'],
+            'badge' => $assets['badge'],
+            'baseUrl' => $assets['baseUrl'],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if ($payload === false) {
@@ -169,6 +172,20 @@ class PushNotificationService
         $stored = trim((string) ($row['content_encoding'] ?? ''));
 
         return $stored !== '' ? $stored : 'aes128gcm';
+    }
+
+    /**
+     * @return array{icon:string, badge:string, baseUrl:string}
+     */
+    private function resolvePushAssets(?string $icon = null, ?string $badge = null): array
+    {
+        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+
+        return [
+            'icon' => $icon ?: ($base . '/public/adms/uploads/users/1/pwa-icon-512.png'),
+            'badge' => $badge ?: ($base . '/public/adms/image/pwa-badge-96.png'),
+            'baseUrl' => $base,
+        ];
     }
 
     /**
