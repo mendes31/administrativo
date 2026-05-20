@@ -364,17 +364,67 @@ function renderFullBleedIcon(GdImage $src, int $srcW, int $srcH, int $size, arra
     return $dst;
 }
 
+/**
+ * Badge Android: silhueta branca opaca em fundo 100% transparente (status bar).
+ */
+function renderBadgeFromCleanIcon(GdImage $src, int $srcW, int $srcH, int $size, float $scale = 0.76): GdImage
+{
+    $dst = imagecreatetruecolor($size, $size);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+    imagefill($dst, 0, 0, $transparent);
+    imagealphablending($dst, true);
+    $white = imagecolorallocate($dst, 255, 255, 255);
+
+    $drawSize = max(1, (int) round($size * $scale));
+    $x0 = (int) floor(($size - $drawSize) / 2);
+    $y0 = (int) floor(($size - $drawSize) / 2);
+
+    for ($dy = 0; $dy < $drawSize; $dy++) {
+        for ($dx = 0; $dx < $drawSize; $dx++) {
+            $sx = (int) floor($dx * ($srcW - 1) / max(1, $drawSize - 1));
+            $sy = (int) floor($dy * ($srcH - 1) / max(1, $drawSize - 1));
+            $rgba = imagecolorat($src, $sx, $sy);
+            $a = 127 - (($rgba >> 24) & 0x7F);
+            $r = ($rgba >> 16) & 0xFF;
+            $g = ($rgba >> 8) & 0xFF;
+            $b = $rgba & 0xFF;
+            if ($a < 40) {
+                continue;
+            }
+            if (isOrangeBackground($r, $g, $b)) {
+                continue;
+            }
+            if ($r >= 160 && $g >= 160 && $b >= 160) {
+                imagesetpixel($dst, $x0 + $dx, $y0 + $dy, $white);
+            }
+        }
+    }
+
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+
+    return $dst;
+}
+
 function renderBadge(GdImage $src, int $srcW, int $srcH, int $size, array $leafMask): GdImage
 {
+    if ($leafMask === []) {
+        return renderBadgeFromCleanIcon($src, $srcW, $srcH, $size);
+    }
+
     [$minX, $minY, $maxX, $maxY] = getLeafBoundingBox($leafMask, $srcW, $srcH);
     $leafW = max(1, $maxX - $minX + 1);
     $leafH = max(1, $maxY - $minY + 1);
 
     $dst = imagecreatetruecolor($size, $size);
+    imagealphablending($dst, false);
     imagesavealpha($dst, true);
     $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
     imagefill($dst, 0, 0, $transparent);
-    $white = imagecolorallocatealpha($dst, 255, 255, 255, 0);
+    imagealphablending($dst, true);
+    $white = imagecolorallocate($dst, 255, 255, 255);
 
     $padding = (int) max(2, round($size * 0.08));
     $target = $size - ($padding * 2);
@@ -385,16 +435,14 @@ function renderBadge(GdImage $src, int $srcW, int $srcH, int $size, array $leafM
         for ($dx = 0; $dx < $target; $dx++) {
             $sx = $minX + (int) floor($dx * ($leafW - 1) / max(1, $target - 1));
             $sy = $minY + (int) floor($dy * ($leafH - 1) / max(1, $target - 1));
-            $rgba = imagecolorat($src, $sx, $sy);
-            $a = 127 - (($rgba >> 24) & 0x7F);
-            $r = ($rgba >> 16) & 0xFF;
-            $g = ($rgba >> 8) & 0xFF;
-            $b = $rgba & 0xFF;
             if ($leafMask[$sy * $srcW + $sx]) {
                 imagesetpixel($dst, $dstX0 + $dx, $dstY0 + $dy, $white);
             }
         }
     }
+
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
 
     return $dst;
 }
@@ -424,9 +472,8 @@ if ($isCleanSource) {
     $icon192 = renderFromCleanIcon($src, $srcW, $srcH, 192, $orange, 1.0);
     $icon512 = renderFromCleanIcon($src, $srcW, $srcH, 512, $orange, 1.0);
     $iconMaskable = renderFromCleanIcon($src, $srcW, $srcH, 512, $orange, 0.72);
-    $leafMask = buildCentralLeafMask($src, $srcW, $srcH);
-    $badge96 = renderBadge($src, $srcW, $srcH, 96, $leafMask);
-    $badge72 = renderBadge($src, $srcW, $srcH, 72, $leafMask);
+    $badge96 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 96);
+    $badge72 = renderBadgeFromCleanIcon($src, $srcW, $srcH, 72);
 } else {
     $icon192 = renderFullBleedIcon($src, $srcW, $srcH, 192, $orange, 0.72, $leafMask);
     $icon512 = renderFullBleedIcon($src, $srcW, $srcH, 512, $orange, 0.78, $leafMask);

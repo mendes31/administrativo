@@ -183,7 +183,7 @@ class PushNotificationService
 
         return [
             'icon' => $icon ?: ($base . '/public/adms/image/pwa-icon-192.png'),
-            'badge' => $badge ?: ($base . '/public/adms/image/pwa-badge-72.png'),
+            'badge' => $badge ?: ($base . '/public/adms/image/pwa-badge-96.png'),
             'baseUrl' => $base,
         ];
     }

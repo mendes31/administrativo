@@ -1,5 +1,5 @@
-/* Tiaraju PWA Service Worker v20260520-7 */
-var PUSH_ICON_CACHE = 'tiaraju-push-icons-v2';
+/* Tiaraju PWA Service Worker v20260520-8 */
+var PUSH_ICON_CACHE = 'tiaraju-push-icons-v3';
 
 self.addEventListener('install', function (event) {
   var scope = self.registration && self.registration.scope
@@ -29,7 +29,19 @@ self.addEventListener('install', function (event) {
 });
 
 self.addEventListener('activate', function (event) {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys.filter(function (key) {
+          return key.indexOf('tiaraju-push-icons-') === 0 && key !== PUSH_ICON_CACHE;
+        }).map(function (key) {
+          return caches.delete(key);
+        })
+      );
+    }).then(function () {
+      return self.clients.claim();
+    })
+  );
 });
 
 self.addEventListener('fetch', function () {
@@ -96,7 +108,7 @@ self.addEventListener('push', function (event) {
 
   var base = getAssetsBase(payload);
   var iconUrl = resolveNotificationAsset(payload.icon, base) || (base + '/public/adms/image/pwa-icon-192.png');
-  var badgeUrl = resolveNotificationAsset(payload.badge, base) || (base + '/public/adms/image/pwa-badge-72.png');
+  var badgeUrl = resolveNotificationAsset(payload.badge, base) || (base + '/public/adms/image/pwa-badge-96.png');
   var title = payload.title || 'Portal Tiaraju';
 
   event.waitUntil(
@@ -108,20 +120,22 @@ self.addEventListener('push', function (event) {
         body: payload.body || '',
         data: { url: payload.url || '/' },
         tag: 'tiaraju-push',
-        renotify: true
+        renotify: true,
+        icon: blobs[0] || iconUrl,
+        // Android: badge = ícone pequeno na barra (silhueta branca). URL direta é mais confiável que blob.
+        badge: badgeUrl
       };
 
-      if (blobs[0]) {
-        options.icon = blobs[0];
-      } else if (iconUrl) {
-        options.icon = iconUrl;
-      }
-
-      if (blobs[1]) {
-        options.badge = blobs[1];
-      }
-
       return self.registration.showNotification(title, options);
+    }).catch(function () {
+      return self.registration.showNotification(title, {
+        body: payload.body || '',
+        data: { url: payload.url || '/' },
+        tag: 'tiaraju-push',
+        renotify: true,
+        icon: iconUrl,
+        badge: badgeUrl
+      });
     })
   );
 });
