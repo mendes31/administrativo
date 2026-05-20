@@ -257,6 +257,8 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'sap-api-config';
             case 'adms_mcp_api_config':
                 return $_ENV['URL_ADM'] . 'mcp-api-config';
+            case 'adms_push_config':
+                return $_ENV['URL_ADM'] . 'push-config';
             case 'adms_whatsapp_config':
                 return $_ENV['URL_ADM'] . 'whats-app-config';
             case 'adms_log_settings':

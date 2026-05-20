@@ -1,0 +1,68 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\adms\Controllers\settings;
+
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\AdmsPushConfigRepository;
+use App\adms\Models\Repository\PushSubscriptionRepository;
+use App\adms\Models\Services\PushNotificationService;
+
+class TestPushNotification
+{
+    public function index(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            header('Location: ' . $_ENV['URL_ADM'] . 'push-config');
+            exit;
+        }
+
+        if (!CSRFHelper::validateCSRFToken('form_push_test', $_POST['csrf_token'] ?? '')) {
+            $_SESSION['msg'] = 'Token de segurança inválido. Atualize a página e tente novamente.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'push-config');
+            exit;
+        }
+
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            header('Location: ' . $_ENV['URL_ADM'] . 'login');
+            exit;
+        }
+
+        $configRepo = new AdmsPushConfigRepository();
+        if (!$configRepo->isEnabled()) {
+            $_SESSION['msg'] = 'Ative o push e configure VAPID antes de testar.';
+            $_SESSION['msg_type'] = 'warning';
+            header('Location: ' . $_ENV['URL_ADM'] . 'push-config');
+            exit;
+        }
+
+        if (!(new PushSubscriptionRepository())->userHasSubscription($userId)) {
+            $_SESSION['msg'] = 'Ative as notificações push em Meu Perfil neste dispositivo antes de testar.';
+            $_SESSION['msg_type'] = 'warning';
+            header('Location: ' . $_ENV['URL_ADM'] . 'push-config');
+            exit;
+        }
+
+        $result = (new PushNotificationService())->sendToUser(
+            $userId,
+            'Teste — Portal Tiaraju',
+            'Se você viu esta notificação, o Web Push está funcionando.',
+            rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/notificacoes'
+        );
+
+        if (!empty($result['success'])) {
+            $_SESSION['msg'] = 'Notificação de teste enviada com sucesso.';
+            $_SESSION['msg_type'] = 'success';
+        } else {
+            $err = $result['errors'][0] ?? 'Falha ao enviar notificação de teste.';
+            $_SESSION['msg'] = $err;
+            $_SESSION['msg_type'] = 'danger';
+        }
+
+        header('Location: ' . $_ENV['URL_ADM'] . 'push-config');
+        exit;
+    }
+}

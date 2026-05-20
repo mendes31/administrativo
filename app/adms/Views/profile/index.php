@@ -191,6 +191,30 @@ use App\adms\Helpers\PositionDisplayHelper;
                 </div>
             </div>
 
+            <!-- Notificações push (PWA) -->
+            <div class="card mb-4" id="pushNotificationsCard">
+                <div class="card-header d-flex align-items-center flex-wrap gap-2">
+                    <span><i class="fas fa-bell me-1"></i> Notificações push (PWA)</span>
+                    <span class="ms-md-auto" id="pushNotificationStatus">
+                        <span class="badge bg-secondary">Verificando…</span>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div id="pushNotificationAlert" class="alert alert-info small mb-3 d-none" role="alert"></div>
+                    <p class="text-muted small mb-3">
+                        Receba alertas do portal mesmo com o aplicativo em segundo plano. Funciona em navegadores compatíveis e no PWA instalado.
+                    </p>
+                    <div class="d-grid gap-2 d-sm-flex">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnPushEnable">
+                            <i class="fas fa-bell me-1"></i> Ativar notificações
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="btnPushDisable">
+                            <i class="fas fa-bell-slash me-1"></i> Desativar neste dispositivo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Card com informações adicionais -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -291,6 +315,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+window.__PushNotificationsInit = {
+    urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
+    csrfToken: <?php echo json_encode(CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>
+};
+
 function openProfilePhotoModal() {
     var img = document.getElementById('profileAvatarImg');
     var modalImg = document.getElementById('profilePhotoModalImg');
@@ -301,3 +330,4 @@ function openProfilePhotoModal() {
     modal.show();
 }
 </script>
+<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=1"></script>

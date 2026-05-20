@@ -58,6 +58,12 @@ $menus = [
                             'icon' => 'fas fa-robot'
                         ],
                         [
+                            'label' => 'Configuração Push (PWA)',
+                            'url' => $_ENV['URL_ADM'] . 'push-config',
+                            'permission' => 'PushConfig',
+                            'icon' => 'fas fa-bell'
+                        ],
+                        [
                             'label' => 'Configuração de WhatsApp',
                             'url' => $_ENV['URL_ADM'] . 'whats-app-config',
                             'permission' => 'WhatsAppConfig',
