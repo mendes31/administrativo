@@ -6,6 +6,7 @@ $config = $this->data['push_config'] ?? [];
 $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_push_config');
 $csrfGenerate = $this->data['csrf_generate_token'] ?? CSRFHelper::generateCSRFToken('form_push_vapid_generate');
 $csrfTest = $this->data['csrf_test_token'] ?? CSRFHelper::generateCSRFToken('form_push_test');
+$csrfPushSubscribe = $this->data['csrf_push_subscribe'] ?? CSRFHelper::generateCSRFToken('form_push_subscribe');
 
 $hasPublicKey = trim((string) ($config['vapid_public_key'] ?? '')) !== '';
 $hasPrivateKey = trim((string) ($config['vapid_private_key'] ?? '')) !== '';
@@ -161,24 +162,121 @@ $defaultSubject = 'mailto:' . (string) ($_ENV['EMAIL_TI'] ?? 'chamados@tiaraju.c
 <script>
 (function () {
     var urlAdm = <?= json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES) ?>;
+    var csrfSubscribe = <?= json_encode($csrfPushSubscribe, JSON_UNESCAPED_UNICODE) ?>;
     var hint = document.getElementById('pushTestDeviceHint');
     var endpointInput = document.getElementById('pushTestEndpoint');
-    if (!hint || !endpointInput || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    var testForm = document.getElementById('formPushTest');
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        if (hint) {
+            hint.textContent = 'Push não suportado neste navegador.';
+        }
         return;
     }
-    navigator.serviceWorker.register(urlAdm + '/service-worker.js').then(function () {
-        return navigator.serviceWorker.ready;
-    }).then(function (registration) {
-        return registration.pushManager.getSubscription();
-    }).then(function (subscription) {
-        if (subscription && subscription.endpoint) {
-            endpointInput.value = subscription.endpoint;
-            hint.textContent = 'Modo: teste somente neste navegador/dispositivo.';
-        } else {
-            hint.textContent = 'Modo: teste em todos os dispositivos cadastrados do seu usuário (ex.: celular). Ative em Meu Perfil neste PC para testar aqui.';
+
+    function buildPayload(registration, subscription) {
+        var json = subscription.toJSON();
+        var encodings = registration.pushManager.supportedContentEncodings || [];
+        if (encodings.length > 0) {
+            json.contentEncoding = encodings[0];
         }
+        return json;
+    }
+
+    function syncSubscription(registration, subscription) {
+        return fetch(urlAdm + '/push-subscribe/subscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                csrf_token: csrfSubscribe,
+                subscription: buildPayload(registration, subscription)
+            })
+        }).then(function (res) {
+            return res.json().then(function (data) {
+                if (!res.ok) {
+                    throw new Error((data && data.message) || 'Falha ao sincronizar push.');
+                }
+                return data;
+            });
+        });
+    }
+
+    function refreshTestHint(registration, subscription) {
+        if (!hint || !endpointInput) {
+            return;
+        }
+        if (!subscription || !subscription.endpoint) {
+            endpointInput.value = '';
+            hint.textContent = 'Modo: teste em todos os dispositivos cadastrados. Ative em Meu Perfil neste aparelho para incluir este navegador.';
+            return;
+        }
+        var endpoint = subscription.endpoint;
+        fetch(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (res) { return res.json(); }).then(function (data) {
+            if (data.endpointRegistered) {
+                endpointInput.value = endpoint;
+                hint.textContent = 'Modo: teste somente neste navegador/dispositivo.';
+            } else {
+                endpointInput.value = '';
+                hint.textContent = 'Sincronizando push deste navegador com o servidor…';
+                return syncSubscription(registration, subscription).then(function () {
+                    endpointInput.value = endpoint;
+                    hint.textContent = 'Push sincronizado. Modo: teste somente neste navegador/dispositivo.';
+                }).catch(function () {
+                    hint.textContent = 'Abra Meu Perfil neste aparelho, toque Ativar notificações, e teste de novo.';
+                });
+            }
+        }).catch(function () {
+            hint.textContent = 'Não foi possível verificar inscrição push neste navegador.';
+        });
+    }
+
+    var registrationPromise = navigator.serviceWorker.register(urlAdm + '/service-worker.js')
+        .then(function () { return navigator.serviceWorker.ready; });
+
+    registrationPromise.then(function (registration) {
+        return registration.pushManager.getSubscription().then(function (subscription) {
+            refreshTestHint(registration, subscription);
+            return { registration: registration, subscription: subscription };
+        });
     }).catch(function () {
-        hint.textContent = 'Não foi possível detectar inscrição push neste navegador.';
+        if (hint) {
+            hint.textContent = 'Não foi possível registrar o Service Worker.';
+        }
     });
+
+    if (testForm) {
+        testForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            var submitBtn = testForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+            registrationPromise.then(function (registration) {
+                return registration.pushManager.getSubscription().then(function (subscription) {
+                    if (subscription) {
+                        return syncSubscription(registration, subscription).then(function () {
+                            if (endpointInput) {
+                                endpointInput.value = subscription.endpoint;
+                            }
+                        });
+                    }
+                });
+            }).then(function () {
+                testForm.submit();
+            }).catch(function () {
+                testForm.submit();
+            }).finally(function () {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                }
+            });
+        });
+    }
 })();
 </script>

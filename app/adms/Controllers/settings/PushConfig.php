@@ -25,6 +25,7 @@ class PushConfig
             'csrf_token' => CSRFHelper::generateCSRFToken('form_push_config'),
             'csrf_generate_token' => CSRFHelper::generateCSRFToken('form_push_vapid_generate'),
             'csrf_test_token' => CSRFHelper::generateCSRFToken('form_push_test'),
+            'csrf_push_subscribe' => CSRFHelper::generateCSRFToken('form_push_subscribe'),
         ];
 
         $cfgId = (int) ($config['id'] ?? 0);

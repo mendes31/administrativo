@@ -53,7 +53,7 @@ class PushNotificationService
         }
         if ($subscriptions === []) {
             $result['errors'][] = $onlyEndpoint !== null
-                ? 'Nenhuma inscrição push encontrada para este navegador. Ative em Meu Perfil neste dispositivo.'
+                ? 'Este navegador ainda não está sincronizado no servidor. Abra Meu Perfil neste aparelho, toque em Ativar notificações, e teste novamente.'
                 : 'Usuário sem inscrição push neste dispositivo.';
             return $result;
         }
@@ -86,7 +86,7 @@ class PushNotificationService
                         'p256dh' => (string) $row['public_key'],
                         'auth' => (string) $row['auth_token'],
                     ],
-                    'contentEncoding' => (string) ($row['content_encoding'] ?? 'aes128gcm'),
+                    'contentEncoding' => $this->resolveContentEncoding($row),
                 ]);
                 $webPush->queueNotification($subscription, $payload);
             }
@@ -120,6 +120,27 @@ class PushNotificationService
         }
 
         return $result;
+    }
+
+    /**
+     * FCM (Chrome/Edge) e push services modernos usam aes128gcm.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function resolveContentEncoding(array $row): string
+    {
+        $endpoint = (string) ($row['endpoint'] ?? '');
+        if (
+            str_contains($endpoint, 'fcm.googleapis.com')
+            || str_contains($endpoint, 'mozilla.com')
+            || str_contains($endpoint, 'windows.com')
+        ) {
+            return 'aes128gcm';
+        }
+
+        $stored = trim((string) ($row['content_encoding'] ?? ''));
+
+        return $stored !== '' ? $stored : 'aes128gcm';
     }
 
     /**
