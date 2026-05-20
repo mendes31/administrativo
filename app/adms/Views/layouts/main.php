@@ -184,7 +184,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
-    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260420-1">
+    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-1">
     <meta name="theme-color" content="#198754">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">

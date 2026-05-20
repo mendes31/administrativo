@@ -54,8 +54,17 @@ class TestPushNotification
         );
 
         if (!empty($result['success'])) {
-            $_SESSION['msg'] = 'Notificação de teste enviada com sucesso.';
-            $_SESSION['msg_type'] = 'success';
+            $sent = (int) ($result['sent'] ?? 0);
+            $failed = (int) ($result['failed'] ?? 0);
+            if ($failed > 0) {
+                $_SESSION['msg'] = "Enviado para {$sent} dispositivo(s), falhou em {$failed}. Ative push neste navegador em Meu Perfil se ainda não recebeu.";
+                $_SESSION['msg_type'] = 'warning';
+            } else {
+                $_SESSION['msg'] = $sent > 1
+                    ? "Notificação de teste enviada para {$sent} dispositivos."
+                    : 'Notificação de teste enviada com sucesso.';
+                $_SESSION['msg_type'] = 'success';
+            }
         } else {
             $err = $result['errors'][0] ?? 'Falha ao enviar notificação de teste.';
             $_SESSION['msg'] = $err;

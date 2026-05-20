@@ -18,7 +18,7 @@ class PushSubscriptionRepository extends DbConnection
         $endpoint = trim((string) ($subscription['endpoint'] ?? ''));
         $publicKey = trim((string) ($subscription['keys']['p256dh'] ?? $subscription['public_key'] ?? ''));
         $authToken = trim((string) ($subscription['keys']['auth'] ?? $subscription['auth_token'] ?? ''));
-        $contentEncoding = trim((string) ($subscription['contentEncoding'] ?? $subscription['content_encoding'] ?? 'aesgcm'));
+        $contentEncoding = trim((string) ($subscription['contentEncoding'] ?? $subscription['content_encoding'] ?? 'aes128gcm'));
         $userAgent = trim((string) ($subscription['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')));
 
         if ($endpoint === '' || $publicKey === '' || $authToken === '') {
@@ -26,7 +26,7 @@ class PushSubscriptionRepository extends DbConnection
         }
 
         if ($contentEncoding === '') {
-            $contentEncoding = 'aesgcm';
+            $contentEncoding = 'aes128gcm';
         }
 
         $endpointHash = hash('sha256', $endpoint);

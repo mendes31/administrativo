@@ -94,14 +94,22 @@
                     return;
                 }
 
-                hideAlert();
-                if (data.subscribed) {
-                    setStatus('Ativadas neste dispositivo', 'bg-success');
-                    setButtons('subscribed');
-                } else {
-                    setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
-                    setButtons('idle');
-                }
+                return getServiceWorkerRegistration().then(function (registration) {
+                    return registration.pushManager.getSubscription().then(function (localSub) {
+                        var isLocalSubscribed = localSub !== null;
+                        hideAlert();
+                        if (isLocalSubscribed) {
+                            setStatus('Ativadas neste dispositivo', 'bg-success');
+                            setButtons('subscribed');
+                            return;
+                        }
+                        setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
+                        setButtons('idle');
+                        if (data.subscribed) {
+                            showAlert('info', 'Você já ativou push em outro dispositivo. Clique em "Ativar notificações" para receber também neste navegador.');
+                        }
+                    });
+                });
             })
             .catch(function (err) {
                 setStatus('Erro ao consultar', 'bg-danger');
@@ -129,17 +137,21 @@
                         return registration.pushManager.subscribe({
                             userVisibleOnly: true,
                             applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+                        }).then(function (subscription) {
+                            var json = subscription.toJSON();
+                            var encodings = registration.pushManager.supportedContentEncodings || [];
+                            if (encodings.length > 0) {
+                                json.contentEncoding = encodings[0];
+                            }
+                            return fetchJson(urlAdm + '/push-subscribe/subscribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    csrf_token: csrfToken,
+                                    subscription: json
+                                })
+                            });
                         });
-                    });
-                }).then(function (subscription) {
-                    var json = subscription.toJSON();
-                    return fetchJson(urlAdm + '/push-subscribe/subscribe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            csrf_token: csrfToken,
-                            subscription: json
-                        })
                     });
                 });
             })

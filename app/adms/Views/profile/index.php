@@ -330,4 +330,4 @@ function openProfilePhotoModal() {
     modal.show();
 }
 </script>
-<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=1"></script>
+<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=2"></script>
