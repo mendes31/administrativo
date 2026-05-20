@@ -255,6 +255,14 @@ class PushSubscriptionRepository extends DbConnection
     /**
      * @param array<string, mixed> $row
      */
+    public function getDeviceLabel(array $row): string
+    {
+        return $this->formatDeviceLabel($row);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
     private function formatDeviceLabel(array $row): string
     {
         $endpoint = (string) ($row['endpoint'] ?? '');

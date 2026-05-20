@@ -40,9 +40,62 @@
         }).join('');
     }
 
+    function currentBrowserKind() {
+        var ua = navigator.userAgent || '';
+        if (/Edg\//.test(ua)) {
+            return 'edge';
+        }
+        if (/Chrome\//.test(ua)) {
+            return 'chrome';
+        }
+        if (/Firefox\//.test(ua)) {
+            return 'firefox';
+        }
+        return 'other';
+    }
+
+    function endpointChannel(endpoint) {
+        if (!endpoint) {
+            return 'none';
+        }
+        if (endpoint.indexOf('notify.windows.com') !== -1) {
+            return 'wns';
+        }
+        if (endpoint.indexOf('fcm.googleapis.com') !== -1) {
+            return 'fcm';
+        }
+        return 'other';
+    }
+
+    function browserMismatchHint(localSub, devices) {
+        var browser = currentBrowserKind();
+        var localEndpoint = localSub && localSub.endpoint ? localSub.endpoint : '';
+        var hasWns = (devices || []).some(function (d) {
+            return endpointChannel(d.endpoint) === 'wns';
+        });
+        var hasDesktopFcm = (devices || []).some(function (d) {
+            return endpointChannel(d.endpoint) === 'fcm' && (d.label || '').indexOf('Windows') === 0;
+        });
+
+        if (localEndpoint === '' && browser === 'chrome' && hasWns && !hasDesktopFcm) {
+            return 'Há push registrado no Microsoft Edge, mas este navegador é o Chrome. Clique em "Ativar notificações" aqui para registrar o Chrome no PC (Edge e Chrome são separados).';
+        }
+        if (localEndpoint === '' && browser === 'edge' && hasDesktopFcm && !hasWns) {
+            return 'Há push registrado no Chrome, mas este navegador é o Edge. Clique em "Ativar notificações" aqui para registrar o Edge no PC.';
+        }
+        if (localEndpoint !== '' && browser === 'chrome' && endpointChannel(localEndpoint) === 'wns') {
+            return 'A inscrição local é do Edge (Windows). Para receber no Chrome, desative aqui e ative novamente neste navegador.';
+        }
+        return '';
+    }
+
     function refreshDevices(devices, localSub) {
         var currentEndpoint = localSub && localSub.endpoint ? localSub.endpoint : '';
         renderDevices(devices || [], currentEndpoint);
+        var hint = browserMismatchHint(localSub, devices);
+        if (hint) {
+            showAlert('warning', hint);
+        }
     }
 
     function showAlert(type, message) {

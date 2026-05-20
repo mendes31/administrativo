@@ -58,25 +58,45 @@ class TestPushNotification
         );
 
         $totalDevices = $subRepo->countByUserId($userId);
+        $details = $result['details'] ?? [];
+        $detailLines = array_map(static function (array $item): string {
+            $label = (string) ($item['label'] ?? 'Dispositivo');
+            if (!empty($item['success'])) {
+                return $label . ': enviado';
+            }
+            $err = (string) ($item['error'] ?? 'falhou');
+            if (!empty($item['expired'])) {
+                $err .= ' (inscrição expirada — reative em Meu Perfil)';
+            }
+
+            return $label . ': ' . $err;
+        }, $details);
 
         if (!empty($result['success'])) {
             $sent = (int) ($result['sent'] ?? 0);
             $failed = (int) ($result['failed'] ?? 0);
             if ($testEndpoint !== '') {
-                $_SESSION['msg'] = 'Notificação de teste enviada para este navegador.';
-                $_SESSION['msg_type'] = 'success';
+                $_SESSION['msg'] = $detailLines !== []
+                    ? implode(' | ', $detailLines)
+                    : 'Notificação de teste enviada para este navegador.';
+                $_SESSION['msg_type'] = $failed > 0 ? 'warning' : 'success';
             } elseif ($failed > 0) {
-                $_SESSION['msg'] = "Enviado para {$sent} de {$totalDevices} dispositivo(s); falhou em {$failed}. Reative push em Meu Perfil nos aparelhos que não receberam.";
+                $_SESSION['msg'] = $detailLines !== []
+                    ? implode(' | ', $detailLines)
+                    : "Enviado para {$sent} de {$totalDevices} dispositivo(s); falhou em {$failed}. Reative push em Meu Perfil nos aparelhos que não receberam.";
                 $_SESSION['msg_type'] = 'warning';
             } else {
-                $_SESSION['msg'] = $sent > 1
-                    ? "Notificação de teste enviada para {$sent} dispositivos."
-                    : 'Notificação de teste enviada com sucesso.';
+                $_SESSION['msg'] = $detailLines !== []
+                    ? implode(' | ', $detailLines)
+                    : ($sent > 1
+                        ? "Notificação de teste enviada para {$sent} dispositivos."
+                        : 'Notificação de teste enviada com sucesso.');
                 $_SESSION['msg_type'] = 'success';
             }
         } else {
-            $err = $result['errors'][0] ?? 'Falha ao enviar notificação de teste.';
-            $_SESSION['msg'] = $err;
+            $_SESSION['msg'] = $detailLines !== []
+                ? implode(' | ', $detailLines)
+                : ($result['errors'][0] ?? 'Falha ao enviar notificação de teste.');
             $_SESSION['msg_type'] = 'danger';
         }
 

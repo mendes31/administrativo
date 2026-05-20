@@ -216,7 +216,7 @@ use App\adms\Helpers\PositionDisplayHelper;
                         <h6 class="small text-uppercase text-muted mb-2">Dispositivos com push ativo</h6>
                         <ul class="list-group list-group-flush small" id="pushDevicesList"></ul>
                         <p class="text-muted small mb-0 mt-2">
-                            Cada navegador ou app instalado (PWA) conta como um dispositivo. Se outro usuário usou este aparelho antes, ative aqui para vincular ao seu login. Dispositivos compartilhados ficam sempre com o último usuário que ativou ou sincronizou.
+                            Cada navegador conta como um dispositivo: <strong>Chrome no PC</strong> e <strong>Edge no PC</strong> são diferentes. O celular também é separado. Se só o celular recebe, abra <strong>Meu Perfil neste navegador do computador</strong> e clique em Ativar notificações.
                         </p>
                     </div>
                 </div>
@@ -337,4 +337,4 @@ function openProfilePhotoModal() {
     modal.show();
 }
 </script>
-<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=5"></script>
+<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=6"></script>

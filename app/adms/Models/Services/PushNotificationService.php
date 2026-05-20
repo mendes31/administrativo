@@ -29,6 +29,7 @@ class PushNotificationService
             'failed' => 0,
             'expired_ids' => [],
             'errors' => [],
+            'details' => [],
         ];
 
         if ($userId <= 0) {
@@ -43,7 +44,8 @@ class PushNotificationService
         }
 
         $config = $configRepo->getConfig();
-        $subscriptions = (new PushSubscriptionRepository())->listByUserId($userId);
+        $subRepo = new PushSubscriptionRepository();
+        $subscriptions = $subRepo->listByUserId($userId);
         if ($onlyEndpoint !== null && trim($onlyEndpoint) !== '') {
             $onlyEndpoint = trim($onlyEndpoint);
             $subscriptions = array_values(array_filter(
@@ -79,6 +81,11 @@ class PushNotificationService
                 ],
             ]);
 
+            $rowByEndpoint = [];
+            foreach ($subscriptions as $row) {
+                $rowByEndpoint[(string) ($row['endpoint'] ?? '')] = $row;
+            }
+
             foreach ($subscriptions as $row) {
                 $subscription = Subscription::create([
                     'endpoint' => (string) $row['endpoint'],
@@ -91,19 +98,32 @@ class PushNotificationService
                 $webPush->queueNotification($subscription, $payload);
             }
 
-            $subRepo = new PushSubscriptionRepository();
             foreach ($webPush->flush() as $report) {
                 $endpoint = $report->getEndpoint();
                 $endpointHash = hash('sha256', $endpoint);
-                $row = $subRepo->findByEndpointHash($endpointHash);
+                $row = $rowByEndpoint[$endpoint] ?? $subRepo->findByEndpointHash($endpointHash);
+                $label = $row !== null ? $subRepo->getDeviceLabel($row) : 'Dispositivo';
 
                 if ($report->isSuccess()) {
                     $result['sent']++;
+                    $result['details'][] = [
+                        'label' => $label,
+                        'success' => true,
+                        'error' => null,
+                        'expired' => false,
+                    ];
                     continue;
                 }
 
+                $reason = $report->getReason() ?: 'Falha desconhecida no envio push.';
                 $result['failed']++;
-                $result['errors'][] = $report->getReason() ?: 'Falha desconhecida no envio push.';
+                $result['errors'][] = $label . ': ' . $reason;
+                $result['details'][] = [
+                    'label' => $label,
+                    'success' => false,
+                    'error' => $reason,
+                    'expired' => $report->isSubscriptionExpired(),
+                ];
 
                 if ($report->isSubscriptionExpired() && $row !== null) {
                     $subId = (int) ($row['id'] ?? 0);
@@ -112,6 +132,14 @@ class PushNotificationService
                         $result['expired_ids'][] = $subId;
                     }
                 }
+
+                \App\adms\Helpers\GenerateLog::generateLog('warning', 'Falha no envio Web Push.', [
+                    'user_id' => $userId,
+                    'device' => $label,
+                    'endpoint' => mb_substr($endpoint, 0, 120),
+                    'reason' => $reason,
+                    'expired' => $report->isSubscriptionExpired(),
+                ]);
             }
 
             $result['success'] = $result['sent'] > 0;
