@@ -30,7 +30,17 @@ class CreateTimelinePost
             $this->failAndExit('Sem permissão para publicar na timeline.', 'error');
         }
 
-        if (!CSRFHelper::validateCSRFToken('timeline_create_post', $_POST['csrf_token'] ?? '')) {
+        $uploadFailureMessage = $this->detectMultipartUploadFailure();
+        if ($uploadFailureMessage !== null) {
+            $this->failAndExit($uploadFailureMessage, 'msg_warning');
+        }
+
+        $csrfToken = (string)($_POST['csrf_token'] ?? '');
+        if ($csrfToken === '') {
+            $csrfToken = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+        }
+
+        if (!CSRFHelper::validateCSRFToken('timeline_create_post', $csrfToken)) {
             if ($this->isAjaxRequest() && !empty($_SESSION['user_id'])) {
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode([
@@ -390,6 +400,46 @@ class CreateTimelinePost
         $requestedWith = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
         $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
         return $requestedWith === 'xmlhttprequest' || str_contains($accept, 'application/json');
+    }
+
+    /**
+     * Quando o corpo excede post_max_size, o PHP zera $_POST e $_FILES (sintoma: CSRF vazio).
+     */
+    private function detectMultipartUploadFailure(): ?string
+    {
+        $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($contentLength <= 0) {
+            return null;
+        }
+
+        $postMaxBytes = $this->iniSizeToBytes((string)ini_get('post_max_size'));
+        if ($postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+            return 'O arquivo excede o limite total de upload do servidor ('
+                . ini_get('post_max_size')
+                . '). Use um vídeo menor ou peça ao TI para aumentar post_max_size.';
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $contentLength > 1024 && empty($_POST) && empty($_FILES)) {
+            return 'O servidor não processou o envio (dados vazios). O vídeo pode exceder os limites de upload. Tente um arquivo menor ou atualize a página.';
+        }
+
+        return null;
+    }
+
+    private function iniSizeToBytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-1') {
+            return 0;
+        }
+        $unit = strtolower(substr($value, -1));
+        $number = (float)$value;
+        return match ($unit) {
+            'g' => (int)($number * 1024 * 1024 * 1024),
+            'm' => (int)($number * 1024 * 1024),
+            'k' => (int)($number * 1024),
+            default => (int)$number,
+        };
     }
 
     private function mapUploadErrorToMessage(int $errorCode): string
