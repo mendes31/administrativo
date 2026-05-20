@@ -538,6 +538,20 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     })();
     </script>
 
+    <?php if (!empty($_SESSION['user_id'])): ?>
+    <?php
+    use App\adms\Helpers\CSRFHelper;
+    ?>
+    <script>
+    window.__PushSessionSyncInit = {
+        urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
+        csrfToken: <?php echo json_encode(CSRFHelper::generateCSRFToken('form_push_subscribe'), JSON_UNESCAPED_UNICODE); ?>,
+        userId: <?php echo (int) $_SESSION['user_id']; ?>
+    };
+    </script>
+    <script src="<?php echo rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'); ?>/public/adms/js/push-session-sync.js?v=1"></script>
+    <?php endif; ?>
+
     <script>
     // Fallbacks para carregamento tardio sem quebrar páginas
     window.admsLoadScriptOnce = function (url, marker) {

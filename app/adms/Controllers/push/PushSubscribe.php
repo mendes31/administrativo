@@ -42,6 +42,7 @@ class PushSubscribe
             'subscribed' => $subRepo->userHasSubscription($userId),
             'subscriptionCount' => $subRepo->countByUserId($userId),
             'endpointRegistered' => $endpoint !== '' ? $subRepo->hasEndpointForUser($userId, $endpoint) : null,
+            'devices' => $subRepo->listDevicesForUser($userId),
             'supported' => true,
         ]);
     }

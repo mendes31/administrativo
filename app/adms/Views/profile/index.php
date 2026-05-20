@@ -212,6 +212,13 @@ use App\adms\Helpers\PositionDisplayHelper;
                             <i class="fas fa-bell-slash me-1"></i> Desativar neste dispositivo
                         </button>
                     </div>
+                    <div id="pushDevicesSection" class="mt-3 d-none">
+                        <h6 class="small text-uppercase text-muted mb-2">Dispositivos com push ativo</h6>
+                        <ul class="list-group list-group-flush small" id="pushDevicesList"></ul>
+                        <p class="text-muted small mb-0 mt-2">
+                            Cada navegador ou app instalado (PWA) conta como um dispositivo. Se outro usuário usou este aparelho antes, ative aqui para vincular ao seu login. Dispositivos compartilhados ficam sempre com o último usuário que ativou ou sincronizou.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -330,4 +337,4 @@ function openProfilePhotoModal() {
     modal.show();
 }
 </script>
-<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=4"></script>
+<script src="<?php echo htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-notifications.js?v=5"></script>

@@ -45,13 +45,37 @@ class PushSubscriptionRepository extends DbConnection
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', (int) $existing['id'], PDO::PARAM_INT);
         } else {
-            $sql = 'INSERT INTO adms_push_subscriptions (
-                        user_id, endpoint_hash, endpoint, public_key, auth_token, content_encoding, user_agent, created_at, updated_at
-                    ) VALUES (
-                        :user_id, :endpoint_hash, :endpoint, :public_key, :auth_token, :content_encoding, :user_agent, NOW(), NOW()
-                    )';
-            $stmt = $this->getConnection()->prepare($sql);
-            $stmt->bindValue(':endpoint_hash', $endpointHash);
+            // Evita duplicar combinação usuário + mesmas chaves (subscription equivalente).
+            $duplicateKeys = $this->findByUserAndKeys($userId, $publicKey, $authToken);
+            if ($duplicateKeys !== null) {
+                $sql = 'UPDATE adms_push_subscriptions SET
+                            endpoint = :endpoint,
+                            endpoint_hash = :endpoint_hash,
+                            content_encoding = :content_encoding,
+                            user_agent = :user_agent,
+                            updated_at = NOW()
+                        WHERE id = :id';
+                $stmt = $this->getConnection()->prepare($sql);
+                $stmt->bindValue(':id', (int) $duplicateKeys['id'], PDO::PARAM_INT);
+                $stmt->bindValue(':endpoint', $endpoint);
+                $stmt->bindValue(':endpoint_hash', $endpointHash);
+                $stmt->bindValue(':content_encoding', $contentEncoding);
+                $stmt->bindValue(':user_agent', $userAgent !== '' ? $userAgent : null, $userAgent !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $ok = $stmt->execute();
+                if ($ok) {
+                    $this->removeStaleSubscriptionsForUser($userId, $endpointHash, $userAgent);
+                }
+
+                return $ok;
+            } else {
+                $sql = 'INSERT INTO adms_push_subscriptions (
+                            user_id, endpoint_hash, endpoint, public_key, auth_token, content_encoding, user_agent, created_at, updated_at
+                        ) VALUES (
+                            :user_id, :endpoint_hash, :endpoint, :public_key, :auth_token, :content_encoding, :user_agent, NOW(), NOW()
+                        )';
+                $stmt = $this->getConnection()->prepare($sql);
+                $stmt->bindValue(':endpoint_hash', $endpointHash);
+            }
         }
 
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
@@ -61,7 +85,56 @@ class PushSubscriptionRepository extends DbConnection
         $stmt->bindValue(':content_encoding', $contentEncoding);
         $stmt->bindValue(':user_agent', $userAgent !== '' ? $userAgent : null, $userAgent !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+        if ($ok) {
+            $this->removeStaleSubscriptionsForUser($userId, $endpointHash, $userAgent);
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Remove inscrições antigas do mesmo usuário no mesmo navegador/dispositivo (user_agent).
+     */
+    private function removeStaleSubscriptionsForUser(int $userId, string $keepEndpointHash, string $userAgent): void
+    {
+        if (!$this->tableExists() || $userId <= 0 || $keepEndpointHash === '') {
+            return;
+        }
+
+        if ($userAgent !== '') {
+            $sql = 'DELETE FROM adms_push_subscriptions
+                    WHERE user_id = :user_id
+                      AND endpoint_hash <> :keep_endpoint_hash
+                      AND user_agent = :user_agent';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':keep_endpoint_hash', $keepEndpointHash);
+            $stmt->bindValue(':user_agent', $userAgent);
+            $stmt->execute();
+        }
+    }
+
+    private function findByUserAndKeys(int $userId, string $publicKey, string $authToken): ?array
+    {
+        if (!$this->tableExists() || $userId <= 0 || $publicKey === '' || $authToken === '') {
+            return null;
+        }
+
+        $sql = 'SELECT * FROM adms_push_subscriptions
+                WHERE user_id = :user_id
+                  AND public_key = :public_key
+                  AND auth_token = :auth_token
+                ORDER BY updated_at DESC
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':public_key', $publicKey);
+        $stmt->bindValue(':auth_token', $authToken);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
     }
 
     public function deleteByEndpoint(int $userId, string $endpoint): bool
@@ -149,6 +222,72 @@ class PushSubscriptionRepository extends DbConnection
         }
 
         return (int) ($row['user_id'] ?? 0) === $userId;
+    }
+
+    /**
+     * Lista dispositivos com push ativo para exibição no perfil (sem chaves sensíveis).
+     *
+     * @return array<int, array{id:int, label:string, endpoint:string, updated_at:string, updated_at_fmt:string}>
+     */
+    public function listDevicesForUser(int $userId): array
+    {
+        if (!$this->tableExists() || $userId <= 0) {
+            return [];
+        }
+
+        $devices = [];
+        foreach ($this->listByUserId($userId) as $row) {
+            $updatedAt = (string) ($row['updated_at'] ?? '');
+            $devices[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'label' => $this->formatDeviceLabel($row),
+                'endpoint' => (string) ($row['endpoint'] ?? ''),
+                'updated_at' => $updatedAt,
+                'updated_at_fmt' => $updatedAt !== ''
+                    ? date('d/m/Y H:i', strtotime($updatedAt))
+                    : '',
+            ];
+        }
+
+        return $devices;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function formatDeviceLabel(array $row): string
+    {
+        $ua = (string) ($row['user_agent'] ?? '');
+        if ($ua === '') {
+            return 'Dispositivo desconhecido';
+        }
+
+        if (stripos($ua, 'Android') !== false) {
+            $browser = stripos($ua, 'Edg') !== false
+                ? 'Edge'
+                : (stripos($ua, 'Chrome') !== false ? 'Chrome' : 'Navegador');
+            return 'Android — ' . $browser;
+        }
+
+        if (stripos($ua, 'Windows') !== false) {
+            $browser = stripos($ua, 'Edg') !== false
+                ? 'Microsoft Edge'
+                : (stripos($ua, 'Chrome') !== false ? 'Chrome' : 'Navegador');
+            return 'Windows — ' . $browser;
+        }
+
+        if (stripos($ua, 'iPhone') !== false || stripos($ua, 'iPad') !== false) {
+            return stripos($ua, 'CriOS') !== false ? 'iOS — Chrome' : 'iOS — Safari/PWA';
+        }
+
+        if (stripos($ua, 'Mac OS') !== false || stripos($ua, 'Macintosh') !== false) {
+            $browser = stripos($ua, 'Chrome') !== false
+                ? 'Chrome'
+                : (stripos($ua, 'Safari') !== false ? 'Safari' : 'Navegador');
+            return 'macOS — ' . $browser;
+        }
+
+        return mb_strlen($ua) > 72 ? mb_substr($ua, 0, 72) . '…' : $ua;
     }
 
     public function findByEndpointHash(string $endpointHash): ?array

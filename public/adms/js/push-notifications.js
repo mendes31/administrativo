@@ -9,6 +9,41 @@
     var btnEnable = document.getElementById('btnPushEnable');
     var btnDisable = document.getElementById('btnPushDisable');
     var alertEl = document.getElementById('pushNotificationAlert');
+    var devicesSection = document.getElementById('pushDevicesSection');
+    var devicesList = document.getElementById('pushDevicesList');
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function renderDevices(devices, currentEndpoint) {
+        if (!devicesSection || !devicesList) {
+            return;
+        }
+        if (!devices || devices.length === 0) {
+            devicesSection.classList.add('d-none');
+            devicesList.innerHTML = '';
+            return;
+        }
+        devicesSection.classList.remove('d-none');
+        devicesList.innerHTML = devices.map(function (device) {
+            var isCurrent = !!(currentEndpoint && device.endpoint === currentEndpoint);
+            return '<li class="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 px-0">' +
+                '<div>' +
+                '<span class="fw-semibold">' + escapeHtml(device.label || 'Dispositivo') + '</span>' +
+                (isCurrent ? ' <span class="badge bg-success ms-1">Este dispositivo</span>' : '') +
+                '<div class="text-muted">Última sincronização: ' + escapeHtml(device.updated_at_fmt || '—') + '</div>' +
+                '</div>' +
+                '</li>';
+        }).join('');
+    }
+
+    function refreshDevices(devices, localSub) {
+        var currentEndpoint = localSub && localSub.endpoint ? localSub.endpoint : '';
+        renderDevices(devices || [], currentEndpoint);
+    }
 
     function showAlert(type, message) {
         if (!alertEl) {
@@ -112,11 +147,13 @@
                     setStatus('Indisponível no sistema', 'bg-secondary');
                     setButtons('disabled');
                     showAlert('warning', 'As notificações push ainda não estão ativas. Solicite ao administrador a configuração em Configuração Push (PWA).');
+                    refreshDevices([], null);
                     return;
                 }
 
                 return getServiceWorkerRegistration().then(function (registration) {
                     return registration.pushManager.getSubscription().then(function (localSub) {
+                        refreshDevices(data.devices, localSub);
                         hideAlert();
                         if (localSub === null) {
                             setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
@@ -131,6 +168,7 @@
                             var endpoint = localSub.endpoint || '';
                             return fetchJson(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint));
                         }).then(function (verify) {
+                            refreshDevices(verify.devices || data.devices, localSub);
                             if (verify.endpointRegistered) {
                                 setStatus('Ativadas neste dispositivo', 'bg-success');
                                 setButtons('subscribed');
@@ -150,6 +188,7 @@
             .catch(function (err) {
                 setStatus('Erro ao consultar', 'bg-danger');
                 setButtons('disabled');
+                refreshDevices([], null);
                 showAlert('danger', err.message || 'Não foi possível verificar o status das notificações.');
             });
     }
@@ -183,6 +222,7 @@
                 setStatus('Ativadas neste dispositivo', 'bg-success');
                 setButtons('subscribed');
                 showAlert('success', 'Notificações push ativadas com sucesso neste dispositivo.');
+                loadStatus();
             })
             .catch(function (err) {
                 showAlert('danger', err.message || 'Não foi possível ativar as notificações push.');
@@ -231,6 +271,7 @@
                 setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
                 setButtons('idle');
                 showAlert('info', 'Notificações push desativadas neste dispositivo.');
+                loadStatus();
             })
             .catch(function (err) {
                 showAlert('danger', err.message || 'Não foi possível desativar as notificações push.');
