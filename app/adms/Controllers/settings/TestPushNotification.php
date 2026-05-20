@@ -72,6 +72,11 @@ class TestPushNotification
             return $label . ': ' . $err;
         }, $details);
 
+        $removedExpired = count($result['expired_ids'] ?? []);
+        $removedNote = $removedExpired > 0
+            ? ' Removida(s) ' . $removedExpired . ' inscrição(ões) expirada(s) do banco.'
+            : '';
+
         if (!empty($result['success'])) {
             $sent = (int) ($result['sent'] ?? 0);
             $failed = (int) ($result['failed'] ?? 0);
@@ -86,11 +91,11 @@ class TestPushNotification
                     : "Enviado para {$sent} de {$totalDevices} dispositivo(s); falhou em {$failed}. Reative push em Meu Perfil nos aparelhos que não receberam.";
                 $_SESSION['msg_type'] = 'warning';
             } else {
-                $_SESSION['msg'] = $detailLines !== []
+                $_SESSION['msg'] = ($detailLines !== []
                     ? implode(' | ', $detailLines)
                     : ($sent > 1
                         ? "Notificação de teste enviada para {$sent} dispositivos."
-                        : 'Notificação de teste enviada com sucesso.');
+                        : 'Notificação de teste enviada com sucesso.')) . $removedNote;
                 $_SESSION['msg_type'] = 'success';
             }
         } else {

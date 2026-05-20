@@ -20,11 +20,12 @@ class PushConfig
         $data = [
             'title_head' => 'Configuração Push (PWA)',
             'menu' => 'push-config',
-            'buttonPermission' => ['PushConfig', 'SavePushConfig', 'GeneratePushVapidKeys', 'TestPushNotification'],
+            'buttonPermission' => ['PushConfig', 'SavePushConfig', 'GeneratePushVapidKeys', 'TestPushNotification', 'PrunePushSubscriptions'],
             'push_config' => $config,
             'csrf_token' => CSRFHelper::generateCSRFToken('form_push_config'),
             'csrf_generate_token' => CSRFHelper::generateCSRFToken('form_push_vapid_generate'),
             'csrf_test_token' => CSRFHelper::generateCSRFToken('form_push_test'),
+            'csrf_prune_token' => CSRFHelper::generateCSRFToken('form_push_prune'),
             'csrf_push_subscribe' => CSRFHelper::generateCSRFToken('form_push_subscribe'),
         ];
 

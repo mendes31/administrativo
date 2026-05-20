@@ -142,6 +142,27 @@ $defaultSubject = 'mailto:' . (string) ($_ENV['EMAIL_TI'] ?? 'chamados@tiaraju.c
             </div>
             <?php endif; ?>
 
+            <?php if (!empty($this->data['buttonPermission']) && in_array('PrunePushSubscriptions', $this->data['buttonPermission'], true)): ?>
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0"><i class="fas fa-broom me-2"></i>Limpeza de inscrições</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Verifica até 200 inscrições mais antigas com um ping silencioso (sem notificação na tela) e remove as inválidas (HTTP 410/404). Registra em <code>logs/push_<?= date('dmY') ?>.log</code>.
+                    </p>
+                    <form method="POST"
+                          action="<?= $_ENV['URL_ADM'] ?>prune-push-subscriptions"
+                          onsubmit="return confirm('Verificar e remover inscrições push inválidas? Dispositivos válidos não são afetados.');">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($this->data['csrf_prune_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <button type="submit" class="btn btn-dark w-100">
+                            <i class="fas fa-trash-alt me-2"></i>Verificar inscrições inválidas
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-info text-white">
                     <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Como funciona</h6>

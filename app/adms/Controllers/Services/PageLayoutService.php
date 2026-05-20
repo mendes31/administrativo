@@ -291,6 +291,7 @@ class PageLayoutService
             'SavePushConfig',
             'GeneratePushVapidKeys',
             'TestPushNotification',
+            'PrunePushSubscriptions',
             'WhatsAppConfig',
             'SaveWhatsAppConfig',
             'TestWhatsAppConfig',

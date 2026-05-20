@@ -209,6 +209,44 @@ class PushSubscriptionRepository extends DbConnection
         return count($this->listByUserId($userId));
     }
 
+    public function countAll(): int
+    {
+        if (!$this->tableExists()) {
+            return 0;
+        }
+
+        $sql = 'SELECT COUNT(*) FROM adms_push_subscriptions';
+        $stmt = $this->getConnection()->query($sql);
+
+        return (int) ($stmt->fetchColumn() ?: 0);
+    }
+
+    /**
+     * Lote para verificação de inscrições inválidas (cron / manutenção).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAllForMaintenance(int $limit = 200, int $offset = 0): array
+    {
+        if (!$this->tableExists()) {
+            return [];
+        }
+
+        $limit = max(1, min(500, $limit));
+        $offset = max(0, $offset);
+
+        $sql = 'SELECT id, user_id, endpoint_hash, endpoint, public_key, auth_token, content_encoding, user_agent, created_at, updated_at
+                FROM adms_push_subscriptions
+                ORDER BY updated_at ASC
+                LIMIT :limit OFFSET :offset';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function hasEndpointForUser(int $userId, string $endpoint): bool
     {
         if ($userId <= 0 || trim($endpoint) === '') {

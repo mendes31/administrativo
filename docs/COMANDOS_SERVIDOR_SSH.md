@@ -316,4 +316,54 @@ Use também **`set cmd:fail-exit yes`** no início do script enviado ao `lftp`: 
 
 Pushes em `main` ou `dev-master` disparam o deploy. O conteúdo exato de `.github/workflows/deploy.yml` depende do commit (FTP + fallback lftp, ou SSH/rsync noutra variante). Consulte o ficheiro no ramo em uso.
 
+---
+
+## 🔔 **Web Push (PWA) — limpeza de inscrições 410/404 e logs**
+
+### O que faz
+
+- **Automático:** sempre que um push é enviado (notificação in-app, teste admin), respostas **410 Gone** ou **404 Not Found** removem a linha em `adms_push_subscriptions`.
+- **Manutenção (cron):** ping silencioso (`maintenance: true` no payload — o Service Worker **não** exibe notificação) para achar inscrições mortas sem esperar um evento real.
+- **Log dedicado:** `logs/push_dmY.log` (ex.: `logs/push_20052026.log`).
+
+### Cron no servidor (recomendado 1x/dia)
+
+```bash
+cd /caminho/do/administrativo
+php scripts/cron_push_subscriptions_cleanup.php
+# opcional: tamanho do lote (padrão 200, máx. 500)
+php scripts/cron_push_subscriptions_cleanup.php 300
+```
+
+Crontab (exemplo, 03:00):
+
+```cron
+0 3 * * * cd /home/tiaraju/public_html/administrativo && php scripts/cron_push_subscriptions_cleanup.php >> logs/cron_push_cleanup.log 2>&1
+```
+
+### Painel admin
+
+Em **Configuração Push (PWA)** → **Verificar inscrições inválidas** (até 200 por clique). Requer permissão `PrunePushSubscriptions` no nível de acesso (nova página na seed `AddAdmsPages`; em produção já existente, conceda a página ao perfil admin ou rode a seed de páginas).
+
+### Monitorar em produção
+
+```bash
+cd /caminho/do/administrativo
+tail -f logs/push_$(date +%d%m%Y).log
+# ou no Windows/PowerShell, ajuste a data ddmmyyyy
+grep -E "removida|Manutenção|Falha" logs/push_*.log | tail -30
+```
+
+Interpretação rápida:
+
+| Log | Significado |
+|-----|-------------|
+| `Inscrição push inválida removida (410/404)` | Limpeza OK |
+| `Manutenção push concluída` | Cron/manual terminou; ver `removed` |
+| `Falha no envio Web Push` com `will_remove: false` | Erro temporário (rede, VAPID) — linha **mantida** |
+
+### Deploy desta funcionalidade
+
+Subir `service-worker.js` (v `20260520-12`), PHP alterados e agendar o cron. HTTPS obrigatório em produção (`URL_ADM` com `https://`).
+
 

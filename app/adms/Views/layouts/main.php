@@ -111,7 +111,7 @@ if (!headers_sent() && isset($_SESSION['user_id'])) {
     '</script>';
 }
 
-$pushSwVersion = '20260520-11';
+$pushSwVersion = '20260520-12';
 $pushSessionSyncInit = null;
 if (!empty($_SESSION['user_id'])) {
     $pushSessionSyncInit = [
@@ -532,7 +532,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-11';
+                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-12';
                 fetch(swUrl, { method: 'GET', credentials: 'same-origin' })
                     .then(function (res) {
                         const ct = (res.headers.get('content-type') || '').toLowerCase();

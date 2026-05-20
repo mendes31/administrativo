@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\PushNotificationLog;
 use App\adms\Models\Repository\AdmsPushConfigRepository;
 use App\adms\Models\Repository\PushSubscriptionRepository;
+use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\VAPID;
 use Minishlink\WebPush\WebPush;
@@ -13,7 +15,7 @@ use Minishlink\WebPush\WebPush;
 class PushNotificationService
 {
     /**
-     * @return array{success:bool, sent:int, failed:int, expired_ids:array<int,int>, errors:array<int,string>}
+     * @return array{success:bool, sent:int, failed:int, expired_ids:array<int,int>, errors:array<int,string>, details:array<int,array<string,mixed>>}
      */
     public function sendToUser(
         int $userId,
@@ -23,14 +25,7 @@ class PushNotificationService
         ?string $icon = null,
         ?string $onlyEndpoint = null
     ): array {
-        $result = [
-            'success' => false,
-            'sent' => 0,
-            'failed' => 0,
-            'expired_ids' => [],
-            'errors' => [],
-            'details' => [],
-        ];
+        $result = $this->emptyResult();
 
         if ($userId <= 0) {
             $result['errors'][] = 'Usuário inválido.';
@@ -43,7 +38,6 @@ class PushNotificationService
             return $result;
         }
 
-        $config = $configRepo->getConfig();
         $subRepo = new PushSubscriptionRepository();
         $subscriptions = $subRepo->listByUserId($userId);
         if ($onlyEndpoint !== null && trim($onlyEndpoint) !== '') {
@@ -76,100 +70,239 @@ class PushNotificationService
         }
 
         try {
-            $webPush = new WebPush([
-                'VAPID' => [
-                    'subject' => (string) $config['vapid_subject'],
-                    'publicKey' => (string) $config['vapid_public_key'],
-                    'privateKey' => (string) $config['vapid_private_key'],
-                ],
+            $webPush = $this->createWebPush($configRepo->getConfig());
+            $this->queueSubscriptions($webPush, $subscriptions, $payload);
+            $this->processReports($webPush, $subRepo, $subscriptions, $result, $userId, 'send');
+            $result['success'] = $result['sent'] > 0;
+        } catch (\Throwable $e) {
+            $result['errors'][] = $e->getMessage();
+            PushNotificationLog::log('error', 'Exceção no envio Web Push.', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
             ]);
+        }
 
-            $rowByEndpoint = [];
-            foreach ($subscriptions as $row) {
-                $rowByEndpoint[(string) ($row['endpoint'] ?? '')] = $row;
-            }
+        return $result;
+    }
 
-            foreach ($subscriptions as $row) {
-                $subscription = Subscription::create([
-                    'endpoint' => (string) $row['endpoint'],
-                    'keys' => [
-                        'p256dh' => (string) $row['public_key'],
-                        'auth' => (string) $row['auth_token'],
-                    ],
-                    'contentEncoding' => $this->resolveContentEncoding($row),
-                ]);
-                $webPush->queueNotification($subscription, $payload);
-            }
+    /**
+     * Verifica inscrições no banco com ping silencioso (SW ignora `maintenance`).
+     * Remove linhas com resposta 410/404 ou equivalente.
+     *
+     * @return array{checked:int, removed:int, failed:int, errors:array<int,string>}
+     */
+    public function pruneExpiredSubscriptions(int $batchSize = 200): array
+    {
+        $summary = [
+            'checked' => 0,
+            'removed' => 0,
+            'failed' => 0,
+            'errors' => [],
+        ];
 
-            foreach ($webPush->flush() as $report) {
-                $endpoint = $report->getEndpoint();
-                $endpointHash = hash('sha256', $endpoint);
-                $row = $rowByEndpoint[$endpoint] ?? $subRepo->findByEndpointHash($endpointHash);
-                $label = $row !== null ? $subRepo->getDeviceLabel($row) : 'Dispositivo';
+        $configRepo = new AdmsPushConfigRepository();
+        if (!$configRepo->isEnabled()) {
+            $summary['errors'][] = 'Push desativado ou VAPID incompleto.';
+            return $summary;
+        }
 
-                if ($report->isSuccess()) {
-                    $result['sent']++;
+        $subRepo = new PushSubscriptionRepository();
+        $subscriptions = $subRepo->listAllForMaintenance($batchSize, 0);
+        if ($subscriptions === []) {
+            PushNotificationLog::log('info', 'Manutenção push: nenhuma inscrição no banco.');
+            return $summary;
+        }
+
+        $payload = json_encode(['maintenance' => true], JSON_UNESCAPED_UNICODE);
+        if ($payload === false) {
+            $summary['errors'][] = 'Falha ao montar payload de manutenção.';
+            return $summary;
+        }
+
+        try {
+            $webPush = $this->createWebPush($configRepo->getConfig());
+            $this->queueSubscriptions($webPush, $subscriptions, $payload);
+
+            $result = $this->emptyResult();
+            $this->processReports($webPush, $subRepo, $subscriptions, $result, null, 'prune');
+
+            $summary['checked'] = count($subscriptions);
+            $summary['removed'] = count($result['expired_ids']);
+            $summary['failed'] = $result['failed'];
+            $summary['errors'] = $result['errors'];
+
+            PushNotificationLog::log('info', 'Manutenção push concluída.', [
+                'checked' => $summary['checked'],
+                'removed' => $summary['removed'],
+                'failed' => $summary['failed'],
+                'total_in_db' => $subRepo->countAll(),
+            ]);
+        } catch (\Throwable $e) {
+            $summary['errors'][] = $e->getMessage();
+            PushNotificationLog::log('error', 'Exceção na manutenção push.', ['error' => $e->getMessage()]);
+        }
+
+        return $summary;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function createWebPush(array $config): WebPush
+    {
+        return new WebPush([
+            'VAPID' => [
+                'subject' => (string) $config['vapid_subject'],
+                'publicKey' => (string) $config['vapid_public_key'],
+                'privateKey' => (string) $config['vapid_private_key'],
+            ],
+        ]);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $subscriptions
+     */
+    private function queueSubscriptions(WebPush $webPush, array $subscriptions, string $payload): void
+    {
+        foreach ($subscriptions as $row) {
+            $subscription = Subscription::create([
+                'endpoint' => (string) $row['endpoint'],
+                'keys' => [
+                    'p256dh' => (string) $row['public_key'],
+                    'auth' => (string) $row['auth_token'],
+                ],
+                'contentEncoding' => $this->resolveContentEncoding($row),
+            ]);
+            $webPush->queueNotification($subscription, $payload);
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $subscriptions
+     * @param array{success:bool, sent:int, failed:int, expired_ids:array<int,int>, errors:array<int,string>, details:array<int,array<string,mixed>>} $result
+     */
+    private function processReports(
+        WebPush $webPush,
+        PushSubscriptionRepository $subRepo,
+        array $subscriptions,
+        array &$result,
+        ?int $userId,
+        string $context
+    ): void {
+        $rowByEndpoint = [];
+        foreach ($subscriptions as $row) {
+            $rowByEndpoint[(string) ($row['endpoint'] ?? '')] = $row;
+        }
+
+        foreach ($webPush->flush() as $report) {
+            $endpoint = $report->getEndpoint();
+            $endpointHash = hash('sha256', $endpoint);
+            $row = $rowByEndpoint[$endpoint] ?? $subRepo->findByEndpointHash($endpointHash);
+            $label = $row !== null ? $subRepo->getDeviceLabel($row) : 'Dispositivo';
+            $rowUserId = $row !== null ? (int) ($row['user_id'] ?? 0) : ($userId ?? 0);
+            $statusCode = $report->getResponse()?->getStatusCode();
+            $expired = $this->shouldRemoveSubscriptionReport($report);
+
+            if ($report->isSuccess()) {
+                $result['sent']++;
+                if ($context === 'send') {
                     $result['details'][] = [
                         'label' => $label,
                         'success' => true,
                         'error' => null,
                         'expired' => false,
                     ];
-                    continue;
                 }
+                continue;
+            }
 
-                $reason = $report->getReason() ?: 'Falha desconhecida no envio push.';
-                $result['failed']++;
+            $reason = $report->getReason() ?: 'Falha desconhecida no envio push.';
+            $result['failed']++;
+            if ($context === 'send') {
                 $result['errors'][] = $label . ': ' . $reason;
                 $result['details'][] = [
                     'label' => $label,
                     'success' => false,
                     'error' => $reason,
-                    'expired' => $report->isSubscriptionExpired(),
+                    'expired' => $expired,
                 ];
-
-                if ($this->isExpiredSubscriptionReport($report) && $row !== null) {
-                    $subId = (int) ($row['id'] ?? 0);
-                    if ($subId > 0) {
-                        $subRepo->deleteById($subId);
-                        $result['expired_ids'][] = $subId;
-                    }
-                }
-
-                \App\adms\Helpers\GenerateLog::generateLog('warning', 'Falha no envio Web Push.', [
-                    'user_id' => $userId,
-                    'device' => $label,
-                    'endpoint' => mb_substr($endpoint, 0, 120),
-                    'reason' => $reason,
-                    'expired' => $report->isSubscriptionExpired(),
-                ]);
             }
 
-            $result['success'] = $result['sent'] > 0;
-        } catch (\Throwable $e) {
-            $result['errors'][] = $e->getMessage();
+            if ($expired && $row !== null) {
+                $subId = (int) ($row['id'] ?? 0);
+                if ($subId > 0 && $subRepo->deleteById($subId)) {
+                    $result['expired_ids'][] = $subId;
+                    PushNotificationLog::log('info', 'Inscrição push inválida removida (410/404).', [
+                        'context' => $context,
+                        'subscription_id' => $subId,
+                        'user_id' => $rowUserId,
+                        'device' => $label,
+                        'http_status' => $statusCode,
+                        'endpoint' => mb_substr($endpoint, 0, 120),
+                    ]);
+                }
+            } else {
+                PushNotificationLog::log('warning', 'Falha no envio Web Push.', [
+                    'context' => $context,
+                    'user_id' => $rowUserId,
+                    'device' => $label,
+                    'http_status' => $statusCode,
+                    'endpoint' => mb_substr($endpoint, 0, 120),
+                    'reason' => $reason,
+                    'will_remove' => false,
+                ]);
+            }
         }
 
-        return $result;
+        if ($context === 'send' && $result['expired_ids'] !== []) {
+            PushNotificationLog::log('info', 'Limpeza automática após envio push.', [
+                'user_id' => $userId,
+                'removed_ids' => $result['expired_ids'],
+                'count' => count($result['expired_ids']),
+            ]);
+        }
     }
 
-    private function isExpiredSubscriptionReport(\Minishlink\WebPush\MessageSentReport $report): bool
+    private function shouldRemoveSubscriptionReport(MessageSentReport $report): bool
     {
         if ($report->isSubscriptionExpired()) {
             return true;
         }
 
         $response = $report->getResponse();
-        if ($response !== null && $response->getStatusCode() === 410) {
-            return true;
+        if ($response !== null) {
+            $code = $response->getStatusCode();
+            if ($code === 410 || $code === 404) {
+                return true;
+            }
         }
 
-        return str_contains(strtolower($report->getReason() ?? ''), '410');
+        $reason = strtolower($report->getReason() ?? '');
+        foreach (['410', '404', 'gone', 'not found', 'unsubscribed', 'expired', 'no longer'] as $needle) {
+            if (str_contains($reason, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * FCM (Chrome/Edge) e push services modernos usam aes128gcm.
-     *
+     * @return array{success:bool, sent:int, failed:int, expired_ids:array<int,int>, errors:array<int,string>, details:array<int,array<string,mixed>>}
+     */
+    private function emptyResult(): array
+    {
+        return [
+            'success' => false,
+            'sent' => 0,
+            'failed' => 0,
+            'expired_ids' => [],
+            'errors' => [],
+            'details' => [],
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $row
      */
     private function resolveContentEncoding(array $row): string
