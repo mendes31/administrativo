@@ -182,8 +182,8 @@ class PushNotificationService
         $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
 
         return [
-            'icon' => $icon ?: ($base . '/public/adms/uploads/users/1/pwa-icon-512.png'),
-            'badge' => $badge ?: ($base . '/public/adms/image/pwa-badge-96.png'),
+            'icon' => $icon ?: ($base . '/public/adms/image/pwa-icon-192.png'),
+            'badge' => $badge ?: ($base . '/public/adms/image/pwa-badge-72.png'),
             'baseUrl' => $base,
         ];
     }

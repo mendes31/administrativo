@@ -1,4 +1,4 @@
-/* Tiaraju PWA Service Worker v20260520-2 */
+/* Tiaraju PWA Service Worker v20260520-3 */
 self.addEventListener('install', function (event) {
   self.skipWaiting();
 });
@@ -7,7 +7,6 @@ self.addEventListener('activate', function (event) {
   event.waitUntil(self.clients.claim());
 });
 
-// Estratégia pass-through para não alterar comportamento atual da aplicação
 self.addEventListener('fetch', function () {
   // Sem interceptação de cache por enquanto.
 });
@@ -33,6 +32,22 @@ function resolveNotificationAsset(path, base) {
   }
 }
 
+function fetchAssetBlob(url) {
+  if (!url) {
+    return Promise.resolve(null);
+  }
+  return fetch(url, { mode: 'cors', credentials: 'omit', cache: 'reload' })
+    .then(function (res) {
+      if (!res.ok) {
+        return null;
+      }
+      return res.blob();
+    })
+    .catch(function () {
+      return null;
+    });
+}
+
 self.addEventListener('push', function (event) {
   var payload = { title: 'Portal Tiaraju', body: 'Nova notificação', url: '/', icon: '', badge: '' };
   if (event.data) {
@@ -47,23 +62,37 @@ self.addEventListener('push', function (event) {
   }
 
   var base = getAssetsBase(payload);
-  var defaultIcon = base + '/public/adms/uploads/users/1/pwa-icon-512.png';
-  var defaultBadge = base + '/public/adms/image/pwa-badge-96.png';
-  var iconUrl = resolveNotificationAsset(payload.icon, base) || defaultIcon;
-  // Badge Android: silhueta branca em fundo transparente (não reutilizar o ícone colorido).
-  var badgeUrl = resolveNotificationAsset(payload.badge, base) || defaultBadge;
-
+  var iconUrl = resolveNotificationAsset(payload.icon, base) || (base + '/public/adms/image/pwa-icon-192.png');
+  var badgeUrl = resolveNotificationAsset(payload.badge, base) || (base + '/public/adms/image/pwa-badge-72.png');
   var title = payload.title || 'Portal Tiaraju';
-  var options = {
-    body: payload.body || '',
-    icon: iconUrl,
-    badge: badgeUrl,
-    data: { url: payload.url || '/' },
-    tag: 'tiaraju-push',
-    renotify: true
-  };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      fetchAssetBlob(iconUrl),
+      fetchAssetBlob(badgeUrl)
+    ]).then(function (blobs) {
+      var options = {
+        body: payload.body || '',
+        data: { url: payload.url || '/' },
+        tag: 'tiaraju-push',
+        renotify: true
+      };
+
+      if (blobs[0]) {
+        options.icon = blobs[0];
+      } else {
+        options.icon = iconUrl;
+      }
+
+      if (blobs[1]) {
+        options.badge = blobs[1];
+      } else {
+        options.badge = badgeUrl;
+      }
+
+      return self.registration.showNotification(title, options);
+    })
+  );
 });
 
 self.addEventListener('notificationclick', function (event) {
