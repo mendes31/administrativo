@@ -127,14 +127,16 @@ $defaultSubject = 'mailto:' . (string) ($_ENV['EMAIL_TI'] ?? 'chamados@tiaraju.c
                 </div>
                 <div class="card-body">
                     <p class="small text-muted mb-3">
-                        Envia uma notificação de teste para o seu usuário neste dispositivo. Ative as notificações em <strong>Meu Perfil</strong> antes de testar.
+                        Envia teste para <strong>este navegador</strong> (se ativo em Meu Perfil). Se não houver inscrição aqui, envia para todos os dispositivos cadastrados do seu usuário.
                     </p>
-                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>test-push-notification">
+                    <form method="POST" action="<?= $_ENV['URL_ADM'] ?>test-push-notification" id="formPushTest">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTest, ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="test_endpoint" id="pushTestEndpoint" value="">
                         <button type="submit" class="btn btn-warning w-100">
                             <i class="fas fa-paper-plane me-2"></i>Enviar notificação de teste
                         </button>
                     </form>
+                    <p class="small text-muted mt-2 mb-0" id="pushTestDeviceHint"></p>
                 </div>
             </div>
             <?php endif; ?>
@@ -155,3 +157,28 @@ $defaultSubject = 'mailto:' . (string) ($_ENV['EMAIL_TI'] ?? 'chamados@tiaraju.c
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var urlAdm = <?= json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES) ?>;
+    var hint = document.getElementById('pushTestDeviceHint');
+    var endpointInput = document.getElementById('pushTestEndpoint');
+    if (!hint || !endpointInput || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return;
+    }
+    navigator.serviceWorker.register(urlAdm + '/service-worker.js').then(function () {
+        return navigator.serviceWorker.ready;
+    }).then(function (registration) {
+        return registration.pushManager.getSubscription();
+    }).then(function (subscription) {
+        if (subscription && subscription.endpoint) {
+            endpointInput.value = subscription.endpoint;
+            hint.textContent = 'Modo: teste somente neste navegador/dispositivo.';
+        } else {
+            hint.textContent = 'Modo: teste em todos os dispositivos cadastrados do seu usuário (ex.: celular). Ative em Meu Perfil neste PC para testar aqui.';
+        }
+    }).catch(function () {
+        hint.textContent = 'Não foi possível detectar inscrição push neste navegador.';
+    });
+})();
+</script>

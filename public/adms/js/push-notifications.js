@@ -77,6 +77,27 @@
         });
     }
 
+    function buildSubscriptionPayload(registration, subscription) {
+        var json = subscription.toJSON();
+        var encodings = registration.pushManager.supportedContentEncodings || [];
+        if (encodings.length > 0) {
+            json.contentEncoding = encodings[0];
+        }
+        return json;
+    }
+
+    function persistSubscription(registration, subscription) {
+        var json = buildSubscriptionPayload(registration, subscription);
+        return fetchJson(urlAdm + '/push-subscribe/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                csrf_token: csrfToken,
+                subscription: json
+            })
+        });
+    }
+
     function loadStatus() {
         if (!('Notification' in window) || !('PushManager' in window)) {
             setStatus('Não suportado', 'bg-secondary');
@@ -99,13 +120,18 @@
                         var isLocalSubscribed = localSub !== null;
                         hideAlert();
                         if (isLocalSubscribed) {
-                            setStatus('Ativadas neste dispositivo', 'bg-success');
-                            setButtons('subscribed');
-                            return;
+                            return persistSubscription(registration, localSub).then(function () {
+                                setStatus('Ativadas neste dispositivo', 'bg-success');
+                                setButtons('subscribed');
+                            }).catch(function () {
+                                setStatus('Ativadas neste dispositivo', 'bg-success');
+                                setButtons('subscribed');
+                                showAlert('warning', 'Push ativo neste navegador, mas não foi possível sincronizar com o servidor. Clique em Desativar e Ativar novamente.');
+                            });
                         }
                         setStatus('Desativadas neste dispositivo', 'bg-warning text-dark');
                         setButtons('idle');
-                        if (data.subscribed) {
+                        if (data.subscribed || (data.subscriptionCount || 0) > 0) {
                             showAlert('info', 'Você já ativou push em outro dispositivo. Clique em "Ativar notificações" para receber também neste navegador.');
                         }
                     });
@@ -138,19 +164,7 @@
                             userVisibleOnly: true,
                             applicationServerKey: urlBase64ToUint8Array(data.publicKey)
                         }).then(function (subscription) {
-                            var json = subscription.toJSON();
-                            var encodings = registration.pushManager.supportedContentEncodings || [];
-                            if (encodings.length > 0) {
-                                json.contentEncoding = encodings[0];
-                            }
-                            return fetchJson(urlAdm + '/push-subscribe/subscribe', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    csrf_token: csrfToken,
-                                    subscription: json
-                                })
-                            });
+                            return persistSubscription(registration, subscription);
                         });
                     });
                 });

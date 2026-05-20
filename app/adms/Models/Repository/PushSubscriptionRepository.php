@@ -131,6 +131,26 @@ class PushSubscriptionRepository extends DbConnection
         return $this->listByUserId($userId) !== [];
     }
 
+    public function countByUserId(int $userId): int
+    {
+        return count($this->listByUserId($userId));
+    }
+
+    public function hasEndpointForUser(int $userId, string $endpoint): bool
+    {
+        if ($userId <= 0 || trim($endpoint) === '') {
+            return false;
+        }
+
+        $endpointHash = hash('sha256', $endpoint);
+        $row = $this->findByEndpointHash($endpointHash);
+        if ($row === null) {
+            return false;
+        }
+
+        return (int) ($row['user_id'] ?? 0) === $userId;
+    }
+
     public function findByEndpointHash(string $endpointHash): ?array
     {
         if (!$this->tableExists()) {

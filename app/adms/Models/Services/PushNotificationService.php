@@ -20,7 +20,8 @@ class PushNotificationService
         string $title,
         string $body,
         ?string $url = null,
-        ?string $icon = null
+        ?string $icon = null,
+        ?string $onlyEndpoint = null
     ): array {
         $result = [
             'success' => false,
@@ -43,8 +44,17 @@ class PushNotificationService
 
         $config = $configRepo->getConfig();
         $subscriptions = (new PushSubscriptionRepository())->listByUserId($userId);
+        if ($onlyEndpoint !== null && trim($onlyEndpoint) !== '') {
+            $onlyEndpoint = trim($onlyEndpoint);
+            $subscriptions = array_values(array_filter(
+                $subscriptions,
+                static fn(array $row): bool => (string) ($row['endpoint'] ?? '') === $onlyEndpoint
+            ));
+        }
         if ($subscriptions === []) {
-            $result['errors'][] = 'Usuário sem inscrição push neste dispositivo.';
+            $result['errors'][] = $onlyEndpoint !== null
+                ? 'Nenhuma inscrição push encontrada para este navegador. Ative em Meu Perfil neste dispositivo.'
+                : 'Usuário sem inscrição push neste dispositivo.';
             return $result;
         }
 
@@ -76,14 +86,14 @@ class PushNotificationService
                         'p256dh' => (string) $row['public_key'],
                         'auth' => (string) $row['auth_token'],
                     ],
-                    'contentEncoding' => (string) ($row['content_encoding'] ?? 'aesgcm'),
+                    'contentEncoding' => (string) ($row['content_encoding'] ?? 'aes128gcm'),
                 ]);
                 $webPush->queueNotification($subscription, $payload);
             }
 
             $subRepo = new PushSubscriptionRepository();
             foreach ($webPush->flush() as $report) {
-                $endpoint = (string) $report->getRequest()->getUri();
+                $endpoint = $report->getEndpoint();
                 $endpointHash = hash('sha256', $endpoint);
                 $row = $subRepo->findByEndpointHash($endpointHash);
 

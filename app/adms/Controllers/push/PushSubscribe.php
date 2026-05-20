@@ -31,12 +31,17 @@ class PushSubscribe
         $config = $configRepo->getConfig();
         $publicKey = $configRepo->getPublicKey();
 
+        $subRepo = new PushSubscriptionRepository();
+        $endpoint = trim((string) ($_GET['endpoint'] ?? ''));
+
         echo json_encode([
             'success' => true,
             'enabled' => $configRepo->isEnabled(),
             'configured' => $publicKey !== null && trim((string) ($config['vapid_subject'] ?? '')) !== '',
             'publicKey' => $publicKey,
-            'subscribed' => (new PushSubscriptionRepository())->userHasSubscription($userId),
+            'subscribed' => $subRepo->userHasSubscription($userId),
+            'subscriptionCount' => $subRepo->countByUserId($userId),
+            'endpointRegistered' => $endpoint !== '' ? $subRepo->hasEndpointForUser($userId, $endpoint) : null,
             'supported' => true,
         ]);
     }

@@ -39,7 +39,9 @@ class TestPushNotification
             exit;
         }
 
-        if (!(new PushSubscriptionRepository())->userHasSubscription($userId)) {
+        $testEndpoint = trim((string) ($_POST['test_endpoint'] ?? ''));
+        $subRepo = new PushSubscriptionRepository();
+        if ($testEndpoint === '' && !$subRepo->userHasSubscription($userId)) {
             $_SESSION['msg'] = 'Ative as notificações push em Meu Perfil neste dispositivo antes de testar.';
             $_SESSION['msg_type'] = 'warning';
             header('Location: ' . $_ENV['URL_ADM'] . 'push-config');
@@ -50,14 +52,21 @@ class TestPushNotification
             $userId,
             'Teste — Portal Tiaraju',
             'Se você viu esta notificação, o Web Push está funcionando.',
-            rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/notificacoes'
+            rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/notificacoes',
+            null,
+            $testEndpoint !== '' ? $testEndpoint : null
         );
+
+        $totalDevices = $subRepo->countByUserId($userId);
 
         if (!empty($result['success'])) {
             $sent = (int) ($result['sent'] ?? 0);
             $failed = (int) ($result['failed'] ?? 0);
-            if ($failed > 0) {
-                $_SESSION['msg'] = "Enviado para {$sent} dispositivo(s), falhou em {$failed}. Ative push neste navegador em Meu Perfil se ainda não recebeu.";
+            if ($testEndpoint !== '') {
+                $_SESSION['msg'] = 'Notificação de teste enviada para este navegador.';
+                $_SESSION['msg_type'] = 'success';
+            } elseif ($failed > 0) {
+                $_SESSION['msg'] = "Enviado para {$sent} de {$totalDevices} dispositivo(s); falhou em {$failed}. Reative push em Meu Perfil nos aparelhos que não receberam.";
                 $_SESSION['msg_type'] = 'warning';
             } else {
                 $_SESSION['msg'] = $sent > 1
