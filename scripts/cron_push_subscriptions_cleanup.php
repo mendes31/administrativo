@@ -35,13 +35,23 @@ $maxRounds = 10;
 
 for ($round = 0; $round < $maxRounds; $round++) {
     $summary = $service->pruneExpiredSubscriptions($batch);
-    $totalChecked += (int) ($summary['checked'] ?? 0);
-    $totalRemoved += (int) ($summary['removed'] ?? 0);
+    $checked = (int) ($summary['checked'] ?? 0);
+    $removed = (int) ($summary['removed'] ?? 0);
+    $totalChecked += $checked;
+    $totalRemoved += $removed;
     $totalFailed += (int) ($summary['failed'] ?? 0);
     if (!empty($summary['errors'])) {
         $errors = array_merge($errors, $summary['errors']);
     }
-    if ((int) ($summary['checked'] ?? 0) === 0) {
+    if ($checked === 0) {
+        break;
+    }
+    // Nada removido: o mesmo lote já foi verificado — não repetir 10x.
+    if ($removed === 0) {
+        break;
+    }
+    // Lote incompleto: não há mais linhas para verificar.
+    if ($checked < $batch) {
         break;
     }
 }
