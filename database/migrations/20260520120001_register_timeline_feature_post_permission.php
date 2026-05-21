@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\adms\Models\Repository\MenuPermissionUserRepository;
 use Phinx\Migration\AbstractMigration;
 
 /**
@@ -61,6 +62,8 @@ final class RegisterTimelineFeaturePostPermission extends AbstractMigration
              FROM adms_access_levels_pages
              WHERE adms_page_id = {$mid}"
         );
+
+        MenuPermissionUserRepository::bumpGlobalPermissionCacheVersion();
     }
 
     public function down(): void

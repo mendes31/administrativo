@@ -7,6 +7,8 @@ use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TimelineFeedEnricher;
 use App\adms\Helpers\TimelineHashtagHelper;
+use App\adms\Helpers\UserAccessHelper;
+use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\TimelineRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -140,9 +142,29 @@ class Timeline
         $this->data['can_view_comments'] = in_array('TimelineComment', $menuPermission, true)
             || in_array('TimelineViewComments', $menuPermission, true);
         $this->data['can_share'] = in_array('TimelineShare', $menuPermission, true);
-        $this->data['can_feature'] = in_array('TimelineFeaturePost', $menuPermission, true);
+        $this->data['can_feature'] = self::userCanFeatureTimelinePosts($menuPermission);
 
         $loadView = new LoadViewService('adms/Views/timeline/feed', $this->data);
         $loadView->loadView();
+    }
+
+    /**
+     * @param array<int, string> $menuPermission
+     */
+    private static function userCanFeatureTimelinePosts(array $menuPermission): bool
+    {
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            return true;
+        }
+        $levelIds = $_SESSION['adms_user_access_level_ids'] ?? [];
+        if (is_array($levelIds) && in_array(UserAccessHelper::SUPER_ADMIN_LEVEL_ID, $levelIds, true)) {
+            return true;
+        }
+        if (in_array('TimelineFeaturePost', $menuPermission, true)) {
+            return true;
+        }
+        $featureCheck = (new ButtonPermissionUserRepository())->buttonPermission(['TimelineFeaturePost']);
+
+        return is_array($featureCheck) && in_array('TimelineFeaturePost', $featureCheck, true);
     }
 }

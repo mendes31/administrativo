@@ -35,18 +35,25 @@ class MenuPermissionUserRepository extends DbConnection
 
         $globalVersion = self::getGlobalPermissionCacheVersion();
         $cached = $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] ?? null;
+        $levelIds = $_SESSION['adms_user_access_level_ids'] ?? [];
+        $hasUnrestrictedMenu = UserAccessHelper::hasFullSystemAccess()
+            || (is_array($levelIds) && in_array(1, $levelIds, true));
+
         if (
             is_array($cached)
             && (int) ($cached['user_id'] ?? 0) === $userId
             && (string) ($cached['version'] ?? '') === $globalVersion
             && is_array($cached['controllers'] ?? null)
         ) {
-            return $cached['controllers'];
+            $cachedControllers = $cached['controllers'];
+            if ($hasUnrestrictedMenu && $fullMenu !== []) {
+                return array_values(array_unique(array_merge($cachedControllers, $fullMenu)));
+            }
+
+            return $cachedControllers;
         }
 
-        $levelIds = $_SESSION['adms_user_access_level_ids'] ?? [];
-        if (UserAccessHelper::hasFullSystemAccess()
-            || (is_array($levelIds) && in_array(1, $levelIds, true))) {
+        if ($hasUnrestrictedMenu) {
             $filtered = $fullMenu;
         } else {
             $filtered = $this->menuPermission($fullMenu);

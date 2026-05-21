@@ -99,6 +99,24 @@ Em releases que incluam deduplicação, índice único `(adms_access_level_id, a
 
 Migration `20260519150000_add_timeline_comments_post_status_index.php`: cria índice composto `(post_id, status)` em `adms_timeline_comments` para acelerar contagens de comentários ativos no feed. **Não altera dados nem regras** — só o plano de execução do MySQL.
 
+### Timeline — destaque e celebrações (aniversário / tempo de empresa)
+
+Migrations (rodar **depois** de enviar o código da timeline para o servidor):
+
+| Migration | O que faz |
+|-----------|-----------|
+| `20260520120000_timeline_featured_and_celebration_types` | Coluna `is_featured`, tipos `birthday` / `tenure` em `post_type` |
+| `20260520120001_register_timeline_feature_post_permission` | Página **Destaque na Timeline** (`TimelineFeaturePost`) + cópia inicial para quem tem moderação |
+| `20260520140100_bump_menu_cache_timeline_feature` | Invalida cache de permissões em sessão (checkbox “Destaque” após deploy) |
+
+```bash
+php vendor/bin/phinx migrate -c database/phinx.php -e production
+```
+
+**Super Administrador:** após o deploy do código corrigido, o checkbox **Destaque** deve aparecer mesmo sem a permissão explícita. Demais níveis precisam da página **Destaque na Timeline** em *Níveis de Acesso*.
+
+Se o checkbox ainda não aparecer: confirme que `feed.php` e `Timeline.php` foram publicados, rode as migrations acima e **saia e entre** de novo (ou aguarde a migration de bump do cache).
+
 ```bash
 php vendor/bin/phinx migrate -c database/phinx.php -e production
 ```

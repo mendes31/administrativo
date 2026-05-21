@@ -7,6 +7,7 @@ namespace App\adms\Controllers\timeline;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\UserAccessHelper;
 use App\adms\Helpers\TimelineFeedEnricher;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\TimelineRepository;
@@ -151,7 +152,8 @@ class TimelineProfile
         $this->data['can_view_comments'] = is_array($perms)
             && (in_array('TimelineComment', $perms, true) || in_array('TimelineViewComments', $perms, true));
         $this->data['can_share'] = is_array($perms) && in_array('TimelineShare', $perms, true);
-        $this->data['can_feature'] = is_array($perms) && in_array('TimelineFeaturePost', $perms, true);
+        $this->data['can_feature'] = UserAccessHelper::hasFullSystemAccess()
+            || (is_array($perms) && in_array('TimelineFeaturePost', $perms, true));
 
         $displayName = (string)($profile['name'] ?? 'Perfil');
         $pageElements = [
