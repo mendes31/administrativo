@@ -123,7 +123,7 @@ class TimelineProfile
         $this->data['csrf_timeline_report'] = CSRFHelper::generateCSRFToken('timeline_report_post');
 
         $total = $repo->countActivePostsByUserId($uid);
-        $this->data['pagination'] = PaginationService::generatePagination(
+        $this->data['pagination'] = PaginationService::generateTimelinePagination(
             $total,
             $perPage,
             $page,

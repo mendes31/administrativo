@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=41">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=42">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -328,7 +328,9 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
             <?php include __DIR__ . '/partials/feed_posts.php'; ?>
 
             <?php if (!empty($this->data['pagination']['html'])): ?>
-                <div class="mt-3"><?php echo $this->data['pagination']['html']; ?></div>
+                <div class="timeline-pagination-wrap mt-3 mb-2">
+                    <?php echo $this->data['pagination']['html']; ?>
+                </div>
             <?php endif; ?>
         </div>
 

@@ -111,7 +111,7 @@ class Timeline
         if ($searchQ !== '') {
             $pagFilters['q'] = $searchQ;
         }
-        $this->data['pagination'] = PaginationService::generatePagination(
+        $this->data['pagination'] = PaginationService::generateTimelinePagination(
             $total,
             $perPage,
             $page,
