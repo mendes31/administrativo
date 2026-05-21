@@ -1,4 +1,4 @@
-/* Tiaraju PWA Service Worker v20260520-12 */
+/* Tiaraju PWA Service Worker v20260520-13 */
 var PUSH_ICON_CACHE = 'tiaraju-push-icons-v6';
 
 self.addEventListener('install', function (event) {
@@ -43,6 +43,12 @@ self.addEventListener('activate', function (event) {
       return self.clients.claim();
     })
   );
+});
+
+self.addEventListener('message', function (event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', function () {

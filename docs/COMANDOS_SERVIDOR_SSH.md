@@ -364,6 +364,11 @@ Interpretação rápida:
 
 ### Deploy desta funcionalidade
 
-Subir `service-worker.js` (v `20260520-12`), PHP alterados e agendar o cron. HTTPS obrigatório em produção (`URL_ADM` com `https://`).
+Subir `service-worker.js` (v `20260520-13`), `public/adms/js/pwa-app.js`, views do perfil/layout e agendar o cron. HTTPS obrigatório em produção (`URL_ADM` com `https://`).
+
+### PWA — instalar e atualizar
+
+- **Meu Perfil** → card **Instalar aplicativo (PWA)** (prompt nativo no Chrome quando disponível; tutoriais no Firefox/iPhone).
+- **Atualização:** banner “Nova versão” no rodapé quando o Service Worker mudar (bump `?v=` em `service-worker.js` a cada release relevante).
 
 

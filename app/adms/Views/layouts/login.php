@@ -68,7 +68,7 @@ if (!isset($_ENV['DB_HOST'])) {
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-12';
+                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-13';
                 navigator.serviceWorker.register(swUrl).catch(function(error) {
                     console.warn('Falha ao registrar Service Worker (login):', error);
                 });
