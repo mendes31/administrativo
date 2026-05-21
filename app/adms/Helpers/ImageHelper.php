@@ -119,6 +119,24 @@ class ImageHelper
      * @param string $type Tipo de imagem
      * @return string HTML da tag img
      */
+    /**
+     * Avatar no topo (navbar): carregamento imediato, sem lazy, para não piscar entre páginas.
+     */
+    public static function displayNavbarUserAvatar(?string $imagePath, array $attributes = []): string
+    {
+        $defaults = [
+            'alt' => 'Foto do usuário',
+            'class' => 'rounded-circle me-2 navbar-user-avatar',
+            'style' => 'width: 32px; height: 32px; object-fit: cover;',
+            'loading' => 'eager',
+            'decoding' => 'sync',
+            'fetchpriority' => 'high',
+            'onload' => "this.classList.add('is-ready')",
+        ];
+
+        return self::displayImage($imagePath, array_merge($defaults, $attributes), 'icon_user.png', 'users');
+    }
+
     public static function displayImage(?string $imagePath, array $attributes = [], string $defaultImage = 'icon_user.png', string $type = 'users'): string
     {
         $defaultAttributes = [

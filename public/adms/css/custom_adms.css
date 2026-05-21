@@ -152,11 +152,22 @@ body {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    background-color: #fd5b03;
+    background-color: #e8e8e8;
 }
 
-.navbar img.rounded-circle {
-    background-color: #fd5b03;
+.navbar img.rounded-circle,
+.navbar img.navbar-user-avatar {
+    background-color: #e8e8e8;
+}
+
+/* Evita flash laranja enquanto a foto carrega na navegação */
+.navbar img.navbar-user-avatar {
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.navbar img.navbar-user-avatar.is-ready {
+    opacity: 1;
 }
 
 

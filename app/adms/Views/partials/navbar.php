@@ -180,11 +180,7 @@ if (!empty($_SESSION['user_id'])) {
                     $navbarAvatarPath = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
                 }
                 if ($navbarAvatarPath !== null) {
-                    echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPath, [
-                        'alt' => 'Foto do usuário',
-                        'class' => 'rounded-circle me-2',
-                        'style' => 'width: 32px; height: 32px; object-fit: cover;',
-                    ], 'icon_user.png', 'users');
+                    echo \App\adms\Helpers\ImageHelper::displayNavbarUserAvatar($navbarAvatarPath);
                 } else {
                     echo \App\adms\Helpers\ImageHelper::renderInitialsAvatar((string)($userInfo['name'] ?? 'Usuário'), 32, [
                         'class' => 'me-2',
@@ -210,11 +206,9 @@ if (!empty($_SESSION['user_id'])) {
                             $navbarAvatarPathLg = 'users/' . $userInfo['id'] . '/' . $userInfo['image'];
                         }
                         if ($navbarAvatarPathLg !== null) {
-                            echo \App\adms\Helpers\ImageHelper::displayImage($navbarAvatarPathLg, [
-                                'alt' => 'Foto do usuário',
-                                'class' => 'rounded-circle me-2',
+                            echo \App\adms\Helpers\ImageHelper::displayNavbarUserAvatar($navbarAvatarPathLg, [
                                 'style' => 'width: 40px; height: 40px; object-fit: cover;',
-                            ], 'icon_user.png', 'users');
+                            ]);
                         } else {
                             echo \App\adms\Helpers\ImageHelper::renderInitialsAvatar((string)($userInfo['name'] ?? 'Usuário'), 40, [
                                 'class' => 'me-2',

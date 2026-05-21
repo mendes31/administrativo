@@ -101,9 +101,16 @@ if (!$loadDataTables) {
 if (!$loadInputMasks) {
     $loadInputMasks = (bool)preg_match('/\/(create|update|profile|pay|receive|rooms|users|portal|crm|departments|positions|costCenter|accessLevels)/i', $viewPath);
 }
+$userAvatarPreloadUrl = null;
 if (!headers_sent() && isset($_SESSION['user_id'])) {
     $userId = (int)$_SESSION['user_id'];
     $userName = $_SESSION['user_name'] ?? 'Usuário';
+    $userImageName = trim((string)($_SESSION['user_image'] ?? ''));
+    if (\App\adms\Helpers\ImageHelper::userImageExists($userId, $userImageName)) {
+        $userAvatarPreloadUrl = \App\adms\Helpers\ImageHelper::getImageUrl(
+            'users/' . $userId . '/' . $userImageName
+        );
+    }
     $currentUserMetaTag = '<meta name="current-user-id" content="' . $userId . '">';
     $currentUserScriptTag = '<script>' .
         'window.currentUserId = ' . $userId . ';' .
@@ -196,6 +203,9 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
     <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-4">
+    <?php if (!empty($userAvatarPreloadUrl)): ?>
+    <link rel="preload" as="image" href="<?php echo htmlspecialchars($userAvatarPreloadUrl, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php endif; ?>
     <meta name="theme-color" content="#2E9263">
     <?php if (!empty($_SESSION['user_id'])): ?>
     <script>
@@ -237,7 +247,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/custom-ajustes.css?v=20250822">
     
     <!-- CSS personalizado do projeto (deve ficar por último para sobrescrever) -->
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20250905">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20260520">
     
     <!-- Menu Modernizado -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=20260416">
@@ -982,6 +992,21 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
 
     <?php if (!empty($_SESSION['user_id'])): ?>
     <?php include __DIR__ . '/../partials/pwa_install_modals.php'; ?>
+    <script>
+    (function () {
+        function markNavbarAvatarReady(img) {
+            img.classList.add('is-ready');
+        }
+        document.querySelectorAll('img.navbar-user-avatar').forEach(function (img) {
+            if (img.complete && img.naturalWidth > 0) {
+                markNavbarAvatarReady(img);
+                return;
+            }
+            img.addEventListener('load', function () { markNavbarAvatarReady(img); }, { once: true });
+            img.addEventListener('error', function () { markNavbarAvatarReady(img); }, { once: true });
+        });
+    })();
+    </script>
     <?php endif; ?>
 
 </body>
