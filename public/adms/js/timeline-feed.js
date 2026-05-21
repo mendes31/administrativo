@@ -1461,6 +1461,22 @@
     const pollOptionsWrap = document.getElementById('timelinePollOptionsWrap');
     const featureWrap = document.getElementById('timelineComposerFeatureWrap');
     const featureInput = document.getElementById('timelineComposerFeatured');
+    const btnFeature = document.getElementById('btnTimelineFeature');
+    function syncFeatureToggleUi() {
+        if (!featureInput || !btnFeature) {
+            return;
+        }
+        var on = !!featureInput.checked;
+        btnFeature.classList.toggle('is-active', on);
+        btnFeature.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    if (btnFeature && featureInput) {
+        syncFeatureToggleUi();
+        btnFeature.addEventListener('click', function () {
+            featureInput.checked = !featureInput.checked;
+            syncFeatureToggleUi();
+        });
+    }
     function setPollMode(on) {
         if (!pollTypeInput || !pollBlock) return;
         pollTypeInput.value = on ? 'poll' : 'regular';
@@ -1470,6 +1486,7 @@
         }
         if (on && featureInput) {
             featureInput.checked = false;
+            syncFeatureToggleUi();
         }
     }
     if (btnPoll) {

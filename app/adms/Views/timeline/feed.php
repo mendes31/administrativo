@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=40">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=41">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -186,11 +186,13 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                                 <i class="fas fa-poll-h" aria-hidden="true"></i>
                             </button>
                             <?php if (!empty($this->data['can_feature'])): ?>
-                            <label id="timelineComposerFeatureWrap" class="timeline-composer-feature-toggle timeline-composer-icon-btn timeline-composer-icon-feature mb-0" title="Manter em destaque (topo do dia)" aria-label="Manter em destaque">
-                                <input type="checkbox" class="timeline-composer-feature-input" name="is_featured" id="timelineComposerFeatured" value="1">
-                                <i class="fas fa-thumbtack" aria-hidden="true"></i>
-                                <span class="timeline-composer-feature-label">Destaque</span>
-                            </label>
+                            <div id="timelineComposerFeatureWrap" class="timeline-composer-feature-wrap">
+                                <input type="checkbox" class="visually-hidden" name="is_featured" id="timelineComposerFeatured" value="1" tabindex="-1">
+                                <button type="button" class="timeline-composer-icon-btn timeline-composer-icon-feature" id="btnTimelineFeature" title="Manter em destaque (topo do dia)" aria-label="Manter em destaque" aria-pressed="false">
+                                    <i class="fas fa-thumbtack" aria-hidden="true"></i>
+                                </button>
+                                <span class="timeline-composer-feature-label d-none d-md-inline">Destaque</span>
+                            </div>
                             <?php endif; ?>
                             <button type="submit" class="timeline-composer-submit ms-auto" id="timelineComposerSubmitIcon" title="Publicar" aria-label="Publicar">
                                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
@@ -546,4 +548,4 @@ $__timelineFeedInit = [
 <script>
 window.__TimelineFeedInit = <?php echo json_encode($__timelineFeedInit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="<?php echo htmlspecialchars($urlAdm); ?>public/adms/js/timeline-feed.js?v=4" defer></script>
+<script src="<?php echo htmlspecialchars($urlAdm); ?>public/adms/js/timeline-feed.js?v=5" defer></script>

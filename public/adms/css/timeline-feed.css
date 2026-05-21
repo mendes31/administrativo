@@ -808,64 +808,46 @@ video.timeline-post-video-lazy:not([src]) {
     background: #e4e6eb;
     color: #050505;
 }
-.timeline-composer-feature-toggle {
+.timeline-composer-feature-wrap {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     flex-shrink: 0;
-    position: relative;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    user-select: none;
+}
+.timeline-composer-icon-feature {
     color: #f7b125;
-    background: transparent;
-    transition: background 0.12s ease, color 0.12s ease;
 }
-.timeline-composer-feature-toggle:hover {
-    background: rgba(247, 177, 37, 0.12);
+.timeline-composer-icon-feature:hover {
     color: #c98a12;
+    background: rgba(247, 177, 37, 0.12);
 }
-.timeline-composer-feature-toggle:has(.timeline-composer-feature-input:checked) {
-    background: rgba(247, 177, 37, 0.22);
+.timeline-composer-icon-feature.is-active,
+.timeline-composer-icon-feature[aria-pressed="true"] {
     color: #b8860b;
+    background: rgba(247, 177, 37, 0.22);
 }
-.timeline-composer-feature-input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 1;
-}
-.timeline-composer-feature-toggle .fa-thumbtack {
-    font-size: 1rem;
-    pointer-events: none;
-}
-.timeline-composer-feature-label {
-    display: none;
+.timeline-composer-icon-feature .fa-thumbtack {
+    font-size: 1.05rem;
+    line-height: 1;
+    display: block;
 }
 @media (min-width: 768px) {
-    .timeline-composer-feature-toggle {
-        width: auto;
-        height: auto;
-        min-height: 36px;
-        padding: 0.2rem 0.65rem;
+    .timeline-composer-feature-wrap {
+        gap: 0.25rem;
+        margin-left: 0.15rem;
+        padding: 0 0.5rem 0 0.15rem;
         border-radius: 999px;
-        gap: 0.35rem;
+        transition: background 0.12s ease;
+    }
+    .timeline-composer-feature-wrap:has(#timelineComposerFeatured:checked) {
+        background: rgba(247, 177, 37, 0.14);
     }
     .timeline-composer-feature-label {
-        display: inline;
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
         color: #65676b;
-        pointer-events: none;
+        user-select: none;
+        white-space: nowrap;
     }
-    .timeline-composer-feature-toggle:has(.timeline-composer-feature-input:checked) .timeline-composer-feature-label {
+    .timeline-composer-feature-wrap:has(#timelineComposerFeatured:checked) .timeline-composer-feature-label {
         color: #b8860b;
         font-weight: 600;
     }
