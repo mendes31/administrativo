@@ -47,6 +47,31 @@
     </div>
 </div>
 
+<div class="modal fade" id="pwaInstallEdgeModal" tabindex="-1" aria-labelledby="pwaInstallEdgeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pwaInstallEdgeModalLabel">
+                    <i class="fab fa-edge text-primary me-2"></i>Instalar no Microsoft Edge
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body small">
+                <p>O Edge não liberou o instalador automático nesta visita. Use um destes caminhos:</p>
+                <ol class="mb-2 ps-3">
+                    <li class="mb-2">Na <strong>barra de endereço</strong>, clique no ícone <strong>Instalar</strong> (monitor com seta ou “+”) à direita da URL.</li>
+                    <li class="mb-2">Ou menu <strong>⋯</strong> (canto superior direito) → <strong>Aplicativos</strong> → <strong>Instalar este site como um aplicativo</strong>.</li>
+                    <li>Se não aparecer, recarregue a página (F5), aguarde alguns segundos e tente de novo.</li>
+                </ol>
+                <p class="text-muted mb-0">Confirme que o site está em <strong>HTTPS</strong> e que você não está em uma janela anônima com bloqueios.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="pwaInstallGenericModal" tabindex="-1" aria-labelledby="pwaInstallGenericModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

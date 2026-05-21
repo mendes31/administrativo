@@ -14,6 +14,26 @@
     var pushNeedsActivation = false;
     var pushCheckDone = false;
 
+    function syncDeferredInstallPrompt() {
+        if (window.__admsDeferredInstallPrompt && !deferredInstallPrompt) {
+            deferredInstallPrompt = window.__admsDeferredInstallPrompt;
+        }
+    }
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        window.__admsDeferredInstallPrompt = e;
+        window.dispatchEvent(new Event('adms-pwa-installable'));
+        refreshInstallUi();
+    });
+
+    window.addEventListener('appinstalled', function () {
+        deferredInstallPrompt = null;
+        window.__admsDeferredInstallPrompt = null;
+        refreshInstallUi();
+    });
+
     function ua() {
         return navigator.userAgent || '';
     }
@@ -33,6 +53,10 @@
 
     function isFirefox() {
         return /Firefox\//i.test(ua());
+    }
+
+    function isEdge() {
+        return /Edg\//i.test(ua());
     }
 
     function isChromeAndroid() {
@@ -55,7 +79,52 @@
     }
 
     function canUseNativeInstallPrompt() {
+        syncDeferredInstallPrompt();
         return !!deferredInstallPrompt;
+    }
+
+    function waitForInstallPrompt(maxMs) {
+        return new Promise(function (resolve) {
+            syncDeferredInstallPrompt();
+            if (canUseNativeInstallPrompt()) {
+                resolve(true);
+                return;
+            }
+            var settled = false;
+            var finish = function () {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                document.removeEventListener('adms-pwa-installable', onReady);
+                clearTimeout(timer);
+                syncDeferredInstallPrompt();
+                resolve(canUseNativeInstallPrompt());
+            };
+            var onReady = function () {
+                finish();
+            };
+            var timer = setTimeout(finish, maxMs);
+            document.addEventListener('adms-pwa-installable', onReady);
+        });
+    }
+
+    function runNativeInstallPrompt() {
+        if (!canUseNativeInstallPrompt()) {
+            return Promise.resolve(false);
+        }
+        var promptEvent = deferredInstallPrompt;
+        promptEvent.prompt();
+        return promptEvent.userChoice.then(function (choice) {
+            deferredInstallPrompt = null;
+            window.__admsDeferredInstallPrompt = null;
+            if (choice.outcome === 'accepted') {
+                setInstallStatus('Instalado', 'bg-success');
+                hideInstallButtons();
+            }
+            refreshInstallUi();
+            return choice.outcome === 'accepted';
+        });
     }
 
     function getServiceWorkerUrl() {
@@ -461,7 +530,16 @@
         if (canUseNativeInstallPrompt()) {
             setInstallStatus('Pronto para instalar', 'bg-primary');
             if (leadEl) {
-                leadEl.textContent = 'Toque no botão abaixo para ver o pedido de instalação do navegador.';
+                leadEl.textContent = 'Toque em Instalar aplicativo para abrir o assistente do navegador.';
+            }
+            refreshPwaPromoState();
+            return;
+        }
+
+        if (isEdge() && !isIOS()) {
+            setInstallStatus('Instalar pelo Edge', 'bg-primary');
+            if (leadEl) {
+                leadEl.textContent = 'Use o ícone Instalar na barra de endereço ou ⋯ → Aplicativos. O botão abaixo mostra o passo a passo.';
             }
             refreshPwaPromoState();
             return;
@@ -506,30 +584,11 @@
         });
     }
 
-    function handleInstallClick() {
-        if (isPwaInstalled()) {
-            showModal('pwaInstallAlreadyModal');
-            return;
-        }
-
-        if (canUseNativeInstallPrompt()) {
-            deferredInstallPrompt.prompt();
-            deferredInstallPrompt.userChoice.then(function (choice) {
-                if (choice.outcome === 'accepted') {
-                    setInstallStatus('Instalado', 'bg-success');
-                    hideInstallButtons();
-                }
-                deferredInstallPrompt = null;
-                refreshInstallUi();
-            });
-            return;
-        }
-
+    function showInstallFallbackModal() {
         if (isIOS() || isIOSSafari()) {
             showModal('pwaInstallSafariModal');
             return;
         }
-
         if (isFirefox() || (/Android/i.test(ua()) && !isChromeAndroid())) {
             if (!wasBrowserHintDismissedRecently()) {
                 showModal('pwaInstallChromeModal');
@@ -538,8 +597,34 @@
             showModal('pwaInstallGenericModal');
             return;
         }
-
+        if (isEdge()) {
+            showModal('pwaInstallEdgeModal');
+            return;
+        }
         showModal('pwaInstallGenericModal');
+    }
+
+    function handleInstallClick() {
+        if (isPwaInstalled()) {
+            showModal('pwaInstallAlreadyModal');
+            return;
+        }
+
+        var btn = document.getElementById('btnPwaDashboardInstall') || document.getElementById('btnPwaInstall');
+        if (btn) {
+            btn.disabled = true;
+        }
+
+        waitForInstallPrompt(2000).then(function (hasPrompt) {
+            if (hasPrompt) {
+                return runNativeInstallPrompt();
+            }
+            showInstallFallbackModal();
+        }).finally(function () {
+            if (btn) {
+                btn.disabled = false;
+            }
+        });
     }
 
     function bindClickOnce(id, handler) {
@@ -557,17 +642,7 @@
         bindClickOnce('btnPwaOpenChrome', openInChromeAndroid);
         bindClickOnce('btnPwaDismissChromeHint', dismissBrowserHint);
 
-        window.addEventListener('beforeinstallprompt', function (e) {
-            e.preventDefault();
-            deferredInstallPrompt = e;
-            refreshInstallUi();
-        });
-
-        window.addEventListener('appinstalled', function () {
-            deferredInstallPrompt = null;
-            refreshInstallUi();
-        });
-
+        syncDeferredInstallPrompt();
         refreshInstallUi();
     }
 

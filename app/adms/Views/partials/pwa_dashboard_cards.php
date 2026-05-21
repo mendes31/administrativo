@@ -61,7 +61,7 @@
                         <p class="mb-2">Acesso rápido pela tela inicial, experiência em tela cheia e melhor suporte a notificações.</p>
                         <p class="mb-1" id="pwaDashboardInstallDesktopHint">
                             <strong><i class="fab fa-android me-1"></i>Android:</strong> Google Chrome (recomendado).
-                            <strong class="ms-2"><i class="fab fa-windows me-1"></i>Windows:</strong> o Edge também costuma funcionar.
+                            <strong class="ms-2"><i class="fab fa-windows me-1"></i>Windows / Edge:</strong> ícone <em>Instalar</em> na barra de endereço ou menu ⋯ → Aplicativos.
                         </p>
                         <p class="mb-0" id="pwaDashboardInstallIosHint">
                             <strong><i class="fab fa-apple me-1"></i>iPhone / iPad (Safari):</strong>
