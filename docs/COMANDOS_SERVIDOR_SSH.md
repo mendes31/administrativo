@@ -368,7 +368,8 @@ Subir `service-worker.js` (v `20260520-13`), `public/adms/js/pwa-app.js`, views 
 
 ### PWA — instalar e atualizar
 
-- **Meu Perfil** → card **Instalar aplicativo (PWA)** (prompt nativo no Chrome quando disponível; tutoriais no Firefox/iPhone).
-- **Atualização:** banner “Nova versão” no rodapé quando o Service Worker mudar (bump `?v=` em `service-worker.js` a cada release relevante).
+- **Dashboard** → cards por prioridade: **1) Nova versão** → **2) Ative as notificações** (PWA instalado, push ainda não neste aparelho) → **3) Instale o aplicativo**. Somente na dashboard.
+- **Meu Perfil** → configuração detalhada de instalar push e dispositivos.
+- Bump `?v=` em `service-worker.js` e `pwa-app.js` a cada release relevante.
 
 
