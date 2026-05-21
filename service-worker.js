@@ -1,4 +1,4 @@
-/* Tiaraju PWA Service Worker v20260520-13 */
+/* Tiaraju PWA Service Worker — push e registro; páginas não são cacheadas aqui. */
 var PUSH_ICON_CACHE = 'tiaraju-push-icons-v6';
 
 self.addEventListener('install', function (event) {

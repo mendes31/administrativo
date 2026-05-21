@@ -1,28 +1,3 @@
-<div class="row justify-content-center mb-3 d-none" id="pwaDashboardUpdateRow">
-    <div class="col-12 col-lg-11">
-        <div class="card border-primary shadow-sm bg-primary bg-opacity-10" id="pwaDashboardUpdateCard">
-            <div class="card-body d-flex flex-column flex-md-row align-items-md-center gap-3">
-                <div class="flex-grow-1">
-                    <h5 class="card-title mb-1 text-primary">
-                        <i class="fas fa-sync-alt me-2"></i>Nova versão do aplicativo
-                    </h5>
-                    <p class="card-text small text-muted mb-0">
-                        Uma atualização está pronta. Toque em atualizar para carregar a versão mais recente — não é preciso desinstalar.
-                    </p>
-                </div>
-                <div class="d-flex flex-column flex-sm-row gap-2 flex-shrink-0">
-                    <button type="button" class="btn btn-primary btn-sm" id="btnPwaDashboardUpdate">
-                        <i class="fas fa-arrow-circle-up me-1"></i>Atualizar agora
-                    </button>
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnPwaDashboardUpdateLater">
-                        Depois
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="row justify-content-center mb-3 d-none" id="pwaDashboardPushRow">
     <div class="col-12 col-lg-11">
         <div class="card border-warning shadow-sm bg-warning bg-opacity-10" id="pwaDashboardPushCard">

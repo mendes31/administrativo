@@ -19,7 +19,6 @@
             </div>
         </div>
     </div>
-    <?php include __DIR__ . '/../partials/pwa_dashboard_cards.php'; ?>
     <div class="row justify-content-center mb-4">
         <div class="col-12 col-lg-10">
             <div class="row g-3 justify-content-center align-items-stretch dashboard-quick-row">

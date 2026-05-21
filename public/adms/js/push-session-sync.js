@@ -4,11 +4,10 @@
     var cfg = window.__PushSessionSyncInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
     var csrfToken = cfg.csrfToken || '';
-    var swVersion = cfg.swVersion || '20260520-13';
     var userId = cfg.userId || 0;
 
     function getServiceWorkerUrl() {
-        return urlAdm + '/service-worker.js?v=' + encodeURIComponent(swVersion);
+        return urlAdm + '/service-worker.js';
     }
 
     if (!urlAdm || !csrfToken || userId <= 0) {

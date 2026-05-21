@@ -118,14 +118,12 @@ if (!headers_sent() && isset($_SESSION['user_id'])) {
     '</script>';
 }
 
-$pushSwVersion = '20260520-13';
 $pushSessionSyncInit = null;
 if (!empty($_SESSION['user_id'])) {
     $pushSessionSyncInit = [
         'urlAdm' => rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'),
         'csrfToken' => \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_push_subscribe'),
         'userId' => (int) $_SESSION['user_id'],
-        'swVersion' => $pushSwVersion,
     ];
 }
 
@@ -313,6 +311,9 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
             <main>
 
                 <?php
+                if ($pushSessionSyncInit !== null) {
+                    include 'app/adms/Views/partials/pwa_dashboard_cards.php';
+                }
                 // Inclui o conteÃºdo principal da pÃ¡gina, que Ã© especificado pela propriedade $this->view. Este arquivo Ã© dinÃ¢mico e pode variar conforme a lÃ³gica do controlador ou o contexto da pÃ¡gina.
                 include $this->view;
 
@@ -550,39 +551,16 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     })();
     </script>
 
-    <script>
-    // Registro do Service Worker raiz para PWA (cobre /administrativo/)
-    (function() {
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                const swUrl = '<?php echo rtrim($_ENV['URL_ADM'], '/'); ?>/service-worker.js?v=20260520-13';
-                fetch(swUrl, { method: 'GET', credentials: 'same-origin' })
-                    .then(function (res) {
-                        const ct = (res.headers.get('content-type') || '').toLowerCase();
-                        if (!res.ok || ct.indexOf('javascript') === -1) {
-                            return null;
-                        }
-                        return navigator.serviceWorker.register(swUrl);
-                    })
-                    .catch(function(error) {
-                        console.warn('Falha ao registrar Service Worker:', error);
-                    });
-            });
-        }
-    })();
-    </script>
-
     <?php if ($pushSessionSyncInit !== null): ?>
     <script>
     window.__PushSessionSyncInit = <?php echo json_encode($pushSessionSyncInit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     window.__PwaAppInit = {
         urlAdm: <?php echo json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES); ?>,
-        swVersion: <?php echo json_encode($pushSwVersion, JSON_UNESCAPED_UNICODE); ?>,
         csrfToken: <?php echo json_encode($pushSessionSyncInit['csrfToken'], JSON_UNESCAPED_UNICODE); ?>
     };
     </script>
     <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-session-sync.js?v=5"></script>
-    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/pwa-app.js?v=8"></script>
+    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/pwa-app.js?v=10"></script>
     <?php endif; ?>
 
     <script>

@@ -3,10 +3,8 @@
 
     var cfg = window.__PwaAppInit || {};
     var urlAdm = (cfg.urlAdm || '').replace(/\/$/, '');
-    var swVersion = cfg.swVersion || '20260520-13';
     var csrfToken = cfg.csrfToken || '';
     var STORAGE_HINT = 'adms_pwa_browser_hint_dismissed';
-    var STORAGE_UPDATE_LATER = 'adms_pwa_update_later';
     var STORAGE_PUSH_LATER = 'adms_pwa_push_banner_later';
     var STORAGE_INSTALLED = 'adms_pwa_installed';
     var STORAGE_INSTALL_DISMISS = 'adms_pwa_install_promo_dismissed';
@@ -281,16 +279,7 @@
     }
 
     function getServiceWorkerUrl() {
-        return urlAdm + '/service-worker.js?v=' + encodeURIComponent(swVersion);
-    }
-
-    function isUpdateDeferred() {
-        try {
-            var laterTs = parseInt(sessionStorage.getItem(STORAGE_UPDATE_LATER) || '0', 10);
-            return laterTs > 0 && (Date.now() - laterTs) < 60 * 60 * 1000;
-        } catch (e) {
-            return false;
-        }
+        return urlAdm + '/service-worker.js';
     }
 
     function isPushBannerDeferred() {
@@ -300,22 +289,6 @@
         } catch (e) {
             return false;
         }
-    }
-
-    function isUpdatePending() {
-        return !!(
-            swRegistration &&
-            swRegistration.waiting &&
-            navigator.serviceWorker &&
-            navigator.serviceWorker.controller
-        );
-    }
-
-    function deferUpdate() {
-        try {
-            sessionStorage.setItem(STORAGE_UPDATE_LATER, String(Date.now()));
-        } catch (e) { /* ignore */ }
-        refreshPwaPromoState();
     }
 
     function deferPushBanner() {
@@ -351,13 +324,71 @@
         return outputArray;
     }
 
-    function getSwRegistration() {
+    function acquireSwRegistration() {
         if (!('serviceWorker' in navigator)) {
             return Promise.reject(new Error('Service Worker indisponível'));
         }
-        return navigator.serviceWorker.register(getServiceWorkerUrl()).then(function () {
+        var swUrl = getServiceWorkerUrl();
+        return navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            var i;
+            var match = null;
+            for (i = 0; i < registrations.length; i++) {
+                if (
+                    registrations[i].active &&
+                    registrations[i].active.scriptURL &&
+                    registrations[i].active.scriptURL.indexOf('service-worker.js') !== -1
+                ) {
+                    match = registrations[i];
+                    break;
+                }
+                if (
+                    registrations[i].waiting &&
+                    registrations[i].waiting.scriptURL &&
+                    registrations[i].waiting.scriptURL.indexOf('service-worker.js') !== -1
+                ) {
+                    match = registrations[i];
+                    break;
+                }
+            }
+            if (match) {
+                return match;
+            }
+            return navigator.serviceWorker.register(swUrl);
+        });
+    }
+
+    function getSwRegistration() {
+        if (swRegistration) {
+            return navigator.serviceWorker.ready;
+        }
+        return acquireSwRegistration().then(function (registration) {
+            swRegistration = registration;
             return navigator.serviceWorker.ready;
         });
+    }
+
+    function schedulePwaUpdateChecks(registration) {
+        function checkUpdate() {
+            return registration.update().catch(function () {});
+        }
+
+        if (isPwaDisplayModeActive()) {
+            checkUpdate();
+        }
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                checkUpdate();
+            }
+        });
+
+        window.addEventListener('pageshow', function (ev) {
+            if (ev.persisted || isPwaDisplayModeActive()) {
+                checkUpdate();
+            }
+        });
+
+        setInterval(checkUpdate, 60 * 60 * 1000);
     }
 
     function requestNotificationPermission() {
@@ -520,14 +551,10 @@
     }
 
     function refreshPwaPromoState() {
-        var updateRow = document.getElementById('pwaDashboardUpdateRow');
         var pushRow = document.getElementById('pwaDashboardPushRow');
         var installRow = document.getElementById('pwaDashboardInstallRow');
 
         function hidePromoRows() {
-            if (updateRow) {
-                updateRow.classList.add('d-none');
-            }
             if (pushRow) {
                 pushRow.classList.add('d-none');
             }
@@ -541,13 +568,6 @@
 
         resolveInstallDetection().then(function () {
             hidePromoRows();
-
-            if (isUpdatePending() && !isUpdateDeferred()) {
-                if (updateRow) {
-                    updateRow.classList.remove('d-none');
-                }
-                return;
-            }
 
             if (pushCheckDone && pushNeedsActivation && !isPushBannerDeferred()) {
                 if (pushRow) {
@@ -835,18 +855,11 @@
         bindClickOnce('btnPwaDashboardPushLater', deferPushBanner);
     }
 
-    function initUpdateHandlers() {
-        bindClickOnce('btnPwaDashboardUpdate', triggerAppUpdate);
-        bindClickOnce('btnPwaDashboardUpdateLater', deferUpdate);
-    }
-
-    function initUpdateChecker() {
+    function initServiceWorker() {
         if (!('serviceWorker' in navigator)) {
             checkPushNeedsActivation().then(refreshPwaPromoState);
             return;
         }
-
-        var swUrl = getServiceWorkerUrl();
 
         navigator.serviceWorker.addEventListener('controllerchange', function () {
             if (window._admsPwaReloading) {
@@ -856,29 +869,9 @@
             window.location.reload();
         });
 
-        navigator.serviceWorker.register(swUrl).then(function (registration) {
+        acquireSwRegistration().then(function (registration) {
             swRegistration = registration;
-
-            registration.addEventListener('updatefound', function () {
-                var newWorker = registration.installing;
-                if (!newWorker) {
-                    return;
-                }
-                newWorker.addEventListener('statechange', function () {
-                    if (
-                        newWorker.state === 'installed' &&
-                        navigator.serviceWorker.controller
-                    ) {
-                        refreshPwaPromoState();
-                    }
-                });
-            });
-
-            setInterval(function () {
-                registration.update().then(function () {
-                    refreshPwaPromoState();
-                }).catch(function () {});
-            }, 60 * 60 * 1000);
+            schedulePwaUpdateChecks(registration);
 
             return resolveInstallDetection().then(function () {
                 return checkPushNeedsActivation();
@@ -903,9 +896,8 @@
             installedRelatedAppsDetected = true;
             resolvedInstalled = true;
         }
-        initUpdateHandlers();
         initPushBannerHandlers();
         initInstallHandlers();
-        initUpdateChecker();
+        initServiceWorker();
     });
 })();

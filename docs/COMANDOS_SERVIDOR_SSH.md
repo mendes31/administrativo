@@ -382,12 +382,14 @@ Interpretação rápida:
 
 ### Deploy desta funcionalidade
 
-Subir `service-worker.js` (v `20260520-13`), `public/adms/js/pwa-app.js`, views do perfil/layout e agendar o cron. HTTPS obrigatório em produção (`URL_ADM` com `https://`).
+Subir `service-worker.js`, `public/adms/js/pwa-app.js`, views do perfil/layout e agendar o cron. HTTPS obrigatório em produção (`URL_ADM` com `https://`).
 
-### PWA — instalar e atualizar
+### PWA — instalar (sem versão manual do app)
 
-- **Dashboard** → cards por prioridade: **1) Nova versão** → **2) Ative as notificações** (PWA instalado, push ainda não neste aparelho) → **3) Instale o aplicativo**. Somente na dashboard.
-- **Meu Perfil** → configuração detalhada de instalar push e dispositivos.
-- Bump `?v=` em `service-worker.js` e `pwa-app.js` a cada release relevante.
+- **Todas as páginas logadas** → cards no topo (via `main.php`): **1) Ative as notificações** (PWA instalado, push pendente) → **2) Instale o aplicativo**.
+- **Meu Perfil** → instalar, push e dispositivos.
+- **Não** é necessário `$pushSwVersion` nem banner “Atualizar aplicativo” a cada feature: páginas PHP e JS/CSS com `?v=` no próprio arquivo refletem ao navegar ou recarregar (F5).
+- O **service worker** (`service-worker.js`, URL fixa) só cuida de **push**; se o arquivo mudar, o navegador atualiza em silêncio (`skipWaiting` + reload automático).
+- Em deploy, suba `pwa-app.js` com bump só em `pwa-app.js?v=` no layout quando alterar esse script.
 
 
