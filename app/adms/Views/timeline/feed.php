@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=38">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=39">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -185,6 +185,12 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                             <button type="button" class="timeline-composer-icon-btn" id="btnTimelinePoll" title="Criar enquete" aria-label="Criar enquete">
                                 <i class="fas fa-poll-h" aria-hidden="true"></i>
                             </button>
+                            <?php if (!empty($this->data['can_feature'])): ?>
+                            <label id="timelineComposerFeatureWrap" class="timeline-composer-feature-toggle ms-1 mb-0" title="Manter no topo das publicações deste dia">
+                                <input type="checkbox" class="form-check-input" name="is_featured" id="timelineComposerFeatured" value="1">
+                                <span class="small text-muted"><i class="fas fa-thumbtack me-1 text-warning" aria-hidden="true"></i>Destaque</span>
+                            </label>
+                            <?php endif; ?>
                             <button type="submit" class="timeline-composer-submit ms-auto" id="timelineComposerSubmitIcon" title="Publicar" aria-label="Publicar">
                                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
                             </button>
@@ -539,4 +545,4 @@ $__timelineFeedInit = [
 <script>
 window.__TimelineFeedInit = <?php echo json_encode($__timelineFeedInit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="<?php echo htmlspecialchars($urlAdm); ?>public/adms/js/timeline-feed.js?v=3" defer></script>
+<script src="<?php echo htmlspecialchars($urlAdm); ?>public/adms/js/timeline-feed.js?v=4" defer></script>

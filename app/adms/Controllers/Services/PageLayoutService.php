@@ -185,6 +185,7 @@ class PageLayoutService
             'UpdateTimelinePost',
             'TimelineComment',
             'TimelineShare',
+            'TimelineFeaturePost',
             'TimelineSearchUsers',
             'ListCompanyEvents',
             'ViewCompanyEvent',

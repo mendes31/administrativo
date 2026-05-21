@@ -92,6 +92,9 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                     </div>
                     <div class="text-muted small">
                         <?php echo date('d/m/Y H:i', strtotime($postRow['created_at'] ?? 'now')); ?>
+                        <?php if (!empty($postRow['is_featured'])): ?>
+                            <span class="badge rounded-pill text-bg-warning text-dark ms-1 timeline-post-featured-badge" title="Em destaque neste dia"><i class="fas fa-thumbtack me-1" aria-hidden="true"></i>Destaque</span>
+                        <?php endif; ?>
                         <?php if (!empty($postRow['edited_at'])): ?>
                             <span class="ms-1">· editado</span>
                         <?php endif; ?>

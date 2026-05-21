@@ -23,9 +23,10 @@ class CreateTimelinePost
         }
 
         $permRepo = new ButtonPermissionUserRepository();
-        $perms = $permRepo->buttonPermission(['CreateTimelinePost', 'TimelineShare']);
+        $perms = $permRepo->buttonPermission(['CreateTimelinePost', 'TimelineShare', 'TimelineFeaturePost']);
         $canCreate = is_array($perms) && in_array('CreateTimelinePost', $perms, true);
         $canShare = is_array($perms) && in_array('TimelineShare', $perms, true);
+        $canFeature = is_array($perms) && in_array('TimelineFeaturePost', $perms, true);
         if (!$canCreate) {
             $this->failAndExit('Sem permissão para publicar na timeline.', 'error');
         }
@@ -208,7 +209,18 @@ class CreateTimelinePost
                 $this->failAndExit('Você já publicou uma mensagem de tempo de empresa para este colaborador hoje.', 'msg_warning');
             }
         }
-        $postId = $repo->createPost($authorId, $content !== '' ? $content : ' ', $imagePaths, $videoPath, $sharedFromPostId, $postType);
+        $isFeatured = $canFeature
+            && $postType === 'regular'
+            && filter_var($_POST['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $postId = $repo->createPost(
+            $authorId,
+            $content !== '' ? $content : ' ',
+            $imagePaths,
+            $videoPath,
+            $sharedFromPostId,
+            $postType,
+            $isFeatured
+        );
         if ($postType === 'poll') {
             $starts = $pollStartsAt !== '' ? str_replace('T', ' ', $pollStartsAt) . ':00' : null;
             $ends = str_replace('T', ' ', $pollEndsAt) . ':00';

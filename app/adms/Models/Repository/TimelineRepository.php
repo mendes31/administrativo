@@ -10,6 +10,49 @@ use PDO;
 
 class TimelineRepository extends DbConnection
 {
+    /** Ordenação do feed: dia (desc) → celebrações → destaque → horário. */
+    public const FEED_ORDER_BY = 'DATE(p.created_at) DESC,
+                CASE p.post_type WHEN \'birthday\' THEN 0 WHEN \'tenure\' THEN 1 ELSE 2 END ASC,
+                p.is_featured DESC,
+                p.created_at DESC,
+                p.id DESC';
+
+    /**
+     * @param array<string, mixed> $a
+     * @param array<string, mixed> $b
+     */
+    public static function comparePostsForFeed(array $a, array $b): int
+    {
+        $aDay = strtotime(date('Y-m-d', strtotime((string)($a['created_at'] ?? 'now')))) ?: 0;
+        $bDay = strtotime(date('Y-m-d', strtotime((string)($b['created_at'] ?? 'now')))) ?: 0;
+        if ($aDay !== $bDay) {
+            return $bDay <=> $aDay;
+        }
+        $prio = ['birthday' => 0, 'tenure' => 1];
+        $aP = $prio[(string)($a['post_type'] ?? 'regular')] ?? 2;
+        $bP = $prio[(string)($b['post_type'] ?? 'regular')] ?? 2;
+        if ($aP !== $bP) {
+            return $aP <=> $bP;
+        }
+        $aFeat = !empty($a['is_featured']) ? 1 : 0;
+        $bFeat = !empty($b['is_featured']) ? 1 : 0;
+        if ($aFeat !== $bFeat) {
+            return $bFeat <=> $aFeat;
+        }
+        $aTs = strtotime((string)($a['created_at'] ?? '')) ?: 0;
+        $bTs = strtotime((string)($b['created_at'] ?? '')) ?: 0;
+        if ($aTs !== $bTs) {
+            return $bTs <=> $aTs;
+        }
+
+        return (int)($b['id'] ?? 0) <=> (int)($a['id'] ?? 0);
+    }
+
+    private function normalizePostType(string $postType): string
+    {
+        return in_array($postType, ['poll', 'birthday', 'tenure'], true) ? $postType : 'regular';
+    }
+
     /**
      * @param array<int, string>|null $imagePaths
      */
@@ -19,12 +62,16 @@ class TimelineRepository extends DbConnection
         ?array $imagePaths,
         ?string $videoPath = null,
         ?int $sharedFromPostId = null,
-        string $postType = 'regular'
+        string $postType = 'regular',
+        bool $isFeatured = false
     ): int
     {
-        $postType = $postType === 'poll' ? 'poll' : 'regular';
-        $sql = 'INSERT INTO adms_timeline_posts (user_id, content, image_path, video_path, shared_from_post_id, post_type, status, created_at, updated_at)
-                VALUES (:uid, :content, :img, :vid, :shared, :post_type, "active", NOW(), NOW())';
+        $postType = $this->normalizePostType($postType);
+        if ($postType !== 'regular') {
+            $isFeatured = false;
+        }
+        $sql = 'INSERT INTO adms_timeline_posts (user_id, content, image_path, video_path, shared_from_post_id, post_type, is_featured, status, created_at, updated_at)
+                VALUES (:uid, :content, :img, :vid, :shared, :post_type, :featured, "active", NOW(), NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':content', $content, PDO::PARAM_STR);
@@ -38,6 +85,7 @@ class TimelineRepository extends DbConnection
         $stmt->bindValue(':vid', $videoPath, $videoPath !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':shared', $sharedFromPostId, $sharedFromPostId !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':post_type', $postType, PDO::PARAM_STR);
+        $stmt->bindValue(':featured', $isFeatured ? 1 : 0, PDO::PARAM_INT);
         $stmt->execute();
         $postId = (int)$this->getConnection()->lastInsertId();
 
@@ -315,7 +363,7 @@ class TimelineRepository extends DbConnection
             $sql .= ' AND p.content LIKE :qsearch';
         }
         $sql .= '
-                ORDER BY p.created_at DESC
+                ORDER BY ' . self::FEED_ORDER_BY . '
                 LIMIT :lim OFFSET :off';
         $stmt = $this->getConnection()->prepare($sql);
         if ($tag !== '') {
@@ -356,7 +404,7 @@ class TimelineRepository extends DbConnection
                 WHERE p.status = "active"
                   AND (p.user_id = :uid OR m.mentioned_user_id = :uid)
                 GROUP BY p.id
-                ORDER BY p.created_at DESC
+                ORDER BY ' . self::FEED_ORDER_BY . '
                 LIMIT :lim OFFSET :off';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);

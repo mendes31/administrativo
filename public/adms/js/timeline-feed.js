@@ -1459,10 +1459,18 @@
     const btnPollClear = document.getElementById('timelineComposerPollClear');
     const btnPollAdd = document.getElementById('timelinePollAddOption');
     const pollOptionsWrap = document.getElementById('timelinePollOptionsWrap');
+    const featureWrap = document.getElementById('timelineComposerFeatureWrap');
+    const featureInput = document.getElementById('timelineComposerFeatured');
     function setPollMode(on) {
         if (!pollTypeInput || !pollBlock) return;
         pollTypeInput.value = on ? 'poll' : 'regular';
         pollBlock.classList.toggle('d-none', !on);
+        if (featureWrap) {
+            featureWrap.classList.toggle('d-none', on);
+        }
+        if (on && featureInput) {
+            featureInput.checked = false;
+        }
     }
     if (btnPoll) {
         btnPoll.addEventListener('click', function () {

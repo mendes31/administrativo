@@ -140,6 +140,7 @@ class TimelineProfile
             'TimelineLike',
             'TimelinePostReactions',
             'TimelineShare',
+            'TimelineFeaturePost',
         ]);
         $this->data['can_create'] = is_array($perms) && in_array('CreateTimelinePost', $perms, true);
         $this->data['can_moderate'] = is_array($perms) && in_array('TimelineModerate', $perms, true);
@@ -150,6 +151,7 @@ class TimelineProfile
         $this->data['can_view_comments'] = is_array($perms)
             && (in_array('TimelineComment', $perms, true) || in_array('TimelineViewComments', $perms, true));
         $this->data['can_share'] = is_array($perms) && in_array('TimelineShare', $perms, true);
+        $this->data['can_feature'] = is_array($perms) && in_array('TimelineFeaturePost', $perms, true);
 
         $displayName = (string)($profile['name'] ?? 'Perfil');
         $pageElements = [

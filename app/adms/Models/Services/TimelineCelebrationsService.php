@@ -71,7 +71,7 @@ class TimelineCelebrationsService
             $content = $intro . $bulletList . $footer;
 
                 if ($institutionalUserId > 0) {
-                    $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                    $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'birthday');
                     if ($postId > 0 && $birthdayUserIds !== []) {
                         $timelineRepo->replaceMentions('post', $postId, $birthdayUserIds);
                     }
@@ -129,7 +129,7 @@ class TimelineCelebrationsService
 
             if ($institutionalUserId > 0
                 && !self::hasInstitutionalPostToday($timelineRepo, $institutionalUserId, '🔥 Tempo de empresa:')) {
-                $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'regular');
+                $postId = $timelineRepo->createPost($institutionalUserId, $content, null, null, null, 'tenure');
                 if ($postId > 0 && $tenureUserIds !== []) {
                     $timelineRepo->replaceMentions('post', $postId, $tenureUserIds);
                 }

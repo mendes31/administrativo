@@ -808,6 +808,24 @@ video.timeline-post-video-lazy:not([src]) {
     background: #e4e6eb;
     color: #050505;
 }
+.timeline-composer-feature-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.timeline-composer-feature-toggle:hover {
+    background: #f0f2f5;
+}
+.timeline-post-featured-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    vertical-align: middle;
+}
 .timeline-composer-icon-photo {
     color: #45bd62;
 }
