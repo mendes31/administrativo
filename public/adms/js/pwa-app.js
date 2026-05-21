@@ -8,8 +8,10 @@
     var STORAGE_HINT = 'adms_pwa_browser_hint_dismissed';
     var STORAGE_UPDATE_LATER = 'adms_pwa_update_later';
     var STORAGE_PUSH_LATER = 'adms_pwa_push_banner_later';
+    var STORAGE_INSTALLED = 'adms_pwa_installed';
 
     var deferredInstallPrompt = null;
+    var installedRelatedAppsDetected = false;
     var swRegistration = null;
     var pushNeedsActivation = false;
     var pushCheckDone = false;
@@ -31,7 +33,9 @@
     window.addEventListener('appinstalled', function () {
         deferredInstallPrompt = null;
         window.__admsDeferredInstallPrompt = null;
+        markPwaInstalledLocally();
         refreshInstallUi();
+        refreshPwaPromoState();
     });
 
     function ua() {
@@ -68,14 +72,66 @@
             !/OPR\//i.test(u);
     }
 
+    function markPwaInstalledLocally() {
+        installedRelatedAppsDetected = true;
+        try {
+            localStorage.setItem(STORAGE_INSTALLED, '1');
+        } catch (e) { /* ignore */ }
+    }
+
+    function hasLocalPwaInstalledFlag() {
+        try {
+            return localStorage.getItem(STORAGE_INSTALLED) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function isPwaDisplayModeActive() {
+        if (!window.matchMedia) {
+            return false;
+        }
+        var modes = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'];
+        for (var i = 0; i < modes.length; i++) {
+            if (window.matchMedia('(display-mode: ' + modes[i] + ')').matches) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Instalado = janela do app OU flag local (appinstalled) OU getInstalledRelatedApps (Edge/Chrome em aba normal).
+     */
     function isPwaInstalled() {
-        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+        if (isPwaDisplayModeActive()) {
             return true;
         }
         if (window.navigator.standalone === true) {
             return true;
         }
-        return false;
+        if (hasLocalPwaInstalledFlag()) {
+            return true;
+        }
+        return installedRelatedAppsDetected;
+    }
+
+    function probeInstalledRelatedApps() {
+        if (!navigator.getInstalledRelatedApps) {
+            return Promise.resolve(false);
+        }
+        return navigator.getInstalledRelatedApps()
+            .then(function (apps) {
+                var found = !!(apps && apps.length > 0);
+                installedRelatedAppsDetected = found;
+                if (found) {
+                    markPwaInstalledLocally();
+                }
+                return found;
+            })
+            .catch(function () {
+                return false;
+            });
     }
 
     function canUseNativeInstallPrompt() {
@@ -119,8 +175,10 @@
             deferredInstallPrompt = null;
             window.__admsDeferredInstallPrompt = null;
             if (choice.outcome === 'accepted') {
+                markPwaInstalledLocally();
                 setInstallStatus('Instalado', 'bg-success');
                 hideInstallButtons();
+                refreshPwaPromoState();
             }
             refreshInstallUi();
             return choice.outcome === 'accepted';
@@ -696,18 +754,31 @@
                 }).catch(function () {});
             }, 60 * 60 * 1000);
 
-            return checkPushNeedsActivation();
+            return probeInstalledRelatedApps().then(function () {
+                return checkPushNeedsActivation();
+            });
         }).then(function () {
             refreshPwaPromoState();
+            refreshInstallUi();
         }).catch(function () {
-            checkPushNeedsActivation().then(refreshPwaPromoState);
+            probeInstalledRelatedApps()
+                .then(function () {
+                    return checkPushNeedsActivation();
+                })
+                .then(function () {
+                    refreshPwaPromoState();
+                    refreshInstallUi();
+                });
         });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        initUpdateChecker();
+        if (hasLocalPwaInstalledFlag()) {
+            installedRelatedAppsDetected = true;
+        }
         initUpdateHandlers();
         initPushBannerHandlers();
         initInstallHandlers();
+        initUpdateChecker();
     });
 })();

@@ -572,7 +572,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     };
     </script>
     <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-session-sync.js?v=5"></script>
-    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/pwa-app.js?v=6"></script>
+    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/pwa-app.js?v=7"></script>
     <?php endif; ?>
 
     <script>
