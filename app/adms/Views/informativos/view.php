@@ -117,7 +117,7 @@ $informativo = $this->data['informativo'];
                     <!-- Conteúdo -->
                     <div class="mb-4">
                         <h5>Conteúdo</h5>
-                        <div class="border rounded p-3 bg-light">
+                        <div class="border rounded p-3 bg-light adms-view-rich-content">
                             <?php
                             $conteudo = $informativo['conteudo'] ?? '';
                             // Compatibilidade: se vier HTML (ex.: TinyMCE), renderiza como HTML.
@@ -145,16 +145,24 @@ $informativo = $this->data['informativo'];
                 <div class="col-md-4">
                     <!-- Imagem -->
                     <?php if (!empty($informativo['imagem'])): ?>
+                        <?php
+                        $informativoImageUrl = $_ENV['URL_ADM'] . 'serve-file?path=' . urlencode($informativo['imagem']);
+                        ?>
                         <div class="mb-4">
                             <h5>Imagem</h5>
-                            <img src="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['imagem']); ?>"
+                            <img src="<?php echo htmlspecialchars($informativoImageUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                                 data-adms-image-preview="<?php echo htmlspecialchars($informativoImageUrl, ENT_QUOTES, 'UTF-8'); ?>"
                                  class="img-fluid rounded shadow"
                                  alt="Imagem do informativo"
-                                 style="max-width: 100%; max-height: 300px;"
+                                 title="Clique para ampliar"
+                                 role="button"
+                                 tabindex="0"
+                                 style="max-width: 100%; max-height: 300px; cursor: pointer;"
                                  loading="lazy"
                                  decoding="async"
                                  fetchpriority="low"
                                  onerror="this.style.display='none';">
+                            <p class="text-muted small mt-1 mb-0"><i class="fas fa-search-plus me-1"></i>Clique na imagem para ampliar</p>
                         </div>
                     <?php endif; ?>
                     
@@ -225,4 +233,6 @@ $informativo = $this->data['informativo'];
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<?php include __DIR__ . '/../partials/image_preview_modal.php'; ?>
