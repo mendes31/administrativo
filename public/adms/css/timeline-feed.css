@@ -811,15 +811,64 @@ video.timeline-post-video-lazy:not([src]) {
 .timeline-composer-feature-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
     cursor: pointer;
     user-select: none;
-    white-space: nowrap;
+    color: #f7b125;
+    background: transparent;
+    transition: background 0.12s ease, color 0.12s ease;
 }
 .timeline-composer-feature-toggle:hover {
-    background: #f0f2f5;
+    background: rgba(247, 177, 37, 0.12);
+    color: #c98a12;
+}
+.timeline-composer-feature-toggle:has(.timeline-composer-feature-input:checked) {
+    background: rgba(247, 177, 37, 0.22);
+    color: #b8860b;
+}
+.timeline-composer-feature-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+.timeline-composer-feature-toggle .fa-thumbtack {
+    font-size: 1rem;
+    pointer-events: none;
+}
+.timeline-composer-feature-label {
+    display: none;
+}
+@media (min-width: 768px) {
+    .timeline-composer-feature-toggle {
+        width: auto;
+        height: auto;
+        min-height: 36px;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        gap: 0.35rem;
+    }
+    .timeline-composer-feature-label {
+        display: inline;
+        font-size: 0.875rem;
+        color: #65676b;
+        pointer-events: none;
+    }
+    .timeline-composer-feature-toggle:has(.timeline-composer-feature-input:checked) .timeline-composer-feature-label {
+        color: #b8860b;
+        font-weight: 600;
+    }
 }
 .timeline-post-featured-badge {
     font-size: 0.7rem;

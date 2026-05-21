@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=39">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=40">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -186,9 +186,10 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                                 <i class="fas fa-poll-h" aria-hidden="true"></i>
                             </button>
                             <?php if (!empty($this->data['can_feature'])): ?>
-                            <label id="timelineComposerFeatureWrap" class="timeline-composer-feature-toggle ms-1 mb-0" title="Manter no topo das publicações deste dia">
-                                <input type="checkbox" class="form-check-input" name="is_featured" id="timelineComposerFeatured" value="1">
-                                <span class="small text-muted"><i class="fas fa-thumbtack me-1 text-warning" aria-hidden="true"></i>Destaque</span>
+                            <label id="timelineComposerFeatureWrap" class="timeline-composer-feature-toggle timeline-composer-icon-btn timeline-composer-icon-feature mb-0" title="Manter em destaque (topo do dia)" aria-label="Manter em destaque">
+                                <input type="checkbox" class="timeline-composer-feature-input" name="is_featured" id="timelineComposerFeatured" value="1">
+                                <i class="fas fa-thumbtack" aria-hidden="true"></i>
+                                <span class="timeline-composer-feature-label">Destaque</span>
                             </label>
                             <?php endif; ?>
                             <button type="submit" class="timeline-composer-submit ms-auto" id="timelineComposerSubmitIcon" title="Publicar" aria-label="Publicar">
