@@ -1,5 +1,11 @@
 {
   "id": "/administrativo/",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "manifest.json"
+    }
+  ],
   "name": "Portal Interno Grupo Tiaraju",
   "short_name": "Tiaraju",
   "start_url": "/administrativo/",

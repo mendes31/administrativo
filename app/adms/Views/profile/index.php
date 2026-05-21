@@ -219,6 +219,9 @@ use App\adms\Helpers\PositionDisplayHelper;
                         <button type="button" class="btn btn-success btn-sm" id="btnPwaInstall">
                             <i class="fas fa-download me-1"></i> Instalar aplicativo
                         </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPwaInstallDismiss">
+                            Já tenho instalado
+                        </button>
                     </div>
                 </div>
             </div>

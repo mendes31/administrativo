@@ -195,7 +195,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/image/icon/favicon.ico">
     <link rel="apple-touch-icon" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/uploads/users/1/pwa-icon-512.png">
-    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-3">
+    <link rel="manifest" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/manifest.json?v=20260520-4">
     <meta name="theme-color" content="#2E9263">
     <?php if (!empty($_SESSION['user_id'])): ?>
     <script>
@@ -572,7 +572,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     };
     </script>
     <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/push-session-sync.js?v=5"></script>
-    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/pwa-app.js?v=7"></script>
+    <script src="<?php echo htmlspecialchars($pushSessionSyncInit['urlAdm'], ENT_QUOTES, 'UTF-8'); ?>/public/adms/js/pwa-app.js?v=8"></script>
     <?php endif; ?>
 
     <script>

@@ -9,9 +9,14 @@
     var STORAGE_UPDATE_LATER = 'adms_pwa_update_later';
     var STORAGE_PUSH_LATER = 'adms_pwa_push_banner_later';
     var STORAGE_INSTALLED = 'adms_pwa_installed';
+    var STORAGE_INSTALL_DISMISS = 'adms_pwa_install_promo_dismissed';
+    var STORAGE_BIP_EVER = 'adms_pwa_beforeinstallprompt_seen';
+    var INSTALL_DETECT_WAIT_MS = 3600;
 
     var deferredInstallPrompt = null;
     var installedRelatedAppsDetected = false;
+    var resolvedInstalled = null;
+    var installDetectionPromise = null;
     var swRegistration = null;
     var pushNeedsActivation = false;
     var pushCheckDone = false;
@@ -26,6 +31,9 @@
         e.preventDefault();
         deferredInstallPrompt = e;
         window.__admsDeferredInstallPrompt = e;
+        try {
+            localStorage.setItem(STORAGE_BIP_EVER, '1');
+        } catch (err) { /* ignore */ }
         window.dispatchEvent(new Event('adms-pwa-installable'));
         refreshInstallUi();
     });
@@ -100,10 +108,31 @@
         return false;
     }
 
-    /**
-     * Instalado = janela do app OU flag local (appinstalled) OU getInstalledRelatedApps (Edge/Chrome em aba normal).
-     */
-    function isPwaInstalled() {
+    function isChromiumBrowser() {
+        var u = ua();
+        return /Edg\/|Chrome\/|OPR\/|Brave/i.test(u) && !/Firefox/i.test(u) && !isIOS();
+    }
+
+    function isInstallPromoDismissed() {
+        try {
+            var ts = parseInt(localStorage.getItem(STORAGE_INSTALL_DISMISS) || '0', 10);
+            return ts > 0;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function dismissInstallPromo() {
+        markPwaInstalledLocally();
+        try {
+            localStorage.setItem(STORAGE_INSTALL_DISMISS, String(Date.now()));
+        } catch (e) { /* ignore */ }
+        refreshInstallUi();
+        refreshPwaPromoState();
+    }
+
+    /** Checagens síncronas (modo app, iOS, flag gravada). */
+    function isPwaInstalledSync() {
         if (isPwaDisplayModeActive()) {
             return true;
         }
@@ -113,7 +142,24 @@
         if (hasLocalPwaInstalledFlag()) {
             return true;
         }
-        return installedRelatedAppsDetected;
+        if (installedRelatedAppsDetected) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Instalado = app aberto em modo standalone OU detecção assíncrona concluída (cache).
+     */
+    function isPwaInstalled() {
+        if (resolvedInstalled !== null) {
+            return resolvedInstalled;
+        }
+        return isPwaInstalledSync();
+    }
+
+    function shouldShowInstallPromo() {
+        return !isPwaInstalled() && !isInstallPromoDismissed();
     }
 
     function probeInstalledRelatedApps() {
@@ -123,7 +169,6 @@
         return navigator.getInstalledRelatedApps()
             .then(function (apps) {
                 var found = !!(apps && apps.length > 0);
-                installedRelatedAppsDetected = found;
                 if (found) {
                     markPwaInstalledLocally();
                 }
@@ -132,6 +177,56 @@
             .catch(function () {
                 return false;
             });
+    }
+
+    /**
+     * Aguarda beforeinstallprompt; se não vier, assume instalado em Chromium (Edge/Chrome não reoferecem instalação).
+     */
+    function resolveInstallDetection() {
+        if (installDetectionPromise) {
+            return installDetectionPromise;
+        }
+
+        if (isPwaInstalledSync()) {
+            resolvedInstalled = true;
+            installDetectionPromise = Promise.resolve(true);
+            return installDetectionPromise;
+        }
+
+        installDetectionPromise = waitForInstallPrompt(INSTALL_DETECT_WAIT_MS)
+            .then(function (hasInstallPrompt) {
+                syncDeferredInstallPrompt();
+                if (canUseNativeInstallPrompt() || hasInstallPrompt) {
+                    return false;
+                }
+                return probeInstalledRelatedApps().then(function (fromApi) {
+                    if (fromApi) {
+                        return true;
+                    }
+                    if (hasLocalPwaInstalledFlag()) {
+                        return true;
+                    }
+                    // Já foi instalável antes (bip disparou) e agora não oferece mais prompt → app já instalado (Edge/Chrome).
+                    try {
+                        if (
+                            isChromiumBrowser() &&
+                            window.isSecureContext &&
+                            localStorage.getItem(STORAGE_BIP_EVER) === '1'
+                        ) {
+                            markPwaInstalledLocally();
+                            return true;
+                        }
+                    } catch (err) { /* ignore */ }
+                    return false;
+                });
+            })
+            .then(function (installed) {
+                resolvedInstalled = !!installed;
+                installedRelatedAppsDetected = resolvedInstalled;
+                return resolvedInstalled;
+            });
+
+        return installDetectionPromise;
     }
 
     function canUseNativeInstallPrompt() {
@@ -429,37 +524,45 @@
         var pushRow = document.getElementById('pwaDashboardPushRow');
         var installRow = document.getElementById('pwaDashboardInstallRow');
 
-        if (updateRow) {
-            updateRow.classList.add('d-none');
+        function hidePromoRows() {
+            if (updateRow) {
+                updateRow.classList.add('d-none');
+            }
+            if (pushRow) {
+                pushRow.classList.add('d-none');
+            }
+            if (installRow) {
+                installRow.classList.add('d-none');
+            }
         }
-        if (pushRow) {
-            pushRow.classList.add('d-none');
-        }
-        if (installRow) {
-            installRow.classList.add('d-none');
-        }
+
+        hidePromoRows();
         setPushBannerError('');
 
-        if (isUpdatePending() && !isUpdateDeferred()) {
-            if (updateRow) {
-                updateRow.classList.remove('d-none');
-            }
-            return;
-        }
+        resolveInstallDetection().then(function () {
+            hidePromoRows();
 
-        if (pushCheckDone && pushNeedsActivation && !isPushBannerDeferred()) {
-            if (pushRow) {
-                pushRow.classList.remove('d-none');
+            if (isUpdatePending() && !isUpdateDeferred()) {
+                if (updateRow) {
+                    updateRow.classList.remove('d-none');
+                }
+                return;
             }
-            return;
-        }
 
-        if (!isPwaInstalled()) {
-            if (installRow) {
-                installRow.classList.remove('d-none');
-                applyInstallHintsLayout();
+            if (pushCheckDone && pushNeedsActivation && !isPushBannerDeferred()) {
+                if (pushRow) {
+                    pushRow.classList.remove('d-none');
+                }
+                return;
             }
-        }
+
+            if (shouldShowInstallPromo()) {
+                if (installRow) {
+                    installRow.classList.remove('d-none');
+                    applyInstallHintsLayout();
+                }
+            }
+        });
     }
 
     function openInChromeAndroid() {
@@ -558,73 +661,92 @@
     function refreshInstallUi() {
         applyInstallHintsLayout();
 
-        var btn = document.getElementById('btnPwaInstall');
-        var leadEl = document.getElementById('pwaInstallLead');
-        var hintsBlock = document.getElementById('pwaInstallHintsBlock');
-        if (!btn) {
-            refreshPwaPromoState();
-            return;
-        }
+        resolveInstallDetection().then(function () {
+            var btn = document.getElementById('btnPwaInstall');
+            var leadEl = document.getElementById('pwaInstallLead');
+            var hintsBlock = document.getElementById('pwaInstallHintsBlock');
+            var profileCard = document.getElementById('pwaInstallCard');
+            var dismissBtn = document.getElementById('btnPwaInstallDismiss');
 
-        if (isPwaInstalled()) {
-            setInstallStatus('Instalado', 'bg-success');
-            btn.classList.add('d-none');
-            if (leadEl) {
-                leadEl.textContent = 'O aplicativo está instalado neste dispositivo. Use o ícone na tela inicial para abrir.';
+            if (!btn) {
+                refreshPwaPromoState();
+                return;
             }
+
+            if (isPwaInstalled() || isInstallPromoDismissed()) {
+                setInstallStatus('Instalado', 'bg-success');
+                btn.classList.add('d-none');
+                if (dismissBtn) {
+                    dismissBtn.classList.add('d-none');
+                }
+                if (profileCard) {
+                    profileCard.classList.add('d-none');
+                }
+                if (leadEl) {
+                    leadEl.textContent = 'O aplicativo está instalado neste dispositivo. Use o ícone na tela inicial ou "Abrir no aplicativo" no navegador.';
+                }
+                if (hintsBlock) {
+                    hintsBlock.classList.add('d-none');
+                }
+                checkPushNeedsActivation().then(refreshPwaPromoState);
+                return;
+            }
+
+            if (profileCard) {
+                profileCard.classList.remove('d-none');
+            }
+            if (dismissBtn) {
+                dismissBtn.classList.remove('d-none');
+            }
+            btn.classList.remove('d-none');
+
             if (hintsBlock) {
-                hintsBlock.classList.add('d-none');
+                hintsBlock.classList.remove('d-none');
             }
-            checkPushNeedsActivation().then(refreshPwaPromoState);
-            return;
-        }
 
-        if (hintsBlock) {
-            hintsBlock.classList.remove('d-none');
-        }
+            setInstallStatus('Não instalado', 'bg-secondary');
 
-        setInstallStatus('Não instalado', 'bg-secondary');
+            if (canUseNativeInstallPrompt()) {
+                setInstallStatus('Pronto para instalar', 'bg-primary');
+                if (leadEl) {
+                    leadEl.textContent = 'Toque em Instalar aplicativo para abrir o assistente do navegador.';
+                }
+                refreshPwaPromoState();
+                return;
+            }
 
-        if (canUseNativeInstallPrompt()) {
-            setInstallStatus('Pronto para instalar', 'bg-primary');
+            if (isEdge() && !isIOS()) {
+                setInstallStatus('Instalado no Edge', 'bg-success');
+                if (leadEl) {
+                    leadEl.textContent = 'Se o app já está instalado, use "Abrir no aplicativo" na barra de endereço. Caso contrário, use ⋯ → Aplicativos.';
+                }
+                refreshPwaPromoState();
+                return;
+            }
+
+            if (isIOS()) {
+                setInstallStatus('Safari — Tela de Início', 'bg-info text-dark');
+                if (leadEl) {
+                    leadEl.textContent = 'No iPhone/iPad a instalação é manual pelo Safari. Siga os passos abaixo ou toque no botão para ver o guia.';
+                }
+                refreshPwaPromoState();
+                return;
+            }
+
+            if (isFirefox() || (/Android/i.test(ua()) && !isChromeAndroid())) {
+                setInstallStatus('Use o Chrome', 'bg-warning text-dark');
+                if (leadEl) {
+                    leadEl.textContent = 'Para instalar com suporte completo, abra o portal no Google Chrome neste aparelho.';
+                }
+                refreshPwaPromoState();
+                return;
+            }
+
             if (leadEl) {
-                leadEl.textContent = 'Toque em Instalar aplicativo para abrir o assistente do navegador.';
+                leadEl.textContent = 'Instale o portal na tela inicial para abrir como aplicativo, com ícone próprio e melhor experiência em celular.';
             }
             refreshPwaPromoState();
-            return;
-        }
-
-        if (isEdge() && !isIOS()) {
-            setInstallStatus('Instalar pelo Edge', 'bg-primary');
-            if (leadEl) {
-                leadEl.textContent = 'Use o ícone Instalar na barra de endereço ou ⋯ → Aplicativos. O botão abaixo mostra o passo a passo.';
-            }
-            refreshPwaPromoState();
-            return;
-        }
-
-        if (isIOS()) {
-            setInstallStatus('Safari — Tela de Início', 'bg-info text-dark');
-            if (leadEl) {
-                leadEl.textContent = 'No iPhone/iPad a instalação é manual pelo Safari. Siga os passos abaixo ou toque no botão para ver o guia.';
-            }
-            refreshPwaPromoState();
-            return;
-        }
-
-        if (isFirefox() || (/Android/i.test(ua()) && !isChromeAndroid())) {
-            setInstallStatus('Use o Chrome', 'bg-warning text-dark');
-            if (leadEl) {
-                leadEl.textContent = 'Para instalar com suporte completo, abra o portal no Google Chrome neste aparelho.';
-            }
-            refreshPwaPromoState();
-            return;
-        }
-
-        if (leadEl) {
-            leadEl.textContent = 'Instale o portal na tela inicial para abrir como aplicativo, com ícone próprio e melhor experiência em celular.';
-        }
-        refreshPwaPromoState();
+        });
     }
 
     function triggerAppUpdate() {
@@ -634,7 +756,7 @@
     }
 
     function hideInstallButtons() {
-        ['btnPwaInstall', 'btnPwaDashboardInstall'].forEach(function (id) {
+        ['btnPwaInstall', 'btnPwaDashboardInstall', 'btnPwaInstallDismiss', 'btnPwaDashboardInstallDismiss'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) {
                 el.classList.add('d-none');
@@ -697,11 +819,15 @@
     function initInstallHandlers() {
         bindClickOnce('btnPwaInstall', handleInstallClick);
         bindClickOnce('btnPwaDashboardInstall', handleInstallClick);
+        bindClickOnce('btnPwaDashboardInstallDismiss', dismissInstallPromo);
+        bindClickOnce('btnPwaInstallDismiss', dismissInstallPromo);
         bindClickOnce('btnPwaOpenChrome', openInChromeAndroid);
         bindClickOnce('btnPwaDismissChromeHint', dismissBrowserHint);
 
         syncDeferredInstallPrompt();
-        refreshInstallUi();
+        resolveInstallDetection().then(function () {
+            refreshInstallUi();
+        });
     }
 
     function initPushBannerHandlers() {
@@ -754,14 +880,14 @@
                 }).catch(function () {});
             }, 60 * 60 * 1000);
 
-            return probeInstalledRelatedApps().then(function () {
+            return resolveInstallDetection().then(function () {
                 return checkPushNeedsActivation();
             });
         }).then(function () {
             refreshPwaPromoState();
             refreshInstallUi();
         }).catch(function () {
-            probeInstalledRelatedApps()
+            resolveInstallDetection()
                 .then(function () {
                     return checkPushNeedsActivation();
                 })
@@ -775,6 +901,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (hasLocalPwaInstalledFlag()) {
             installedRelatedAppsDetected = true;
+            resolvedInstalled = true;
         }
         initUpdateHandlers();
         initPushBannerHandlers();

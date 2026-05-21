@@ -71,9 +71,12 @@
                         </p>
                     </div>
                 </div>
-                <div class="d-flex flex-shrink-0">
+                <div class="d-flex flex-column flex-sm-row gap-2 flex-shrink-0">
                     <button type="button" class="btn btn-success btn-sm" id="btnPwaDashboardInstall">
                         <i class="fas fa-download me-1"></i>Instalar aplicativo
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPwaDashboardInstallDismiss">
+                        Já tenho instalado
                     </button>
                 </div>
             </div>
