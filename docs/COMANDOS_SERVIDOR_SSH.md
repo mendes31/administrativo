@@ -390,6 +390,7 @@ Subir `service-worker.js`, `public/adms/js/pwa-app.js`, views do perfil/layout e
 - **Meu Perfil** → instalar, push e dispositivos.
 - **Não** é necessário `$pushSwVersion` nem banner “Atualizar aplicativo” a cada feature: páginas PHP e JS/CSS com `?v=` no próprio arquivo refletem ao navegar ou recarregar (F5).
 - O **service worker** (`service-worker.js`, URL fixa) só cuida de **push**; se o arquivo mudar, o navegador atualiza em silêncio (`skipWaiting` + reload automático).
+- **Ícone na barra de status (Android):** o SW usa `pwa-badge-*.png` do **mesmo domínio do PWA** (cache local), não o `URL_ADM` do `.env` (IP interno gera sino). Após deploy do `service-worker.js`, abra o portal no celular uma vez e teste push em Configuração Push.
 - Em deploy, suba `pwa-app.js` com bump só em `pwa-app.js?v=` no layout quando alterar esse script.
 
 

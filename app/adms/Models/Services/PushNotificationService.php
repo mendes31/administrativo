@@ -327,11 +327,34 @@ class PushNotificationService
     {
         $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
 
+        // Caminhos relativos: o service worker resolve pelo escopo do PWA (evita sino quando URL_ADM é IP interno).
         return [
-            'icon' => $icon ?: ($base . '/public/adms/image/pwa-icon-192.png'),
-            'badge' => $badge ?: ($base . '/public/adms/image/pwa-badge-192.png'),
+            'icon' => $this->normalizePushAssetPath($icon, 'public/adms/image/pwa-icon-192.png'),
+            'badge' => $this->normalizePushAssetPath($badge, 'public/adms/image/pwa-badge-192.png'),
             'baseUrl' => $base,
         ];
+    }
+
+    /**
+     * Mantém caminho relativo no payload; URLs absolutas de outro host são descartadas no SW.
+     */
+    private function normalizePushAssetPath(?string $value, string $defaultRelative): string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return $defaultRelative;
+        }
+
+        if (preg_match('#^https?://#i', $value)) {
+            $path = parse_url($value, PHP_URL_PATH);
+            if (is_string($path) && $path !== '') {
+                return ltrim($path, '/');
+            }
+
+            return $defaultRelative;
+        }
+
+        return ltrim($value, '/');
     }
 
     /**
