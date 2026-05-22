@@ -51,6 +51,44 @@ class LgpdTermosRepository extends DbConnection
     }
 
     /**
+     * Termo ativo tipo "site" cujo título contém o texto informado (case-insensitive).
+     * Usado para Termos de Uso e Política de Privacidade no rodapé do portal.
+     */
+    public function getTermoAtivoSitePorTituloContem(string $tituloContem): ?array
+    {
+        $tituloContem = trim($tituloContem);
+        if ($tituloContem === '') {
+            return null;
+        }
+
+        try {
+            $sql = "SELECT *
+                    FROM lgpd_termos
+                    WHERE TRIM(tipo) = 'site'
+                      AND status = 'Ativo'
+                      AND data_inicio_vigencia <= NOW()
+                      AND (
+                            data_fim_vigencia IS NULL
+                            OR data_fim_vigencia = '0000-00-00 00:00:00'
+                            OR data_fim_vigencia >= NOW()
+                          )
+                      AND LOWER(titulo) LIKE LOWER(:titulo)
+                    ORDER BY data_inicio_vigencia DESC, id DESC
+                    LIMIT 1";
+
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':titulo', '%' . $tituloContem . '%', PDO::PARAM_STR);
+            $stmt->execute();
+
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ?: null;
+        } catch (Exception $e) {
+            error_log('Erro ao buscar termo LGPD site por título: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Listar termos com paginação simples (para tela administrativa).
      */
     public function getAll(int $page = 1, int $perPage = 10, array $filters = []): array

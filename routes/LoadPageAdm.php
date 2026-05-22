@@ -182,7 +182,8 @@ class LoadPageAdm
         "ListGamificationQuizzes", "CreateGamificationQuiz", "UpdateGamificationQuiz", "DeleteGamificationQuiz",
         "ListGamificationQuizQuestions", "CreateGamificationQuizQuestion", "UpdateGamificationQuizQuestion", "DeleteGamificationQuizQuestion",
         "ListGamificationPointLedger", "GamificationQuizCatalog", "TakeGamificationQuiz", "SubmitGamificationQuizAttempt",
-        "GamificationLeaderboard", "GamificationEngagementDashboard"
+        "GamificationLeaderboard", "GamificationEngagementDashboard",
+        "TermosDeUso", "PoliticaPrivacidade"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -229,7 +230,8 @@ class LoadPageAdm
         // Diretório para controllers de permissões (ListAccessLevelsPermissions, CopyAccessLevelPermissions, etc.)
         "permission",
         "notifications",
-        "gamification"
+        "gamification",
+        "legal"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */
