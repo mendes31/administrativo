@@ -9,6 +9,7 @@ use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Services\InformativosPermissionService;
+use App\adms\Models\Services\InformativoPublishNotifier;
 use App\adms\Models\Services\WhatsappNotificationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -200,7 +201,12 @@ class UpdateInformativo
                 // Atualizar departamentos alvo de notificação
                 $repo->replaceNotifyDepartments($id, $notifyDepartments);
 
-                // Se estiver marcado para notificar e ativo, disparar notificação
+                $now = new \DateTime('now');
+                if ($ativo && ($publishDt === null || $publishDt <= $now)) {
+                    InformativoPublishNotifier::notifyPublished((int) $id);
+                }
+
+                // Se estiver marcado para notificar e ativo, disparar WhatsApp
                 if ($notificar && $ativo) {
                     WhatsappNotificationService::notificarInformativoUrgente((int)$id);
                 }

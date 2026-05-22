@@ -520,11 +520,26 @@ class InformativosRepository extends DbConnection
      *
      * Retorna array com contagem de registros afetados.
      *
-     * @return array{inativados:int,ativados:int}
+     * @return array{inativados:int,ativados:int,ativados_ids:list<int>}
      */
     public function updateActiveFromSchedule(): array
     {
         $conn = $this->getConnection();
+
+        $sqlIdsAtivar = "SELECT id FROM adms_informativos
+                         WHERE ativo = 0
+                           AND (publish_at IS NULL OR publish_at <= NOW())
+                           AND (expire_at IS NULL OR expire_at > NOW())";
+        $stmtIds = $conn->query($sqlIdsAtivar);
+        $ativadosIds = [];
+        if ($stmtIds !== false) {
+            foreach ($stmtIds->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $id = (int) ($row['id'] ?? 0);
+                if ($id > 0) {
+                    $ativadosIds[] = $id;
+                }
+            }
+        }
 
         // Inativar informativos expirados
         $sqlInativar = "UPDATE adms_informativos
@@ -549,6 +564,7 @@ class InformativosRepository extends DbConnection
         return [
             'inativados' => $inativados,
             'ativados'   => $ativados,
+            'ativados_ids' => $ativadosIds,
         ];
     }
 
@@ -758,6 +774,10 @@ class InformativosRepository extends DbConnection
         return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
 
+    /**
+     * @param int $id
+     * @return array<string, mixed>|null
+     */
     public function getCategoriaById(int $id): ?array
     {
         $stmt = $this->getConnection()->prepare('SELECT id, name FROM adms_informativos_categorias WHERE id = :id LIMIT 1');
@@ -766,12 +786,13 @@ class InformativosRepository extends DbConnection
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? $this->normalizeRow($row) : null;
     }
-    
+
     /**
-     * Listar informativos para o dashboard (mais recentes e ativos)
+     * Listar informativos para o dashboard (mais recentes e ativos).
+     *
      * @param int $limit
-     * @param string|null $categoria
-     * @return array
+     * @param int|null $categoriaId
+     * @return array<int, array<string, mixed>>
      */
     public function getInformativosDashboard(int $limit = 5, ?int $categoriaId = null): array
     {

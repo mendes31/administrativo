@@ -9,6 +9,7 @@ use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Services\InformativosPermissionService;
+use App\adms\Models\Services\InformativoPublishNotifier;
 use App\adms\Models\Services\WhatsappNotificationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -199,6 +200,11 @@ class CreateInformativo
             if ($id) {
                 // Atualizar departamentos alvo de notificação (se houver)
                 $repo->replaceNotifyDepartments((int)$id, $notifyDepartments);
+
+                // Push PWA + registro de envio (independente do checkbox WhatsApp)
+                if ($ativo && ($publishDt === null || $publishDt <= $now)) {
+                    InformativoPublishNotifier::notifyPublished((int) $id);
+                }
 
                 // Notificar via WhatsApp se marcado para notificação e ativo
                 if ($notificar && $ativo) {

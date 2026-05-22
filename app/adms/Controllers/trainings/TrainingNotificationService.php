@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\trainings;
 
+use App\adms\Helpers\InternalPushNotificationHelper;
 use App\adms\Helpers\SendEmailService;
 use App\adms\Models\Repository\TrainingUsersRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -169,6 +170,17 @@ class TrainingNotificationService
                 ]);
             }
 
+            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+            InternalPushNotificationHelper::notifyUser([
+                'user_id' => $userId,
+                'type' => 'training_alert_new',
+                'title' => 'Novo treinamento',
+                'message' => 'Treinamento obrigatório: ' . ($training['nome'] ?? ''),
+                'link_url' => $base . '/list-trainings',
+                'entity_type' => 'adms_training',
+                'entity_id' => $trainingId,
+            ]);
+
             return $sent;
             
         } catch (\Exception $e) {
@@ -191,13 +203,17 @@ class TrainingNotificationService
         $body = $this->getPendingTrainingEmailBody($training);
         $altBody = $this->getPendingTrainingEmailAltBody($training);
 
-        return SendEmailService::sendEmail(
+        $sent = SendEmailService::sendEmail(
             $training['user_email'],
             $training['user_name'],
             $subject,
             $body,
             $altBody
         );
+
+        $this->dispatchTrainingPush($training, 'training_alert_pending', 'Treinamento pendente', (string) ($training['training_name'] ?? $subject));
+
+        return $sent;
     }
 
     /**
@@ -210,13 +226,17 @@ class TrainingNotificationService
         $body = $this->getExpiringTrainingEmailBody($training);
         $altBody = $this->getExpiringTrainingEmailAltBody($training);
 
-        return SendEmailService::sendEmail(
+        $sent = SendEmailService::sendEmail(
             $training['user_email'],
             $training['user_name'],
             $subject,
             $body,
             $altBody
         );
+
+        $this->dispatchTrainingPush($training, 'training_alert_expiring', 'Treinamento a vencer', (string) ($training['training_name'] ?? $subject));
+
+        return $sent;
     }
 
     /**
@@ -229,13 +249,41 @@ class TrainingNotificationService
         $body = $this->getExpiredTrainingEmailBody($training);
         $altBody = $this->getExpiredTrainingEmailAltBody($training);
 
-        return SendEmailService::sendEmail(
+        $sent = SendEmailService::sendEmail(
             $training['user_email'],
             $training['user_name'],
             $subject,
             $body,
             $altBody
         );
+
+        $this->dispatchTrainingPush($training, 'training_alert_expired', 'Treinamento vencido', (string) ($training['training_name'] ?? $subject), 50);
+
+        return $sent;
+    }
+
+    /**
+     * @param array<string, mixed> $training
+     */
+    private function dispatchTrainingPush(array $training, string $notifType, string $pushTitle, string $message, int $priority = 0): void
+    {
+        $userId = (int) ($training['user_id'] ?? 0);
+        $trainingId = (int) ($training['training_id'] ?? 0);
+        if ($userId <= 0 || $trainingId <= 0) {
+            return;
+        }
+
+        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+        InternalPushNotificationHelper::notifyUser([
+            'user_id' => $userId,
+            'type' => $notifType,
+            'title' => $pushTitle,
+            'message' => $message,
+            'link_url' => $base . '/list-trainings',
+            'entity_type' => 'adms_training',
+            'entity_id' => $trainingId,
+            'priority' => $priority,
+        ]);
     }
 
     /**

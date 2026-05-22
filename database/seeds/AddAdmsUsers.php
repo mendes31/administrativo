@@ -2,13 +2,9 @@
 
 declare(strict_types=1);
 
-use Phinx\Seed\AbstractSeed;
+use App\adms\Database\BaseSeed;
 
-/**
- * @method \Phinx\Db\Table table(string $tableName, array $options = [])
- * @method \Phinx\Db\Adapter\AdapterInterface getAdapter()
- */
-class AddAdmsUsers extends AbstractSeed
+class AddAdmsUsers extends BaseSeed
 {
     /**
      * Cadastra usuários na tabela `adms_users` se ainda não existirem.

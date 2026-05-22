@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\Services;
 
+use App\adms\Helpers\InternalPushNotificationHelper;
 use App\adms\Models\Repository\StrategicPlansRepository;
 use App\adms\Models\Repository\UsersRepository;
 
@@ -47,9 +48,25 @@ class StrategicPlanNotificationService
             $subject = "Nova observação no Plano Estratégico: {$plan['title']}";
             $message = $this->buildEmailMessage($plan, $author, $observation);
 
-            // Enviar email para cada destinatário
+            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+            $link = $base . '/view-strategic-plan/' . $strategicPlanId;
+            $obsSnippet = mb_strlen($observation) > 120 ? mb_substr($observation, 0, 117) . '...' : $observation;
+
             foreach ($recipients as $recipient) {
                 $this->sendEmail($recipient['email'], $recipient['name'], $subject, $message);
+
+                $recipientUserId = (int) ($recipient['id'] ?? 0);
+                if ($recipientUserId > 0) {
+                    InternalPushNotificationHelper::notifyUser([
+                        'user_id' => $recipientUserId,
+                        'type' => 'strategic_plan_observation',
+                        'title' => 'Plano estratégico — nova observação',
+                        'message' => ($plan['title'] ?? 'Plano') . ': ' . $obsSnippet,
+                        'link_url' => $link,
+                        'entity_type' => 'adms_strategic_plan',
+                        'entity_id' => $strategicPlanId,
+                    ]);
+                }
             }
 
             return true;
@@ -71,8 +88,9 @@ class StrategicPlanNotificationService
             $responsible = $this->usersRepo->getUser($plan['responsible_id']);
             if ($responsible) {
                 $recipients[] = [
+                    'id' => (int) ($responsible['id'] ?? 0),
                     'email' => $responsible['email'],
-                    'name' => $responsible['name']
+                    'name' => $responsible['name'],
                 ];
             }
         }
@@ -81,8 +99,9 @@ class StrategicPlanNotificationService
         $departmentUsers = $this->getDepartmentUsers($plan['department_id'], $authorUserId);
         foreach ($departmentUsers as $user) {
             $recipients[] = [
+                'id' => (int) ($user['id'] ?? 0),
                 'email' => $user['email'],
-                'name' => $user['name']
+                'name' => $user['name'],
             ];
         }
 
@@ -90,16 +109,17 @@ class StrategicPlanNotificationService
         $superAdmins = $this->getSuperAdministrators($authorUserId);
         foreach ($superAdmins as $admin) {
             $recipients[] = [
+                'id' => (int) ($admin['id'] ?? 0),
                 'email' => $admin['email'],
-                'name' => $admin['name']
+                'name' => $admin['name'],
             ];
         }
 
-        // Remover duplicatas
+        // Remover duplicatas por e-mail
         $uniqueRecipients = [];
         $emails = [];
         foreach ($recipients as $recipient) {
-            if (!in_array($recipient['email'], $emails)) {
+            if (!in_array($recipient['email'], $emails, true)) {
                 $uniqueRecipients[] = $recipient;
                 $emails[] = $recipient['email'];
             }
@@ -113,7 +133,7 @@ class StrategicPlanNotificationService
      */
     private function getDepartmentUsers(int $departmentId, int $excludeUserId): array
     {
-        $sql = 'SELECT name, email FROM adms_users 
+        $sql = 'SELECT id, name, email FROM adms_users 
                 WHERE user_department_id = :department_id 
                 AND id != :exclude_user_id 
                 AND status = "Ativo"';
@@ -132,7 +152,7 @@ class StrategicPlanNotificationService
      */
     private function getSuperAdministrators(int $excludeUserId): array
     {
-        $sql = 'SELECT u.name, u.email 
+        $sql = 'SELECT u.id, u.name, u.email 
                 FROM adms_users u
                 JOIN adms_users_access_levels ual ON u.id = ual.adms_user_id
                 WHERE ual.adms_access_level_id = 1 

@@ -42,7 +42,7 @@ class ViewPolicy
         $pageElements = [
             'title_head'       => 'Visualizar Política Interna',
             'menu'             => 'gestao_pessoas',
-            'buttonPermission' => ['ListPolicies', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy'],
+            'buttonPermission' => ['ListPolicies', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy', 'ResendPolicyPush'],
         ];
 
         $pls = new PageLayoutService();

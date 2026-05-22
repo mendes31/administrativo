@@ -51,7 +51,7 @@ class ViewInformativo
         $pageElements = [
             'title_head' => 'Visualizar Informativo',
             'menu' => 'view-informativo',
-            'buttonPermission' => ['ViewInformativo', 'UpdateInformativo', 'DeleteInformativo'],
+            'buttonPermission' => ['ViewInformativo', 'UpdateInformativo', 'DeleteInformativo', 'ResendInformativoPush'],
         ];
 
         $pageLayoutService = new PageLayoutService();

@@ -3,6 +3,7 @@
 namespace App\adms\Models\Services;
 
 use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Repository\PoliciesRepository;
 
 /**
  * Serviço responsável por aplicar, de forma controlada,
@@ -70,6 +71,16 @@ class InformativosStatusUpdaterService
 
                 $repo = new InformativosRepository();
                 $result = $repo->updateActiveFromSchedule();
+
+                foreach ($result['ativados_ids'] ?? [] as $informativoId) {
+                    InformativoPublishNotifier::notifyPublished((int) $informativoId);
+                }
+
+                $policiesRepo = new PoliciesRepository();
+                $policyResult = $policiesRepo->updateActiveFromSchedule();
+                foreach ($policyResult['ativados_ids'] ?? [] as $policyId) {
+                    PolicyPublishNotifier::notifyPublished((int) $policyId);
+                }
 
                 $payload = [
                     'last_run' => $now,

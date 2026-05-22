@@ -2,22 +2,12 @@
 
 declare(strict_types=1);
 
-use Phinx\Seed\AbstractSeed;
+use App\adms\Database\BaseSeed;
 
 /**
  * Seed de páginas do administrativo.
- *
- * As anotações @method abaixo informam ao Intelephense (e outras ferramentas)
- * que esses métodos existem na classe pai AbstractSeed, eliminando os
- * avisos de "Undefined method" em tempo de análise estática.
- *
- * @method void execute(string $sql)
- * @method array|false fetchRow(string $sql)
- * @method \Phinx\Db\Table table(string $tableName)
- * @method mixed query(string $sql, array<string, mixed> $params = [])
- * @method bool hasTable(string $tableName)
  */
-class AddAdmsPages extends AbstractSeed
+class AddAdmsPages extends BaseSeed
 {
     /**
      * Cadastra pagina na tabela `adms_pages` se ainda não existirem.
@@ -437,6 +427,7 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Relatório de Informativo', 'controller' => 'RelatorioInformativo', 'controller_url' => 'relatorio-informativo', 'directory' => 'informativos', 'obs' => 'Página para gerar relatórios de visualização e ciência dos informativos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 30],
             ['name'=> 'Exportar Relatório de Informativo PDF', 'controller' => 'ExportRelatorioInformativoPdf', 'controller_url' => 'export-relatorio-informativo-pdf', 'directory' => 'informativos', 'obs' => 'Exportação do relatório de informativo em PDF.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 30],
             ['name'=> 'Exportar Relatório de Informativo Excel', 'controller' => 'ExportRelatorioInformativoExcel', 'controller_url' => 'export-relatorio-informativo-excel', 'directory' => 'informativos', 'obs' => 'Exportação do relatório de informativo em Excel (.xlsx).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 30],
+            ['name'=> 'Reenviar push — Informativo', 'controller' => 'ResendInformativoPush', 'controller_url' => 'resend-informativo-push', 'directory' => 'informativos', 'obs' => 'Reenvia notificações push PWA de um informativo ativo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 30],
             ['name'=> 'Registrar Leitura Informativo', 'controller' => 'ReadInformativo', 'controller_url' => 'read-informativo', 'directory' => 'informativos', 'obs' => 'Endpoint AJAX para registrar leitura de informativos ao visualizar.', 'public_page' => 1, 'page_status' => 1, 'default_page' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 30],
 
             // ===== GRUPO 36: GESTÃO DE PESSOAS - POLÍTICAS INTERNAS =====
@@ -450,6 +441,7 @@ class AddAdmsPages extends AbstractSeed
             ['name'=> 'Relatório de Política Interna',      'controller' => 'RelatorioPolicy',                'controller_url' => 'relatorio-policy',                 'directory' => 'policies', 'obs' => 'Página para gerar relatórios de visualização e ciência das políticas internas.',      'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Exportar Relatório Política PDF',    'controller' => 'ExportRelatorioPolicyPdf',       'controller_url' => 'export-relatorio-policy-pdf',      'directory' => 'policies', 'obs' => 'Exportação do relatório de políticas internas em PDF.',                                'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Exportar Relatório Política Excel',  'controller' => 'ExportRelatorioPolicyExcel',     'controller_url' => 'export-relatorio-policy-excel',    'directory' => 'policies', 'obs' => 'Exportação do relatório de políticas internas em Excel (.xlsx).',                          'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
+            ['name'=> 'Reenviar push — Política',           'controller' => 'ResendPolicyPush',               'controller_url' => 'resend-policy-push',               'directory' => 'policies', 'obs' => 'Reenvia notificações push PWA de uma política interna ativa.',                              'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Listar Categorias Políticas',        'controller' => 'ListPolicyCategories',  'controller_url' => 'list-policy-categories',  'directory' => 'policies', 'obs' => 'Página para listar categorias de políticas internas.',        'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Cadastrar Categoria Política',       'controller' => 'CreatePolicyCategory',  'controller_url' => 'create-policy-category',  'directory' => 'policies', 'obs' => 'Página para cadastrar categoria de política interna.',          'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],
             ['name'=> 'Editar Categoria Política',          'controller' => 'UpdatePolicyCategory',  'controller_url' => 'update-policy-category',  'directory' => 'policies', 'obs' => 'Página para editar categoria de política interna.',            'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 36],

@@ -2,8 +2,9 @@
 
 namespace App\adms\Services;
 
-use App\adms\Helpers\SendEmailService;
 use App\adms\Helpers\EvaluationLogService;
+use App\adms\Helpers\InternalPushNotificationHelper;
+use App\adms\Helpers\SendEmailService;
 
 /**
  * Serviço para envio de notificações do módulo de avaliações
@@ -16,7 +17,7 @@ class EvaluationNotificationService
      * Enviar notificação de nova atribuição
      * 
      * @param array $user Dados do usuário
-     * @param array $model Dados do modelo de avaliação
+     * @param array $model Dados do modelo de avaliação (opcional: assignment_id para deduplicação do push)
      * @param string|null $dataLimite Data limite para conclusão
      * @return bool Sucesso do envio
      */
@@ -80,6 +81,19 @@ class EvaluationNotificationService
                 $sucesso ? null : 'Falha no envio de e-mail'
             );
 
+            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+            $assignmentId = (int) ($model['assignment_id'] ?? 0);
+            $entityId = $assignmentId > 0 ? $assignmentId : (int) ($model['id'] ?? 0);
+            InternalPushNotificationHelper::notifyUser([
+                'user_id' => (int) ($user['id'] ?? 0),
+                'type' => 'evaluation_assignment',
+                'title' => 'Nova avaliação',
+                'message' => ($model['titulo'] ?? 'Avaliação') . ($dataLimite ? ' — prazo ' . date('d/m/Y', strtotime($dataLimite)) : ''),
+                'link_url' => $base . '/minhas-avaliacoes',
+                'entity_type' => 'adms_evaluation_assignment',
+                'entity_id' => $entityId,
+            ]);
+
             return $sucesso;
 
         } catch (\Exception $e) {
@@ -140,13 +154,27 @@ class EvaluationNotificationService
                        "Dias restantes: {$diasRestantes}\n\n" .
                        "Acesse: {$_ENV['URL_ADM']}minhas-avaliacoes";
 
-            return SendEmailService::sendEmail(
+            $sucesso = SendEmailService::sendEmail(
                 $user['email'],
                 $user['name'],
                 $assunto,
                 $mensagem,
                 $altBody
             );
+
+            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+            $assignmentId = (int) ($assignment['id'] ?? 0);
+            InternalPushNotificationHelper::notifyUser([
+                'user_id' => (int) ($user['id'] ?? 0),
+                'type' => 'evaluation_reminder',
+                'title' => 'Lembrete de avaliação',
+                'message' => ($assignment['model_titulo'] ?? 'Avaliação') . " — {$diasRestantes} dia(s) restante(s)",
+                'link_url' => $base . '/minhas-avaliacoes',
+                'entity_type' => 'adms_evaluation_assignment',
+                'entity_id' => $assignmentId > 0 ? $assignmentId : (int) ($assignment['evaluation_model_id'] ?? 0),
+            ]);
+
+            return $sucesso;
 
         } catch (\Exception $e) {
             return false;
@@ -197,13 +225,28 @@ class EvaluationNotificationService
                        "Prazo era: " . date('d/m/Y', strtotime($assignment['data_limite'])) . "\n\n" .
                        "Entre em contato com seu gestor ou RH.";
 
-            return SendEmailService::sendEmail(
+            $sucesso = SendEmailService::sendEmail(
                 $user['email'],
                 $user['name'],
                 $assunto,
                 $mensagem,
                 $altBody
             );
+
+            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+            $assignmentId = (int) ($assignment['id'] ?? 0);
+            InternalPushNotificationHelper::notifyUser([
+                'user_id' => (int) ($user['id'] ?? 0),
+                'type' => 'evaluation_reminder',
+                'title' => 'Avaliação vencida',
+                'message' => ($assignment['model_titulo'] ?? 'Avaliação') . ' — prazo vencido',
+                'link_url' => $base . '/minhas-avaliacoes',
+                'entity_type' => 'adms_evaluation_assignment',
+                'entity_id' => $assignmentId > 0 ? $assignmentId : (int) ($assignment['evaluation_model_id'] ?? 0),
+                'priority' => 50,
+            ]);
+
+            return $sucesso;
 
         } catch (\Exception $e) {
             return false;

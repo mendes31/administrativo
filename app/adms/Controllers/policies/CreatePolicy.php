@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PoliciesRepository;
+use App\adms\Models\Services\PolicyPublishNotifier;
 use App\adms\Models\Services\WhatsappNotificationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -169,6 +170,10 @@ class CreatePolicy
             if ($id) {
                 // Atualizar departamentos alvo de notificação (se houver)
                 $repo->replaceNotifyDepartments((int) $id, $notifyDepartments);
+
+                if ($ativo && ($publishDt === null || $publishDt <= $now)) {
+                    PolicyPublishNotifier::notifyPublished((int) $id);
+                }
 
                 // Notificar via WhatsApp se marcado e ativo
                 if ($notificar && $ativo) {

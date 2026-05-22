@@ -156,6 +156,55 @@ class NotificationsRepository extends DbConnection
     }
 
     /**
+     * Verifica se o usuário já recebeu notificação de publicação para a entidade.
+     */
+    /**
+     * Remove notificações vinculadas a uma entidade (ex.: reenvio de push em massa).
+     */
+    public function deleteByEntity(string $entityType, int $entityId): int
+    {
+        if ($entityId <= 0 || trim($entityType) === '') {
+            return 0;
+        }
+
+        $sql = 'DELETE FROM adms_notifications
+                WHERE entity_type = :entity_type AND entity_id = :entity_id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':entity_type', $entityType, PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int) $stmt->rowCount();
+    }
+
+    public function existsForUserEntity(int $userId, string $entityType, int $entityId, ?string $type = null): bool
+    {
+        if ($userId <= 0 || $entityId <= 0 || trim($entityType) === '') {
+            return false;
+        }
+
+        $sql = 'SELECT 1 FROM adms_notifications
+                WHERE user_id = :user_id
+                  AND entity_type = :entity_type
+                  AND entity_id = :entity_id';
+        if ($type !== null && trim($type) !== '') {
+            $sql .= ' AND type = :type';
+        }
+        $sql .= ' LIMIT 1';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':entity_type', $entityType, PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+        if ($type !== null && trim($type) !== '') {
+            $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
      * Conta notificações não lidas do usuário.
      */
     public function countUnread(int $userId): int

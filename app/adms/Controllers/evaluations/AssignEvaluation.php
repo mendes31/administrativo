@@ -167,9 +167,11 @@ class AssignEvaluation
                         // Enviar notificação
                         $user = $usersRepo->getUser($userId);
                         if ($user) {
+                            $modelNotif = $model;
+                            $modelNotif['assignment_id'] = (int) $assignmentId;
                             $notifSucesso = EvaluationNotificationService::notificarNovaAtribuicao(
                                 $user,
-                                $model,
+                                $modelNotif,
                                 $dataLimite
                             );
 

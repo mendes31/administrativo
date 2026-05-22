@@ -28,6 +28,25 @@ $policy = $this->data['policy'] ?? [];
                     </a>
                 <?php endif; ?>
                 <?php
+                $policyBtnPerm = $this->data['buttonPermission'] ?? [];
+                $canResendPolicyPush = is_array($policyBtnPerm)
+                    && in_array('ResendPolicyPush', $policyBtnPerm, true)
+                    && !empty($policy['ativo'])
+                    && \App\adms\Models\Services\PolicyPublishNotifier::isWithinPublicationWindow($policy);
+                ?>
+                <?php if ($canResendPolicyPush): ?>
+                    <form method="post"
+                          action="<?php echo $_ENV['URL_ADM']; ?>resend-policy-push/<?php echo (int) ($policy['id'] ?? 0); ?>"
+                          class="d-inline mb-1"
+                          onsubmit="return confirm('Reenviar notificação push PWA para todos os colaboradores elegíveis?');">
+                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_policy_push'); ?>">
+                        <input type="hidden" name="id" value="<?php echo (int) ($policy['id'] ?? 0); ?>">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-bell me-1"></i>Reenviar push PWA
+                        </button>
+                    </form>
+                <?php endif; ?>
+                <?php
                 $log_resumo = $this->data['log_resumo'] ?? [];
                 $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
                 include __DIR__ . '/../partials/button_log_alteracoes.php';

@@ -8,6 +8,7 @@ use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Services\LogAlteracaoService;
+use App\adms\Models\Services\PolicyPublishNotifier;
 use App\adms\Models\Services\WhatsappNotificationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -182,6 +183,10 @@ class UpdatePolicy
             if ($ok) {
                 // Atualizar departamentos alvo de notificação
                 $repo->replaceNotifyDepartments($id, $notifyDepartments);
+
+                if ($ativo && ($publishDt === null || $publishDt <= $now)) {
+                    PolicyPublishNotifier::notifyPublished((int) $id);
+                }
 
                 // Se estiver marcada para notificar e ativa, disparar notificação via WhatsApp
                 if ($notificar && $ativo) {

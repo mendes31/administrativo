@@ -7,6 +7,7 @@ use App\adms\Helpers\CompanyEventMediaService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\TextEncodingHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
+use App\adms\Models\Services\CompanyEventPublishNotifier;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -105,6 +106,10 @@ class UpdateCompanyEvent
 
         if (!$this->mediaService->persistMediaAfterUpdate($eventId, $repo, $existing)) {
             return;
+        }
+
+        if (!empty($data['ativo'])) {
+            CompanyEventPublishNotifier::notifyPublished($eventId);
         }
 
         $_SESSION['msg'] = $this->mediaService->alertHtml('success', 'Evento atualizado.');

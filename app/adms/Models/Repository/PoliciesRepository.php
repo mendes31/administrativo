@@ -430,10 +430,27 @@ class PoliciesRepository extends DbConnection
 
     /**
      * Atualiza o campo "ativo" com base em publish_at / expire_at.
+     *
+     * @return array{inativados:int,ativados:int,ativados_ids:list<int>}
      */
     public function updateActiveFromSchedule(): array
     {
         $conn = $this->getConnection();
+
+        $sqlIdsAtivar = "SELECT id FROM adms_policies
+                         WHERE ativo = 0
+                           AND (publish_at IS NULL OR publish_at <= NOW())
+                           AND (expire_at IS NULL OR expire_at > NOW())";
+        $stmtIds = $conn->query($sqlIdsAtivar);
+        $ativadosIds = [];
+        if ($stmtIds !== false) {
+            foreach ($stmtIds->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $id = (int) ($row['id'] ?? 0);
+                if ($id > 0) {
+                    $ativadosIds[] = $id;
+                }
+            }
+        }
 
         // Inativar políticas expiradas
         $sqlInativar = "UPDATE adms_policies
@@ -458,6 +475,7 @@ class PoliciesRepository extends DbConnection
         return [
             'inativados' => $inativados,
             'ativados'   => $ativados,
+            'ativados_ids' => $ativadosIds,
         ];
     }
 

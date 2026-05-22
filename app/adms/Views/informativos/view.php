@@ -29,6 +29,24 @@ $informativo = $this->data['informativo'];
                     </a>
                 <?php endif; ?>
                 <?php
+                $canResendPush = is_array($btnPerm)
+                    && in_array('ResendInformativoPush', $btnPerm, true)
+                    && !empty($informativo['ativo'])
+                    && \App\adms\Models\Services\InformativoPublishNotifier::isWithinPublicationWindow($informativo);
+                ?>
+                <?php if ($canResendPush): ?>
+                    <form method="post"
+                          action="<?php echo $_ENV['URL_ADM']; ?>resend-informativo-push/<?php echo (int) $informativo['id']; ?>"
+                          class="d-inline mb-1"
+                          onsubmit="return confirm('Reenviar notificação push PWA para todos os colaboradores elegíveis?');">
+                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_informativo_push'); ?>">
+                        <input type="hidden" name="id" value="<?php echo (int) $informativo['id']; ?>">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-bell me-1"></i>Reenviar push PWA
+                        </button>
+                    </form>
+                <?php endif; ?>
+                <?php
                 $log_resumo = $this->data['log_resumo'] ?? [];
                 $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
                 include __DIR__ . '/../partials/button_log_alteracoes.php';
