@@ -328,8 +328,22 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
             <?php include __DIR__ . '/partials/feed_posts.php'; ?>
 
             <?php if (!empty($this->data['pagination']['html'])): ?>
-                <div class="timeline-pagination-wrap mt-3 mb-2">
+                <div class="d-flex justify-content-center mt-3 d-none d-md-flex">
                     <?php echo $this->data['pagination']['html']; ?>
+                </div>
+                <div class="d-flex justify-content-center mt-3 d-md-none">
+                    <?php
+                    $paginationHtml = $this->data['pagination']['html'] ?? '';
+                    if ($paginationHtml) {
+                        $paginationHtml = str_replace(
+                            ['>Primeira<', '>Anterior<', '>Próximo<', '>Última<', '>Primeiro<'],
+                            ['>&laquo;<', '>&lsaquo;<', '>&rsaquo;<', '>&raquo;<', '>&laquo;<'],
+                            $paginationHtml
+                        );
+                        $paginationHtml = preg_replace('/class=\"pagination(.*?)\"/', 'class="pagination pagination-sm$1"', $paginationHtml, 1);
+                        echo $paginationHtml;
+                    }
+                    ?>
                 </div>
             <?php endif; ?>
         </div>
