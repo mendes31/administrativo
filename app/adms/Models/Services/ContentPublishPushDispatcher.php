@@ -17,7 +17,7 @@ final class ContentPublishPushDispatcher
      * @param string $body
      * @param string $url
      * @param bool $forceResend
-     * @return array{sent:int, skipped:int, failed:int}
+     * @return array{sent:int, skipped:int, failed:int, no_subscription:int}
      */
     public static function sendToUsers(
         array $userIds,
@@ -27,7 +27,7 @@ final class ContentPublishPushDispatcher
         string $url,
         bool $forceResend = false
     ): array {
-        $summary = ['sent' => 0, 'skipped' => 0, 'failed' => 0];
+        $summary = ['sent' => 0, 'skipped' => 0, 'failed' => 0, 'no_subscription' => 0];
 
         $title = trim($title) !== '' ? trim($title) : 'Portal Tiaraju';
         $body = trim($body) !== '' ? trim($body) : $title;
@@ -42,7 +42,7 @@ final class ContentPublishPushDispatcher
                 continue;
             }
 
-            if (!$forceResend && PublishPushDedupCache::wasSentInScope($scope, $userId, $title, $url)) {
+            if (!$forceResend && PublishPushDedupCache::wasSentInScope($scope, $userId)) {
                 $summary['skipped']++;
                 continue;
             }
@@ -50,11 +50,15 @@ final class ContentPublishPushDispatcher
             $result = $push->sendToUser($userId, $title, $body, $url);
             if (!empty($result['success'])) {
                 $summary['sent']++;
-                if (!$forceResend) {
-                    PublishPushDedupCache::markSentInScope($scope, $userId, $title, $url);
-                }
+                PublishPushDedupCache::markSentInScope($scope, $userId);
             } else {
-                $summary['failed']++;
+                $hasSubscription = empty($result['errors'])
+                    || !str_contains(implode(' ', $result['errors']), 'sem inscrição');
+                if ($hasSubscription) {
+                    $summary['failed']++;
+                } else {
+                    $summary['no_subscription']++;
+                }
             }
         }
 

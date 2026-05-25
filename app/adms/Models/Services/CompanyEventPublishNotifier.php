@@ -39,26 +39,7 @@ final class CompanyEventPublishNotifier
             $summary = self::dispatchPush($eventId, $event, $forceAll);
 
             $modeLabel = $forceAll ? 'todos' : 'pendentes';
-            return [
-                'success' => $summary['sent'] > 0,
-                'sent' => $summary['sent'],
-                'skipped' => $summary['skipped'],
-                'failed' => $summary['failed'],
-                'message' => $summary['sent'] > 0
-                    ? sprintf(
-                        'Push (%s) enviado para %d dispositivo(s). %d ignorado(s) (já recebido). %d sem inscrição push ou com falha.',
-                        $modeLabel,
-                        $summary['sent'],
-                        $summary['skipped'],
-                        $summary['failed']
-                    )
-                    : sprintf(
-                        'Nenhum push entregue (%s). %d já havia recebido, %d sem inscrição/falha. Verifique se os colaboradores ativaram notificações no perfil/PWA.',
-                        $modeLabel,
-                        $summary['skipped'],
-                        $summary['failed']
-                    ),
-            ];
+            return self::buildResultMessage($summary, $modeLabel);
         } catch (\Throwable $e) {
             error_log('CompanyEventPublishNotifier::resendPushNotifications error: ' . $e->getMessage());
 
@@ -171,5 +152,47 @@ final class CompanyEventPublishNotifier
         }
 
         return true;
+    }
+
+    /**
+     * @param array{sent:int, skipped:int, failed:int, no_subscription:int} $summary
+     * @return array{success:bool, sent:int, skipped:int, failed:int, no_subscription:int, message:string}
+     */
+    private static function buildResultMessage(array $summary, string $modeLabel): array
+    {
+        $sent = (int) ($summary['sent'] ?? 0);
+        $skipped = (int) ($summary['skipped'] ?? 0);
+        $failed = (int) ($summary['failed'] ?? 0);
+        $noSub = (int) ($summary['no_subscription'] ?? 0);
+
+        $parts = [];
+        if ($skipped > 0) {
+            $parts[] = $skipped . ' já recebeu';
+        }
+        if ($noSub > 0) {
+            $parts[] = $noSub . ' sem inscrição push ativa';
+        }
+        if ($failed > 0) {
+            $parts[] = $failed . ' com falha de entrega';
+        }
+        $detail = $parts !== [] ? ' ' . implode(', ', $parts) . '.' : '';
+
+        if ($sent > 0) {
+            $msg = sprintf('Push (%s) enviado para %d dispositivo(s).%s', $modeLabel, $sent, $detail);
+        } else {
+            $msg = sprintf('Nenhum push entregue (%s).%s', $modeLabel, $detail);
+            if ($noSub > 0 && $sent === 0 && $failed === 0) {
+                $msg .= ' Verifique se os colaboradores ativaram notificações no perfil/PWA.';
+            }
+        }
+
+        return [
+            'success' => $sent > 0,
+            'sent' => $sent,
+            'skipped' => $skipped,
+            'failed' => $failed,
+            'no_subscription' => $noSub,
+            'message' => $msg,
+        ];
     }
 }

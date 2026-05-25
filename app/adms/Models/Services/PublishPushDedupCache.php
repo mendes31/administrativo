@@ -16,9 +16,9 @@ final class PublishPushDedupCache
         return $type . '_' . $entityId;
     }
 
-    public static function wasSentInScope(string $scope, int $userId, string $title, string $url): bool
+    public static function wasSentInScope(string $scope, int $userId): bool
     {
-        $cacheKey = $userId . ':' . md5($title . '|' . $url);
+        $cacheKey = (string) $userId;
         $data = self::readScopeFile($scope);
         if (!isset($data['keys'][$cacheKey])) {
             return false;
@@ -28,9 +28,9 @@ final class PublishPushDedupCache
         return $ts > 0 && (time() - $ts) < self::TTL_SECONDS;
     }
 
-    public static function markSentInScope(string $scope, int $userId, string $title, string $url): void
+    public static function markSentInScope(string $scope, int $userId): void
     {
-        $cacheKey = $userId . ':' . md5($title . '|' . $url);
+        $cacheKey = (string) $userId;
         $data = self::readScopeFile($scope);
         $data['keys'][$cacheKey] = time();
         self::writeScopeFile($scope, $data);
@@ -87,7 +87,7 @@ final class PublishPushDedupCache
 
     private static function cacheDir(): string
     {
-        return dirname(__DIR__, 3)
+        return dirname(__DIR__, 4)
             . DIRECTORY_SEPARATOR . 'storage'
             . DIRECTORY_SEPARATOR . 'cache'
             . DIRECTORY_SEPARATOR . 'push_dedup';
