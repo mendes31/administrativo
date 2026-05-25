@@ -37,8 +37,10 @@ $informativo = $this->data['informativo'];
                 <?php if ($canResendPush): ?>
                     <?php $csrfResend = \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_informativo_push'); ?>
                     <div class="btn-group d-inline mb-1">
-                        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-bell me-1"></i>Reenviar push
+                        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
+                                data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Reenviar notificação push PWA para colaboradores">
+                            <i class="fas fa-bell me-1"></i>Reenviar push PWA
                         </button>
                         <ul class="dropdown-menu">
                             <li>
