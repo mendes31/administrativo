@@ -51,8 +51,9 @@ class ResendPolicyPush
 
         $mode = trim((string) ($_POST['mode'] ?? 'all'));
         $forceAll = ($mode !== 'pending');
+        $senderUserId = (int) ($_SESSION['user_id'] ?? 0);
 
-        $result = PolicyPublishNotifier::resendPushNotifications($policyId, $forceAll);
+        $result = PolicyPublishNotifier::resendPushNotifications($policyId, $forceAll, $senderUserId);
         $class = !empty($result['success']) ? 'success' : 'warning';
         if (empty($result['success']) && (int) ($result['failed'] ?? 0) === 0) {
             $class = 'danger';

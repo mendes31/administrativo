@@ -36,6 +36,12 @@ final class PublishPushDedupCache
         self::writeScopeFile($scope, $data);
     }
 
+    public static function scopeHasRecords(string $scope): bool
+    {
+        $data = self::readScopeFile($scope);
+        return $data['keys'] !== [];
+    }
+
     /**
      * @param string $scope
      * @return void

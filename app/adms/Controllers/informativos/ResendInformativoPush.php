@@ -54,8 +54,9 @@ class ResendInformativoPush
 
         $mode = trim((string) ($_POST['mode'] ?? 'all'));
         $forceAll = ($mode !== 'pending');
+        $senderUserId = (int) ($_SESSION['user_id'] ?? 0);
 
-        $result = InformativoPublishNotifier::resendPushNotifications($informativoId, $forceAll);
+        $result = InformativoPublishNotifier::resendPushNotifications($informativoId, $forceAll, $senderUserId);
         $class = !empty($result['success']) ? 'success' : 'warning';
         if (empty($result['success']) && (int) ($result['failed'] ?? 0) === 0) {
             $class = 'danger';

@@ -14,6 +14,7 @@ use App\adms\Models\Services\TrainingStatusUpdaterService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\PayrollDocumentRemindersService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
+use App\adms\Models\Services\PushSubscriptionMaintenanceService;
 
 /**
  * Controller login
@@ -216,6 +217,7 @@ class Login
             CandidateRetentionService::ensureUpdated(false);
             PayrollDocumentRemindersService::ensureUpdated(false);
             InformativosStatusUpdaterService::ensureUpdated(false);
+            PushSubscriptionMaintenanceService::ensureUpdated(false);
 
             // Verificar consentimento LGPD antes de liberar acesso
             // Exceções:

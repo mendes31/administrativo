@@ -15,7 +15,7 @@ final class CompanyEventPublishNotifier
      * @param bool $forceAll true = reenvia para todos; false = apenas para quem não recebeu
      * @return array{success:bool, sent:int, skipped:int, failed:int, message:string}
      */
-    public static function resendPushNotifications(int $eventId, bool $forceAll = true): array
+    public static function resendPushNotifications(int $eventId, bool $forceAll = true, int $senderUserId = 0): array
     {
         if ($eventId <= 0) {
             return self::failResult('Evento inválido.');
@@ -33,10 +33,20 @@ final class CompanyEventPublishNotifier
                 return self::failResult('Evento fora da janela de publicação.');
             }
 
+            $scope = PublishPushDedupCache::scopeForEntity('company_event', $eventId);
+
+            if (!$forceAll && !PublishPushDedupCache::scopeHasRecords($scope)) {
+                return self::failResult(
+                    'Não há registros de envio anterior para este evento. '
+                    . 'Use "Todos os colaboradores" para o primeiro reenvio; '
+                    . 'a partir daí, "Somente quem não recebeu" funcionará corretamente.'
+                );
+            }
+
             if ($forceAll) {
                 ContentPublishPushDispatcher::clearDedupForContent('company_event', $eventId);
             }
-            $summary = self::dispatchPush($eventId, $event, $forceAll);
+            $summary = self::dispatchPush($eventId, $event, $forceAll, $senderUserId);
 
             $modeLabel = $forceAll ? 'todos' : 'pendentes';
             return self::buildResultMessage($summary, $modeLabel);
@@ -75,7 +85,7 @@ final class CompanyEventPublishNotifier
      * @param array<string, mixed> $event
      * @return array{sent:int, skipped:int, failed:int}
      */
-    private static function dispatchPush(int $eventId, array $event, bool $forceResend): array
+    private static function dispatchPush(int $eventId, array $event, bool $forceResend, int $senderUserId = 0): array
     {
         $departmentIds = [];
         $deptId = (int) ($event['department_id'] ?? 0);
@@ -84,7 +94,13 @@ final class CompanyEventPublishNotifier
         }
 
         $authorId = (int) ($event['created_by'] ?? 0);
-        $exclude = $authorId > 0 ? [$authorId] : [];
+        $exclude = [];
+        if ($authorId > 0) {
+            $exclude[] = $authorId;
+        }
+        if ($senderUserId > 0 && $senderUserId !== $authorId) {
+            $exclude[] = $senderUserId;
+        }
 
         $userIds = ContentPublishRecipientsResolver::activeUserIds($departmentIds, $exclude);
         if ($userIds === []) {
