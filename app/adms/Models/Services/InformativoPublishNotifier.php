@@ -125,13 +125,15 @@ final class InformativoPublishNotifier
         $link = $base . '/view-informativo/' . $informativoId;
         $scope = PublishPushDedupCache::scopeForEntity('informativo', $informativoId);
 
+        /** @var string $link */
+        /** @var bool $forceResend */
         return ContentPublishPushDispatcher::sendToUsers(
-            userIds: $userIds,
-            scope: $scope,
-            title: $pushTitle,
-            body: $message,
-            url: $link,
-            forceResend: $forceResend
+            $userIds,
+            $scope,
+            $pushTitle,
+            $message,
+            $link,
+            $forceResend
         );
     }
 

@@ -125,13 +125,15 @@ final class PolicyPublishNotifier
         $link = $base . '/view-policy/' . $policyId;
         $scope = PublishPushDedupCache::scopeForEntity('policy', $policyId);
 
+        /** @var string $link */
+        /** @var bool $forceResend */
         return ContentPublishPushDispatcher::sendToUsers(
-            userIds: $userIds,
-            scope: $scope,
-            title: $pushTitle,
-            body: $message,
-            url: $link,
-            forceResend: $forceResend
+            $userIds,
+            $scope,
+            $pushTitle,
+            $message,
+            $link,
+            $forceResend
         );
     }
 

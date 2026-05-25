@@ -121,13 +121,15 @@ final class CompanyEventPublishNotifier
         $link = $base . '/view-company-event/' . $eventId;
         $scope = PublishPushDedupCache::scopeForEntity('company_event', $eventId);
 
+        /** @var string $link */
+        /** @var bool $forceResend */
         return ContentPublishPushDispatcher::sendToUsers(
-            userIds: $userIds,
-            scope: $scope,
-            title: 'Novo evento corporativo',
-            body: $message,
-            url: $link,
-            forceResend: $forceResend
+            $userIds,
+            $scope,
+            'Novo evento corporativo',
+            $message,
+            $link,
+            $forceResend
         );
     }
 

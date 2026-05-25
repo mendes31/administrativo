@@ -63,6 +63,8 @@ final class ContentPublishPushDispatcher
 
     public static function clearDedupForContent(string $type, int $entityId): void
     {
-        PublishPushDedupCache::clearScope(PublishPushDedupCache::scopeForEntity($type, $entityId));
+        $cache = new PublishPushDedupCache();
+        $scope = $cache::scopeForEntity($type, $entityId);
+        $cache::clearScope($scope);
     }
 }

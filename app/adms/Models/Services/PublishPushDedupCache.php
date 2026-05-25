@@ -36,6 +36,10 @@ final class PublishPushDedupCache
         self::writeScopeFile($scope, $data);
     }
 
+    /**
+     * @param string $scope
+     * @return void
+     */
     public static function clearScope(string $scope): void
     {
         $path = self::scopePathFromScope($scope);
