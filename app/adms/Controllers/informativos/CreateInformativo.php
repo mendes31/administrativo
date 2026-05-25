@@ -174,6 +174,10 @@ class CreateInformativo
             $resumo .= '...';
         }
 
+        if ($publishDt !== null && $publishDt > $now) {
+            $ativo = false;
+        }
+
         $data = [
             'titulo' => $titulo,
             'conteudo' => $conteudo,

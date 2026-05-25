@@ -1,10 +1,12 @@
 /* Tiaraju PWA Service Worker — push e registro; páginas não são cacheadas aqui. */
-var PUSH_ICON_CACHE = 'tiaraju-push-icons-v7';
+var PUSH_ICON_CACHE = 'tiaraju-push-icons-v8';
 
 var DEFAULT_ICON_PATH = 'public/adms/image/pwa-icon-192.png';
-var DEFAULT_BADGE_PATHS = [
+var DEFAULT_BADGE_PATH = 'public/adms/image/pwa-badge-96.png';
+var PUSH_ASSET_PATHS = [
+  DEFAULT_ICON_PATH,
   'public/adms/image/pwa-badge-192.png',
-  'public/adms/image/pwa-badge-96.png',
+  DEFAULT_BADGE_PATH,
   'public/adms/image/pwa-badge-72.png'
 ];
 
@@ -19,9 +21,6 @@ function scopeAssetUrl(relativePath) {
   return new URL(String(relativePath).replace(/^\//, ''), getScopeBase() + '/').href;
 }
 
-/**
- * Ícones sempre pelo escopo do PWA instalado — ignora URL_ADM do servidor (IP interno, outro host).
- */
 function resolvePushAssetUrl(payloadValue, defaultRelativePath) {
   var fallback = scopeAssetUrl(defaultRelativePath);
   if (!payloadValue || typeof payloadValue !== 'string') {
@@ -48,35 +47,35 @@ function resolvePushAssetUrl(payloadValue, defaultRelativePath) {
   }
 }
 
-function prefetchIntoCache(cache, url) {
-  return fetch(url, { credentials: 'same-origin', cache: 'reload' })
-    .then(function (res) {
-      if (!res.ok) {
-        return null;
-      }
-      return cache.put(url, res.clone()).then(function () {
-        return url;
-      });
-    })
-    .catch(function () {
-      return null;
+function ensureAssetCached(url) {
+  return caches.open(PUSH_ICON_CACHE).then(function (cache) {
+    return cache.match(url).then(function (cached) {
+      if (cached) { return; }
+      return fetch(url, { credentials: 'same-origin', cache: 'reload' })
+        .then(function (res) {
+          if (res.ok) { return cache.put(url, res.clone()); }
+        })
+        .catch(function () {});
     });
+  }).catch(function () {});
 }
 
 self.addEventListener('install', function (event) {
   var scope = getScopeBase() + '/';
-  var urls = [DEFAULT_ICON_PATH]
-    .concat(DEFAULT_BADGE_PATHS)
-    .map(function (path) {
-      return new URL(path, scope).href;
-    });
+  var urls = PUSH_ASSET_PATHS.map(function (path) {
+    return new URL(path, scope).href;
+  });
 
   event.waitUntil(
     caches.open(PUSH_ICON_CACHE).then(function (cache) {
       return Promise.all(
         urls.map(function (url) {
           return cache.add(url).catch(function () {
-            return prefetchIntoCache(cache, url);
+            return fetch(url, { credentials: 'same-origin', cache: 'reload' })
+              .then(function (res) {
+                if (res.ok) { return cache.put(url, res.clone()); }
+              })
+              .catch(function () {});
           });
         })
       );
@@ -110,68 +109,24 @@ self.addEventListener('message', function (event) {
   }
 });
 
-self.addEventListener('fetch', function () {
-  // Sem interceptação de cache por enquanto.
+self.addEventListener('fetch', function (event) {
+  var url = event.request.url;
+  if (url.indexOf('pwa-icon-') !== -1 || url.indexOf('pwa-badge-') !== -1) {
+    event.respondWith(
+      caches.open(PUSH_ICON_CACHE).then(function (cache) {
+        return cache.match(event.request).then(function (cached) {
+          if (cached) { return cached; }
+          return fetch(event.request).then(function (res) {
+            if (res.ok) { cache.put(event.request, res.clone()); }
+            return res;
+          });
+        });
+      }).catch(function () {
+        return fetch(event.request);
+      })
+    );
+  }
 });
-
-function fetchAssetBlob(url) {
-  if (!url) {
-    return Promise.resolve(null);
-  }
-
-  return caches.open(PUSH_ICON_CACHE).then(function (cache) {
-    return cache.match(url).then(function (cached) {
-      if (cached) {
-        return cached.blob();
-      }
-      return fetch(url, { credentials: 'same-origin', cache: 'reload' }).then(function (res) {
-        if (!res.ok) {
-          return null;
-        }
-        var copy = res.clone();
-        cache.put(url, copy).catch(function () {});
-        return res.blob();
-      });
-    });
-  }).catch(function () {
-    return null;
-  });
-}
-
-function fetchFirstAvailableBlob(urls) {
-  return urls.reduce(function (chain, url) {
-    return chain.then(function (blob) {
-      if (blob) {
-        return blob;
-      }
-      return fetchAssetBlob(url);
-    });
-  }, Promise.resolve(null));
-}
-
-function buildNotificationOptions(payload, iconBlob, badgeBlob, iconUrl, badgeUrl) {
-  var options = {
-    body: payload.body || '',
-    data: { url: payload.url || '/' },
-    tag: 'tiaraju-push',
-    renotify: true
-  };
-
-  if (iconBlob) {
-    options.icon = iconBlob;
-  } else if (iconUrl) {
-    options.icon = iconUrl;
-  }
-
-  // Android (barra de status): badge = silhueta branca em blob; URL externa costuma virar sino.
-  if (badgeBlob) {
-    options.badge = badgeBlob;
-  } else if (badgeUrl) {
-    options.badge = badgeUrl;
-  }
-
-  return options;
-}
 
 self.addEventListener('push', function (event) {
   var payload = { title: 'Portal Tiaraju', body: 'Nova notificação', url: '/', icon: '', badge: '' };
@@ -192,10 +147,7 @@ self.addEventListener('push', function (event) {
   }
 
   var iconUrl = resolvePushAssetUrl(payload.icon, DEFAULT_ICON_PATH);
-  var badgeUrls = DEFAULT_BADGE_PATHS.map(function (path) {
-    return resolvePushAssetUrl(payload.badge, path);
-  });
-  var badgeUrl = badgeUrls[0];
+  var badgeUrl = resolvePushAssetUrl(payload.badge, DEFAULT_BADGE_PATH);
   var title = payload.title || 'Portal Tiaraju';
 
   if (payload.url && typeof payload.url === 'string' && payload.url.indexOf('http') !== 0) {
@@ -208,18 +160,27 @@ self.addEventListener('push', function (event) {
 
   event.waitUntil(
     Promise.all([
-      fetchAssetBlob(iconUrl),
-      fetchFirstAvailableBlob(badgeUrls)
-    ])
-      .then(function (results) {
-        var iconBlob = results[0];
-        var badgeBlob = results[1];
-        var options = buildNotificationOptions(payload, iconBlob, badgeBlob, iconUrl, badgeUrl);
-        return self.registration.showNotification(title, options);
-      })
-      .catch(function () {
-        return self.registration.showNotification(title, buildNotificationOptions(payload, null, null, iconUrl, badgeUrl));
-      })
+      ensureAssetCached(iconUrl),
+      ensureAssetCached(badgeUrl)
+    ]).then(function () {
+      return self.registration.showNotification(title, {
+        body: payload.body || '',
+        data: { url: payload.url || '/' },
+        tag: 'tiaraju-push',
+        renotify: true,
+        icon: iconUrl,
+        badge: badgeUrl
+      });
+    }).catch(function () {
+      return self.registration.showNotification(title, {
+        body: payload.body || '',
+        data: { url: payload.url || '/' },
+        tag: 'tiaraju-push',
+        renotify: true,
+        icon: iconUrl,
+        badge: badgeUrl
+      });
+    })
   );
 });
 

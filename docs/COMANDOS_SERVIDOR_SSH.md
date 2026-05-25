@@ -390,7 +390,13 @@ Subir `service-worker.js`, `public/adms/js/pwa-app.js`, views do perfil/layout e
 - **Meu Perfil** → instalar, push e dispositivos.
 - **Não** é necessário `$pushSwVersion` nem banner “Atualizar aplicativo” a cada feature: páginas PHP e JS/CSS com `?v=` no próprio arquivo refletem ao navegar ou recarregar (F5).
 - O **service worker** (`service-worker.js`, URL fixa) só cuida de **push**; se o arquivo mudar, o navegador atualiza em silêncio (`skipWaiting` + reload automático).
-- **Ícone na barra de status (Android):** o SW usa `pwa-badge-*.png` do **mesmo domínio do PWA** (cache local), não o `URL_ADM` do `.env` (IP interno gera sino). Após deploy do `service-worker.js`, abra o portal no celular uma vez e teste push em Configuração Push.
+- **Ícone na barra de status (Android):** o SW (v8) usa **URLs de string** (mesma origem do PWA) para `icon` e `badge`; versões anteriores passavam Blobs, que a Notification API não aceita (causava sino genérico). Um fetch handler cache-first serve os PNGs sem depender da rede.
 - Em deploy, suba `pwa-app.js` com bump só em `pwa-app.js?v=` no layout quando alterar esse script.
+
+### Publicação agendada de informativos
+
+Informativos com `publish_at` futuro são salvos como `ativo = 0`. A ativação + push acontece automaticamente quando qualquer usuário acessa **Login**, **Dashboard**, **Listagem** ou **Visualização de Informativos** (throttle 60 s). Não é necessário cron externo em cenários normais de uso.
+
+Se necessário ativar fora do horário de acesso (ex.: madrugada), existe o endpoint opcional `informativos-publish-cron?token=...` (token via `CRON_INFORMATIVOS_TOKEN` no `.env`).
 
 

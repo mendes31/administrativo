@@ -13,6 +13,7 @@ use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Models\Services\TrainingStatusUpdaterService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\PayrollDocumentRemindersService;
+use App\adms\Models\Services\InformativosStatusUpdaterService;
 
 /**
  * Controller login
@@ -214,6 +215,7 @@ class Login
             TrainingStatusUpdaterService::ensureUpdated(false);
             CandidateRetentionService::ensureUpdated(false);
             PayrollDocumentRemindersService::ensureUpdated(false);
+            InformativosStatusUpdaterService::ensureUpdated(false);
 
             // Verificar consentimento LGPD antes de liberar acesso
             // Exceções:
