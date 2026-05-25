@@ -492,13 +492,6 @@
                                 if (!verify.endpointRegistered) {
                                     return silentResyncSubscription(registration, localSub);
                                 }
-                                if (verify.endpointUpdatedAt) {
-                                    var updatedMs = new Date(verify.endpointUpdatedAt).getTime();
-                                    var ageMs = Date.now() - updatedMs;
-                                    if (isNaN(ageMs) || ageMs > 172800000) {
-                                        return silentResyncSubscription(registration, localSub);
-                                    }
-                                }
                             });
                     });
                 });

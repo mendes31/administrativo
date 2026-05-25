@@ -34,15 +34,6 @@ class PushSubscribe
         $subRepo = new PushSubscriptionRepository();
         $endpoint = trim((string) ($_GET['endpoint'] ?? ''));
 
-        $endpointRegistered = null;
-        $endpointUpdatedAt = null;
-        if ($endpoint !== '') {
-            $endpointHash = hash('sha256', $endpoint);
-            $row = $subRepo->findByEndpointHash($endpointHash);
-            $endpointRegistered = $row !== null && (int) ($row['user_id'] ?? 0) === $userId;
-            $endpointUpdatedAt = $endpointRegistered ? ($row['updated_at'] ?? null) : null;
-        }
-
         echo json_encode([
             'success' => true,
             'enabled' => $configRepo->isEnabled(),
@@ -50,8 +41,7 @@ class PushSubscribe
             'publicKey' => $publicKey,
             'subscribed' => $subRepo->userHasSubscription($userId),
             'subscriptionCount' => $subRepo->countByUserId($userId),
-            'endpointRegistered' => $endpointRegistered,
-            'endpointUpdatedAt' => $endpointUpdatedAt,
+            'endpointRegistered' => $endpoint !== '' ? $subRepo->hasEndpointForUser($userId, $endpoint) : null,
             'devices' => $subRepo->listDevicesForUser($userId),
             'supported' => true,
         ]);
