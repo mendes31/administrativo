@@ -13,9 +13,10 @@ use App\adms\Models\Repository\InformativosRepository;
 final class InformativoPublishNotifier
 {
     /**
+     * @param bool $forceAll true = reenvia para todos; false = apenas para quem não recebeu
      * @return array{success:bool, sent:int, skipped:int, failed:int, message:string}
      */
-    public static function resendPushNotifications(int $informativoId): array
+    public static function resendPushNotifications(int $informativoId, bool $forceAll = true): array
     {
         if ($informativoId <= 0) {
             return self::failResult('Informativo inválido.');
@@ -33,9 +34,12 @@ final class InformativoPublishNotifier
                 return self::failResult('Informativo fora da janela de publicação (aguardando publicação ou já expirado).');
             }
 
-            ContentPublishPushDispatcher::clearDedupForContent('informativo', $informativoId);
-            $summary = self::dispatchPush($informativoId, $informativo, true);
+            if ($forceAll) {
+                ContentPublishPushDispatcher::clearDedupForContent('informativo', $informativoId);
+            }
+            $summary = self::dispatchPush($informativoId, $informativo, $forceAll);
 
+            $modeLabel = $forceAll ? 'todos' : 'pendentes';
             return [
                 'success' => $summary['sent'] > 0,
                 'sent' => $summary['sent'],
@@ -43,11 +47,18 @@ final class InformativoPublishNotifier
                 'failed' => $summary['failed'],
                 'message' => $summary['sent'] > 0
                     ? sprintf(
-                        'Push reenviado para %d dispositivo(s). %d usuário(s) sem inscrição push ou com falha de envio.',
+                        'Push (%s) enviado para %d dispositivo(s). %d ignorado(s) (já recebido). %d sem inscrição push ou com falha.',
+                        $modeLabel,
                         $summary['sent'],
+                        $summary['skipped'],
                         $summary['failed']
                     )
-                    : 'Nenhum push foi entregue. Verifique se os colaboradores ativaram notificações no perfil/PWA.',
+                    : sprintf(
+                        'Nenhum push entregue (%s). %d já havia recebido, %d sem inscrição/falha. Verifique se os colaboradores ativaram notificações no perfil/PWA.',
+                        $modeLabel,
+                        $summary['skipped'],
+                        $summary['failed']
+                    ),
             ];
         } catch (\Throwable $e) {
             error_log('InformativoPublishNotifier::resendPushNotifications error: ' . $e->getMessage());
@@ -115,12 +126,12 @@ final class InformativoPublishNotifier
         $scope = PublishPushDedupCache::scopeForEntity('informativo', $informativoId);
 
         return ContentPublishPushDispatcher::sendToUsers(
-            $userIds,
-            $scope,
-            $pushTitle,
-            $message,
-            $link,
-            $forceResend
+            userIds: $userIds,
+            scope: $scope,
+            title: $pushTitle,
+            body: $message,
+            url: $link,
+            forceResend: $forceResend
         );
     }
 

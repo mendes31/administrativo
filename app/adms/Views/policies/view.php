@@ -35,16 +35,38 @@ $policy = $this->data['policy'] ?? [];
                     && \App\adms\Models\Services\PolicyPublishNotifier::isWithinPublicationWindow($policy);
                 ?>
                 <?php if ($canResendPolicyPush): ?>
-                    <form method="post"
-                          action="<?php echo $_ENV['URL_ADM']; ?>resend-policy-push/<?php echo (int) ($policy['id'] ?? 0); ?>"
-                          class="d-inline mb-1"
-                          onsubmit="return confirm('Reenviar notificação push PWA para todos os colaboradores elegíveis?');">
-                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_policy_push'); ?>">
-                        <input type="hidden" name="id" value="<?php echo (int) ($policy['id'] ?? 0); ?>">
-                        <button type="submit" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-bell me-1"></i>Reenviar push PWA
+                    <?php $csrfResendPolicy = \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_policy_push'); ?>
+                    <div class="btn-group d-inline mb-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell me-1"></i>Reenviar push
                         </button>
-                    </form>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <form method="post"
+                                      action="<?php echo $_ENV['URL_ADM']; ?>resend-policy-push/<?php echo (int) ($policy['id'] ?? 0); ?>"
+                                      onsubmit="return confirm('Enviar push apenas para quem ainda NÃO recebeu?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfResendPolicy; ?>">
+                                    <input type="hidden" name="id" value="<?php echo (int) ($policy['id'] ?? 0); ?>">
+                                    <input type="hidden" name="mode" value="pending">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-user-plus me-1 text-info"></i>Somente quem não recebeu
+                                    </button>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="post"
+                                      action="<?php echo $_ENV['URL_ADM']; ?>resend-policy-push/<?php echo (int) ($policy['id'] ?? 0); ?>"
+                                      onsubmit="return confirm('Reenviar push para TODOS os colaboradores elegíveis?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfResendPolicy; ?>">
+                                    <input type="hidden" name="id" value="<?php echo (int) ($policy['id'] ?? 0); ?>">
+                                    <input type="hidden" name="mode" value="all">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-users me-1 text-warning"></i>Todos os colaboradores
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 <?php endif; ?>
                 <?php
                 $log_resumo = $this->data['log_resumo'] ?? [];

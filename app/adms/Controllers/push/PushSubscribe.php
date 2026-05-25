@@ -57,23 +57,38 @@ class PushSubscribe
             return;
         }
 
-        $userId = (int) ($_SESSION['user_id'] ?? 0);
-        if ($userId <= 0) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Não autenticado']);
-            return;
-        }
-
         $raw = file_get_contents('php://input') ?: '';
         $payload = json_decode($raw, true);
         if (!is_array($payload)) {
             $payload = $_POST;
         }
 
-        if (!CSRFHelper::validateCSRFToken('form_push_subscribe', (string) ($payload['csrf_token'] ?? ''), false)) {
-            http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+        $swAutoRenew = !empty($payload['sw_auto_renew']);
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+
+        if ($swAutoRenew && $userId <= 0) {
+            $oldEndpoint = trim((string) ($payload['old_endpoint'] ?? ''));
+            if ($oldEndpoint !== '') {
+                $subRepo = new PushSubscriptionRepository();
+                $oldRow = $subRepo->findByEndpointHash(hash('sha256', $oldEndpoint));
+                if ($oldRow) {
+                    $userId = (int) ($oldRow['user_id'] ?? 0);
+                }
+            }
+        }
+
+        if ($userId <= 0) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Não autenticado']);
             return;
+        }
+
+        if (!$swAutoRenew) {
+            if (!CSRFHelper::validateCSRFToken('form_push_subscribe', (string) ($payload['csrf_token'] ?? ''), false)) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+                return;
+            }
         }
 
         $configRepo = new AdmsPushConfigRepository();

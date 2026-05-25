@@ -13,9 +13,10 @@ use App\adms\Models\Repository\PoliciesRepository;
 final class PolicyPublishNotifier
 {
     /**
+     * @param bool $forceAll true = reenvia para todos; false = apenas para quem não recebeu
      * @return array{success:bool, sent:int, skipped:int, failed:int, message:string}
      */
-    public static function resendPushNotifications(int $policyId): array
+    public static function resendPushNotifications(int $policyId, bool $forceAll = true): array
     {
         if ($policyId <= 0) {
             return self::failResult('Política inválida.');
@@ -33,9 +34,12 @@ final class PolicyPublishNotifier
                 return self::failResult('Política fora da janela de publicação.');
             }
 
-            ContentPublishPushDispatcher::clearDedupForContent('policy', $policyId);
-            $summary = self::dispatchPush($policyId, $policy, true);
+            if ($forceAll) {
+                ContentPublishPushDispatcher::clearDedupForContent('policy', $policyId);
+            }
+            $summary = self::dispatchPush($policyId, $policy, $forceAll);
 
+            $modeLabel = $forceAll ? 'todos' : 'pendentes';
             return [
                 'success' => $summary['sent'] > 0,
                 'sent' => $summary['sent'],
@@ -43,11 +47,18 @@ final class PolicyPublishNotifier
                 'failed' => $summary['failed'],
                 'message' => $summary['sent'] > 0
                     ? sprintf(
-                        'Push reenviado para %d dispositivo(s). %d usuário(s) sem inscrição push ou com falha de envio.',
+                        'Push (%s) enviado para %d dispositivo(s). %d ignorado(s) (já recebido). %d sem inscrição push ou com falha.',
+                        $modeLabel,
                         $summary['sent'],
+                        $summary['skipped'],
                         $summary['failed']
                     )
-                    : 'Nenhum push foi entregue. Verifique se os colaboradores ativaram notificações no perfil/PWA.',
+                    : sprintf(
+                        'Nenhum push entregue (%s). %d já havia recebido, %d sem inscrição/falha. Verifique se os colaboradores ativaram notificações no perfil/PWA.',
+                        $modeLabel,
+                        $summary['skipped'],
+                        $summary['failed']
+                    ),
             ];
         } catch (\Throwable $e) {
             error_log('PolicyPublishNotifier::resendPushNotifications error: ' . $e->getMessage());
@@ -115,12 +126,12 @@ final class PolicyPublishNotifier
         $scope = PublishPushDedupCache::scopeForEntity('policy', $policyId);
 
         return ContentPublishPushDispatcher::sendToUsers(
-            $userIds,
-            $scope,
-            $pushTitle,
-            $message,
-            $link,
-            $forceResend
+            userIds: $userIds,
+            scope: $scope,
+            title: $pushTitle,
+            body: $message,
+            url: $link,
+            forceResend: $forceResend
         );
     }
 

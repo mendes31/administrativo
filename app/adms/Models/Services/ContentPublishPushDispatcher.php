@@ -11,7 +11,12 @@ namespace App\adms\Models\Services;
 final class ContentPublishPushDispatcher
 {
     /**
-     * @param list<int> $userIds
+     * @param int[] $userIds
+     * @param string $scope
+     * @param string $title
+     * @param string $body
+     * @param string $url
+     * @param bool $forceResend
      * @return array{sent:int, skipped:int, failed:int}
      */
     public static function sendToUsers(

@@ -442,6 +442,14 @@
         });
     }
 
+    function silentResyncSubscription(registration, subscription) {
+        return persistPushSubscription(registration, subscription)
+            .then(function () {
+                pushNeedsActivation = false;
+            })
+            .catch(function () {});
+    }
+
     function checkPushNeedsActivation() {
         pushCheckDone = false;
         pushNeedsActivation = false;
@@ -482,7 +490,7 @@
                         return fetchJson(urlAdm + '/push-subscribe?endpoint=' + encodeURIComponent(endpoint))
                             .then(function (verify) {
                                 if (!verify.endpointRegistered) {
-                                    pushNeedsActivation = true;
+                                    return silentResyncSubscription(registration, localSub);
                                 }
                             });
                     });

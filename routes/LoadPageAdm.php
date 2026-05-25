@@ -231,7 +231,8 @@ class LoadPageAdm
         "permission",
         "notifications",
         "gamification",
-        "legal"
+        "legal",
+        "companyEvents"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

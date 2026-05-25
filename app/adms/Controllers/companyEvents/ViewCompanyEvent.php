@@ -48,6 +48,7 @@ class ViewCompanyEvent
                 'UpdateCompanyEvent',
                 'DeleteCompanyEvent',
                 'CompanyEventReport',
+                'ResendCompanyEventPush',
             ],
         ];
         $pageLayoutService = new PageLayoutService();

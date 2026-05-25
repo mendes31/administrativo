@@ -103,6 +103,47 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                     </a>
                 <?php endif; ?>
                 <?php
+                $evBtnPerm = $this->data['buttonPermission'] ?? [];
+                $canResendEventPush = is_array($evBtnPerm)
+                    && in_array('ResendCompanyEventPush', $evBtnPerm, true)
+                    && !empty($ev['ativo'])
+                    && \App\adms\Models\Services\CompanyEventPublishNotifier::isWithinPublicationWindow($ev);
+                ?>
+                <?php if ($canResendEventPush): ?>
+                    <?php $csrfResendEvent = \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_company_event_push'); ?>
+                    <div class="btn-group d-inline mb-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell me-1"></i>Reenviar push
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <form method="post"
+                                      action="<?php echo htmlspecialchars($urlAdm); ?>resend-company-event-push/<?php echo $eventId; ?>"
+                                      onsubmit="return confirm('Enviar push apenas para quem ainda NÃO recebeu?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfResendEvent; ?>">
+                                    <input type="hidden" name="id" value="<?php echo $eventId; ?>">
+                                    <input type="hidden" name="mode" value="pending">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-user-plus me-1 text-info"></i>Somente quem não recebeu
+                                    </button>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="post"
+                                      action="<?php echo htmlspecialchars($urlAdm); ?>resend-company-event-push/<?php echo $eventId; ?>"
+                                      onsubmit="return confirm('Reenviar push para TODOS os colaboradores elegíveis?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfResendEvent; ?>">
+                                    <input type="hidden" name="id" value="<?php echo $eventId; ?>">
+                                    <input type="hidden" name="mode" value="all">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-users me-1 text-warning"></i>Todos os colaboradores
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                <?php
                 $log_resumo = $this->data['log_resumo'] ?? [];
                 $log_btn_class = 'btn btn-outline-light btn-sm mb-1';
                 include __DIR__ . '/../partials/button_log_alteracoes.php';

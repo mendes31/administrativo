@@ -35,16 +35,38 @@ $informativo = $this->data['informativo'];
                     && \App\adms\Models\Services\InformativoPublishNotifier::isWithinPublicationWindow($informativo);
                 ?>
                 <?php if ($canResendPush): ?>
-                    <form method="post"
-                          action="<?php echo $_ENV['URL_ADM']; ?>resend-informativo-push/<?php echo (int) $informativo['id']; ?>"
-                          class="d-inline mb-1"
-                          onsubmit="return confirm('Reenviar notificação push PWA para todos os colaboradores elegíveis?');">
-                        <input type="hidden" name="csrf_token" value="<?php echo \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_informativo_push'); ?>">
-                        <input type="hidden" name="id" value="<?php echo (int) $informativo['id']; ?>">
-                        <button type="submit" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-bell me-1"></i>Reenviar push PWA
+                    <?php $csrfResend = \App\adms\Helpers\CSRFHelper::generateCSRFToken('resend_informativo_push'); ?>
+                    <div class="btn-group d-inline mb-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell me-1"></i>Reenviar push
                         </button>
-                    </form>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <form method="post"
+                                      action="<?php echo $_ENV['URL_ADM']; ?>resend-informativo-push/<?php echo (int) $informativo['id']; ?>"
+                                      onsubmit="return confirm('Enviar push apenas para quem ainda NÃO recebeu?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfResend; ?>">
+                                    <input type="hidden" name="id" value="<?php echo (int) $informativo['id']; ?>">
+                                    <input type="hidden" name="mode" value="pending">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-user-plus me-1 text-info"></i>Somente quem não recebeu
+                                    </button>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="post"
+                                      action="<?php echo $_ENV['URL_ADM']; ?>resend-informativo-push/<?php echo (int) $informativo['id']; ?>"
+                                      onsubmit="return confirm('Reenviar push para TODOS os colaboradores elegíveis?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfResend; ?>">
+                                    <input type="hidden" name="id" value="<?php echo (int) $informativo['id']; ?>">
+                                    <input type="hidden" name="mode" value="all">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-users me-1 text-warning"></i>Todos os colaboradores
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 <?php endif; ?>
                 <?php
                 $log_resumo = $this->data['log_resumo'] ?? [];

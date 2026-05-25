@@ -49,8 +49,14 @@ class ResendPolicyPush
             exit;
         }
 
-        $result = PolicyPublishNotifier::resendPushNotifications($policyId);
-        $class = !empty($result['success']) ? 'success' : 'danger';
+        $mode = trim((string) ($_POST['mode'] ?? 'all'));
+        $forceAll = ($mode !== 'pending');
+
+        $result = PolicyPublishNotifier::resendPushNotifications($policyId, $forceAll);
+        $class = !empty($result['success']) ? 'success' : 'warning';
+        if (empty($result['success']) && (int) ($result['failed'] ?? 0) === 0) {
+            $class = 'danger';
+        }
         $_SESSION['msg'] = '<div class="alert alert-' . $class . '" role="alert">'
             . htmlspecialchars((string) ($result['message'] ?? ''), ENT_QUOTES, 'UTF-8')
             . '</div>';

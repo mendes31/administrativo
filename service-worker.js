@@ -202,3 +202,25 @@ self.addEventListener('notificationclick', function (event) {
     })
   );
 });
+
+self.addEventListener('pushsubscriptionchange', function (event) {
+  var base = getScopeBase();
+  var oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : '';
+  event.waitUntil(
+    self.registration.pushManager.subscribe(event.oldSubscription ? {
+      userVisibleOnly: true,
+      applicationServerKey: event.oldSubscription.options && event.oldSubscription.options.applicationServerKey
+    } : { userVisibleOnly: true }).then(function (newSub) {
+      var json = newSub.toJSON();
+      return fetch(base + '/push-subscribe/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: json,
+          sw_auto_renew: true,
+          old_endpoint: oldEndpoint
+        })
+      });
+    }).catch(function () {})
+  );
+});
