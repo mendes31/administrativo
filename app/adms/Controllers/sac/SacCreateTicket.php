@@ -13,6 +13,8 @@ use App\adms\Models\Repository\SacClientsRepository;
 use App\adms\Models\Repository\SacSlaRulesRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Models\Services\SacEmailService;
+use App\adms\Models\Services\SacTicketNotificationService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -117,6 +119,18 @@ class SacCreateTicket
 
         if ($ticketId) {
             $this->processAttachments($ticketId);
+
+            $ticket = $ticketsRepo->getTicketById($ticketId);
+            if ($ticket) {
+                SacEmailService::sendTicketCreatedToClient($ticket);
+
+                SacTicketNotificationService::notifyNewTicket(
+                    $ticketId,
+                    (string) ($ticket['code'] ?? ''),
+                    (string) ($ticket['subject'] ?? ''),
+                    !empty($data['assigned_user_id']) ? (int) $data['assigned_user_id'] : null
+                );
+            }
 
             $_SESSION['msg'] = "Chamado criado com sucesso!";
             $_SESSION['msg_type'] = "success";

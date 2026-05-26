@@ -7,6 +7,8 @@ namespace App\adms\Controllers\sac;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\SacTicketsRepository;
 use App\adms\Models\Repository\SacTicketMessagesRepository;
+use App\adms\Models\Services\SacEmailService;
+use App\adms\Models\Services\SacTicketNotificationService;
 
 /**
  * Controller para responder/adicionar mensagem a um chamado SAC
@@ -69,18 +71,25 @@ class SacReplyTicket
             exit;
         }
 
-        if ($senderType === 'agent') {
-            $ticketsRepo = new SacTicketsRepository();
-            $ticket = $ticketsRepo->getTicketById($ticketId);
+        $ticketsRepo = new SacTicketsRepository();
+        $ticket = $ticketsRepo->getTicketById($ticketId);
 
-            if ($ticket && empty($ticket['first_response_at'])) {
+        if ($senderType === 'agent' && $ticket) {
+            if (empty($ticket['first_response_at'])) {
                 $ticketsRepo->updateTicket($ticketId, [
                     'first_response_at' => date('Y-m-d H:i:s'),
                 ]);
             }
+
+            SacTicketNotificationService::notifyNewReply(
+                $ticketId,
+                (string) ($ticket['code'] ?? ''),
+                !empty($ticket['assigned_user_id']) ? (int) $ticket['assigned_user_id'] : null,
+                (bool) $isInternal
+            );
         }
 
-        // Upload de anexos
+        $uploadedFiles = [];
         if (!empty($_FILES['attachments']) && is_array($_FILES['attachments']['name'])) {
             $uploadDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\')
                 . DIRECTORY_SEPARATOR . 'storage'
@@ -117,11 +126,37 @@ class SacReplyTicket
                         'file_type' => $mimeType,
                         'uploaded_by' => (int)($_SESSION['user_id'] ?? 1),
                     ]);
+                    $uploadedFiles[] = ['path' => $destPath, 'name' => $originalName];
                 }
             }
         }
 
-        $_SESSION['msg'] = "Mensagem enviada com sucesso!";
+        if (!$isInternal && $ticket) {
+            $agentName = $_SESSION['user_name'] ?? 'Atendente';
+            $clientEmail = $ticket['client_email'] ?? '';
+
+            try {
+                $emailSent = SacEmailService::sendReplyToClient($ticket, $message, $agentName, $uploadedFiles);
+            } catch (\Throwable $e) {
+                $emailSent = false;
+                error_log('[SAC EMAIL ERROR] ' . $e->getMessage());
+            }
+
+            if ($emailSent) {
+                $_SESSION['msg_email'] = 'E-mail enviado para ' . $clientEmail;
+            } else {
+                $_SESSION['msg_email_erro'] = 'Falha ao enviar e-mail para ' . $clientEmail;
+            }
+        }
+
+        $emailNote = '';
+        if (!empty($_SESSION['msg_email'])) {
+            $emailNote = ' ' . $_SESSION['msg_email'];
+        } elseif (!empty($_SESSION['msg_email_erro'])) {
+            $emailNote = ' ⚠ ' . $_SESSION['msg_email_erro'];
+        }
+        unset($_SESSION['msg_email'], $_SESSION['msg_email_erro']);
+        $_SESSION['msg'] = "Mensagem enviada com sucesso!" . $emailNote;
         $_SESSION['msg_type'] = "success";
         header("Location: " . $_ENV['URL_ADM'] . "sac-view-ticket/" . $ticketId);
         exit;

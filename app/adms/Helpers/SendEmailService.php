@@ -3,6 +3,7 @@
 namespace App\adms\Helpers;
 
 use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 use App\adms\Models\Repository\AdmsEmailConfigRepository;
 use App\adms\Helpers\GenerateLog;
@@ -19,6 +20,9 @@ class SendEmailService
      * @param string|null $fromAddressOverride E-mail no From; só aplicado se ROOM_BOOKING_SMTP_USE_ORGANIZER_AS_FROM=true no .env (evita SPF/DMARC quebrados por defeito).
      * @param bool $forceFromAddressOverride Quando true, aplica fromAddressOverride independentemente da flag de ambiente.
      */
+    /**
+     * @param array<int, array{path:string, name:string}> $attachments Arquivos a anexar [{path, name}, ...]
+     */
     public static function sendEmail(
         string $email,
         string $name,
@@ -30,6 +34,7 @@ class SendEmailService
         ?string $fromDisplayNameOverride = null,
         ?string $fromAddressOverride = null,
         bool $forceFromAddressOverride = false,
+        array $attachments = [],
     ): bool {
         $mail = new PHPMailer(true);
 
@@ -37,9 +42,13 @@ class SendEmailService
         $repo = new AdmsEmailConfigRepository();
         $config = $repo->getConfig();
 
+        $smtpDebugLog = '';
+
         try {
-            //Configurações do servidor
-            // $mail->SMTPDebug = SMTP::DEBUG_SERVER;                   //Habilita saída de depuração detalhada
+            $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+            $mail->Debugoutput = function ($str, $level) use (&$smtpDebugLog) {
+                $smtpDebugLog .= "[L{$level}] {$str}";
+            };
             $mail->CharSet = 'UTF-8';
             $mail->isSMTP();                                            //Envia via SMTP
             $mail->Host       = $config['host'] ?? '';                     //Define o servidor SMTP para enviar
@@ -66,7 +75,10 @@ class SendEmailService
                 if ($displayName === '') {
                     $fromName = $overrideAddr;
                 }
-                if ($cfgFromEmail !== '' && filter_var($cfgFromEmail, FILTER_VALIDATE_EMAIL)) {
+                $smtpUser = trim((string) ($config['username'] ?? ''));
+                if ($smtpUser !== '' && filter_var($smtpUser, FILTER_VALIDATE_EMAIL)) {
+                    $mail->Sender = $smtpUser;
+                } elseif ($cfgFromEmail !== '' && filter_var($cfgFromEmail, FILTER_VALIDATE_EMAIL)) {
                     $mail->Sender = $cfgFromEmail;
                 }
             }
@@ -84,6 +96,14 @@ class SendEmailService
             $mail->Body    = $body;
             $mail->AltBody = $altBody;
 
+            foreach ($attachments as $att) {
+                $filePath = $att['path'] ?? '';
+                $fileName = $att['name'] ?? basename($filePath);
+                if ($filePath !== '' && is_file($filePath)) {
+                    $mail->addAttachment($filePath, $fileName);
+                }
+            }
+
             $mail->send();
 
             GenerateLog::generateLog("info", "Email enviado com sucesso.", ['email' => $email, 'subject' => $subject]);
@@ -91,7 +111,11 @@ class SendEmailService
             return true;
 
         } catch (Exception $e) {
-            GenerateLog::generateLog("error", "Email não enviado", ['email' => $email, 'error' => $e->getMessage()]);
+            GenerateLog::generateLog("error", "Email não enviado", [
+                'email' => $email,
+                'error' => $e->getMessage(),
+                'smtp_debug' => $smtpDebugLog,
+            ]);
             return false;
         }
     }
