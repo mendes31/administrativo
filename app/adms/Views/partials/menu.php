@@ -886,6 +886,43 @@ $menus = [
         ]
     ],
     [
+        'id' => 'sac',
+        'icon' => 'fa-solid fa-headset',
+        'label' => 'SAC',
+        'submenu' => [
+            [
+                'label' => 'Dashboard',
+                'url' => $_ENV['URL_ADM'] . 'sac-dashboard',
+                'permission' => 'SacDashboard',
+                'icon' => 'fas fa-chart-line'
+            ],
+            [
+                'label' => 'Chamados',
+                'url' => $_ENV['URL_ADM'] . 'sac-list-tickets',
+                'permission' => 'SacListTickets',
+                'icon' => 'fas fa-ticket-alt'
+            ],
+            [
+                'label' => 'Clientes',
+                'url' => $_ENV['URL_ADM'] . 'sac-list-clients',
+                'permission' => 'SacListClients',
+                'icon' => 'fas fa-user-tie'
+            ],
+            [
+                'label' => 'Categorias',
+                'url' => $_ENV['URL_ADM'] . 'sac-list-categories',
+                'permission' => 'SacListCategories',
+                'icon' => 'fas fa-tags'
+            ],
+            [
+                'label' => 'Regras de SLA',
+                'url' => $_ENV['URL_ADM'] . 'sac-list-sla-rules',
+                'permission' => 'SacListSlaRules',
+                'icon' => 'fas fa-stopwatch'
+            ],
+        ]
+    ],
+    [
         'id' => 'lgpd',
         'icon' => 'fa-solid fa-shield-halved',
         'label' => 'LGPD',

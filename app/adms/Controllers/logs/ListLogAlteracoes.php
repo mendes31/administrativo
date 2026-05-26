@@ -527,8 +527,20 @@ class ListLogAlteracoes
                 }
 
                 return $_ENV['URL_ADM'] . 'my-payroll-documents';
+            case 'sac_categories':
+                return $_ENV['URL_ADM'] . 'sac-update-category/' . $objetoId;
+            case 'sac_sla_rules':
+                return $_ENV['URL_ADM'] . 'sac-update-sla-rule/' . $objetoId;
+            case 'sac_clients':
+                return $_ENV['URL_ADM'] . 'sac-view-client/' . $objetoId;
+            case 'sac_tickets':
+                return $_ENV['URL_ADM'] . 'sac-view-ticket/' . $objetoId;
+            case 'sac_ticket_messages':
+            case 'sac_ticket_attachments':
+            case 'sac_ticket_status_log':
+                return $_ENV['URL_ADM'] . 'sac-list-tickets';
             default:
-                return null; // Tabela não mapeada
+                return null;
         }
     }
-} 
+}

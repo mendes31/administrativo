@@ -183,7 +183,13 @@ class LoadPageAdm
         "ListGamificationQuizQuestions", "CreateGamificationQuizQuestion", "UpdateGamificationQuizQuestion", "DeleteGamificationQuizQuestion",
         "ListGamificationPointLedger", "GamificationQuizCatalog", "TakeGamificationQuiz", "SubmitGamificationQuizAttempt",
         "GamificationLeaderboard", "GamificationEngagementDashboard",
-        "TermosDeUso", "PoliticaPrivacidade"
+        "TermosDeUso", "PoliticaPrivacidade",
+        // SAC — Módulo de Atendimento ao Cliente (SmartSAC)
+        "SacDashboard",
+        "SacListCategories", "SacCreateCategory", "SacUpdateCategory", "SacDeleteCategory",
+        "SacListSlaRules", "SacCreateSlaRule", "SacUpdateSlaRule", "SacDeleteSlaRule",
+        "SacListClients", "SacCreateClient", "SacViewClient", "SacUpdateClient", "SacDeleteClient",
+        "SacListTickets", "SacCreateTicket", "SacViewTicket", "SacUpdateTicket", "SacDeleteTicket", "SacReplyTicket", "SacTransferTicket", "SacRateTicket"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -232,7 +238,8 @@ class LoadPageAdm
         "notifications",
         "gamification",
         "legal",
-        "companyEvents"
+        "companyEvents",
+        "sac"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

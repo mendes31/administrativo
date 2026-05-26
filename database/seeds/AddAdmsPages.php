@@ -878,6 +878,33 @@ class AddAdmsPages extends BaseSeed
             ['name'=> 'Ranking de pontos (Gamificação)', 'controller' => 'GamificationLeaderboard', 'controller_url' => 'gamification-leaderboard', 'directory' => 'gamification', 'obs' => 'Classificação geral por pontos acumulados.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
             ['name'=> 'Dashboard de engajamento (Gamificação)', 'controller' => 'GamificationEngagementDashboard', 'controller_url' => 'gamification-engagement-dashboard', 'directory' => 'gamification', 'obs' => 'Indicadores para gestores e RH sobre níveis, badges, missões e anti-fraude.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 39],
             ['name'=> 'Card Dashboard - Quizzes (Gamificação)', 'controller' => 'DashboardCardGamificationQuizzes', 'controller_url' => 'dashboard-card-gamification-quizzes', 'directory' => 'dashboard', 'obs' => 'Controla visibilidade do card de Quizzes disponíveis no dashboard.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 1],
+
+            // ===== GRUPO 40: SAC (SmartSAC) =====
+            ['name'=> 'Dashboard SAC', 'controller' => 'SacDashboard', 'controller_url' => 'sac-dashboard', 'directory' => 'sac', 'obs' => 'Painel operacional com indicadores de atendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            // SAC — Categorias
+            ['name'=> 'Listar Categorias SAC', 'controller' => 'SacListCategories', 'controller_url' => 'sac-list-categories', 'directory' => 'sac', 'obs' => 'Listagem de categorias de chamados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Cadastrar Categoria SAC', 'controller' => 'SacCreateCategory', 'controller_url' => 'sac-create-category', 'directory' => 'sac', 'obs' => 'Cadastro de categoria de chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Editar Categoria SAC', 'controller' => 'SacUpdateCategory', 'controller_url' => 'sac-update-category', 'directory' => 'sac', 'obs' => 'Edição de categoria de chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Excluir Categoria SAC', 'controller' => 'SacDeleteCategory', 'controller_url' => 'sac-delete-category', 'directory' => 'sac', 'obs' => 'Exclusão de categoria de chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            // SAC — Regras de SLA
+            ['name'=> 'Listar SLAs SAC', 'controller' => 'SacListSlaRules', 'controller_url' => 'sac-list-sla-rules', 'directory' => 'sac', 'obs' => 'Listagem de regras de SLA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Cadastrar SLA SAC', 'controller' => 'SacCreateSlaRule', 'controller_url' => 'sac-create-sla-rule', 'directory' => 'sac', 'obs' => 'Cadastro de regra de SLA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Editar SLA SAC', 'controller' => 'SacUpdateSlaRule', 'controller_url' => 'sac-update-sla-rule', 'directory' => 'sac', 'obs' => 'Edição de regra de SLA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Excluir SLA SAC', 'controller' => 'SacDeleteSlaRule', 'controller_url' => 'sac-delete-sla-rule', 'directory' => 'sac', 'obs' => 'Exclusão de regra de SLA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            // SAC — Clientes
+            ['name'=> 'Listar Clientes SAC', 'controller' => 'SacListClients', 'controller_url' => 'sac-list-clients', 'directory' => 'sac', 'obs' => 'Listagem de clientes do SAC.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Cadastrar Cliente SAC', 'controller' => 'SacCreateClient', 'controller_url' => 'sac-create-client', 'directory' => 'sac', 'obs' => 'Cadastro de cliente do SAC.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Visualizar Cliente SAC', 'controller' => 'SacViewClient', 'controller_url' => 'sac-view-client', 'directory' => 'sac', 'obs' => 'Visualização de cliente do SAC.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Editar Cliente SAC', 'controller' => 'SacUpdateClient', 'controller_url' => 'sac-update-client', 'directory' => 'sac', 'obs' => 'Edição de cliente do SAC.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Excluir Cliente SAC', 'controller' => 'SacDeleteClient', 'controller_url' => 'sac-delete-client', 'directory' => 'sac', 'obs' => 'Exclusão de cliente do SAC.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            // SAC — Chamados
+            ['name'=> 'Listar Chamados SAC', 'controller' => 'SacListTickets', 'controller_url' => 'sac-list-tickets', 'directory' => 'sac', 'obs' => 'Listagem de chamados de atendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Abrir Chamado SAC', 'controller' => 'SacCreateTicket', 'controller_url' => 'sac-create-ticket', 'directory' => 'sac', 'obs' => 'Abertura de novo chamado de atendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Visualizar Chamado SAC', 'controller' => 'SacViewTicket', 'controller_url' => 'sac-view-ticket', 'directory' => 'sac', 'obs' => 'Visualização de chamado com timeline de interações.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Editar Chamado SAC', 'controller' => 'SacUpdateTicket', 'controller_url' => 'sac-update-ticket', 'directory' => 'sac', 'obs' => 'Edição de chamado de atendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Excluir Chamado SAC', 'controller' => 'SacDeleteTicket', 'controller_url' => 'sac-delete-ticket', 'directory' => 'sac', 'obs' => 'Exclusão de chamado de atendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Responder Chamado SAC', 'controller' => 'SacReplyTicket', 'controller_url' => 'sac-reply-ticket', 'directory' => 'sac', 'obs' => 'Enviar resposta ou nota interna em chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            ['name'=> 'Transferir Chamado SAC', 'controller' => 'SacTransferTicket', 'controller_url' => 'sac-transfer-ticket', 'directory' => 'sac', 'obs' => 'Transferir chamado para outro atendente ou setor.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
         ];
 
         // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
@@ -912,6 +939,12 @@ class AddAdmsPages extends BaseSeed
         }
         $lgpdGroupId = (int)$lgpdGroup['id'];
 
+        $sacGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'SAC'");
+        if (!$sacGroup) {
+            throw new \Exception("ERRO: O grupo 'SAC' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $sacGroupId = (int)$sacGroup['id'];
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -939,6 +972,8 @@ class AddAdmsPages extends BaseSeed
                     $groupId = $logsGroupId;
                 } elseif ($groupId == 39) {
                     $groupId = $comunicacaoSocialGroupId;
+                } elseif ($groupId == 40) {
+                    $groupId = $sacGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
                     // Páginas de Dashboards KPI adicionadas nesta seed usam 0 como placeholder
                     $groupId = $dashboardsKpiGroupId;
@@ -1047,6 +1082,30 @@ class AddAdmsPages extends BaseSeed
                      SET alp.permission = 0,
                          alp.updated_at = NOW()
                      WHERE p.adms_groups_page_id = {$logsGroupId}
+                       AND p.public_page = 0
+                       AND NOT EXISTS (
+                            SELECT 1
+                            FROM (
+                                SELECT adms_page_id
+                                FROM adms_access_levels_pages
+                                WHERE permission = 1
+                            ) keep_acl
+                            WHERE keep_acl.adms_page_id = p.id
+                       )"
+                );
+
+                // SAC: páginas nascem sem autorização — administrador libera por nível.
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET default_page = 0, updated_at = NOW()
+                     WHERE adms_groups_page_id = {$sacGroupId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages alp
+                     INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                     SET alp.permission = 0,
+                         alp.updated_at = NOW()
+                     WHERE p.adms_groups_page_id = {$sacGroupId}
                        AND p.public_page = 0
                        AND NOT EXISTS (
                             SELECT 1
