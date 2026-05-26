@@ -102,7 +102,7 @@ class LoadPageAdm
         "ViewStrategicPlanObservations", "AddStrategicPlanObservation",
         "ListStrategicIndicators", "CreateStrategicIndicator", "EditStrategicIndicator", "UpdateStrategicIndicator", "DeleteStrategicIndicator", "ViewStrategicIndicator",
         "ListBranches", "CreateBranch", "ViewBranch", "UpdateBranch", "DeleteBranch",
-        "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "RemoveInformativoImagem", "RemoveInformativoAnexo", "ResendInformativoPush", "InformativosPublishCron",
+        "ListInformativos", "CreateInformativo", "ViewInformativo", "UpdateInformativo", "DeleteInformativo", "RemoveInformativoImagem", "RemoveInformativoAnexo", "ResendInformativoPush", "InformativoPushStatus", "InformativosPublishCron",
         // Políticas Internas
         "ListPolicies", "CreatePolicy", "ViewPolicy", "UpdatePolicy", "DeletePolicy", "AcknowledgePolicy", "ReadPolicy", "ResendPolicyPush",
         "RelatorioPolicy", "ExportRelatorioPolicyPdf",

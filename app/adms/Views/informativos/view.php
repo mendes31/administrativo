@@ -70,6 +70,13 @@ $informativo = $this->data['informativo'];
                         </ul>
                     </div>
                 <?php endif; ?>
+                <?php if ($canManageInf && is_array($btnPerm) && in_array('InformativoPushStatus', $btnPerm, true)): ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>informativo-push-status/<?php echo (int) $informativo['id']; ?>"
+                       class="btn btn-outline-info btn-sm mb-1"
+                       title="Ver quem recebeu o push">
+                        <i class="fas fa-satellite-dish me-1"></i>Status Push
+                    </a>
+                <?php endif; ?>
                 <?php
                 $log_resumo = $this->data['log_resumo'] ?? [];
                 $log_btn_class = 'btn btn-outline-info btn-sm mb-1';
