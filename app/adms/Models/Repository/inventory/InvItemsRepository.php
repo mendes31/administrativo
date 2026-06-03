@@ -28,6 +28,10 @@ class InvItemsRepository extends DbConnection
 			$wheres[] = 'i.active = :active';
 			$params[':active'] = (int)$filters['active'];
 		}
+		if (!empty($filters['categoria_id'])) {
+			$wheres[] = 'i.inv_category_id = :categoria_id';
+			$params[':categoria_id'] = (int)$filters['categoria_id'];
+		}
 		$whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
 
         $sql = 'SELECT i.id, i.code, i.erp_code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active,
@@ -67,6 +71,10 @@ class InvItemsRepository extends DbConnection
 		if (isset($filters['active']) && $filters['active'] !== '') {
 			$wheres[] = 'active = :active';
 			$params[':active'] = (int)$filters['active'];
+		}
+		if (!empty($filters['categoria_id'])) {
+			$wheres[] = 'inv_category_id = :categoria_id';
+			$params[':categoria_id'] = (int)$filters['categoria_id'];
 		}
 		$whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
 		$sql = 'SELECT COUNT(*) AS total FROM inv_items ' . $whereSql;
