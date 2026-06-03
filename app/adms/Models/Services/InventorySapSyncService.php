@@ -379,7 +379,7 @@ class InventorySapSyncService
             . 'WHERE N."InQty" > 0'
             . ') X '
             . 'WHERE X."RN" = 1'
-            . ') LC ON LC."ItemCode" = ' . $itemCodeColumn;
+            . ') LC ON LC."ItemCode" = ' . $itemCodeColumn . ' ';
     }
 
     private function sapOitwJoinSql(string $itemCodeColumn, string $defaultWhColumn): string
@@ -393,7 +393,7 @@ class InventorySapSyncService
 
     private function sapCostJoinsSql(string $itemCodeColumn, string $defaultWhColumn): string
     {
-        return $this->sapOitwJoinSql($itemCodeColumn, $defaultWhColumn)
+        return $this->sapOitwJoinSql($itemCodeColumn, $defaultWhColumn) . ' '
             . $this->sapLastCostJoinSql($itemCodeColumn);
     }
 
