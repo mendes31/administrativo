@@ -39,7 +39,7 @@ class InvItemsRepository extends DbConnection
 			LEFT JOIN inv_balances b ON b.inv_item_id = i.id
 			' . $whereSql . '
 			GROUP BY i.id, i.code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active, u.name, c.name
-			ORDER BY i.id DESC
+			ORDER BY i.code ASC
 			LIMIT :limit OFFSET :offset';
 
 		$stmt = $this->getConnection()->prepare($sql);
@@ -220,6 +220,72 @@ class InvItemsRepository extends DbConnection
 		$sql = 'SELECT id, code, description, admin_type FROM inv_items WHERE active = 1 ORDER BY description ASC';
 		$stmt = $this->getConnection()->query($sql);
 		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+	}
+
+	/**
+	 * Itens PA/PI para simulação de custo (categorias com ACABADO ou INTERMED).
+	 */
+	public function getFinishedGoodsForSelect(): array
+	{
+		$sql = 'SELECT i.id, i.code, i.description, i.erp_code, i.average_cost, c.name AS category_name
+				FROM inv_items i
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE i.active = 1
+				  AND (
+				    UPPER(c.name) LIKE :pa OR UPPER(c.name) LIKE :pi
+				    OR UPPER(c.name) LIKE :acabado OR UPPER(c.name) LIKE :intermed
+				  )
+				ORDER BY i.description ASC';
+		$stmt = $this->getConnection()->prepare($sql);
+		$stmt->bindValue(':pa', '%ACABADO%');
+		$stmt->bindValue(':pi', '%INTERMED%');
+		$stmt->bindValue(':acabado', '%PROD ACAB%');
+		$stmt->bindValue(':intermed', '%PROD INTER%');
+		$stmt->execute();
+
+		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+	}
+
+	public function findByErpCode(string $erpCode): ?array
+	{
+		$erpCode = trim($erpCode);
+		if ($erpCode === '') {
+			return null;
+		}
+		$stmt = $this->getConnection()->prepare('SELECT * FROM inv_items WHERE erp_code = :erp_code LIMIT 1');
+		$stmt->bindValue(':erp_code', $erpCode);
+		$stmt->execute();
+		$row = $stmt->fetch(PDO::FETCH_ASSOC);
+		return $row !== false ? $row : null;
+	}
+
+	public function getIdsByCategoryNameKeywords(array $keywords): array
+	{
+		$normalized = array_values(array_filter(array_map(static fn($k) => trim((string)$k), $keywords)));
+		if ($normalized === []) {
+			return [];
+		}
+
+		$conds = [];
+		$params = [];
+		foreach ($normalized as $idx => $keyword) {
+			$key = ':kw' . $idx;
+			$conds[] = 'c.name LIKE ' . $key;
+			$params[$key] = '%' . $keyword . '%';
+		}
+
+		$sql = 'SELECT i.id
+				FROM inv_items i
+				INNER JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE ' . implode(' OR ', $conds);
+		$stmt = $this->getConnection()->prepare($sql);
+		foreach ($params as $key => $value) {
+			$stmt->bindValue($key, $value);
+		}
+		$stmt->execute();
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+		return array_map(static fn(array $row): int => (int)($row['id'] ?? 0), $rows);
 	}
 
 	/**

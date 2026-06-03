@@ -3,7 +3,70 @@
 use App\adms\Helpers\CSRFHelper;
 
 ?>
-<div class="container-fluid px-4">
+<style>
+  @media (max-width: 767.98px) {
+    .inv-update-tabs .nav-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .inv-update-tabs .nav-tabs .nav-item {
+      flex-shrink: 0;
+    }
+    .inv-edit-responsive-table thead {
+      display: none;
+    }
+    .inv-edit-responsive-table tbody tr {
+      display: block;
+      margin-bottom: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid #dee2e6;
+      border-radius: 0.375rem;
+      background: #fff;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+    }
+    .inv-edit-responsive-table tbody td {
+      display: block;
+      width: 100% !important;
+      border: 0;
+      padding: 0.35rem 0;
+      text-align: left !important;
+    }
+    .inv-edit-responsive-table tbody td::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #6c757d;
+      margin-bottom: 0.2rem;
+    }
+    .inv-edit-responsive-table tbody td.text-end {
+      text-align: left !important;
+    }
+    .inv-edit-responsive-table tbody td.text-end .btn {
+      width: 100%;
+    }
+    .inv-edit-responsive-table tfoot tr {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      margin-top: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 0.375rem;
+      border: 1px solid #dee2e6;
+    }
+    .inv-edit-responsive-table tfoot td {
+      display: block;
+      width: auto !important;
+      border: 0;
+      padding: 0;
+    }
+  }
+</style>
+<div class="container-fluid px-2 px-md-4">
 
 	<div class="mb-1 hstack gap-2">
 		<h2 class="mt-3">Item de Estoque</h2>
@@ -25,11 +88,6 @@ use App\adms\Helpers\CSRFHelper;
 			<span class="ms-auto d-sm-flex flex-row flex-wrap gap-1 align-items-center">
 				<?php if (in_array('ListInventoryItems', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}list-inventory-items' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> "; }
 				if (in_array('ViewInventoryItem', $this->data['buttonPermission']) && !empty($this->data['form']['id'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$this->data['form']['id']}' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Ver</a> "; } ?>
-				<?php
-				$log_resumo = $this->data['log_resumo'] ?? [];
-				$log_btn_class = 'btn btn-outline-info btn-sm';
-				include __DIR__ . '/../../partials/button_log_alteracoes.php';
-				?>
 			</span>
 		</div>
 
@@ -39,7 +97,7 @@ use App\adms\Helpers\CSRFHelper;
 			<form action="" method="POST" class="row g-3">
 				<input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_inventory_item'); ?>">
 
-				<ul class="nav nav-tabs mb-3" role="tablist">
+				<ul class="nav nav-tabs mb-3 inv-update-tabs" role="tablist">
 					<li class="nav-item" role="presentation">
 						<button class="nav-link active" id="tab-dados-gerais" data-bs-toggle="tab" data-bs-target="#pane-dados-gerais" type="button" role="tab">Dados gerais</button>
 					</li>
@@ -127,7 +185,7 @@ use App\adms\Helpers\CSRFHelper;
 					</div>
 
 					<div class="tab-pane fade" id="pane-bom" role="tabpanel" aria-labelledby="tab-bom">
-						<div class="table-responsive">
+						<div class="table-responsive inv-edit-responsive-table">
 							<table class="table table-sm align-middle" id="bom-table">
 								<thead class="thead-green">
 									<tr>
@@ -150,7 +208,7 @@ use App\adms\Helpers\CSRFHelper;
 										$totalMaterialCost += $rowTotal;
 										?>
 										<tr>
-											<td>
+											<td data-label="Componente">
 												<select name="bom_component_item_id[]" class="form-select form-select-sm">
 													<option value="">Selecione o componente</option>
 													<?php
@@ -164,17 +222,17 @@ use App\adms\Helpers\CSRFHelper;
 													?>
 												</select>
 											</td>
-											<td>
+											<td data-label="Quantidade por lote">
 												<input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($line['quantity_per_batch'] ?? '')) ?>">
 											</td>
-											<td>
+											<td data-label="Perda (%)">
 												<input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($line['scrap_percent'] ?? '0')) ?>">
 											</td>
-											<td><?= htmlspecialchars($line['unit_name'] ?? '') ?></td>
-											<td><?= number_format($cost, 6, ',', '.') ?></td>
-											<td><?= number_format($rowTotal, 6, ',', '.') ?></td>
-											<td class="text-end">
-												<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBomRow(this)">Remover</button>
+											<td data-label="Unidade"><?= htmlspecialchars($line['unit_name'] ?? '') ?></td>
+											<td data-label="Custo médio"><?= number_format($cost, 6, ',', '.') ?></td>
+											<td data-label="Total (Qtd x Custo)"><?= number_format($rowTotal, 6, ',', '.') ?></td>
+											<td data-label="Ações" class="text-end">
+												<button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button>
 											</td>
 										</tr>
 									<?php endforeach; ?>
@@ -201,15 +259,18 @@ use App\adms\Helpers\CSRFHelper;
 					</div>
 
 					<div class="tab-pane fade" id="pane-operations" role="tabpanel" aria-labelledby="tab-operations">
-						<div class="table-responsive">
+						<div class="table-responsive inv-edit-responsive-table">
 							<table class="table table-sm align-middle" id="operations-table">
 								<thead class="thead-green">
 									<tr>
 										<th style="width: 8%;">Seq.</th>
 										<th style="width: 28%;">Operação</th>
-										<th style="width: 18%;">Tempo por lote</th>
-										<th style="width: 10%;">Unid.</th>
-										<th style="width: 12%;">Custo/hora</th>
+										<th style="width: 12%;">Tempo por lote</th>
+										<th style="width: 8%;">Unid.</th>
+										<th style="width: 8%;">Oper.</th>
+										<th style="width: 10%;">MO/min</th>
+										<th style="width: 10%;">Máq./min</th>
+										<th style="width: 10%;">Energia/min</th>
 										<th style="width: 12%;">Total (Tempo x Custo)</th>
 										<th style="width: 10%;">Observações</th>
 										<th style="width: 5%;" class="text-end">Ações</th>
@@ -224,16 +285,25 @@ use App\adms\Helpers\CSRFHelper;
 										if (!in_array($timeUnit, ['MIN', 'H'], true)) {
 											$timeUnit = 'MIN';
 										}
+										$operatorsQty = max(1, (int)($op['operators_qty'] ?? 1));
+										$laborCostPerMin = (float)($op['labor_cost_per_min'] ?? 0);
+										$machineCostPerMin = (float)($op['machine_cost_per_min'] ?? 0);
+										$energyCostPerMin = (float)($op['energy_cost_per_min'] ?? 0);
 										$costHour = (float)($op['operation_cost_per_hour'] ?? 0);
-										// Converter para horas apenas para o cálculo
-										$rowTotal = ($timeUnit === 'H' ? $timeValue : $timeValue / 60.0) * $costHour;
+										$timeMinutes = $timeUnit === 'H' ? $timeValue * 60.0 : $timeValue;
+										$costPerMinuteFromRoute = ($laborCostPerMin * $operatorsQty) + $machineCostPerMin + $energyCostPerMin;
+										if ($costPerMinuteFromRoute > 0) {
+											$rowTotal = $timeMinutes * $costPerMinuteFromRoute;
+										} else {
+											$rowTotal = ($timeMinutes / 60.0) * $costHour;
+										}
 										$totalOperationsCost += $rowTotal;
 										?>
 										<tr>
-											<td>
+											<td data-label="Seq.">
 												<input type="number" class="form-control form-control-sm" name="op_sequence[]" value="<?= (int)($op['sequence'] ?? ($idx + 1)) ?>">
 											</td>
-											<td>
+											<td data-label="Operação">
 												<select name="op_operation_id[]" class="form-select form-select-sm">
 													<option value="">Selecione</option>
 													<?php foreach (($this->data['listOperations'] ?? []) as $operation) {
@@ -242,10 +312,10 @@ use App\adms\Helpers\CSRFHelper;
 													} ?>
 												</select>
 											</td>
-											<td>
+											<td data-label="Tempo por lote">
 												<input type="number" step="0.0001" min="0" name="op_time_per_batch_hours[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($op['time_per_batch_hours'] ?? '0')) ?>">
 											</td>
-											<td>
+											<td data-label="Unid.">
 												<select name="op_time_unit[]" class="form-select form-select-sm">
 													<?php
 													$unit = $timeUnit;
@@ -260,20 +330,31 @@ use App\adms\Helpers\CSRFHelper;
 													?>
 												</select>
 											</td>
-											<td><?= number_format($costHour, 6, ',', '.') ?></td>
-											<td><?= number_format($rowTotal, 6, ',', '.') ?></td>
-											<td>
+											<td data-label="Oper.">
+												<input type="number" min="1" step="1" name="op_operators_qty[]" class="form-control form-control-sm" value="<?= (int)$operatorsQty ?>">
+											</td>
+											<td data-label="MO/min">
+												<input type="number" step="0.000001" min="0" name="op_labor_cost_per_min[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)$laborCostPerMin) ?>" title="Custo de mão de obra por minuto (por operador)">
+											</td>
+											<td data-label="Máq./min">
+												<input type="number" step="0.000001" min="0" name="op_machine_cost_per_min[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)$machineCostPerMin) ?>" title="Custo de máquina por minuto">
+											</td>
+											<td data-label="Energia/min">
+												<input type="number" step="0.000001" min="0" name="op_energy_cost_per_min[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)$energyCostPerMin) ?>" title="Custo de energia por minuto">
+											</td>
+											<td data-label="Total (Tempo x Custo)"><?= number_format($rowTotal, 6, ',', '.') ?></td>
+											<td data-label="Observações">
 												<input type="text" name="op_notes[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($op['notes'] ?? '')) ?>">
 											</td>
-											<td class="text-end">
-												<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeOperationRow(this)">Remover</button>
+											<td data-label="Ações" class="text-end">
+												<button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeOperationRow(this)">Remover</button>
 											</td>
 										</tr>
 									<?php endforeach; ?>
 								</tbody>
 								<tfoot>
 									<tr>
-										<td colspan="4" class="text-end"><strong>Custo total das operações:</strong></td>
+										<td colspan="8" class="text-end"><strong>Custo total das operações:</strong></td>
 										<td colspan="3"><strong><?= number_format($totalOperationsCost, 6, ',', '.') ?></strong></td>
 									</tr>
 								</tfoot>
@@ -314,22 +395,22 @@ function addBomRow() {
         optionsHtml += '<option value=\"' + item.id + '\">' + label + '</option>';
     });
     tr.innerHTML = `
-        <td>
+        <td data-label="Componente">
             <select name="bom_component_item_id[]" class="form-select form-select-sm">
                 ${optionsHtml}
             </select>
         </td>
-        <td>
+        <td data-label="Quantidade por lote">
             <input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm" value="0">
         </td>
-        <td>
+        <td data-label="Perda (%)">
             <input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm" value="0">
         </td>
-        <td><span class="text-muted">Unidade será exibida após salvar</span></td>
-        <td>0,000000</td>
-        <td>0,000000</td>
-        <td class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBomRow(this)">Remover</button>
+        <td data-label="Unidade"><span class="text-muted">Unidade será exibida após salvar</span></td>
+        <td data-label="Custo médio">0,000000</td>
+        <td data-label="Total (Qtd x Custo)">0,000000</td>
+        <td data-label="Ações" class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button>
         </td>
     `;
     tbody.appendChild(tr);
@@ -345,24 +426,27 @@ function addOperationRow() {
         optionsHtml += '<option value=\"' + op.id + '\">' + op.name.replace(/"/g, '&quot;') + '</option>';
     });
     tr.innerHTML = `
-        <td><input type="number" class="form-control form-control-sm" name="op_sequence[]" value="${index + 1}"></td>
-        <td>
+        <td data-label="Seq."><input type="number" class="form-control form-control-sm" name="op_sequence[]" value="${index + 1}"></td>
+        <td data-label="Operação">
             <select name="op_operation_id[]" class="form-select form-select-sm">
                 ${optionsHtml}
             </select>
         </td>
-        <td><input type="number" step="0.0001" min="0" name="op_time_per_batch_hours[]" class="form-control form-control-sm" value="0"></td>
-        <td>
+        <td data-label="Tempo por lote"><input type="number" step="0.0001" min="0" name="op_time_per_batch_hours[]" class="form-control form-control-sm" value="0"></td>
+        <td data-label="Unid.">
             <select name="op_time_unit[]" class="form-select form-select-sm">
                 <option value="MIN" selected>Minutos</option>
                 <option value="H">Horas</option>
             </select>
         </td>
-        <td>0,000000</td>
-        <td>0,000000</td>
-        <td><input type="text" name="op_notes[]" class="form-control form-control-sm" value=""></td>
-        <td class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeOperationRow(this)">Remover</button>
+        <td data-label="Oper."><input type="number" min="1" step="1" name="op_operators_qty[]" class="form-control form-control-sm" value="1"></td>
+        <td data-label="MO/min"><input type="number" step="0.000001" min="0" name="op_labor_cost_per_min[]" class="form-control form-control-sm" value="0"></td>
+        <td data-label="Máq./min"><input type="number" step="0.000001" min="0" name="op_machine_cost_per_min[]" class="form-control form-control-sm" value="0"></td>
+        <td data-label="Energia/min"><input type="number" step="0.000001" min="0" name="op_energy_cost_per_min[]" class="form-control form-control-sm" value="0"></td>
+        <td data-label="Total (Tempo x Custo)">0,000000</td>
+        <td data-label="Observações"><input type="text" name="op_notes[]" class="form-control form-control-sm" value=""></td>
+        <td data-label="Ações" class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeOperationRow(this)">Remover</button>
         </td>
     `;
     tbody.appendChild(tr);

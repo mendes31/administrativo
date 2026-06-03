@@ -89,6 +89,32 @@ class InvOperationsRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function findByCode(string $code): ?array
+    {
+        $code = trim($code);
+        if ($code === '') {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM inv_operations WHERE code = :code LIMIT 1');
+        $stmt->bindValue(':code', $code);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
+    }
+
+    public function findByName(string $name): ?array
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT * FROM inv_operations WHERE name = :name LIMIT 1');
+        $stmt->bindValue(':name', $name);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
+    }
+
     public function existsCode(?string $code, ?int $excludeId = null): bool
     {
         if ($code === null || $code === '') {

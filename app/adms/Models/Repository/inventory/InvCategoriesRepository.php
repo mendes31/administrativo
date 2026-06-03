@@ -124,6 +124,30 @@ class InvCategoriesRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function findIdByName(string $name): ?int
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT id FROM inv_categories WHERE name = :name LIMIT 1');
+        $stmt->bindValue(':name', $name);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+        return $id !== false ? (int)$id : null;
+    }
+
+    public function findOrCreateByName(string $name): ?int
+    {
+        $id = $this->findIdByName($name);
+        if ($id !== null) {
+            return $id;
+        }
+
+        $newId = $this->create(['name' => trim($name)]);
+        return is_int($newId) && $newId > 0 ? $newId : null;
+    }
+
     /**
      * @return array<string, mixed>|null
      */

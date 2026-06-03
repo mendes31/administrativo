@@ -21,6 +21,13 @@ use App\adms\Helpers\CSRFHelper;
 		<div class="card-header hstack gap-2 flex-wrap align-items-center">
 			<span>Listar</span>
 			<span class="ms-auto d-flex flex-wrap gap-1">
+				<form action="" method="POST" class="d-inline">
+					<input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_sync_inventory_items'); ?>">
+					<input type="hidden" name="sync_sap_items" value="1">
+					<button type="submit" class="btn btn-outline-primary btn-sm">
+						<i class="fa-solid fa-rotate"></i> Sincronizar
+					</button>
+				</form>
 				<?php if (in_array('CreateInventoryItem', $this->data['buttonPermission'])) {
 					echo "<a href='{$_ENV['URL_ADM']}create-inventory-item' class='btn btn-success btn-sm'><i class='fa-regular fa-square-plus'></i> Cadastrar</a> ";
 				} ?>
@@ -53,7 +60,23 @@ use App\adms\Helpers\CSRFHelper;
 				</div>
 			</form>
 
-			<div class="table-responsive">
+			<?php
+			$items = $this->data['items'] ?? [];
+			$paginatorHtml = $this->data['paginator'] ?? '';
+			$paginatorMobile = $paginatorHtml;
+			if ($paginatorMobile !== '') {
+				$paginatorMobile = str_replace(
+					['>Primeiro<', '>Anterior<', '>Próximo<', '>Último<'],
+					['>&laquo;<', '>&lsaquo;<', '>&rsaquo;<', '>&raquo;<'],
+					$paginatorMobile
+				);
+				$paginatorMobile = preg_replace('/class="pagination(.*?)"/', 'class="pagination pagination-sm$1"', $paginatorMobile, 1);
+			}
+			?>
+
+			<?php if (!empty($items)) { ?>
+
+			<div class="table-responsive d-none d-md-block list-desktop">
 				<table class="table table-striped table-hover" id="tabela">
 					<thead>
 						<tr>
@@ -70,7 +93,7 @@ use App\adms\Helpers\CSRFHelper;
 						</tr>
 					</thead>
 					<tbody>
-						<?php if (!empty($this->data['items'])) { foreach ($this->data['items'] as $item) { ?>
+						<?php foreach ($items as $item) { ?>
 							<tr>
 								<td><?php echo $item['id']; ?></td>
 								<td><?php echo htmlspecialchars($item['code']); ?></td>
@@ -83,11 +106,6 @@ use App\adms\Helpers\CSRFHelper;
 								<td><?php echo $item['active'] ? 'Sim' : 'Não'; ?></td>
 								<td class="text-center">
 									<div class="d-inline-flex flex-wrap gap-1 justify-content-center">
-									<?php
-									$log_resumo = $item['log_resumo'] ?? [];
-									$log_btn_class = 'btn btn-sm btn-outline-info';
-									include __DIR__ . '/../../partials/button_log_alteracoes.php';
-									?>
 									<?php if (in_array('ViewInventoryItem', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$item['id']}' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Ver</a> "; }
 									if (in_array('UpdateInventoryItem', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}update-inventory-item/{$item['id']}' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-pen-to-square'></i> Editar</a> "; }
 									if (in_array('DeleteInventoryItem', $this->data['buttonPermission'])) {
@@ -100,13 +118,70 @@ use App\adms\Helpers\CSRFHelper;
 									}
 									?>
 									</div>
-							</td>
+								</td>
 							</tr>
-						<?php } } ?>
+						<?php } ?>
 					</tbody>
 				</table>
-				<?php echo $this->data['paginator'] ?? ''; ?>
 			</div>
+
+			<div class="d-block d-md-none list-mobile">
+				<?php foreach ($items as $item) {
+					$adminLabel = ($item['admin_type'] === 'none') ? 'Nenhum' : strtoupper($item['admin_type']);
+					?>
+				<div class="card mb-2 shadow-sm">
+					<div class="card-body py-3">
+						<div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+							<strong class="text-break"><?php echo htmlspecialchars($item['code']); ?></strong>
+							<span class="text-muted small text-nowrap">ID: <?php echo (int)$item['id']; ?></span>
+						</div>
+						<div class="small mb-2 text-break"><?php echo htmlspecialchars($item['description']); ?></div>
+						<?php if (!empty($item['erp_code'])) { ?>
+							<div class="small"><span class="text-muted">Código ERP:</span> <?php echo htmlspecialchars($item['erp_code']); ?></div>
+						<?php } ?>
+						<div class="small"><span class="text-muted">Unidade:</span> <?php echo htmlspecialchars($item['unit_name'] ?? '—'); ?></div>
+						<div class="small"><span class="text-muted">Categoria:</span> <?php echo htmlspecialchars($item['category_name'] ?? '—'); ?></div>
+						<div class="small"><span class="text-muted">Admin.:</span> <?php echo htmlspecialchars($adminLabel); ?></div>
+						<div class="small"><span class="text-muted">Em estoque:</span> <?php echo number_format((float)($item['total_qty'] ?? 0), 4, ',', '.'); ?></div>
+						<div class="small mb-2"><span class="text-muted">Ativo:</span> <?php echo $item['active'] ? 'Sim' : 'Não'; ?></div>
+						<div class="d-flex flex-wrap gap-1">
+							<?php if (in_array('ViewInventoryItem', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$item['id']}' class='btn btn-primary btn-sm'><i class='fa-regular fa-eye'></i> Ver</a> "; }
+							if (in_array('UpdateInventoryItem', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}update-inventory-item/{$item['id']}' class='btn btn-warning btn-sm'><i class='fa-solid fa-pen-to-square'></i> Editar</a> "; }
+							if (in_array('DeleteInventoryItem', $this->data['buttonPermission'])) {
+								$csrf_token = CSRFHelper::generateCSRFToken('form_delete_inventory_item');
+								echo "<form action='{$_ENV['URL_ADM']}delete-inventory-item' method='POST' class='d-inline'>";
+								echo "<input type='hidden' name='csrf_token' value='{$csrf_token}'>";
+								echo "<input type='hidden' name='id' value='{$item['id']}'>";
+								echo "<button type='submit' class='btn btn-danger btn-sm'><i class='fa-regular fa-trash-can'></i> Apagar</button>";
+								echo "</form>";
+							}
+							?>
+						</div>
+					</div>
+				</div>
+				<?php } ?>
+
+				<?php if ($paginatorMobile !== '') { ?>
+				<div class="d-flex flex-column align-items-center w-100 mt-2">
+					<div class="text-secondary small w-100 text-center mb-1">
+						Exibindo <?php echo count($items); ?> registro(s) nesta página.
+					</div>
+					<div class="w-100 d-flex justify-content-center overflow-auto">
+						<?php echo $paginatorMobile; ?>
+					</div>
+				</div>
+				<?php } ?>
+			</div>
+
+			<?php if ($paginatorHtml !== '') { ?>
+			<div class="d-none d-md-flex justify-content-end mt-3 list-desktop">
+				<?php echo $paginatorHtml; ?>
+			</div>
+			<?php } ?>
+
+			<?php } else { ?>
+				<div class="alert alert-warning mb-0" role="alert">Nenhum item encontrado.</div>
+			<?php } ?>
 		</div>
 	</div>
 

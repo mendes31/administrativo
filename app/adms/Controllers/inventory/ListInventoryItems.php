@@ -3,8 +3,9 @@
 namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
-use App\adms\Models\Services\LogResumoService;
+use App\adms\Models\Services\InventorySapSyncService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListInventoryItems
@@ -13,6 +14,10 @@ class ListInventoryItems
 
     public function index(): void
     {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_sap_items'])) {
+            $this->handleSyncRequest();
+            return;
+        }
         $filters = [
             'code' => $_GET['code'] ?? '',
             'description' => $_GET['description'] ?? '',
@@ -24,13 +29,6 @@ class ListInventoryItems
         $repo = new InvItemsRepository();
         $this->data['items'] = $repo->getAll($page, $perPage, $filters);
         $total = $repo->countAll($filters);
-
-        $returnList = $_ENV['URL_ADM'] . 'list-inventory-items';
-        foreach ($this->data['items'] as &$item) {
-            $iid = (int) ($item['id'] ?? 0);
-            $item['log_resumo'] = $iid > 0 ? LogResumoService::getResumoInventoryItemContext($iid, $returnList) : [];
-        }
-        unset($item);
 
         $pagination = \App\adms\Controllers\Services\PaginationService::generatePagination(
             $total,
@@ -56,6 +54,27 @@ class ListInventoryItems
 
         $loadView = new LoadViewService('adms/Views/inventory/items/list', $this->data);
         $loadView->loadView();
+    }
+
+    private function handleSyncRequest(): void
+    {
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (!CSRFHelper::validateCSRFToken('form_sync_inventory_items', $token)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Token CSRF inválido para sincronização.</div>";
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-inventory-items');
+            return;
+        }
+
+        $service = new InventorySapSyncService();
+        $result = $service->syncItemsAndCosts();
+        if (!empty($result['success'])) {
+            $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>{$result['message']}</div>";
+        } else {
+            $message = htmlspecialchars((string)($result['message'] ?? 'Erro desconhecido na sincronização SAP.'), ENT_QUOTES, 'UTF-8');
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>{$message}</div>";
+        }
+
+        header('Location: ' . $_ENV['URL_ADM'] . 'list-inventory-items');
     }
 }
 

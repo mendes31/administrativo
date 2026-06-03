@@ -20,6 +20,10 @@ class InvItemOperationsRepository extends DbConnection
                        io.sequence,
                        io.time_per_batch_hours,
                        io.time_unit,
+                       io.operators_qty,
+                       io.labor_cost_per_min,
+                       io.machine_cost_per_min,
+                       io.energy_cost_per_min,
                        io.notes,
                        op.code AS operation_code,
                        op.name AS operation_name,
@@ -55,8 +59,31 @@ class InvItemOperationsRepository extends DbConnection
 
             // Inserir novas linhas
             if ($lines) {
-                $sql = 'INSERT INTO inv_item_operations (inv_item_id, inv_operation_id, sequence, time_per_batch_hours, time_unit, notes, created_at)
-                        VALUES (:inv_item_id, :inv_operation_id, :sequence, :time_per_batch_hours, :time_unit, :notes, :created_at)';
+                $sql = 'INSERT INTO inv_item_operations (
+                            inv_item_id,
+                            inv_operation_id,
+                            sequence,
+                            time_per_batch_hours,
+                            time_unit,
+                            operators_qty,
+                            labor_cost_per_min,
+                            machine_cost_per_min,
+                            energy_cost_per_min,
+                            notes,
+                            created_at
+                        ) VALUES (
+                            :inv_item_id,
+                            :inv_operation_id,
+                            :sequence,
+                            :time_per_batch_hours,
+                            :time_unit,
+                            :operators_qty,
+                            :labor_cost_per_min,
+                            :machine_cost_per_min,
+                            :energy_cost_per_min,
+                            :notes,
+                            :created_at
+                        )';
                 $stmtInsert = $conn->prepare($sql);
                 foreach ($lines as $line) {
                     $stmtInsert->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
@@ -68,6 +95,10 @@ class InvItemOperationsRepository extends DbConnection
                         $timeUnit = 'MIN';
                     }
                     $stmtInsert->bindValue(':time_unit', $timeUnit);
+                    $stmtInsert->bindValue(':operators_qty', max(1, (int)($line['operators_qty'] ?? 1)), PDO::PARAM_INT);
+                    $stmtInsert->bindValue(':labor_cost_per_min', (float)($line['labor_cost_per_min'] ?? 0));
+                    $stmtInsert->bindValue(':machine_cost_per_min', (float)($line['machine_cost_per_min'] ?? 0));
+                    $stmtInsert->bindValue(':energy_cost_per_min', (float)($line['energy_cost_per_min'] ?? 0));
                     $stmtInsert->bindValue(':notes', $line['notes'] ?? null, PDO::PARAM_STR);
                     $stmtInsert->bindValue(':created_at', date('Y-m-d H:i:s'));
                     $stmtInsert->execute();

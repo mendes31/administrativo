@@ -12,7 +12,6 @@ use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Services\InventoryCostService;
-use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateInventoryItem
@@ -88,12 +87,6 @@ class UpdateInventoryItem
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
-
-        $itemCtxId = (int) ($this->data['form']['id'] ?? 0);
-        if ($itemCtxId > 0) {
-            $returnUrl = $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemCtxId;
-            $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemCtxId, $returnUrl);
-        }
 
         $loadView = new LoadViewService('adms/Views/inventory/items/update', $this->data);
         $loadView->loadView();
@@ -218,6 +211,10 @@ class UpdateInventoryItem
         $sequences  = $form['op_sequence'] ?? [];
         $times      = $form['op_time_per_batch_hours'] ?? [];
         $units      = $form['op_time_unit'] ?? [];
+        $operators  = $form['op_operators_qty'] ?? [];
+        $laborCosts = $form['op_labor_cost_per_min'] ?? [];
+        $machineCosts = $form['op_machine_cost_per_min'] ?? [];
+        $energyCosts = $form['op_energy_cost_per_min'] ?? [];
         $notes      = $form['op_notes'] ?? [];
 
         $lines = [];
@@ -229,6 +226,10 @@ class UpdateInventoryItem
             $seq  = isset($sequences[$idx]) ? (int)$sequences[$idx] : ($idx + 1);
             $time = isset($times[$idx]) ? (float)$times[$idx] : 0;
             $unit = isset($units[$idx]) ? strtoupper((string)$units[$idx]) : 'MIN';
+            $operatorsQty = isset($operators[$idx]) ? (int)$operators[$idx] : 1;
+            $laborCostPerMin = isset($laborCosts[$idx]) ? (float)$laborCosts[$idx] : 0;
+            $machineCostPerMin = isset($machineCosts[$idx]) ? (float)$machineCosts[$idx] : 0;
+            $energyCostPerMin = isset($energyCosts[$idx]) ? (float)$energyCosts[$idx] : 0;
             if (!in_array($unit, ['MIN', 'H'], true)) {
                 $unit = 'MIN';
             }
@@ -239,6 +240,10 @@ class UpdateInventoryItem
                 'sequence' => $seq,
                 'time_per_batch_hours' => $time,
                 'time_unit' => $unit,
+                'operators_qty' => max(1, $operatorsQty),
+                'labor_cost_per_min' => max(0, $laborCostPerMin),
+                'machine_cost_per_min' => max(0, $machineCostPerMin),
+                'energy_cost_per_min' => max(0, $energyCostPerMin),
                 'notes' => $note ?: null,
             ];
         }
@@ -273,11 +278,24 @@ class UpdateInventoryItem
             $rawTime  = (float)($row['time_per_batch_hours'] ?? 0);
             $timeUnit = strtoupper((string)($row['time_unit'] ?? 'MIN'));
             $costHour = (float)($row['operation_cost_per_hour'] ?? 0);
+            $operatorsQty = max(1, (int)($row['operators_qty'] ?? 1));
+            $laborCostPerMin = (float)($row['labor_cost_per_min'] ?? 0);
+            $machineCostPerMin = (float)($row['machine_cost_per_min'] ?? 0);
+            $energyCostPerMin = (float)($row['energy_cost_per_min'] ?? 0);
             if (!in_array($timeUnit, ['MIN', 'H'], true)) {
                 $timeUnit = 'MIN';
             }
-            $timeHours = $timeUnit === 'H' ? $rawTime : $rawTime / 60.0;
-            if ($timeHours <= 0 || $costHour <= 0) {
+            $timeMinutes = $timeUnit === 'H' ? $rawTime * 60.0 : $rawTime;
+            if ($timeMinutes <= 0) {
+                continue;
+            }
+            $costPerMinuteFromRoute = ($laborCostPerMin * $operatorsQty) + $machineCostPerMin + $energyCostPerMin;
+            if ($costPerMinuteFromRoute > 0) {
+                $operationsCost += $timeMinutes * $costPerMinuteFromRoute;
+                continue;
+            }
+            $timeHours = $timeMinutes / 60.0;
+            if ($costHour <= 0) {
                 continue;
             }
             $operationsCost += $timeHours * $costHour;

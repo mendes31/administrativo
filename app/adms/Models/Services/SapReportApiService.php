@@ -79,18 +79,21 @@ class SapReportApiService
 
         // Limpar e normalizar o SQL
         $sql = trim($sql);
-        error_log("🔷 SAP API - SQL após trim: [" . $sql . "]");
+        $sql = str_replace(["\r\n", "\r", "\n", "\t"], ' ', $sql);
+        $sql = preg_replace('/\s{2,}/', ' ', $sql);
+        $sql = trim($sql);
+        error_log("🔷 SAP API - SQL após trim: [" . substr($sql, 0, 120) . "...]");
         
         // Remover números ou caracteres inválidos no início (comum em editores)
         $sql = preg_replace('/^[\d\s]+/i', '', $sql);
         $sql = trim($sql);
         error_log("🔷 SAP API - SQL após limpeza: [" . $sql . "]");
         
-        // Validar que começa com SELECT
-        if (!preg_match('/^\s*SELECT\s+/i', $sql)) {
-            error_log("❌ SAP API - Validação falhou! SQL não começa com SELECT");
+        // Validar que começa com SELECT ou WITH (CTE), comum em consultas SAP/HANA
+        if (!preg_match('/^\s*(SELECT|WITH)\s+/i', $sql)) {
+            error_log("❌ SAP API - Validação falhou! SQL não começa com SELECT ou WITH");
             error_log("❌ SAP API - Primeiros 50 chars: " . substr($sql, 0, 50));
-            throw new Exception('SQL deve começar com SELECT. SQL recebido: ' . substr($sql, 0, 50));
+            throw new Exception('SQL deve começar com SELECT ou WITH. SQL recebido: ' . substr($sql, 0, 50));
         }
         
         // Usar parâmetro 'sql' conforme documentação da API

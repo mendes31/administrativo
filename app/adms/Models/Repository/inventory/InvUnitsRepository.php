@@ -127,6 +127,20 @@ class InvUnitsRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function findIdByCode(string $code): ?int
+    {
+        $code = strtoupper(trim($code));
+        if ($code === '') {
+            return null;
+        }
+
+        $stmt = $this->getConnection()->prepare('SELECT id FROM inv_units WHERE UPPER(code) = :code LIMIT 1');
+        $stmt->bindValue(':code', $code);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+        return $id !== false ? (int)$id : null;
+    }
+
     /**
      * @return array<string, mixed>|null
      */
