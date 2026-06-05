@@ -103,8 +103,8 @@ class InvItemsRepository extends DbConnection
 	public function create(array $data): int|bool
 	{
 		try {
-            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, active, created_at)
-                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :active, :created_at)';
+            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, standard_batch_size, active, created_at)
+                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :standard_batch_size, :active, :created_at)';
 			$stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':code', $data['code']);
             $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
@@ -116,6 +116,7 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':last_cost', $data['last_cost'] ?? 0);
 			$stmt->bindValue(':min_stock', $data['min_stock'] ?? 0);
 			$stmt->bindValue(':max_stock', $data['max_stock'] ?? 0);
+			$stmt->bindValue(':standard_batch_size', max(0.000001, (float)($data['standard_batch_size'] ?? 1)));
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
 			$stmt->execute();
@@ -148,7 +149,7 @@ class InvItemsRepository extends DbConnection
 			$oldRow = $this->getItemRowById($id);
             $sql = 'UPDATE inv_items SET code = :code, erp_code = :erp_code, description = :description, inv_unit_id = :inv_unit_id, inv_category_id = :inv_category_id,
 				admin_type = :admin_type, average_cost = :average_cost, last_cost = :last_cost, min_stock = :min_stock, max_stock = :max_stock,
-				active = :active, updated_at = :updated_at WHERE id = :id';
+				standard_batch_size = :standard_batch_size, active = :active, updated_at = :updated_at WHERE id = :id';
 			$stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':code', $data['code']);
             $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
@@ -160,6 +161,7 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':last_cost', $data['last_cost'] ?? 0);
 			$stmt->bindValue(':min_stock', $data['min_stock'] ?? 0);
 			$stmt->bindValue(':max_stock', $data['max_stock'] ?? 0);
+			$stmt->bindValue(':standard_batch_size', max(0.000001, (float)($data['standard_batch_size'] ?? ($oldRow['standard_batch_size'] ?? 1))));
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
 			$stmt->bindValue(':id', $id, PDO::PARAM_INT);

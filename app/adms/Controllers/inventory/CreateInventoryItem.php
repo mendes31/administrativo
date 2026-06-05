@@ -90,6 +90,7 @@ class CreateInventoryItem
             'last_cost' => (float)($form['last_cost'] ?? 0),
             'min_stock' => (float)($form['min_stock'] ?? 0),
             'max_stock' => (float)($form['max_stock'] ?? 0),
+            'standard_batch_size' => 1,
             'active' => isset($form['active']) ? 1 : 0,
         ]);
 

@@ -11,12 +11,13 @@ use PDO;
 class InvItemOperationsRepository extends DbConnection
 {
     /**
-     * Retorna as operações (rota) de um item, com nome da operação.
+     * Retorna as operações (rota) de um item, com nome da operação e linhas de MO.
      */
     public function getByItem(int $invItemId): array
     {
         $sql = 'SELECT io.id,
                        io.inv_operation_id,
+                       io.inv_production_resource_id,
                        io.sequence,
                        io.time_per_batch_hours,
                        io.time_unit,
@@ -27,41 +28,204 @@ class InvItemOperationsRepository extends DbConnection
                        io.notes,
                        op.code AS operation_code,
                        op.name AS operation_name,
-                       op.default_cost_per_hour AS operation_cost_per_hour
+                       op.default_cost_per_hour AS operation_cost_per_hour,
+                       pr.erp_code AS resource_erp_code,
+                       pr.name AS resource_name,
+                       pr.resource_type AS resource_type
                 FROM inv_item_operations io
                 INNER JOIN inv_operations op ON op.id = io.inv_operation_id
+                LEFT JOIN inv_production_resources pr ON pr.id = io.inv_production_resource_id
                 WHERE io.inv_item_id = :inv_item_id
                 ORDER BY io.sequence ASC, op.name ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $ids = array_map(static fn(array $r): int => (int) ($r['id'] ?? 0), $rows);
+        $laborByOp = $this->getLaborLinesByOperationIds($ids);
+        $resourceByOp = $this->getResourceLinesByOperationIds($ids);
+        foreach ($rows as &$row) {
+            $opId = (int) ($row['id'] ?? 0);
+            $row['labor_lines'] = $laborByOp[$opId] ?? [];
+            $row['resource_lines'] = $resourceByOp[$opId] ?? [];
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * @param list<int> $operationIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function getResourceLinesByOperationIds(array $operationIds): array
+    {
+        if (!$this->hasResourceLinesTable()) {
+            return [];
+        }
+
+        $operationIds = array_values(array_filter(array_map('intval', $operationIds)));
+        if ($operationIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($operationIds), '?'));
+        $sql = 'SELECT ior.id, ior.inv_item_operation_id, ior.inv_production_resource_id, ior.qty,
+                       ior.machine_cost_per_min, ior.energy_cost_per_min,
+                       pr.erp_code AS resource_erp_code, pr.name AS resource_name, pr.resource_type
+                FROM inv_item_operation_resources ior
+                INNER JOIN inv_production_resources pr ON pr.id = ior.inv_production_resource_id
+                WHERE ior.inv_item_operation_id IN (' . $placeholders . ')
+                ORDER BY ior.id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($operationIds as $i => $id) {
+            $stmt->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $grouped = [];
+        foreach ($rows as $row) {
+            $key = (int) ($row['inv_item_operation_id'] ?? 0);
+            $grouped[$key][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $resourceLines
+     * @return array{machine: float, energy: float}
+     */
+    public static function sumResourceCostsPerMinute(array $resourceLines): array
+    {
+        $machine = 0.0;
+        $energy = 0.0;
+        foreach ($resourceLines as $line) {
+            $qty = max(0, (int) ($line['qty'] ?? 0));
+            if ($qty <= 0) {
+                continue;
+            }
+            $machine += $qty * max(0, (float) ($line['machine_cost_per_min'] ?? 0));
+            $energy += $qty * max(0, (float) ($line['energy_cost_per_min'] ?? 0));
+        }
+
+        return [
+            'machine' => round($machine, 6),
+            'energy' => round($energy, 6),
+        ];
+    }
+
+    private function hasResourceLinesTable(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+        $stmt = $this->getConnection()->query("SHOW TABLES LIKE 'inv_item_operation_resources'");
+        $cached = (bool) $stmt->fetch(PDO::FETCH_NUM);
+
+        return $cached;
+    }
+
+    /**
+     * @param list<int> $operationIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function getLaborLinesByOperationIds(array $operationIds): array
+    {
+        $operationIds = array_values(array_filter(array_map('intval', $operationIds)));
+        if ($operationIds === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($operationIds), '?'));
+        $sql = 'SELECT iol.id, iol.inv_item_operation_id, iol.inv_labor_role_id, iol.qty, iol.cost_per_min,
+                       lr.name AS role_name, lr.code AS role_code, lr.default_cost_per_min
+                FROM inv_item_operation_labor iol
+                INNER JOIN inv_labor_roles lr ON lr.id = iol.inv_labor_role_id
+                WHERE iol.inv_item_operation_id IN (' . $placeholders . ')
+                ORDER BY iol.id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($operationIds as $i => $id) {
+            $stmt->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $grouped = [];
+        foreach ($rows as $row) {
+            $key = (int) ($row['inv_item_operation_id'] ?? 0);
+            $grouped[$key][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Soma MO/min a partir das linhas detalhadas: Σ(qty × cost_per_min).
+     *
+     * @param list<array<string, mixed>> $laborLines
+     */
+    public static function sumLaborCostPerMinute(array $laborLines): float
+    {
+        $sum = 0.0;
+        foreach ($laborLines as $line) {
+            $qty = max(0, (int) ($line['qty'] ?? 0));
+            $cost = max(0, (float) ($line['cost_per_min'] ?? 0));
+            if ($qty > 0 && $cost > 0) {
+                $sum += $qty * $cost;
+            }
+        }
+
+        return round($sum, 6);
     }
 
     /**
      * Substitui completamente a rota de um item pelas linhas informadas.
      *
-     * @param int   $invItemId
-     * @param array $lines Each line: ['inv_operation_id' => int, 'sequence' => int, 'time_per_batch_hours' => float, 'notes' => string|null]
+     * @param array $lines Each line may include:
+     *                     - labor: list of ['inv_labor_role_id', 'qty', 'cost_per_min']
+     *                     - resources: list of ['inv_production_resource_id', 'qty', 'machine_cost_per_min', 'energy_cost_per_min']
      */
     public function replaceForItem(int $invItemId, array $lines): bool
     {
         $conn = $this->getConnection();
+        $hasResourceTable = $this->hasResourceLinesTable();
         try {
             $conn->beginTransaction();
 
             $oldSnapshot = $this->snapshotOperationsJson($conn, $invItemId);
 
-            // Apagar rota atual
+            $stmtDeleteLabor = $conn->prepare(
+                'DELETE iol FROM inv_item_operation_labor iol
+                 INNER JOIN inv_item_operations io ON io.id = iol.inv_item_operation_id
+                 WHERE io.inv_item_id = :inv_item_id'
+            );
+            $stmtDeleteLabor->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
+            $stmtDeleteLabor->execute();
+
+            if ($hasResourceTable) {
+                $stmtDeleteResources = $conn->prepare(
+                    'DELETE ior FROM inv_item_operation_resources ior
+                     INNER JOIN inv_item_operations io ON io.id = ior.inv_item_operation_id
+                     WHERE io.inv_item_id = :inv_item_id'
+                );
+                $stmtDeleteResources->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
+                $stmtDeleteResources->execute();
+            }
+
             $stmtDelete = $conn->prepare('DELETE FROM inv_item_operations WHERE inv_item_id = :inv_item_id');
             $stmtDelete->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
             $stmtDelete->execute();
 
-            // Inserir novas linhas
             if ($lines) {
                 $sql = 'INSERT INTO inv_item_operations (
                             inv_item_id,
                             inv_operation_id,
+                            inv_production_resource_id,
                             sequence,
                             time_per_batch_hours,
                             time_unit,
@@ -74,6 +238,7 @@ class InvItemOperationsRepository extends DbConnection
                         ) VALUES (
                             :inv_item_id,
                             :inv_operation_id,
+                            :inv_production_resource_id,
                             :sequence,
                             :time_per_batch_hours,
                             :time_unit,
@@ -85,23 +250,98 @@ class InvItemOperationsRepository extends DbConnection
                             :created_at
                         )';
                 $stmtInsert = $conn->prepare($sql);
+                $stmtLabor = $conn->prepare(
+                    'INSERT INTO inv_item_operation_labor (inv_item_operation_id, inv_labor_role_id, qty, cost_per_min, created_at)
+                     VALUES (:inv_item_operation_id, :inv_labor_role_id, :qty, :cost_per_min, :created_at)'
+                );
+                $stmtResource = $hasResourceTable
+                    ? $conn->prepare(
+                        'INSERT INTO inv_item_operation_resources
+                            (inv_item_operation_id, inv_production_resource_id, qty, machine_cost_per_min, energy_cost_per_min, created_at)
+                         VALUES (:inv_item_operation_id, :inv_production_resource_id, :qty, :machine_cost_per_min, :energy_cost_per_min, :created_at)'
+                    )
+                    : null;
+
                 foreach ($lines as $line) {
+                    $laborLines = is_array($line['labor'] ?? null) ? $line['labor'] : [];
+                    $resourceLines = is_array($line['resources'] ?? null) ? $line['resources'] : [];
+                    $laborTotalPerMin = self::sumLaborCostPerMinute($laborLines);
+                    $operatorsQty = max(1, (int) ($line['operators_qty'] ?? 1));
+                    $laborCostPerMin = $laborTotalPerMin > 0
+                        ? $laborTotalPerMin
+                        : max(0, (float) ($line['labor_cost_per_min'] ?? 0));
+
+                    $resourceTotals = self::sumResourceCostsPerMinute($resourceLines);
+                    $machineCostPerMin = $resourceTotals['machine'] > 0
+                        ? $resourceTotals['machine']
+                        : max(0, (float) ($line['machine_cost_per_min'] ?? 0));
+                    $energyCostPerMin = $resourceTotals['energy'] > 0
+                        ? $resourceTotals['energy']
+                        : max(0, (float) ($line['energy_cost_per_min'] ?? 0));
+
+                    $firstResourceId = null;
+                    foreach ($resourceLines as $resourceLine) {
+                        $rid = (int) ($resourceLine['inv_production_resource_id'] ?? 0);
+                        if ($rid > 0) {
+                            $firstResourceId = $rid;
+                            break;
+                        }
+                    }
+                    if ($firstResourceId === null && !empty($line['inv_production_resource_id'])) {
+                        $firstResourceId = (int) $line['inv_production_resource_id'];
+                    }
+
                     $stmtInsert->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
-                    $stmtInsert->bindValue(':inv_operation_id', (int)$line['inv_operation_id'], PDO::PARAM_INT);
-                    $stmtInsert->bindValue(':sequence', (int)($line['sequence'] ?? 1), PDO::PARAM_INT);
-                    $stmtInsert->bindValue(':time_per_batch_hours', (float)($line['time_per_batch_hours'] ?? 0));
-                    $timeUnit = strtoupper((string)($line['time_unit'] ?? 'MIN'));
+                    $stmtInsert->bindValue(':inv_operation_id', (int) $line['inv_operation_id'], PDO::PARAM_INT);
+                    $stmtInsert->bindValue(':inv_production_resource_id', $firstResourceId, $firstResourceId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    $stmtInsert->bindValue(':sequence', (int) ($line['sequence'] ?? 1), PDO::PARAM_INT);
+                    $stmtInsert->bindValue(':time_per_batch_hours', (float) ($line['time_per_batch_hours'] ?? 0));
+                    $timeUnit = strtoupper((string) ($line['time_unit'] ?? 'MIN'));
                     if (!in_array($timeUnit, ['MIN', 'H'], true)) {
                         $timeUnit = 'MIN';
                     }
                     $stmtInsert->bindValue(':time_unit', $timeUnit);
-                    $stmtInsert->bindValue(':operators_qty', max(1, (int)($line['operators_qty'] ?? 1)), PDO::PARAM_INT);
-                    $stmtInsert->bindValue(':labor_cost_per_min', (float)($line['labor_cost_per_min'] ?? 0));
-                    $stmtInsert->bindValue(':machine_cost_per_min', (float)($line['machine_cost_per_min'] ?? 0));
-                    $stmtInsert->bindValue(':energy_cost_per_min', (float)($line['energy_cost_per_min'] ?? 0));
+                    $stmtInsert->bindValue(':operators_qty', $laborTotalPerMin > 0 ? 1 : $operatorsQty, PDO::PARAM_INT);
+                    $stmtInsert->bindValue(':labor_cost_per_min', $laborCostPerMin);
+                    $stmtInsert->bindValue(':machine_cost_per_min', $machineCostPerMin);
+                    $stmtInsert->bindValue(':energy_cost_per_min', $energyCostPerMin);
                     $stmtInsert->bindValue(':notes', $line['notes'] ?? null, PDO::PARAM_STR);
                     $stmtInsert->bindValue(':created_at', date('Y-m-d H:i:s'));
                     $stmtInsert->execute();
+
+                    $operationRowId = (int) $conn->lastInsertId();
+
+                    if ($stmtResource instanceof \PDOStatement) {
+                        foreach ($resourceLines as $resourceLine) {
+                            $resourceId = (int) ($resourceLine['inv_production_resource_id'] ?? 0);
+                            if ($resourceId <= 0) {
+                                continue;
+                            }
+                            $qty = max(1, (int) ($resourceLine['qty'] ?? 1));
+                            $stmtResource->bindValue(':inv_item_operation_id', $operationRowId, PDO::PARAM_INT);
+                            $stmtResource->bindValue(':inv_production_resource_id', $resourceId, PDO::PARAM_INT);
+                            $stmtResource->bindValue(':qty', $qty, PDO::PARAM_INT);
+                            $stmtResource->bindValue(':machine_cost_per_min', max(0, (float) ($resourceLine['machine_cost_per_min'] ?? 0)));
+                            $stmtResource->bindValue(':energy_cost_per_min', max(0, (float) ($resourceLine['energy_cost_per_min'] ?? 0)));
+                            $stmtResource->bindValue(':created_at', date('Y-m-d H:i:s'));
+                            $stmtResource->execute();
+                        }
+                    }
+
+                    foreach ($laborLines as $laborLine) {
+                        $roleId = (int) ($laborLine['inv_labor_role_id'] ?? 0);
+                        if ($roleId <= 0) {
+                            continue;
+                        }
+                        $qty = max(1, (int) ($laborLine['qty'] ?? 1));
+                        $costPerMin = max(0, (float) ($laborLine['cost_per_min'] ?? 0));
+                        $stmtLabor->bindValue(':inv_item_operation_id', $operationRowId, PDO::PARAM_INT);
+                        $stmtLabor->bindValue(':inv_labor_role_id', $roleId, PDO::PARAM_INT);
+                        $stmtLabor->bindValue(':qty', $qty, PDO::PARAM_INT);
+                        $stmtLabor->bindValue(':cost_per_min', $costPerMin);
+                        $stmtLabor->bindValue(':created_at', date('Y-m-d H:i:s'));
+                        $stmtLabor->execute();
+                    }
                 }
             }
 
@@ -129,6 +369,7 @@ class InvItemOperationsRepository extends DbConnection
                 'inv_item_id' => $invItemId,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -143,4 +384,3 @@ class InvItemOperationsRepository extends DbConnection
         return json_encode($rows, JSON_UNESCAPED_UNICODE);
     }
 }
-

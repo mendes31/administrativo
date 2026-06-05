@@ -8,9 +8,10 @@ $breakdown = $this->data['cost_breakdown'] ?? [];
 $hasStructure = !empty($this->data['has_structure']);
 $fmtMoney = static fn(float $v, int $dec = 4): string => number_format($v, $dec, ',', '.');
 $canSimulate = !empty($this->data['buttonPermission']) && in_array('SimulateInventoryCost', $this->data['buttonPermission'], true);
-$materialCost = (float)($breakdown['material_cost'] ?? 0);
-$operationsCost = (float)($breakdown['operations_cost'] ?? 0);
-$structureTotal = (float)($breakdown['base_total'] ?? 0);
+$materialCost = (float)($breakdown['material_cost_batch'] ?? $breakdown['material_cost'] ?? 0);
+$operationsCost = (float)($breakdown['operations_cost_batch'] ?? $breakdown['operations_cost'] ?? 0);
+$structureTotal = (float)($breakdown['base_total_batch'] ?? $breakdown['base_total'] ?? 0);
+require_once __DIR__ . '/../partials/operation_metrics.php';
 $truncate = static function (string $text, int $max = 42): string {
     $text = trim($text);
     if ($text === '' || mb_strlen($text) <= $max) {
@@ -105,7 +106,7 @@ $truncate = static function (string $text, int $max = 42): string {
           <h6 class="text-muted text-uppercase small mb-3">Custos</h6>
           <dl class="row mb-0 small">
             <dt class="col-5 text-muted">Custo médio</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($this->data['header_average_cost'] ?? ($item['average_cost'] ?? 0))) ?></dd>
+            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($this->data['header_average_cost'] ?? ($item['average_cost'] ?? 0))) ?> <span class="text-muted fw-normal">/ lote</span></dd>
             <dt class="col-5 text-muted">Último custo</dt>
             <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($item['last_cost'] ?? 0)) ?></dd>
             <?php if ($hasStructure): ?>
@@ -248,121 +249,221 @@ $truncate = static function (string $text, int $max = 42): string {
           </div>
 
           <div class="tab-pane fade" id="view-pane-route" role="tabpanel">
-            <div class="table-wrap border rounded d-none d-md-block">
-              <table class="table table-striped align-middle mb-0">
-                <thead class="thead-green">
-                  <tr>
-                    <th class="ps-3" style="width:8%">Pos.</th>
-                    <th style="width:14%">Recurso</th>
-                    <th>Operação / atividade</th>
-                    <th class="text-end" style="width:10%">Tempo (min)</th>
-                    <th class="text-end" style="width:8%">Oper.</th>
-                    <th class="text-end" style="width:9%">MO/min</th>
-                    <th class="text-end" style="width:9%">Máq./min</th>
-                    <th class="text-end" style="width:9%">En./min</th>
-                    <th class="text-end pe-3" style="width:12%">Custo linha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (empty($operations)): ?>
-                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhuma operação na rota.</td></tr>
-                  <?php else: ?>
-                    <?php foreach ($operations as $op):
-                      $timeValue = (float)($op['time_per_batch_hours'] ?? 0);
-                      $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
-                      if (!in_array($timeUnit, ['MIN', 'H'], true)) {
-                          $timeUnit = 'MIN';
-                      }
-                      $operatorsQty = max(1, (int)($op['operators_qty'] ?? 1));
-                      $laborCostPerMin = (float)($op['labor_cost_per_min'] ?? 0);
-                      $machineCostPerMin = (float)($op['machine_cost_per_min'] ?? 0);
-                      $energyCostPerMin = (float)($op['energy_cost_per_min'] ?? 0);
-                      $costHour = (float)($op['operation_cost_per_hour'] ?? 0);
-                      $timeMinutes = $timeUnit === 'H' ? $timeValue * 60.0 : $timeValue;
-                      $costPerMinuteFromRoute = ($laborCostPerMin * $operatorsQty) + $machineCostPerMin + $energyCostPerMin;
-                      $rowTotal = $costPerMinuteFromRoute > 0
-                          ? $timeMinutes * $costPerMinuteFromRoute
-                          : ($timeMinutes / 60.0) * $costHour;
-                      $notes = (string)($op['notes'] ?? '');
-                      $resource = '';
-                      if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
-                          $resource = trim($m[1]);
-                      }
-                    ?>
-                      <tr>
-                        <td class="ps-3 text-muted"><?= (int)($op['sequence'] ?? 0) ?></td>
-                        <td><code class="small"><?= htmlspecialchars($resource !== '' ? $resource : '—') ?></code></td>
-                        <td class="cell-truncate" title="<?= htmlspecialchars(($op['operation_name'] ?? '') . ' ' . ($op['operation_code'] ?? '')) ?>">
-                          <span class="fw-semibold d-block cell-truncate"><?= htmlspecialchars($truncate((string)($op['operation_name'] ?? ''), 32)) ?></span>
-                          <?php if (!empty($op['operation_code'])): ?>
-                            <span class="cell-desc-sub"><?= htmlspecialchars($op['operation_code']) ?></span>
-                          <?php endif; ?>
-                        </td>
-                        <td class="text-end"><?= $fmtMoney($timeMinutes, 4) ?></td>
-                        <td class="text-end"><?= $operatorsQty ?></td>
-                        <td class="text-end"><?= $fmtMoney($laborCostPerMin, 6) ?></td>
-                        <td class="text-end"><?= $fmtMoney($machineCostPerMin, 6) ?></td>
-                        <td class="text-end"><?= $fmtMoney($energyCostPerMin, 6) ?></td>
-                        <td class="text-end pe-3 fw-semibold"><?= $fmtMoney($rowTotal, 6) ?></td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </tbody>
-                <?php if (!empty($operations)): ?>
-                  <tfoot>
-                    <tr>
-                      <th colspan="8" class="text-end pe-2">Total rota</th>
-                      <th class="text-end pe-3"><?= $fmtMoney($operationsCost, 6) ?></th>
-                    </tr>
-                  </tfoot>
-                <?php endif; ?>
-              </table>
+            <?php
+            require_once __DIR__ . '/../partials/operation_metrics.php';
+            include __DIR__ . '/../partials/inv_route_resource_type_labels.php';
+            include __DIR__ . '/../partials/inv_route_operations_style.php';
+            ?>
+            <div class="d-none d-md-block">
+              <?php if (empty($operations)): ?>
+                <p class="text-center text-muted py-4 border rounded">Nenhuma operação na rota.</p>
+              <?php else: ?>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllViewRouteSubs(true)"><i class="fa-solid fa-angles-down me-1"></i> Expandir subníveis</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllViewRouteSubs(false)"><i class="fa-solid fa-angles-up me-1"></i> Recolher subníveis</button>
+                </div>
+                <?php foreach ($operations as $opIdx => $op):
+                  $metrics = invOperationMetrics($op);
+                  $resourceLines = $op['resource_lines'] ?? [];
+                  $laborLines = $op['labor_lines'] ?? [];
+                  $notes = (string)($op['notes'] ?? '');
+                  $sapResource = '';
+                  if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
+                      $sapResource = trim($m[1]);
+                  }
+                  $timeValue = (float)($op['time_per_batch_hours'] ?? 0);
+                  $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
+                  if (!in_array($timeUnit, ['MIN', 'H'], true)) {
+                      $timeUnit = 'MIN';
+                  }
+                  $timeUnitLabel = $timeUnit === 'H' ? 'Horas' : 'Minutos';
+                  $timeMinutes = $metrics['time_minutes'];
+                  $laborHH = ($timeMinutes / 60.0) * array_sum(array_map(static fn(array $l): int => max(1, (int)($l['qty'] ?? 1)), $laborLines));
+                ?>
+                <div class="card mb-3 border shadow-sm inv-route-op-card">
+                  <div class="card-header bg-success-subtle py-2 px-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                      <div>
+                        <span class="badge bg-secondary me-2">Pos. <?= (int)($op['sequence'] ?? 0) ?></span>
+                        <strong><?= htmlspecialchars($op['operation_name'] ?? '—') ?></strong>
+                        <?php if (!empty($op['operation_code'])): ?>
+                          <code class="small ms-1 inv-op-code-display"><?= htmlspecialchars($op['operation_code']) ?></code>
+                        <?php endif; ?>
+                      </div>
+                      <div class="text-end small">
+                        <div><span class="text-muted">Σ R$/min:</span> <strong><?= $fmtMoney($metrics['cost_per_min'], 4) ?></strong></div>
+                        <div><span class="text-muted">Custo linha:</span> <strong class="text-success"><?= $fmtMoney($metrics['line_cost'], 6) ?></strong></div>
+                      </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mt-2 small text-muted">
+                      <span>Tempo/lote: <strong class="text-dark"><?= $fmtMoney($timeValue, 4) ?></strong> <?= htmlspecialchars($timeUnitLabel) ?></span>
+                      <span>Tempo: <strong class="text-dark"><?= $fmtMoney($timeMinutes, 4) ?></strong> min</span>
+                      <span>MO SAP: <strong class="text-dark"><?= $fmtMoney($metrics['sap_labor_per_min'], 4) ?></strong>/min</span>
+                      <span>Equip.: <strong class="text-dark"><?= $fmtMoney($metrics['equipment_per_min'], 4) ?></strong>/min</span>
+                      <span>MO cad.: <strong class="text-dark"><?= $fmtMoney($metrics['manual_labor_per_min'], 4) ?></strong>/min</span>
+                      <span>Σ HH: <strong class="text-dark"><?= $fmtMoney($laborHH, 2) ?></strong></span>
+                      <?php if ($metrics['time_minutes'] <= 0 && $metrics['cost_per_min'] > 0): ?>
+                        <span class="badge bg-warning text-dark">Tempo não informado</span>
+                      <?php endif; ?>
+                      <?php if ($sapResource !== ''): ?>
+                        <span class="text-muted">SAP: <code><?= htmlspecialchars($sapResource) ?></code></span>
+                      <?php endif; ?>
+                    </div>
+                    <div class="mt-2 small"><span class="text-muted">Observações:</span> <?= $notes !== '' ? htmlspecialchars($notes) : '<span class="text-muted">—</span>' ?></div>
+                  </div>
+                  <div class="card-body py-2 inv-route-lines-align">
+                    <?php if ($resourceLines !== []): ?>
+                      <div class="ps-3 border-start border-3 border-secondary mb-2">
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none inv-view-sub-toggle mb-1"
+                          data-bs-toggle="collapse" data-bs-target="#view-op-res-<?= (int)$opIdx ?>" aria-expanded="true">
+                          <i class="fa-solid fa-chevron-down inv-chevron me-1"></i>
+                          <i class="fa-solid fa-industry me-1"></i> Recursos SAP / equipamentos
+                          <span class="badge bg-light text-dark border ms-1"><?= count($resourceLines) ?></span>
+                        </button>
+                        <div class="collapse show" id="view-op-res-<?= (int)$opIdx ?>">
+                          <table class="table table-sm table-bordered mb-2 bg-white inv-route-sub-table">
+                            <colgroup>
+                              <col><col><col><col><col><col><col><col>
+                            </colgroup>
+                            <thead class="table-light">
+                              <tr>
+                                <th>Recurso</th>
+                                <th class="inv-cell-num">Qtd</th>
+                                <th class="inv-cell-num">Máq./min</th>
+                                <th class="inv-cell-num">En./min</th>
+                                <th class="inv-cell-num"></th>
+                                <th class="inv-cell-num">Subtotal/lote</th>
+                                <th class="inv-cell-tag">Tipo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <?php foreach ($resourceLines as $rl):
+                                $rQty = max(1, (int)($rl['qty'] ?? 1));
+                                $rMachine = (float)($rl['machine_cost_per_min'] ?? 0);
+                                $rEnergy = (float)($rl['energy_cost_per_min'] ?? 0);
+                                $rSub = $timeMinutes * $rQty * ($rMachine + $rEnergy);
+                                $rType = strtoupper((string)($rl['resource_type'] ?? ''));
+                              ?>
+                                <tr>
+                                  <td>
+                                    <?php if (!empty($rl['resource_erp_code'])): ?>
+                                      <code class="small inv-erp-code d-block"><?= htmlspecialchars($rl['resource_erp_code']) ?></code>
+                                    <?php endif; ?>
+                                    <?= htmlspecialchars($rl['resource_name'] ?? '') ?>
+                                  </td>
+                                  <td class="inv-cell-num"><?= $rQty ?></td>
+                                  <td class="inv-cell-num"><?= $fmtMoney($rMachine, 6) ?></td>
+                                  <td class="inv-cell-num"><?= $fmtMoney($rEnergy, 6) ?></td>
+                                  <td class="inv-cell-num text-muted">—</td>
+                                  <td class="inv-cell-num"><?= $fmtMoney($rSub, 4) ?></td>
+                                  <td class="inv-cell-tag"><span class="badge bg-secondary"><?= htmlspecialchars($invResourceTypeLabels[$rType] ?? ($rl['resource_type'] ?? '—')) ?></span></td>
+                                </tr>
+                              <?php endforeach; ?>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    <?php endif; ?>
+                    <?php if ($laborLines !== []): ?>
+                      <div class="ps-3 border-start border-3 border-secondary">
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none inv-view-sub-toggle mb-1"
+                          data-bs-toggle="collapse" data-bs-target="#view-op-labor-<?= (int)$opIdx ?>" aria-expanded="true">
+                          <i class="fa-solid fa-chevron-down inv-chevron me-1"></i>
+                          <i class="fa-solid fa-users me-1"></i> MO cadastrada (papéis)
+                          <span class="badge bg-light text-dark border ms-1"><?= count($laborLines) ?></span>
+                        </button>
+                        <div class="collapse show" id="view-op-labor-<?= (int)$opIdx ?>">
+                          <table class="table table-sm table-bordered mb-0 bg-white inv-route-sub-table">
+                            <colgroup>
+                              <col><col><col><col><col><col><col><col>
+                            </colgroup>
+                            <thead class="table-light">
+                              <tr>
+                                <th>Papel</th>
+                                <th class="inv-cell-num">Qtd</th>
+                                <th class="inv-cell-num">HH</th>
+                                <th class="inv-cell-num">R$/min</th>
+                                <th class="inv-cell-num">Subtotal/min</th>
+                                <th class="inv-cell-num">Subtotal/lote</th>
+                                <th class="inv-cell-tag">Tipo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <?php foreach ($laborLines as $ll):
+                                $lQty = max(1, (int)($ll['qty'] ?? 1));
+                                $lCost = max(0, (float)($ll['cost_per_min'] ?? 0));
+                                $lHH = ($timeMinutes / 60.0) * $lQty;
+                                $lSubMin = $lQty * $lCost;
+                                $lSubLote = $timeMinutes * $lQty * $lCost;
+                              ?>
+                                <tr>
+                                  <td><?= htmlspecialchars($ll['role_name'] ?? '—') ?></td>
+                                  <td class="inv-cell-num"><?= $lQty ?></td>
+                                  <td class="inv-cell-num"><?= $fmtMoney($lHH, 2) ?></td>
+                                  <td class="inv-cell-num"><?= $fmtMoney($lCost, 6) ?></td>
+                                  <td class="inv-cell-num fw-semibold"><?= $fmtMoney($lSubMin, 4) ?></td>
+                                  <td class="inv-cell-num"><?= $fmtMoney($lSubLote, 4) ?></td>
+                                  <td class="inv-cell-tag"><span class="badge bg-light text-muted border">MO cad.</span></td>
+                                </tr>
+                              <?php endforeach; ?>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                </div>
+                <?php endforeach; ?>
+                <div class="text-end fw-semibold border-top pt-2">Total rota (lote): <?= $fmtMoney($operationsCost, 6) ?></div>
+              <?php endif; ?>
             </div>
 
             <div class="d-block d-md-none list-mobile">
               <?php if (empty($operations)): ?>
                 <p class="text-center text-muted py-3 mb-0 small">Nenhuma operação na rota.</p>
               <?php else: ?>
-                <?php foreach ($operations as $op):
-                  $timeValue = (float)($op['time_per_batch_hours'] ?? 0);
-                  $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
-                  if (!in_array($timeUnit, ['MIN', 'H'], true)) {
-                      $timeUnit = 'MIN';
-                  }
-                  $operatorsQty = max(1, (int)($op['operators_qty'] ?? 1));
-                  $laborCostPerMin = (float)($op['labor_cost_per_min'] ?? 0);
-                  $machineCostPerMin = (float)($op['machine_cost_per_min'] ?? 0);
-                  $energyCostPerMin = (float)($op['energy_cost_per_min'] ?? 0);
-                  $costHour = (float)($op['operation_cost_per_hour'] ?? 0);
-                  $timeMinutes = $timeUnit === 'H' ? $timeValue * 60.0 : $timeValue;
-                  $costPerMinuteFromRoute = ($laborCostPerMin * $operatorsQty) + $machineCostPerMin + $energyCostPerMin;
-                  $rowTotal = $costPerMinuteFromRoute > 0
-                      ? $timeMinutes * $costPerMinuteFromRoute
-                      : ($timeMinutes / 60.0) * $costHour;
-                  $notes = (string)($op['notes'] ?? '');
-                  $resource = '';
-                  if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
-                      $resource = trim($m[1]);
-                  }
+                <?php foreach ($operations as $opIdx => $op):
+                  $metrics = invOperationMetrics($op);
+                  $resourceLines = $op['resource_lines'] ?? [];
+                  $laborLines = $op['labor_lines'] ?? [];
                 ?>
                 <div class="card mb-2 shadow-sm inv-structure-mobile-card">
                   <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                      <code class="small"><?= htmlspecialchars($resource !== '' ? $resource : '—') ?></code>
+                      <span class="fw-semibold"><?= htmlspecialchars($op['operation_name'] ?? '') ?></span>
                       <span class="text-muted small">Pos. <?= (int)($op['sequence'] ?? 0) ?></span>
                     </div>
-                    <div class="fw-semibold text-break mb-1"><?= htmlspecialchars($op['operation_name'] ?? '') ?></div>
-                    <?php if (!empty($op['operation_code'])): ?>
-                      <div class="text-muted small mb-2"><?= htmlspecialchars($op['operation_code']) ?></div>
-                    <?php endif; ?>
-                    <div class="row g-2 small">
-                      <div class="col-6"><span class="row-label">Tempo (min)</span><br><?= $fmtMoney($timeMinutes, 4) ?></div>
-                      <div class="col-6"><span class="row-label">Operadores</span><br><?= $operatorsQty ?></div>
-                      <div class="col-4"><span class="row-label">MO/min</span><br><?= $fmtMoney($laborCostPerMin, 6) ?></div>
-                      <div class="col-4"><span class="row-label">Máq./min</span><br><?= $fmtMoney($machineCostPerMin, 6) ?></div>
-                      <div class="col-4"><span class="row-label">En./min</span><br><?= $fmtMoney($energyCostPerMin, 6) ?></div>
-                      <div class="col-12"><span class="row-label">Custo linha</span><br><span class="fw-semibold"><?= $fmtMoney($rowTotal, 6) ?></span></div>
+                    <div class="row g-2 small mb-2">
+                      <div class="col-6"><span class="row-label">Σ R$/min</span><br><?= $fmtMoney($metrics['cost_per_min'], 4) ?></div>
+                      <div class="col-6"><span class="row-label">Tempo (min)</span><br><?= $fmtMoney($metrics['time_minutes'], 4) ?></div>
+                      <div class="col-12"><span class="row-label">Custo linha</span><br><span class="fw-semibold text-success"><?= $fmtMoney($metrics['line_cost'], 6) ?></span></div>
                     </div>
+                    <?php if ($resourceLines !== []): ?>
+                      <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none inv-view-sub-toggle mb-1"
+                        data-bs-toggle="collapse" data-bs-target="#view-mob-res-<?= (int)$opIdx ?>" aria-expanded="false">
+                        <i class="fa-solid fa-chevron-down inv-chevron me-1"></i> Recursos (<?= count($resourceLines) ?>)
+                      </button>
+                      <div class="collapse" id="view-mob-res-<?= (int)$opIdx ?>">
+                        <ul class="small ps-3 mb-2">
+                          <?php foreach ($resourceLines as $rl): ?>
+                            <li><?= htmlspecialchars(($rl['resource_erp_code'] ?? '') . ' ' . ($rl['resource_name'] ?? '')) ?> × <?= (int)($rl['qty'] ?? 1) ?></li>
+                          <?php endforeach; ?>
+                        </ul>
+                      </div>
+                    <?php endif; ?>
+                    <?php if ($laborLines !== []): ?>
+                      <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none inv-view-sub-toggle mb-1"
+                        data-bs-toggle="collapse" data-bs-target="#view-mob-labor-<?= (int)$opIdx ?>" aria-expanded="false">
+                        <i class="fa-solid fa-chevron-down inv-chevron me-1"></i> Pessoal (<?= count($laborLines) ?>)
+                      </button>
+                      <div class="collapse" id="view-mob-labor-<?= (int)$opIdx ?>">
+                        <ul class="small ps-3 mb-0">
+                          <?php foreach ($laborLines as $ll): ?>
+                            <li><?= htmlspecialchars($ll['role_name'] ?? '—') ?> × <?= (int)($ll['qty'] ?? 1) ?> @ <?= $fmtMoney((float)($ll['cost_per_min'] ?? 0), 4) ?>/min</li>
+                          <?php endforeach; ?>
+                        </ul>
+                      </div>
+                    <?php endif; ?>
                   </div>
                 </div>
                 <?php endforeach; ?>
@@ -408,20 +509,17 @@ $truncate = static function (string $text, int $max = 42): string {
                     </tr>
                   <?php endforeach; ?>
                   <?php foreach ($operations as $op):
-                    $timeValue = (float)($op['time_per_batch_hours'] ?? 0);
-                    $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
-                    $timeMinutes = ($timeUnit === 'H') ? $timeValue * 60.0 : $timeValue;
-                    $operatorsQty = max(1, (int)($op['operators_qty'] ?? 1));
-                    $labor = (float)($op['labor_cost_per_min'] ?? 0);
-                    $machine = (float)($op['machine_cost_per_min'] ?? 0);
-                    $energy = (float)($op['energy_cost_per_min'] ?? 0);
-                    $costHour = (float)($op['operation_cost_per_hour'] ?? 0);
-                    $cpm = ($labor * $operatorsQty) + $machine + $energy;
-                    $rowTotal = $cpm > 0 ? $timeMinutes * $cpm : ($timeMinutes / 60.0) * $costHour;
+                    $metrics = invOperationMetrics($op);
+                    $timeMinutes = $metrics['time_minutes'];
+                    $rowTotal = $metrics['line_cost'];
                     $notes = (string)($op['notes'] ?? '');
                     $resource = '';
                     if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
                         $resource = trim($m[1]);
+                    }
+                    if ($resource === '' && !empty($op['resource_lines'])) {
+                        $names = array_map(static fn(array $r): string => (string)($r['resource_erp_code'] ?? $r['resource_name'] ?? ''), $op['resource_lines']);
+                        $resource = implode(' + ', array_filter($names));
                     }
                   ?>
                     <tr>
@@ -620,3 +718,13 @@ $truncate = static function (string $text, int $max = 42): string {
   </div>
 
 </div>
+
+<script>
+function toggleAllViewRouteSubs(expand) {
+    if (typeof bootstrap === 'undefined') return;
+    document.querySelectorAll('#view-pane-route .collapse').forEach(function (el) {
+        const instance = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+        expand ? instance.show() : instance.hide();
+    });
+}
+</script>

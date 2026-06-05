@@ -379,6 +379,16 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-operations',
                         'permission' => 'ListInventoryOperations'
                     ],
+                    [
+                        'label' => 'Recursos de Produção',
+                        'url' => $_ENV['URL_ADM'] . 'list-inventory-production-resources',
+                        'permission' => 'ListInventoryProductionResources'
+                    ],
+                    [
+                        'label' => 'Papéis de MO',
+                        'url' => $_ENV['URL_ADM'] . 'list-inventory-labor-roles',
+                        'permission' => 'ListInventoryLaborRoles'
+                    ],
                 ]
             ],
             [

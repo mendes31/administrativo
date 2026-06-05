@@ -163,6 +163,8 @@ class PageLayoutService
             'ListInventoryStocks',
             'ListInventoryPositions',
             'ListInventoryOperations',
+            'ListInventoryProductionResources',
+            'ListInventoryLaborRoles',
             'UpdateInventoryUnit',
             'UpdateInventoryCategory',
             'UpdateInventoryStock',

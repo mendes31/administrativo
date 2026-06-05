@@ -263,6 +263,15 @@ class InventorySapSyncService
                     $tempo = $this->resolveRouteTimeMinutes($row);
                     $resource = trim((string)($row['recurso'] ?? $row['RECURSO'] ?? ''));
                     $routeCosts = $resourcesRepo->resolveRouteCosts($resource, $operationName);
+                    $resources = [];
+                    if (!empty($routeCosts['resource_id'])) {
+                        $resources[] = [
+                            'inv_production_resource_id' => (int)$routeCosts['resource_id'],
+                            'qty' => 1,
+                            'machine_cost_per_min' => $routeCosts['machine_cost_per_min'],
+                            'energy_cost_per_min' => $routeCosts['energy_cost_per_min'],
+                        ];
+                    }
                     $routeLines[] = [
                         'inv_operation_id' => (int)($operation['id'] ?? 0),
                         'sequence' => $sequence,
@@ -273,6 +282,7 @@ class InventorySapSyncService
                         'machine_cost_per_min' => $routeCosts['machine_cost_per_min'],
                         'energy_cost_per_min' => $routeCosts['energy_cost_per_min'],
                         'notes' => $resource !== '' ? ('Recurso SAP: ' . $resource) : null,
+                        'resources' => $resources,
                     ];
                 }
             }

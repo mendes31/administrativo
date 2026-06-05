@@ -83,7 +83,7 @@ class InvOperationsRepository extends DbConnection
 
     public function getAllForSelect(): array
     {
-        $sql = 'SELECT id, name FROM inv_operations WHERE active = 1 ORDER BY name ASC';
+        $sql = 'SELECT id, name, code FROM inv_operations WHERE active = 1 ORDER BY name ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
