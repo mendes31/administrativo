@@ -61,7 +61,9 @@ class NewTrainingVersion
         $newId = $repo->createNewVersion($sourceTrainingId, $payload, (int)($_SESSION['user_id'] ?? 0));
 
         if (!$newId) {
-            $_SESSION['error'] = 'Não foi possível criar a nova versão do treinamento.';
+            if (empty($_SESSION['error'])) {
+                $_SESSION['error'] = 'Não foi possível criar a nova versão do treinamento.';
+            }
             header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $sourceTrainingId);
             exit;
         }

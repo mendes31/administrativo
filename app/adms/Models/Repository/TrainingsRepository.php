@@ -174,7 +174,8 @@ class TrainingsRepository extends DbConnection
             if ($versao === '') {
                 throw new Exception('O campo "Versão" é obrigatório.');
             }
-            if ($this->existsCode($codigo)) {
+            $isVersioning = !empty($data['parent_training_id']);
+            if (!$isVersioning && $this->existsCode($codigo)) {
                 throw new Exception('Código já existe na base e somente pode ser versionado, através da opção Criar nova versão disponibilizada na tela de visualização do treinamento.');
             }
             if ($this->existsCodeVersion($codigo, $versao)) {
