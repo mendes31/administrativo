@@ -3,8 +3,11 @@
 namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
+use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Models\Services\InventoryCostService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -52,12 +55,44 @@ class SimulateInventoryCost
         $this->data['breakdown'] = InventoryCostService::calculateBreakdown($itemId, $scenario);
         $this->data['saved_simulations'] = (new InvCostSimulationsRepository())->getByItem($itemId, 15);
 
+        $periodId = (int)($_REQUEST['inv_cost_period_id'] ?? 0);
+        $warehouseScope = (string)($_REQUEST['warehouse_scope'] ?? 'all');
+        $warehouseCodes = $this->parseWarehouseCodes($warehouseScope, $_REQUEST['warehouse_codes'] ?? null);
+
+        $this->data['cost_periods'] = (new InvCostPeriodsRepository())->getForSelect();
+        $this->data['production_warehouses'] = (new InvCostProductionWarehousesRepository())->getAllActive();
+        $this->data['selected_period_id'] = $periodId;
+        $this->data['warehouse_scope'] = $warehouseScope === 'selected' ? 'selected' : 'all';
+        $this->data['selected_warehouse_codes'] = $warehouseCodes ?? [];
+
+        $productionAggregation = null;
+        $currentItemProduction = null;
+        if ($periodId > 0) {
+            $aggService = new InvCostProductionAggregationService();
+            $productionAggregation = $aggService->aggregateByPeriod($periodId, $warehouseCodes);
+            $erpCode = trim((string)($item['erp_code'] ?? ''));
+            $currentItemProduction = $aggService->findItemInAggregation(
+                $productionAggregation,
+                $itemId,
+                $erpCode !== '' ? $erpCode : null
+            );
+        }
+        $this->data['production_aggregation'] = $productionAggregation;
+        $this->data['current_item_production'] = $currentItemProduction;
+
         $_SESSION['menu_override'] = 'ListInventoryItems';
 
         $pageElements = [
             'title_head' => 'Simulação de Custos',
             'menu' => 'ListInventoryItems',
-            'buttonPermission' => ['ListInventoryItems', 'ViewInventoryItem', 'SaveInventoryCostSimulation', 'ExportInventoryCostSimulationPdf'],
+            'buttonPermission' => [
+                'ListInventoryItems',
+                'ViewInventoryItem',
+                'SaveInventoryCostSimulation',
+                'ExportInventoryCostSimulationPdf',
+                'ListInvCostProductionBatches',
+                'ListInvCostPeriods',
+            ],
         ];
         $pls = new PageLayoutService();
         $this->data = array_merge($this->data, $pls->configurePageElements($pageElements));
@@ -91,5 +126,28 @@ class SimulateInventoryCost
         $batch = (float)$value;
 
         return $batch > 0 ? round($batch, 6) : 1.0;
+    }
+
+    /**
+     * @param mixed $rawCodes
+     * @return list<string>|null null = todos os depósitos
+     */
+    private function parseWarehouseCodes(string $scope, mixed $rawCodes): ?array
+    {
+        if ($scope !== 'selected') {
+            return null;
+        }
+        if (!is_array($rawCodes)) {
+            $rawCodes = $rawCodes !== null && $rawCodes !== '' ? [$rawCodes] : [];
+        }
+        $normalized = [];
+        foreach ($rawCodes as $code) {
+            $value = strtoupper(trim((string)$code));
+            if ($value !== '') {
+                $normalized[] = $value;
+            }
+        }
+
+        return $normalized === [] ? null : array_values(array_unique($normalized));
     }
 }

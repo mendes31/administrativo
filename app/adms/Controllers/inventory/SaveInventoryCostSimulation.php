@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Models\Services\InventoryCostService;
 
 class SaveInventoryCostSimulation
@@ -51,6 +52,26 @@ class SaveInventoryCostSimulation
         ];
         $breakdown = InventoryCostService::calculateBreakdown($itemId, $scenario);
 
+        $periodId = (int)($form['inv_cost_period_id'] ?? 0);
+        $warehouseScope = (string)($form['warehouse_scope'] ?? 'all');
+        $warehouseCodes = $this->parseWarehouseCodes($warehouseScope, $form['warehouse_codes'] ?? null);
+        if ($periodId > 0) {
+            $aggService = new InvCostProductionAggregationService();
+            $aggregation = $aggService->aggregateByPeriod($periodId, $warehouseCodes);
+            $erpCode = trim((string)($item['erp_code'] ?? ''));
+            $breakdown['production_context'] = [
+                'inv_cost_period_id' => $periodId,
+                'warehouse_scope' => $warehouseScope,
+                'warehouse_codes' => $warehouseCodes,
+                'aggregation' => $aggregation,
+                'current_item' => $aggService->findItemInAggregation(
+                    $aggregation,
+                    $itemId,
+                    $erpCode !== '' ? $erpCode : null
+                ),
+            ];
+        }
+
         $simRepo = new InvCostSimulationsRepository();
         $newId = $simRepo->create([
             'inv_item_id' => $itemId,
@@ -73,13 +94,21 @@ class SaveInventoryCostSimulation
             $_SESSION['success'] = 'Simulação salva com sucesso.';
         }
 
-        $query = http_build_query([
+        $queryParams = [
             'material_adjust_pct' => $scenario['material_adjust_pct'],
             'operations_adjust_pct' => $scenario['operations_adjust_pct'],
             'global_adjust_pct' => $scenario['global_adjust_pct'],
             'standard_batch_size' => $scenario['standard_batch_size'],
             'saved' => $newId > 0 ? $newId : null,
-        ]);
+        ];
+        if ($periodId > 0) {
+            $queryParams['inv_cost_period_id'] = $periodId;
+            $queryParams['warehouse_scope'] = $warehouseScope;
+            if ($warehouseScope === 'selected' && is_array($warehouseCodes)) {
+                $queryParams['warehouse_codes'] = $warehouseCodes;
+            }
+        }
+        $query = http_build_query($queryParams);
         header('Location: ' . $_ENV['URL_ADM'] . 'simulate-inventory-cost/' . $itemId . '?' . $query);
     }
 
@@ -106,5 +135,28 @@ class SaveInventoryCostSimulation
         $batch = (float)$value;
 
         return $batch > 0 ? round($batch, 6) : 1.0;
+    }
+
+    /**
+     * @param mixed $rawCodes
+     * @return list<string>|null
+     */
+    private function parseWarehouseCodes(string $scope, mixed $rawCodes): ?array
+    {
+        if ($scope !== 'selected') {
+            return null;
+        }
+        if (!is_array($rawCodes)) {
+            $rawCodes = $rawCodes !== null && $rawCodes !== '' ? [$rawCodes] : [];
+        }
+        $normalized = [];
+        foreach ($rawCodes as $code) {
+            $value = strtoupper(trim((string)$code));
+            if ($value !== '') {
+                $normalized[] = $value;
+            }
+        }
+
+        return $normalized === [] ? null : array_values(array_unique($normalized));
     }
 }

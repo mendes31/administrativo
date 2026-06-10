@@ -6,6 +6,13 @@ $breakdown = $this->data['breakdown'] ?? null;
 $scenario = $this->data['scenario'] ?? ['material_adjust_pct' => 0, 'operations_adjust_pct' => 0, 'global_adjust_pct' => 0];
 $selectedItem = $this->data['selected_item'] ?? null;
 $savedSimulations = $this->data['saved_simulations'] ?? [];
+$costPeriods = $this->data['cost_periods'] ?? [];
+$productionWarehouses = $this->data['production_warehouses'] ?? [];
+$selectedPeriodId = (int)($this->data['selected_period_id'] ?? 0);
+$warehouseScope = (string)($this->data['warehouse_scope'] ?? 'all');
+$selectedWarehouseCodes = $this->data['selected_warehouse_codes'] ?? [];
+$productionAggregation = $this->data['production_aggregation'] ?? null;
+$currentItemProduction = $this->data['current_item_production'] ?? null;
 $itemId = (int)($this->data['selected_item_id'] ?? 0);
 $batchSize = (float)($scenario['standard_batch_size'] ?? ($breakdown['standard_batch_size'] ?? 1));
 $fmtMoney = static fn(float $v): string => number_format($v, 4, ',', '.');
@@ -13,12 +20,20 @@ $fmtPct = static fn(float $v): string => number_format($v, 2, ',', '.');
 $fmtHours = static fn(float $v): string => number_format($v, 2, ',', '.');
 $fmtBatch = static fn(float $v): string => number_format($v, 4, ',', '.');
 $baseUrl = $_ENV['URL_ADM'] . 'simulate-inventory-cost/' . $itemId;
-$pdfQuery = http_build_query([
+$pdfQueryParams = [
     'material_adjust_pct' => (float)($scenario['material_adjust_pct'] ?? 0),
     'operations_adjust_pct' => (float)($scenario['operations_adjust_pct'] ?? 0),
     'global_adjust_pct' => (float)($scenario['global_adjust_pct'] ?? 0),
     'standard_batch_size' => $batchSize,
-]);
+];
+if ($selectedPeriodId > 0) {
+    $pdfQueryParams['inv_cost_period_id'] = $selectedPeriodId;
+    $pdfQueryParams['warehouse_scope'] = $warehouseScope;
+    if ($warehouseScope === 'selected' && $selectedWarehouseCodes !== []) {
+        $pdfQueryParams['warehouse_codes'] = $selectedWarehouseCodes;
+    }
+}
+$pdfQuery = http_build_query($pdfQueryParams);
 $pdfLiveUrl = $_ENV['URL_ADM'] . 'export-inventory-cost-simulation-pdf/' . $itemId . '?' . $pdfQuery;
 $canSave = in_array('SaveInventoryCostSimulation', $this->data['buttonPermission'] ?? [], true);
 $canPdf = in_array('ExportInventoryCostSimulationPdf', $this->data['buttonPermission'] ?? [], true);
@@ -86,6 +101,12 @@ $renderCostBreakdown = static function (
             <i class="fa-regular fa-eye"></i> Voltar ao item
           </a>
         <?php endif; ?>
+        <a class="btn btn-sm btn-outline-secondary" href="<?= $_ENV['URL_ADM'] ?>list-inventory-cost-production-batches">
+          <i class="fa-solid fa-boxes-stacked"></i> Lotes
+        </a>
+        <a class="btn btn-sm btn-outline-secondary" href="<?= $_ENV['URL_ADM'] ?>list-inventory-cost-periods">
+          <i class="fa-regular fa-calendar"></i> Períodos
+        </a>
         <a class="btn btn-sm btn-outline-secondary" href="<?= $_ENV['URL_ADM'] ?>list-inventory-items">
           <i class="fa-solid fa-list"></i> Listar itens
         </a>
@@ -140,6 +161,75 @@ $renderCostBreakdown = static function (
         <strong>SKU (unidade)</strong> e <strong>lote</strong>. Tempos da rota e quantidades da BOM referem-se ao lote completo.
       </p>
 
+      <div class="border rounded p-3 p-md-4 bg-light mb-3">
+        <div class="fw-semibold mb-3">Produção no período (critério rateio 1)</div>
+        <div class="row g-3">
+          <div class="col-12 col-lg-4">
+            <label class="form-label mb-1" for="inv_cost_period_id">Período de custeio</label>
+            <select class="form-select form-select-sm" name="inv_cost_period_id" id="inv_cost_period_id">
+              <option value="">— Sem período —</option>
+              <?php foreach ($costPeriods as $period): ?>
+                <?php
+                  $pid = (int)($period['id'] ?? 0);
+                  $label = ($period['name'] ?? '') . ' (' . date('d/m/Y', strtotime((string)$period['date_from'])) . ' – ' . date('d/m/Y', strtotime((string)$period['date_to'])) . ')';
+                ?>
+                <option value="<?= $pid ?>" <?= $selectedPeriodId === $pid ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-12 col-lg-8">
+            <label class="form-label mb-1">Depósitos</label>
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="warehouse_scope" id="warehouse_scope_all" value="all"
+                  <?= $warehouseScope !== 'selected' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="warehouse_scope_all">Todos (TJQP + APQP)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="warehouse_scope" id="warehouse_scope_selected" value="selected"
+                  <?= $warehouseScope === 'selected' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="warehouse_scope_selected">Selecionar:</label>
+              </div>
+              <?php foreach ($productionWarehouses as $wh): ?>
+                <?php $whCode = (string)($wh['code'] ?? ''); ?>
+                <div class="form-check">
+                  <input class="form-check-input warehouse-code-check" type="checkbox" name="warehouse_codes[]" value="<?= htmlspecialchars($whCode) ?>"
+                    id="wh_<?= htmlspecialchars($whCode) ?>"
+                    <?= in_array($whCode, $selectedWarehouseCodes, true) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="wh_<?= htmlspecialchars($whCode) ?>"><?= htmlspecialchars($whCode) ?></label>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+        <?php if (is_array($productionAggregation) && is_array($productionAggregation['period'] ?? null)): ?>
+          <?php
+            $periodRow = $productionAggregation['period'];
+            $whLabel = ($productionAggregation['warehouse_codes'] ?? null) === null
+              ? 'Todos'
+              : implode(', ', $productionAggregation['warehouse_codes']);
+          ?>
+          <div class="mt-3 small text-muted">
+            Filtro ativo: <strong><?= htmlspecialchars((string)($periodRow['name'] ?? '')) ?></strong>
+            (<?= date('d/m/Y', strtotime((string)$periodRow['date_from'])) ?> – <?= date('d/m/Y', strtotime((string)$periodRow['date_to'])) ?>)
+            · Depósitos: <?= htmlspecialchars($whLabel) ?>
+            · Total período: <strong><?= number_format((float)($productionAggregation['total_qty'] ?? 0), 2, ',', '.') ?> un.</strong>
+          </div>
+          <?php if (is_array($currentItemProduction)): ?>
+            <div class="alert alert-info py-2 px-3 mt-3 mb-0 small">
+              <strong>Este item:</strong>
+              <?= number_format((float)($currentItemProduction['qty_produced'] ?? 0), 2, ',', '.') ?> un. produzidas
+              · <?= (int)($currentItemProduction['batches_count'] ?? 0) ?> lote(s)
+              · <strong><?= $fmtPct((float)($currentItemProduction['share_criterion_1'] ?? 0)) ?>%</strong> do rateio 1
+            </div>
+          <?php elseif ($selectedPeriodId > 0): ?>
+            <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
+              Nenhuma produção encontrada para este item no período e depósitos selecionados.
+            </div>
+          <?php endif; ?>
+        <?php endif; ?>
+      </div>
+
       <div class="border rounded p-3 p-md-4 bg-white mb-3">
         <div class="row g-3 align-items-end">
           <div class="col-12 col-sm-6 col-lg-3">
@@ -173,6 +263,11 @@ $renderCostBreakdown = static function (
           <input type="hidden" name="operations_adjust_pct" value="<?= htmlspecialchars((string)($scenario['operations_adjust_pct'] ?? 0)) ?>">
           <input type="hidden" name="global_adjust_pct" value="<?= htmlspecialchars((string)($scenario['global_adjust_pct'] ?? 0)) ?>">
           <input type="hidden" name="standard_batch_size" value="<?= htmlspecialchars((string)$batchSize) ?>">
+          <input type="hidden" name="inv_cost_period_id" value="<?= $selectedPeriodId ?>">
+          <input type="hidden" name="warehouse_scope" value="<?= htmlspecialchars($warehouseScope) ?>">
+          <?php foreach ($selectedWarehouseCodes as $whCode): ?>
+            <input type="hidden" name="warehouse_codes[]" value="<?= htmlspecialchars((string)$whCode) ?>">
+          <?php endforeach; ?>
           <div class="row g-2 align-items-end">
             <div class="col-12 col-md-6">
               <label class="form-label mb-1">Nome da simulação (ao salvar)</label>
@@ -189,6 +284,42 @@ $renderCostBreakdown = static function (
       <?php endif; ?>
     </div>
   </div>
+
+  <?php if (is_array($productionAggregation) && !empty($productionAggregation['items'])): ?>
+    <div class="card mb-4 border-light shadow">
+      <div class="card-header fw-semibold">Produção agregada no período (todos os produtos)</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Item</th>
+                <th>Descrição</th>
+                <th class="text-end">Qtd produzida</th>
+                <th class="text-end">Lotes</th>
+                <th class="text-end pe-3">% rateio 1</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($productionAggregation['items'] as $prodRow): ?>
+                <?php
+                  $isCurrent = is_array($currentItemProduction)
+                    && (string)($prodRow['erp_code'] ?? '') === (string)($currentItemProduction['erp_code'] ?? '');
+                ?>
+                <tr class="<?= $isCurrent ? 'table-info' : '' ?>">
+                  <td class="ps-3 text-nowrap"><?= htmlspecialchars((string)($prodRow['erp_code'] ?? '')) ?></td>
+                  <td><?= htmlspecialchars((string)($prodRow['description'] ?? '')) ?></td>
+                  <td class="text-end text-nowrap"><?= number_format((float)($prodRow['qty_produced'] ?? 0), 2, ',', '.') ?></td>
+                  <td class="text-end"><?= (int)($prodRow['batches_count'] ?? 0) ?></td>
+                  <td class="text-end pe-3"><?= $fmtPct((float)($prodRow['share_criterion_1'] ?? 0)) ?>%</td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <?php if ($savedSimulations !== []): ?>
     <div class="card mb-4 border-light shadow">

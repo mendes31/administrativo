@@ -351,6 +351,16 @@ $menus = [
                 'permission' => 'ListInventoryItems'
             ],
             [
+                'label' => 'Lotes Produzidos',
+                'url' => $_ENV['URL_ADM'] . 'list-inventory-cost-production-batches',
+                'any_of' => ['ListInvCostProductionBatches', 'SimulateInventoryCost', 'ListInventoryItems'],
+            ],
+            [
+                'label' => 'Períodos de Custeio',
+                'url' => $_ENV['URL_ADM'] . 'list-inventory-cost-periods',
+                'any_of' => ['ListInvCostPeriods', 'SimulateInventoryCost', 'ListInventoryItems'],
+            ],
+            [
                 'label' => 'Cadastros Bases',
                 'icon' => 'fa-solid fa-database',
                 'submenu' => [
