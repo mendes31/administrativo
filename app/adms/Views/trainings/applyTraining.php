@@ -25,6 +25,28 @@ use App\adms\Helpers\FormatHelper;
                 </div>
                 <div class="card-body">
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
+
+                    <?php if (empty($this->data['edit_id']) && !empty($this->data['latestCompletedApplication'])):
+                        $latestApp = $this->data['latestCompletedApplication'];
+                        $latestDate = !empty($latestApp['data_realizacao'])
+                            ? (new DateTime($latestApp['data_realizacao']))->format('d/m/Y')
+                            : '-';
+                        $matrixUrl = $_ENV['URL_ADM'] . 'completed-trainings-matrix?colaborador=' . (int) $this->data['user_id'];
+                        if (!empty($latestApp['data_realizacao'])) {
+                            $ts = strtotime($latestApp['data_realizacao']);
+                            if ($ts !== false) {
+                                $matrixUrl .= '&mes=' . (int) date('n', $ts) . '&ano=' . (int) date('Y', $ts);
+                            }
+                        }
+                    ?>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Já existe um registro <strong>concluído</strong> deste treinamento para este colaborador
+                        (realização em <strong><?= htmlspecialchars($latestDate) ?></strong>).
+                        Ao salvar novamente com a mesma data, o sistema não criará duplicata.
+                        <a href="<?= htmlspecialchars($matrixUrl) ?>" class="alert-link">Ver na Matriz de Treinamentos Realizados</a>.
+                    </div>
+                    <?php endif; ?>
                     
                     <?php
                     $tipoRegistro = $_GET['tipo_registro'] ?? $_POST['tipo_registro'] ?? null;
@@ -455,6 +477,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (erro) {
                 e.preventDefault();
+            } else {
+                const btn = this.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+                }
             }
         });
 });

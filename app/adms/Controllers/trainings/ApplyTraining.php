@@ -81,6 +81,11 @@ class ApplyTraining
                 header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
                 exit;
             }
+        } elseif (!$this->data['edit_id']) {
+            $this->data['latestCompletedApplication'] = $applicationsRepo->getLatestCompletedApplication(
+                (int) $this->data['user_id'],
+                (int) $this->data['training_id']
+            );
         }
 
         // Preencher formulário
@@ -473,7 +478,19 @@ class ApplyTraining
                 error_log("Resultado update: " . ($resultUpdate ? 'SUCESSO' : 'FALHA'));
                 LogHelper::logUpdate('adms_training_applications', $edit_id, $oldData, $dados, $aplicado_por);
                 $msg = "Aplicação atualizada com sucesso!";
-            } else {
+            } elseif ($data_realizacao) {
+                $existingAppId = $applicationsRepo->findCompletedApplicationId(
+                    (int) $user_id,
+                    (int) $training_id,
+                    $data_realizacao
+                );
+                if ($existingAppId) {
+                    $_SESSION['msg'] = 'Este treinamento já estava registrado para esta data de realização. Nenhum registro duplicado foi criado.';
+                    $_SESSION['msg_type'] = 'info';
+                    header('Location: ' . $this->buildCompletedMatrixUrl((int) $user_id, $data_realizacao));
+                    exit;
+                }
+
                 // Inserção
                 error_log("=== MODO INSERÇÃO ===");
                 $newId = $applicationsRepo->insert($dados);
@@ -481,7 +498,19 @@ class ApplyTraining
                 
                 if ($newId) {
                     LogHelper::log('adms_training_applications', 'inserção', $newId, 'Nova aplicação de treinamento', $aplicado_por);
-                    $msg = $data_realizacao ? "Treinamento registrado como realizado!" : "Treinamento agendado com sucesso!";
+                    $msg = "Treinamento registrado como realizado! O registro está na Matriz de Treinamentos Realizados.";
+                } else {
+                    throw new \Exception("Falha ao inserir aplicação - ID retornado: " . var_export($newId, true));
+                }
+            } else {
+                // Inserção de agendamento
+                error_log("=== MODO INSERÇÃO (AGENDAMENTO) ===");
+                $newId = $applicationsRepo->insert($dados);
+                error_log("Novo ID retornado: " . ($newId ?: 'FALHA'));
+
+                if ($newId) {
+                    LogHelper::log('adms_training_applications', 'inserção', $newId, 'Nova aplicação de treinamento', $aplicado_por);
+                    $msg = "Treinamento agendado com sucesso!";
                 } else {
                     throw new \Exception("Falha ao inserir aplicação - ID retornado: " . var_export($newId, true));
                 }
@@ -517,8 +546,14 @@ class ApplyTraining
                 error_log("ℹ Nenhuma mensagem de aviso");
             }
             
-            error_log("Redirecionando para: " . $_ENV['URL_ADM'] . "list-training-status");
-            header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
+            if ($data_realizacao) {
+                $successRedirect = $this->buildCompletedMatrixUrl((int) $user_id, $data_realizacao);
+                error_log("Redirecionando para matriz de realizados: " . $successRedirect);
+                header('Location: ' . $successRedirect);
+            } else {
+                error_log("Redirecionando para: " . $_ENV['URL_ADM'] . "list-training-status");
+                header("Location: " . $_ENV['URL_ADM'] . "list-training-status");
+            }
             
         } catch (\Exception $e) {
             error_log("=== ERRO CAPTURADO ===");
@@ -534,5 +569,21 @@ class ApplyTraining
             header("Location: " . $redirectUrl);
         }
         exit;
+    }
+
+    /**
+     * Monta URL da matriz de realizados com filtros que garantem exibir o registro salvo.
+     */
+    private function buildCompletedMatrixUrl(int $userId, ?string $dataRealizacao = null): string
+    {
+        $url = $_ENV['URL_ADM'] . 'completed-trainings-matrix?colaborador=' . $userId;
+        if ($dataRealizacao) {
+            $timestamp = strtotime($dataRealizacao);
+            if ($timestamp !== false) {
+                $url .= '&mes=' . (int) date('n', $timestamp) . '&ano=' . (int) date('Y', $timestamp);
+            }
+        }
+
+        return $url;
     }
 } 

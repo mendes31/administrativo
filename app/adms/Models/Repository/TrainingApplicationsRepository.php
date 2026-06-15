@@ -271,6 +271,48 @@ class TrainingApplicationsRepository extends DbConnection
     }
 
     /**
+     * Retorna o ID de uma aplicação concluída com a mesma data de realização.
+     */
+    public function findCompletedApplicationId(int $userId, int $trainingId, string $dataRealizacao): ?int
+    {
+        $sql = 'SELECT id FROM adms_training_applications
+                WHERE adms_user_id = :user_id
+                  AND adms_training_id = :training_id
+                  AND status = \'concluido\'
+                  AND data_realizacao = :data_realizacao
+                ORDER BY id DESC
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmt->bindValue(':data_realizacao', $dataRealizacao, PDO::PARAM_STR);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+
+        return $id !== false ? (int) $id : null;
+    }
+
+    /**
+     * Última aplicação concluída de um colaborador para um treinamento.
+     */
+    public function getLatestCompletedApplication(int $userId, int $trainingId): ?array
+    {
+        $sql = 'SELECT * FROM adms_training_applications
+                WHERE adms_user_id = :user_id
+                  AND adms_training_id = :training_id
+                  AND status = \'concluido\'
+                ORDER BY data_realizacao DESC, id DESC
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result ?: null;
+    }
+
+    /**
      * Busca um registro específico pelo id
      */
     public function getById(int $id): ?array
