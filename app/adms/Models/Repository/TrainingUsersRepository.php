@@ -2062,6 +2062,20 @@ class TrainingUsersRepository extends DbConnection
     }
 
     /**
+     * Evita linhas repetidas na matriz quando há mais de uma aplicação concluída
+     * com o mesmo colaborador, treinamento e data de realização (ex.: duplo envio do formulário).
+     */
+    private function completedTrainingsDedupJoinSql(): string
+    {
+        return 'INNER JOIN (
+                    SELECT MAX(ta_dedup.id) AS keep_id
+                    FROM adms_training_applications ta_dedup
+                    WHERE ta_dedup.status = \'concluido\'
+                    GROUP BY ta_dedup.adms_user_id, ta_dedup.adms_training_id, ta_dedup.data_realizacao
+                ) ta_dedup ON ta_dedup.keep_id = ta.id';
+    }
+
+    /**
      * Retorna matriz de treinamentos concluídos por colaborador, paginada.
      * Passe $perPage = null para retornar todos os registros que atendem aos filtros (exportação).
      */
@@ -2083,12 +2097,18 @@ class TrainingUsersRepository extends DbConnection
                     u2.name as instructor_user_name,
                     ta.nota,
                     ta.observacoes,
-                    tp.tipo_treinamento
+                    (
+                        SELECT tp_inner.tipo_treinamento
+                        FROM adms_training_positions tp_inner
+                        WHERE tp_inner.adms_training_id = ta.adms_training_id
+                          AND tp_inner.adms_position_id = u.user_position_id
+                        LIMIT 1
+                    ) AS tipo_treinamento
                 FROM adms_training_applications ta
+                ' . $this->completedTrainingsDedupJoinSql() . '
                 INNER JOIN adms_users u ON u.id = ta.adms_user_id
                 INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
                 LEFT JOIN adms_users u2 ON u2.id = ta.instructor_user_id
-                LEFT JOIN adms_training_positions tp ON tp.adms_training_id = ta.adms_training_id AND tp.adms_position_id = u.user_position_id
                 WHERE ta.status = "concluido"';
         $params = [];
         if (!empty($filters['colaborador'])) {
@@ -2138,9 +2158,10 @@ class TrainingUsersRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $data = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-        // Total de registros (sem paginação)
+        // Total de registros (sem paginação, com mesma deduplicação da listagem)
         $sqlCount = 'SELECT COUNT(*) as total
             FROM adms_training_applications ta
+            ' . $this->completedTrainingsDedupJoinSql() . '
             INNER JOIN adms_users u ON u.id = ta.adms_user_id
             INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
             WHERE ta.status = "concluido"';
@@ -2187,9 +2208,9 @@ class TrainingUsersRepository extends DbConnection
                     SUM(CASE WHEN ta.nota < 7 AND ta.nota IS NOT NULL THEN 1 ELSE 0 END) as total_reprovados,
                     AVG(ta.nota) as media_nota
                 FROM adms_training_applications ta
+                ' . $this->completedTrainingsDedupJoinSql() . '
                 INNER JOIN adms_users u ON u.id = ta.adms_user_id
                 INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
-                LEFT JOIN adms_training_positions tp ON tp.adms_training_id = ta.adms_training_id AND tp.adms_position_id = u.user_position_id
                 WHERE ta.status = "concluido"';
         
         $params = [];
@@ -2217,6 +2238,7 @@ class TrainingUsersRepository extends DbConnection
         // Calcular total de horas separadamente para campos TIME
         $sqlHoras = 'SELECT t.carga_horaria
                     FROM adms_training_applications ta
+                    ' . $this->completedTrainingsDedupJoinSql() . '
                     INNER JOIN adms_users u ON u.id = ta.adms_user_id
                     INNER JOIN adms_trainings t ON t.id = ta.adms_training_id
                     WHERE ta.status = "concluido"';

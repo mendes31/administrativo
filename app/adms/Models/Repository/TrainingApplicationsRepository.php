@@ -28,13 +28,36 @@ class TrainingApplicationsRepository extends DbConnection
             
             // Log também no error_log do PHP
             error_log("TrainingApplicationsRepository::insert() chamado com: " . print_r($data, true));
+            $createdAt = $data['created_at'] ?? date('Y-m-d H:i:s');
+
+            // Evita duplicata por reenvio: mesma conclusão já registrada (mesmo colaborador, treinamento e data)
+            if (($data['status'] ?? '') === 'concluido' && !empty($data['data_realizacao'])) {
+                $sqlCheckConcluido = 'SELECT id FROM adms_training_applications
+                    WHERE adms_user_id = :adms_user_id
+                      AND adms_training_id = :adms_training_id
+                      AND status = \'concluido\'
+                      AND data_realizacao = :data_realizacao
+                    ORDER BY id DESC
+                    LIMIT 1';
+                $stmtCheckConcluido = $this->getConnection()->prepare($sqlCheckConcluido);
+                $stmtCheckConcluido->bindValue(':adms_user_id', $data['adms_user_id'], PDO::PARAM_INT);
+                $stmtCheckConcluido->bindValue(':adms_training_id', $data['adms_training_id'], PDO::PARAM_INT);
+                $stmtCheckConcluido->bindValue(':data_realizacao', $data['data_realizacao'], PDO::PARAM_STR);
+                $stmtCheckConcluido->execute();
+                $existingConcluido = $stmtCheckConcluido->fetch(PDO::FETCH_ASSOC);
+                if ($existingConcluido && isset($existingConcluido['id'])) {
+                    file_put_contents(__DIR__ . '/../../../logs/debug_training_applications.log', "\nConclusão já existe: ".print_r($existingConcluido, true), FILE_APPEND);
+                    return (int) $existingConcluido['id'];
+                }
+            }
+
             // Verifica se já existe aplicação igual (mesmo user, treinamento, nota e created_at)
             $sqlCheck = 'SELECT id FROM adms_training_applications WHERE adms_user_id = :adms_user_id AND adms_training_id = :adms_training_id AND ((nota IS NULL AND :nota IS NULL) OR nota = :nota) AND created_at = :created_at';
             $stmtCheck = $this->getConnection()->prepare($sqlCheck);
             $stmtCheck->bindValue(':adms_user_id', $data['adms_user_id'], PDO::PARAM_INT);
             $stmtCheck->bindValue(':adms_training_id', $data['adms_training_id'], PDO::PARAM_INT);
             $stmtCheck->bindValue(':nota', $data['nota'] ?? null, PDO::PARAM_STR);
-            $stmtCheck->bindValue(':created_at', $data['created_at'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
+            $stmtCheck->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
             $stmtCheck->execute();
             $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
             if ($existing && isset($existing['id'])) {
@@ -62,7 +85,7 @@ class TrainingApplicationsRepository extends DbConnection
             $stmt->bindValue(':nota', $data['nota'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':observacoes', $data['observacoes'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':status', $data['status'] ?? 'agendado', PDO::PARAM_STR);
-            $stmt->bindValue(':created_at', $data['created_at'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
+            $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
             // Log de debug dos parâmetros
             file_put_contents(__DIR__ . '/../../../logs/debug_training_applications.log', "\nPARAMS: ".print_r([
                 ':adms_user_id' => $data['adms_user_id'],
@@ -79,7 +102,7 @@ class TrainingApplicationsRepository extends DbConnection
                 ':nota' => $data['nota'] ?? null,
                 ':observacoes' => $data['observacoes'] ?? null,
                 ':status' => $data['status'] ?? 'agendado',
-                ':created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
+                ':created_at' => $createdAt,
             ], true), FILE_APPEND);
             $executeResult = $stmt->execute();
             
