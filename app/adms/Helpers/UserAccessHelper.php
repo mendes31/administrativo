@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Helpers;
 
 use App\adms\Models\Repository\LoginRepository;
+use App\adms\Models\Repository\MenuPermissionUserRepository;
 
 /**
  * Acesso total ao sistema: nível "Super Administrador" (id 1) ou flag "Super usuário" no cadastro.
@@ -19,7 +20,22 @@ final class UserAccessHelper
 
     public static function isSuperAdminLevel(): bool
     {
-        return (int)($_SESSION['user_access_level_id'] ?? 0) === self::SUPER_ADMIN_LEVEL_ID;
+        if ((int) ($_SESSION['user_access_level_id'] ?? 0) === self::SUPER_ADMIN_LEVEL_ID) {
+            return true;
+        }
+
+        $levelIds = $_SESSION['adms_user_access_level_ids'] ?? [];
+        if (!is_array($levelIds)) {
+            return false;
+        }
+
+        foreach ($levelIds as $levelId) {
+            if ((int) $levelId === self::SUPER_ADMIN_LEVEL_ID) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -67,8 +83,13 @@ final class UserAccessHelper
             return;
         }
         try {
+            $previous = (int) ($_SESSION['user_super_usuario'] ?? 0);
             $repo = new LoginRepository();
-            $_SESSION['user_super_usuario'] = $repo->getSuperUsuarioFlag((int) $_SESSION['user_id']) ? 1 : 0;
+            $next = $repo->getSuperUsuarioFlag((int) $_SESSION['user_id']) ? 1 : 0;
+            $_SESSION['user_super_usuario'] = $next;
+            if ($previous !== $next) {
+                MenuPermissionUserRepository::clearSessionCache();
+            }
         } catch (\Throwable $e) {
             if (!isset($_SESSION['user_super_usuario'])) {
                 $_SESSION['user_super_usuario'] = 0;

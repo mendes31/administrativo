@@ -33,11 +33,13 @@ class MenuPermissionUserRepository extends DbConnection
         $globalVersion = self::getGlobalPermissionCacheVersion();
         $cached = $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] ?? null;
 
+        $fullAccessNow = UserAccessHelper::hasFullSystemAccess();
         if (
             is_array($cached)
             && (int) ($cached['user_id'] ?? 0) === $userId
             && (string) ($cached['version'] ?? '') === $globalVersion
             && is_array($cached['controllers'] ?? null)
+            && ($cached['full_access'] ?? null) === $fullAccessNow
         ) {
             return $cached['controllers'];
         }
@@ -47,6 +49,7 @@ class MenuPermissionUserRepository extends DbConnection
         $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] = [
             'user_id' => $userId,
             'version' => $globalVersion,
+            'full_access' => $fullAccessNow,
             'controllers' => $filtered,
         ];
 
@@ -130,12 +133,14 @@ class MenuPermissionUserRepository extends DbConnection
         }
 
         $globalVersion = self::getGlobalPermissionCacheVersion();
+        $fullAccessNow = UserAccessHelper::hasFullSystemAccess();
         $cached = $_SESSION[self::SESSION_CACHE_KEY] ?? null;
         if (
             is_array($cached)
             && (int) ($cached['user_id'] ?? 0) === $userId
             && is_array($cached['controllers'] ?? null)
             && (string) ($cached['version'] ?? '') === $globalVersion
+            && ($cached['full_access'] ?? null) === $fullAccessNow
         ) {
             return $cached['controllers'];
         }
@@ -145,6 +150,7 @@ class MenuPermissionUserRepository extends DbConnection
             'user_id' => $userId,
             'controllers' => $controllers,
             'version' => $globalVersion,
+            'full_access' => $fullAccessNow,
         ];
 
         return $controllers;
