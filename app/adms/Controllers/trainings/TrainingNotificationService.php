@@ -4,6 +4,7 @@ namespace App\adms\Controllers\trainings;
 
 use App\adms\Helpers\InternalPushNotificationHelper;
 use App\adms\Helpers\SendEmailService;
+use App\adms\Models\Services\NotificationSettingsService;
 use App\adms\Models\Repository\TrainingUsersRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\TrainingsRepository;
@@ -30,23 +31,27 @@ class TrainingNotificationService
         $results = [
             'sent' => 0,
             'failed' => 0,
-            'errors' => []
+            'errors' => [],
+            'disabled' => false,
         ];
 
+        if (!NotificationSettingsService::isAnyEnabled('training_pending_email', 'training_pending_inapp')) {
+            $results['disabled'] = true;
+            return $results;
+        }
+
         try {
-            // Buscar treinamentos pendentes
             $pendingTrainings = $this->trainingUsersRepo->getExpiringTrainingsForNotification();
-            
+
             foreach ($pendingTrainings as $training) {
-                $sent = $this->sendPendingTrainingEmail($training);
-                
-                if ($sent) {
+                $outcome = $this->notifyPendingTraining($training);
+
+                if ($outcome['sent']) {
                     $results['sent']++;
-                    // Marcar como notificado
                     $this->trainingUsersRepo->markAsNotified($training['user_id'], $training['training_id'], 'pending');
-                } else {
+                } elseif ($outcome['attempted']) {
                     $results['failed']++;
-                    $results['errors'][] = "Falha ao enviar email para {$training['user_email']} - {$training['training_name']}";
+                    $results['errors'][] = $outcome['error'] ?? "Falha ao notificar {$training['user_email']} - {$training['training_name']}";
                 }
             }
 
@@ -68,23 +73,27 @@ class TrainingNotificationService
         $results = [
             'sent' => 0,
             'failed' => 0,
-            'errors' => []
+            'errors' => [],
+            'disabled' => false,
         ];
 
+        if (!NotificationSettingsService::isAnyEnabled('training_expiring_email', 'training_expiring_inapp')) {
+            $results['disabled'] = true;
+            return $results;
+        }
+
         try {
-            // Buscar treinamentos próximos do vencimento
             $expiringTrainings = $this->trainingUsersRepo->getExpiringTrainingsForNotification(30);
-            
+
             foreach ($expiringTrainings as $training) {
-                $sent = $this->sendExpiringTrainingEmail($training);
-                
-                if ($sent) {
+                $outcome = $this->notifyExpiringTraining($training);
+
+                if ($outcome['sent']) {
                     $results['sent']++;
-                    // Marcar como notificado
                     $this->trainingUsersRepo->markAsNotified($training['user_id'], $training['training_id'], 'expiring');
-                } else {
+                } elseif ($outcome['attempted']) {
                     $results['failed']++;
-                    $results['errors'][] = "Falha ao enviar email para {$training['user_email']} - {$training['training_name']}";
+                    $results['errors'][] = $outcome['error'] ?? "Falha ao notificar {$training['user_email']} - {$training['training_name']}";
                 }
             }
 
@@ -106,23 +115,27 @@ class TrainingNotificationService
         $results = [
             'sent' => 0,
             'failed' => 0,
-            'errors' => []
+            'errors' => [],
+            'disabled' => false,
         ];
 
+        if (!NotificationSettingsService::isAnyEnabled('training_expired_email', 'training_expired_inapp')) {
+            $results['disabled'] = true;
+            return $results;
+        }
+
         try {
-            // Buscar treinamentos vencidos
             $expiredTrainings = $this->trainingUsersRepo->getExpiredTrainingsForNotification();
-            
+
             foreach ($expiredTrainings as $training) {
-                $sent = $this->sendExpiredTrainingEmail($training);
-                
-                if ($sent) {
+                $outcome = $this->notifyExpiredTraining($training);
+
+                if ($outcome['sent']) {
                     $results['sent']++;
-                    // Marcar como notificado
                     $this->trainingUsersRepo->markAsNotified($training['user_id'], $training['training_id'], 'expired');
-                } else {
+                } elseif ($outcome['attempted']) {
                     $results['failed']++;
-                    $results['errors'][] = "Falha ao enviar email para {$training['user_email']} - {$training['training_name']}";
+                    $results['errors'][] = $outcome['error'] ?? "Falha ao notificar {$training['user_email']} - {$training['training_name']}";
                 }
             }
 
@@ -141,47 +154,51 @@ class TrainingNotificationService
      */
     public function sendNewTrainingNotification(int $userId, int $trainingId): bool
     {
+        if (!NotificationSettingsService::isAnyEnabled('training_new_mandatory_email', 'training_new_mandatory_inapp')) {
+            return false;
+        }
+
         try {
             $user = $this->usersRepo->getUser($userId);
             $training = $this->trainingsRepo->getTraining($trainingId);
-            
+
             if (!$user || !$training) {
                 return false;
             }
 
-            $subject = "Novo Treinamento Obrigatório: {$training['nome']}";
-            
-            $body = $this->getNewTrainingEmailBody($user, $training);
-            $altBody = $this->getNewTrainingEmailAltBody($user, $training);
+            $sentSomething = false;
 
-            $sent = SendEmailService::sendEmail(
-                $user['email'],
-                $user['name'],
-                $subject,
-                $body,
-                $altBody
-            );
+            if (NotificationSettingsService::isEnabled('training_new_mandatory_email')) {
+                $subject = "Novo Treinamento Obrigatório: {$training['nome']}";
+                $body = $this->getNewTrainingEmailBody($user, $training);
+                $altBody = $this->getNewTrainingEmailAltBody($user, $training);
+                $email = trim((string) ($user['email'] ?? ''));
 
-            if ($sent) {
-                GenerateLog::generateLog("info", "Notificação de novo treinamento enviada", [
-                    'user_id' => $userId,
-                    'training_id' => $trainingId,
-                    'user_email' => $user['email']
-                ]);
+                if ($email !== '' && SendEmailService::sendEmail($email, $user['name'], $subject, $body, $altBody)) {
+                    $sentSomething = true;
+                    GenerateLog::generateLog('info', 'E-mail de novo treinamento enviado', [
+                        'user_id' => $userId,
+                        'training_id' => $trainingId,
+                        'user_email' => $email,
+                    ]);
+                }
             }
 
-            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
-            InternalPushNotificationHelper::notifyUser([
-                'user_id' => $userId,
-                'type' => 'training_alert_new',
-                'title' => 'Novo treinamento',
-                'message' => 'Treinamento obrigatório: ' . ($training['nome'] ?? ''),
-                'link_url' => $base . '/list-trainings',
-                'entity_type' => 'adms_training',
-                'entity_id' => $trainingId,
-            ]);
+            if (NotificationSettingsService::isEnabled('training_new_mandatory_inapp')) {
+                $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+                InternalPushNotificationHelper::notifyUser([
+                    'user_id' => $userId,
+                    'type' => 'training_alert_new',
+                    'title' => 'Novo treinamento',
+                    'message' => 'Treinamento obrigatório: ' . ($training['nome'] ?? ''),
+                    'link_url' => $base . '/list-trainings',
+                    'entity_type' => 'adms_training',
+                    'entity_id' => $trainingId,
+                ]);
+                $sentSomething = true;
+            }
 
-            return $sent;
+            return $sentSomething;
             
         } catch (\Exception $e) {
             GenerateLog::generateLog("error", "Erro ao enviar notificação de novo treinamento", [
@@ -194,72 +211,158 @@ class TrainingNotificationService
     }
 
     /**
-     * Envia email para treinamento pendente
+     * @param array<string, mixed> $training
+     * @return array{sent: bool, attempted: bool, error?: string}
      */
-    private function sendPendingTrainingEmail(array $training): bool
+    private function notifyPendingTraining(array $training): array
+    {
+        return $this->dispatchTrainingChannels(
+            $training,
+            'training_pending_email',
+            'training_pending_inapp',
+            'training_alert_pending',
+            'Treinamento pendente',
+            fn(): bool => $this->sendPendingTrainingEmailOnly($training)
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $training
+     * @return array{sent: bool, attempted: bool, error?: string}
+     */
+    private function notifyExpiringTraining(array $training): array
+    {
+        return $this->dispatchTrainingChannels(
+            $training,
+            'training_expiring_email',
+            'training_expiring_inapp',
+            'training_alert_expiring',
+            'Treinamento a vencer',
+            fn(): bool => $this->sendExpiringTrainingEmailOnly($training)
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $training
+     * @return array{sent: bool, attempted: bool, error?: string}
+     */
+    private function notifyExpiredTraining(array $training): array
+    {
+        return $this->dispatchTrainingChannels(
+            $training,
+            'training_expired_email',
+            'training_expired_inapp',
+            'training_alert_expired',
+            'Treinamento vencido',
+            fn(): bool => $this->sendExpiredTrainingEmailOnly($training),
+            50
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $training
+     * @return array{sent: bool, attempted: bool, error?: string}
+     */
+    private function dispatchTrainingChannels(
+        array $training,
+        string $emailKey,
+        string $inAppKey,
+        string $notifType,
+        string $pushTitle,
+        callable $sendEmail,
+        int $priority = 0
+    ): array {
+        $sent = false;
+        $attempted = false;
+        $error = null;
+
+        if (NotificationSettingsService::isEnabled($inAppKey)) {
+            $attempted = true;
+            $this->dispatchTrainingPush(
+                $training,
+                $notifType,
+                $pushTitle,
+                (string) ($training['training_name'] ?? $pushTitle),
+                $priority
+            );
+            $sent = true;
+        }
+
+        if (NotificationSettingsService::isEnabled($emailKey)) {
+            $email = trim((string) ($training['user_email'] ?? ''));
+            if ($email === '') {
+                if (!$sent) {
+                    $attempted = true;
+                    $error = 'Colaborador sem e-mail cadastrado';
+                }
+            } else {
+                $attempted = true;
+                if ($sendEmail()) {
+                    $sent = true;
+                } elseif ($error === null) {
+                    $error = "Falha ao enviar e-mail para {$email}";
+                }
+            }
+        }
+
+        return ['sent' => $sent, 'attempted' => $attempted, 'error' => $error];
+    }
+
+    /**
+     * Envia apenas e-mail para treinamento pendente
+     */
+    private function sendPendingTrainingEmailOnly(array $training): bool
     {
         $subject = "Treinamento Pendente: {$training['training_name']}";
         
         $body = $this->getPendingTrainingEmailBody($training);
         $altBody = $this->getPendingTrainingEmailAltBody($training);
 
-        $sent = SendEmailService::sendEmail(
+        return SendEmailService::sendEmail(
             $training['user_email'],
             $training['user_name'],
             $subject,
             $body,
             $altBody
         );
-
-        $this->dispatchTrainingPush($training, 'training_alert_pending', 'Treinamento pendente', (string) ($training['training_name'] ?? $subject));
-
-        return $sent;
     }
 
     /**
-     * Envia email para treinamento próximo do vencimento
+     * Envia apenas e-mail para treinamento próximo do vencimento
      */
-    private function sendExpiringTrainingEmail(array $training): bool
+    private function sendExpiringTrainingEmailOnly(array $training): bool
     {
         $subject = "Treinamento Próximo do Vencimento: {$training['training_name']}";
         
         $body = $this->getExpiringTrainingEmailBody($training);
         $altBody = $this->getExpiringTrainingEmailAltBody($training);
 
-        $sent = SendEmailService::sendEmail(
+        return SendEmailService::sendEmail(
             $training['user_email'],
             $training['user_name'],
             $subject,
             $body,
             $altBody
         );
-
-        $this->dispatchTrainingPush($training, 'training_alert_expiring', 'Treinamento a vencer', (string) ($training['training_name'] ?? $subject));
-
-        return $sent;
     }
 
     /**
-     * Envia email para treinamento vencido
+     * Envia apenas e-mail para treinamento vencido
      */
-    private function sendExpiredTrainingEmail(array $training): bool
+    private function sendExpiredTrainingEmailOnly(array $training): bool
     {
         $subject = "URGENTE: Treinamento Vencido - {$training['training_name']}";
         
         $body = $this->getExpiredTrainingEmailBody($training);
         $altBody = $this->getExpiredTrainingEmailAltBody($training);
 
-        $sent = SendEmailService::sendEmail(
+        return SendEmailService::sendEmail(
             $training['user_email'],
             $training['user_name'],
             $subject,
             $body,
             $altBody
         );
-
-        $this->dispatchTrainingPush($training, 'training_alert_expired', 'Treinamento vencido', (string) ($training['training_name'] ?? $subject), 50);
-
-        return $sent;
     }
 
     /**

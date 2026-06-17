@@ -370,6 +370,8 @@ class AddAdmsPages extends BaseSeed
             ['name'=> 'Cadastrar Configuração de E-mail', 'controller' => 'CreateEmailConfig', 'controller_url' => 'create-email-config', 'directory' => 'settings', 'obs' => 'Salvar configuração SMTP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Listar Configuração de E-mail', 'controller' => 'ListEmailConfig', 'controller_url' => 'list-email-config', 'directory' => 'settings', 'obs' => 'Exibir configuração SMTP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Testar Configuração de E-mail', 'controller' => 'TestEmailConfig', 'controller_url' => 'test-email-config', 'directory' => 'settings', 'obs' => 'Testar envio SMTP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
+            ['name'=> 'Configurações de Notificações', 'controller' => 'NotificationSettings', 'controller_url' => 'notification-settings', 'directory' => 'settings', 'obs' => 'Ativar ou desativar notificações automáticas do sistema.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
+            ['name'=> 'Salvar Configurações de Notificações', 'controller' => 'SaveNotificationSettings', 'controller_url' => 'save-notification-settings', 'directory' => 'settings', 'obs' => 'Endpoint para salvar configurações de notificações automáticas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Política de Senha', 'controller' => 'PasswordPolicy', 'controller_url' => 'password-policy', 'directory' => 'settings', 'obs' => 'Configuração da política de senha do sistema.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Ajax Política de Senha', 'controller' => 'AjaxPasswordPolicy', 'controller_url' => 'ajax-password-policy', 'directory' => 'settings', 'obs' => 'Endpoint AJAX para validação de senha da política de senha.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Ajax Validação Simples de Senha', 'controller' => 'AjaxSimplePasswordValidate', 'controller_url' => 'ajax-simple-password-validate', 'directory' => 'settings', 'obs' => 'Endpoint AJAX simples para validação de senha.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
@@ -916,6 +918,113 @@ class AddAdmsPages extends BaseSeed
             ['name'=> 'Excluir Chamado SAC', 'controller' => 'SacDeleteTicket', 'controller_url' => 'sac-delete-ticket', 'directory' => 'sac', 'obs' => 'Exclusão de chamado de atendimento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
             ['name'=> 'Responder Chamado SAC', 'controller' => 'SacReplyTicket', 'controller_url' => 'sac-reply-ticket', 'directory' => 'sac', 'obs' => 'Enviar resposta ou nota interna em chamado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
             ['name'=> 'Transferir Chamado SAC', 'controller' => 'SacTransferTicket', 'controller_url' => 'sac-transfer-ticket', 'directory' => 'sac', 'obs' => 'Transferir chamado para outro atendente ou setor.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 40],
+            // ===== GRUPO 41: Segurança e Medicina (SST) =====
+            ['name'=> 'Dashboard SST', 'controller' => 'SstDashboard', 'controller_url' => 'sst-dashboard', 'directory' => 'sst', 'obs' => 'Painel operacional de Saúde e Segurança do Trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Perfil SST Colaborador', 'controller' => 'SstEmployeeProfile', 'controller_url' => 'sst-employee-profile', 'directory' => 'sst', 'obs' => 'Histórico ocupacional SST do colaborador.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Relatório Pendências SST', 'controller' => 'SstReportPendencias', 'controller_url' => 'sst-report-pendencias', 'directory' => 'sst', 'obs' => 'Relatório consolidado de pendências SST.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Relatório Exames SST', 'controller' => 'SstReportExames', 'controller_url' => 'sst-report-exames', 'directory' => 'sst', 'obs' => 'Relatório de exames/ASO vencidos e a vencer.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Relatório EPIs SST', 'controller' => 'SstReportEpis', 'controller_url' => 'sst-report-epis', 'directory' => 'sst', 'obs' => 'Relatório de EPIs vencidos e a vencer.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Relatório Afastamentos SST', 'controller' => 'SstReportAfastamentos', 'controller_url' => 'sst-report-afastamentos', 'directory' => 'sst', 'obs' => 'Relatório de afastamentos por período e status.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Exames
+            ['name'=> 'Listar Exames SST', 'controller' => 'SstListExames', 'controller_url' => 'sst-list-exames', 'directory' => 'sst', 'obs' => 'Catálogo de exames ocupacionais.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Exame SST', 'controller' => 'SstCreateExame', 'controller_url' => 'sst-create-exame', 'directory' => 'sst', 'obs' => 'Cadastro de exame ocupacional.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Exame SST', 'controller' => 'SstViewExame', 'controller_url' => 'sst-view-exame', 'directory' => 'sst', 'obs' => 'Visualização de exame ocupacional.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Exame SST', 'controller' => 'SstUpdateExame', 'controller_url' => 'sst-update-exame', 'directory' => 'sst', 'obs' => 'Edição de exame ocupacional.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Exame SST', 'controller' => 'SstDeleteExame', 'controller_url' => 'sst-delete-exame', 'directory' => 'sst', 'obs' => 'Exclusão de exame ocupacional.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — ASOs
+            ['name'=> 'Listar ASOs SST', 'controller' => 'SstListAsos', 'controller_url' => 'sst-list-asos', 'directory' => 'sst', 'obs' => 'Listagem de ASOs por colaborador.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar ASO SST', 'controller' => 'SstCreateAso', 'controller_url' => 'sst-create-aso', 'directory' => 'sst', 'obs' => 'Registro de ASO.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar ASO SST', 'controller' => 'SstViewAso', 'controller_url' => 'sst-view-aso', 'directory' => 'sst', 'obs' => 'Visualização de ASO.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar ASO SST', 'controller' => 'SstUpdateAso', 'controller_url' => 'sst-update-aso', 'directory' => 'sst', 'obs' => 'Edição de ASO.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir ASO SST', 'controller' => 'SstDeleteAso', 'controller_url' => 'sst-delete-aso', 'directory' => 'sst', 'obs' => 'Exclusão de ASO.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Afastamentos
+            ['name'=> 'Listar Afastamentos SST', 'controller' => 'SstListAfastamentos', 'controller_url' => 'sst-list-afastamentos', 'directory' => 'sst', 'obs' => 'Listagem de afastamentos médicos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Afastamento SST', 'controller' => 'SstCreateAfastamento', 'controller_url' => 'sst-create-afastamento', 'directory' => 'sst', 'obs' => 'Registro de afastamento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Afastamento SST', 'controller' => 'SstViewAfastamento', 'controller_url' => 'sst-view-afastamento', 'directory' => 'sst', 'obs' => 'Visualização de afastamento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Afastamento SST', 'controller' => 'SstUpdateAfastamento', 'controller_url' => 'sst-update-afastamento', 'directory' => 'sst', 'obs' => 'Edição de afastamento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Afastamento SST', 'controller' => 'SstDeleteAfastamento', 'controller_url' => 'sst-delete-afastamento', 'directory' => 'sst', 'obs' => 'Exclusão de afastamento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — EPIs
+            ['name'=> 'Listar EPIs SST', 'controller' => 'SstListEpis', 'controller_url' => 'sst-list-epis', 'directory' => 'sst', 'obs' => 'Catálogo de EPIs.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar EPI SST', 'controller' => 'SstCreateEpi', 'controller_url' => 'sst-create-epi', 'directory' => 'sst', 'obs' => 'Cadastro de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar EPI SST', 'controller' => 'SstViewEpi', 'controller_url' => 'sst-view-epi', 'directory' => 'sst', 'obs' => 'Visualização de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar EPI SST', 'controller' => 'SstUpdateEpi', 'controller_url' => 'sst-update-epi', 'directory' => 'sst', 'obs' => 'Edição de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir EPI SST', 'controller' => 'SstDeleteEpi', 'controller_url' => 'sst-delete-epi', 'directory' => 'sst', 'obs' => 'Exclusão de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Entregas de EPI
+            ['name'=> 'Listar Entregas EPI SST', 'controller' => 'SstListEpiEntregas', 'controller_url' => 'sst-list-epi-entregas', 'directory' => 'sst', 'obs' => 'Histórico de entregas/devoluções de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Entrega EPI SST', 'controller' => 'SstCreateEpiEntrega', 'controller_url' => 'sst-create-epi-entrega', 'directory' => 'sst', 'obs' => 'Registro de entrega/devolução de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Entrega EPI SST', 'controller' => 'SstViewEpiEntrega', 'controller_url' => 'sst-view-epi-entrega', 'directory' => 'sst', 'obs' => 'Visualização de entrega de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Entrega EPI SST', 'controller' => 'SstUpdateEpiEntrega', 'controller_url' => 'sst-update-epi-entrega', 'directory' => 'sst', 'obs' => 'Edição de entrega de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Entrega EPI SST', 'controller' => 'SstDeleteEpiEntrega', 'controller_url' => 'sst-delete-epi-entrega', 'directory' => 'sst', 'obs' => 'Exclusão de entrega de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Riscos
+            ['name'=> 'Listar Riscos SST', 'controller' => 'SstListRiscos', 'controller_url' => 'sst-list-riscos', 'directory' => 'sst', 'obs' => 'Catálogo de riscos ocupacionais.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Risco SST', 'controller' => 'SstCreateRisco', 'controller_url' => 'sst-create-risco', 'directory' => 'sst', 'obs' => 'Cadastro de risco.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Risco SST', 'controller' => 'SstViewRisco', 'controller_url' => 'sst-view-risco', 'directory' => 'sst', 'obs' => 'Visualização de risco.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Risco SST', 'controller' => 'SstUpdateRisco', 'controller_url' => 'sst-update-risco', 'directory' => 'sst', 'obs' => 'Edição de risco.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Risco SST', 'controller' => 'SstDeleteRisco', 'controller_url' => 'sst-delete-risco', 'directory' => 'sst', 'obs' => 'Exclusão de risco.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Acidentes
+            ['name'=> 'Listar Acidentes SST', 'controller' => 'SstListAcidentes', 'controller_url' => 'sst-list-acidentes', 'directory' => 'sst', 'obs' => 'Registro de acidentes e incidentes.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Acidente SST', 'controller' => 'SstCreateAcidente', 'controller_url' => 'sst-create-acidente', 'directory' => 'sst', 'obs' => 'Registro de acidente/incidente.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Acidente SST', 'controller' => 'SstViewAcidente', 'controller_url' => 'sst-view-acidente', 'directory' => 'sst', 'obs' => 'Visualização de acidente.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Acidente SST', 'controller' => 'SstUpdateAcidente', 'controller_url' => 'sst-update-acidente', 'directory' => 'sst', 'obs' => 'Edição de acidente.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Acidente SST', 'controller' => 'SstDeleteAcidente', 'controller_url' => 'sst-delete-acidente', 'directory' => 'sst', 'obs' => 'Exclusão de acidente.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Plano de Ação SST', 'controller' => 'SstCreatePlanoAcao', 'controller_url' => 'sst-create-plano-acao', 'directory' => 'sst', 'obs' => 'Plano de ação vinculado a acidente.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Plano de Ação SST', 'controller' => 'SstUpdatePlanoAcao', 'controller_url' => 'sst-update-plano-acao', 'directory' => 'sst', 'obs' => 'Edição de plano de ação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Plano de Ação SST', 'controller' => 'SstDeletePlanoAcao', 'controller_url' => 'sst-delete-plano-acao', 'directory' => 'sst', 'obs' => 'Exclusão de plano de ação.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — CIDs
+            ['name'=> 'Listar CIDs SST', 'controller' => 'SstListCids', 'controller_url' => 'sst-list-cids', 'directory' => 'sst', 'obs' => 'Catálogo de CIDs.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar CID SST', 'controller' => 'SstCreateCid', 'controller_url' => 'sst-create-cid', 'directory' => 'sst', 'obs' => 'Cadastro de CID.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar CID SST', 'controller' => 'SstUpdateCid', 'controller_url' => 'sst-update-cid', 'directory' => 'sst', 'obs' => 'Edição de CID.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir CID SST', 'controller' => 'SstDeleteCid', 'controller_url' => 'sst-delete-cid', 'directory' => 'sst', 'obs' => 'Exclusão de CID.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Médicos
+            ['name'=> 'Listar Médicos SST', 'controller' => 'SstListMedicos', 'controller_url' => 'sst-list-medicos', 'directory' => 'sst', 'obs' => 'Cadastro de médicos do trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Médico SST', 'controller' => 'SstCreateMedico', 'controller_url' => 'sst-create-medico', 'directory' => 'sst', 'obs' => 'Cadastro de médico.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Médico SST', 'controller' => 'SstUpdateMedico', 'controller_url' => 'sst-update-medico', 'directory' => 'sst', 'obs' => 'Edição de médico.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Médico SST', 'controller' => 'SstDeleteMedico', 'controller_url' => 'sst-delete-medico', 'directory' => 'sst', 'obs' => 'Exclusão de médico.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Necessidades EPI
+            ['name'=> 'Listar Necessidades EPI SST', 'controller' => 'SstListEpiNecessidade', 'controller_url' => 'sst-list-epi-necessidade', 'directory' => 'sst', 'obs' => 'Regras de EPI por cargo/setor/risco.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Necessidade EPI SST', 'controller' => 'SstCreateEpiNecessidade', 'controller_url' => 'sst-create-epi-necessidade', 'directory' => 'sst', 'obs' => 'Cadastro de necessidade de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Necessidade EPI SST', 'controller' => 'SstUpdateEpiNecessidade', 'controller_url' => 'sst-update-epi-necessidade', 'directory' => 'sst', 'obs' => 'Edição de necessidade de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Necessidade EPI SST', 'controller' => 'SstDeleteEpiNecessidade', 'controller_url' => 'sst-delete-epi-necessidade', 'directory' => 'sst', 'obs' => 'Exclusão de necessidade de EPI.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Necessidades Exame
+            ['name'=> 'Listar Necessidades Exame SST', 'controller' => 'SstListExameNecessidade', 'controller_url' => 'sst-list-exame-necessidade', 'directory' => 'sst', 'obs' => 'Regras de exames por cargo/setor/risco.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Necessidade Exame SST', 'controller' => 'SstCreateExameNecessidade', 'controller_url' => 'sst-create-exame-necessidade', 'directory' => 'sst', 'obs' => 'Cadastro de necessidade de exame.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Necessidade Exame SST', 'controller' => 'SstUpdateExameNecessidade', 'controller_url' => 'sst-update-exame-necessidade', 'directory' => 'sst', 'obs' => 'Edição de necessidade de exame.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Necessidade Exame SST', 'controller' => 'SstDeleteExameNecessidade', 'controller_url' => 'sst-delete-exame-necessidade', 'directory' => 'sst', 'obs' => 'Exclusão de necessidade de exame.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Riscos por Cargo
+            ['name'=> 'Listar Riscos por Cargo SST', 'controller' => 'SstListRiscoCargo', 'controller_url' => 'sst-list-risco-cargo', 'directory' => 'sst', 'obs' => 'Vinculação de riscos por cargo/departamento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Risco por Cargo SST', 'controller' => 'SstCreateRiscoCargo', 'controller_url' => 'sst-create-risco-cargo', 'directory' => 'sst', 'obs' => 'Cadastro de risco por cargo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Risco por Cargo SST', 'controller' => 'SstUpdateRiscoCargo', 'controller_url' => 'sst-update-risco-cargo', 'directory' => 'sst', 'obs' => 'Edição de risco por cargo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Risco por Cargo SST', 'controller' => 'SstDeleteRiscoCargo', 'controller_url' => 'sst-delete-risco-cargo', 'directory' => 'sst', 'obs' => 'Exclusão de risco por cargo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Conformidade (PGR/PCMSO + eSocial)
+            ['name'=> 'Relatório Conformidade SST', 'controller' => 'SstReportConformidade', 'controller_url' => 'sst-report-conformidade', 'directory' => 'sst', 'obs' => 'Painel PGR/PCMSO e fila eSocial.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Listar Programas SST', 'controller' => 'SstListProgramas', 'controller_url' => 'sst-list-programas', 'directory' => 'sst', 'obs' => 'PGR, PCMSO, PPRA, LTCAT e documentos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Programa SST', 'controller' => 'SstCreatePrograma', 'controller_url' => 'sst-create-programa', 'directory' => 'sst', 'obs' => 'Cadastro de programa ocupacional.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Programa SST', 'controller' => 'SstViewPrograma', 'controller_url' => 'sst-view-programa', 'directory' => 'sst', 'obs' => 'Visualização de programa.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Programa SST', 'controller' => 'SstUpdatePrograma', 'controller_url' => 'sst-update-programa', 'directory' => 'sst', 'obs' => 'Edição de programa.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Programa SST', 'controller' => 'SstDeletePrograma', 'controller_url' => 'sst-delete-programa', 'directory' => 'sst', 'obs' => 'Exclusão de programa.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Listar Eventos eSocial SST', 'controller' => 'SstListEsocialEventos', 'controller_url' => 'sst-list-esocial-eventos', 'directory' => 'sst', 'obs' => 'Fila de eventos eSocial SST.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Evento eSocial SST', 'controller' => 'SstViewEsocialEvento', 'controller_url' => 'sst-view-esocial-evento', 'directory' => 'sst', 'obs' => 'Detalhe e payload do evento.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Gerar Evento eSocial SST', 'controller' => 'SstGenerateEsocialEvento', 'controller_url' => 'sst-generate-esocial-evento', 'directory' => 'sst', 'obs' => 'Gera/atualiza payload JSON.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Marcar eSocial Enviado SST', 'controller' => 'SstMarkEsocialEnviado', 'controller_url' => 'sst-mark-esocial-enviado', 'directory' => 'sst', 'obs' => 'Registra envio manual com protocolo.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Sincronizar eSocial Pendentes SST', 'controller' => 'SstSyncEsocialPendentes', 'controller_url' => 'sst-sync-esocial-pendentes', 'directory' => 'sst', 'obs' => 'Gera eventos em lote para registros sem fila.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Exportar JSON eSocial SST', 'controller' => 'SstExportEsocialJson', 'controller_url' => 'sst-export-esocial-json', 'directory' => 'sst', 'obs' => 'Download do payload JSON.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            // SST — Inspeções, CIPA e PPP
+            ['name'=> 'Listar Inspeções SST', 'controller' => 'SstListInspecoes', 'controller_url' => 'sst-list-inspecoes', 'directory' => 'sst', 'obs' => 'Inspeções de segurança do trabalho.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Inspeção SST', 'controller' => 'SstCreateInspecao', 'controller_url' => 'sst-create-inspecao', 'directory' => 'sst', 'obs' => 'Nova inspeção de segurança.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Inspeção SST', 'controller' => 'SstViewInspecao', 'controller_url' => 'sst-view-inspecao', 'directory' => 'sst', 'obs' => 'Detalhe e itens da inspeção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Inspeção SST', 'controller' => 'SstUpdateInspecao', 'controller_url' => 'sst-update-inspecao', 'directory' => 'sst', 'obs' => 'Edição de inspeção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Inspeção SST', 'controller' => 'SstDeleteInspecao', 'controller_url' => 'sst-delete-inspecao', 'directory' => 'sst', 'obs' => 'Exclusão de inspeção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Gerenciar Itens Inspeção SST', 'controller' => 'SstManageInspecaoItem', 'controller_url' => 'sst-manage-inspecao-item', 'directory' => 'sst', 'obs' => 'Itens conforme/não conforme.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Listar Mandatos CIPA SST', 'controller' => 'SstListCipaMandatos', 'controller_url' => 'sst-list-cipa-mandatos', 'directory' => 'sst', 'obs' => 'Mandatos da CIPA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Cadastrar Mandato CIPA SST', 'controller' => 'SstCreateCipaMandato', 'controller_url' => 'sst-create-cipa-mandato', 'directory' => 'sst', 'obs' => 'Novo mandato CIPA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar Mandato CIPA SST', 'controller' => 'SstViewCipaMandato', 'controller_url' => 'sst-view-cipa-mandato', 'directory' => 'sst', 'obs' => 'Membros e reuniões CIPA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Editar Mandato CIPA SST', 'controller' => 'SstUpdateCipaMandato', 'controller_url' => 'sst-update-cipa-mandato', 'directory' => 'sst', 'obs' => 'Edição de mandato CIPA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Excluir Mandato CIPA SST', 'controller' => 'SstDeleteCipaMandato', 'controller_url' => 'sst-delete-cipa-mandato', 'directory' => 'sst', 'obs' => 'Exclusão de mandato CIPA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Gerenciar CIPA SST', 'controller' => 'SstManageCipa', 'controller_url' => 'sst-manage-cipa', 'directory' => 'sst', 'obs' => 'Membros e reuniões CIPA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Listar PPP SST', 'controller' => 'SstListPpp', 'controller_url' => 'sst-list-ppp', 'directory' => 'sst', 'obs' => 'PPPs gerados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Visualizar PPP SST', 'controller' => 'SstViewPpp', 'controller_url' => 'sst-view-ppp', 'directory' => 'sst', 'obs' => 'Detalhe do PPP gerado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Gerar PPP SST', 'controller' => 'SstGeneratePpp', 'controller_url' => 'sst-generate-ppp', 'directory' => 'sst', 'obs' => 'Gera snapshot PPP do colaborador.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+            ['name'=> 'Exportar PPP PDF SST', 'controller' => 'SstExportPppPdf', 'controller_url' => 'sst-export-ppp-pdf', 'directory' => 'sst', 'obs' => 'Download PDF do PPP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
         ];
 
         // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
@@ -956,6 +1065,12 @@ class AddAdmsPages extends BaseSeed
         }
         $sacGroupId = (int)$sacGroup['id'];
 
+        $sstGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Segurança e Medicina'");
+        if (!$sstGroup) {
+            throw new \Exception("ERRO: O grupo 'Segurança e Medicina' não foi encontrado. Execute primeiro a seed AddAdmsGroupsPages.");
+        }
+        $sstGroupId = (int)$sstGroup['id'];
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -985,6 +1100,8 @@ class AddAdmsPages extends BaseSeed
                     $groupId = $comunicacaoSocialGroupId;
                 } elseif ($groupId == 40) {
                     $groupId = $sacGroupId;
+                } elseif ($groupId == 41) {
+                    $groupId = $sstGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
                     // Páginas de Dashboards KPI adicionadas nesta seed usam 0 como placeholder
                     $groupId = $dashboardsKpiGroupId;
@@ -1117,6 +1234,30 @@ class AddAdmsPages extends BaseSeed
                      SET alp.permission = 0,
                          alp.updated_at = NOW()
                      WHERE p.adms_groups_page_id = {$sacGroupId}
+                       AND p.public_page = 0
+                       AND NOT EXISTS (
+                            SELECT 1
+                            FROM (
+                                SELECT adms_page_id
+                                FROM adms_access_levels_pages
+                                WHERE permission = 1
+                            ) keep_acl
+                            WHERE keep_acl.adms_page_id = p.id
+                       )"
+                );
+
+                // SST: páginas nascem sem autorização — administrador libera por nível.
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET default_page = 0, updated_at = NOW()
+                     WHERE adms_groups_page_id = {$sstGroupId}"
+                );
+                $this->execute(
+                    "UPDATE adms_access_levels_pages alp
+                     INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                     SET alp.permission = 0,
+                         alp.updated_at = NOW()
+                     WHERE p.adms_groups_page_id = {$sstGroupId}
                        AND p.public_page = 0
                        AND NOT EXISTS (
                             SELECT 1

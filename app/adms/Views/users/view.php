@@ -48,6 +48,9 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                 if (in_array('UpdateUserImage', $this->data['buttonPermission'])) {
                     echo "<a href='{$_ENV['URL_ADM']}update-user-image/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-camera'></i> Editar Imagem</a> ";
                 }
+                if (in_array('SstEmployeeProfile', $this->data['buttonPermission'])) {
+                    echo "<a href='{$_ENV['URL_ADM']}sst-employee-profile/$id' class='btn btn-outline-primary btn-sm me-1 mb-1'><i class='fa-solid fa-heart-pulse'></i> SST</a> ";
+                }
 
                 $log_resumo = $this->data['log_resumo'] ?? [];
                 $log_btn_class = 'btn btn-outline-info btn-sm me-1 mb-1';
@@ -217,6 +220,15 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dd class="col-sm-9">
                         <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::estadoCivilLabel($this->data['user']['estado_civil'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
                     </dd>
+                    <dt class="col-sm-3">Raça/cor: </dt>
+                    <dd class="col-sm-9">
+                        <?php
+                        $racaRaw = $this->data['user']['raca'] ?? null;
+                        echo $racaRaw !== null && $racaRaw !== ''
+                            ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::racaLabel(is_string($racaRaw) ? $racaRaw : null), ENT_QUOTES, 'UTF-8')
+                            : '<span class="text-muted">Não informado</span>';
+                        ?>
+                    </dd>
                     <dt class="col-sm-3">País de residência: </dt>
                     <dd class="col-sm-9">
                         <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::paisResidenciaLabel($this->data['user']['pais_residencia_iso'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
@@ -224,6 +236,16 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
                     <dt class="col-sm-3">Departamento: </dt>
                     <dd class="col-sm-9"><?php echo $dep_name; ?></dd>
+
+                    <dt class="col-sm-3">Empresa contratante: </dt>
+                    <dd class="col-sm-9">
+                        <?php
+                        $empRaw = $this->data['user']['empresa_contratante'] ?? null;
+                        echo $empRaw !== null && $empRaw !== ''
+                            ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel(is_string($empRaw) ? $empRaw : null), ENT_QUOTES, 'UTF-8')
+                            : '<span class="text-muted">Não informado</span>';
+                        ?>
+                    </dd>
 
                     <dt class="col-sm-3">Cargo|Função: </dt>
                     <dd class="col-sm-9"><?php echo htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($pos_name ?? ''))); ?></dd>

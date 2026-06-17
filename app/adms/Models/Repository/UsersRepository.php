@@ -667,6 +667,8 @@ class UsersRepository extends DbConnection
                     t0.filhos,
                     t0.estado_civil,
                     t0.escolaridade,
+                    t0.raca,
+                    t0.empresa_contratante,
                     t0.pais_residencia_iso,
                     t0.data_admissao,
                     t0.data_desligamento,
@@ -897,9 +899,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, escolaridade, pais_residencia_iso, super_usuario
+                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, escolaridade, raca, empresa_contratante, pais_residencia_iso, super_usuario
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :escolaridade, :pais_residencia_iso, :super_usuario
+                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :escolaridade, :raca, :empresa_contratante, :pais_residencia_iso, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -940,6 +942,18 @@ class UsersRepository extends DbConnection
                 $escIns !== null && $escIns !== '' ? $escIns : null,
                 $escIns !== null && $escIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
             );
+            $racaIns = $data['raca'] ?? null;
+            $stmt->bindValue(
+                ':raca',
+                $racaIns !== null && $racaIns !== '' ? $racaIns : null,
+                $racaIns !== null && $racaIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
+            $empIns = $data['empresa_contratante'] ?? null;
+            $stmt->bindValue(
+                ':empresa_contratante',
+                $empIns !== null && $empIns !== '' ? $empIns : null,
+                $empIns !== null && $empIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
             $paisIns = $data['pais_residencia_iso'] ?? null;
             $stmt->bindValue(
                 ':pais_residencia_iso',
@@ -968,6 +982,8 @@ class UsersRepository extends DbConnection
                     'sexo' => $data['sexo'] ?? null,
                     'filhos' => $data['filhos'] ?? null,
                     'escolaridade' => $data['escolaridade'] ?? null,
+                    'raca' => $data['raca'] ?? null,
+                    'empresa_contratante' => $data['empresa_contratante'] ?? null,
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
                     'adms_users',
@@ -1232,6 +1248,12 @@ class UsersRepository extends DbConnection
             if (array_key_exists('escolaridade', $data)) {
                 $sql .= ', escolaridade = :escolaridade';
             }
+            if (array_key_exists('raca', $data)) {
+                $sql .= ', raca = :raca';
+            }
+            if (array_key_exists('empresa_contratante', $data)) {
+                $sql .= ', empresa_contratante = :empresa_contratante';
+            }
             if (array_key_exists('pais_residencia_iso', $data)) {
                 $sql .= ', pais_residencia_iso = :pais_residencia_iso';
             }
@@ -1324,6 +1346,22 @@ class UsersRepository extends DbConnection
                     $vEsc !== null && $vEsc !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
                 );
             }
+            if (array_key_exists('raca', $data)) {
+                $vRaca = $data['raca'];
+                $stmt->bindValue(
+                    ':raca',
+                    $vRaca !== null && $vRaca !== '' ? $vRaca : null,
+                    $vRaca !== null && $vRaca !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            if (array_key_exists('empresa_contratante', $data)) {
+                $vEmp = $data['empresa_contratante'];
+                $stmt->bindValue(
+                    ':empresa_contratante',
+                    $vEmp !== null && $vEmp !== '' ? $vEmp : null,
+                    $vEmp !== null && $vEmp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
             if (array_key_exists('pais_residencia_iso', $data)) {
                 $vPais = $data['pais_residencia_iso'];
                 $stmt->bindValue(
@@ -1383,6 +1421,8 @@ class UsersRepository extends DbConnection
                     'filhos' => array_key_exists('filhos', $data) ? $data['filhos'] : ($dadosAntes['filhos'] ?? null),
                     'estado_civil' => array_key_exists('estado_civil', $data) ? $data['estado_civil'] : ($dadosAntes['estado_civil'] ?? null),
                     'escolaridade' => array_key_exists('escolaridade', $data) ? $data['escolaridade'] : ($dadosAntes['escolaridade'] ?? null),
+                    'raca' => array_key_exists('raca', $data) ? $data['raca'] : ($dadosAntes['raca'] ?? null),
+                    'empresa_contratante' => array_key_exists('empresa_contratante', $data) ? $data['empresa_contratante'] : ($dadosAntes['empresa_contratante'] ?? null),
                     'pais_residencia_iso' => array_key_exists('pais_residencia_iso', $data) ? $data['pais_residencia_iso'] : ($dadosAntes['pais_residencia_iso'] ?? null),
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(

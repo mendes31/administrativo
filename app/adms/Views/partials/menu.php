@@ -40,6 +40,12 @@ $menus = [
                             'permission' => 'EmailConfig'
                         ],
                         [
+                            'label' => 'Notificações Automáticas',
+                            'url' => $_ENV['URL_ADM'] . 'notification-settings',
+                            'permission' => 'NotificationSettings',
+                            'icon' => 'fas fa-bell'
+                        ],
+                        [
                             'label' => 'Calendário',
                             'url' => $_ENV['URL_ADM'] . 'calendar-config',
                             'permission' => 'CalendarConfig',
@@ -939,6 +945,175 @@ $menus = [
                 'url' => $_ENV['URL_ADM'] . 'sac-list-sla-rules',
                 'permission' => 'SacListSlaRules',
                 'icon' => 'fas fa-stopwatch'
+            ],
+        ]
+    ],
+    [
+        'id' => 'sst',
+        'icon' => 'fa-solid fa-heart-pulse',
+        'label' => 'Segurança e Medicina',
+        'submenu' => [
+            [
+                'label' => 'Dashboard',
+                'url' => $_ENV['URL_ADM'] . 'sst-dashboard',
+                'permission' => 'SstDashboard',
+                'icon' => 'fas fa-chart-line'
+            ],
+            [
+                'label' => 'Cadastros e vínculos',
+                'icon' => 'fa-solid fa-database',
+                'submenu' => [
+                    [
+                        'label' => 'CIDs',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-cids',
+                        'permission' => 'SstListCids',
+                        'icon' => 'fas fa-notes-medical'
+                    ],
+                    [
+                        'label' => 'EPIs',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epis',
+                        'permission' => 'SstListEpis',
+                        'icon' => 'fas fa-hard-hat'
+                    ],
+                    [
+                        'label' => 'Exames',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-exames',
+                        'permission' => 'SstListExames',
+                        'icon' => 'fas fa-stethoscope'
+                    ],
+                    [
+                        'label' => 'Médicos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-medicos',
+                        'permission' => 'SstListMedicos',
+                        'icon' => 'fas fa-user-md'
+                    ],
+                    [
+                        'label' => 'Necessidades de EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-necessidade',
+                        'permission' => 'SstListEpiNecessidade',
+                        'icon' => 'fas fa-list-check'
+                    ],
+                    [
+                        'label' => 'Necessidades de exame',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-exame-necessidade',
+                        'permission' => 'SstListExameNecessidade',
+                        'icon' => 'fas fa-clipboard-list'
+                    ],
+                    [
+                        'label' => 'Riscos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-riscos',
+                        'permission' => 'SstListRiscos',
+                        'icon' => 'fas fa-exclamation-triangle'
+                    ],
+                    [
+                        'label' => 'Riscos por cargo/setor',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-risco-cargo',
+                        'permission' => 'SstListRiscoCargo',
+                        'icon' => 'fas fa-shield-virus'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Registros',
+                'icon' => 'fa-solid fa-clipboard-list',
+                'submenu' => [
+                    [
+                        'label' => 'Acidentes e incidentes',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-acidentes',
+                        'permission' => 'SstListAcidentes',
+                        'icon' => 'fas fa-ambulance'
+                    ],
+                    [
+                        'label' => 'Afastamentos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-afastamentos',
+                        'permission' => 'SstListAfastamentos',
+                        'icon' => 'fas fa-procedures'
+                    ],
+                    [
+                        'label' => 'ASOs',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-asos',
+                        'permission' => 'SstListAsos',
+                        'icon' => 'fas fa-file-medical'
+                    ],
+                    [
+                        'label' => 'Entregas de EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-entregas',
+                        'permission' => 'SstListEpiEntregas',
+                        'icon' => 'fas fa-hand-holding'
+                    ],
+                    [
+                        'label' => 'Inspeções',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-inspecoes',
+                        'permission' => 'SstListInspecoes',
+                        'icon' => 'fas fa-search'
+                    ],
+                    [
+                        'label' => 'CIPA',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-cipa-mandatos',
+                        'permission' => 'SstListCipaMandatos',
+                        'icon' => 'fas fa-users-cog'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Conformidade',
+                'icon' => 'fa-solid fa-balance-scale',
+                'submenu' => [
+                    [
+                        'label' => 'Painel conformidade',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-conformidade',
+                        'permission' => 'SstReportConformidade',
+                        'icon' => 'fas fa-balance-scale'
+                    ],
+                    [
+                        'label' => 'Programas PGR/PCMSO',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-programas',
+                        'permission' => 'SstListProgramas',
+                        'icon' => 'fas fa-file-contract'
+                    ],
+                    [
+                        'label' => 'Fila eSocial',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-esocial-eventos',
+                        'permission' => 'SstListEsocialEventos',
+                        'icon' => 'fas fa-cloud-upload-alt'
+                    ],
+                    [
+                        'label' => 'PPP',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-ppp',
+                        'permission' => 'SstListPpp',
+                        'icon' => 'fas fa-file-alt'
+                    ],
+                ]
+            ],
+            [
+                'label' => 'Relatórios',
+                'icon' => 'fa-solid fa-chart-bar',
+                'submenu' => [
+                    [
+                        'label' => 'Pendências',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-pendencias',
+                        'permission' => 'SstReportPendencias',
+                        'icon' => 'fas fa-exclamation-circle'
+                    ],
+                    [
+                        'label' => 'Relatório de EPIs',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-epis',
+                        'permission' => 'SstReportEpis',
+                        'icon' => 'fas fa-chart-bar'
+                    ],
+                    [
+                        'label' => 'Relatório de exames',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-exames',
+                        'permission' => 'SstReportExames',
+                        'icon' => 'fas fa-chart-bar'
+                    ],
+                    [
+                        'label' => 'Relatório de afastamentos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-afastamentos',
+                        'permission' => 'SstReportAfastamentos',
+                        'icon' => 'fas fa-procedures'
+                    ],
+                ]
             ],
         ]
     ],

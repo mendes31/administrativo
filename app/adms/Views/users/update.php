@@ -241,6 +241,18 @@ use App\adms\Helpers\ImageHelper;
                     </select>
                 </div>
                 <div class="col-md-4">
+                    <label for="raca" class="form-label">Raça/cor</label>
+                    <select name="raca" id="raca" class="form-select">
+                        <?php $racaVal = (string)($this->data['form']['raca'] ?? ''); ?>
+                        <option value="" <?php echo $racaVal === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <?php foreach (\App\adms\Helpers\UserFormHelper::racaOptions() as $slug => $racaLabel): ?>
+                            <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $racaVal === $slug ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($racaLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
                     <label for="filhos" class="form-label">Filho(s)</label>
                     <select name="filhos" id="filhos" class="form-select">
                         <?php $fh = (string)($this->data['form']['filhos'] ?? ''); ?>
@@ -268,6 +280,19 @@ use App\adms\Helpers\ImageHelper;
                 <div class="col-12">
                     <hr class="mt-1 mb-0">
                     <h6 class="mt-2 mb-0 text-muted">Dados contratuais</h6>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="empresa_contratante" class="form-label">Empresa contratante</label>
+                    <select name="empresa_contratante" id="empresa_contratante" class="form-select">
+                        <?php $empVal = (string)($this->data['form']['empresa_contratante'] ?? ''); ?>
+                        <option value="" <?php echo $empVal === '' ? 'selected' : ''; ?>>Selecione</option>
+                        <?php foreach (\App\adms\Helpers\UserFormHelper::empresaContratanteOptions() as $slug => $empLabel): ?>
+                            <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $empVal === $slug ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($empLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="col-md-4">

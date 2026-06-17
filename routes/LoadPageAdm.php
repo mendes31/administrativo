@@ -189,7 +189,21 @@ class LoadPageAdm
         "SacListCategories", "SacCreateCategory", "SacUpdateCategory", "SacDeleteCategory",
         "SacListSlaRules", "SacCreateSlaRule", "SacUpdateSlaRule", "SacDeleteSlaRule",
         "SacListClients", "SacCreateClient", "SacViewClient", "SacUpdateClient", "SacDeleteClient",
-        "SacListTickets", "SacCreateTicket", "SacViewTicket", "SacUpdateTicket", "SacDeleteTicket", "SacReplyTicket", "SacTransferTicket", "SacRateTicket"
+        "SacListTickets", "SacCreateTicket", "SacViewTicket", "SacUpdateTicket", "SacDeleteTicket", "SacReplyTicket", "SacTransferTicket", "SacRateTicket",
+        // SST — Segurança e Medicina do Trabalho
+        "SstDashboard", "SstEmployeeProfile", "SstReportPendencias", "SstReportExames", "SstReportEpis",
+        "SstListExames", "SstCreateExame", "SstViewExame", "SstUpdateExame", "SstDeleteExame",
+        "SstListAsos", "SstCreateAso", "SstViewAso", "SstUpdateAso", "SstDeleteAso",
+        "SstListAfastamentos", "SstCreateAfastamento", "SstViewAfastamento", "SstUpdateAfastamento", "SstDeleteAfastamento",
+        "SstListEpis", "SstCreateEpi", "SstViewEpi", "SstUpdateEpi", "SstDeleteEpi",
+        "SstListEpiEntregas", "SstCreateEpiEntrega", "SstViewEpiEntrega", "SstUpdateEpiEntrega", "SstDeleteEpiEntrega",
+        "SstListRiscos", "SstCreateRisco", "SstViewRisco", "SstUpdateRisco", "SstDeleteRisco",
+        "SstListAcidentes", "SstCreateAcidente", "SstViewAcidente", "SstUpdateAcidente", "SstDeleteAcidente",
+        "SstListCids", "SstCreateCid", "SstUpdateCid", "SstDeleteCid",
+        "SstListMedicos", "SstCreateMedico", "SstUpdateMedico", "SstDeleteMedico",
+        "SstListEpiNecessidade", "SstCreateEpiNecessidade", "SstUpdateEpiNecessidade", "SstDeleteEpiNecessidade",
+        "SstListExameNecessidade", "SstCreateExameNecessidade", "SstUpdateExameNecessidade", "SstDeleteExameNecessidade",
+        "SstListRiscoCargo", "SstCreateRiscoCargo", "SstUpdateRiscoCargo", "SstDeleteRiscoCargo"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */
@@ -239,7 +253,8 @@ class LoadPageAdm
         "gamification",
         "legal",
         "companyEvents",
-        "sac"
+        "sac",
+        "sst"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

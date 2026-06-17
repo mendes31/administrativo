@@ -68,6 +68,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Gestão de Projetos', 'obs' => 'Módulo de gestão de projetos'], // Nº 38
             ['name' => 'Comunicação Social', 'obs' => 'Timeline interna e eventos corporativos'], // Nº 39
             ['name' => 'SAC', 'obs' => 'Módulo de Atendimento ao Cliente (SmartSAC)'], // Nº 40
+            ['name' => 'Segurança e Medicina', 'obs' => 'Módulo de Saúde e Segurança do Trabalho (SST)'], // Nº 41
         ];
 
         foreach ($grupos as $grupo) {

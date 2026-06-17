@@ -34,6 +34,23 @@ final class UserFormHelper
         'doutorado',
     ];
 
+    /** Categorias de cor/raça (padrão IBGE / eSocial). @var list<string> */
+    public const RACA_SLUGS = [
+        'branca',
+        'preta',
+        'parda',
+        'amarela',
+        'indigena',
+        'nao_informado',
+    ];
+
+    /** @var list<string> */
+    public const EMPRESA_CONTRATANTE_SLUGS = [
+        'tiaraju_farma',
+        'lab_tiaraju_matriz',
+        'lab_tiaraju_filial',
+    ];
+
     public static function normalizeSexo(mixed $value): ?string
     {
         $v = strtoupper(trim((string) $value));
@@ -186,5 +203,70 @@ final class UserFormHelper
         }
 
         return 'País (' . $iso . ')';
+    }
+
+    public static function normalizeRaca(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtolower(trim((string) $value));
+
+        return in_array($v, self::RACA_SLUGS, true) ? $v : null;
+    }
+
+    public static function racaLabel(?string $code): string
+    {
+        return match ($code) {
+            'branca' => 'Branca',
+            'preta' => 'Preta',
+            'parda' => 'Parda',
+            'amarela' => 'Amarela',
+            'indigena' => 'Indígena',
+            'nao_informado' => 'Não informado',
+            default => 'Raça/cor não informada',
+        };
+    }
+
+    /** @return array<string, string> */
+    public static function racaOptions(): array
+    {
+        $out = [];
+        foreach (self::RACA_SLUGS as $slug) {
+            $out[$slug] = self::racaLabel($slug);
+        }
+
+        return $out;
+    }
+
+    public static function normalizeEmpresaContratante(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtolower(trim((string) $value));
+
+        return in_array($v, self::EMPRESA_CONTRATANTE_SLUGS, true) ? $v : null;
+    }
+
+    public static function empresaContratanteLabel(?string $code): string
+    {
+        return match ($code) {
+            'tiaraju_farma' => 'Tiaraju Farma',
+            'lab_tiaraju_matriz' => 'Lab. Tiaraju Matriz',
+            'lab_tiaraju_filial' => 'Lab. Tiaraju Filial',
+            default => 'Empresa contratante não informada',
+        };
+    }
+
+    /** @return array<string, string> */
+    public static function empresaContratanteOptions(): array
+    {
+        $out = [];
+        foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
+            $out[$slug] = self::empresaContratanteLabel($slug);
+        }
+
+        return $out;
     }
 }

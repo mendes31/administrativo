@@ -9,7 +9,7 @@ use PDO;
 class MenuPermissionUserRepository extends DbConnection
 {
     public const SESSION_CACHE_KEY = 'adms_menu_allowed_controllers';
-    private const FILTERED_LAYOUT_MENU_KEY = 'adms_page_layout_menu_permission';
+    private const FILTERED_LAYOUT_MENU_KEY = 'adms_page_layout_menu_permission_v2';
 
     public static function clearSessionCache(): void
     {
@@ -17,17 +17,14 @@ class MenuPermissionUserRepository extends DbConnection
     }
 
     /**
-     * Menu filtrado para o layout (cache em sessão — evita intersect em toda página).
+     * Controllers permitidos para o menu lateral (fonte: banco / ACL do usuário).
+     * Super Administrador e Super usuário recebem todas as páginas ativas via fetchAllowedControllersFromDatabase.
      *
-     * @param array<int, string> $fullMenu
+     * @param array<int, string> $fullMenu legado — não filtra mais o resultado (mantido por compatibilidade de assinatura)
      * @return array<int, string>
      */
     public function getFilteredMenuForLayout(array $fullMenu): array
     {
-        if ($fullMenu === []) {
-            return [];
-        }
-
         $userId = (int) ($_SESSION['user_id'] ?? 0);
         if ($userId <= 0) {
             return [];
@@ -35,9 +32,6 @@ class MenuPermissionUserRepository extends DbConnection
 
         $globalVersion = self::getGlobalPermissionCacheVersion();
         $cached = $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] ?? null;
-        $levelIds = $_SESSION['adms_user_access_level_ids'] ?? [];
-        $hasUnrestrictedMenu = UserAccessHelper::hasFullSystemAccess()
-            || (is_array($levelIds) && in_array(1, $levelIds, true));
 
         if (
             is_array($cached)
@@ -45,22 +39,10 @@ class MenuPermissionUserRepository extends DbConnection
             && (string) ($cached['version'] ?? '') === $globalVersion
             && is_array($cached['controllers'] ?? null)
         ) {
-            $cachedControllers = $cached['controllers'];
-            if ($hasUnrestrictedMenu && $fullMenu !== []) {
-                return array_values(array_unique(array_merge($cachedControllers, $fullMenu)));
-            }
-
-            return $cachedControllers;
+            return $cached['controllers'];
         }
 
-        if ($hasUnrestrictedMenu) {
-            $filtered = $fullMenu;
-        } else {
-            $filtered = $this->menuPermission($fullMenu);
-            if (!is_array($filtered)) {
-                $filtered = [];
-            }
-        }
+        $filtered = $this->getAllowedControllersForSessionUser();
 
         $_SESSION[self::FILTERED_LAYOUT_MENU_KEY] = [
             'user_id' => $userId,

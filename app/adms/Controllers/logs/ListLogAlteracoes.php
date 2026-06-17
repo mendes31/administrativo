@@ -263,6 +263,8 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'whats-app-config';
             case 'adms_log_settings':
                 return $_ENV['URL_ADM'] . 'log-settings';
+            case 'adms_notification_settings':
+                return $_ENV['URL_ADM'] . 'notification-settings';
             case 'adms_payroll_cron_config':
                 return $_ENV['URL_ADM'] . 'payroll-cron-config';
             case 'calendar_settings':
@@ -539,6 +541,32 @@ class ListLogAlteracoes
             case 'sac_ticket_attachments':
             case 'sac_ticket_status_log':
                 return $_ENV['URL_ADM'] . 'sac-list-tickets';
+            case 'adms_sst_exames':
+                return $_ENV['URL_ADM'] . 'sst-view-exame/' . $objetoId;
+            case 'adms_sst_epis':
+                return $_ENV['URL_ADM'] . 'sst-view-epi/' . $objetoId;
+            case 'adms_sst_riscos':
+                return $_ENV['URL_ADM'] . 'sst-view-risco/' . $objetoId;
+            case 'adms_sst_cids':
+                return $_ENV['URL_ADM'] . 'sst-update-cid/' . $objetoId;
+            case 'adms_sst_medicos':
+                return $_ENV['URL_ADM'] . 'sst-update-medico/' . $objetoId;
+            case 'adms_sst_asos':
+                return $_ENV['URL_ADM'] . 'sst-view-aso/' . $objetoId;
+            case 'adms_sst_afastamentos':
+                return $_ENV['URL_ADM'] . 'sst-view-afastamento/' . $objetoId;
+            case 'adms_sst_epi_entregas':
+                return $_ENV['URL_ADM'] . 'sst-view-epi-entrega/' . $objetoId;
+            case 'adms_sst_acidentes':
+                return $_ENV['URL_ADM'] . 'sst-view-acidente/' . $objetoId;
+            case 'adms_sst_epi_necessidade':
+                return $_ENV['URL_ADM'] . 'sst-update-epi-necessidade/' . $objetoId;
+            case 'adms_sst_exame_necessidade':
+                return $_ENV['URL_ADM'] . 'sst-update-exame-necessidade/' . $objetoId;
+            case 'adms_sst_riscos_cargo':
+                return $_ENV['URL_ADM'] . 'sst-update-risco-cargo/' . $objetoId;
+            case 'adms_sst_anexos':
+                return $_ENV['URL_ADM'] . 'sst-dashboard';
             default:
                 return null;
         }
