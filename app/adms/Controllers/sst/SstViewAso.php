@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstAnexosRepository;
 use App\adms\Models\Services\LogResumoService;
@@ -32,6 +33,7 @@ class SstViewAso
         $returnUrl = $_ENV['URL_ADM'] . 'sst-view-aso/' . $itemId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_sst_asos', $itemId, $returnUrl);
         $this->data['anexos'] = (new SstAnexosRepository())->getByEntity('asos', $itemId);
+        $this->data['complementares'] = (new SstAsoExamesRepository())->getByAsoId($itemId);
         $this->data['entity'] = array (
   'table' => 'adms_sst_asos',
   'singular' => 'ASO',

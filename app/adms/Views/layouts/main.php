@@ -248,7 +248,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20260520">
     
     <!-- Menu Modernizado -->
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=20260416">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=20260617">
     
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
@@ -413,7 +413,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <!-- <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/forms-mobile-fix.js"></script> -->
 
     <!-- Script para rolar automaticamente para o item ativo do menu -->
-    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js?v=20260617"></script>
     
     <!-- Pesquisa no menu -->
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-search.js"></script>

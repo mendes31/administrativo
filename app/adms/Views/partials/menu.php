@@ -1011,6 +1011,12 @@ $menus = [
                         'permission' => 'SstListRiscoCargo',
                         'icon' => 'fas fa-shield-virus'
                     ],
+                    [
+                        'label' => 'Exames por risco',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-risco-exame',
+                        'permission' => 'SstListRiscoExame',
+                        'icon' => 'fas fa-link'
+                    ],
                 ]
             ],
             [
@@ -1643,7 +1649,8 @@ if (!function_exists('countPermittedSubmenus')) {
                                     }
                                     
                                     $isOpen = $submenuActive ? 'show' : '';
-                                    echo '<a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#' . $submenuId . '" aria-expanded="' . ($isOpen ? 'true' : 'false') . '" aria-controls="' . $submenuId . '">';
+                                    $parentLinkClass = 'nav-link' . ($submenuActive ? ' active' : ' collapsed');
+                                    echo '<a class="' . $parentLinkClass . '" href="#" data-bs-toggle="collapse" data-bs-target="#' . $submenuId . '" aria-expanded="' . ($isOpen ? 'true' : 'false') . '" aria-controls="' . $submenuId . '">';
                                     if ($nivel == 0 && isset($menu['icon'])) {
                                         echo '<div class="sb-nav-link-icon"><i class="' . $menu['icon'] . '"></i></div> ';
                                     }

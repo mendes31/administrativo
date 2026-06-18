@@ -28,10 +28,11 @@ $action = $isEdit ? 'sst-update-aso/' . (int)$item['id'] : 'sst-create-aso';
 </select>
 </div>
 <div class="col-md-6 mb-3">
-<label class="form-label" for="adms_sst_exame_id">Exame</label>
+<label class="form-label" for="adms_sst_exame_id">Exame principal (legado)</label>
 <select name="adms_sst_exame_id" id="adms_sst_exame_id" class="form-select"><option value="">Selecione...</option>
 <?php foreach ($this->data['exames'] ?? [] as $x): ?><option value="<?= (int)$x['id'] ?>" <?= ((int)($item['adms_sst_exame_id'] ?? 0) === (int)$x['id']) ? 'selected' : '' ?>><?= htmlspecialchars($x['nome'] ?? '') ?></option><?php endforeach; ?>
 </select>
+<div class="form-text">Opcional. Prefira registrar os complementares na seção abaixo.</div>
 </div>
 <div class="col-md-6 mb-3">
 <label class="form-label" for="adms_sst_medico_id">Médico</label>
@@ -77,7 +78,12 @@ $action = $isEdit ? 'sst-update-aso/' . (int)$item['id'] : 'sst-create-aso';
 <label class="form-label" for="observacoes">Observações</label>
 <textarea name="observacoes" id="observacoes" class="form-control" rows="3" ><?= htmlspecialchars($item['observacoes'] ?? '') ?></textarea>
 </div>
-<?php include './app/adms/Views/sst/partials/form_anexos.php'; ?>
+<?php
+$complementares = $this->data['complementares'] ?? [];
+$exames = $this->data['exames'] ?? [];
+$dataRealizacaoAso = $item['data_realizacao'] ?? '';
+include './app/adms/Views/sst/partials/form_aso_complementares.php';
+?>
 
                 </div>
                 <div class="d-flex gap-2 mt-3">

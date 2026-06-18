@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\SstCategoriaAsoHelper;
+use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -19,6 +21,8 @@ class SstPendenciasService extends DbConnection
         'troca_vencida',
         'sem_aso',
         'aso_vencido',
+        'aso_evento_sem_registro',
+        'aso_evento_vencido',
     ];
 
     public static function incluirTreinamentos(): bool
@@ -34,7 +38,10 @@ class SstPendenciasService extends DbConnection
     public function getPendenciasPorUsuario(int $userId): array
     {
         $epis = $this->getPendenciasEpiPorUsuario($userId);
-        $exames = $this->getPendenciasExamePorUsuario($userId);
+        $exames = array_merge(
+            $this->getPendenciasExameComplementarPorUsuario($userId),
+            $this->getPendenciasAsoEventoPorUsuario($userId)
+        );
         $treinamentos = self::incluirTreinamentos()
             ? $this->getPendenciasTreinamentoPorUsuario($userId)
             : [];
@@ -100,52 +107,83 @@ class SstPendenciasService extends DbConnection
     }
 
     /**
+     * Pendências de exames complementares (resolver Cargo → Risco → Exame + regras diretas).
+     *
      * @return array<int, array<string, mixed>>
      */
+    public function getPendenciasExameComplementarPorUsuario(int $userId): array
+    {
+        $resolver = new SstExamesObrigatoriosResolver();
+        $asoExamesRepo = new SstAsoExamesRepository();
+        $regras = $resolver->resolveForUser($userId);
+        $pendencias = [];
+
+        foreach ($regras as $regra) {
+            $exameId = (int) ($regra['adms_sst_exame_id'] ?? 0);
+            if ($exameId <= 0) {
+                continue;
+            }
+            $categoria = $regra['categoria_aso'] ?? null;
+            $ultima = $asoExamesRepo->getUltimaRealizacao($userId, $exameId, $categoria);
+            $periodicidade = isset($regra['periodicidade_meses']) ? (int) $regra['periodicidade_meses'] : null;
+            $situacao = $this->avaliarSituacaoExame($ultima, $periodicidade);
+            if ($situacao === null) {
+                continue;
+            }
+            $pendencias[] = [
+                'adms_sst_exame_id' => $exameId,
+                'exame_nome' => (string) ($regra['exame_nome'] ?? ''),
+                'categoria_aso' => $categoria,
+                'periodicidade_meses' => $periodicidade,
+                'origem' => (string) ($regra['origem'] ?? ''),
+                'tipo_pendencia' => 'exame_complementar',
+                'ultimo_aso' => $ultima['data_realizacao'] ?? $ultima['aso_data_realizacao'] ?? null,
+                'data_validade' => $ultima['data_validade'] ?? null,
+                'resultado' => $ultima['resultado'] ?? null,
+                'situacao' => $situacao,
+            ];
+        }
+
+        return $this->enriquecerPendencias($pendencias, 'exame');
+    }
+
+    /**
+     * Pendência do evento ASO (cabeçalho) para categorias com monitoramento periódico.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPendenciasAsoEventoPorUsuario(int $userId): array
+    {
+        $pendencias = [];
+        foreach ([SstCategoriaAsoHelper::PERIODICO] as $categoria) {
+            $ultimo = $this->getUltimoAsoEvento($userId, $categoria);
+            $periodicidade = $this->getPeriodicidadePadraoCategoria($userId, $categoria);
+            $situacao = $this->avaliarSituacaoEventoAso($ultimo, $periodicidade);
+            if ($situacao === null) {
+                continue;
+            }
+            $pendencias[] = [
+                'categoria_aso' => $categoria,
+                'exame_nome' => 'ASO ' . $categoria,
+                'tipo_pendencia' => 'evento_aso',
+                'ultimo_aso' => $ultimo['data_realizacao'] ?? null,
+                'data_validade' => $ultimo['data_validade'] ?? null,
+                'resultado' => $ultimo['resultado'] ?? null,
+                'periodicidade_meses' => $periodicidade,
+                'situacao' => $situacao,
+            ];
+        }
+
+        return $this->enriquecerPendencias($pendencias, 'exame');
+    }
+
+    /** @deprecated Use getPendenciasExameComplementarPorUsuario + getPendenciasAsoEventoPorUsuario */
     public function getPendenciasExamePorUsuario(int $userId): array
     {
-        $sql = "SELECT
-                    n.adms_sst_exame_id,
-                    ex.nome AS exame_nome,
-                    COALESCE(n.periodicidade_meses, ex.periodicidade_meses) AS periodicidade_meses,
-                    ult.data_realizacao AS ultimo_aso,
-                    ult.data_validade,
-                    ult.resultado,
-                    CASE
-                        WHEN ult.id IS NULL THEN 'sem_aso'
-                        WHEN ult.data_validade IS NOT NULL AND ult.data_validade < CURDATE() THEN 'aso_vencido'
-                        WHEN ult.data_validade IS NOT NULL
-                             AND ult.data_validade >= CURDATE()
-                             AND ult.data_validade <= DATE_ADD(CURDATE(), INTERVAL :dias DAY) THEN 'aso_a_vencer'
-                        ELSE NULL
-                    END AS situacao
-                FROM adms_users u
-                INNER JOIN adms_sst_exame_necessidade n ON {$this->sqlRegraNecessidade('n', 'u')}
-                INNER JOIN adms_sst_exames ex ON ex.id = n.adms_sst_exame_id AND ex.status = 'Ativo'
-                LEFT JOIN (
-                    SELECT a1.*
-                    FROM adms_sst_asos a1
-                    INNER JOIN (
-                        SELECT adms_sst_exame_id, MAX(data_realizacao) AS max_data
-                        FROM adms_sst_asos
-                        WHERE adms_user_id = :uid_aso
-                        GROUP BY adms_sst_exame_id
-                    ) am ON am.adms_sst_exame_id <=> a1.adms_sst_exame_id
-                        AND am.max_data = a1.data_realizacao
-                        AND a1.adms_user_id = :uid_aso
-                ) ult ON ult.adms_sst_exame_id = n.adms_sst_exame_id
-                WHERE u.id = :uid
-                  AND n.obrigatorio = 1
-                HAVING situacao IS NOT NULL
-                ORDER BY exame_nome";
-
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':uid_aso', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':dias', self::DIAS_ALERTA, PDO::PARAM_INT);
-        $stmt->execute();
-
-        return $this->enriquecerPendencias($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'exame');
+        return array_merge(
+            $this->getPendenciasExameComplementarPorUsuario($userId),
+            $this->getPendenciasAsoEventoPorUsuario($userId)
+        );
     }
 
     /**
@@ -297,50 +335,34 @@ class SstPendenciasService extends DbConnection
     private function getPendenciasExameGeral(array $filters = []): array
     {
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
-
-        $sql = "SELECT
-                    u.id AS adms_user_id,
-                    u.name AS colaborador_nome,
-                    dep.name AS departamento_nome,
-                    pos.name AS cargo_nome,
-                    n.adms_sst_exame_id,
-                    ex.nome AS exame_nome,
-                    ult.data_realizacao AS ultimo_aso,
-                    ult.data_validade,
-                    ult.resultado,
-                    CASE
-                        WHEN ult.id IS NULL THEN 'sem_aso'
-                        WHEN ult.data_validade IS NOT NULL AND ult.data_validade < CURDATE() THEN 'aso_vencido'
-                        WHEN ult.data_validade IS NOT NULL
-                             AND ult.data_validade >= CURDATE()
-                             AND ult.data_validade <= DATE_ADD(CURDATE(), INTERVAL :dias DAY) THEN 'aso_a_vencer'
-                        ELSE NULL
-                    END AS situacao
+        $sql = "SELECT u.id AS adms_user_id, u.name AS colaborador_nome,
+                       dep.name AS departamento_nome, pos.name AS cargo_nome
                 FROM adms_users u
                 LEFT JOIN adms_departments dep ON dep.id = u.user_department_id
                 LEFT JOIN adms_positions pos ON pos.id = u.user_position_id
-                INNER JOIN adms_sst_exame_necessidade n ON {$this->sqlRegraNecessidade('n', 'u')}
-                INNER JOIN adms_sst_exames ex ON ex.id = n.adms_sst_exame_id AND ex.status = 'Ativo'
-                LEFT JOIN (
-                    SELECT a1.*
-                    FROM adms_sst_asos a1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_sst_exame_id, MAX(data_realizacao) AS max_data
-                        FROM adms_sst_asos
-                        GROUP BY adms_user_id, adms_sst_exame_id
-                    ) am ON am.adms_user_id = a1.adms_user_id
-                        AND ((am.adms_sst_exame_id = a1.adms_sst_exame_id) OR (am.adms_sst_exame_id IS NULL AND a1.adms_sst_exame_id IS NULL))
-                        AND am.max_data = a1.data_realizacao
-                ) ult ON ult.adms_user_id = u.id AND ult.adms_sst_exame_id = n.adms_sst_exame_id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
-                  AND n.obrigatorio = 1
                   {$extraWhere}
-                HAVING situacao IS NOT NULL
-                ORDER BY colaborador_nome, exame_nome
-                LIMIT 1000";
+                ORDER BY colaborador_nome
+                LIMIT 500";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $out = [];
+        foreach ($users as $user) {
+            $uid = (int) ($user['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($this->getPendenciasExamePorUsuario($uid) as $row) {
+                $out[] = array_merge($user, $row);
+            }
+        }
 
-        return $this->executarPendencias($sql, $params, 'exame');
+        return $out;
     }
 
     /**
@@ -628,6 +650,9 @@ class SstPendenciasService extends DbConnection
             'sem_aso' => 'Sem ASO/exame',
             'aso_vencido' => 'ASO/exame vencido',
             'aso_a_vencer' => 'ASO/exame a vencer',
+            'aso_evento_sem_registro' => 'ASO não realizado',
+            'aso_evento_vencido' => 'ASO vencido',
+            'aso_evento_a_vencer' => 'ASO a vencer',
             'sem_vinculo_treinamento' => 'Treinamento sem vínculo',
             'treinamento_vencido' => 'Treinamento vencido',
             'treinamento_pendente' => 'Treinamento pendente',
@@ -640,6 +665,9 @@ class SstPendenciasService extends DbConnection
             'sem_aso' => 'danger',
             'aso_vencido' => 'danger',
             'aso_a_vencer' => 'warning',
+            'aso_evento_sem_registro' => 'danger',
+            'aso_evento_vencido' => 'danger',
+            'aso_evento_a_vencer' => 'warning',
             'sem_vinculo_treinamento' => 'danger',
             'treinamento_vencido' => 'danger',
             'treinamento_pendente' => 'warning',
@@ -650,11 +678,105 @@ class SstPendenciasService extends DbConnection
             $sit = (string) ($row['situacao'] ?? '');
             $row['situacao_label'] = $labels[$sit] ?? $sit;
             $row['situacao_badge'] = $badges[$sit] ?? 'secondary';
-            $row['tipo_pendencia'] = $tipo;
+            $row['tipo_pendencia'] = $row['tipo_pendencia'] ?? $tipo;
         }
         unset($row);
 
         return $rows;
+    }
+
+  /** @return array<string, mixed>|null */
+    private function getUltimoAsoEvento(int $userId, string $categoria): ?array
+    {
+        $sql = "SELECT id, tipo, data_realizacao, data_validade, resultado
+                FROM adms_sst_asos
+                WHERE adms_user_id = :uid AND tipo = :tipo
+                ORDER BY data_realizacao DESC, id DESC
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':tipo', $categoria, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    private function getPeriodicidadePadraoCategoria(int $userId, string $categoria): int
+    {
+        $resolver = new SstExamesObrigatoriosResolver();
+        $max = 0;
+        foreach ($resolver->resolveForUser($userId, $categoria) as $regra) {
+            $meses = (int) ($regra['periodicidade_meses'] ?? 0);
+            if ($meses > $max) {
+                $max = $meses;
+            }
+        }
+
+        return $max > 0 ? $max : 12;
+    }
+
+  /** @param array<string, mixed>|null $ultima */
+    private function avaliarSituacaoExame(?array $ultima, ?int $periodicidadeMeses): ?string
+    {
+        if ($ultima === null) {
+            return 'sem_aso';
+        }
+        $dataReal = (string) ($ultima['data_realizacao'] ?? $ultima['aso_data_realizacao'] ?? '');
+        $dataVal = (string) ($ultima['data_validade'] ?? '');
+
+        return $this->avaliarDatasVencimento($dataReal, $dataVal, $periodicidadeMeses, 'sem_aso', 'aso_vencido', 'aso_a_vencer');
+    }
+
+  /** @param array<string, mixed>|null $ultimo */
+    private function avaliarSituacaoEventoAso(?array $ultimo, int $periodicidadeMeses): ?string
+    {
+        if ($ultimo === null) {
+            return 'aso_evento_sem_registro';
+        }
+        $dataReal = (string) ($ultimo['data_realizacao'] ?? '');
+        $dataVal = (string) ($ultimo['data_validade'] ?? '');
+
+        return $this->avaliarDatasVencimento(
+            $dataReal,
+            $dataVal,
+            $periodicidadeMeses,
+            'aso_evento_sem_registro',
+            'aso_evento_vencido',
+            'aso_evento_a_vencer'
+        );
+    }
+
+    private function avaliarDatasVencimento(
+        string $dataRealizacao,
+        string $dataValidade,
+        ?int $periodicidadeMeses,
+        string $semRegistro,
+        string $vencido,
+        string $aVencer
+    ): ?string {
+        $hoje = new \DateTimeImmutable('today');
+        $validade = null;
+        if ($dataValidade !== '') {
+            $validade = \DateTimeImmutable::createFromFormat('Y-m-d', substr($dataValidade, 0, 10)) ?: null;
+        } elseif ($dataRealizacao !== '' && $periodicidadeMeses !== null && $periodicidadeMeses > 0) {
+            $real = \DateTimeImmutable::createFromFormat('Y-m-d', substr($dataRealizacao, 0, 10));
+            if ($real) {
+                $validade = $real->modify('+' . $periodicidadeMeses . ' months');
+            }
+        }
+        if ($validade === null) {
+            return $dataRealizacao === '' ? $semRegistro : null;
+        }
+        if ($validade < $hoje) {
+            return $vencido;
+        }
+        $limiteAlerta = $hoje->modify('+' . self::DIAS_ALERTA . ' days');
+        if ($validade <= $limiteAlerta) {
+            return $aVencer;
+        }
+
+        return null;
     }
 
     public static function situacoesFiltro(): array
@@ -667,6 +789,9 @@ class SstPendenciasService extends DbConnection
             'sem_aso' => 'Sem ASO',
             'aso_vencido' => 'ASO vencido',
             'aso_a_vencer' => 'ASO a vencer',
+            'aso_evento_sem_registro' => 'ASO (evento) não realizado',
+            'aso_evento_vencido' => 'ASO (evento) vencido',
+            'aso_evento_a_vencer' => 'ASO (evento) a vencer',
         ];
         if (self::incluirTreinamentos()) {
             $filtros['sem_vinculo_treinamento'] = 'Treinamento sem vínculo';

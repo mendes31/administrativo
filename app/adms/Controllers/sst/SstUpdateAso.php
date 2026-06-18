@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -45,6 +46,7 @@ class SstUpdateAso
         }
         $this->loadFormData();
         $this->data['anexos'] = (new SstAnexosRepository())->getByEntity('asos', (int) $id);
+        $this->data['complementares'] = (new SstAsoExamesRepository())->getByAsoId((int) $id);
         $this->data['entity'] = array (
   'table' => 'adms_sst_asos',
   'singular' => 'ASO',
@@ -179,6 +181,7 @@ class SstUpdateAso
         $repo = new SstAsosRepository();
         $uploadService = new SstAnexosUploadService();
         if ($repo->update($id, $data)) {
+            (new SstAsoExamesRepository())->syncForAso($id, $this->parseComplementaresFromPost());
             $uploadService->processDeletions($_POST['delete_anexos'] ?? [], 'asos', $id);
             $uploadService->processUploads('asos', $id);
             $_SESSION['msg'] = 'Registro salvo com sucesso.';
@@ -190,5 +193,27 @@ class SstUpdateAso
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-aso/' . $id);
         }
         exit;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function parseComplementaresFromPost(): array
+    {
+        $rows = $_POST['complementares'] ?? [];
+        if (!is_array($rows)) {
+            return [];
+        }
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row) || empty($row['adms_sst_exame_id'])) {
+                continue;
+            }
+            $out[] = [
+                'adms_sst_exame_id' => (int) $row['adms_sst_exame_id'],
+                'data_realizacao' => $row['data_realizacao'] ?? null,
+                'resultado' => $row['resultado'] ?? null,
+            ];
+        }
+
+        return $out;
     }
 }

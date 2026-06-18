@@ -134,6 +134,7 @@ class SstUpdateExameNecessidade
         $data['adms_department_id'] = $_POST['adms_department_id'] ?? null;
         $data['adms_sst_risco_id'] = $_POST['adms_sst_risco_id'] ?? null;
         $data['adms_sst_exame_id'] = $_POST['adms_sst_exame_id'] ?? null;
+        $data['categoria_aso'] = $_POST['categoria_aso'] ?? null;
         $data['periodicidade_meses'] = $_POST['periodicidade_meses'] ?? null;
         $data['obrigatorio'] = isset($_POST['obrigatorio']);
         $data['observacoes'] = $_POST['observacoes'] ?? null;

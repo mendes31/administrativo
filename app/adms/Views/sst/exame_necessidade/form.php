@@ -49,6 +49,7 @@ $action = $isEdit ? 'sst-update-exame-necessidade/' . (int)$item['id'] : 'sst-cr
 <label class="form-label" for="periodicidade_meses">Periodicidade (meses)</label>
 <input type="number" name="periodicidade_meses" id="periodicidade_meses" class="form-control" value="<?= htmlspecialchars($item['periodicidade_meses'] ?? '') ?>" >
 </div>
+<?php $selected = $item['categoria_aso'] ?? ''; include './app/adms/Views/sst/partials/field_categoria_aso.php'; ?>
 <div class="col-md-6 mb-3">
 <label class="form-label" for="obrigatorio">Obrigatório</label>
 <div class="form-check"><input type="checkbox" name="obrigatorio" id="obrigatorio" class="form-check-input" value="1" <?= !empty($item['obrigatorio']) ? 'checked' : '' ?>><label class="form-check-label" for="obrigatorio">Obrigatório</label></div>

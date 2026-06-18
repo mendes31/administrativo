@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -34,6 +35,7 @@ class SstCreateAso
         if (!empty($_GET['adms_user_id'])) {
             $this->data['item']['adms_user_id'] = (int) $_GET['adms_user_id'];
         }
+        $this->data['complementares'] = [];
         $this->data['entity'] = array (
   'table' => 'adms_sst_asos',
   'singular' => 'ASO',
@@ -168,6 +170,7 @@ class SstCreateAso
         $repo = new SstAsosRepository();
         $newId = $repo->create($data);
         if ($newId) {
+            (new SstAsoExamesRepository())->syncForAso((int) $newId, $this->parseComplementaresFromPost());
             (new SstAnexosUploadService())->processUploads('asos', (int) $newId);
             $_SESSION['msg'] = 'Registro salvo com sucesso.';
             $_SESSION['msg_type'] = 'success';
@@ -178,5 +181,27 @@ class SstCreateAso
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-aso');
         }
         exit;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function parseComplementaresFromPost(): array
+    {
+        $rows = $_POST['complementares'] ?? [];
+        if (!is_array($rows)) {
+            return [];
+        }
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row) || empty($row['adms_sst_exame_id'])) {
+                continue;
+            }
+            $out[] = [
+                'adms_sst_exame_id' => (int) $row['adms_sst_exame_id'],
+                'data_realizacao' => $row['data_realizacao'] ?? null,
+                'resultado' => $row['resultado'] ?? null,
+            ];
+        }
+
+        return $out;
     }
 }

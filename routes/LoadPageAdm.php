@@ -203,7 +203,9 @@ class LoadPageAdm
         "SstListMedicos", "SstCreateMedico", "SstUpdateMedico", "SstDeleteMedico",
         "SstListEpiNecessidade", "SstCreateEpiNecessidade", "SstUpdateEpiNecessidade", "SstDeleteEpiNecessidade",
         "SstListExameNecessidade", "SstCreateExameNecessidade", "SstUpdateExameNecessidade", "SstDeleteExameNecessidade",
-        "SstListRiscoCargo", "SstCreateRiscoCargo", "SstUpdateRiscoCargo", "SstDeleteRiscoCargo"
+        "SstListRiscoCargo", "SstCreateRiscoCargo", "SstUpdateRiscoCargo", "SstDeleteRiscoCargo",
+        "SstListRiscoExame", "SstCreateRiscoExame", "SstUpdateRiscoExame", "SstDeleteRiscoExame",
+        "SstPacoteExamesAso"
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

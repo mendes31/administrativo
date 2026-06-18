@@ -49,6 +49,25 @@ function formatCellValue(string $col, mixed $value): string {
                     <tr><th>Atualizado em:</th><td><?= !empty($item['updated_at']) ? date('d/m/Y H:i', strtotime($item['updated_at'])) : '-' ?></td></tr>
                 </table></div>
             </div>
+            <?php if (!empty($this->data['complementares'])): ?>
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Exames complementares</h5></div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Exame</th><th>Data</th><th>Resultado</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($this->data['complementares'] as $comp): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($comp['exame_nome'] ?? '-') ?></td>
+                                <td><?= formatCellValue('data_realizacao', $comp['data_realizacao'] ?? null) ?></td>
+                                <td><?= htmlspecialchars((string)($comp['resultado'] ?? '-')) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
                         <div class="card mb-4 shadow-sm">
                 <div class="card-header"><h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Anexos</h5></div>
                 <div class="card-body">
