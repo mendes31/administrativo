@@ -104,6 +104,7 @@ class SstCreateCid
         $data['codigo'] = $_POST['codigo'] ?? null;
         $data['descricao'] = $_POST['descricao'] ?? null;
         $data['status'] = $_POST['status'] ?? null;
+        $data['frequente'] = !empty($_POST['frequente']) ? 1 : 0;
 
         $repo = new SstCidsRepository();
         $newId = $repo->create($data);

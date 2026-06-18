@@ -75,6 +75,8 @@ $statusBadge = match ($item['status'] ?? '') {
                 <div class="card-header"><h5 class="mb-0">Ocorrência</h5></div>
                 <div class="card-body"><table class="table table-sm mb-0">
                     <tr><th width="30%">CID</th><td><?= htmlspecialchars($item['cid_nome'] ?? '-') ?></td></tr>
+                    <tr><th>Natureza / nexo</th><td><?= htmlspecialchars($item['natureza'] ?? '-') ?></td></tr>
+                    <tr><th>Parte do corpo</th><td><?= htmlspecialchars($item['parte_corpo'] ?? '-') ?></td></tr>
                     <tr><th>Descrição</th><td><?= nl2br(htmlspecialchars($item['descricao'] ?? '-')) ?></td></tr>
                     <tr><th>Nº CAT</th><td><?= formatCellValue('cat_numero', $item['cat_numero'] ?? null) ?></td></tr>
                     <tr><th>Data CAT</th><td><?= formatCellValue('cat_data', $item['cat_data'] ?? null) ?></td></tr>

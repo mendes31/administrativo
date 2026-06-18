@@ -44,7 +44,14 @@ class SstAfastamentosRepository extends DbConnection
 
     public function getById(int $id): ?array
     {
-        $sql = "SELECT t.*, u.name AS colaborador_nome FROM adms_sst_afastamentos t LEFT JOIN adms_users u ON u.id = t.adms_user_id WHERE t.id = :id LIMIT 1";
+        $sql = "SELECT t.*, u.name AS colaborador_nome,
+                       CONCAT(c.codigo, ' - ', c.descricao) AS cid_nome,
+                       CONCAT(cs.codigo, ' - ', cs.descricao) AS cid_secundario_nome
+                FROM adms_sst_afastamentos t
+                LEFT JOIN adms_users u ON u.id = t.adms_user_id
+                LEFT JOIN adms_sst_cids c ON c.id = t.adms_sst_cid_id
+                LEFT JOIN adms_sst_cids cs ON cs.id = t.adms_sst_cid_secundario_id
+                WHERE t.id = :id LIMIT 1";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
@@ -67,13 +74,15 @@ class SstAfastamentosRepository extends DbConnection
 
     public function create(array $data): int|false
     {
-        $sql = "INSERT INTO adms_sst_afastamentos (adms_user_id, adms_sst_cid_id, adms_sst_medico_id, tipo, data_inicio, data_fim, dias_afastamento, data_retorno, status, observacoes, created_by, updated_by, created_at, updated_at)
-                VALUES (:adms_user_id, :adms_sst_cid_id, :adms_sst_medico_id, :tipo, :data_inicio, :data_fim, :dias_afastamento, :data_retorno, :status, :observacoes, :created_by, :updated_by, NOW(), NOW())";
+        $sql = "INSERT INTO adms_sst_afastamentos (adms_user_id, adms_sst_cid_id, adms_sst_cid_secundario_id, adms_sst_medico_id, tipo, natureza, data_inicio, data_fim, dias_afastamento, data_retorno, status, observacoes, created_by, updated_by, created_at, updated_at)
+                VALUES (:adms_user_id, :adms_sst_cid_id, :adms_sst_cid_secundario_id, :adms_sst_medico_id, :tipo, :natureza, :data_inicio, :data_fim, :dias_afastamento, :data_retorno, :status, :observacoes, :created_by, :updated_by, NOW(), NOW())";
         $stmt = $this->getConnection()->prepare($sql);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_cid_id', $data['adms_sst_cid_id'] ?? null);
+        $this->bindField($stmt, ':adms_sst_cid_secundario_id', $data['adms_sst_cid_secundario_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_medico_id', $data['adms_sst_medico_id'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':natureza', $data['natureza'] ?? null);
         $this->bindField($stmt, ':data_inicio', $data['data_inicio'] ?? null);
         $this->bindField($stmt, ':data_fim', $data['data_fim'] ?? null);
         $this->bindField($stmt, ':dias_afastamento', $data['dias_afastamento'] ?? null);
@@ -99,13 +108,15 @@ class SstAfastamentosRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
-        $sql = "UPDATE adms_sst_afastamentos SET adms_user_id = :adms_user_id, adms_sst_cid_id = :adms_sst_cid_id, adms_sst_medico_id = :adms_sst_medico_id, tipo = :tipo, data_inicio = :data_inicio, data_fim = :data_fim, dias_afastamento = :dias_afastamento, data_retorno = :data_retorno, status = :status, observacoes = :observacoes, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
+        $sql = "UPDATE adms_sst_afastamentos SET adms_user_id = :adms_user_id, adms_sst_cid_id = :adms_sst_cid_id, adms_sst_cid_secundario_id = :adms_sst_cid_secundario_id, adms_sst_medico_id = :adms_sst_medico_id, tipo = :tipo, natureza = :natureza, data_inicio = :data_inicio, data_fim = :data_fim, dias_afastamento = :dias_afastamento, data_retorno = :data_retorno, status = :status, observacoes = :observacoes, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_cid_id', $data['adms_sst_cid_id'] ?? null);
+        $this->bindField($stmt, ':adms_sst_cid_secundario_id', $data['adms_sst_cid_secundario_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_medico_id', $data['adms_sst_medico_id'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':natureza', $data['natureza'] ?? null);
         $this->bindField($stmt, ':data_inicio', $data['data_inicio'] ?? null);
         $this->bindField($stmt, ':data_fim', $data['data_fim'] ?? null);
         $this->bindField($stmt, ':dias_afastamento', $data['dias_afastamento'] ?? null);

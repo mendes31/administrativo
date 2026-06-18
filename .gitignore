@@ -37,5 +37,8 @@ storage/private/payroll/*
 # Bibliotecas locais do qpdf em Linux (manter fora do Git/deploy automático)
 /lib/
 
+# Dados brutos CID-10 DATASUS (importar localmente via seed)
+database/seeds/data/CID10CSV.zip
+database/seeds/data/cid10_raw/
 
 

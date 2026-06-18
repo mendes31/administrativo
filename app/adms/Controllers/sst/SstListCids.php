@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\ScreenResolutionHelper;
 use App\adms\Models\Repository\SstCidsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -17,16 +18,29 @@ class SstListCids
 
     public function index(string|int $page = 1): void
     {
+        $resolution = ScreenResolutionHelper::getScreenResolution();
+        $responsiveClasses = ScreenResolutionHelper::getResponsiveClasses($resolution['category']);
+        $paginationSettings = ScreenResolutionHelper::getPaginationSettings($resolution['category']);
+
+        if (isset($_GET['limpar'])) {
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-cids');
+            exit;
+        }
+
         $filters = [
             'search' => $_GET['search'] ?? '',
-            'adms_user_id' => $_GET['adms_user_id'] ?? '',
             'status' => $_GET['status'] ?? '',
+            'capitulo_num' => $_GET['capitulo_num'] ?? '',
+            'frequente' => $_GET['frequente'] ?? '',
         ];
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int) $_GET['page'];
         }
-        if (isset($_GET['per_page']) && in_array((int) $_GET['per_page'], [10, 20, 50, 100], true)) {
+        $allowedPerPage = [10, 20, 50, 100];
+        if (isset($_GET['per_page']) && in_array((int) $_GET['per_page'], $allowedPerPage, true)) {
             $this->limitResult = (int) $_GET['per_page'];
+        } else {
+            $this->limitResult = (int) ($paginationSettings['per_page'] ?? 10);
         }
         $repo = new SstCidsRepository();
         $total = $repo->getTotal($filters);
@@ -40,6 +54,8 @@ class SstListCids
         );
         $this->data['per_page'] = $this->limitResult;
         $this->data['filters'] = $filters;
+        $this->data['capitulos'] = \App\adms\Helpers\SstCidCapituloHelper::all();
+        $this->data['total_cids'] = $total;
         $this->data['entity'] = array (
   'table' => 'adms_sst_cids',
   'singular' => 'CID',
@@ -89,9 +105,12 @@ class SstListCids
         $pageElements = [
             'title_head' => 'CIDs - SST',
             'menu' => 'sst-list-cids',
-            'buttonPermission' => ['SstCreateCid', 'SstUpdateCid', 'SstDeleteCid'],
+            'buttonPermission' => ['SstCreateCid', 'SstUpdateCid', 'SstDeleteCid', 'SstReportCids'],
         ];
         $this->data = array_merge($this->data ?? [], (new PageLayoutService())->configurePageElements($pageElements));
+        $this->data['responsiveClasses'] = $responsiveClasses;
+        $this->data['paginationSettings'] = $paginationSettings;
+        $this->data['screenResolution'] = $resolution;
         (new LoadViewService('adms/Views/sst/cids/list', $this->data))->loadView();
     }
 }

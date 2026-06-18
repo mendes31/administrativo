@@ -33,8 +33,10 @@ function formatCellValue(string $col, mixed $value): string {
             <div class="card mb-4 shadow-sm">
                 <div class="card-header"><h5 class="mb-0">Dados</h5></div>
                 <div class="card-body"><table class="table table-sm mb-0">
-                    <tr><th width="35%">Colaborador:</th><td><?= formatCellValue('adms_user_id', $item['adms_user_id'] ?? null) ?></td></tr>
-<tr><th width="35%">CID:</th><td><?= formatCellValue('adms_sst_cid_id', $item['adms_sst_cid_id'] ?? null) ?></td></tr>
+                    <tr><th width="35%">Colaborador:</th><td><?= htmlspecialchars($item['colaborador_nome'] ?? '-') ?></td></tr>
+<tr><th width="35%">CID principal:</th><td><?= htmlspecialchars($item['cid_nome'] ?? '-') ?></td></tr>
+<tr><th width="35%">CID secundário:</th><td><?= htmlspecialchars($item['cid_secundario_nome'] ?? '-') ?></td></tr>
+<tr><th width="35%">Natureza / nexo:</th><td><?= htmlspecialchars($item['natureza'] ?? '-') ?></td></tr>
 <tr><th width="35%">Médico:</th><td><?= formatCellValue('adms_sst_medico_id', $item['adms_sst_medico_id'] ?? null) ?></td></tr>
 <tr><th width="35%">Tipo:</th><td><?= formatCellValue('tipo', $item['tipo'] ?? null) ?></td></tr>
 <tr><th width="35%">Data início:</th><td><?= formatCellValue('data_inicio', $item['data_inicio'] ?? null) ?></td></tr>
@@ -43,7 +45,6 @@ function formatCellValue(string $col, mixed $value): string {
 <tr><th width="35%">Data retorno:</th><td><?= formatCellValue('data_retorno', $item['data_retorno'] ?? null) ?></td></tr>
 <tr><th width="35%">Status:</th><td><?= formatCellValue('status', $item['status'] ?? null) ?></td></tr>
 <tr><th width="35%">Observações:</th><td><?= formatCellValue('observacoes', $item['observacoes'] ?? null) ?></td></tr>
-<tr><th>Colaborador:</th><td><?= htmlspecialchars($item['colaborador_nome'] ?? '-') ?></td></tr>
 
                     <tr><th>Cadastrado em:</th><td><?= !empty($item['created_at']) ? date('d/m/Y H:i', strtotime($item['created_at'])) : '-' ?></td></tr>
                     <tr><th>Atualizado em:</th><td><?= !empty($item['updated_at']) ? date('d/m/Y H:i', strtotime($item['updated_at'])) : '-' ?></td></tr>

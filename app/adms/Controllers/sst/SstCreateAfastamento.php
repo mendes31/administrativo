@@ -154,8 +154,10 @@ class SstCreateAfastamento
         $data = [];
         $data['adms_user_id'] = $_POST['adms_user_id'] ?? null;
         $data['adms_sst_cid_id'] = $_POST['adms_sst_cid_id'] ?? null;
+        $data['adms_sst_cid_secundario_id'] = $_POST['adms_sst_cid_secundario_id'] ?? null;
         $data['adms_sst_medico_id'] = $_POST['adms_sst_medico_id'] ?? null;
         $data['tipo'] = $_POST['tipo'] ?? null;
+        $data['natureza'] = $_POST['natureza'] ?? null;
         $data['data_inicio'] = $_POST['data_inicio'] ?? null;
         $data['data_fim'] = $_POST['data_fim'] ?? null;
         $data['dias_afastamento'] = $_POST['dias_afastamento'] ?? null;

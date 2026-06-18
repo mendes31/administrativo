@@ -72,14 +72,16 @@ class SstAcidentesRepository extends DbConnection
 
     public function create(array $data): int|false
     {
-        $sql = "INSERT INTO adms_sst_acidentes (adms_user_id, adms_sst_cid_id, tipo, data_ocorrencia, local, descricao, cat_numero, cat_data, investigacao, plano_acao, status, created_by, updated_by, created_at, updated_at)
-                VALUES (:adms_user_id, :adms_sst_cid_id, :tipo, :data_ocorrencia, :local, :descricao, :cat_numero, :cat_data, :investigacao, :plano_acao, :status, :created_by, :updated_by, NOW(), NOW())";
+        $sql = "INSERT INTO adms_sst_acidentes (adms_user_id, adms_sst_cid_id, tipo, natureza, data_ocorrencia, local, parte_corpo, descricao, cat_numero, cat_data, investigacao, plano_acao, status, created_by, updated_by, created_at, updated_at)
+                VALUES (:adms_user_id, :adms_sst_cid_id, :tipo, :natureza, :data_ocorrencia, :local, :parte_corpo, :descricao, :cat_numero, :cat_data, :investigacao, :plano_acao, :status, :created_by, :updated_by, NOW(), NOW())";
         $stmt = $this->getConnection()->prepare($sql);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_cid_id', $data['adms_sst_cid_id'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':natureza', $data['natureza'] ?? null);
         $this->bindField($stmt, ':data_ocorrencia', $data['data_ocorrencia'] ?? null);
         $this->bindField($stmt, ':local', $data['local'] ?? null);
+        $this->bindField($stmt, ':parte_corpo', $data['parte_corpo'] ?? null);
         $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
         $this->bindField($stmt, ':cat_numero', $data['cat_numero'] ?? null);
         $this->bindField($stmt, ':cat_data', $data['cat_data'] ?? null);
@@ -105,14 +107,16 @@ class SstAcidentesRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
-        $sql = "UPDATE adms_sst_acidentes SET adms_user_id = :adms_user_id, adms_sst_cid_id = :adms_sst_cid_id, tipo = :tipo, data_ocorrencia = :data_ocorrencia, local = :local, descricao = :descricao, cat_numero = :cat_numero, cat_data = :cat_data, investigacao = :investigacao, plano_acao = :plano_acao, status = :status, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
+        $sql = "UPDATE adms_sst_acidentes SET adms_user_id = :adms_user_id, adms_sst_cid_id = :adms_sst_cid_id, tipo = :tipo, natureza = :natureza, data_ocorrencia = :data_ocorrencia, local = :local, parte_corpo = :parte_corpo, descricao = :descricao, cat_numero = :cat_numero, cat_data = :cat_data, investigacao = :investigacao, plano_acao = :plano_acao, status = :status, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_cid_id', $data['adms_sst_cid_id'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':natureza', $data['natureza'] ?? null);
         $this->bindField($stmt, ':data_ocorrencia', $data['data_ocorrencia'] ?? null);
         $this->bindField($stmt, ':local', $data['local'] ?? null);
+        $this->bindField($stmt, ':parte_corpo', $data['parte_corpo'] ?? null);
         $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
         $this->bindField($stmt, ':cat_numero', $data['cat_numero'] ?? null);
         $this->bindField($stmt, ':cat_data', $data['cat_data'] ?? null);

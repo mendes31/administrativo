@@ -170,8 +170,10 @@ class SstUpdateAcidente
         $data['adms_user_id'] = $_POST['adms_user_id'] ?? null;
         $data['adms_sst_cid_id'] = $_POST['adms_sst_cid_id'] ?? null;
         $data['tipo'] = $_POST['tipo'] ?? null;
+        $data['natureza'] = $_POST['natureza'] ?? null;
         $data['data_ocorrencia'] = $_POST['data_ocorrencia'] ?? null;
         $data['local'] = $_POST['local'] ?? null;
+        $data['parte_corpo'] = $_POST['parte_corpo'] ?? null;
         $data['descricao'] = $_POST['descricao'] ?? null;
         $data['cat_numero'] = $_POST['cat_numero'] ?? null;
         $data['cat_data'] = $_POST['cat_data'] ?? null;

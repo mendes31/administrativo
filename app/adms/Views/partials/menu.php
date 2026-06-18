@@ -1119,6 +1119,12 @@ $menus = [
                         'permission' => 'SstReportAfastamentos',
                         'icon' => 'fas fa-procedures'
                     ],
+                    [
+                        'label' => 'Relatório por CID',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-cids',
+                        'permission' => 'SstReportCids',
+                        'icon' => 'fas fa-notes-medical'
+                    ],
                 ]
             ],
         ]
