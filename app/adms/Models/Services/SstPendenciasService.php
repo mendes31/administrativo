@@ -31,6 +31,37 @@ class SstPendenciasService extends DbConnection
     }
 
     /**
+     * Resumo leve para o dashboard SST (uma consulta consolidada + cache curto).
+     *
+     * @return array{criticas_count: int, epis_amostra: array, exames_amostra: array}
+     */
+    public function getDashboardResumo(int $amostra = 5, int $cacheTtlSeconds = 90): array
+    {
+        $cached = $this->readDashboardCache($cacheTtlSeconds);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $data = [
+            'criticas_count' => $this->countPendenciasCriticas(),
+            'epis_amostra' => $this->getPendenciasEpiGeral(['_limit' => $amostra]),
+            'exames_amostra' => $this->getPendenciasExameGeral(['_limit' => $amostra]),
+        ];
+        $this->writeDashboardCache($data);
+
+        return $data;
+    }
+
+    /** Invalida cache do dashboard (após cadastro de ASO/EPI/vínculo). */
+    public static function invalidateDashboardCache(): void
+    {
+        $file = dirname(__DIR__, 3) . '/storage/cache/sst/dashboard_pendencias.json';
+        if (is_file($file)) {
+            @unlink($file);
+        }
+    }
+
+    /**
      * Pendências consolidadas de um colaborador.
      *
      * @return array{epis: array, exames: array, treinamentos: array, resumo: array}
@@ -157,12 +188,12 @@ class SstPendenciasService extends DbConnection
         $pendencias = [];
         $resolver = new SstExamesObrigatoriosResolver();
         foreach ([SstCategoriaAsoHelper::PERIODICO] as $categoria) {
-            // Só exige ASO periódico quando há regra de exame (necessidade ou matriz risco→exame) para o colaborador.
-            if ($resolver->resolveForUser($userId, $categoria) === []) {
+            $regras = $resolver->resolveForUser($userId, $categoria);
+            if ($regras === []) {
                 continue;
             }
             $ultimo = $this->getUltimoAsoEvento($userId, $categoria);
-            $periodicidade = $this->getPeriodicidadePadraoCategoria($userId, $categoria);
+            $periodicidade = $this->maxPeriodicidadeMeses($regras);
             $situacao = $this->avaliarSituacaoEventoAso($ultimo, $periodicidade);
             if ($situacao === null) {
                 continue;
@@ -255,30 +286,16 @@ class SstPendenciasService extends DbConnection
                 : [],
             'asos_vencidos' => $this->getAsosVencidosSemRegra($filters),
             'epis_troca_vencida' => $this->getEpisTrocaVencidaSemRegra($filters),
-            'afastamentos_ativos' => $this->getAfastamentosAtivos($filters),
+            'afastamentos_ativos' => $this->getAfastamentosAtivosRelatorio($filters),
             'acidentes_abertos' => $this->getAcidentesAbertos($filters),
         ];
     }
 
     public function countPendenciasCriticas(): int
     {
-        $report = $this->getRelatorioCompleto();
-        $criticas = self::SITUACOES_CRITICAS;
-
-        $total = 0;
-        $keys = ['epis_obrigatorios', 'exames_obrigatorios'];
-        if (self::incluirTreinamentos()) {
-            $keys[] = 'treinamentos_obrigatorios';
-        }
-        foreach ($keys as $key) {
-            foreach ($report[$key] ?? [] as $row) {
-                if (in_array($row['situacao'] ?? '', $criticas, true)) {
-                    $total++;
-                }
-            }
-        }
-
-        return $total;
+        return $this->countPendenciasEpiCriticas()
+            + $this->countPendenciasExameCriticas()
+            + (self::incluirTreinamentos() ? $this->countPendenciasTreinamentoCriticas() : 0);
     }
 
     /**
@@ -286,6 +303,8 @@ class SstPendenciasService extends DbConnection
      */
     private function getPendenciasEpiGeral(array $filters = []): array
     {
+        $rowLimit = max(1, (int) ($filters['_limit'] ?? 1000));
+        unset($filters['_limit']);
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
 
         $sql = "SELECT
@@ -329,7 +348,7 @@ class SstPendenciasService extends DbConnection
                   {$extraWhere}
                 HAVING situacao IS NOT NULL
                 ORDER BY colaborador_nome, epi_nome
-                LIMIT 1000";
+                LIMIT {$rowLimit}";
 
         return $this->executarPendencias($sql, $params, 'epi');
     }
@@ -339,7 +358,10 @@ class SstPendenciasService extends DbConnection
      */
     private function getPendenciasExameGeral(array $filters = []): array
     {
+        $limit = isset($filters['_limit']) ? (int) $filters['_limit'] : null;
+        unset($filters['_limit']);
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoExame('u');
         $sql = "SELECT u.id AS adms_user_id, u.name AS colaborador_nome,
                        dep.name AS departamento_nome, pos.name AS cargo_nome
                 FROM adms_users u
@@ -347,6 +369,7 @@ class SstPendenciasService extends DbConnection
                 LEFT JOIN adms_positions pos ON pos.id = u.user_position_id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
+                  AND {$obrigacaoSql}
                   {$extraWhere}
                 ORDER BY colaborador_nome
                 LIMIT 500";
@@ -364,6 +387,9 @@ class SstPendenciasService extends DbConnection
             }
             foreach ($this->getPendenciasExamePorUsuario($uid) as $row) {
                 $out[] = array_merge($user, $row);
+                if ($limit !== null && count($out) >= $limit) {
+                    return $out;
+                }
             }
         }
 
@@ -552,7 +578,7 @@ class SstPendenciasService extends DbConnection
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function getAfastamentosAtivos(array $filters = []): array
+    private function getAfastamentosAtivosRelatorio(array $filters = []): array
     {
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
 
@@ -709,9 +735,18 @@ class SstPendenciasService extends DbConnection
 
     private function getPeriodicidadePadraoCategoria(int $userId, string $categoria): int
     {
-        $resolver = new SstExamesObrigatoriosResolver();
+        $regras = (new SstExamesObrigatoriosResolver())->resolveForUser($userId, $categoria);
+
+        return $this->maxPeriodicidadeMeses($regras);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $regras
+     */
+    private function maxPeriodicidadeMeses(array $regras): int
+    {
         $max = 0;
-        foreach ($resolver->resolveForUser($userId, $categoria) as $regra) {
+        foreach ($regras as $regra) {
             $meses = (int) ($regra['periodicidade_meses'] ?? 0);
             if ($meses > $max) {
                 $max = $meses;
@@ -719,6 +754,214 @@ class SstPendenciasService extends DbConnection
         }
 
         return $max > 0 ? $max : 12;
+    }
+
+    private function countPendenciasEpiCriticas(array $filters = []): int
+    {
+        [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
+        $criticas = "'" . implode("','", ['nao_entregue', 'troca_vencida']) . "'";
+
+        $sql = "SELECT COUNT(*) AS total FROM (
+                SELECT
+                    CASE
+                        WHEN ult.id IS NULL THEN 'nao_entregue'
+                        WHEN ult.data_prevista_troca IS NOT NULL AND ult.data_prevista_troca < CURDATE() THEN 'troca_vencida'
+                        WHEN ult.data_prevista_troca IS NOT NULL
+                             AND ult.data_prevista_troca >= CURDATE()
+                             AND ult.data_prevista_troca <= DATE_ADD(CURDATE(), INTERVAL :dias DAY) THEN 'troca_a_vencer'
+                        ELSE NULL
+                    END AS situacao
+                FROM adms_users u
+                INNER JOIN adms_sst_epi_necessidade n ON {$this->sqlRegraNecessidade('n', 'u')}
+                INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'
+                LEFT JOIN (
+                    SELECT e1.*
+                    FROM adms_sst_epi_entregas e1
+                    INNER JOIN (
+                        SELECT adms_user_id, adms_sst_epi_id, MAX(data_movimento) AS max_data
+                        FROM adms_sst_epi_entregas
+                        WHERE tipo_movimento = 'Entrega'
+                        GROUP BY adms_user_id, adms_sst_epi_id
+                    ) em ON em.adms_user_id = e1.adms_user_id
+                        AND em.adms_sst_epi_id = e1.adms_sst_epi_id
+                        AND em.max_data = e1.data_movimento
+                        AND e1.tipo_movimento = 'Entrega'
+                ) ult ON ult.adms_user_id = u.id AND ult.adms_sst_epi_id = n.adms_sst_epi_id
+                WHERE u.status = 'Ativo'
+                  AND (u.data_desligamento IS NULL)
+                  AND n.obrigatorio = 1
+                  {$extraWhere}
+                HAVING situacao IN ({$criticas})
+            ) sub";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':dias', self::DIAS_ALERTA, PDO::PARAM_INT);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    private function countPendenciasTreinamentoCriticas(array $filters = []): int
+    {
+        if (!self::incluirTreinamentos()) {
+            return 0;
+        }
+
+        [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
+        $criticas = "'" . implode("','", ['sem_vinculo_treinamento', 'treinamento_vencido']) . "'";
+
+        $sql = "SELECT COUNT(*) AS total FROM (
+                SELECT
+                    CASE
+                        WHEN tu.id IS NULL THEN 'sem_vinculo_treinamento'
+                        WHEN tu.status = 'vencido' THEN 'treinamento_vencido'
+                        WHEN tu.status IN ('pendente', 'agendado') THEN 'treinamento_pendente'
+                        WHEN tu.status = 'proximo_vencimento' THEN 'treinamento_a_vencer'
+                        ELSE NULL
+                    END AS situacao
+                FROM adms_users u
+                INNER JOIN adms_training_positions tp
+                    ON tp.adms_position_id = u.user_position_id AND tp.obrigatorio = 1
+                INNER JOIN adms_trainings t ON t.id = tp.adms_training_id AND t.ativo = 1
+                LEFT JOIN (
+                    SELECT tu1.*
+                    FROM adms_training_users tu1
+                    INNER JOIN (
+                        SELECT adms_user_id, adms_training_id, MAX(id) AS max_id
+                        FROM adms_training_users
+                        GROUP BY adms_user_id, adms_training_id
+                    ) latest ON latest.max_id = tu1.id
+                ) tu ON tu.adms_user_id = u.id AND tu.adms_training_id = t.id
+                WHERE u.status = 'Ativo'
+                  AND (u.data_desligamento IS NULL)
+                  {$extraWhere}
+                HAVING situacao IN ({$criticas})
+            ) sub";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    private function countPendenciasExameCriticas(array $filters = []): int
+    {
+        [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoExame('u');
+        $sql = "SELECT u.id AS adms_user_id
+                FROM adms_users u
+                WHERE u.status = 'Ativo'
+                  AND (u.data_desligamento IS NULL)
+                  AND {$obrigacaoSql}
+                  {$extraWhere}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $criticas = self::SITUACOES_CRITICAS;
+        $total = 0;
+        foreach ($users as $user) {
+            $uid = (int) ($user['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($this->getPendenciasExamePorUsuario($uid) as $row) {
+                if (in_array($row['situacao'] ?? '', $criticas, true)) {
+                    $total++;
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    private function sqlUsuarioComObrigacaoExame(string $aliasUser = 'u'): string
+    {
+        $parts = [
+            "EXISTS (
+                SELECT 1 FROM adms_sst_exame_necessidade n
+                INNER JOIN adms_sst_exames ex ON ex.id = n.adms_sst_exame_id AND ex.status = 'Ativo'
+                WHERE n.obrigatorio = 1
+                  AND {$this->sqlRegraNecessidade('n', $aliasUser)}
+                  AND (
+                    n.adms_sst_risco_id IS NULL
+                    OR EXISTS (
+                        SELECT 1 FROM adms_sst_riscos_cargo rc2
+                        WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
+                          AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = {$aliasUser}.user_position_id)
+                          AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = {$aliasUser}.user_department_id)
+                    )
+                  )
+            )",
+        ];
+
+        if ($this->hasTable('adms_sst_risco_exame')) {
+            $parts[] = "EXISTS (
+                SELECT 1 FROM adms_sst_riscos_cargo rc
+                INNER JOIN adms_sst_risco_exame re ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = 1
+                INNER JOIN adms_sst_exames ex ON ex.id = re.adms_sst_exame_id AND ex.status = 'Ativo'
+                WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
+                  AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+            )";
+        }
+
+        return '(' . implode(' OR ', $parts) . ')';
+    }
+
+    private function hasTable(string $table): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t LIMIT 1'
+        );
+        $stmt->bindValue(':t', $table);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{criticas_count: int, epis_amostra: array, exames_amostra: array}|null
+     */
+    private function readDashboardCache(int $ttlSeconds): ?array
+    {
+        $file = dirname(__DIR__, 3) . '/storage/cache/sst/dashboard_pendencias.json';
+        if (!is_readable($file)) {
+            return null;
+        }
+        $payload = json_decode((string) file_get_contents($file), true);
+        if (!is_array($payload) || !isset($payload['stored_at'], $payload['data'])) {
+            return null;
+        }
+        if (time() - (int) $payload['stored_at'] > $ttlSeconds) {
+            return null;
+        }
+
+        return is_array($payload['data']) ? $payload['data'] : null;
+    }
+
+    /**
+     * @param array{criticas_count: int, epis_amostra: array, exames_amostra: array} $data
+     */
+    private function writeDashboardCache(array $data): void
+    {
+        $dir = dirname(__DIR__, 3) . '/storage/cache/sst';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $file = $dir . '/dashboard_pendencias.json';
+        file_put_contents($file, json_encode([
+            'stored_at' => time(),
+            'data' => $data,
+        ], JSON_UNESCAPED_UNICODE));
     }
 
   /** @param array<string, mixed>|null $ultima */

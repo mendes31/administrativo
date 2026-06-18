@@ -86,7 +86,7 @@ class SstDashboardService extends DbConnection
             'exames_vencidos' => $this->getPendingExams(100),
             'epis_vencidos' => $this->getExpiredEpis(100),
             'acidentes_abertos' => $this->getOpenAccidents(100),
-            'afastamentos_ativos' => $this->getAfastamentosAtivos(100),
+            'afastamentos_ativos' => $this->listAfastamentosAtivos(100),
         ];
     }
 
@@ -170,7 +170,7 @@ class SstDashboardService extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    private function getAfastamentosAtivos(int $limit): array
+    public function listAfastamentosAtivos(int $limit = 5): array
     {
         $sql = "SELECT a.*, u.name AS colaborador_nome, c.codigo AS cid_codigo
                 FROM adms_sst_afastamentos a
