@@ -413,7 +413,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <!-- <script src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/forms-mobile-fix.js"></script> -->
 
     <!-- Script para rolar automaticamente para o item ativo do menu -->
-    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js?v=20260617"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-scroll.js?v=20260617d"></script>
     
     <!-- Pesquisa no menu -->
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-search.js"></script>

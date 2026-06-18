@@ -1443,7 +1443,7 @@ if (!function_exists('countPermittedSubmenus')) {
         </div>
         
         <div class="sb-sidenav-menu">
-            <div class="nav">
+            <div class="nav" id="sidenavMenuNav">
                 <?php
 
                 // Função recursiva para renderizar submenus aninhados
@@ -1457,7 +1457,7 @@ if (!function_exists('countPermittedSubmenus')) {
                         array $menuPermission,
                         ?string $menuAtivo = null,
                         int $nivel = 0,
-                        string $parentId = 'sidenavAccordion'
+                        string $parentId = 'sidenavMenuNav'
                     ): void {
                         foreach ($menus as $index => $menu) {
                             $hasSubmenu = !empty($menu['submenu']);
@@ -1658,8 +1658,9 @@ if (!function_exists('countPermittedSubmenus')) {
                                     echo '<div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>';
                                     echo '</a>';
                                     echo '<div class="collapse' . ($isOpen ? ' show' : '') . '" id="' . $submenuId . '" data-bs-parent="#' . $parentId . '">';
-                                    echo '<nav class="sb-sidenav-menu-nested nav">';
-                                    renderMenu($menu['submenu'], $menuPermission, $menuAtivo, $nivel + 1, $submenuId);
+                                    $nestedNavId = 'nav-' . $submenuId;
+                                    echo '<nav class="sb-sidenav-menu-nested nav" id="' . $nestedNavId . '">';
+                                    renderMenu($menu['submenu'], $menuPermission, $menuAtivo, $nivel + 1, $nestedNavId);
                                     echo '</nav></div>';
                                 }
                             } else {
