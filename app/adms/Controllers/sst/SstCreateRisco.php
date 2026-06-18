@@ -8,13 +8,6 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstRiscoCatalogHelper;
 use App\adms\Models\Repository\SstRiscosRepository;
-use App\adms\Models\Repository\DepartmentsRepository;
-use App\adms\Models\Repository\PositionsRepository;
-use App\adms\Models\Repository\UsersRepository;
-use App\adms\Models\Repository\SstCidsRepository;
-use App\adms\Models\Repository\SstEpisRepository;
-use App\adms\Models\Repository\SstExamesRepository;
-use App\adms\Models\Repository\SstMedicosRepository;
 use App\adms\Views\Services\LoadViewService;
 
 class SstCreateRisco
@@ -27,54 +20,17 @@ class SstCreateRisco
             $this->create();
             return;
         }
-        $repo = new SstRiscosRepository();
-        $this->loadFormData();
-        $this->data['entity'] = array (
-  'table' => 'adms_sst_riscos',
-  'singular' => 'Risco',
-  'plural' => 'Riscos',
-  'prefix' => 'Risco',
-  'url' => 'risco',
-  'menu' => 'sst-list-riscos',
-  'icon' => 'fa-exclamation-triangle',
-  'type' => 'catalog',
-  'fields' => 
-  array (
-    'nome' => 
-    array (
-      'label' => 'Nome',
-      'type' => 'text',
-      'required' => true,
-    ),
-    'descricao' => 
-    array (
-      'label' => 'Descrição',
-      'type' => 'textarea',
-    ),
-    'tipo' => 
-    array (
-      'label' => 'Tipo',
-      'type' => 'text',
-    ),
-    'status' => 
-    array (
-      'label' => 'Status',
-      'type' => 'select',
-      'options' => 
-      array (
-        0 => 'Ativo',
-        1 => 'Inativo',
-      ),
-    ),
-  ),
-  'list_cols' => 
-  array (
-    0 => 'id',
-    1 => 'nome',
-    2 => 'tipo',
-    3 => 'status',
-  ),
-);
+        $this->data['item'] = [];
+        $this->data['entity'] = [
+            'table' => 'adms_sst_riscos',
+            'singular' => 'Risco',
+            'plural' => 'Riscos',
+            'prefix' => 'Risco',
+            'url' => 'risco',
+            'menu' => 'sst-list-riscos',
+            'icon' => 'fa-exclamation-triangle',
+            'type' => 'catalog',
+        ];
         $pageElements = [
             'title_head' => 'Create Risco - SST',
             'menu' => 'sst-list-riscos',
@@ -84,24 +40,12 @@ class SstCreateRisco
         (new LoadViewService('adms/Views/sst/riscos/form', $this->data))->loadView();
     }
 
-    private function loadFormData(): void
-    {
-        $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
-        $this->data['positions'] = (new PositionsRepository())->getAllPositionsSelect();
-        $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
-        $this->data['exames'] = (new SstExamesRepository())->getAll(1, 500);
-        $this->data['epis'] = (new SstEpisRepository())->getAll(1, 500);
-        $this->data['medicos'] = (new SstMedicosRepository())->getAll(1, 500);
-        $this->data['cids'] = (new SstCidsRepository())->getAll(1, 500);
-        $this->data['riscos'] = (new SstRiscosRepository())->getAll(1, 500);
-    }
-
     private function create(): void
     {
         if (!CSRFHelper::validateCSRFToken('sst_riscos_form', $_POST['csrf_token'] ?? '')) {
-            $_SESSION['msg'] = 'Token CSRF inválido.';
+            $_SESSION['msg'] = 'Sessão expirada ou formulário já enviado. Abra o cadastro novamente e tente de novo.';
             $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-riscos');
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-risco');
             exit;
         }
         $repo = new SstRiscosRepository();
@@ -114,7 +58,15 @@ class SstCreateRisco
             exit;
         }
 
-        $newId = $repo->create($data);
+        try {
+            $newId = $repo->create($data);
+        } catch (\PDOException) {
+            $_SESSION['msg'] = 'Erro ao salvar. Execute as migrations SST (riscos) e tente novamente.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-risco');
+            exit;
+        }
+
         if ($newId) {
             $_SESSION['msg'] = 'Registro salvo com sucesso.';
             $_SESSION['msg_type'] = 'success';

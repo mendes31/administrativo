@@ -81,6 +81,10 @@ class SstRiscosRepository extends DbConnection
 
     public function create(array $data): int|false
     {
+        if (!$this->hasColumn('grupo_risco')) {
+            return $this->createLegacy($data);
+        }
+
         $sql = 'INSERT INTO adms_sst_riscos (
                     codigo, nome, descricao, grupo_risco, tipo,
                     necessita_monitoramento_medico, necessita_epi,
@@ -112,6 +116,10 @@ class SstRiscosRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
+        if (!$this->hasColumn('grupo_risco')) {
+            return $this->updateLegacy($id, $data, $oldData);
+        }
+
         $sql = 'UPDATE adms_sst_riscos SET
                     codigo = :codigo,
                     nome = :nome,
@@ -187,7 +195,11 @@ class SstRiscosRepository extends DbConnection
         $where = [];
         $params = [];
         if (!empty($filters['search'])) {
-            $where[] = '(t.nome LIKE :search OR t.codigo LIKE :search)';
+            if ($this->hasColumn('codigo')) {
+                $where[] = '(t.nome LIKE :search OR t.codigo LIKE :search)';
+            } else {
+                $where[] = 't.nome LIKE :search';
+            }
             $params[':search'] = '%' . $filters['search'] . '%';
         }
         if (!empty($filters['grupo_risco']) && $this->hasColumn('grupo_risco')) {
@@ -208,16 +220,72 @@ class SstRiscosRepository extends DbConnection
         static $cache = null;
         if ($cache === null) {
             $cache = [];
-            if (!$this->hasTable('adms_sst_riscos')) {
+            try {
+                $stmt = $this->getConnection()->query('SHOW COLUMNS FROM adms_sst_riscos');
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $col) {
+                    $cache[$col['Field']] = true;
+                }
+            } catch (\PDOException) {
                 return false;
-            }
-            $stmt = $this->getConnection()->query('SHOW COLUMNS FROM adms_sst_riscos');
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $col) {
-                $cache[$col['Field']] = true;
             }
         }
 
         return !empty($cache[$column]);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function createLegacy(array $data): int|false
+    {
+        $grupo = $data['grupo_risco'] ?? $data['tipo'] ?? null;
+        $sql = 'INSERT INTO adms_sst_riscos (nome, descricao, tipo, status, created_by, updated_by, created_at, updated_at)
+                VALUES (:nome, :descricao, :tipo, :status, :created_by, :updated_by, NOW(), NOW())';
+        $stmt = $this->getConnection()->prepare($sql);
+        $this->bindField($stmt, ':nome', $data['nome'] ?? null);
+        $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
+        $this->bindField($stmt, ':tipo', $grupo);
+        $this->bindField($stmt, ':status', $data['status'] ?? 'Ativo');
+        $uid = (int) ($_SESSION['user_id'] ?? 1);
+        $stmt->bindValue(':created_by', $uid, PDO::PARAM_INT);
+        $stmt->bindValue(':updated_by', $uid, PDO::PARAM_INT);
+        if (!$stmt->execute()) {
+            return false;
+        }
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $newData = $this->getById($newId);
+            if ($newData) {
+                LogAlteracaoService::registrarAlteracao('adms_sst_riscos', $newId, $uid, 'INSERT', [], $newData);
+            }
+        }
+
+        return $newId;
+    }
+
+    /**
+     * @param array<string, mixed>|null $oldData
+     */
+    private function updateLegacy(int $id, array $data, ?array $oldData): bool
+    {
+        $grupo = $data['grupo_risco'] ?? $data['tipo'] ?? null;
+        $sql = 'UPDATE adms_sst_riscos SET nome = :nome, descricao = :descricao, tipo = :tipo, status = :status,
+                updated_by = :updated_by, updated_at = NOW() WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $this->bindField($stmt, ':nome', $data['nome'] ?? null);
+        $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
+        $this->bindField($stmt, ':tipo', $grupo);
+        $this->bindField($stmt, ':status', $data['status'] ?? 'Ativo');
+        $uid = (int) ($_SESSION['user_id'] ?? 1);
+        $stmt->bindValue(':updated_by', $uid, PDO::PARAM_INT);
+        $ok = $stmt->execute();
+        if ($ok && $oldData) {
+            $newData = $this->getById($id);
+            if ($newData) {
+                LogAlteracaoService::registrarAlteracao('adms_sst_riscos', $id, $uid, 'UPDATE', $oldData, $newData);
+            }
+        }
+
+        return $ok;
     }
 
     private function bindField(\PDOStatement $stmt, string $param, mixed $value): void
