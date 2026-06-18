@@ -155,7 +155,12 @@ class SstPendenciasService extends DbConnection
     public function getPendenciasAsoEventoPorUsuario(int $userId): array
     {
         $pendencias = [];
+        $resolver = new SstExamesObrigatoriosResolver();
         foreach ([SstCategoriaAsoHelper::PERIODICO] as $categoria) {
+            // Só exige ASO periódico quando há regra de exame (necessidade ou matriz risco→exame) para o colaborador.
+            if ($resolver->resolveForUser($userId, $categoria) === []) {
+                continue;
+            }
             $ultimo = $this->getUltimoAsoEvento($userId, $categoria);
             $periodicidade = $this->getPeriodicidadePadraoCategoria($userId, $categoria);
             $situacao = $this->avaliarSituacaoEventoAso($ultimo, $periodicidade);
