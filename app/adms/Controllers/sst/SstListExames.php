@@ -19,7 +19,7 @@ class SstListExames
     {
         $filters = [
             'search' => $_GET['search'] ?? '',
-            'adms_user_id' => $_GET['adms_user_id'] ?? '',
+            'tipo' => $_GET['tipo'] ?? '',
             'status' => $_GET['status'] ?? '',
         ];
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {

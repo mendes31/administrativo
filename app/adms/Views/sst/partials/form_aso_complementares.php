@@ -1,9 +1,24 @@
 <?php
 /** @var array<int, array<string, mixed>> $complementares */
 /** @var array<int, array<string, mixed>> $exames */
+use App\adms\Helpers\SstExameResultadoHelper;
+
 $complementares = $complementares ?? [];
 $exames = $exames ?? [];
 $dataRealizacaoAso = $dataRealizacaoAso ?? '';
+
+$examesMeta = [];
+foreach ($exames as $ex) {
+    $id = (int) ($ex['id'] ?? 0);
+    if ($id <= 0) {
+        continue;
+    }
+    $lista = $ex['resultados_permitidos_list'] ?? SstExameResultadoHelper::decode($ex['resultados_permitidos'] ?? null);
+    $examesMeta[$id] = [
+        'exige_resultado' => !isset($ex['exige_resultado']) || !empty($ex['exige_resultado']),
+        'resultados' => $lista,
+    ];
+}
 ?>
 <div class="col-12 mb-3">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -27,7 +42,7 @@ $dataRealizacaoAso = $dataRealizacaoAso ?? '';
                 <?php foreach ($complementares as $i => $row): ?>
                 <tr class="aso-comp-row">
                     <td>
-                        <select name="complementares[<?= $i ?>][adms_sst_exame_id]" class="form-select form-select-sm" required>
+                        <select name="complementares[<?= $i ?>][adms_sst_exame_id]" class="form-select form-select-sm aso-comp-exame" required>
                             <option value="">Selecione...</option>
                             <?php foreach ($exames as $ex): ?>
                                 <option value="<?= (int)$ex['id'] ?>" <?= ((int)($row['adms_sst_exame_id'] ?? 0) === (int)$ex['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ex['nome'] ?? '') ?></option>
@@ -35,7 +50,21 @@ $dataRealizacaoAso = $dataRealizacaoAso ?? '';
                         </select>
                     </td>
                     <td><input type="date" name="complementares[<?= $i ?>][data_realizacao]" class="form-control form-control-sm" value="<?= htmlspecialchars($row['data_realizacao'] ?? $dataRealizacaoAso) ?>"></td>
-                    <td><input type="text" name="complementares[<?= $i ?>][resultado]" class="form-control form-control-sm" value="<?= htmlspecialchars($row['resultado'] ?? '') ?>" placeholder="Normal, alterado…"></td>
+                    <td class="aso-comp-resultado-cell"><?php
+                        $exId = (int) ($row['adms_sst_exame_id'] ?? 0);
+                        $resultadoAtual = $row['resultado'] ?? '';
+                        $opts = $examesMeta[$exId]['resultados'] ?? [];
+                        if ($opts !== []): ?>
+                            <select name="complementares[<?= $i ?>][resultado]" class="form-select form-select-sm">
+                                <option value="">Selecione...</option>
+                                <?php foreach ($opts as $opt): ?>
+                                    <option value="<?= htmlspecialchars($opt) ?>" <?= $resultadoAtual === $opt ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <input type="text" name="complementares[<?= $i ?>][resultado]" class="form-control form-control-sm" value="<?= htmlspecialchars($resultadoAtual) ?>" placeholder="Normal, alterado…">
+                        <?php endif; ?>
+                    </td>
                     <td><button type="button" class="btn btn-outline-danger btn-sm btn-remove-comp" title="Remover"><i class="fas fa-times"></i></button></td>
                 </tr>
                 <?php endforeach; ?>
@@ -48,7 +77,7 @@ $dataRealizacaoAso = $dataRealizacaoAso ?? '';
 <template id="tpl-aso-comp-row">
     <tr class="aso-comp-row">
         <td>
-            <select name="complementares[__IDX__][adms_sst_exame_id]" class="form-select form-select-sm">
+            <select name="complementares[__IDX__][adms_sst_exame_id]" class="form-select form-select-sm aso-comp-exame">
                 <option value="">Selecione...</option>
                 <?php foreach ($exames as $ex): ?>
                     <option value="<?= (int)$ex['id'] ?>"><?= htmlspecialchars($ex['nome'] ?? '') ?></option>
@@ -56,16 +85,60 @@ $dataRealizacaoAso = $dataRealizacaoAso ?? '';
             </select>
         </td>
         <td><input type="date" name="complementares[__IDX__][data_realizacao]" class="form-control form-control-sm comp-data-realizacao"></td>
-        <td><input type="text" name="complementares[__IDX__][resultado]" class="form-control form-control-sm" placeholder="Normal, alterado…"></td>
+        <td class="aso-comp-resultado-cell"><input type="text" name="complementares[__IDX__][resultado]" class="form-control form-control-sm" placeholder="Normal, alterado…"></td>
         <td><button type="button" class="btn btn-outline-danger btn-sm btn-remove-comp" title="Remover"><i class="fas fa-times"></i></button></td>
     </tr>
 </template>
 <script>
 (function () {
+    const examesMeta = <?= json_encode($examesMeta, JSON_UNESCAPED_UNICODE) ?>;
     const tbody = document.querySelector('#tabela-aso-complementares tbody');
     const tpl = document.getElementById('tpl-aso-comp-row');
     const dataAso = document.getElementById('data_realizacao');
     let idx = tbody ? tbody.querySelectorAll('.aso-comp-row').length : 0;
+
+    function buildResultadoField(name, exameId, currentValue) {
+        const meta = examesMeta[exameId];
+        const cell = document.createElement('td');
+        cell.className = 'aso-comp-resultado-cell';
+        if (meta && Array.isArray(meta.resultados) && meta.resultados.length > 0) {
+            const sel = document.createElement('select');
+            sel.name = name;
+            sel.className = 'form-select form-select-sm';
+            const empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = 'Selecione...';
+            sel.appendChild(empty);
+            meta.resultados.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                if (currentValue === r) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            cell.appendChild(sel);
+        } else {
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.name = name;
+            inp.className = 'form-control form-control-sm';
+            inp.placeholder = 'Normal, alterado…';
+            if (currentValue) inp.value = currentValue;
+            cell.appendChild(inp);
+        }
+        return cell;
+    }
+
+    function onExameChange(select) {
+        const row = select.closest('tr');
+        if (!row) return;
+        const oldCell = row.querySelector('.aso-comp-resultado-cell');
+        if (!oldCell) return;
+        const name = oldCell.querySelector('[name]')?.name || '';
+        const current = oldCell.querySelector('select, input')?.value || '';
+        const newCell = buildResultadoField(name, parseInt(select.value, 10) || 0, current);
+        oldCell.replaceWith(newCell);
+    }
 
     function syncCompDates() {
         const v = dataAso ? dataAso.value : '';
@@ -82,6 +155,12 @@ $dataRealizacaoAso = $dataRealizacaoAso ?? '';
     tbody?.addEventListener('click', function (e) {
         if (e.target.closest('.btn-remove-comp')) {
             e.target.closest('tr')?.remove();
+        }
+    });
+
+    tbody?.addEventListener('change', function (e) {
+        if (e.target.classList.contains('aso-comp-exame')) {
+            onExameChange(e.target);
         }
     });
 
@@ -108,8 +187,11 @@ $dataRealizacaoAso = $dataRealizacaoAso ?? '';
                     const html = tpl.innerHTML.replace(/__IDX__/g, String(idx++));
                     tbody.insertAdjacentHTML('beforeend', html);
                     const row = tbody.lastElementChild;
-                    const sel = row.querySelector('select');
-                    if (sel) sel.value = String(ex.adms_sst_exame_id);
+                    const sel = row.querySelector('.aso-comp-exame');
+                    if (sel) {
+                        sel.value = String(ex.adms_sst_exame_id);
+                        onExameChange(sel);
+                    }
                 });
                 syncCompDates();
             })

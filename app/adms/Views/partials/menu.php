@@ -1017,6 +1017,12 @@ $menus = [
                         'permission' => 'SstListRiscoExame',
                         'icon' => 'fas fa-link'
                     ],
+                    [
+                        'label' => 'EPIs por risco',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-risco-epi',
+                        'permission' => 'SstListRiscoEpi',
+                        'icon' => 'fas fa-link'
+                    ],
                 ]
             ],
             [

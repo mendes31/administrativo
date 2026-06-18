@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstExameCatalogHelper;
 use App\adms\Models\Repository\SstExamesRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -103,13 +104,16 @@ class SstCreateExame
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-exames');
             exit;
         }
-        $data = [];
-        $data['nome'] = $_POST['nome'] ?? null;
-        $data['descricao'] = $_POST['descricao'] ?? null;
-        $data['periodicidade_meses'] = $_POST['periodicidade_meses'] ?? null;
-        $data['status'] = $_POST['status'] ?? null;
-
         $repo = new SstExamesRepository();
+        $data = SstExameCatalogHelper::parseFormData($_POST);
+        $error = SstExameCatalogHelper::validate($data, $repo);
+        if ($error !== null) {
+            $_SESSION['msg'] = $error;
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-exame');
+            exit;
+        }
+
         $newId = $repo->create($data);
         if ($newId) {
             $_SESSION['msg'] = 'Registro salvo com sucesso.';

@@ -1,13 +1,15 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoGrupoHelper;
 
 function formatCellValue(string $col, mixed $value): string
 {
     if ($value === null || $value === '') {
         return '-';
     }
-    if (is_bool($value) || $col === 'obrigatorio' || $col === 'termo_assinado') {
+    if (is_bool($value) || $col === 'obrigatorio' || $col === 'termo_assinado'
+        || $col === 'necessita_monitoramento_medico' || $col === 'necessita_epi') {
         return ($value === true || $value === 1 || $value === '1') ? 'Sim' : 'Não';
     }
     if (str_contains($col, 'data_') && is_string($value)) {
@@ -16,18 +18,17 @@ function formatCellValue(string $col, mixed $value): string
     return htmlspecialchars((string) $value);
 }
 
-$entity = $this->data['entity'];
 $perms = $this->data['buttonPermission'] ?? [];
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_sst_riscos');
 $filtersId = 'sstFiltersRisco';
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-exclamation-triangle me-2"></i><?= htmlspecialchars('Riscos') ?></h2>
+        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-exclamation-triangle me-2"></i>Riscos Ocupacionais</h2>
         <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
-            <li class="breadcrumb-item"><?= htmlspecialchars('Riscos') ?></li>
+            <li class="breadcrumb-item">Riscos</li>
         </ol>
     </div>
     <div class="card mb-4 border-light shadow">
@@ -50,17 +51,29 @@ $filtersId = 'sstFiltersRisco';
                 <form method="get" class="row g-2 mb-3 align-items-end">
                     <div class="col-6 col-sm-4 col-md-3">
                         <label class="form-label" style="font-size:.7rem;">Pesquisar</label>
-                        <input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Nome ou código"
+                               value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
                     </div>
-                    
                     <div class="col-6 col-sm-4 col-md-2">
-            <label for="status" class="form-label" style="font-size:.7rem;">Status</label>
-            <select name="status" id="status" class="form-select form-select-sm">
-                <option value="">Todos</option><?php $sel = ($this->data['filters']['status'] ?? '') === 'Ativo' ? 'selected' : ''; ?>
-<option value="Ativo" <?= $sel ?>>Ativo</option>
-<?php $sel = ($this->data['filters']['status'] ?? '') === 'Inativo' ? 'selected' : ''; ?>
-<option value="Inativo" <?= $sel ?>>Inativo</option>
-</select></div>
+                        <label for="grupo_risco" class="form-label" style="font-size:.7rem;">Grupo</label>
+                        <select name="grupo_risco" id="grupo_risco" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <?php foreach (SstRiscoGrupoHelper::all() as $grupo): ?>
+                                <?php $sel = ($this->data['filters']['grupo_risco'] ?? '') === $grupo ? 'selected' : ''; ?>
+                                <option value="<?= htmlspecialchars($grupo) ?>" <?= $sel ?>><?= htmlspecialchars($grupo) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <label for="status" class="form-label" style="font-size:.7rem;">Status</label>
+                        <select name="status" id="status" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <?php $sel = ($this->data['filters']['status'] ?? '') === 'Ativo' ? 'selected' : ''; ?>
+                            <option value="Ativo" <?= $sel ?>>Ativo</option>
+                            <?php $sel = ($this->data['filters']['status'] ?? '') === 'Inativo' ? 'selected' : ''; ?>
+                            <option value="Inativo" <?= $sel ?>>Inativo</option>
+                        </select>
+                    </div>
                     <div class="col-12 col-sm-auto d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Filtrar</button>
                         <a href="<?= $_ENV['URL_ADM']; ?>sst-list-riscos" class="btn btn-secondary btn-sm">Limpar</a>
@@ -71,23 +84,26 @@ $filtersId = 'sstFiltersRisco';
                 <div class="d-none d-md-block table-responsive">
                     <table class="table table-bordered table-striped table-hover">
                         <thead><tr>
-                            <th>Id</th>
-<th>Nome</th>
-<th>Tipo</th>
-<th>Status</th>
-
+                            <th>Código</th>
+                            <th>Nome</th>
+                            <th>Grupo</th>
+                            <th>Monit. médico</th>
+                            <th>EPI</th>
+                            <th>Status</th>
                             <th class="text-center">Ações</th>
                         </tr></thead>
                         <tbody>
                         <?php foreach ($this->data['items'] as $item):
                             $id = (int)($item['id'] ?? 0);
+                            $grupo = $item['grupo_risco'] ?? $item['tipo'] ?? null;
                         ?>
                             <tr>
-                                <td><?= formatCellValue('id', $item['id'] ?? null) ?></td>
-<td><?= formatCellValue('nome', $item['nome'] ?? null) ?></td>
-<td><?= formatCellValue('tipo', $item['tipo'] ?? null) ?></td>
-<td class="text-center"><span class="badge bg-secondary"><?= htmlspecialchars($item['status'] ?? '') ?></span></td>
-
+                                <td><?= formatCellValue('codigo', $item['codigo'] ?? null) ?></td>
+                                <td><?= formatCellValue('nome', $item['nome'] ?? null) ?></td>
+                                <td><?= formatCellValue('grupo_risco', $grupo) ?></td>
+                                <td><?= formatCellValue('necessita_monitoramento_medico', $item['necessita_monitoramento_medico'] ?? null) ?></td>
+                                <td><?= formatCellValue('necessita_epi', $item['necessita_epi'] ?? null) ?></td>
+                                <td class="text-center"><span class="badge bg-<?= ($item['status'] ?? '') === 'Ativo' ? 'success' : 'secondary' ?>"><?= htmlspecialchars($item['status'] ?? '') ?></span></td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <?php if (in_array('SstViewRisco', $perms)): ?>
@@ -115,12 +131,16 @@ $filtersId = 'sstFiltersRisco';
                         $id = (int)($item['id'] ?? 0);
                         $canView = in_array('SstViewRisco', $perms);
                         $viewUrl = $_ENV['URL_ADM'] . 'sst-view-risco/' . $id;
+                        $grupo = $item['grupo_risco'] ?? $item['tipo'] ?? null;
                     ?>
                         <div class="card mb-2 shadow-sm"<?php if ($canView): ?> onclick="window.location.href='<?= $viewUrl ?>';" style="cursor:pointer;"<?php endif; ?>>
                             <div class="card-body py-2 px-3">
                                 <div class="fw-bold small"><?= formatCellValue('nome', $item['nome'] ?? $id) ?></div>
-                                <?php if (!empty($item['tipo'])): ?>
-                                    <div class="small text-muted"><?= formatCellValue('tipo', $item['tipo']) ?></div>
+                                <?php if (!empty($item['codigo'])): ?>
+                                    <div class="small text-muted"><?= formatCellValue('codigo', $item['codigo']) ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($grupo)): ?>
+                                    <span class="badge bg-light text-dark border"><?= htmlspecialchars($grupo) ?></span>
                                 <?php endif; ?>
                                 <?php if (!empty($item['status'])): ?>
                                     <span class="badge bg-secondary"><?= htmlspecialchars($item['status']) ?></span>

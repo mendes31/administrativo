@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstExameResultadoHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -18,7 +19,7 @@ class SstExamesRepository extends DbConnection
         $sql = "SELECT t.*
                 FROM adms_sst_exames t
                 {$whereClause}
-                ORDER BY t.id DESC
+                ORDER BY t.nome ASC, t.id DESC
                 LIMIT :limit OFFSET :offset";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
@@ -27,7 +28,9 @@ class SstExamesRepository extends DbConnection
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(fn (array $row) => $this->hydrateRow($row), $rows);
     }
 
     public function getTotal(array $filters = []): int
@@ -39,6 +42,7 @@ class SstExamesRepository extends DbConnection
             $stmt->bindValue($k, $v);
         }
         $stmt->execute();
+
         return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
     }
 
@@ -49,31 +53,46 @@ class SstExamesRepository extends DbConnection
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+
+        return $row ? $this->hydrateRow($row) : null;
     }
 
-    public function getByUserId(int $userId, int $limit = 50): array
+    public function existsCodigo(string $codigo, ?int $excludeId = null): bool
     {
-        if (!in_array('adms_user_id', ['nome', 'descricao', 'periodicidade_meses', 'status'], true)) {
-            return [];
+        if ($codigo === '' || !$this->hasColumn('codigo')) {
+            return false;
         }
-        $sql = "SELECT t.* FROM adms_sst_exames t WHERE t.adms_user_id = :uid ORDER BY t.id DESC LIMIT :lim";
+
+        $sql = 'SELECT id FROM adms_sst_exames WHERE codigo = :codigo';
+        $params = [':codigo' => strtoupper($codigo)];
+        if ($excludeId !== null && $excludeId > 0) {
+            $sql .= ' AND id <> :exclude_id';
+            $params[':exclude_id'] = $excludeId;
+        }
+        $sql .= ' LIMIT 1';
+
         $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function create(array $data): int|false
     {
-        $sql = "INSERT INTO adms_sst_exames (nome, descricao, periodicidade_meses, status, created_by, updated_by, created_at, updated_at)
-                VALUES (:nome, :descricao, :periodicidade_meses, :status, :created_by, :updated_by, NOW(), NOW())";
+        $sql = 'INSERT INTO adms_sst_exames (
+                    codigo, nome, descricao, tipo, periodicidade_meses,
+                    possui_validade, validade_meses, exige_resultado, resultados_permitidos,
+                    status, created_by, updated_by, created_at, updated_at
+                ) VALUES (
+                    :codigo, :nome, :descricao, :tipo, :periodicidade_meses,
+                    :possui_validade, :validade_meses, :exige_resultado, :resultados_permitidos,
+                    :status, :created_by, :updated_by, NOW(), NOW()
+                )';
         $stmt = $this->getConnection()->prepare($sql);
-        $this->bindField($stmt, ':nome', $data['nome'] ?? null);
-        $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
-        $this->bindField($stmt, ':periodicidade_meses', $data['periodicidade_meses'] ?? null);
-        $this->bindField($stmt, ':status', $data['status'] ?? null);
+        $this->bindCatalogFields($stmt, $data);
         $uid = (int) ($_SESSION['user_id'] ?? 1);
         $stmt->bindValue(':created_by', $uid, PDO::PARAM_INT);
         $stmt->bindValue(':updated_by', $uid, PDO::PARAM_INT);
@@ -87,19 +106,30 @@ class SstExamesRepository extends DbConnection
                 LogAlteracaoService::registrarAlteracao('adms_sst_exames', $newId, $uid, 'INSERT', [], $newData);
             }
         }
+
         return $newId;
     }
 
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
-        $sql = "UPDATE adms_sst_exames SET nome = :nome, descricao = :descricao, periodicidade_meses = :periodicidade_meses, status = :status, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
+        $sql = 'UPDATE adms_sst_exames SET
+                    codigo = :codigo,
+                    nome = :nome,
+                    descricao = :descricao,
+                    tipo = :tipo,
+                    periodicidade_meses = :periodicidade_meses,
+                    possui_validade = :possui_validade,
+                    validade_meses = :validade_meses,
+                    exige_resultado = :exige_resultado,
+                    resultados_permitidos = :resultados_permitidos,
+                    status = :status,
+                    updated_by = :updated_by,
+                    updated_at = NOW()
+                WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $this->bindField($stmt, ':nome', $data['nome'] ?? null);
-        $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
-        $this->bindField($stmt, ':periodicidade_meses', $data['periodicidade_meses'] ?? null);
-        $this->bindField($stmt, ':status', $data['status'] ?? null);
+        $this->bindCatalogFields($stmt, $data);
         $uid = (int) ($_SESSION['user_id'] ?? 1);
         $stmt->bindValue(':updated_by', $uid, PDO::PARAM_INT);
         $ok = $stmt->execute();
@@ -109,13 +139,14 @@ class SstExamesRepository extends DbConnection
                 LogAlteracaoService::registrarAlteracao('adms_sst_exames', $id, $uid, 'UPDATE', $oldData, $newData);
             }
         }
+
         return $ok;
     }
 
     public function delete(int $id): bool
     {
         $oldData = $this->getById($id);
-        $sql = "DELETE FROM adms_sst_exames WHERE id = :id";
+        $sql = 'DELETE FROM adms_sst_exames WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
@@ -124,7 +155,35 @@ class SstExamesRepository extends DbConnection
             $uid = (int) ($_SESSION['user_id'] ?? 1);
             LogAlteracaoService::registrarAlteracao('adms_sst_exames', $id, $uid, 'DELETE', $oldData, []);
         }
+
         return $deleted;
+    }
+
+    /** @return array<string, mixed> */
+    private function hydrateRow(array $row): array
+    {
+        $row['resultados_permitidos_list'] = SstExameResultadoHelper::decode(
+            isset($row['resultados_permitidos']) ? (string) $row['resultados_permitidos'] : null
+        );
+        $row['possui_validade'] = !empty($row['possui_validade']);
+        $row['exige_resultado'] = !array_key_exists('exige_resultado', $row) || !empty($row['exige_resultado']);
+
+        return $row;
+    }
+
+  /** @param array<string, mixed> $data */
+    private function bindCatalogFields(\PDOStatement $stmt, array $data): void
+    {
+        $this->bindField($stmt, ':codigo', $data['codigo'] ?? null);
+        $this->bindField($stmt, ':nome', $data['nome'] ?? null);
+        $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
+        $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':periodicidade_meses', $data['periodicidade_meses'] ?? null);
+        $this->bindField($stmt, ':possui_validade', !empty($data['possui_validade']));
+        $this->bindField($stmt, ':validade_meses', $data['validade_meses'] ?? null);
+        $this->bindField($stmt, ':exige_resultado', !empty($data['exige_resultado']));
+        $this->bindField($stmt, ':resultados_permitidos', $data['resultados_permitidos'] ?? null);
+        $this->bindField($stmt, ':status', $data['status'] ?? 'Ativo');
     }
 
     private function buildWhere(array $filters): array
@@ -132,33 +191,54 @@ class SstExamesRepository extends DbConnection
         $where = [];
         $params = [];
         if (!empty($filters['search'])) {
-            $where[] = '(t.nome LIKE :search)';
+            $where[] = '(t.nome LIKE :search OR t.codigo LIKE :search)';
             $params[':search'] = '%' . $filters['search'] . '%';
         }
-        if (!empty($filters['adms_user_id'])) {
-            $where[] = 't.adms_user_id = :adms_user_id';
-            $params[':adms_user_id'] = (int) $filters['adms_user_id'];
+        if (!empty($filters['tipo']) && $this->hasColumn('tipo')) {
+            $where[] = 't.tipo = :tipo';
+            $params[':tipo'] = $filters['tipo'];
         }
         if (!empty($filters['status'])) {
             $where[] = 't.status = :status';
             $params[':status'] = $filters['status'];
         }
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
         return [$whereClause, $params];
+    }
+
+    private function hasColumn(string $column): bool
+    {
+        static $cache = null;
+        if ($cache === null) {
+            $cache = [];
+            if (!$this->hasTable('adms_sst_exames')) {
+                return false;
+            }
+            $stmt = $this->getConnection()->query('SHOW COLUMNS FROM adms_sst_exames');
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $col) {
+                $cache[$col['Field']] = true;
+            }
+        }
+
+        return !empty($cache[$column]);
     }
 
     private function bindField(\PDOStatement $stmt, string $param, mixed $value): void
     {
         if ($value === null || $value === '') {
             $stmt->bindValue($param, null, PDO::PARAM_NULL);
+
             return;
         }
         if (is_bool($value)) {
             $stmt->bindValue($param, $value ? 1 : 0, PDO::PARAM_INT);
+
             return;
         }
         if (is_int($value)) {
             $stmt->bindValue($param, $value, PDO::PARAM_INT);
+
             return;
         }
         $stmt->bindValue($param, (string) $value, PDO::PARAM_STR);

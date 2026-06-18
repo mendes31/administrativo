@@ -57,7 +57,8 @@ class SstEmployeeProfileService extends DbConnection
     public function getRiscosVinculados(int $userId): array
     {
         $sql = "SELECT rc.id, rc.nivel, rc.observacoes,
-                       r.nome AS risco_nome, r.tipo AS risco_tipo,
+                       r.nome AS risco_nome,
+                       COALESCE(r.grupo_risco, r.tipo) AS risco_tipo,
                        p.name AS cargo_regra, d.name AS departamento_regra
                 FROM adms_users u
                 INNER JOIN adms_sst_riscos_cargo rc ON {$this->sqlRegraCargoDep('rc', 'u')}
@@ -77,16 +78,19 @@ class SstEmployeeProfileService extends DbConnection
      */
     public function getObrigatoriedades(int $userId): array
     {
-        $episSql = "SELECT n.id, n.obrigatorio, n.observacoes,
-                           ep.nome AS epi_nome, ep.ca_numero,
-                           p.name AS cargo_regra, d.name AS departamento_regra
-                    FROM adms_users u
-                    INNER JOIN adms_sst_epi_necessidade n ON {$this->sqlRegraCargoDep('n', 'u')}
-                    INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'
-                    LEFT JOIN adms_positions p ON p.id = n.adms_position_id
-                    LEFT JOIN adms_departments d ON d.id = n.adms_department_id
-                    WHERE u.id = :uid AND n.obrigatorio = 1
-                    ORDER BY ep.nome";
+        $episRegras = (new SstEpisObrigatoriosResolver())->resolveForUser($userId);
+        $epis = [];
+        foreach ($episRegras as $regra) {
+            $epis[] = [
+                'adms_sst_epi_id' => (int) ($regra['adms_sst_epi_id'] ?? 0),
+                'obrigatorio' => 1,
+                'epi_nome' => (string) ($regra['epi_nome'] ?? ''),
+                'origem' => (string) ($regra['origem'] ?? ''),
+                'cargo_regra' => null,
+                'departamento_regra' => null,
+                'observacoes' => null,
+            ];
+        }
 
         $examesSql = "SELECT n.id, n.obrigatorio, n.periodicidade_meses, n.observacoes,
                              ex.nome AS exame_nome, ex.periodicidade_meses AS exame_periodicidade_padrao,
@@ -100,7 +104,7 @@ class SstEmployeeProfileService extends DbConnection
                       ORDER BY ex.nome";
 
         return [
-            'epis' => $this->fetchAll($episSql, [':uid' => $userId]),
+            'epis' => $epis,
             'exames' => $this->fetchAll($examesSql, [':uid' => $userId]),
         ];
     }

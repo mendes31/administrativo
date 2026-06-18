@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoCatalogHelper;
 use App\adms\Models\Repository\SstRiscosRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -103,13 +104,16 @@ class SstCreateRisco
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-riscos');
             exit;
         }
-        $data = [];
-        $data['nome'] = $_POST['nome'] ?? null;
-        $data['descricao'] = $_POST['descricao'] ?? null;
-        $data['tipo'] = $_POST['tipo'] ?? null;
-        $data['status'] = $_POST['status'] ?? null;
-
         $repo = new SstRiscosRepository();
+        $data = SstRiscoCatalogHelper::parseFormData($_POST);
+        $error = SstRiscoCatalogHelper::validate($data, $repo);
+        if ($error !== null) {
+            $_SESSION['msg'] = $error;
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-risco');
+            exit;
+        }
+
         $newId = $repo->create($data);
         if ($newId) {
             $_SESSION['msg'] = 'Registro salvo com sucesso.';

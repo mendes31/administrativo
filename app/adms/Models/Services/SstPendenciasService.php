@@ -95,46 +95,30 @@ class SstPendenciasService extends DbConnection
      */
     public function getPendenciasEpiPorUsuario(int $userId): array
     {
-        $sql = "SELECT
-                    n.adms_sst_epi_id,
-                    ep.nome AS epi_nome,
-                    ult.data_movimento AS ultima_entrega,
-                    ult.data_prevista_troca,
-                    CASE
-                        WHEN ult.id IS NULL THEN 'nao_entregue'
-                        WHEN ult.data_prevista_troca IS NOT NULL AND ult.data_prevista_troca < CURDATE() THEN 'troca_vencida'
-                        WHEN ult.data_prevista_troca IS NOT NULL
-                             AND ult.data_prevista_troca >= CURDATE()
-                             AND ult.data_prevista_troca <= DATE_ADD(CURDATE(), INTERVAL :dias DAY) THEN 'troca_a_vencer'
-                        ELSE NULL
-                    END AS situacao
-                FROM adms_users u
-                INNER JOIN adms_sst_epi_necessidade n ON {$this->sqlRegraNecessidade('n', 'u')}
-                INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'
-                LEFT JOIN (
-                    SELECT e1.*
-                    FROM adms_sst_epi_entregas e1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_sst_epi_id, MAX(data_movimento) AS max_data
-                        FROM adms_sst_epi_entregas
-                        WHERE tipo_movimento = 'Entrega' AND adms_user_id = :uid
-                        GROUP BY adms_user_id, adms_sst_epi_id
-                    ) em ON em.adms_user_id = e1.adms_user_id
-                        AND em.adms_sst_epi_id = e1.adms_sst_epi_id
-                        AND em.max_data = e1.data_movimento
-                        AND e1.tipo_movimento = 'Entrega'
-                ) ult ON ult.adms_user_id = u.id AND ult.adms_sst_epi_id = n.adms_sst_epi_id
-                WHERE u.id = :uid
-                  AND n.obrigatorio = 1
-                HAVING situacao IS NOT NULL
-                ORDER BY epi_nome";
+        $regras = (new SstEpisObrigatoriosResolver())->resolveForUser($userId);
+        $pendencias = [];
 
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':dias', self::DIAS_ALERTA, PDO::PARAM_INT);
-        $stmt->execute();
+        foreach ($regras as $regra) {
+            $epiId = (int) ($regra['adms_sst_epi_id'] ?? 0);
+            if ($epiId <= 0) {
+                continue;
+            }
+            $ult = $this->getUltimaEntregaEpi($userId, $epiId);
+            $situacao = $this->avaliarSituacaoEpi($ult);
+            if ($situacao === null) {
+                continue;
+            }
+            $pendencias[] = [
+                'adms_sst_epi_id' => $epiId,
+                'epi_nome' => (string) ($regra['epi_nome'] ?? ''),
+                'origem' => (string) ($regra['origem'] ?? ''),
+                'ultima_entrega' => $ult['data_movimento'] ?? null,
+                'data_prevista_troca' => $ult['data_prevista_troca'] ?? null,
+                'situacao' => $situacao,
+            ];
+        }
 
-        return $this->enriquecerPendencias($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'epi');
+        return $this->enriquecerPendencias($pendencias, 'epi');
     }
 
     /**
@@ -303,54 +287,42 @@ class SstPendenciasService extends DbConnection
      */
     private function getPendenciasEpiGeral(array $filters = []): array
     {
-        $rowLimit = max(1, (int) ($filters['_limit'] ?? 1000));
+        $limit = isset($filters['_limit']) ? (int) $filters['_limit'] : null;
         unset($filters['_limit']);
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
-
-        $sql = "SELECT
-                    u.id AS adms_user_id,
-                    u.name AS colaborador_nome,
-                    dep.name AS departamento_nome,
-                    pos.name AS cargo_nome,
-                    n.adms_sst_epi_id,
-                    ep.nome AS epi_nome,
-                    ult.data_movimento AS ultima_entrega,
-                    ult.data_prevista_troca,
-                    CASE
-                        WHEN ult.id IS NULL THEN 'nao_entregue'
-                        WHEN ult.data_prevista_troca IS NOT NULL AND ult.data_prevista_troca < CURDATE() THEN 'troca_vencida'
-                        WHEN ult.data_prevista_troca IS NOT NULL
-                             AND ult.data_prevista_troca >= CURDATE()
-                             AND ult.data_prevista_troca <= DATE_ADD(CURDATE(), INTERVAL :dias DAY) THEN 'troca_a_vencer'
-                        ELSE NULL
-                    END AS situacao
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoEpi('u');
+        $sql = "SELECT u.id AS adms_user_id, u.name AS colaborador_nome,
+                       dep.name AS departamento_nome, pos.name AS cargo_nome
                 FROM adms_users u
                 LEFT JOIN adms_departments dep ON dep.id = u.user_department_id
                 LEFT JOIN adms_positions pos ON pos.id = u.user_position_id
-                INNER JOIN adms_sst_epi_necessidade n ON {$this->sqlRegraNecessidade('n', 'u')}
-                INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'
-                LEFT JOIN (
-                    SELECT e1.*
-                    FROM adms_sst_epi_entregas e1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_sst_epi_id, MAX(data_movimento) AS max_data
-                        FROM adms_sst_epi_entregas
-                        WHERE tipo_movimento = 'Entrega'
-                        GROUP BY adms_user_id, adms_sst_epi_id
-                    ) em ON em.adms_user_id = e1.adms_user_id
-                        AND em.adms_sst_epi_id = e1.adms_sst_epi_id
-                        AND em.max_data = e1.data_movimento
-                        AND e1.tipo_movimento = 'Entrega'
-                ) ult ON ult.adms_user_id = u.id AND ult.adms_sst_epi_id = n.adms_sst_epi_id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
-                  AND n.obrigatorio = 1
+                  AND {$obrigacaoSql}
                   {$extraWhere}
-                HAVING situacao IS NOT NULL
-                ORDER BY colaborador_nome, epi_nome
-                LIMIT {$rowLimit}";
+                ORDER BY colaborador_nome
+                LIMIT 500";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $out = [];
+        foreach ($users as $user) {
+            $uid = (int) ($user['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($this->getPendenciasEpiPorUsuario($uid) as $row) {
+                $out[] = array_merge($user, $row);
+                if ($limit !== null && count($out) >= $limit) {
+                    return $out;
+                }
+            }
+        }
 
-        return $this->executarPendencias($sql, $params, 'epi');
+        return $out;
     }
 
     /**
@@ -759,49 +731,35 @@ class SstPendenciasService extends DbConnection
     private function countPendenciasEpiCriticas(array $filters = []): int
     {
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
-        $criticas = "'" . implode("','", ['nao_entregue', 'troca_vencida']) . "'";
-
-        $sql = "SELECT COUNT(*) AS total FROM (
-                SELECT
-                    CASE
-                        WHEN ult.id IS NULL THEN 'nao_entregue'
-                        WHEN ult.data_prevista_troca IS NOT NULL AND ult.data_prevista_troca < CURDATE() THEN 'troca_vencida'
-                        WHEN ult.data_prevista_troca IS NOT NULL
-                             AND ult.data_prevista_troca >= CURDATE()
-                             AND ult.data_prevista_troca <= DATE_ADD(CURDATE(), INTERVAL :dias DAY) THEN 'troca_a_vencer'
-                        ELSE NULL
-                    END AS situacao
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoEpi('u');
+        $sql = "SELECT u.id AS adms_user_id
                 FROM adms_users u
-                INNER JOIN adms_sst_epi_necessidade n ON {$this->sqlRegraNecessidade('n', 'u')}
-                INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'
-                LEFT JOIN (
-                    SELECT e1.*
-                    FROM adms_sst_epi_entregas e1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_sst_epi_id, MAX(data_movimento) AS max_data
-                        FROM adms_sst_epi_entregas
-                        WHERE tipo_movimento = 'Entrega'
-                        GROUP BY adms_user_id, adms_sst_epi_id
-                    ) em ON em.adms_user_id = e1.adms_user_id
-                        AND em.adms_sst_epi_id = e1.adms_sst_epi_id
-                        AND em.max_data = e1.data_movimento
-                        AND e1.tipo_movimento = 'Entrega'
-                ) ult ON ult.adms_user_id = u.id AND ult.adms_sst_epi_id = n.adms_sst_epi_id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
-                  AND n.obrigatorio = 1
-                  {$extraWhere}
-                HAVING situacao IN ({$criticas})
-            ) sub";
-
+                  AND {$obrigacaoSql}
+                  {$extraWhere}";
         $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':dias', self::DIAS_ALERTA, PDO::PARAM_INT);
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
         }
         $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+        $criticas = ['nao_entregue', 'troca_vencida'];
+        $total = 0;
+        foreach ($users as $user) {
+            $uid = (int) ($user['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($this->getPendenciasEpiPorUsuario($uid) as $row) {
+                if (in_array($row['situacao'] ?? '', $criticas, true)) {
+                    $total++;
+                }
+            }
+        }
+
+        return $total;
     }
 
     private function countPendenciasTreinamentoCriticas(array $filters = []): int
@@ -915,6 +873,88 @@ class SstPendenciasService extends DbConnection
         }
 
         return '(' . implode(' OR ', $parts) . ')';
+    }
+
+    private function sqlUsuarioComObrigacaoEpi(string $aliasUser = 'u'): string
+    {
+        $parts = [
+            "EXISTS (
+                SELECT 1 FROM adms_sst_epi_necessidade n
+                INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'
+                WHERE n.obrigatorio = 1
+                  AND {$this->sqlRegraNecessidade('n', $aliasUser)}
+                  AND (
+                    n.adms_sst_risco_id IS NULL
+                    OR EXISTS (
+                        SELECT 1 FROM adms_sst_riscos_cargo rc2
+                        WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
+                          AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = {$aliasUser}.user_position_id)
+                          AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = {$aliasUser}.user_department_id)
+                    )
+                  )
+            )",
+        ];
+
+        if ($this->hasTable('adms_sst_risco_epi')) {
+            $parts[] = "EXISTS (
+                SELECT 1 FROM adms_sst_riscos_cargo rc
+                INNER JOIN adms_sst_risco_epi re ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = 1
+                INNER JOIN adms_sst_epis ep ON ep.id = re.adms_sst_epi_id AND ep.status = 'Ativo'
+                WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
+                  AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+            )";
+        }
+
+        return '(' . implode(' OR ', $parts) . ')';
+    }
+
+    /** @return array<string, mixed>|null */
+    private function getUltimaEntregaEpi(int $userId, int $epiId): ?array
+    {
+        $sql = "SELECT e1.*
+                FROM adms_sst_epi_entregas e1
+                INNER JOIN (
+                    SELECT adms_user_id, adms_sst_epi_id, MAX(data_movimento) AS max_data
+                    FROM adms_sst_epi_entregas
+                    WHERE tipo_movimento = 'Entrega' AND adms_user_id = :uid AND adms_sst_epi_id = :eid
+                    GROUP BY adms_user_id, adms_sst_epi_id
+                ) em ON em.adms_user_id = e1.adms_user_id
+                    AND em.adms_sst_epi_id = e1.adms_sst_epi_id
+                    AND em.max_data = e1.data_movimento
+                    AND e1.tipo_movimento = 'Entrega'
+                WHERE e1.adms_user_id = :uid2 AND e1.adms_sst_epi_id = :eid2
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
+        $stmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':eid2', $epiId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /** @param array<string, mixed>|null $ultima */
+    private function avaliarSituacaoEpi(?array $ultima): ?string
+    {
+        if ($ultima === null) {
+            return 'nao_entregue';
+        }
+        $troca = $ultima['data_prevista_troca'] ?? null;
+        if ($troca === null || $troca === '') {
+            return null;
+        }
+        $hoje = date('Y-m-d');
+        if ($troca < $hoje) {
+            return 'troca_vencida';
+        }
+        $limite = date('Y-m-d', strtotime('+' . self::DIAS_ALERTA . ' days'));
+        if ($troca <= $limite) {
+            return 'troca_a_vencer';
+        }
+
+        return null;
     }
 
     private function hasTable(string $table): bool

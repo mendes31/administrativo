@@ -9,19 +9,19 @@ use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Models\Services\SstPendenciasService;
 use PDO;
 
-class SstRiscoExameRepository extends DbConnection
+class SstRiscoEpiRepository extends DbConnection
 {
     public function getAll(int $page, int $perPage, array $filters = []): array
     {
         $page = max(1, $page);
         $offset = ($page - 1) * $perPage;
         [$whereClause, $params] = $this->buildWhere($filters);
-        $sql = "SELECT t.*, r.nome AS risco_nome, ex.nome AS exame_nome
-                FROM adms_sst_risco_exame t
+        $sql = "SELECT t.*, r.nome AS risco_nome, ep.nome AS epi_nome
+                FROM adms_sst_risco_epi t
                 INNER JOIN adms_sst_riscos r ON r.id = t.adms_sst_risco_id
-                INNER JOIN adms_sst_exames ex ON ex.id = t.adms_sst_exame_id
+                INNER JOIN adms_sst_epis ep ON ep.id = t.adms_sst_epi_id
                 {$whereClause}
-                ORDER BY r.nome, ex.nome
+                ORDER BY r.nome, ep.nome
                 LIMIT :limit OFFSET :offset";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
@@ -38,9 +38,9 @@ class SstRiscoExameRepository extends DbConnection
     {
         [$whereClause, $params] = $this->buildWhere($filters);
         $sql = "SELECT COUNT(*) AS total
-                FROM adms_sst_risco_exame t
+                FROM adms_sst_risco_epi t
                 INNER JOIN adms_sst_riscos r ON r.id = t.adms_sst_risco_id
-                INNER JOIN adms_sst_exames ex ON ex.id = t.adms_sst_exame_id
+                INNER JOIN adms_sst_epis ep ON ep.id = t.adms_sst_epi_id
                 {$whereClause}";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
@@ -53,10 +53,10 @@ class SstRiscoExameRepository extends DbConnection
 
     public function getById(int $id): ?array
     {
-        $sql = "SELECT t.*, r.nome AS risco_nome, ex.nome AS exame_nome
-                FROM adms_sst_risco_exame t
+        $sql = "SELECT t.*, r.nome AS risco_nome, ep.nome AS epi_nome
+                FROM adms_sst_risco_epi t
                 INNER JOIN adms_sst_riscos r ON r.id = t.adms_sst_risco_id
-                INNER JOIN adms_sst_exames ex ON ex.id = t.adms_sst_exame_id
+                INNER JOIN adms_sst_epis ep ON ep.id = t.adms_sst_epi_id
                 WHERE t.id = :id LIMIT 1";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -66,11 +66,60 @@ class SstRiscoExameRepository extends DbConnection
         return $row ?: null;
     }
 
+    /** @return list<int> */
+    public function getEpiIdsByRisco(int $riscoId): array
+    {
+        if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_epi')) {
+            return [];
+        }
+        $sql = 'SELECT DISTINCT adms_sst_epi_id FROM adms_sst_risco_epi WHERE adms_sst_risco_id = :rid ORDER BY adms_sst_epi_id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':rid', $riscoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $ids = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $ids[] = (int) ($row['adms_sst_epi_id'] ?? 0);
+        }
+
+        return array_values(array_filter($ids, fn (int $id) => $id > 0));
+    }
+
+    /** @param list<int> $epiIds */
+    public function syncEpisForRisco(int $riscoId, array $epiIds): void
+    {
+        if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_epi')) {
+            return;
+        }
+
+        $epiIds = array_values(array_unique(array_filter(array_map('intval', $epiIds), fn (int $id) => $id > 0)));
+        $current = $this->getEpiIdsByRisco($riscoId);
+
+        foreach (array_diff($current, $epiIds) as $epiId) {
+            $stmt = $this->getConnection()->prepare(
+                'DELETE FROM adms_sst_risco_epi WHERE adms_sst_risco_id = :rid AND adms_sst_epi_id = :eid'
+            );
+            $stmt->bindValue(':rid', $riscoId, PDO::PARAM_INT);
+            $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
+            $stmt->execute();
+        }
+
+        foreach (array_diff($epiIds, $current) as $epiId) {
+            $this->create([
+                'adms_sst_risco_id' => $riscoId,
+                'adms_sst_epi_id' => $epiId,
+                'obrigatorio' => true,
+                'observacoes' => null,
+            ]);
+        }
+
+        SstPendenciasService::invalidateDashboardCache();
+    }
+
     public function create(array $data): int|false
     {
-        $sql = "INSERT INTO adms_sst_risco_exame
-                (adms_sst_risco_id, adms_sst_exame_id, categoria_aso, periodicidade_meses, obrigatorio, observacoes, created_by, updated_by, created_at, updated_at)
-                VALUES (:adms_sst_risco_id, :adms_sst_exame_id, :categoria_aso, :periodicidade_meses, :obrigatorio, :observacoes, :created_by, :updated_by, NOW(), NOW())";
+        $sql = 'INSERT INTO adms_sst_risco_epi
+                (adms_sst_risco_id, adms_sst_epi_id, obrigatorio, observacoes, created_by, updated_by, created_at, updated_at)
+                VALUES (:adms_sst_risco_id, :adms_sst_epi_id, :obrigatorio, :observacoes, :created_by, :updated_by, NOW(), NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $this->bindFields($stmt, $data);
         $uid = (int) ($_SESSION['user_id'] ?? 1);
@@ -83,7 +132,7 @@ class SstRiscoExameRepository extends DbConnection
         if ($newId > 0) {
             $newData = $this->getById($newId);
             if ($newData) {
-                LogAlteracaoService::registrarAlteracao('adms_sst_risco_exame', $newId, $uid, 'INSERT', [], $newData);
+                LogAlteracaoService::registrarAlteracao('adms_sst_risco_epi', $newId, $uid, 'INSERT', [], $newData);
             }
         }
 
@@ -93,16 +142,14 @@ class SstRiscoExameRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
-        $sql = "UPDATE adms_sst_risco_exame
+        $sql = 'UPDATE adms_sst_risco_epi
                 SET adms_sst_risco_id = :adms_sst_risco_id,
-                    adms_sst_exame_id = :adms_sst_exame_id,
-                    categoria_aso = :categoria_aso,
-                    periodicidade_meses = :periodicidade_meses,
+                    adms_sst_epi_id = :adms_sst_epi_id,
                     obrigatorio = :obrigatorio,
                     observacoes = :observacoes,
                     updated_by = :updated_by,
                     updated_at = NOW()
-                WHERE id = :id";
+                WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $this->bindFields($stmt, $data);
@@ -112,7 +159,7 @@ class SstRiscoExameRepository extends DbConnection
         if ($ok && $oldData) {
             $newData = $this->getById($id);
             if ($newData) {
-                LogAlteracaoService::registrarAlteracao('adms_sst_risco_exame', $id, $uid, 'UPDATE', $oldData, $newData);
+                LogAlteracaoService::registrarAlteracao('adms_sst_risco_epi', $id, $uid, 'UPDATE', $oldData, $newData);
             }
         }
 
@@ -122,68 +169,17 @@ class SstRiscoExameRepository extends DbConnection
     public function delete(int $id): bool
     {
         $oldData = $this->getById($id);
-        $sql = 'DELETE FROM adms_sst_risco_exame WHERE id = :id';
+        $sql = 'DELETE FROM adms_sst_risco_epi WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $deleted = $stmt->rowCount() > 0;
         if ($deleted && $oldData) {
             $uid = (int) ($_SESSION['user_id'] ?? 1);
-            LogAlteracaoService::registrarAlteracao('adms_sst_risco_exame', $id, $uid, 'DELETE', $oldData, []);
+            LogAlteracaoService::registrarAlteracao('adms_sst_risco_epi', $id, $uid, 'DELETE', $oldData, []);
         }
 
         return $deleted;
-    }
-
-    /** @return list<int> */
-    public function getExameIdsByRisco(int $riscoId): array
-    {
-        if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_exame')) {
-            return [];
-        }
-        $sql = 'SELECT DISTINCT adms_sst_exame_id FROM adms_sst_risco_exame WHERE adms_sst_risco_id = :rid ORDER BY adms_sst_exame_id';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':rid', $riscoId, PDO::PARAM_INT);
-        $stmt->execute();
-        $ids = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
-            $ids[] = (int) ($row['adms_sst_exame_id'] ?? 0);
-        }
-
-        return array_values(array_filter($ids, fn (int $id) => $id > 0));
-    }
-
-    /** @param list<int> $exameIds */
-    public function syncExamesForRisco(int $riscoId, array $exameIds): void
-    {
-        if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_exame')) {
-            return;
-        }
-
-        $exameIds = array_values(array_unique(array_filter(array_map('intval', $exameIds), fn (int $id) => $id > 0)));
-        $current = $this->getExameIdsByRisco($riscoId);
-
-        foreach (array_diff($current, $exameIds) as $exameId) {
-            $stmt = $this->getConnection()->prepare(
-                'DELETE FROM adms_sst_risco_exame WHERE adms_sst_risco_id = :rid AND adms_sst_exame_id = :eid'
-            );
-            $stmt->bindValue(':rid', $riscoId, PDO::PARAM_INT);
-            $stmt->bindValue(':eid', $exameId, PDO::PARAM_INT);
-            $stmt->execute();
-        }
-
-        foreach (array_diff($exameIds, $current) as $exameId) {
-            $this->create([
-                'adms_sst_risco_id' => $riscoId,
-                'adms_sst_exame_id' => $exameId,
-                'categoria_aso' => null,
-                'periodicidade_meses' => null,
-                'obrigatorio' => true,
-                'observacoes' => null,
-            ]);
-        }
-
-        SstPendenciasService::invalidateDashboardCache();
     }
 
     /** @return array{0: string, 1: array<string, mixed>} */
@@ -192,16 +188,12 @@ class SstRiscoExameRepository extends DbConnection
         $where = [];
         $params = [];
         if (!empty($filters['search'])) {
-            $where[] = '(r.nome LIKE :search OR ex.nome LIKE :search)';
+            $where[] = '(r.nome LIKE :search OR ep.nome LIKE :search)';
             $params[':search'] = '%' . $filters['search'] . '%';
         }
         if (!empty($filters['adms_sst_risco_id'])) {
             $where[] = 't.adms_sst_risco_id = :risco_id';
             $params[':risco_id'] = (int) $filters['adms_sst_risco_id'];
-        }
-        if (!empty($filters['categoria_aso'])) {
-            $where[] = '(t.categoria_aso IS NULL OR t.categoria_aso = :categoria_aso)';
-            $params[':categoria_aso'] = $filters['categoria_aso'];
         }
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
@@ -211,9 +203,7 @@ class SstRiscoExameRepository extends DbConnection
     private function bindFields(\PDOStatement $stmt, array $data): void
     {
         $this->bindField($stmt, ':adms_sst_risco_id', $data['adms_sst_risco_id'] ?? null);
-        $this->bindField($stmt, ':adms_sst_exame_id', $data['adms_sst_exame_id'] ?? null);
-        $this->bindField($stmt, ':categoria_aso', $data['categoria_aso'] ?? null);
-        $this->bindField($stmt, ':periodicidade_meses', $data['periodicidade_meses'] ?? null);
+        $this->bindField($stmt, ':adms_sst_epi_id', $data['adms_sst_epi_id'] ?? null);
         $this->bindField($stmt, ':obrigatorio', $data['obrigatorio'] ?? true);
         $this->bindField($stmt, ':observacoes', $data['observacoes'] ?? null);
     }

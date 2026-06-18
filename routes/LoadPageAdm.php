@@ -205,6 +205,8 @@ class LoadPageAdm
         "SstListExameNecessidade", "SstCreateExameNecessidade", "SstUpdateExameNecessidade", "SstDeleteExameNecessidade",
         "SstListRiscoCargo", "SstCreateRiscoCargo", "SstUpdateRiscoCargo", "SstDeleteRiscoCargo",
         "SstListRiscoExame", "SstCreateRiscoExame", "SstUpdateRiscoExame", "SstDeleteRiscoExame",
+        "SstListRiscoEpi", "SstCreateRiscoEpi", "SstUpdateRiscoEpi", "SstDeleteRiscoEpi",
+        "SstSaveRiscoRelacionamentos",
         "SstPacoteExamesAso",
         "SstSearchCids"
     ];
