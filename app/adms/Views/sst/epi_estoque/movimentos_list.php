@@ -8,17 +8,16 @@ $perms = $this->data['buttonPermission'] ?? [];
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3"><i class="fas fa-history me-2"></i>Movimentações de estoque EPI</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque">Estoque EPI</a></li>
-            <li class="breadcrumb-item active">Histórico</li>
+            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
+            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-epis">EPIs</a></li>
+            <li class="breadcrumb-item active">Movimentações</li>
         </ol>
     </div>
     <div class="card shadow-sm">
         <div class="card-header hstack gap-2">
             <span>Histórico</span>
             <span class="ms-auto d-flex gap-1">
-                <?php if (in_array('SstListEpiEstoque', $perms, true)): ?>
-                <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque" class="btn btn-outline-secondary btn-sm">Posição</a>
-                <?php endif; ?>
+                <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epis" class="btn btn-outline-secondary btn-sm">EPIs</a>
                 <?php if (in_array('SstCreateEpiMovimento', $perms, true)): ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-movimento" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> Movimentar</a>
                 <?php endif; ?>

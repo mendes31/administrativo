@@ -160,6 +160,9 @@ class SstEpisRepository extends DbConnection
             $where[] = 't.status = :status';
             $params[':status'] = $filters['status'];
         }
+        if (!empty($filters['estoque_baixo'])) {
+            $where[] = 't.estoque_minimo > 0 AND t.estoque_atual <= t.estoque_minimo';
+        }
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         return [$whereClause, $params];
     }

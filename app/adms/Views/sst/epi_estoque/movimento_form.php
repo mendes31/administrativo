@@ -11,7 +11,7 @@ $tipo = (string)($item['tipo_movimento'] ?? 'Entrada');
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3"><i class="fas fa-dolly me-2"></i>Movimentação de estoque EPI</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque">Estoque EPI</a></li>
+            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-movimentos">Movimentações EPI</a></li>
             <li class="breadcrumb-item active">Nova movimentação</li>
         </ol>
     </div>

@@ -982,18 +982,6 @@ $menus = [
                         'icon' => 'fas fa-hard-hat'
                     ],
                     [
-                        'label' => 'Estoque EPI',
-                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-estoque',
-                        'permission' => 'SstListEpiEstoque',
-                        'icon' => 'fas fa-boxes'
-                    ],
-                    [
-                        'label' => 'Movimentações EPI',
-                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-movimentos',
-                        'permission' => 'SstListEpiMovimentos',
-                        'icon' => 'fas fa-dolly'
-                    ],
-                    [
                         'label' => 'Exames',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-exames',
                         'permission' => 'SstListExames',
@@ -1070,6 +1058,12 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epi-fichas',
                         'permission' => 'SstListEpiFichas',
                         'icon' => 'fas fa-file-signature'
+                    ],
+                    [
+                        'label' => 'Movimentações EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-movimentos',
+                        'permission' => 'SstListEpiMovimentos',
+                        'icon' => 'fas fa-dolly'
                     ],
                     [
                         'label' => 'Entregas de EPI (legado)',

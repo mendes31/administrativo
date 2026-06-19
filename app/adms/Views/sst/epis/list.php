@@ -37,8 +37,8 @@ $filtersId = 'sstFiltersEpi';
                 <?php if (in_array('SstCreateEpi', $perms)): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Cadastrar</a>
                 <?php endif; ?>
-                <?php if (in_array('SstListEpiEstoque', $perms)): ?>
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque" class="btn btn-outline-primary btn-sm"><i class="fas fa-boxes"></i> Estoque</a>
+                <?php if (in_array('SstListEpiMovimentos', $perms, true)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-movimentos" class="btn btn-outline-secondary btn-sm"><i class="fas fa-dolly"></i> Movimentações</a>
                 <?php endif; ?>
             </span>
         </div>
@@ -64,6 +64,13 @@ $filtersId = 'sstFiltersEpi';
 <?php $sel = ($this->data['filters']['status'] ?? '') === 'Inativo' ? 'selected' : ''; ?>
 <option value="Inativo" <?= $sel ?>>Inativo</option>
 </select></div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <label class="form-label d-block" style="font-size:.7rem;">&nbsp;</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="estoque_baixo" value="1" id="estoqueBaixo" <?= !empty($this->data['filters']['estoque_baixo']) ? 'checked' : '' ?>>
+                            <label class="form-check-label small" for="estoqueBaixo">Só estoque baixo</label>
+                        </div>
+                    </div>
                     <div class="col-12 col-sm-auto d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Filtrar</button>
                         <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epis" class="btn btn-secondary btn-sm">Limpar</a>
@@ -146,6 +153,7 @@ $filtersId = 'sstFiltersEpi';
             <?php else: ?>
                 <div class="alert alert-warning">Nenhum registro encontrado.</div>
             <?php endif; ?>
+            <p class="text-muted small mb-0 mt-2">O saldo é atualizado pelas movimentações. Configure o estoque mínimo no cadastro de cada EPI para alertas de compra.</p>
         </div>
     </div>
 </div>

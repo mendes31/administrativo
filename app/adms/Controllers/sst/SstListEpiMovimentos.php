@@ -36,7 +36,7 @@ class SstListEpiMovimentos
         $pageElements = [
             'title_head' => 'Movimentações de estoque EPI',
             'menu' => 'sst-list-epi-movimentos',
-            'buttonPermission' => ['SstListEpiMovimentos', 'SstCreateEpiMovimento', 'SstListEpiEstoque'],
+            'buttonPermission' => ['SstListEpiMovimentos', 'SstCreateEpiMovimento', 'SstListEpis'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/epi_estoque/movimentos_list', $this->data))->loadView();

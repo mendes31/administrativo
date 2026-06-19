@@ -22,6 +22,9 @@ class SstListEpis
             'adms_user_id' => $_GET['adms_user_id'] ?? '',
             'status' => $_GET['status'] ?? '',
         ];
+        if (!empty($_GET['estoque_baixo'])) {
+            $filters['estoque_baixo'] = true;
+        }
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int) $_GET['page'];
         }
@@ -113,7 +116,7 @@ class SstListEpis
         $pageElements = [
             'title_head' => 'EPIs - SST',
             'menu' => 'sst-list-epis',
-            'buttonPermission' => ['SstViewEpi', 'SstCreateEpi', 'SstUpdateEpi', 'SstDeleteEpi'],
+            'buttonPermission' => ['SstViewEpi', 'SstCreateEpi', 'SstUpdateEpi', 'SstDeleteEpi', 'SstListEpiMovimentos', 'SstCreateEpiMovimento'],
         ];
         $this->data = array_merge($this->data ?? [], (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/epis/list', $this->data))->loadView();
