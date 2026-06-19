@@ -8,6 +8,14 @@
         </ol>
     </div>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php $asosAguardando = (int) ($this->data['asos_aguardando_count'] ?? 0); ?>
+    <?php if ($asosAguardando > 0): ?>
+        <div class="alert alert-warning py-2 mb-3 d-flex flex-wrap align-items-center gap-2">
+            <span><i class="fas fa-clipboard-check me-1"></i>
+                <strong><?= $asosAguardando ?></strong> ASO(s) aguardando lançamento de resultados (gerados pelos vínculos).</span>
+            <a href="<?= $_ENV['URL_ADM']; ?>sst-list-asos" class="btn btn-sm btn-warning ms-auto">Ir para fila de ASOs</a>
+        </div>
+    <?php endif; ?>
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
@@ -106,6 +114,7 @@
                         ['SstListAcidentes', 'sst-list-acidentes', 'Acidentes'],
                         ['SstListAfastamentos', 'sst-list-afastamentos', 'Afastamentos'],
                         ['SstListAsos', 'sst-list-asos', 'ASOs'],
+                        ['SstEncaminhamentoAso', 'sst-encaminhamento-aso', 'Encaminhamento ASO'],
                         ['SstListEpiEntregas', 'sst-list-epi-entregas', 'Entregas EPI'],
                     ];
                     foreach ($registros as [$perm, $url, $label]) {
@@ -152,12 +161,15 @@
             </div></div>
         </div>
         <div class="col-lg-4 mb-3">
-            <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (exame)</div><div class="card-body p-0">
+            <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (ASO)</div><div class="card-body p-0">
                 <?php if (empty($this->data['pendencias_exame_amostra'])): ?><p class="p-3 text-muted mb-0">Nenhuma.</p>
                 <?php else: foreach ($this->data['pendencias_exame_amostra'] as $r): ?>
                     <div class="px-3 py-2 border-bottom small">
                         <?= htmlspecialchars($r['colaborador_nome'] ?? '') ?> — <?= htmlspecialchars($r['exame_nome'] ?? '') ?>
                         <span class="badge bg-<?= htmlspecialchars($r['situacao_badge'] ?? 'secondary') ?> ms-1"><?= htmlspecialchars($r['situacao_label'] ?? '') ?></span>
+                        <?php if (($r['situacao'] ?? '') === 'aso_aguardando_resultados' && !empty($r['aso_aguardando_id'])): ?>
+                            <a href="<?= $_ENV['URL_ADM']; ?>sst-registrar-resultados-aso/<?= (int) $r['aso_aguardando_id'] ?>" class="ms-1 small">Lançar resultados</a>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; endif; ?>
             </div></div>

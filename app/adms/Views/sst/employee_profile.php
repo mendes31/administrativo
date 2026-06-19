@@ -19,6 +19,8 @@ $timeline = $this->data['timeline'] ?? [];
 $pppHistorico = $this->data['ppp_historico'] ?? [];
 
 $csrfPpp = CSRFHelper::generateCSRFToken('sst_generate_ppp');
+$csrfAbrirAso = CSRFHelper::generateCSRFToken('sst_abrir_aso_pendencia');
+require __DIR__ . '/partials/sst_aso_pendencia_actions.php';
 
 $perms = $this->data['buttonPermission'] ?? [];
 
@@ -85,6 +87,12 @@ if (!empty($ultimoAso['data_validade'])) {
                 <?php if (in_array('SstCreateAso', $perms, true)): ?>
 
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-aso?adms_user_id=<?= $uid ?>" class="btn btn-success btn-sm">+ ASO</a>
+
+                <?php endif; ?>
+
+                <?php if (in_array('SstEncaminhamentoAso', $perms, true)): ?>
+
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-encaminhamento-aso?adms_user_id=<?= $uid ?>" class="btn btn-primary btn-sm"><i class="fas fa-file-export"></i> Encaminhamento ASO</a>
 
                 <?php endif; ?>
 
@@ -371,7 +379,7 @@ if (!empty($ultimoAso['data_validade'])) {
 
                     <div class="d-none d-md-block table-responsive">
 
-                        <table class="table table-sm table-bordered"><thead><tr><th>Exame</th><th>Situação</th><th>Último ASO</th><th>Validade</th></tr></thead><tbody>
+                        <table class="table table-sm table-bordered"><thead><tr><th>Exame</th><th>Situação</th><th>Último ASO</th><th>Validade</th><th class="text-center">Ações</th></tr></thead><tbody>
 
                             <?php foreach ($pend['exames'] as $r): ?><tr>
 
@@ -382,6 +390,8 @@ if (!empty($ultimoAso['data_validade'])) {
                                 <td><?= !empty($r['ultimo_aso']) ? date('d/m/Y', strtotime($r['ultimo_aso'])) : '-' ?></td>
 
                                 <td><?= !empty($r['data_validade']) ? date('d/m/Y', strtotime($r['data_validade'])) : '-' ?></td>
+
+                                <td class="text-center"><?php sstRenderAsoPendenciaActions($r, $perms, 'sst-employee-profile/' . $uid, $uid, $csrfAbrirAso); ?></td>
 
                             </tr><?php endforeach; ?>
 
@@ -398,6 +408,8 @@ if (!empty($ultimoAso['data_validade'])) {
                                 <div class="fw-semibold"><?= htmlspecialchars($r['exame_nome'] ?? '') ?></div>
 
                                 <span class="badge bg-<?= htmlspecialchars($r['situacao_badge'] ?? 'secondary') ?>"><?= htmlspecialchars($r['situacao_label'] ?? '') ?></span>
+
+                                <div class="mt-1"><?php sstRenderAsoPendenciaActions($r, $perms, 'sst-employee-profile/' . $uid, $uid, $csrfAbrirAso); ?></div>
 
                             </div></div>
 

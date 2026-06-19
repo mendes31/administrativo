@@ -63,6 +63,10 @@ final class SstExameCatalogHelper
             return 'Tipo de exame inválido.';
         }
 
+        if (empty($data['periodicidade_meses']) || (int) $data['periodicidade_meses'] < 1) {
+            return 'Informe a periodicidade padrão em meses (usada quando o vínculo risco→exame não definir outra).';
+        }
+
         if (!empty($data['possui_validade']) && empty($data['validade_meses'])) {
             return 'Informe a validade em meses quando o exame possuir validade.';
         }

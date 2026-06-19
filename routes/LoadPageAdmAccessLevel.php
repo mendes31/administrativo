@@ -129,6 +129,7 @@ class LoadPageAdmAccessLevel
             'RoomBookingSlotHold' => "\\App\\adms\\Controllers\\rooms\\RoomBookingSlotHold",
             // Reserva de salas: modelo CSV + POST de importação por sala (rota técnica; permissão no controller).
             'ImportRoomBookings' => "\\App\\adms\\Controllers\\rooms\\ImportRoomBookings",
+            'SstPacoteExamesAso' => "\\App\\adms\\Controllers\\sst\\SstPacoteExamesAso",
         ];
         if (isset($internalAjaxMap[$this->urlController])) {
             $this->classLoad = $internalAjaxMap[$this->urlController];

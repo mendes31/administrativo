@@ -1,5 +1,6 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstExameTipoHelper;
 
 $item = $this->data['item'] ?? [];
 $isEdit = !empty($item['id']);
@@ -60,10 +61,10 @@ $action = $isEdit ? 'sst-update-exame/' . (int)$item['id'] : 'sst-create-exame';
                 <h6 class="text-muted text-uppercase small mb-3">Controle de realização</h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label" for="periodicidade_meses">Periodicidade padrão (meses)</label>
-                        <input type="number" name="periodicidade_meses" id="periodicidade_meses" class="form-control" min="1"
+                        <label class="form-label" for="periodicidade_meses">Periodicidade padrão (meses) *</label>
+                        <input type="number" name="periodicidade_meses" id="periodicidade_meses" class="form-control" min="1" required
                                value="<?= htmlspecialchars((string)($item['periodicidade_meses'] ?? '')) ?>">
-                        <div class="form-text">Usada apenas quando a matriz (cargo/risco) não definir periodicidade.</div>
+                        <div class="form-text">Obrigatória no catálogo. No vínculo risco→exame pode ser sobrescrita; se vazia lá, usa este valor.</div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="form-check mt-4">

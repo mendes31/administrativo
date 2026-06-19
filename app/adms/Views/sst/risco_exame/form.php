@@ -59,14 +59,18 @@ $action = $isEdit ? 'sst-update-risco-exame/' . (int)$item['id'] : 'sst-create-r
                     <?php endif; ?>
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="periodicidade_meses">Periodicidade (meses)</label>
-                        <input type="number" name="periodicidade_meses" id="periodicidade_meses" class="form-control" value="<?= htmlspecialchars((string)($item['periodicidade_meses'] ?? '')) ?>">
+                        <input type="number" name="periodicidade_meses" id="periodicidade_meses" class="form-control" min="1"
+                               value="<?= htmlspecialchars((string)($item['periodicidade_meses'] ?? '')) ?>">
+                        <div class="form-text">Opcional: sobrescreve a periodicidade padrão do exame para este risco. Vazio = usa o catálogo.</div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label" for="obrigatorio">Obrigatório</label>
+                        <label class="form-label" for="obrigatorio">Exigência na matriz</label>
                         <div class="form-check">
-                            <input type="checkbox" name="obrigatorio" id="obrigatorio" class="form-check-input" value="1" <?= !empty($item['obrigatorio']) ? 'checked' : '' ?>>
+                            <input type="checkbox" name="obrigatorio" id="obrigatorio" class="form-check-input" value="1"
+                                <?= empty($item['id']) || !empty($item['obrigatorio']) ? 'checked' : '' ?>>
                             <label class="form-check-label" for="obrigatorio">Obrigatório</label>
                         </div>
+                        <div class="form-text">Desmarcado = exame <strong>recomendado</strong> (opcional no encaminhamento e no pacote do ASO).</div>
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label" for="observacoes">Observações</label>

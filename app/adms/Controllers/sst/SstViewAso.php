@@ -127,7 +127,7 @@ class SstViewAso
         $pageElements = [
             'title_head' => 'Visualizar ASO - SST',
             'menu' => 'sst-list-asos',
-            'buttonPermission' => ['SstViewAso', 'SstUpdateAso', 'SstDeleteAso'],
+            'buttonPermission' => ['SstViewAso', 'SstUpdateAso', 'SstDeleteAso', 'SstRegistrarResultadosAso'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/asos/view', $this->data))->loadView();

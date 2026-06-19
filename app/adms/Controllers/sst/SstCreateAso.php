@@ -166,6 +166,7 @@ class SstCreateAso
         $data['restricoes'] = $_POST['restricoes'] ?? null;
         $data['clinica'] = $_POST['clinica'] ?? null;
         $data['observacoes'] = $_POST['observacoes'] ?? null;
+        $data['status'] = \App\adms\Helpers\SstAsoStatusHelper::CONCLUIDO;
 
         $repo = new SstAsosRepository();
         $newId = $repo->create($data);

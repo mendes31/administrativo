@@ -1,6 +1,7 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstAsoStatusHelper;
 
 function formatCellValue(string $col, mixed $value): string
 {
@@ -23,7 +24,7 @@ $filtersId = 'sstFiltersAso';
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-file-medical me-2"></i><?= htmlspecialchars('ASOs') ?></h2>
+        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-file-medical me-2"></i>ASOs — fila de resultados</h2>
         <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
@@ -31,9 +32,16 @@ $filtersId = 'sstFiltersAso';
         </ol>
     </div>
     <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2">
-            <span>Listar</span>
-            <span class="ms-auto">
+        <div class="card-header hstack gap-2 flex-wrap">
+            <span>Fila de lançamento</span>
+            <?php $aguardando = (int) ($this->data['aguardando_count'] ?? 0); ?>
+            <?php if ($aguardando > 0): ?>
+                <span class="badge bg-warning text-dark"><?= $aguardando ?> aguardando resultados</span>
+            <?php endif; ?>
+            <span class="ms-auto d-flex gap-1">
+                <?php if (in_array('SstEncaminhamentoAso', $perms, true)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-encaminhamento-aso" class="btn btn-primary btn-sm"><i class="fas fa-file-export"></i> Encaminhamento</a>
+                <?php endif; ?>
                 <?php if (in_array('SstCreateAso', $perms)): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-aso" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Cadastrar</a>
                 <?php endif; ?>
@@ -41,6 +49,11 @@ $filtersId = 'sstFiltersAso';
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
+            <p class="text-muted small mb-3">
+                Solicitações são <strong>geradas automaticamente</strong> pelos vínculos (cargo → risco → exame).
+                Acesse cada linha com status <em>Aguardando exames</em> e use o botão
+                <i class="fas fa-clipboard-check"></i> para lançar apenas os resultados.
+            </p>
             <div class="d-md-none mb-2">
                 <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $filtersId ?>">
                     <i class="fa fa-filter me-1"></i> Filtros
@@ -63,7 +76,15 @@ $filtersId = 'sstFiltersAso';
                 <?php endforeach; ?>
             </select>
         </div>
-                    
+                    <div class="col-6 col-sm-4 col-md-3">
+                        <label for="status" class="form-label" style="font-size:.7rem;">Status</label>
+                        <select name="status" id="status" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="Aguardando exames" <?= ($this->data['filters']['status'] ?? '') === 'Aguardando exames' ? 'selected' : '' ?>>Aguardando exames</option>
+                            <option value="Concluído" <?= ($this->data['filters']['status'] ?? '') === 'Concluído' ? 'selected' : '' ?>>Concluído</option>
+                        </select>
+                    </div>
+
                     <div class="col-12 col-sm-auto d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Filtrar</button>
                         <a href="<?= $_ENV['URL_ADM']; ?>sst-list-asos" class="btn btn-secondary btn-sm">Limpar</a>
@@ -76,7 +97,8 @@ $filtersId = 'sstFiltersAso';
                         <thead><tr>
                             <th>Id</th>
 <th>Colaborador</th>
-<th>Tipo</th>
+                            <th>Tipo</th>
+<th>Status</th>
 <th>Realização</th>
 <th>Validade</th>
 <th>Resultado</th>
@@ -91,16 +113,20 @@ $filtersId = 'sstFiltersAso';
                                 <td><?= formatCellValue('id', $item['id'] ?? null) ?></td>
 <td><?= formatCellValue('colaborador_nome', $item['colaborador_nome'] ?? null) ?></td>
 <td><?= formatCellValue('tipo', $item['tipo'] ?? null) ?></td>
+<td><span class="badge bg-<?= SstAsoStatusHelper::badgeClass($item['status'] ?? SstAsoStatusHelper::CONCLUIDO) ?>"><?= htmlspecialchars(SstAsoStatusHelper::label($item['status'] ?? null)) ?></span></td>
 <td><?= formatCellValue('data_realizacao', $item['data_realizacao'] ?? null) ?></td>
 <td><?= formatCellValue('data_validade', $item['data_validade'] ?? null) ?></td>
 <td><?= formatCellValue('resultado', $item['resultado'] ?? null) ?></td>
 
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
+                                        <?php if (in_array('SstRegistrarResultadosAso', $perms, true) && SstAsoStatusHelper::isAguardando($item)): ?>
+                                            <a href="<?= $_ENV['URL_ADM']; ?>sst-registrar-resultados-aso/<?= $id ?>" class="btn btn-warning btn-sm" title="Registrar resultados"><i class="fas fa-clipboard-check"></i></a>
+                                        <?php endif; ?>
                                         <?php if (in_array('SstViewAso', $perms)): ?>
                                             <a href="<?= $_ENV['URL_ADM']; ?>sst-view-aso/<?= $id ?>" class="btn btn-info btn-sm" title="Visualizar"><i class="fa-regular fa-eye"></i></a>
                                         <?php endif; ?>
-                                        <?php if (in_array('SstUpdateAso', $perms)): ?>
+                                        <?php if (in_array('SstUpdateAso', $perms) && !SstAsoStatusHelper::isAguardando($item)): ?>
                                             <a href="<?= $_ENV['URL_ADM']; ?>sst-update-aso/<?= $id ?>" class="btn btn-warning btn-sm"><i class="fa-regular fa-pen-to-square"></i></a>
                                         <?php endif; ?>
                                         <?php if (in_array('SstDeleteAso', $perms)): ?>
@@ -133,8 +159,14 @@ $filtersId = 'sstFiltersAso';
                                     <span class="badge bg-secondary"><?= htmlspecialchars($item['status']) ?></span>
                                 <?php endif; ?>
                                 <div class="d-flex gap-1 mt-2 pt-2 border-top" onclick="event.stopPropagation();">
-                                    <?php if ($canView): ?><a href="<?= $viewUrl ?>" class="btn btn-outline-info btn-sm flex-fill">Ver</a><?php endif; ?>
-                                    <?php if (in_array('SstUpdateAso', $perms)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-update-aso/<?= $id ?>" class="btn btn-outline-warning btn-sm flex-fill">Editar</a><?php endif; ?>
+                                    <?php if (in_array('SstRegistrarResultadosAso', $perms, true) && SstAsoStatusHelper::isAguardando($item)): ?>
+                                        <a href="<?= $_ENV['URL_ADM']; ?>sst-registrar-resultados-aso/<?= $id ?>" class="btn btn-warning btn-sm flex-fill"><i class="fas fa-clipboard-check"></i> Resultados</a>
+                                    <?php elseif ($canView): ?>
+                                        <a href="<?= $viewUrl ?>" class="btn btn-outline-info btn-sm flex-fill">Ver</a>
+                                    <?php endif; ?>
+                                    <?php if (in_array('SstUpdateAso', $perms) && !SstAsoStatusHelper::isAguardando($item)): ?>
+                                        <a href="<?= $_ENV['URL_ADM']; ?>sst-update-aso/<?= $id ?>" class="btn btn-outline-warning btn-sm flex-fill">Editar</a>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +175,14 @@ $filtersId = 'sstFiltersAso';
                 <div class="d-flex justify-content-end mt-2 d-none d-md-flex"><?= $this->data['pagination']['html'] ?? '' ?></div>
                 <div class="d-flex justify-content-center mt-2 d-md-none"><?= $this->data['pagination']['html'] ?? '' ?></div>
             <?php else: ?>
-                <div class="alert alert-warning">Nenhum registro encontrado.</div>
+                <div class="alert alert-info mb-2">
+                    Nenhum ASO aguardando resultados no momento.
+                </div>
+                <p class="text-muted small mb-0">
+                    Se há pendências no dashboard, aguarde a sincronização ou recarregue a página.
+                    Use o filtro <strong>Status → Todos</strong> para ver ASOs já concluídos, ou
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-create-aso">cadastre manualmente</a>.
+                </p>
             <?php endif; ?>
         </div>
     </div>

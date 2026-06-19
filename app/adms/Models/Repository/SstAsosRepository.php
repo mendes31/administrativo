@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstAsoStatusHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -18,7 +19,9 @@ class SstAsosRepository extends DbConnection
         $sql = "SELECT t.*, u.name AS colaborador_nome, ex.nome AS exame_nome
                 FROM adms_sst_asos t LEFT JOIN adms_users u ON u.id = t.adms_user_id LEFT JOIN adms_sst_exames ex ON ex.id = t.adms_sst_exame_id
                 {$whereClause}
-                ORDER BY t.id DESC
+                ORDER BY CASE WHEN t.status = 'Aguardando exames' THEN 0 ELSE 1 END,
+                         COALESCE(t.data_realizacao, t.created_at) DESC,
+                         t.id DESC
                 LIMIT :limit OFFSET :offset";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
@@ -57,7 +60,7 @@ class SstAsosRepository extends DbConnection
         if (!in_array('adms_user_id', ['adms_user_id', 'adms_sst_exame_id', 'adms_sst_medico_id', 'tipo', 'data_realizacao', 'data_validade', 'resultado', 'restricoes', 'clinica', 'observacoes'], true)) {
             return [];
         }
-        $sql = "SELECT t.*, u.name AS colaborador_nome, ex.nome AS exame_nome FROM adms_sst_asos t LEFT JOIN adms_users u ON u.id = t.adms_user_id LEFT JOIN adms_sst_exames ex ON ex.id = t.adms_sst_exame_id WHERE t.adms_user_id = :uid ORDER BY t.data_realizacao DESC, t.id DESC LIMIT :lim";
+        $sql = "SELECT t.*, u.name AS colaborador_nome, ex.nome AS exame_nome FROM adms_sst_asos t LEFT JOIN adms_users u ON u.id = t.adms_user_id LEFT JOIN adms_sst_exames ex ON ex.id = t.adms_sst_exame_id WHERE t.adms_user_id = :uid ORDER BY COALESCE(t.data_realizacao, t.created_at) DESC, t.id DESC LIMIT :lim";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
@@ -65,15 +68,65 @@ class SstAsosRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /** @return array<string, mixed>|null */
+    public function findAguardando(int $userId, ?string $tipo = null): ?array
+    {
+        $sql = "SELECT t.*, u.name AS colaborador_nome
+                FROM adms_sst_asos t
+                LEFT JOIN adms_users u ON u.id = t.adms_user_id
+                WHERE t.adms_user_id = :uid AND t.status = :status";
+        $params = [
+            ':uid' => $userId,
+            ':status' => SstAsoStatusHelper::AGUARDANDO_EXAMES,
+        ];
+        if ($tipo !== null && $tipo !== '') {
+            $sql .= ' AND t.tipo = :tipo';
+            $params[':tipo'] = $tipo;
+        }
+        $sql .= ' ORDER BY t.id DESC LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function findAllAguardandoPorUsuario(int $userId): array
+    {
+        $sql = "SELECT t.*, u.name AS colaborador_nome
+                FROM adms_sst_asos t
+                LEFT JOIN adms_users u ON u.id = t.adms_user_id
+                WHERE t.adms_user_id = :uid AND t.status = :status
+                ORDER BY t.id DESC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':status', SstAsoStatusHelper::AGUARDANDO_EXAMES, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function countAguardando(array $filters = []): int
+    {
+        $filters['status'] = SstAsoStatusHelper::AGUARDANDO_EXAMES;
+        return $this->getTotal($filters);
+    }
+
     public function create(array $data): int|false
     {
-        $sql = "INSERT INTO adms_sst_asos (adms_user_id, adms_sst_exame_id, adms_sst_medico_id, tipo, data_realizacao, data_validade, resultado, restricoes, clinica, observacoes, created_by, updated_by, created_at, updated_at)
-                VALUES (:adms_user_id, :adms_sst_exame_id, :adms_sst_medico_id, :tipo, :data_realizacao, :data_validade, :resultado, :restricoes, :clinica, :observacoes, :created_by, :updated_by, NOW(), NOW())";
+        $status = $data['status'] ?? SstAsoStatusHelper::CONCLUIDO;
+        $sql = "INSERT INTO adms_sst_asos (adms_user_id, adms_sst_exame_id, adms_sst_medico_id, tipo, status, data_realizacao, data_validade, resultado, restricoes, clinica, observacoes, created_by, updated_by, created_at, updated_at)
+                VALUES (:adms_user_id, :adms_sst_exame_id, :adms_sst_medico_id, :tipo, :status, :data_realizacao, :data_validade, :resultado, :restricoes, :clinica, :observacoes, :created_by, :updated_by, NOW(), NOW())";
         $stmt = $this->getConnection()->prepare($sql);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_exame_id', $data['adms_sst_exame_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_medico_id', $data['adms_sst_medico_id'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':status', $status);
         $this->bindField($stmt, ':data_realizacao', $data['data_realizacao'] ?? null);
         $this->bindField($stmt, ':data_validade', $data['data_validade'] ?? null);
         $this->bindField($stmt, ':resultado', $data['resultado'] ?? null);
@@ -99,13 +152,15 @@ class SstAsosRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
-        $sql = "UPDATE adms_sst_asos SET adms_user_id = :adms_user_id, adms_sst_exame_id = :adms_sst_exame_id, adms_sst_medico_id = :adms_sst_medico_id, tipo = :tipo, data_realizacao = :data_realizacao, data_validade = :data_validade, resultado = :resultado, restricoes = :restricoes, clinica = :clinica, observacoes = :observacoes, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
+        $status = $data['status'] ?? ($oldData['status'] ?? SstAsoStatusHelper::CONCLUIDO);
+        $sql = "UPDATE adms_sst_asos SET adms_user_id = :adms_user_id, adms_sst_exame_id = :adms_sst_exame_id, adms_sst_medico_id = :adms_sst_medico_id, tipo = :tipo, status = :status, data_realizacao = :data_realizacao, data_validade = :data_validade, resultado = :resultado, restricoes = :restricoes, clinica = :clinica, observacoes = :observacoes, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_exame_id', $data['adms_sst_exame_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_medico_id', $data['adms_sst_medico_id'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? null);
+        $this->bindField($stmt, ':status', $status);
         $this->bindField($stmt, ':data_realizacao', $data['data_realizacao'] ?? null);
         $this->bindField($stmt, ':data_validade', $data['data_validade'] ?? null);
         $this->bindField($stmt, ':resultado', $data['resultado'] ?? null);

@@ -99,7 +99,7 @@ $countEpis = count($episVinculadosMap);
 
             <div class="tab-pane fade" id="tab-exames" role="tabpanel">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                    <p class="small text-muted mb-0 flex-grow-1">Exames complementares exigidos, com categoria ASO e periodicidade.</p>
+                    <p class="small text-muted mb-0 flex-grow-1">Exames da matriz por categoria ASO. Obrigatórios entram no pacote ASO; recomendados podem ser incluídos no encaminhamento.</p>
                     <?php if ($podeGerirExames): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-risco-exame?adms_sst_risco_id=<?= $riscoId ?>" class="btn btn-success btn-sm">
                         <i class="fas fa-plus me-1"></i>Adicionar exame
@@ -112,7 +112,7 @@ $countEpis = count($episVinculadosMap);
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered mb-0">
                             <thead><tr>
-                                <th>Exame</th><th>Categoria ASO</th><th>Periodicidade</th><th>Obrig.</th>
+                                <th>Exame</th><th>Categoria ASO</th><th>Periodicidade</th><th>Exigência</th>
                                 <?php if ($podeGerirExames): ?><th class="text-center" width="90">Ações</th><?php endif; ?>
                             </tr></thead>
                             <tbody>
@@ -123,7 +123,7 @@ $countEpis = count($episVinculadosMap);
                                     <td><?= htmlspecialchars($re['exame_nome'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($re['categoria_aso'] ?? 'Todas') ?></td>
                                     <td><?= htmlspecialchars((string) ($re['periodicidade_meses'] ?? '-')) ?><?= ($re['periodicidade_meses'] ?? '') !== '' && $re['periodicidade_meses'] !== null ? ' meses' : '' ?></td>
-                                    <td><?= !empty($re['obrigatorio']) ? 'Sim' : 'Não' ?></td>
+                                    <td><?= !empty($re['obrigatorio']) ? 'Obrigatório' : 'Recomendado' ?></td>
                                     <?php if ($podeGerirExames): ?>
                                     <td class="text-center text-nowrap">
                                         <a href="<?= $_ENV['URL_ADM']; ?>sst-update-risco-exame/<?= $reId ?>?return_risco_id=<?= $riscoId ?>" class="btn btn-warning btn-sm" title="Editar"><i class="fa-regular fa-pen-to-square"></i></a>

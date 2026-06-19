@@ -7,8 +7,12 @@ $treinamentosObr = $report['treinamentos_obrigatorios'] ?? [];
 $incluirTreinamentos = !empty($this->data['incluirTreinamentos']);
 $afastAtivos = $report['afastamentos_ativos'] ?? [];
 $acidentesAbertos = $report['acidentes_abertos'] ?? [];
+$perms = $this->data['buttonPermission'] ?? [];
+$csrfAbrirAso = \App\adms\Helpers\CSRFHelper::generateCSRFToken('sst_abrir_aso_pendencia');
+require __DIR__ . '/partials/sst_aso_pendencia_actions.php';
 
 function sstPendenciaRow(array $r, bool $mobile = false): void {
+    global $perms, $csrfAbrirAso;
     $nome = htmlspecialchars($r['colaborador_nome'] ?? $r['name'] ?? '-');
     $item = htmlspecialchars($r['epi_nome'] ?? $r['exame_nome'] ?? $r['treinamento_nome'] ?? '-');
     $sit = $r['situacao_label'] ?? ($r['situacao'] ?? '-');
@@ -21,6 +25,8 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
         echo '<span class="badge bg-' . htmlspecialchars($badge) . ' mt-1">' . htmlspecialchars($sit) . '</span>';
         if ($uid > 0) {
             echo ' <a href="' . $_ENV['URL_ADM'] . 'sst-employee-profile/' . $uid . '" class="btn btn-link btn-sm p-0 ms-2">Perfil SST</a>';
+            echo ' ';
+            sstRenderAsoPendenciaActions($r, $perms, 'sst-report-pendencias', null, $csrfAbrirAso);
         }
         echo '</div></div>';
         return;
@@ -32,7 +38,8 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
     echo '<td><span class="badge bg-' . htmlspecialchars($badge) . '">' . htmlspecialchars($sit) . '</span></td>';
     echo '<td class="text-center">';
     if ($uid > 0) {
-        echo '<a href="' . $_ENV['URL_ADM'] . 'sst-employee-profile/' . $uid . '" class="btn btn-info btn-sm" title="Perfil"><i class="fa-regular fa-eye"></i></a>';
+        echo '<a href="' . $_ENV['URL_ADM'] . 'sst-employee-profile/' . $uid . '" class="btn btn-info btn-sm" title="Perfil"><i class="fa-regular fa-eye"></i></a> ';
+        sstRenderAsoPendenciaActions($r, $perms, 'sst-report-pendencias', null, $csrfAbrirAso);
     }
     echo '</td></tr>';
 }

@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstAsoStatusHelper;
 use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
@@ -42,6 +43,10 @@ class SstUpdateAso
             $_SESSION['msg'] = 'Registro não encontrado.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-asos');
+            exit;
+        }
+        if (SstAsoStatusHelper::isAguardando($this->data['item'])) {
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-registrar-resultados-aso/' . (int) $id);
             exit;
         }
         $this->loadFormData();

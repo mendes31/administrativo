@@ -27,6 +27,6 @@ $todasCategorias = $selectedCategorias === [];
     </div>
     <div class="form-text">
         Marque uma ou mais categorias no mesmo vínculo. Nenhuma marcada = vale para todas as categorias de ASO.
-        Periodicidade e obrigatoriedade aplicam-se igualmente às categorias selecionadas.
+        A periodicidade do vínculo, se informada, sobrescreve a do catálogo do exame.
     </div>
 </div>

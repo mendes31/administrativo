@@ -1,4 +1,6 @@
 <?php
+use App\adms\Helpers\SstAsoStatusHelper;
+
 $item = $this->data['item'];
 $perms = $this->data['buttonPermission'] ?? [];
 function formatCellValue(string $col, mixed $value): string {
@@ -23,7 +25,11 @@ function formatCellValue(string $col, mixed $value): string {
         <div class="card-body d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <h4 class="mb-0">Registro #<?= (int)$item['id'] ?></h4>
             <div>
-                <?php if (in_array('SstUpdateAso', $perms)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-update-aso/<?= (int)$item['id'] ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Editar</a><?php endif; ?>
+                <?php if (SstAsoStatusHelper::isAguardando($item) && in_array('SstRegistrarResultadosAso', $perms, true)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-registrar-resultados-aso/<?= (int)$item['id'] ?>" class="btn btn-warning btn-sm"><i class="fas fa-clipboard-check"></i> Registrar resultados</a>
+                <?php elseif (in_array('SstUpdateAso', $perms)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-update-aso/<?= (int)$item['id'] ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Editar</a>
+                <?php endif; ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-list-asos" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Voltar</a>
             </div>
         </div>
@@ -37,6 +43,7 @@ function formatCellValue(string $col, mixed $value): string {
 <tr><th width="35%">Exame:</th><td><?= formatCellValue('adms_sst_exame_id', $item['adms_sst_exame_id'] ?? null) ?></td></tr>
 <tr><th width="35%">Médico:</th><td><?= formatCellValue('adms_sst_medico_id', $item['adms_sst_medico_id'] ?? null) ?></td></tr>
 <tr><th width="35%">Tipo:</th><td><?= formatCellValue('tipo', $item['tipo'] ?? null) ?></td></tr>
+<tr><th width="35%">Status:</th><td><span class="badge bg-<?= SstAsoStatusHelper::badgeClass($item['status'] ?? SstAsoStatusHelper::CONCLUIDO) ?>"><?= htmlspecialchars(SstAsoStatusHelper::label($item['status'] ?? null)) ?></span></td></tr>
 <tr><th width="35%">Data realização:</th><td><?= formatCellValue('data_realizacao', $item['data_realizacao'] ?? null) ?></td></tr>
 <tr><th width="35%">Validade:</th><td><?= formatCellValue('data_validade', $item['data_validade'] ?? null) ?></td></tr>
 <tr><th width="35%">Resultado:</th><td><?= formatCellValue('resultado', $item['resultado'] ?? null) ?></td></tr>
@@ -54,11 +61,14 @@ function formatCellValue(string $col, mixed $value): string {
                 <div class="card-header"><h5 class="mb-0">Exames complementares</h5></div>
                 <div class="card-body table-responsive">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>Exame</th><th>Data</th><th>Resultado</th></tr></thead>
+                        <thead><tr><th>Exame</th><th>Exigência</th><th>Data</th><th>Resultado</th></tr></thead>
                         <tbody>
-                        <?php foreach ($this->data['complementares'] as $comp): ?>
+                        <?php
+                        $exigLabels = ['obrigatorio' => 'Obrigatório', 'recomendado' => 'Recomendado', 'adicional' => 'Adicional'];
+                        foreach ($this->data['complementares'] as $comp): ?>
                             <tr>
                                 <td><?= htmlspecialchars($comp['exame_nome'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($exigLabels[$comp['exigencia'] ?? ''] ?? '-') ?></td>
                                 <td><?= formatCellValue('data_realizacao', $comp['data_realizacao'] ?? null) ?></td>
                                 <td><?= htmlspecialchars((string)($comp['resultado'] ?? '-')) ?></td>
                             </tr>

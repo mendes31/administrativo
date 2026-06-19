@@ -8,32 +8,43 @@ use App\adms\Helpers\SstCategoriaAsoHelper;
 use PDO;
 
 /**
- * Resolve exames complementares obrigatórios: Cargo → Riscos → Exames + regras diretas.
+ * Resolve exames complementares por matriz: Cargo → Riscos → Exames + regras diretas.
  */
 class SstExamesObrigatoriosResolver extends DbConnection
 {
     /**
-     * @return list<array{
-     *   adms_sst_exame_id: int,
-     *   exame_nome: string,
-     *   categoria_aso: string|null,
-     *   periodicidade_meses: int|null,
-     *   origem: string
-     * }>
+     * Exames obrigatórios (geram pacote ASO, pendências e encaminhamento).
+     *
+     * @return list<array<string, mixed>>
      */
     public function resolveForUser(int $userId, ?string $categoriaAso = null): array
     {
-        if ($userId <= 0) {
-            return [];
+        return $this->resolveByObrigatoriedade($userId, $categoriaAso, true);
+    }
+
+    /**
+     * Exames vinculados como recomendados (opcionais na matriz).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function resolveRecomendadosForUser(int $userId, ?string $categoriaAso = null): array
+    {
+        return $this->resolveByObrigatoriedade($userId, $categoriaAso, false);
+    }
+
+    /**
+     * @return array{obrigatorios: list<array<string, mixed>>, recomendados: list<array<string, mixed>>}
+     */
+    public function resolvePacoteCompleto(int $userId, string $categoriaAso): array
+    {
+        if (!SstCategoriaAsoHelper::isValid($categoriaAso)) {
+            return ['obrigatorios' => [], 'recomendados' => []];
         }
 
-        $categoriaParam = ($categoriaAso !== null && $categoriaAso !== '') ? $categoriaAso : null;
-        $rows = array_merge(
-            $this->fetchFromRiscoExame($userId, $categoriaParam),
-            $this->fetchFromExameNecessidade($userId, $categoriaParam)
-        );
-
-        return $this->deduplicateRows($rows);
+        return [
+            'obrigatorios' => $this->resolveForUser($userId, $categoriaAso),
+            'recomendados' => $this->resolveRecomendadosForUser($userId, $categoriaAso),
+        ];
     }
 
     /**
@@ -51,14 +62,30 @@ class SstExamesObrigatoriosResolver extends DbConnection
     }
 
     /** @return list<array<string, mixed>> */
-    private function fetchFromRiscoExame(int $userId, ?string $categoriaAso): array
+    private function resolveByObrigatoriedade(int $userId, ?string $categoriaAso, bool $obrigatorio): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $categoriaParam = ($categoriaAso !== null && $categoriaAso !== '') ? $categoriaAso : null;
+        $rows = array_merge(
+            $this->fetchFromRiscoExame($userId, $categoriaParam, $obrigatorio),
+            $this->fetchFromExameNecessidade($userId, $categoriaParam, $obrigatorio)
+        );
+
+        return $this->deduplicateRows($rows, $obrigatorio);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function fetchFromRiscoExame(int $userId, ?string $categoriaAso, bool $obrigatorio): array
     {
         if (!$this->hasTable('adms_sst_risco_exame')) {
             return [];
         }
 
         $categoriaSql = '';
-        $params = [':uid' => $userId];
+        $params = [':uid' => $userId, ':obr' => $obrigatorio ? 1 : 0];
         if ($categoriaAso !== null) {
             $categoriaSql = ' AND (re.categoria_aso IS NULL OR re.categoria_aso = :categoria_aso)';
             $params[':categoria_aso'] = $categoriaAso;
@@ -69,13 +96,14 @@ class SstExamesObrigatoriosResolver extends DbConnection
                     ex.nome AS exame_nome,
                     re.categoria_aso,
                     COALESCE(re.periodicidade_meses, ex.periodicidade_meses) AS periodicidade_meses,
+                    re.obrigatorio,
                     'risco_exame' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_riscos_cargo rc
                     ON (rc.adms_position_id IS NULL OR rc.adms_position_id = u.user_position_id)
                    AND (rc.adms_department_id IS NULL OR rc.adms_department_id = u.user_department_id)
                 INNER JOIN adms_sst_risco_exame re
-                    ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = 1
+                    ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = :obr
                 INNER JOIN adms_sst_exames ex ON ex.id = re.adms_sst_exame_id AND ex.status = 'Ativo'
                 WHERE u.id = :uid
                   {$categoriaSql}";
@@ -90,11 +118,11 @@ class SstExamesObrigatoriosResolver extends DbConnection
     }
 
     /** @return list<array<string, mixed>> */
-    private function fetchFromExameNecessidade(int $userId, ?string $categoriaAso): array
+    private function fetchFromExameNecessidade(int $userId, ?string $categoriaAso, bool $obrigatorio): array
     {
         $hasCategoriaCol = $this->tableHasColumn('adms_sst_exame_necessidade', 'categoria_aso');
         $categoriaSql = '';
-        $params = [':uid' => $userId];
+        $params = [':uid' => $userId, ':obr' => $obrigatorio ? 1 : 0];
         if ($categoriaAso !== null && $hasCategoriaCol) {
             $categoriaSql = ' AND (n.categoria_aso IS NULL OR n.categoria_aso = :categoria_aso)';
             $params[':categoria_aso'] = $categoriaAso;
@@ -107,6 +135,7 @@ class SstExamesObrigatoriosResolver extends DbConnection
                     ex.nome AS exame_nome,
                     {$categoriaSelect},
                     COALESCE(n.periodicidade_meses, ex.periodicidade_meses) AS periodicidade_meses,
+                    n.obrigatorio,
                     'necessidade' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_exame_necessidade n
@@ -123,7 +152,7 @@ class SstExamesObrigatoriosResolver extends DbConnection
                    )
                 INNER JOIN adms_sst_exames ex ON ex.id = n.adms_sst_exame_id AND ex.status = 'Ativo'
                 WHERE u.id = :uid
-                  AND n.obrigatorio = 1
+                  AND n.obrigatorio = :obr
                   {$categoriaSql}";
 
         $stmt = $this->getConnection()->prepare($sql);
@@ -136,7 +165,7 @@ class SstExamesObrigatoriosResolver extends DbConnection
     }
 
     /** @param list<array<string, mixed>> $rows */
-    private function deduplicateRows(array $rows): array
+    private function deduplicateRows(array $rows, bool $obrigatorio): array
     {
         $out = [];
         foreach ($rows as $row) {
@@ -152,6 +181,7 @@ class SstExamesObrigatoriosResolver extends DbConnection
                     'exame_nome' => (string) ($row['exame_nome'] ?? ''),
                     'categoria_aso' => $cat !== null && $cat !== '' ? (string) $cat : null,
                     'periodicidade_meses' => isset($row['periodicidade_meses']) ? (int) $row['periodicidade_meses'] : null,
+                    'obrigatorio' => $obrigatorio,
                     'origem' => (string) ($row['origem'] ?? ''),
                 ];
                 continue;

@@ -47,6 +47,7 @@ class SstAsoExamesRepository extends DbConnection
                 INNER JOIN adms_sst_asos a ON a.id = ae.adms_sst_aso_id
                 WHERE a.adms_user_id = :uid
                   AND ae.adms_sst_exame_id = :exame_id
+                  AND (a.status IS NULL OR a.status = 'Concluído')
                   {$categoriaFilter}
                 ORDER BY COALESCE(ae.data_realizacao, a.data_realizacao) DESC, a.id DESC
                 LIMIT 1";
@@ -65,6 +66,7 @@ class SstAsoExamesRepository extends DbConnection
                       FROM adms_sst_asos a
                       WHERE a.adms_user_id = :uid
                         AND a.adms_sst_exame_id = :exame_id
+                        AND (a.status IS NULL OR a.status = 'Concluído')
                         {$categoriaFilter}
                       ORDER BY a.data_realizacao DESC, a.id DESC
                       LIMIT 1";
@@ -79,7 +81,7 @@ class SstAsoExamesRepository extends DbConnection
     }
 
     /**
-     * @param list<array{adms_sst_exame_id?: int, data_realizacao?: string|null, resultado?: string|null, observacoes?: string|null}> $rows
+     * @param list<array{adms_sst_exame_id?: int, data_realizacao?: string|null, resultado?: string|null, observacoes?: string|null, exigencia?: string|null}> $rows
      */
     public function syncForAso(int $asoId, array $rows): void
     {
@@ -89,11 +91,16 @@ class SstAsoExamesRepository extends DbConnection
         $del->execute();
 
         $uid = (int) ($_SESSION['user_id'] ?? 1);
-        $ins = $conn->prepare(
-            'INSERT INTO adms_sst_aso_exames
-                (adms_sst_aso_id, adms_sst_exame_id, data_realizacao, resultado, observacoes, created_by, updated_by, created_at, updated_at)
-             VALUES (:aso_id, :exame_id, :data_realizacao, :resultado, :observacoes, :uid, :uid, NOW(), NOW())'
-        );
+        $hasExigencia = $this->columnExists('adms_sst_aso_exames', 'exigencia');
+        $cols = '(adms_sst_aso_id, adms_sst_exame_id, data_realizacao, resultado, observacoes';
+        $vals = '(:aso_id, :exame_id, :data_realizacao, :resultado, :observacoes';
+        if ($hasExigencia) {
+            $cols .= ', exigencia';
+            $vals .= ', :exigencia';
+        }
+        $cols .= ', created_by, updated_by, created_at, updated_at)';
+        $vals .= ', :uid, :uid, NOW(), NOW())';
+        $ins = $conn->prepare('INSERT INTO adms_sst_aso_exames ' . $cols . ' VALUES ' . $vals);
 
         foreach ($rows as $row) {
             $exameId = (int) ($row['adms_sst_exame_id'] ?? 0);
@@ -120,8 +127,28 @@ class SstAsoExamesRepository extends DbConnection
             } else {
                 $ins->bindValue(':observacoes', (string) $obs, PDO::PARAM_STR);
             }
+            if ($hasExigencia) {
+                $exig = $row['exigencia'] ?? null;
+                if ($exig === null || $exig === '') {
+                    $ins->bindValue(':exigencia', null, PDO::PARAM_NULL);
+                } else {
+                    $ins->bindValue(':exigencia', (string) $exig, PDO::PARAM_STR);
+                }
+            }
             $ins->bindValue(':uid', $uid, PDO::PARAM_INT);
             $ins->execute();
         }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        $sql = "SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :tbl AND COLUMN_NAME = :col";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':tbl', $table, PDO::PARAM_STR);
+        $stmt->bindValue(':col', $column, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn() > 0;
     }
 }

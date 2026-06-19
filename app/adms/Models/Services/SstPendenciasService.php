@@ -6,6 +6,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\SstCategoriaAsoHelper;
 use App\adms\Models\Repository\SstAsoExamesRepository;
+use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -69,10 +70,7 @@ class SstPendenciasService extends DbConnection
     public function getPendenciasPorUsuario(int $userId): array
     {
         $epis = $this->getPendenciasEpiPorUsuario($userId);
-        $exames = array_merge(
-            $this->getPendenciasExameComplementarPorUsuario($userId),
-            $this->getPendenciasAsoEventoPorUsuario($userId)
-        );
+        $exames = $this->getPendenciasExameConsolidadoPorUsuario($userId);
         $treinamentos = self::incluirTreinamentos()
             ? $this->getPendenciasTreinamentoPorUsuario($userId)
             : [];
@@ -88,6 +86,128 @@ class SstPendenciasService extends DbConnection
                 'treinamentos' => count($treinamentos),
             ],
         ];
+    }
+
+    /**
+     * Pendências de exame consolidadas: prioriza o evento ASO (ex. Periódico) e evita
+     * duplicar exames complementares que já fazem parte do pacote desse ASO.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPendenciasExameConsolidadoPorUsuario(int $userId): array
+    {
+        $eventos = $this->getPendenciasAsoEventoPorUsuario($userId);
+        $complementares = $this->getPendenciasExameComplementarPorUsuario($userId);
+
+        $examesNoPacoteAso = $this->coletarExamesIdsPacoteEventosPendentes($userId, $eventos);
+
+        $vistosExame = [];
+        $complementaresFiltrados = [];
+        foreach ($complementares as $comp) {
+            $exameId = (int) ($comp['adms_sst_exame_id'] ?? 0);
+            if ($exameId > 0 && isset($examesNoPacoteAso[$exameId])) {
+                continue;
+            }
+            if ($exameId > 0 && isset($vistosExame[$exameId])) {
+                continue;
+            }
+            if ($exameId > 0) {
+                $vistosExame[$exameId] = true;
+            }
+            $complementaresFiltrados[] = $comp;
+        }
+
+        return array_merge($eventos, $complementaresFiltrados);
+    }
+
+    /**
+     * IDs de exames que já fazem parte de um evento ASO pendente ou aguardando resultados.
+     *
+     * @param array<int, array<string, mixed>> $eventosPendentes
+     * @return array<int, true>
+     */
+    private function coletarExamesIdsPacoteEventosPendentes(int $userId, array $eventosPendentes): array
+    {
+        $ids = [];
+        $resolver = new SstExamesObrigatoriosResolver();
+        $categorias = [];
+
+        foreach ($eventosPendentes as $ev) {
+            $cat = $ev['categoria_aso'] ?? null;
+            if (is_string($cat) && $cat !== '') {
+                $categorias[$cat] = true;
+            }
+        }
+
+        foreach (array_keys($categorias) as $categoria) {
+            $pacote = $resolver->resolvePacoteCompleto($userId, $categoria);
+            foreach (array_merge($pacote['obrigatorios'] ?? [], $pacote['recomendados'] ?? []) as $regra) {
+                $eid = (int) ($regra['adms_sst_exame_id'] ?? 0);
+                if ($eid > 0) {
+                    $ids[$eid] = true;
+                }
+            }
+        }
+
+        $asoRepo = new SstAsosRepository();
+        foreach ($asoRepo->findAllAguardandoPorUsuario($userId) as $aso) {
+            $cat = (string) ($aso['tipo'] ?? '');
+            if ($cat === '' || isset($categorias[$cat])) {
+                continue;
+            }
+            $pacote = $resolver->resolvePacoteCompleto($userId, $cat);
+            foreach (array_merge($pacote['obrigatorios'] ?? [], $pacote['recomendados'] ?? []) as $regra) {
+                $eid = (int) ($regra['adms_sst_exame_id'] ?? 0);
+                if ($eid > 0) {
+                    $ids[$eid] = true;
+                }
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function getUserIdsAtivosComObrigacaoExame(): array
+    {
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoExame('u');
+        $sql = "SELECT u.id
+                FROM adms_users u
+                WHERE u.status = 'Ativo'
+                  AND (u.data_desligamento IS NULL)
+                  AND {$obrigacaoSql}
+                ORDER BY u.id
+                LIMIT 500";
+        $stmt = $this->getConnection()->query($sql);
+        $out = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $out[] = $id;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Complementar da matriz já está no pacote do evento ASO pendente?
+     *
+     * @param array<string, true> $categoriasEventoPendentes
+     * @deprecated Substituído por coletarExamesIdsPacoteEventosPendentes
+     */
+    private function complementarCobertoPorEventoAso(?string $categoriaComplementar, array $categoriasEventoPendentes): bool
+    {
+        if ($categoriasEventoPendentes === []) {
+            return false;
+        }
+        if ($categoriaComplementar !== null && $categoriaComplementar !== '') {
+            return isset($categoriasEventoPendentes[$categoriaComplementar]);
+        }
+
+        return isset($categoriasEventoPendentes[SstCategoriaAsoHelper::PERIODICO]);
     }
 
     /**
@@ -171,9 +291,25 @@ class SstPendenciasService extends DbConnection
     {
         $pendencias = [];
         $resolver = new SstExamesObrigatoriosResolver();
+        $asoRepo = new SstAsosRepository();
         foreach ([SstCategoriaAsoHelper::PERIODICO] as $categoria) {
             $regras = $resolver->resolveForUser($userId, $categoria);
             if ($regras === []) {
+                continue;
+            }
+            $aguardando = $asoRepo->findAguardando($userId, $categoria);
+            if ($aguardando !== null) {
+                $pendencias[] = [
+                    'categoria_aso' => $categoria,
+                    'exame_nome' => 'ASO ' . $categoria,
+                    'tipo_pendencia' => 'evento_aso',
+                    'aso_aguardando_id' => (int) $aguardando['id'],
+                    'ultimo_aso' => null,
+                    'data_validade' => null,
+                    'resultado' => null,
+                    'periodicidade_meses' => $this->maxPeriodicidadeMeses($regras),
+                    'situacao' => 'aso_aguardando_resultados',
+                ];
                 continue;
             }
             $ultimo = $this->getUltimoAsoEvento($userId, $categoria);
@@ -197,13 +333,10 @@ class SstPendenciasService extends DbConnection
         return $this->enriquecerPendencias($pendencias, 'exame');
     }
 
-    /** @deprecated Use getPendenciasExameComplementarPorUsuario + getPendenciasAsoEventoPorUsuario */
+    /** @deprecated Use getPendenciasExameConsolidadoPorUsuario */
     public function getPendenciasExamePorUsuario(int $userId): array
     {
-        return array_merge(
-            $this->getPendenciasExameComplementarPorUsuario($userId),
-            $this->getPendenciasAsoEventoPorUsuario($userId)
-        );
+        return $this->getPendenciasExameConsolidadoPorUsuario($userId);
     }
 
     /**
@@ -505,6 +638,7 @@ class SstPendenciasService extends DbConnection
                 LEFT JOIN adms_sst_exames ex ON ex.id = a.adms_sst_exame_id
                 WHERE a.data_validade IS NOT NULL
                   AND a.data_validade < CURDATE()
+                  AND (a.status IS NULL OR a.status = 'Concluído')
                   AND u.status = 'Ativo'
                   {$extraWhere}
                 ORDER BY a.data_validade ASC
@@ -656,6 +790,7 @@ class SstPendenciasService extends DbConnection
             'aso_evento_sem_registro' => 'ASO não realizado',
             'aso_evento_vencido' => 'ASO vencido',
             'aso_evento_a_vencer' => 'ASO a vencer',
+            'aso_aguardando_resultados' => 'ASO aguardando resultados',
             'sem_vinculo_treinamento' => 'Treinamento sem vínculo',
             'treinamento_vencido' => 'Treinamento vencido',
             'treinamento_pendente' => 'Treinamento pendente',
@@ -671,6 +806,7 @@ class SstPendenciasService extends DbConnection
             'aso_evento_sem_registro' => 'danger',
             'aso_evento_vencido' => 'danger',
             'aso_evento_a_vencer' => 'warning',
+            'aso_aguardando_resultados' => 'info',
             'sem_vinculo_treinamento' => 'danger',
             'treinamento_vencido' => 'danger',
             'treinamento_pendente' => 'warning',
@@ -691,9 +827,10 @@ class SstPendenciasService extends DbConnection
   /** @return array<string, mixed>|null */
     private function getUltimoAsoEvento(int $userId, string $categoria): ?array
     {
-        $sql = "SELECT id, tipo, data_realizacao, data_validade, resultado
+        $sql = "SELECT id, tipo, data_realizacao, data_validade, resultado, status
                 FROM adms_sst_asos
                 WHERE adms_user_id = :uid AND tipo = :tipo
+                  AND (status IS NULL OR status = 'Concluído')
                 ORDER BY data_realizacao DESC, id DESC
                 LIMIT 1";
         $stmt = $this->getConnection()->prepare($sql);

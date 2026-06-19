@@ -35,7 +35,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_sst_risco_exame');
                                 <td><?= htmlspecialchars($item['exame_nome'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($item['categoria_aso'] ?? 'Todas') ?></td>
                                 <td><?= htmlspecialchars((string)($item['periodicidade_meses'] ?? '-')) ?></td>
-                                <td><?= !empty($item['obrigatorio']) ? 'Sim' : 'Não' ?></td>
+                                <td><?= !empty($item['obrigatorio']) ? 'Obrigatório' : 'Recomendado' ?></td>
                                 <td class="text-nowrap">
                                     <?php if (in_array('SstUpdateRiscoExame', $perms)): ?>
                                         <a href="<?= $_ENV['URL_ADM']; ?>sst-update-risco-exame/<?= $id ?>" class="btn btn-warning btn-sm"><i class="fa-regular fa-pen-to-square"></i></a>

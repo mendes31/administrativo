@@ -41,7 +41,7 @@ class SstReportPendencias
         $pageElements = [
             'title_head' => 'Relatório de Pendências - SST',
             'menu' => 'sst-dashboard',
-            'buttonPermission' => ['SstReportPendencias', 'SstEmployeeProfile'],
+            'buttonPermission' => ['SstReportPendencias', 'SstEmployeeProfile', 'SstAbrirAsoPendencia', 'SstRegistrarResultadosAso'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/report_pendencias', $this->data))->loadView();

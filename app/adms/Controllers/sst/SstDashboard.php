@@ -16,6 +16,8 @@ class SstDashboard
 
     public function index(): void
     {
+        (new \App\adms\Models\Services\SstAsoSolicitacaoService())->sincronizarSolicitacoesPendentes();
+
         $service = new SstDashboardService();
         $pendenciasService = new SstPendenciasService();
         $this->data['pending_exams_count'] = $service->getPendingExamsCount();
@@ -33,6 +35,7 @@ class SstDashboard
         $this->data['open_accidents'] = $service->getOpenAccidents(5);
         $this->data['low_stock_epis'] = $service->getLowStockEpis(5);
         $this->data['afastamentos_ativos'] = $service->listAfastamentosAtivos(5);
+        $this->data['asos_aguardando_count'] = (new \App\adms\Models\Repository\SstAsosRepository())->countAguardando();
 
         $pageElements = [
             'title_head' => 'Dashboard - SST',

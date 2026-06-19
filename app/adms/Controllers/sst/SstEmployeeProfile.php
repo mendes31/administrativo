@@ -65,6 +65,8 @@ class SstEmployeeProfile
             'buttonPermission' => [
                 'SstEmployeeProfile',
                 'SstCreateAso', 'SstCreateAfastamento', 'SstCreateEpiEntrega', 'SstCreateEpiFicha', 'SstCreateAcidente',
+                'SstAbrirAsoPendencia', 'SstRegistrarResultadosAso',
+                'SstEncaminhamentoAso', 'SstExportEncaminhamentoAsoPdf',
                 'SstListAsos', 'SstListAfastamentos', 'SstListEpiEntregas', 'SstListEpiFichas', 'SstListAcidentes',
                 'SstViewAso', 'SstViewAfastamento', 'SstViewEpiEntrega', 'SstViewEpiFicha', 'SstViewAcidente',
                 'SstExportEpiFichaPdf',

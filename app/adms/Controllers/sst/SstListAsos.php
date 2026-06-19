@@ -17,10 +17,23 @@ class SstListAsos
 
     public function index(string|int $page = 1): void
     {
+        $onlyUserId = !empty($_GET['adms_user_id']) ? (int) $_GET['adms_user_id'] : null;
+        $sync = (new \App\adms\Models\Services\SstAsoSolicitacaoService())->sincronizarSolicitacoesPendentes($onlyUserId);
+        if ($sync['criados'] > 0 && empty($_SESSION['msg'])) {
+            $_SESSION['msg'] = $sync['criados'] . ' solicitação(ões) de ASO gerada(s) automaticamente a partir dos vínculos.';
+            $_SESSION['msg_type'] = 'info';
+        }
+
+        $semFiltrosNaUrl = !array_key_exists('search', $_GET)
+            && !array_key_exists('adms_user_id', $_GET)
+            && !array_key_exists('status', $_GET)
+            && !array_key_exists('page', $_GET)
+            && !array_key_exists('per_page', $_GET);
+
         $filters = [
             'search' => $_GET['search'] ?? '',
             'adms_user_id' => $_GET['adms_user_id'] ?? '',
-            'status' => $_GET['status'] ?? '',
+            'status' => $_GET['status'] ?? ($semFiltrosNaUrl ? 'Aguardando exames' : ''),
         ];
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int) $_GET['page'];
@@ -31,6 +44,7 @@ class SstListAsos
         $repo = new SstAsosRepository();
         $total = $repo->getTotal($filters);
         $this->data['items'] = $repo->getAll((int) $page, $this->limitResult, $filters);
+        $this->data['aguardando_count'] = $repo->countAguardando();
         $this->data['pagination'] = PaginationService::generatePagination(
             $total,
             $this->limitResult,
@@ -136,7 +150,7 @@ class SstListAsos
         $pageElements = [
             'title_head' => 'ASOs - SST',
             'menu' => 'sst-list-asos',
-            'buttonPermission' => ['SstViewAso', 'SstCreateAso', 'SstUpdateAso', 'SstDeleteAso'],
+            'buttonPermission' => ['SstViewAso', 'SstCreateAso', 'SstUpdateAso', 'SstDeleteAso', 'SstRegistrarResultadosAso'],
         ];
         $this->data = array_merge($this->data ?? [], (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/asos/list', $this->data))->loadView();

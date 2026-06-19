@@ -194,6 +194,7 @@ class LoadPageAdm
         "SstDashboard", "SstEmployeeProfile", "SstReportPendencias", "SstReportExames", "SstReportEpis",
         "SstListExames", "SstCreateExame", "SstViewExame", "SstUpdateExame", "SstDeleteExame",
         "SstListAsos", "SstCreateAso", "SstViewAso", "SstUpdateAso", "SstDeleteAso",
+        "SstAbrirAsoPendencia", "SstRegistrarResultadosAso",
         "SstListAfastamentos", "SstCreateAfastamento", "SstViewAfastamento", "SstUpdateAfastamento", "SstDeleteAfastamento",
         "SstListEpis", "SstCreateEpi", "SstViewEpi", "SstUpdateEpi", "SstDeleteEpi",
         "SstListEpiEntregas", "SstCreateEpiEntrega", "SstViewEpiEntrega", "SstUpdateEpiEntrega", "SstDeleteEpiEntrega",
@@ -210,6 +211,8 @@ class LoadPageAdm
         "SstListRiscoEpi", "SstCreateRiscoEpi", "SstUpdateRiscoEpi", "SstDeleteRiscoEpi",
         "SstSaveRiscoRelacionamentos",
         "SstPacoteExamesAso",
+        "SstEncaminhamentoAso",
+        "SstExportEncaminhamentoAsoPdf",
         "SstSearchCids"
     ];
 
