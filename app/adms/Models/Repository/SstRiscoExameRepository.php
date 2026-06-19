@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstCategoriaAsoHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Models\Services\SstPendenciasService;
@@ -184,6 +185,169 @@ class SstRiscoExameRepository extends DbConnection
         }
 
         SstPendenciasService::invalidateDashboardCache();
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getAllByRisco(int $riscoId): array
+    {
+        if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_exame')) {
+            return [];
+        }
+
+        return $this->getAll(1, 500, ['adms_sst_risco_id' => $riscoId]);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getByRiscoAndExame(int $riscoId, int $exameId): array
+    {
+        if ($riscoId <= 0 || $exameId <= 0 || !$this->hasTable('adms_sst_risco_exame')) {
+            return [];
+        }
+        $sql = 'SELECT * FROM adms_sst_risco_exame
+                WHERE adms_sst_risco_id = :rid AND adms_sst_exame_id = :eid
+                ORDER BY categoria_aso IS NULL DESC, categoria_aso';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':rid', $riscoId, PDO::PARAM_INT);
+        $stmt->bindValue(':eid', $exameId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Categorias vinculadas ao par risco+exame. Lista vazia = vínculo “todas as categorias” (categoria_aso NULL).
+     *
+     * @return list<string>
+     */
+    public function getCategoriasByRiscoExame(int $riscoId, int $exameId): array
+    {
+        $rows = $this->getByRiscoAndExame($riscoId, $exameId);
+        if ($rows === []) {
+            return [];
+        }
+        foreach ($rows as $row) {
+            if (($row['categoria_aso'] ?? null) === null || ($row['categoria_aso'] ?? '') === '') {
+                return [];
+            }
+        }
+
+        $cats = [];
+        foreach ($rows as $row) {
+            $cat = (string) ($row['categoria_aso'] ?? '');
+            if (SstCategoriaAsoHelper::isValid($cat)) {
+                $cats[] = $cat;
+            }
+        }
+
+        return array_values(array_unique($cats));
+    }
+
+    /**
+     * Cria ou atualiza linhas do vínculo risco+exame conforme categorias selecionadas.
+     *
+     * @param list<string|null> $categorias
+     */
+    public function syncVinculo(
+        int $riscoId,
+        int $exameId,
+        array $categorias,
+        array $commonData,
+        ?int $oldRiscoId = null,
+        ?int $oldExameId = null
+    ): bool {
+        if ($riscoId <= 0 || $exameId <= 0 || !$this->hasTable('adms_sst_risco_exame')) {
+            return false;
+        }
+
+        $categorias = SstCategoriaAsoHelper::normalizeSelection(
+            array_values(array_filter($categorias, static fn (?string $c): bool => $c === null || SstCategoriaAsoHelper::isValid($c)))
+        );
+        if ($categorias === []) {
+            $categorias = [null];
+        }
+
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
+        try {
+            if (
+                $oldRiscoId > 0 && $oldExameId > 0
+                && ($oldRiscoId !== $riscoId || $oldExameId !== $exameId)
+            ) {
+                foreach ($this->getByRiscoAndExame($oldRiscoId, $oldExameId) as $row) {
+                    $this->delete((int) ($row['id'] ?? 0));
+                }
+            }
+
+            $existing = $this->getByRiscoAndExame($riscoId, $exameId);
+            $desiredKeys = $this->categoriaKeys($categorias);
+
+            foreach ($existing as $row) {
+                $key = $this->categoriaKey($row['categoria_aso'] ?? null);
+                if (!in_array($key, $desiredKeys, true)) {
+                    $this->delete((int) ($row['id'] ?? 0));
+                }
+            }
+
+            $existingAfterDelete = $this->getByRiscoAndExame($riscoId, $exameId);
+            $byKey = [];
+            foreach ($existingAfterDelete as $row) {
+                $byKey[$this->categoriaKey($row['categoria_aso'] ?? null)] = $row;
+            }
+
+            foreach ($categorias as $categoria) {
+                $key = $this->categoriaKey($categoria);
+                $payload = array_merge($commonData, [
+                    'adms_sst_risco_id' => $riscoId,
+                    'adms_sst_exame_id' => $exameId,
+                    'categoria_aso' => $categoria,
+                ]);
+                if (isset($byKey[$key])) {
+                    $this->update((int) $byKey[$key]['id'], $payload);
+                } else {
+                    $this->create($payload);
+                }
+            }
+
+            SstPendenciasService::invalidateDashboardCache();
+            $pdo->commit();
+
+            return true;
+        } catch (\Throwable) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return false;
+        }
+    }
+
+    /** @param list<string|null> $categorias @return list<string> */
+    private function categoriaKeys(array $categorias): array
+    {
+        return array_map(fn (?string $c): string => $this->categoriaKey($c), $categorias);
+    }
+
+    private function categoriaKey(?string $categoria): string
+    {
+        return ($categoria === null || $categoria === '') ? '__todas__' : $categoria;
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getRiscosByExameId(int $exameId): array
+    {
+        if ($exameId <= 0 || !$this->hasTable('adms_sst_risco_exame')) {
+            return [];
+        }
+        $sql = 'SELECT DISTINCT r.id, r.nome, r.codigo, r.status, r.grupo_risco
+                FROM adms_sst_risco_exame re
+                INNER JOIN adms_sst_riscos r ON r.id = re.adms_sst_risco_id
+                WHERE re.adms_sst_exame_id = :eid
+                ORDER BY r.nome';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eid', $exameId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /** @return array{0: string, 1: array<string, mixed>} */

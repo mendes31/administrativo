@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\SstExamesRepository;
 use App\adms\Models\Repository\SstAnexosRepository;
+use App\adms\Models\Repository\SstRiscoExameRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -31,6 +32,7 @@ class SstViewExame
         $itemId = (int) $this->data['item']['id'];
         $returnUrl = $_ENV['URL_ADM'] . 'sst-view-exame/' . $itemId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_sst_exames', $itemId, $returnUrl);
+        $this->data['riscosRelacionados'] = (new SstRiscoExameRepository())->getRiscosByExameId($itemId);
         
         $this->data['entity'] = array (
   'table' => 'adms_sst_exames',

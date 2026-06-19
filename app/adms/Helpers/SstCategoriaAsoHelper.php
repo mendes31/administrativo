@@ -37,4 +37,20 @@ final class SstCategoriaAsoHelper
     {
         return $categoria === self::PERIODICO;
     }
+
+    /**
+     * Normaliza checkboxes do formulário: vazio ou todas marcadas = uma linha sem categoria (vale para todos).
+     *
+     * @param list<string> $posted
+     * @return list<string|null>
+     */
+    public static function normalizeSelection(array $posted): array
+    {
+        $valid = array_values(array_filter($posted, static fn (mixed $c): bool => is_string($c) && self::isValid($c)));
+        if ($valid === [] || count($valid) === count(self::all())) {
+            return [null];
+        }
+
+        return $valid;
+    }
 }

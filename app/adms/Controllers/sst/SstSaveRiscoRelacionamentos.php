@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\sst;
 
+use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
-use App\adms\Models\Repository\SstRiscoExameRepository;
 use App\adms\Models\Repository\SstRiscoEpiRepository;
-use App\adms\Models\Repository\SstRiscosRepository;
 
 class SstSaveRiscoRelacionamentos
 {
@@ -24,27 +23,24 @@ class SstSaveRiscoRelacionamentos
         if (!CSRFHelper::validateCSRFToken('sst_risco_relacionamentos', $_POST['csrf_token'] ?? '')) {
             $_SESSION['msg'] = 'Token CSRF inválido.';
             $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $redirect);
+            header('Location: ' . $redirect . '#tab-epis');
             exit;
         }
 
-        if ($riscoId <= 0 || !(new SstRiscosRepository())->getById($riscoId)) {
-            $_SESSION['msg'] = 'Risco não encontrado.';
-            $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-riscos');
-            exit;
-        }
-
-        $exameIds = is_array($_POST['exames'] ?? null) ? array_map('intval', $_POST['exames']) : [];
         $epiIds = is_array($_POST['epis'] ?? null) ? array_map('intval', $_POST['epis']) : [];
+        $obrigatorioPost = is_array($_POST['epis_obrigatorio'] ?? null) ? $_POST['epis_obrigatorio'] : [];
+        $epiMap = [];
+        foreach ($epiIds as $epiId) {
+            if ($epiId > 0) {
+                $epiMap[$epiId] = ['obrigatorio' => isset($obrigatorioPost[$epiId])];
+            }
+        }
 
-        (new SstRiscoExameRepository())->syncExamesForRisco($riscoId, $exameIds);
-        (new SstRiscoEpiRepository())->syncEpisForRisco($riscoId, $epiIds);
+        (new SstRiscoEpiRepository())->syncEpisForRisco($riscoId, $epiMap);
 
-        $_SESSION['msg'] = 'Relacionamentos salvos com sucesso.';
+        $_SESSION['msg'] = 'EPIs vinculados salvos com sucesso.';
         $_SESSION['msg_type'] = 'success';
-        $tab = in_array($_POST['active_tab'] ?? '', ['exames', 'epis'], true) ? $_POST['active_tab'] : 'exames';
-        header('Location: ' . $redirect . '#tab-' . $tab);
+        header('Location: ' . $redirect . '#tab-epis');
         exit;
     }
 }

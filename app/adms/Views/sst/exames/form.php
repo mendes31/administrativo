@@ -1,13 +1,10 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
-use App\adms\Helpers\SstExameResultadoHelper;
-use App\adms\Helpers\SstExameTipoHelper;
 
 $item = $this->data['item'] ?? [];
 $isEdit = !empty($item['id']);
 $csrfToken = CSRFHelper::generateCSRFToken('sst_exames_form');
 $action = $isEdit ? 'sst-update-exame/' . (int)$item['id'] : 'sst-create-exame';
-$resultadosSelecionados = $item['resultados_permitidos_list'] ?? [];
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -83,29 +80,18 @@ $resultadosSelecionados = $item['resultados_permitidos_list'] ?? [];
                 </div>
 
                 <hr>
-                <h6 class="text-muted text-uppercase small mb-3">Resultado no lançamento</h6>
+                <h6 class="text-muted text-uppercase small mb-3">Lançamento no ASO</h6>
                 <div class="row">
                     <div class="col-12 mb-3">
                         <div class="form-check">
                             <input type="checkbox" name="exige_resultado" id="exige_resultado" class="form-check-input" value="1"
                                 <?= !isset($item['exige_resultado']) || !empty($item['exige_resultado']) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="exige_resultado">Exame exige resultado ao registrar no ASO</label>
+                            <label class="form-check-label" for="exige_resultado">Exige resultado no lançamento</label>
                         </div>
-                    </div>
-                    <div class="col-12 mb-3" id="wrap-resultados">
-                        <label class="form-label d-block">Resultados esperados</label>
-                        <div class="row">
-                            <?php foreach (SstExameResultadoHelper::all() as $res): ?>
-                                <div class="col-md-4 col-lg-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" name="resultados_permitidos[]"
-                                               id="res_<?= md5($res) ?>" value="<?= htmlspecialchars($res) ?>"
-                                            <?= in_array($res, $resultadosSelecionados, true) ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="res_<?= md5($res) ?>"><?= htmlspecialchars($res) ?></label>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                        <p class="small text-muted mb-0 mt-1">
+                            Quando marcado, ao registrar o exame no ASO o usuário informará <strong>Normal</strong> ou <strong>Alterado</strong>
+                            (e observações, se necessário). A conclusão <em>Apto / Inapto</em> fica no resultado final do ASO.
+                        </p>
                     </div>
                 </div>
 
@@ -121,22 +107,13 @@ $resultadosSelecionados = $item['resultados_permitidos_list'] ?? [];
 (function () {
     const possuiValidade = document.getElementById('possui_validade');
     const wrapValidade = document.getElementById('wrap-validade-meses');
-    const exigeResultado = document.getElementById('exige_resultado');
-    const wrapResultados = document.getElementById('wrap-resultados');
 
     function toggleValidade() {
         if (!wrapValidade) return;
         wrapValidade.style.display = possuiValidade?.checked ? '' : 'none';
     }
 
-    function toggleResultados() {
-        if (!wrapResultados) return;
-        wrapResultados.style.display = exigeResultado?.checked ? '' : 'none';
-    }
-
     possuiValidade?.addEventListener('change', toggleValidade);
-    exigeResultado?.addEventListener('change', toggleResultados);
     toggleValidade();
-    toggleResultados();
 })();
 </script>

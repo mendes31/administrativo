@@ -63,12 +63,17 @@ function formatCellValue(string $col, mixed $value): string {
                 </table></div>
             </div>
             <div class="card mb-4 shadow-sm">
-                <div class="card-header"><h5 class="mb-0">Resultado no lançamento</h5></div>
+                <div class="card-header"><h5 class="mb-0">Lançamento no ASO</h5></div>
                 <div class="card-body"><table class="table table-sm mb-0">
                     <tr><th width="35%">Exige resultado:</th><td><?= formatCellValue('exige_resultado', $item['exige_resultado'] ?? null) ?></td></tr>
-                    <tr><th>Resultados esperados:</th><td><?= formatCellValue('resultados_permitidos', $item['resultados_permitidos'] ?? null) ?></td></tr>
+                    <?php if (!empty($item['exige_resultado'])): ?>
+                    <tr><th>Resultado no lançamento:</th><td>Normal / Alterado (automático)</td></tr>
+                    <?php else: ?>
+                    <tr><th>Resultado no lançamento:</th><td>Campo livre (opcional)</td></tr>
+                    <?php endif; ?>
                 </table></div>
             </div>
+            <?php include './app/adms/Views/sst/partials/riscos_relacionados_readonly.php'; ?>
             <div class="card mb-4 shadow-sm">
                 <div class="card-header"><h5 class="mb-0">Auditoria</h5></div>
                 <div class="card-body"><table class="table table-sm mb-0">

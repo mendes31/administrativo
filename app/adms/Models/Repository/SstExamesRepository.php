@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\SstExameResultadoHelper;
+use App\adms\Helpers\SstExameTipoHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -162,9 +163,9 @@ class SstExamesRepository extends DbConnection
     /** @return array<string, mixed> */
     private function hydrateRow(array $row): array
     {
-        $row['resultados_permitidos_list'] = SstExameResultadoHelper::decode(
-            isset($row['resultados_permitidos']) ? (string) $row['resultados_permitidos'] : null
-        );
+        $row['resultados_permitidos_list'] = !empty($row['exige_resultado'])
+            ? SstExameTipoHelper::defaultResultadoOptions($row['tipo'] ?? null)
+            : [];
         $row['possui_validade'] = !empty($row['possui_validade']);
         $row['exige_resultado'] = !array_key_exists('exige_resultado', $row) || !empty($row['exige_resultado']);
 
@@ -222,6 +223,17 @@ class SstExamesRepository extends DbConnection
         }
 
         return !empty($cache[$column]);
+    }
+
+    private function hasTable(string $table): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t LIMIT 1'
+        );
+        $stmt->bindValue(':t', $table);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
     }
 
     private function bindField(\PDOStatement $stmt, string $param, mixed $value): void

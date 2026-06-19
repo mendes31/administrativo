@@ -31,4 +31,15 @@ final class SstExameTipoHelper
     {
         return $value !== null && $value !== '' && in_array($value, self::all(), true);
     }
+
+    /**
+     * Opções de resultado no lançamento do exame complementar (ASO), por tipo.
+     * Hoje todos os tipos usam Normal / Alterado; extensível no futuro.
+     *
+     * @return list<string>
+     */
+    public static function defaultResultadoOptions(?string $tipo = null): array
+    {
+        return SstExameResultadoHelper::catalogOptions();
+    }
 }

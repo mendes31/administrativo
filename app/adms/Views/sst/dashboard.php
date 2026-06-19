@@ -86,7 +86,6 @@
                         ['SstListEpiNecessidade', 'sst-list-epi-necessidade', 'Necess. EPI'],
                         ['SstListExameNecessidade', 'sst-list-exame-necessidade', 'Necess. exame'],
                         ['SstListRiscos', 'sst-list-riscos', 'Riscos'],
-                        ['SstListRiscoCargo', 'sst-list-risco-cargo', 'Riscos cargo/setor'],
                     ];
                     $perms = $this->data['buttonPermission'] ?? [];
                     foreach ($cadastros as [$perm, $url, $label]) {

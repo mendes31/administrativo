@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstEpiMovimentosRepository;
+use App\adms\Models\Repository\SstRiscoEpiRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -32,6 +33,7 @@ class SstViewEpi
         $returnUrl = $_ENV['URL_ADM'] . 'sst-view-epi/' . $itemId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_sst_epis', $itemId, $returnUrl);
         $this->data['movimentos'] = (new SstEpiMovimentosRepository())->getByEpiId($itemId, 20);
+        $this->data['riscosRelacionados'] = (new SstRiscoEpiRepository())->getRiscosByEpiId($itemId);
         
         $this->data['entity'] = array (
   'table' => 'adms_sst_epis',

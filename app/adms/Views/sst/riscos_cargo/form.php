@@ -1,7 +1,12 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoNavigationHelper;
 $item = $this->data['item'] ?? [];
 $isEdit = !empty($item['id']);
+$returnRiscoId = (int) ($this->data['return_risco_id'] ?? $item['adms_sst_risco_id'] ?? 0);
+$cancelUrl = $returnRiscoId > 0
+    ? SstRiscoNavigationHelper::viewUrl($returnRiscoId, 'cargos')
+    : ($_ENV['URL_ADM'] . 'sst-list-riscos');
 $csrfToken = CSRFHelper::generateCSRFToken('sst_riscos_cargo_form');
 $action = $isEdit ? 'sst-update-risco-cargo/' . (int)$item['id'] : 'sst-create-risco-cargo';
 ?>
@@ -12,7 +17,10 @@ $action = $isEdit ? 'sst-update-risco-cargo/' . (int)$item['id'] : 'sst-create-r
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
-            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-risco-cargo"><?= htmlspecialchars('Riscos por Cargo') ?></a></li>
+            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-riscos">Riscos</a></li>
+            <?php if ($returnRiscoId > 0): ?>
+            <li class="breadcrumb-item"><a href="<?= htmlspecialchars(SstRiscoNavigationHelper::viewUrl($returnRiscoId)) ?>">Risco</a></li>
+            <?php endif; ?>
             <li class="breadcrumb-item active"><?= $isEdit ? 'Editar' : 'Novo' ?></li>
         </ol>
     </div>
@@ -20,6 +28,9 @@ $action = $isEdit ? 'sst-update-risco-cargo/' . (int)$item['id'] : 'sst-create-r
         <div class="card-body">
             <form method="POST" action="<?= $_ENV['URL_ADM']; ?><?= $action ?>">
                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                <?php if ($returnRiscoId > 0): ?>
+                <input type="hidden" name="return_risco_id" value="<?= $returnRiscoId ?>">
+                <?php endif; ?>
                 <div class="row">
                     <div class="col-md-6 mb-3">
 <label class="form-label" for="adms_position_id">Cargo</label>
@@ -56,7 +67,7 @@ $action = $isEdit ? 'sst-update-risco-cargo/' . (int)$item['id'] : 'sst-create-r
                 </div>
                 <div class="d-flex gap-2 mt-3">
                     <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Salvar</button>
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-risco-cargo" class="btn btn-secondary">Cancelar</a>
+                    <a href="<?= htmlspecialchars($cancelUrl) ?>" class="btn btn-secondary">Cancelar</a>
                 </div>
             </form>
         </div>

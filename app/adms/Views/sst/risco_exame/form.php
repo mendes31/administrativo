@@ -1,7 +1,12 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoNavigationHelper;
 $item = $this->data['item'] ?? [];
 $isEdit = !empty($item['id']);
+$returnRiscoId = (int) ($this->data['return_risco_id'] ?? $item['adms_sst_risco_id'] ?? 0);
+$cancelUrl = $returnRiscoId > 0
+    ? SstRiscoNavigationHelper::viewUrl($returnRiscoId, 'exames')
+    : ($_ENV['URL_ADM'] . 'sst-list-riscos');
 $csrfToken = CSRFHelper::generateCSRFToken('sst_risco_exame_form');
 $action = $isEdit ? 'sst-update-risco-exame/' . (int)$item['id'] : 'sst-create-risco-exame';
 ?>
@@ -11,7 +16,10 @@ $action = $isEdit ? 'sst-update-risco-exame/' . (int)$item['id'] : 'sst-create-r
         <h2 class="mt-3"><i class="fas fa-link me-2"></i><?= $isEdit ? 'Editar' : 'Novo' ?> Exame por Risco</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
-            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-risco-exame">Exames por Risco</a></li>
+            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-riscos">Riscos</a></li>
+            <?php if ($returnRiscoId > 0): ?>
+            <li class="breadcrumb-item"><a href="<?= htmlspecialchars(SstRiscoNavigationHelper::viewUrl($returnRiscoId)) ?>">Risco</a></li>
+            <?php endif; ?>
             <li class="breadcrumb-item active"><?= $isEdit ? 'Editar' : 'Novo' ?></li>
         </ol>
     </div>
@@ -19,6 +27,9 @@ $action = $isEdit ? 'sst-update-risco-exame/' . (int)$item['id'] : 'sst-create-r
         <div class="card-body">
             <form method="POST" action="<?= $_ENV['URL_ADM']; ?><?= $action ?>">
                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                <?php if ($returnRiscoId > 0): ?>
+                <input type="hidden" name="return_risco_id" value="<?= $returnRiscoId ?>">
+                <?php endif; ?>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="adms_sst_risco_id">Risco *</label>
@@ -38,7 +49,14 @@ $action = $isEdit ? 'sst-update-risco-exame/' . (int)$item['id'] : 'sst-create-r
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <?php $selected = $item['categoria_aso'] ?? ''; include './app/adms/Views/sst/partials/field_categoria_aso.php'; ?>
+                    <?php
+                    $selectedCategorias = $this->data['categorias_aso_selecionadas'] ?? [];
+                    include './app/adms/Views/sst/partials/field_categorias_aso_checkboxes.php';
+                    ?>
+                    <?php if ($isEdit): ?>
+                    <input type="hidden" name="edit_origem_risco_id" value="<?= (int) ($item['adms_sst_risco_id'] ?? 0) ?>">
+                    <input type="hidden" name="edit_origem_exame_id" value="<?= (int) ($item['adms_sst_exame_id'] ?? 0) ?>">
+                    <?php endif; ?>
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="periodicidade_meses">Periodicidade (meses)</label>
                         <input type="number" name="periodicidade_meses" id="periodicidade_meses" class="form-control" value="<?= htmlspecialchars((string)($item['periodicidade_meses'] ?? '')) ?>">
@@ -57,7 +75,7 @@ $action = $isEdit ? 'sst-update-risco-exame/' . (int)$item['id'] : 'sst-create-r
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Salvar</button>
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-risco-exame" class="btn btn-secondary">Cancelar</a>
+                    <a href="<?= htmlspecialchars($cancelUrl) ?>" class="btn btn-secondary">Cancelar</a>
                 </div>
             </form>
         </div>

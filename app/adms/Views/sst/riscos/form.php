@@ -80,10 +80,7 @@ $grupoSelecionado = $item['grupo_risco'] ?? $item['tipo'] ?? '';
                 <?php if ($isEdit): ?>
                 <div class="alert alert-light border small mb-0">
                     <i class="fas fa-link me-1"></i>
-                    Vínculos deste risco: configure em
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-risco-exame?search=<?= urlencode($item['nome'] ?? '') ?>">Exames por risco</a>,
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-necessidade">Necess. EPI</a> e
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-risco-cargo">Riscos por cargo</a>.
+                    Após salvar, configure cargos/setores, exames e EPIs na tela <strong>Visualizar risco</strong> (aba Relacionamentos).
                 </div>
                 <?php endif; ?>
 

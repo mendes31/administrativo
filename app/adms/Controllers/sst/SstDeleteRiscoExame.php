@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoNavigationHelper;
 use App\adms\Models\Repository\SstRiscoExameRepository;
 
 class SstDeleteRiscoExame
@@ -12,24 +13,24 @@ class SstDeleteRiscoExame
     public function index(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-risco-exame');
-            exit;
+            SstRiscoNavigationHelper::redirectAfterMutation(0, 'exames', 'sst-list-riscos');
         }
         $id = (int) ($_POST['id'] ?? 0);
+        $repo = new SstRiscoExameRepository();
+        $row = $id > 0 ? $repo->getById($id) : null;
+        $riscoId = (int) ($_POST['return_risco_id'] ?? $row['adms_sst_risco_id'] ?? 0);
         if (!$id || !CSRFHelper::validateCSRFToken('form_delete_sst_risco_exame', $_POST['csrf_token'] ?? '')) {
             $_SESSION['msg'] = 'Operação inválida.';
             $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-risco-exame');
-            exit;
+            SstRiscoNavigationHelper::redirectAfterMutation($riscoId, 'exames', 'sst-list-riscos');
         }
-        if ((new SstRiscoExameRepository())->delete($id)) {
+        if ($repo->delete($id)) {
             $_SESSION['msg'] = 'Registro excluído com sucesso.';
             $_SESSION['msg_type'] = 'success';
         } else {
             $_SESSION['msg'] = 'Não foi possível excluir o registro.';
             $_SESSION['msg_type'] = 'danger';
         }
-        header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-risco-exame');
-        exit;
+        SstRiscoNavigationHelper::redirectAfterMutation($riscoId, 'exames', 'sst-list-riscos');
     }
 }

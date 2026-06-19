@@ -13,10 +13,11 @@ foreach ($exames as $ex) {
     if ($id <= 0) {
         continue;
     }
-    $lista = $ex['resultados_permitidos_list'] ?? SstExameResultadoHelper::decode($ex['resultados_permitidos'] ?? null);
+    $exige = !isset($ex['exige_resultado']) || !empty($ex['exige_resultado']);
     $examesMeta[$id] = [
-        'exige_resultado' => !isset($ex['exige_resultado']) || !empty($ex['exige_resultado']),
-        'resultados' => $lista,
+        'exige_resultado' => $exige,
+        'tipo' => $ex['tipo'] ?? null,
+        'resultados' => SstExameResultadoHelper::optionsForComplementaryLaunch($exige, $ex['tipo'] ?? null),
     ];
 }
 ?>
@@ -101,7 +102,7 @@ foreach ($exames as $ex) {
         const meta = examesMeta[exameId];
         const cell = document.createElement('td');
         cell.className = 'aso-comp-resultado-cell';
-        if (meta && Array.isArray(meta.resultados) && meta.resultados.length > 0) {
+        if (meta && meta.exige_resultado && Array.isArray(meta.resultados) && meta.resultados.length > 0) {
             const sel = document.createElement('select');
             sel.name = name;
             sel.className = 'form-select form-select-sm';

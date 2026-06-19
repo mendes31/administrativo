@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstExamesRepository;
+use App\adms\Models\Repository\SstRiscoCargoRepository;
 use App\adms\Models\Repository\SstRiscoEpiRepository;
 use App\adms\Models\Repository\SstRiscoExameRepository;
 use App\adms\Models\Repository\SstRiscosRepository;
@@ -37,14 +38,25 @@ class SstViewRisco
 
         $this->data['exames'] = (new SstExamesRepository())->getAll(1, 500, ['status' => 'Ativo']);
         $this->data['epis'] = (new SstEpisRepository())->getAll(1, 500, ['status' => 'Ativo']);
-        $this->data['examesVinculados'] = (new SstRiscoExameRepository())->getExameIdsByRisco($itemId);
-        $this->data['episVinculados'] = (new SstRiscoEpiRepository())->getEpiIdsByRisco($itemId);
+        $this->data['cargosVinculados'] = (new SstRiscoCargoRepository())->getAllByRisco($itemId);
+        $this->data['examesVinculadosRows'] = (new SstRiscoExameRepository())->getAllByRisco($itemId);
+        $epiRows = (new SstRiscoEpiRepository())->getAllByRisco($itemId);
+        $episVinculadosMap = [];
+        foreach ($epiRows as $row) {
+            $epiId = (int) ($row['adms_sst_epi_id'] ?? 0);
+            if ($epiId > 0) {
+                $episVinculadosMap[$epiId] = ['obrigatorio' => !empty($row['obrigatorio'])];
+            }
+        }
+        $this->data['episVinculadosMap'] = $episVinculadosMap;
 
         $pageElements = [
             'title_head' => 'Visualizar Risco - SST',
             'menu' => 'sst-list-riscos',
             'buttonPermission' => [
                 'SstViewRisco', 'SstUpdateRisco', 'SstDeleteRisco', 'SstSaveRiscoRelacionamentos',
+                'SstCreateRiscoCargo', 'SstUpdateRiscoCargo', 'SstDeleteRiscoCargo',
+                'SstCreateRiscoExame', 'SstUpdateRiscoExame', 'SstDeleteRiscoExame',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

@@ -141,6 +141,16 @@ class SstRiscoCargoRepository extends DbConnection
         return $deleted;
     }
 
+    /** @return list<array<string, mixed>> */
+    public function getAllByRisco(int $riscoId): array
+    {
+        if ($riscoId <= 0) {
+            return [];
+        }
+
+        return $this->getAll(1, 500, ['adms_sst_risco_id' => $riscoId]);
+    }
+
     private function buildWhere(array $filters): array
     {
         $where = [];
@@ -152,6 +162,10 @@ class SstRiscoCargoRepository extends DbConnection
         if (!empty($filters['adms_user_id'])) {
             $where[] = 't.adms_user_id = :adms_user_id';
             $params[':adms_user_id'] = (int) $filters['adms_user_id'];
+        }
+        if (!empty($filters['adms_sst_risco_id'])) {
+            $where[] = 't.adms_sst_risco_id = :risco_id';
+            $params[':risco_id'] = (int) $filters['adms_sst_risco_id'];
         }
         if (!empty($filters['status'])) {
             $where[] = 't.status = :status';

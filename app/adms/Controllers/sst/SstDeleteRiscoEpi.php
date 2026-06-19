@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoNavigationHelper;
 use App\adms\Models\Repository\SstRiscoEpiRepository;
 
 class SstDeleteRiscoEpi
@@ -12,13 +13,14 @@ class SstDeleteRiscoEpi
     public function index(): void
     {
         $id = (int) ($_POST['id'] ?? 0);
+        $repo = new SstRiscoEpiRepository();
+        $row = $id > 0 ? $repo->getById($id) : null;
+        $riscoId = (int) ($_POST['return_risco_id'] ?? $row['adms_sst_risco_id'] ?? 0);
         if (!$id || !CSRFHelper::validateCSRFToken('form_delete_sst_risco_epi', $_POST['csrf_token'] ?? '')) {
             $_SESSION['msg'] = 'Requisição inválida.';
             $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-risco-epi');
-            exit;
+            SstRiscoNavigationHelper::redirectAfterMutation($riscoId, 'epis', 'sst-list-riscos');
         }
-        $repo = new SstRiscoEpiRepository();
         if ($repo->delete($id)) {
             $_SESSION['msg'] = 'Registro excluído.';
             $_SESSION['msg_type'] = 'success';
@@ -26,7 +28,6 @@ class SstDeleteRiscoEpi
             $_SESSION['msg'] = 'Erro ao excluir registro.';
             $_SESSION['msg_type'] = 'danger';
         }
-        header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-risco-epi');
-        exit;
+        SstRiscoNavigationHelper::redirectAfterMutation($riscoId, 'epis', 'sst-list-riscos');
     }
 }

@@ -28,22 +28,22 @@ final class SstExameCatalogHelper
             ? !empty($post['exige_resultado'])
             : true;
 
-        $resultadosRaw = $post['resultados_permitidos'] ?? [];
-        $resultados = is_array($resultadosRaw)
-            ? SstExameResultadoHelper::filterValid(array_map('strval', $resultadosRaw))
+        $tipoNorm = $tipo !== '' ? $tipo : null;
+        $resultadosPadrao = $exigeResultado
+            ? SstExameTipoHelper::defaultResultadoOptions($tipoNorm)
             : [];
 
         return [
             'codigo' => $codigo !== '' ? strtoupper($codigo) : null,
             'nome' => $nome !== '' ? $nome : null,
             'descricao' => $descricao !== '' ? $descricao : null,
-            'tipo' => $tipo !== '' ? $tipo : null,
+            'tipo' => $tipoNorm,
             'periodicidade_meses' => $periodicidade !== '' ? (int) $periodicidade : null,
             'possui_validade' => $possuiValidade,
             'validade_meses' => $possuiValidade && $validadeMeses !== '' ? (int) $validadeMeses : null,
             'exige_resultado' => $exigeResultado,
-            'resultados_permitidos' => $exigeResultado
-                ? SstExameResultadoHelper::encode($resultados)
+            'resultados_permitidos' => $resultadosPadrao !== []
+                ? SstExameResultadoHelper::encodeCatalog($resultadosPadrao)
                 : null,
             'status' => in_array($status, ['Ativo', 'Inativo'], true) ? $status : 'Ativo',
         ];
@@ -65,10 +65,6 @@ final class SstExameCatalogHelper
 
         if (!empty($data['possui_validade']) && empty($data['validade_meses'])) {
             return 'Informe a validade em meses quando o exame possuir validade.';
-        }
-
-        if (!empty($data['exige_resultado']) && empty($data['resultados_permitidos'])) {
-            return 'Selecione ao menos um resultado esperado ou desmarque "Exige resultado".';
         }
 
         return null;

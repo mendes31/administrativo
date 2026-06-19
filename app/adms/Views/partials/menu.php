@@ -1011,24 +1011,6 @@ $menus = [
                         'permission' => 'SstListRiscos',
                         'icon' => 'fas fa-exclamation-triangle'
                     ],
-                    [
-                        'label' => 'Riscos por cargo/setor',
-                        'url' => $_ENV['URL_ADM'] . 'sst-list-risco-cargo',
-                        'permission' => 'SstListRiscoCargo',
-                        'icon' => 'fas fa-shield-virus'
-                    ],
-                    [
-                        'label' => 'Exames por risco',
-                        'url' => $_ENV['URL_ADM'] . 'sst-list-risco-exame',
-                        'permission' => 'SstListRiscoExame',
-                        'icon' => 'fas fa-link'
-                    ],
-                    [
-                        'label' => 'EPIs por risco',
-                        'url' => $_ENV['URL_ADM'] . 'sst-list-risco-epi',
-                        'permission' => 'SstListRiscoEpi',
-                        'icon' => 'fas fa-link'
-                    ],
                 ]
             ],
             [

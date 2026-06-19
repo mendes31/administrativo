@@ -55,8 +55,9 @@ function formatCellValue(string $col, mixed $value): string {
             <?php
             $exames = $this->data['exames'] ?? [];
             $epis = $this->data['epis'] ?? [];
-            $examesVinculados = $this->data['examesVinculados'] ?? [];
-            $episVinculados = $this->data['episVinculados'] ?? [];
+            $cargosVinculados = $this->data['cargosVinculados'] ?? [];
+            $examesVinculadosRows = $this->data['examesVinculadosRows'] ?? [];
+            $episVinculadosMap = $this->data['episVinculadosMap'] ?? [];
             $buttonPermission = $perms;
             include './app/adms/Views/sst/riscos/partials/relacionamentos_tabs.php';
             ?>

@@ -84,35 +84,82 @@ class SstRiscoEpiRepository extends DbConnection
         return array_values(array_filter($ids, fn (int $id) => $id > 0));
     }
 
-    /** @param list<int> $epiIds */
-    public function syncEpisForRisco(int $riscoId, array $epiIds): void
+    /** @param array<int, array{obrigatorio: bool}> $epiMap */
+    public function syncEpisForRisco(int $riscoId, array $epiMap): void
     {
         if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_epi')) {
             return;
         }
 
-        $epiIds = array_values(array_unique(array_filter(array_map('intval', $epiIds), fn (int $id) => $id > 0)));
-        $current = $this->getEpiIdsByRisco($riscoId);
+        $epiMap = array_filter(
+            $epiMap,
+            static fn (array $cfg, int $id): bool => $id > 0,
+            ARRAY_FILTER_USE_BOTH
+        );
 
-        foreach (array_diff($current, $epiIds) as $epiId) {
-            $stmt = $this->getConnection()->prepare(
-                'DELETE FROM adms_sst_risco_epi WHERE adms_sst_risco_id = :rid AND adms_sst_epi_id = :eid'
-            );
-            $stmt->bindValue(':rid', $riscoId, PDO::PARAM_INT);
-            $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
-            $stmt->execute();
+        $currentRows = $this->getAllByRisco($riscoId);
+        $currentByEpi = [];
+        foreach ($currentRows as $row) {
+            $currentByEpi[(int) ($row['adms_sst_epi_id'] ?? 0)] = $row;
         }
 
-        foreach (array_diff($epiIds, $current) as $epiId) {
+        foreach ($epiMap as $epiId => $cfg) {
+            $epiId = (int) $epiId;
+            $obrigatorio = !empty($cfg['obrigatorio']);
+            if (isset($currentByEpi[$epiId])) {
+                $rowId = (int) ($currentByEpi[$epiId]['id'] ?? 0);
+                if ($rowId > 0) {
+                    $this->update($rowId, [
+                        'adms_sst_risco_id' => $riscoId,
+                        'adms_sst_epi_id' => $epiId,
+                        'obrigatorio' => $obrigatorio,
+                        'observacoes' => $currentByEpi[$epiId]['observacoes'] ?? null,
+                    ]);
+                }
+                unset($currentByEpi[$epiId]);
+                continue;
+            }
             $this->create([
                 'adms_sst_risco_id' => $riscoId,
                 'adms_sst_epi_id' => $epiId,
-                'obrigatorio' => true,
+                'obrigatorio' => $obrigatorio,
                 'observacoes' => null,
             ]);
         }
 
+        foreach ($currentByEpi as $row) {
+            $this->delete((int) ($row['id'] ?? 0));
+        }
+
         SstPendenciasService::invalidateDashboardCache();
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getAllByRisco(int $riscoId): array
+    {
+        if ($riscoId <= 0 || !$this->hasTable('adms_sst_risco_epi')) {
+            return [];
+        }
+
+        return $this->getAll(1, 500, ['adms_sst_risco_id' => $riscoId]);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getRiscosByEpiId(int $epiId): array
+    {
+        if ($epiId <= 0 || !$this->hasTable('adms_sst_risco_epi')) {
+            return [];
+        }
+        $sql = 'SELECT DISTINCT r.id, r.nome, r.codigo, r.status, r.grupo_risco, re.obrigatorio
+                FROM adms_sst_risco_epi re
+                INNER JOIN adms_sst_riscos r ON r.id = re.adms_sst_risco_id
+                WHERE re.adms_sst_epi_id = :eid
+                ORDER BY r.nome';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function create(array $data): int|false

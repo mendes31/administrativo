@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoNavigationHelper;
 use App\adms\Models\Repository\SstRiscoCargoRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -27,15 +28,20 @@ class SstCreateRiscoCargo
             $this->create();
             return;
         }
-        $repo = new SstRiscoCargoRepository();
+        $this->data['item'] = [];
         $this->loadFormData();
+        $riscoId = SstRiscoNavigationHelper::riscoIdFromRequest();
+        if ($riscoId > 0) {
+            $this->data['item']['adms_sst_risco_id'] = $riscoId;
+            $this->data['return_risco_id'] = $riscoId;
+        }
         $this->data['entity'] = array (
   'table' => 'adms_sst_riscos_cargo',
   'singular' => 'Risco por Cargo',
   'plural' => 'Riscos por Cargo',
   'prefix' => 'RiscoCargo',
   'url' => 'risco-cargo',
-  'menu' => 'sst-list-risco-cargo',
+  'menu' => 'sst-list-riscos',
   'icon' => 'fa-shield-virus',
   'type' => 'rule',
   'no_view' => true,
@@ -86,7 +92,7 @@ class SstCreateRiscoCargo
 );
         $pageElements = [
             'title_head' => 'Create Risco por Cargo - SST',
-            'menu' => 'sst-list-risco-cargo',
+            'menu' => 'sst-list-riscos',
             'buttonPermission' => ['SstCreateRiscoCargo'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
@@ -122,15 +128,15 @@ class SstCreateRiscoCargo
 
         $repo = new SstRiscoCargoRepository();
         $newId = $repo->create($data);
+        $riscoId = (int) ($data['adms_sst_risco_id'] ?? SstRiscoNavigationHelper::riscoIdFromRequest());
         if ($newId) {
             $_SESSION['msg'] = 'Registro salvo com sucesso.';
             $_SESSION['msg_type'] = 'success';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-risco-cargo');
-        } else {
-            $_SESSION['msg'] = 'Erro ao salvar registro.';
-            $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-risco-cargo');
+            SstRiscoNavigationHelper::redirectAfterMutation($riscoId, 'cargos', 'sst-list-risco-cargo');
         }
+        $_SESSION['msg'] = 'Erro ao salvar registro.';
+        $_SESSION['msg_type'] = 'danger';
+        header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-risco-cargo' . ($riscoId > 0 ? '?adms_sst_risco_id=' . $riscoId : ''));
         exit;
     }
 }

@@ -112,9 +112,9 @@ class SstUpdateExame
     private function update(int $id): void
     {
         if (!CSRFHelper::validateCSRFToken('sst_exames_form', $_POST['csrf_token'] ?? '')) {
-            $_SESSION['msg'] = 'Token CSRF inválido.';
+            $_SESSION['msg'] = 'Token CSRF inválido. Recarregue a página e tente novamente.';
             $_SESSION['msg_type'] = 'danger';
-            header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-exames');
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-exame/' . $id);
             exit;
         }
         $repo = new SstExamesRepository();

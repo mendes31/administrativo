@@ -75,6 +75,7 @@ function formatCellValue(string $col, mixed $value): string {
                 </div>
             </div>
             <?php endif; ?>
+            <?php include './app/adms/Views/sst/partials/riscos_relacionados_readonly.php'; ?>
             
         </div>
         <div class="col-md-4">
