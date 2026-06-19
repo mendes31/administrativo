@@ -38,15 +38,19 @@ $action = $isEdit ? 'sst-update-epi/' . (int)$item['id'] : 'sst-create-epi';
 <input type="date" name="ca_validade" id="ca_validade" class="form-control" value="<?= htmlspecialchars($item['ca_validade'] ?? '') ?>" >
 </div>
 <div class="col-md-6 mb-3">
-<label class="form-label" for="estoque_atual">Estoque atual</label>
-<input type="number" name="estoque_atual" id="estoque_atual" class="form-control" value="<?= htmlspecialchars($item['estoque_atual'] ?? '') ?>" >
+<label class="form-label" for="estoque_minimo">Estoque mínimo (alerta de compra)</label>
+<input type="number" name="estoque_minimo" id="estoque_minimo" class="form-control" min="0" value="<?= htmlspecialchars($item['estoque_minimo'] ?? '') ?>" >
+<small class="text-muted">O saldo atual é alterado apenas por movimentações em Estoque EPI.</small>
 </div>
+<?php if ($isEdit): ?>
 <div class="col-md-6 mb-3">
-<label class="form-label" for="estoque_minimo">Estoque mínimo</label>
-<input type="number" name="estoque_minimo" id="estoque_minimo" class="form-control" value="<?= htmlspecialchars($item['estoque_minimo'] ?? '') ?>" >
+<label class="form-label">Saldo atual</label>
+<input type="text" class="form-control" value="<?= (int)($item['estoque_atual'] ?? 0) ?>" readonly disabled>
+<a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-movimento?adms_sst_epi_id=<?= (int)$item['id'] ?>&tipo=Entrada" class="btn btn-sm btn-outline-success mt-1">Registrar entrada</a>
 </div>
+<?php endif; ?>
 <div class="col-md-6 mb-3">
-<label class="form-label" for="periodicidade_troca_dias">Troca (dias)</label>
+<label class="form-label" for="periodicidade_troca_dias">Vida útil padrão (dias)</label>
 <input type="number" name="periodicidade_troca_dias" id="periodicidade_troca_dias" class="form-control" value="<?= htmlspecialchars($item['periodicidade_troca_dias'] ?? '') ?>" >
 </div>
 <div class="col-md-6 mb-3">

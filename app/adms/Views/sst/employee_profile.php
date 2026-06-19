@@ -94,9 +94,15 @@ if (!empty($ultimoAso['data_validade'])) {
 
                 <?php endif; ?>
 
+                <?php if (in_array('SstCreateEpiFicha', $perms, true)): ?>
+
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-ficha?adms_user_id=<?= $uid ?>" class="btn btn-success btn-sm">+ Ficha EPI</a>
+
+                <?php endif; ?>
+
                 <?php if (in_array('SstCreateEpiEntrega', $perms, true)): ?>
 
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-entrega?adms_user_id=<?= $uid ?>" class="btn btn-success btn-sm">+ EPI</a>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-entrega?adms_user_id=<?= $uid ?>" class="btn btn-outline-success btn-sm">+ EPI (legado)</a>
 
                 <?php endif; ?>
 
@@ -767,19 +773,33 @@ if (!empty($ultimoAso['data_validade'])) {
 
         <div class="tab-pane fade" id="tab-epi">
 
-            <div class="d-none d-md-block table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>EPI</th><th>Movimento</th><th>Data</th><th>Prev. troca</th><th></th></tr></thead><tbody>
+            <?php if (in_array('SstListEpiFichas', $perms, true)): ?>
+            <h6 class="mt-2"><i class="fas fa-file-signature me-1"></i> Fichas de entrega</h6>
+            <div class="table-responsive mb-3"><table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Data</th><th>Itens</th><th>Assinatura</th><th></th></tr></thead><tbody>
+                <?php foreach ($this->data['epi_fichas'] ?? [] as $f): ?><tr>
+                    <td><?= (int)$f['id'] ?></td>
+                    <td><?= !empty($f['data_entrega']) ? date('d/m/Y', strtotime($f['data_entrega'])) : '-' ?></td>
+                    <td><?= (int)($f['total_itens'] ?? 0) ?></td>
+                    <td><?= htmlspecialchars($f['status_assinatura'] ?? '') ?></td>
+                    <td><?php if (in_array('SstViewEpiFicha', $perms, true)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-view-epi-ficha/<?= (int)$f['id'] ?>" class="btn btn-sm btn-outline-primary">Ver</a><?php endif; ?></td>
+                </tr><?php endforeach; ?>
+            </tbody></table></div>
+            <?php endif; ?>
 
-                <?php foreach ($this->data['epi_entregas'] ?? [] as $r): ?><tr>
+            <h6><i class="fas fa-hard-hat me-1"></i> Todos os EPIs entregues</h6>
+            <div class="d-none d-md-block table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Data</th><th>EPI</th><th>CA</th><th>Qtde</th><th>Prev. troca</th></tr></thead><tbody>
+
+                <?php foreach ($this->data['epis_entregues_consolidado'] ?? [] as $r): ?><tr>
+
+                    <td><?= !empty($r['data_entrega']) ? date('d/m/Y', strtotime($r['data_entrega'])) : '-' ?></td>
 
                     <td><?= htmlspecialchars($r['epi_nome'] ?? '') ?></td>
 
-                    <td><?= htmlspecialchars($r['tipo_movimento'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($r['ca'] ?? '-') ?></td>
 
-                    <td><?= !empty($r['data_movimento']) ? date('d/m/Y', strtotime($r['data_movimento'])) : '-' ?></td>
+                    <td><?= (int)($r['quantidade'] ?? 0) ?></td>
 
                     <td><?= !empty($r['data_prevista_troca']) ? date('d/m/Y', strtotime($r['data_prevista_troca'])) : '-' ?></td>
-
-                    <td><?php if (in_array('SstViewEpiEntrega', $perms, true)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-view-epi-entrega/<?= (int) $r['id'] ?>" class="btn btn-sm btn-outline-primary">Ver</a><?php endif; ?></td>
 
                 </tr><?php endforeach; ?>
 
@@ -787,11 +807,11 @@ if (!empty($ultimoAso['data_validade'])) {
 
             <div class="d-block d-md-none">
 
-                <?php foreach ($this->data['epi_entregas'] ?? [] as $r): ?>
+                <?php foreach ($this->data['epis_entregues_consolidado'] ?? [] as $r): ?>
 
                     <div class="card mb-2 shadow-sm"><div class="card-body py-2 small">
 
-                        <?= htmlspecialchars($r['epi_nome'] ?? '') ?> — <?= htmlspecialchars($r['tipo_movimento'] ?? '') ?>
+                        <?= htmlspecialchars($r['epi_nome'] ?? '') ?> — <?= !empty($r['data_entrega']) ? date('d/m/Y', strtotime($r['data_entrega'])) : '-' ?>
 
                     </div></div>
 

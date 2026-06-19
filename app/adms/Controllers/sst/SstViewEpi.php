@@ -6,7 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\SstEpisRepository;
-use App\adms\Models\Repository\SstAnexosRepository;
+use App\adms\Models\Repository\SstEpiMovimentosRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -31,6 +31,7 @@ class SstViewEpi
         $itemId = (int) $this->data['item']['id'];
         $returnUrl = $_ENV['URL_ADM'] . 'sst-view-epi/' . $itemId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_sst_epis', $itemId, $returnUrl);
+        $this->data['movimentos'] = (new SstEpiMovimentosRepository())->getByEpiId($itemId, 20);
         
         $this->data['entity'] = array (
   'table' => 'adms_sst_epis',
@@ -102,7 +103,7 @@ class SstViewEpi
         $pageElements = [
             'title_head' => 'Visualizar EPI - SST',
             'menu' => 'sst-list-epis',
-            'buttonPermission' => ['SstViewEpi', 'SstUpdateEpi', 'SstDeleteEpi'],
+            'buttonPermission' => ['SstViewEpi', 'SstUpdateEpi', 'SstDeleteEpi', 'SstCreateEpiMovimento', 'SstListEpiMovimentos'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/epis/view', $this->data))->loadView();

@@ -9,6 +9,7 @@ use App\adms\Models\Repository\SstAcidentesRepository;
 use App\adms\Models\Repository\SstAfastamentosRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
+use App\adms\Models\Repository\SstEpiFichasRepository;
 use App\adms\Models\Repository\SstPppRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\SstEmployeeProfileService;
@@ -43,6 +44,9 @@ class SstEmployeeProfile
         $this->data['asos'] = (new SstAsosRepository())->getByUserId($userId);
         $this->data['afastamentos'] = (new SstAfastamentosRepository())->getByUserId($userId);
         $this->data['epi_entregas'] = (new SstEpiEntregasRepository())->getByUserId($userId);
+        $fichaRepo = new SstEpiFichasRepository();
+        $this->data['epi_fichas'] = $fichaRepo->getByUserId($userId);
+        $this->data['epis_entregues_consolidado'] = $fichaRepo->getEpisEntreguesPorColaborador($userId);
         $this->data['acidentes'] = (new SstAcidentesRepository())->getByUserId($userId);
         $this->data['resumo'] = $profileService->getResumo($userId);
         $this->data['riscos'] = $profileService->getRiscosVinculados($userId);
@@ -60,9 +64,10 @@ class SstEmployeeProfile
             'menu' => 'sst-dashboard',
             'buttonPermission' => [
                 'SstEmployeeProfile',
-                'SstCreateAso', 'SstCreateAfastamento', 'SstCreateEpiEntrega', 'SstCreateAcidente',
-                'SstListAsos', 'SstListAfastamentos', 'SstListEpiEntregas', 'SstListAcidentes',
-                'SstViewAso', 'SstViewAfastamento', 'SstViewEpiEntrega', 'SstViewAcidente',
+                'SstCreateAso', 'SstCreateAfastamento', 'SstCreateEpiEntrega', 'SstCreateEpiFicha', 'SstCreateAcidente',
+                'SstListAsos', 'SstListAfastamentos', 'SstListEpiEntregas', 'SstListEpiFichas', 'SstListAcidentes',
+                'SstViewAso', 'SstViewAfastamento', 'SstViewEpiEntrega', 'SstViewEpiFicha', 'SstViewAcidente',
+                'SstExportEpiFichaPdf',
                 'SstGeneratePpp', 'SstListPpp', 'SstViewPpp', 'SstExportPppPdf',
             ],
         ];

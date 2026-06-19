@@ -74,7 +74,7 @@ class SstEpisRepository extends DbConnection
         $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
         $this->bindField($stmt, ':ca_numero', $data['ca_numero'] ?? null);
         $this->bindField($stmt, ':ca_validade', $data['ca_validade'] ?? null);
-        $this->bindField($stmt, ':estoque_atual', $data['estoque_atual'] ?? null);
+        $this->bindField($stmt, ':estoque_atual', 0);
         $this->bindField($stmt, ':estoque_minimo', $data['estoque_minimo'] ?? null);
         $this->bindField($stmt, ':periodicidade_troca_dias', $data['periodicidade_troca_dias'] ?? null);
         $this->bindField($stmt, ':status', $data['status'] ?? null);
@@ -97,14 +97,13 @@ class SstEpisRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);
-        $sql = "UPDATE adms_sst_epis SET nome = :nome, descricao = :descricao, ca_numero = :ca_numero, ca_validade = :ca_validade, estoque_atual = :estoque_atual, estoque_minimo = :estoque_minimo, periodicidade_troca_dias = :periodicidade_troca_dias, status = :status, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
+        $sql = "UPDATE adms_sst_epis SET nome = :nome, descricao = :descricao, ca_numero = :ca_numero, ca_validade = :ca_validade, estoque_minimo = :estoque_minimo, periodicidade_troca_dias = :periodicidade_troca_dias, status = :status, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $this->bindField($stmt, ':nome', $data['nome'] ?? null);
         $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
         $this->bindField($stmt, ':ca_numero', $data['ca_numero'] ?? null);
         $this->bindField($stmt, ':ca_validade', $data['ca_validade'] ?? null);
-        $this->bindField($stmt, ':estoque_atual', $data['estoque_atual'] ?? null);
         $this->bindField($stmt, ':estoque_minimo', $data['estoque_minimo'] ?? null);
         $this->bindField($stmt, ':periodicidade_troca_dias', $data['periodicidade_troca_dias'] ?? null);
         $this->bindField($stmt, ':status', $data['status'] ?? null);
@@ -133,6 +132,16 @@ class SstEpisRepository extends DbConnection
             LogAlteracaoService::registrarAlteracao('adms_sst_epis', $id, $uid, 'DELETE', $oldData, []);
         }
         return $deleted;
+    }
+
+    public function updateEstoqueAtual(int $id, int $saldo): bool
+    {
+        $sql = 'UPDATE adms_sst_epis SET estoque_atual = :saldo, updated_at = NOW() WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':saldo', max(0, $saldo), PDO::PARAM_INT);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+        return $stmt->execute();
     }
 
     private function buildWhere(array $filters): array

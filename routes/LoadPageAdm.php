@@ -55,7 +55,7 @@ class LoadPageAdm
 
     private array $listPgPrivate = [
         "Dashboard",
-        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "PayrollImportBatchReport", "PayrollImportBatchAudit", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "ViewPayrollSignedBundle", "ConfirmPayrollDocumentDownload", "SignPayrollDocument", "PayrollSignatureReceipt", "ListPayrollSigningPendencies", "PayrollRemindersCron", "PayrollCronConfig", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf",
+        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "PayrollImportBatchReport", "PayrollImportBatchAudit", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "ViewPayrollSignedBundle", "ConfirmPayrollDocumentDownload", "SignPayrollDocument", "PayrollSignatureReceipt", "ListPayrollSigningPendencies", "PayrollRemindersCron", "PayrollCronConfig", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf", "MyEpiDeliveries", "SignEpiFicha", "ViewEpiFichaPdf",
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
         "ListDepartments",  "CreateDepartment",  "ViewDepartment", "UpdateDepartments", "DeleteDepartment", "ImportDepartments",
@@ -197,6 +197,8 @@ class LoadPageAdm
         "SstListAfastamentos", "SstCreateAfastamento", "SstViewAfastamento", "SstUpdateAfastamento", "SstDeleteAfastamento",
         "SstListEpis", "SstCreateEpi", "SstViewEpi", "SstUpdateEpi", "SstDeleteEpi",
         "SstListEpiEntregas", "SstCreateEpiEntrega", "SstViewEpiEntrega", "SstUpdateEpiEntrega", "SstDeleteEpiEntrega",
+        "SstListEpiFichas", "SstCreateEpiFicha", "SstViewEpiFicha", "SstExportEpiFichaPdf",
+        "SstListEpiEstoque", "SstListEpiMovimentos", "SstCreateEpiMovimento",
         "SstListRiscos", "SstCreateRisco", "SstViewRisco", "SstUpdateRisco", "SstDeleteRisco",
         "SstListAcidentes", "SstCreateAcidente", "SstViewAcidente", "SstUpdateAcidente", "SstDeleteAcidente",
         "SstListCids", "SstCreateCid", "SstUpdateCid", "SstDeleteCid",

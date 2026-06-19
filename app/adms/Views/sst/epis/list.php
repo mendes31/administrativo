@@ -37,6 +37,9 @@ $filtersId = 'sstFiltersEpi';
                 <?php if (in_array('SstCreateEpi', $perms)): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Cadastrar</a>
                 <?php endif; ?>
+                <?php if (in_array('SstListEpiEstoque', $perms)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque" class="btn btn-outline-primary btn-sm"><i class="fas fa-boxes"></i> Estoque</a>
+                <?php endif; ?>
             </span>
         </div>
         <div class="card-body">

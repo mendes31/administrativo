@@ -322,6 +322,28 @@ class NotificationsRepository extends DbConnection
     }
 
     /**
+     * Marca como lidas todas as notificações não lidas do usuário para uma entidade.
+     */
+    public function markAsReadByEntity(int $userId, string $entityType, int $entityId): int
+    {
+        if ($userId <= 0 || $entityId <= 0 || trim($entityType) === '') {
+            return 0;
+        }
+        $sql = 'UPDATE adms_notifications SET read_at = NOW()
+                WHERE user_id = :user_id
+                  AND entity_type = :entity_type
+                  AND entity_id = :entity_id
+                  AND read_at IS NULL';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':entity_type', $entityType, PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int) $stmt->rowCount();
+    }
+
+    /**
      * Marca todas as notificações do usuário como lidas.
      */
     public function markAllAsRead(int $userId): bool

@@ -674,6 +674,12 @@ $menus = [
                 'icon' => 'fas fa-file-invoice-dollar'
             ],
             [
+                'label' => 'Meus EPIs',
+                'url' => $_ENV['URL_ADM'] . 'my-epi-deliveries',
+                'permission' => 'MyEpiDeliveries',
+                'icon' => 'fas fa-hard-hat'
+            ],
+            [
                 'label' => 'Importar documentos RH (PDF)',
                 'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
                 'permission' => 'ImportPayrollDocuments',
@@ -976,6 +982,18 @@ $menus = [
                         'icon' => 'fas fa-hard-hat'
                     ],
                     [
+                        'label' => 'Estoque EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-estoque',
+                        'permission' => 'SstListEpiEstoque',
+                        'icon' => 'fas fa-boxes'
+                    ],
+                    [
+                        'label' => 'Movimentações EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-movimentos',
+                        'permission' => 'SstListEpiMovimentos',
+                        'icon' => 'fas fa-dolly'
+                    ],
+                    [
                         'label' => 'Exames',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-exames',
                         'permission' => 'SstListExames',
@@ -1048,7 +1066,13 @@ $menus = [
                         'icon' => 'fas fa-file-medical'
                     ],
                     [
-                        'label' => 'Entregas de EPI',
+                        'label' => 'Fichas de entrega EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-fichas',
+                        'permission' => 'SstListEpiFichas',
+                        'icon' => 'fas fa-file-signature'
+                    ],
+                    [
+                        'label' => 'Entregas de EPI (legado)',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epi-entregas',
                         'permission' => 'SstListEpiEntregas',
                         'icon' => 'fas fa-hand-holding'

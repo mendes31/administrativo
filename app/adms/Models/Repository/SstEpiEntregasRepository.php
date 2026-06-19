@@ -67,11 +67,22 @@ class SstEpiEntregasRepository extends DbConnection
 
     public function create(array $data): int|false
     {
-        $sql = "INSERT INTO adms_sst_epi_entregas (adms_user_id, adms_sst_epi_id, tipo_movimento, quantidade, data_movimento, data_prevista_troca, termo_assinado, observacoes, created_by, updated_by, created_at, updated_at)
-                VALUES (:adms_user_id, :adms_sst_epi_id, :tipo_movimento, :quantidade, :data_movimento, :data_prevista_troca, :termo_assinado, :observacoes, :created_by, :updated_by, NOW(), NOW())";
+        $hasFichaCol = $this->hasFichaColumn();
+        $cols = 'adms_user_id, adms_sst_epi_id';
+        $vals = ':adms_user_id, :adms_sst_epi_id';
+        if ($hasFichaCol) {
+            $cols .= ', adms_sst_epi_ficha_id';
+            $vals .= ', :adms_sst_epi_ficha_id';
+        }
+        $cols .= ', tipo_movimento, quantidade, data_movimento, data_prevista_troca, termo_assinado, observacoes, created_by, updated_by, created_at, updated_at';
+        $vals .= ', :tipo_movimento, :quantidade, :data_movimento, :data_prevista_troca, :termo_assinado, :observacoes, :created_by, :updated_by, NOW(), NOW()';
+        $sql = "INSERT INTO adms_sst_epi_entregas ({$cols}) VALUES ({$vals})";
         $stmt = $this->getConnection()->prepare($sql);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
         $this->bindField($stmt, ':adms_sst_epi_id', $data['adms_sst_epi_id'] ?? null);
+        if ($hasFichaCol) {
+            $this->bindField($stmt, ':adms_sst_epi_ficha_id', $data['adms_sst_epi_ficha_id'] ?? null);
+        }
         $this->bindField($stmt, ':tipo_movimento', $data['tipo_movimento'] ?? null);
         $this->bindField($stmt, ':quantidade', $data['quantidade'] ?? null);
         $this->bindField($stmt, ':data_movimento', $data['data_movimento'] ?? null);
@@ -92,6 +103,33 @@ class SstEpiEntregasRepository extends DbConnection
             }
         }
         return $newId;
+    }
+
+    /** @param array<string, mixed> $ficha @param array<string, mixed> $item */
+    public function createFromFichaItem(array $ficha, array $item, int $fichaId, int $actorUserId): int|false
+    {
+        return $this->create([
+            'adms_user_id' => (int) ($ficha['adms_user_id'] ?? 0),
+            'adms_sst_epi_id' => (int) ($item['adms_sst_epi_id'] ?? 0),
+            'adms_sst_epi_ficha_id' => $fichaId,
+            'tipo_movimento' => 'Entrega',
+            'quantidade' => (int) ($item['quantidade'] ?? 1),
+            'data_movimento' => (string) ($ficha['data_entrega'] ?? date('Y-m-d')),
+            'data_prevista_troca' => $item['data_prevista_troca'] ?? null,
+            'termo_assinado' => true,
+            'observacoes' => $item['observacoes'] ?? null,
+        ]);
+    }
+
+    private function hasFichaColumn(): bool
+    {
+        try {
+            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM adms_sst_epi_entregas LIKE 'adms_sst_epi_ficha_id'");
+
+            return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return false;
+        }
     }
 
     public function update(int $id, array $data): bool

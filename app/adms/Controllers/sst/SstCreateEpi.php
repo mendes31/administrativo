@@ -129,7 +129,6 @@ class SstCreateEpi
         $data['descricao'] = $_POST['descricao'] ?? null;
         $data['ca_numero'] = $_POST['ca_numero'] ?? null;
         $data['ca_validade'] = $_POST['ca_validade'] ?? null;
-        $data['estoque_atual'] = $_POST['estoque_atual'] ?? null;
         $data['estoque_minimo'] = $_POST['estoque_minimo'] ?? null;
         $data['periodicidade_troca_dias'] = $_POST['periodicidade_troca_dias'] ?? null;
         $data['status'] = $_POST['status'] ?? null;

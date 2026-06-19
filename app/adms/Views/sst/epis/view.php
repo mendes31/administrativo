@@ -37,15 +37,44 @@ function formatCellValue(string $col, mixed $value): string {
 <tr><th width="35%">Descrição:</th><td><?= formatCellValue('descricao', $item['descricao'] ?? null) ?></td></tr>
 <tr><th width="35%">Nº CA:</th><td><?= formatCellValue('ca_numero', $item['ca_numero'] ?? null) ?></td></tr>
 <tr><th width="35%">Validade CA:</th><td><?= formatCellValue('ca_validade', $item['ca_validade'] ?? null) ?></td></tr>
-<tr><th width="35%">Estoque atual:</th><td><?= formatCellValue('estoque_atual', $item['estoque_atual'] ?? null) ?></td></tr>
+<tr><th width="35%">Estoque atual:</th><td>
+    <?= formatCellValue('estoque_atual', $item['estoque_atual'] ?? null) ?>
+    <?php if (in_array('SstCreateEpiMovimento', $perms, true)): ?>
+    <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-movimento?adms_sst_epi_id=<?= (int)$item['id'] ?>" class="btn btn-sm btn-outline-success ms-2">Movimentar</a>
+    <?php endif; ?>
+</td></tr>
 <tr><th width="35%">Estoque mínimo:</th><td><?= formatCellValue('estoque_minimo', $item['estoque_minimo'] ?? null) ?></td></tr>
-<tr><th width="35%">Troca (dias):</th><td><?= formatCellValue('periodicidade_troca_dias', $item['periodicidade_troca_dias'] ?? null) ?></td></tr>
+<tr><th width="35%">Vida útil padrão (dias):</th><td><?= formatCellValue('periodicidade_troca_dias', $item['periodicidade_troca_dias'] ?? null) ?></td></tr>
 <tr><th width="35%">Status:</th><td><?= formatCellValue('status', $item['status'] ?? null) ?></td></tr>
 
                     <tr><th>Cadastrado em:</th><td><?= !empty($item['created_at']) ? date('d/m/Y H:i', strtotime($item['created_at'])) : '-' ?></td></tr>
                     <tr><th>Atualizado em:</th><td><?= !empty($item['updated_at']) ? date('d/m/Y H:i', strtotime($item['updated_at'])) : '-' ?></td></tr>
                 </table></div>
             </div>
+            <?php if (!empty($this->data['movimentos'])): ?>
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header hstack"><h5 class="mb-0">Últimas movimentações de estoque</h5>
+                <?php if (in_array('SstListEpiMovimentos', $perms, true)): ?>
+                <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-movimentos?adms_sst_epi_id=<?= (int)$item['id'] ?>" class="btn btn-sm btn-outline-primary ms-auto">Ver todas</a>
+                <?php endif; ?>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Saldo</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($this->data['movimentos'] as $m): ?>
+                        <tr>
+                            <td><?= !empty($m['data_movimento']) ? date('d/m/Y', strtotime($m['data_movimento'])) : '-' ?></td>
+                            <td><?= htmlspecialchars($m['tipo_movimento'] ?? '') ?></td>
+                            <td><?= (int)($m['quantidade'] ?? 0) ?></td>
+                            <td><?= isset($m['saldo_apos']) ? (int)$m['saldo_apos'] : '-' ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
             
         </div>
         <div class="col-md-4">
