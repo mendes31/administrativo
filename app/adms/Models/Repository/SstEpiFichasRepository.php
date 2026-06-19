@@ -81,7 +81,7 @@ class SstEpiFichasRepository extends DbConnection
     /** @return list<array<string, mixed>> */
     public function getItens(int $fichaId): array
     {
-        $sql = "SELECT i.*, ep.nome AS epi_nome, ep.ca_numero AS epi_ca_catalogo
+        $sql = "SELECT i.*, ep.nome AS epi_nome
                 FROM adms_sst_epi_ficha_itens i
                 INNER JOIN adms_sst_epis ep ON ep.id = i.adms_sst_epi_id
                 WHERE i.adms_sst_epi_ficha_id = :fid
@@ -126,7 +126,7 @@ class SstEpiFichasRepository extends DbConnection
                         f.data_entrega AS data_entrega,
                         ep.nome AS epi_nome,
                         fi.quantidade,
-                        COALESCE(fi.ca_utilizado, ep.ca_numero) AS ca,
+                        fi.ca_utilizado AS ca,
                         fi.data_prevista_troca,
                         f.status_assinatura,
                         f.signed_at
@@ -142,7 +142,7 @@ class SstEpiFichasRepository extends DbConnection
                         e.data_movimento AS data_entrega,
                         ep.nome AS epi_nome,
                         e.quantidade,
-                        ep.ca_numero AS ca,
+                        NULL AS ca,
                         e.data_prevista_troca,
                         CASE WHEN e.termo_assinado = 1 THEN 'Assinado' ELSE 'Pendente' END AS status_assinatura,
                         NULL AS signed_at

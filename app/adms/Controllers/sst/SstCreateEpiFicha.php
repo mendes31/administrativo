@@ -6,6 +6,8 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstEpiMovimentoHelper;
+use App\adms\Helpers\SstEpiPrevistaTrocaHelper;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstEpiFichasRepository;
 use App\adms\Models\Repository\SstEpiMovimentosRepository;
@@ -29,9 +31,15 @@ class SstCreateEpiFicha
         $movRepo = new SstEpiMovimentosRepository();
         $casPorEpi = [];
         foreach ($this->data['epis'] as $ep) {
-            $casPorEpi[(int) ($ep['id'] ?? 0)] = $movRepo->getCaNumerosPorEpi((int) ($ep['id'] ?? 0));
+            $epId = (int) ($ep['id'] ?? 0);
+            $casPorEpi[$epId] = $movRepo->getSaldoPorCaPorEpi($epId);
         }
-        $this->data['cas_por_epi_json'] = json_encode($casPorEpi, JSON_UNESCAPED_UNICODE);
+        $this->data['cas_estoque_por_epi_json'] = json_encode($casPorEpi, JSON_UNESCAPED_UNICODE);
+        $vidaUtilPorEpi = [];
+        foreach ($this->data['epis'] as $ep) {
+            $vidaUtilPorEpi[(int) ($ep['id'] ?? 0)] = (int) ($ep['periodicidade_troca_dias'] ?? 0);
+        }
+        $this->data['vida_util_por_epi_json'] = json_encode($vidaUtilPorEpi, JSON_UNESCAPED_UNICODE);
         $this->data['item'] = [];
         if (!empty($_GET['adms_user_id'])) {
             $this->data['item']['adms_user_id'] = (int) $_GET['adms_user_id'];
@@ -66,10 +74,24 @@ class SstCreateEpiFicha
 
         $itens = $this->parseItens($_POST, $dataEntrega);
         if ($itens === []) {
-            $_SESSION['msg'] = 'Adicione ao menos um EPI com Nº CA informado à ficha.';
+            $_SESSION['msg'] = 'Adicione ao menos um EPI com CA em estoque selecionado.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi-ficha');
             exit;
+        }
+
+        $movRepo = new SstEpiMovimentosRepository();
+        foreach ($itens as $item) {
+            $epiId = (int) ($item['adms_sst_epi_id'] ?? 0);
+            $ca = (string) ($item['ca_utilizado'] ?? '');
+            $qty = (int) ($item['quantidade'] ?? 1);
+            $saldoCa = $movRepo->getSaldoCa($epiId, $ca);
+            if ($saldoCa < $qty) {
+                $_SESSION['msg'] = 'Saldo insuficiente para o CA ' . $ca . '. Disponível: ' . $saldoCa . '.';
+                $_SESSION['msg_type'] = 'danger';
+                header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi-ficha');
+                exit;
+            }
         }
 
         $repo = new SstEpiFichasRepository();
@@ -136,15 +158,19 @@ class SstCreateEpiFicha
             if ($ca === '') {
                 continue;
             }
-            $prev = trim((string) ($row['data_prevista_troca'] ?? ''));
-            if ($prev === '') {
-                $prev = SstEpiFichaPdfService::calcPrevistaTroca($dataEntrega, $epiId) ?? '';
-            }
+            $caNorm = SstEpiMovimentoHelper::normalizeCa($ca);
+            $prevInformada = trim((string) ($row['data_prevista_troca'] ?? ''));
+            $prev = SstEpiPrevistaTrocaHelper::resolver(
+                $prevInformada !== '' ? $prevInformada : null,
+                $dataEntrega,
+                $epiId,
+                $caNorm
+            );
             $out[] = [
                 'adms_sst_epi_id' => $epiId,
                 'quantidade' => max(1, (int) ($row['quantidade'] ?? 1)),
-                'ca_utilizado' => \App\adms\Helpers\SstEpiMovimentoHelper::normalizeCa(trim((string) ($row['ca_utilizado'] ?? ''))),
-                'data_prevista_troca' => $prev !== '' ? $prev : null,
+                'ca_utilizado' => $caNorm,
+                'data_prevista_troca' => $prev,
                 'observacoes' => trim((string) ($row['observacoes'] ?? '')),
             ];
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\portal;
 
 use App\adms\Models\Repository\SstEpiFichasRepository;
+use App\adms\Models\Services\SstEpiFichaSignedBundlePdfService;
 
 /**
  * PDF da ficha de EPI — colaborador vê apenas as próprias fichas.
@@ -28,6 +29,9 @@ class ViewEpiFichaPdf
             header('Location: ' . $_ENV['URL_ADM'] . 'my-epi-deliveries');
             exit;
         }
+
+        SstEpiFichaSignedBundlePdfService::ensureAuditTrailIncluded($repo, $fichaId);
+        $ficha = $repo->getByIdForUser($fichaId, $uid) ?? $ficha;
 
         $path = (string) ($ficha['pdf_storage_path'] ?? '');
         $abs = $path !== '' ? $repo->absoluteStoragePath($path) : '';

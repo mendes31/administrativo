@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstLegacyEpiEntregaGuard;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
 
 class SstDeleteEpiEntrega
 {
     public function index(): void
     {
+        SstLegacyEpiEntregaGuard::denyAndRedirect();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $_SESSION['msg'] = 'Método inválido.';
             $_SESSION['msg_type'] = 'danger';

@@ -1048,12 +1048,6 @@ $menus = [
                         'icon' => 'fas fa-dolly'
                     ],
                     [
-                        'label' => 'Entregas de EPI (legado)',
-                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-entregas',
-                        'permission' => 'SstListEpiEntregas',
-                        'icon' => 'fas fa-hand-holding'
-                    ],
-                    [
                         'label' => 'Inspeções',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-inspecoes',
                         'permission' => 'SstListInspecoes',

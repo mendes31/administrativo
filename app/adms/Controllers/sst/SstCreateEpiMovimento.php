@@ -28,7 +28,7 @@ class SstCreateEpiMovimento
     private function loadForm(): void
     {
         $epiIdLocked = (int) ($_GET['adms_sst_epi_id'] ?? 0);
-        $tipoDefault = in_array($_GET['tipo'] ?? '', ['Entrada', 'Saída', 'Ajuste'], true) ? $_GET['tipo'] : 'Entrada';
+        $tipoDefault = in_array($_GET['tipo'] ?? '', ['Entrada', 'Saída', 'Devolução', 'Ajuste'], true) ? $_GET['tipo'] : 'Entrada';
         $movRepo = new SstEpiMovimentosRepository();
         $epiRepo = new SstEpisRepository();
 
@@ -50,9 +50,10 @@ class SstCreateEpiMovimento
 
         $casPorEpi = [];
         foreach ($this->data['epis'] as $ep) {
-            $casPorEpi[(int) ($ep['id'] ?? 0)] = $movRepo->getCaNumerosPorEpi((int) ($ep['id'] ?? 0));
+            $epId = (int) ($ep['id'] ?? 0);
+            $casPorEpi[$epId] = $movRepo->getSaldoPorCaPorEpi($epId);
         }
-        $this->data['cas_por_epi_json'] = json_encode($casPorEpi, JSON_UNESCAPED_UNICODE);
+        $this->data['cas_estoque_por_epi_json'] = json_encode($casPorEpi, JSON_UNESCAPED_UNICODE);
 
         $this->data['item'] = [
             'adms_sst_epi_id' => $epiIdLocked ?: '',
@@ -130,8 +131,8 @@ class SstCreateEpiMovimento
     private function saveMulti(): void
     {
         $tipo = (string) ($_POST['tipo_movimento'] ?? '');
-        if (!in_array($tipo, ['Entrada', 'Saída'], true)) {
-            $_SESSION['msg'] = 'No registro em lote, use apenas Entrada ou Saída.';
+        if (!in_array($tipo, ['Entrada', 'Saída', 'Devolução'], true)) {
+            $_SESSION['msg'] = 'No registro em lote, use Entrada, Saída ou Devolução.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi-movimento');
             exit;

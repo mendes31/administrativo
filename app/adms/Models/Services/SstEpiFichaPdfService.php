@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Models\Repository\SstEpiFichasRepository;
-use App\adms\Models\Repository\SstEpisRepository;
 use Mpdf\Mpdf;
 
 /**
@@ -125,19 +124,9 @@ na NR-06 e demais normas de Segurança e Saúde no Trabalho aplicáveis.</p>
 HTML;
     }
 
-    /** Calcula data prevista troca com base na periodicidade do EPI. */
-    public static function calcPrevistaTroca(string $dataEntrega, int $epiId): ?string
+    /** @deprecated Use SstEpiPrevistaTrocaHelper::calcular() */
+    public static function calcPrevistaTroca(string $dataEntrega, int $epiId, ?string $caNumero = null): ?string
     {
-        $epi = (new SstEpisRepository())->getById($epiId);
-        $dias = (int) ($epi['periodicidade_troca_dias'] ?? 0);
-        if ($dias <= 0) {
-            return null;
-        }
-        $ts = strtotime($dataEntrega . ' +' . $dias . ' days');
-        if ($ts === false) {
-            return null;
-        }
-
-        return date('Y-m-d', $ts);
+        return \App\adms\Helpers\SstEpiPrevistaTrocaHelper::calcular($dataEntrega, $epiId, $caNumero);
     }
 }

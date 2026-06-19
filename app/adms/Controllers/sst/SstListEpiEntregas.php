@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\SstLegacyEpiEntregaGuard;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -17,6 +18,7 @@ class SstListEpiEntregas
 
     public function index(string|int $page = 1): void
     {
+        SstLegacyEpiEntregaGuard::denyAndRedirect();
         $filters = [
             'search' => $_GET['search'] ?? '',
             'adms_user_id' => $_GET['adms_user_id'] ?? '',

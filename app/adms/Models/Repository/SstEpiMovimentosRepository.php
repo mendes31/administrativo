@@ -138,28 +138,102 @@ class SstEpiMovimentosRepository extends DbConnection
         return (bool) $stmt->fetchColumn();
     }
 
-    /** @return list<string> */
-    public function getCaNumerosPorEpi(int $epiId, int $limit = 15): array
+    /** @return list<array{ca_numero: string, saldo: int, ca_validade: string|null}> */
+    public function getSaldoPorCaPorEpi(int $epiId, bool $somenteComSaldo = true): array
     {
         if (!$this->hasTable() || $epiId <= 0 || !$this->hasColumn('ca_numero')) {
             return [];
         }
-        $sql = "SELECT ca_numero FROM adms_sst_epi_movimentos
+        $sql = 'SELECT ca_numero, tipo_movimento, quantidade, ca_validade
+                FROM adms_sst_epi_movimentos
                 WHERE adms_sst_epi_id = :eid
-                  AND ca_numero IS NOT NULL AND TRIM(ca_numero) <> ''
-                  AND tipo_movimento IN ('Entrada', 'Devolução')
-                GROUP BY ca_numero
-                ORDER BY MAX(id) DESC
-                LIMIT :lim";
+                  AND ca_numero IS NOT NULL AND TRIM(ca_numero) <> \'\'
+                ORDER BY id ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        $out = [];
+
+        /** @var array<string, array{ca_numero: string, saldo: int, ca_validade: string|null}> $porCa */
+        $porCa = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
-            $ca = trim((string) ($row['ca_numero'] ?? ''));
-            if ($ca !== '' && !in_array($ca, $out, true)) {
+            $ca = strtoupper(trim((string) ($row['ca_numero'] ?? '')));
+            if ($ca === '') {
+                continue;
+            }
+            if (!isset($porCa[$ca])) {
+                $porCa[$ca] = ['ca_numero' => $ca, 'saldo' => 0, 'ca_validade' => null];
+            }
+            $porCa[$ca]['saldo'] += self::impactoSaldo(
+                (string) ($row['tipo_movimento'] ?? ''),
+                (int) ($row['quantidade'] ?? 0)
+            );
+            $val = trim((string) ($row['ca_validade'] ?? ''));
+            if ($val !== '' && in_array((string) ($row['tipo_movimento'] ?? ''), self::TIPOS_ENTRADA, true)) {
+                $porCa[$ca]['ca_validade'] = $val;
+            }
+        }
+
+        $out = array_values($porCa);
+        if ($somenteComSaldo) {
+            $out = array_values(array_filter($out, static fn (array $c): bool => (int) ($c['saldo'] ?? 0) > 0));
+        }
+
+        usort($out, static fn (array $a, array $b): int => strcmp((string) $a['ca_numero'], (string) $b['ca_numero']));
+
+        return $out;
+    }
+
+    public function getSaldoCa(int $epiId, string $caNumero): int
+    {
+        $ca = strtoupper(trim($caNumero));
+        if ($ca === '') {
+            return 0;
+        }
+        foreach ($this->getSaldoPorCaPorEpi($epiId, false) as $row) {
+            if (($row['ca_numero'] ?? '') === $ca) {
+                return max(0, (int) ($row['saldo'] ?? 0));
+            }
+        }
+
+        return 0;
+    }
+
+    public function getValidadeCaLote(int $epiId, string $caNumero): ?string
+    {
+        if (!$this->hasTable() || $epiId <= 0 || !$this->hasColumn('ca_validade')) {
+            return null;
+        }
+        $ca = strtoupper(trim($caNumero));
+        if ($ca === '') {
+            return null;
+        }
+        $sql = "SELECT ca_validade FROM adms_sst_epi_movimentos
+                WHERE adms_sst_epi_id = :eid
+                  AND ca_numero = :ca
+                  AND ca_validade IS NOT NULL
+                ORDER BY id DESC
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
+        $stmt->bindValue(':ca', $ca, PDO::PARAM_STR);
+        $stmt->execute();
+        $val = $stmt->fetchColumn();
+
+        return $val !== false && $val !== null && $val !== '' ? (string) $val : null;
+    }
+
+    /** @return list<string> */
+    public function getCaNumerosPorEpi(int $epiId, int $limit = 15): array
+    {
+        $rows = $this->getSaldoPorCaPorEpi($epiId, true);
+        $out = [];
+        foreach ($rows as $row) {
+            $ca = (string) ($row['ca_numero'] ?? '');
+            if ($ca !== '') {
                 $out[] = $ca;
+            }
+            if (count($out) >= $limit) {
+                break;
             }
         }
 

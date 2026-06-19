@@ -71,8 +71,20 @@ class SstEpiEstoqueService
         } else {
             $qty = max(1, (int) ($data['quantidade'] ?? 1));
             $data['quantidade'] = $qty;
-            if (in_array($tipo, SstEpiMovimentosRepository::TIPOS_SAIDA, true) && $qty > $saldoAtual) {
-                return ['ok' => false, 'error' => 'Saldo insuficiente. Disponível: ' . $saldoAtual . '.'];
+            if (in_array($tipo, SstEpiMovimentosRepository::TIPOS_SAIDA, true)) {
+                if ($qty > $saldoAtual) {
+                    return ['ok' => false, 'error' => 'Saldo insuficiente. Disponível: ' . $saldoAtual . '.'];
+                }
+                $ca = (string) ($data['ca_numero'] ?? '');
+                if ($ca !== '') {
+                    $saldoCa = $this->movRepo->getSaldoCa($epiId, $ca);
+                    if ($qty > $saldoCa) {
+                        return [
+                            'ok' => false,
+                            'error' => 'Saldo insuficiente para o CA ' . $ca . '. Disponível neste lote: ' . $saldoCa . '.',
+                        ];
+                    }
+                }
             }
         }
 

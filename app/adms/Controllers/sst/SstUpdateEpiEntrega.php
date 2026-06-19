@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstLegacyEpiEntregaGuard;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -23,6 +24,7 @@ class SstUpdateEpiEntrega
 
     public function index(string|int|null $id = null): void
     {
+        SstLegacyEpiEntregaGuard::denyAndRedirect();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->update((int) $id);
             return;

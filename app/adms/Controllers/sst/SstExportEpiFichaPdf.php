@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\sst;
 
+use App\adms\Helpers\UserAccessHelper;
+use App\adms\Models\Repository\PagesRoutesRepository;
 use App\adms\Models\Repository\SstEpiFichasRepository;
+use App\adms\Models\Services\SstEpiFichaSignedBundlePdfService;
 
 class SstExportEpiFichaPdf
 {
@@ -32,9 +35,12 @@ class SstExportEpiFichaPdf
             if (!$this->canAccessPdf($ficha)) {
                 $_SESSION['msg'] = 'Sem permissão para visualizar este PDF.';
                 $_SESSION['msg_type'] = 'danger';
-                header('Location: ' . $_ENV['URL_ADM'] . 'my-epi-deliveries');
+                header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-epi-ficha/' . $fichaId);
                 exit;
             }
+
+            SstEpiFichaSignedBundlePdfService::ensureAuditTrailIncluded($repo, $fichaId);
+            $ficha = $repo->getById($fichaId) ?? $ficha;
 
             $path = (string) ($ficha['pdf_storage_path'] ?? '');
             $abs = $path !== '' ? $repo->absoluteStoragePath($path) : '';
@@ -67,16 +73,17 @@ class SstExportEpiFichaPdf
         if ($uid <= 0) {
             return false;
         }
+        if (UserAccessHelper::hasFullSystemAccess()) {
+            return true;
+        }
         if ((int) ($ficha['adms_user_id'] ?? 0) === $uid) {
             return true;
         }
-        $perms = $_SESSION['user_permissions'] ?? [];
-        if (!is_array($perms)) {
-            return false;
-        }
 
-        return in_array('SstViewEpiFicha', $perms, true)
-            || in_array('SstExportEpiFichaPdf', $perms, true)
-            || in_array('SstListEpiFichas', $perms, true);
+        return (new PagesRoutesRepository())->checkUserAnyPagePermissionForControllers([
+            'SstViewEpiFicha',
+            'SstExportEpiFichaPdf',
+            'SstListEpiFichas',
+        ]);
     }
 }

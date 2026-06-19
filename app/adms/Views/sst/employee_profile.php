@@ -108,12 +108,6 @@ if (!empty($ultimoAso['data_validade'])) {
 
                 <?php endif; ?>
 
-                <?php if (in_array('SstCreateEpiEntrega', $perms, true)): ?>
-
-                    <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-entrega?adms_user_id=<?= $uid ?>" class="btn btn-outline-success btn-sm">+ EPI (legado)</a>
-
-                <?php endif; ?>
-
                 <?php if (in_array('SstCreateAcidente', $perms, true)): ?>
 
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-acidente?adms_user_id=<?= $uid ?>" class="btn btn-outline-danger btn-sm">+ Acidente</a>
@@ -643,7 +637,7 @@ if (!empty($ultimoAso['data_validade'])) {
 
                             'aso' => 'SstViewAso',
 
-                            'epi' => 'SstViewEpiEntrega',
+                            'epi' => 'SstViewEpiFicha',
 
                             'afastamento' => 'SstViewAfastamento',
 

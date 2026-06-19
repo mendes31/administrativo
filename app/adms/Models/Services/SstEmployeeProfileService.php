@@ -136,6 +136,10 @@ class SstEmployeeProfileService extends DbConnection
         }
 
         foreach ($epiEntregas as $row) {
+            $fichaId = (int) ($row['adms_sst_epi_ficha_id'] ?? 0);
+            if ($fichaId <= 0) {
+                continue;
+            }
             $events[] = [
                 'data' => (string) ($row['data_movimento'] ?? ''),
                 'tipo' => 'epi',
@@ -143,8 +147,8 @@ class SstEmployeeProfileService extends DbConnection
                 'cor' => 'warning',
                 'titulo' => 'EPI — ' . ($row['tipo_movimento'] ?? 'Movimento'),
                 'detalhe' => (string) ($row['epi_nome'] ?? ''),
-                'id' => (int) ($row['id'] ?? 0),
-                'url' => 'sst-view-epi-entrega/',
+                'id' => $fichaId,
+                'url' => 'sst-view-epi-ficha/',
             ];
         }
 

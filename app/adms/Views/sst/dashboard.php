@@ -115,7 +115,7 @@
                         ['SstListAfastamentos', 'sst-list-afastamentos', 'Afastamentos'],
                         ['SstListAsos', 'sst-list-asos', 'ASOs'],
                         ['SstEncaminhamentoAso', 'sst-encaminhamento-aso', 'Encaminhamento ASO'],
-                        ['SstListEpiEntregas', 'sst-list-epi-entregas', 'Entregas EPI'],
+                        ['SstListEpiFichas', 'sst-list-epi-fichas', 'Fichas EPI'],
                     ];
                     foreach ($registros as [$perm, $url, $label]) {
                         if (in_array($perm, $perms, true)) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\SstLegacyEpiEntregaGuard;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
 use App\adms\Models\Repository\SstAnexosRepository;
 use App\adms\Models\Services\LogResumoService;
@@ -16,6 +17,7 @@ class SstViewEpiEntrega
 
     public function index(string|int|null $id = null): void
     {
+        SstLegacyEpiEntregaGuard::denyAndRedirect();
         if (!$id) {
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-epi-entregas');
             exit;

@@ -9,6 +9,7 @@ use App\adms\Controllers\Services\RequestHelper;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\SstEpiFichasRepository;
 use App\adms\Models\Services\SstEpiFichaPublishNotifier;
+use App\adms\Models\Services\SstEpiFichaSignedBundlePdfService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -67,6 +68,10 @@ class SignEpiFicha
                 $ip = RequestHelper::getClientIp();
                 $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
                 if ($repo->recordSignature($fichaId, $uid, $ip, $ua, $hash)) {
+                    try {
+                        (new SstEpiFichaSignedBundlePdfService())->appendAuditTrail($fichaId);
+                    } catch (\Throwable) {
+                    }
                     SstEpiFichaPublishNotifier::markNotificationsRead($uid, $fichaId);
                     $_SESSION['msg'] = 'Recebimento dos EPIs confirmado com sucesso.';
                     $_SESSION['msg_type'] = 'success';
