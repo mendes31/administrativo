@@ -19,6 +19,7 @@ class SstListEpis
     {
         $filters = [
             'search' => $_GET['search'] ?? '',
+            'categoria' => $_GET['categoria'] ?? '',
             'adms_user_id' => $_GET['adms_user_id'] ?? '',
             'status' => $_GET['status'] ?? '',
         ];

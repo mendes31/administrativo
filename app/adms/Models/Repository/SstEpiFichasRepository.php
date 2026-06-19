@@ -306,7 +306,8 @@ class SstEpiFichasRepository extends DbConnection
                 $fichaId,
                 (int) ($item['adms_sst_epi_id'] ?? 0),
                 (int) ($item['quantidade'] ?? 1),
-                (string) ($ficha['data_entrega'] ?? date('Y-m-d'))
+                (string) ($ficha['data_entrega'] ?? date('Y-m-d')),
+                isset($item['ca_utilizado']) ? (string) $item['ca_utilizado'] : null
             );
         }
     }

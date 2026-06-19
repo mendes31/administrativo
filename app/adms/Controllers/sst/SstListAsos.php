@@ -150,7 +150,10 @@ class SstListAsos
         $pageElements = [
             'title_head' => 'ASOs - SST',
             'menu' => 'sst-list-asos',
-            'buttonPermission' => ['SstViewAso', 'SstCreateAso', 'SstUpdateAso', 'SstDeleteAso', 'SstRegistrarResultadosAso'],
+            'buttonPermission' => [
+                'SstViewAso', 'SstCreateAso', 'SstUpdateAso', 'SstDeleteAso', 'SstRegistrarResultadosAso',
+                'SstEncaminhamentoAso', 'SstExportEncaminhamentoAsoPdf',
+            ],
         ];
         $this->data = array_merge($this->data ?? [], (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/asos/list', $this->data))->loadView();

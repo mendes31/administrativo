@@ -1,6 +1,7 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstEpiCategoriaHelper;
 
 function formatCellValue(string $col, mixed $value): string
 {
@@ -55,6 +56,15 @@ $filtersId = 'sstFiltersEpi';
                         <label class="form-label" style="font-size:.7rem;">Pesquisar</label>
                         <input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
                     </div>
+                    <div class="col-6 col-sm-4 col-md-3">
+                        <label class="form-label" style="font-size:.7rem;">Categoria</label>
+                        <select name="categoria" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            <?php foreach (SstEpiCategoriaHelper::all() as $cat): ?>
+                            <option value="<?= htmlspecialchars($cat) ?>" <?= (($this->data['filters']['categoria'] ?? '') === $cat) ? 'selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     
                     <div class="col-6 col-sm-4 col-md-2">
             <label for="status" class="form-label" style="font-size:.7rem;">Status</label>
@@ -83,7 +93,7 @@ $filtersId = 'sstFiltersEpi';
                         <thead><tr>
                             <th>Id</th>
 <th>Nome</th>
-<th>Nº CA</th>
+<th>Categoria</th>
 <th>Estoque</th>
 <th>Status</th>
 
@@ -99,7 +109,7 @@ $filtersId = 'sstFiltersEpi';
                             <tr class="<?= $estoqueBaixo ? 'table-warning' : '' ?>">
                                 <td><?= formatCellValue('id', $item['id'] ?? null) ?></td>
 <td><?= formatCellValue('nome', $item['nome'] ?? null) ?></td>
-<td><?= formatCellValue('ca_numero', $item['ca_numero'] ?? null) ?></td>
+<td><?= formatCellValue('categoria', $item['categoria'] ?? null) ?></td>
 <td><?= formatCellValue('estoque_atual', $item['estoque_atual'] ?? null) ?><?php if ($estoqueBaixo): ?> <span class="badge bg-warning text-dark">Baixo</span><?php endif; ?></td>
 <td class="text-center"><span class="badge bg-secondary"><?= htmlspecialchars($item['status'] ?? '') ?></span></td>
 
@@ -134,8 +144,8 @@ $filtersId = 'sstFiltersEpi';
                         <div class="card mb-2 shadow-sm"<?php if ($canView): ?> onclick="window.location.href='<?= $viewUrl ?>';" style="cursor:pointer;"<?php endif; ?>>
                             <div class="card-body py-2 px-3">
                                 <div class="fw-bold small"><?= formatCellValue('nome', $item['nome'] ?? $id) ?></div>
-                                <?php if (!empty($item['ca_numero'])): ?>
-                                    <div class="small text-muted"><?= formatCellValue('ca_numero', $item['ca_numero']) ?></div>
+                                <?php if (!empty($item['categoria'])): ?>
+                                    <div class="small text-muted"><?= formatCellValue('categoria', $item['categoria']) ?></div>
                                 <?php endif; ?>
                                 <?php if (!empty($item['status'])): ?>
                                     <span class="badge bg-secondary"><?= htmlspecialchars($item['status']) ?></span>

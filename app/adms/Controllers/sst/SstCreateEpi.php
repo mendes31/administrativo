@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstEpiCatalogHelper;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
@@ -124,14 +125,14 @@ class SstCreateEpi
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-epis');
             exit;
         }
-        $data = [];
-        $data['nome'] = $_POST['nome'] ?? null;
-        $data['descricao'] = $_POST['descricao'] ?? null;
-        $data['ca_numero'] = $_POST['ca_numero'] ?? null;
-        $data['ca_validade'] = $_POST['ca_validade'] ?? null;
-        $data['estoque_minimo'] = $_POST['estoque_minimo'] ?? null;
-        $data['periodicidade_troca_dias'] = $_POST['periodicidade_troca_dias'] ?? null;
-        $data['status'] = $_POST['status'] ?? null;
+        $data = SstEpiCatalogHelper::parseFormData($_POST);
+        $error = SstEpiCatalogHelper::validate($data);
+        if ($error !== null) {
+            $_SESSION['msg'] = $error;
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi');
+            exit;
+        }
 
         $repo = new SstEpisRepository();
         $newId = $repo->create($data);

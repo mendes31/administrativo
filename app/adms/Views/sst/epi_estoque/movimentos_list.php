@@ -19,7 +19,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             <span class="ms-auto d-flex gap-1">
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epis" class="btn btn-outline-secondary btn-sm">EPIs</a>
                 <?php if (in_array('SstCreateEpiMovimento', $perms, true)): ?>
-                <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-movimento" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> Movimentar</a>
+                <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-movimento" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> Movimentar (lote)</a>
                 <?php endif; ?>
             </span>
         </div>
@@ -46,7 +46,7 @@ $perms = $this->data['buttonPermission'] ?? [];
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Buscar</label>
-                    <input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" placeholder="EPI ou documento">
+                    <input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" placeholder="EPI, CA ou documento">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
@@ -58,7 +58,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
                     <thead><tr>
-                        <th>Data</th><th>EPI</th><th>Tipo</th><th>Qtd</th><th>Saldo após</th><th>Documento</th><th>Responsável</th><th>Obs.</th>
+                        <th>Data</th><th>EPI</th><th>Tipo</th><th>Qtd</th><th>CA</th><th>Saldo após</th><th>Documento</th><th>Responsável</th><th>Obs.</th>
                     </tr></thead>
                     <tbody>
                     <?php foreach ($items as $r):
@@ -71,6 +71,7 @@ $perms = $this->data['buttonPermission'] ?? [];
                         <td><?= htmlspecialchars($r['epi_nome'] ?? '') ?></td>
                         <td><span class="badge bg-<?= $neg ? 'danger' : 'success' ?>"><?= htmlspecialchars($tipo) ?></span></td>
                         <td><?= $tipo === 'Ajuste' ? ($qty > 0 ? '+' : '') . $qty : abs($qty) ?></td>
+                        <td><?= htmlspecialchars($r['ca_numero'] ?? '-') ?></td>
                         <td><?= isset($r['saldo_apos']) ? (int)$r['saldo_apos'] : '-' ?></td>
                         <td><?= htmlspecialchars($r['documento_ref'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($r['responsavel_nome'] ?? '-') ?></td>

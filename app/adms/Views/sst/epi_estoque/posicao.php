@@ -43,7 +43,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             <div class="table-responsive">
                 <table class="table table-sm table-bordered">
                     <thead><tr>
-                        <th>EPI</th><th>CA</th><th>Saldo</th><th>Mínimo</th><th>Status</th><th></th>
+                        <th>EPI</th><th>Categoria</th><th>Saldo</th><th>Mínimo</th><th>Status</th><th></th>
                     </tr></thead>
                     <tbody>
                     <?php foreach ($items as $r):
@@ -54,7 +54,7 @@ $perms = $this->data['buttonPermission'] ?? [];
                     ?>
                     <tr class="<?= $baixo ? 'table-warning' : '' ?>">
                         <td><?= htmlspecialchars($r['nome'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($r['ca_numero'] ?? '-') ?></td>
+                        <td><?= htmlspecialchars($r['categoria'] ?? '-') ?></td>
                         <td class="fw-semibold"><?= $saldo ?><?php if ($baixo): ?> <span class="badge bg-warning text-dark">Comprar</span><?php endif; ?></td>
                         <td><?= $min ?></td>
                         <td><?= htmlspecialchars($r['status'] ?? '') ?></td>

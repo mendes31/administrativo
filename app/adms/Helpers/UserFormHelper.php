@@ -249,6 +249,32 @@ final class UserFormHelper
         return in_array($v, self::EMPRESA_CONTRATANTE_SLUGS, true) ? $v : null;
     }
 
+    /** Resolve slug a partir do cadastro (slug, rótulo curto ou razão social do PDF). */
+    public static function resolveEmpresaContratanteSlug(mixed $value): ?string
+    {
+        $fromSlug = self::normalizeEmpresaContratante($value);
+        if ($fromSlug !== null) {
+            return $fromSlug;
+        }
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $needle = strtolower(trim((string) $value));
+        foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
+            if ($needle === strtolower($slug)) {
+                return $slug;
+            }
+            if ($needle === strtolower(self::empresaContratanteLabel($slug))) {
+                return $slug;
+            }
+            if ($needle === strtolower(self::empresaContratantePdfLabel($slug))) {
+                return $slug;
+            }
+        }
+
+        return null;
+    }
+
     public static function empresaContratanteLabel(?string $code): string
     {
         return match ($code) {
@@ -265,6 +291,31 @@ final class UserFormHelper
         $out = [];
         foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
             $out[$slug] = self::empresaContratanteLabel($slug);
+        }
+
+        return $out;
+    }
+
+    /** Razão social exibida no PDF de encaminhamento ASO. */
+    public static function empresaContratantePdfLabel(string $slug): string
+    {
+        return match ($slug) {
+            'tiaraju_farma' => 'Tiaraju Farma, Alimentos e Cosméticos Ltda',
+            'lab_tiaraju_matriz' => 'Lab. Tiaraju Alimentos e Cosméticos Ltda',
+            'lab_tiaraju_filial' => 'Lab. Tiaraju Alimentos e Cosméticos Ltda - filial',
+            default => '',
+        };
+    }
+
+    /** @return array<string, string> slug => razão social (PDF) */
+    public static function empresaContratantePdfOptions(): array
+    {
+        $out = [];
+        foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
+            $label = self::empresaContratantePdfLabel($slug);
+            if ($label !== '') {
+                $out[$slug] = $label;
+            }
         }
 
         return $out;

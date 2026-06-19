@@ -55,6 +55,8 @@ $dataHoje = date('Y-m-d');
                     </div>
                 </div>
 
+                <div id="info-empresa-contratante" class="alert alert-secondary py-2 d-none small mb-0"></div>
+
                 <div id="wrap-exames-pacote" class="d-none">
                     <hr>
                     <h6 class="text-muted text-uppercase small">Exames do encaminhamento</h6>
@@ -80,6 +82,7 @@ $dataHoje = date('Y-m-d');
     const listaObr = document.getElementById('lista-obrigatorios');
     const listaRec = document.getElementById('lista-recomendados');
     const btnPdf = document.getElementById('btn-gerar-pdf');
+    const infoEmpresa = document.getElementById('info-empresa-contratante');
 
     function renderLista(container, titulo, itens, obrigatorio) {
         if (!container) return;
@@ -106,6 +109,7 @@ $dataHoje = date('Y-m-d');
         const tipo = catSel?.value;
         if (!userId || !tipo) {
             wrap?.classList.add('d-none');
+            infoEmpresa?.classList.add('d-none');
             if (btnPdf) btnPdf.disabled = true;
             return;
         }
@@ -115,8 +119,23 @@ $dataHoje = date('Y-m-d');
             .then(data => {
                 if (!data.ok) {
                     wrap?.classList.add('d-none');
+                    infoEmpresa?.classList.add('d-none');
                     if (btnPdf) btnPdf.disabled = true;
                     return;
+                }
+                if (infoEmpresa) {
+                    if (data.empresa_contratante_label) {
+                        infoEmpresa.className = 'alert alert-info py-2 small mb-3';
+                        infoEmpresa.innerHTML = '<i class="fas fa-building me-1"></i> Empresa contratante no cadastro: <strong>'
+                            + data.empresa_contratante_label + '</strong> (virá marcada no PDF).';
+                        infoEmpresa.classList.remove('d-none');
+                    } else {
+                        infoEmpresa.className = 'alert alert-warning py-2 small mb-3';
+                        infoEmpresa.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> '
+                            + 'Empresa contratante não informada no cadastro do colaborador. '
+                            + 'Preencha em <strong>Usuários → Dados contratuais</strong> antes de gerar o PDF.';
+                        infoEmpresa.classList.remove('d-none');
+                    }
                 }
                 renderLista(listaObr, 'Obrigatórios (inclusos no PDF)', data.obrigatorios || data.exames || [], true);
                 renderLista(listaRec, 'Recomendados (opcionais — marque para incluir)', data.recomendados || [], false);

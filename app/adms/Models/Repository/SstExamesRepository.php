@@ -6,6 +6,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\SstExameResultadoHelper;
 use App\adms\Helpers\SstExameTipoHelper;
+use App\adms\Helpers\SstCatalogCodigoHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -79,6 +80,25 @@ class SstExamesRepository extends DbConnection
         $stmt->execute();
 
         return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getProximoCodigo(): string
+    {
+        if (!$this->hasColumn('codigo')) {
+            return '';
+        }
+
+        $stmt = $this->getConnection()->query(
+            "SELECT codigo FROM adms_sst_exames WHERE codigo IS NOT NULL AND codigo <> ''"
+        );
+        $codigos = array_column($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'codigo');
+
+        return SstCatalogCodigoHelper::proximo(
+            'EX',
+            4,
+            $codigos,
+            fn (string $c) => $this->existsCodigo($c)
+        );
     }
 
     public function create(array $data): int|false

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Helpers\SstCategoriaAsoHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\PagesRoutesRepository;
+use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\SstExamesObrigatoriosResolver;
 
 /**
@@ -49,11 +51,23 @@ class SstPacoteExamesAso
         $obrigatorios = $pacote['obrigatorios'];
         $recomendados = $pacote['recomendados'];
 
+        $empresaSlug = null;
+        $empresaLabel = null;
+        $user = (new UsersRepository())->getUser($userId);
+        if (is_array($user)) {
+            $empresaSlug = UserFormHelper::resolveEmpresaContratanteSlug($user['empresa_contratante'] ?? null);
+            $empresaLabel = $empresaSlug !== null
+                ? UserFormHelper::empresaContratantePdfLabel($empresaSlug)
+                : null;
+        }
+
         echo json_encode([
             'ok' => true,
             'exames' => $obrigatorios,
             'obrigatorios' => $obrigatorios,
             'recomendados' => $recomendados,
+            'empresa_contratante' => $empresaSlug,
+            'empresa_contratante_label' => $empresaLabel,
         ], JSON_UNESCAPED_UNICODE);
     }
 }

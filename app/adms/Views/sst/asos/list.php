@@ -51,8 +51,9 @@ $filtersId = 'sstFiltersAso';
             <?php include './app/adms/Views/partials/alerts.php'; ?>
             <p class="text-muted small mb-3">
                 Solicitações são <strong>geradas automaticamente</strong> pelos vínculos (cargo → risco → exame).
-                Acesse cada linha com status <em>Aguardando exames</em> e use o botão
-                <i class="fas fa-clipboard-check"></i> para lançar apenas os resultados.
+                Acesse cada linha com status <em>Aguardando exames</em>: use
+                <i class="fas fa-file-pdf text-danger"></i> para o PDF de encaminhamento e
+                <i class="fas fa-clipboard-check"></i> para lançar os resultados depois dos exames.
             </p>
             <div class="d-md-none mb-2">
                 <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $filtersId ?>">
@@ -108,6 +109,12 @@ $filtersId = 'sstFiltersAso';
                         <tbody>
                         <?php foreach ($this->data['items'] as $item):
                             $id = (int)($item['id'] ?? 0);
+                            $userId = (int) ($item['adms_user_id'] ?? 0);
+                            $tipoAso = (string) ($item['tipo'] ?? '');
+                            $encUrl = $_ENV['URL_ADM'] . 'sst-encaminhamento-aso?adms_user_id=' . $userId
+                                . '&categoria=' . rawurlencode($tipoAso);
+                            $podeEncaminhamento = in_array('SstEncaminhamentoAso', $perms, true)
+                                || in_array('SstExportEncaminhamentoAsoPdf', $perms, true);
                         ?>
                             <tr>
                                 <td><?= formatCellValue('id', $item['id'] ?? null) ?></td>
@@ -120,6 +127,9 @@ $filtersId = 'sstFiltersAso';
 
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
+                                        <?php if ($podeEncaminhamento && $userId > 0 && $tipoAso !== ''): ?>
+                                            <a href="<?= htmlspecialchars($encUrl) ?>" class="btn btn-primary btn-sm" title="PDF encaminhamento"><i class="fas fa-file-pdf"></i></a>
+                                        <?php endif; ?>
                                         <?php if (in_array('SstRegistrarResultadosAso', $perms, true) && SstAsoStatusHelper::isAguardando($item)): ?>
                                             <a href="<?= $_ENV['URL_ADM']; ?>sst-registrar-resultados-aso/<?= $id ?>" class="btn btn-warning btn-sm" title="Registrar resultados"><i class="fas fa-clipboard-check"></i></a>
                                         <?php endif; ?>
@@ -146,6 +156,12 @@ $filtersId = 'sstFiltersAso';
                 <div class="d-block d-md-none">
                     <?php foreach ($this->data['items'] as $item):
                         $id = (int)($item['id'] ?? 0);
+                        $userId = (int) ($item['adms_user_id'] ?? 0);
+                        $tipoAso = (string) ($item['tipo'] ?? '');
+                        $encUrl = $_ENV['URL_ADM'] . 'sst-encaminhamento-aso?adms_user_id=' . $userId
+                            . '&categoria=' . rawurlencode($tipoAso);
+                        $podeEncaminhamento = in_array('SstEncaminhamentoAso', $perms, true)
+                            || in_array('SstExportEncaminhamentoAsoPdf', $perms, true);
                         $canView = in_array('SstViewAso', $perms);
                         $viewUrl = $_ENV['URL_ADM'] . 'sst-view-aso/' . $id;
                     ?>
@@ -159,6 +175,9 @@ $filtersId = 'sstFiltersAso';
                                     <span class="badge bg-secondary"><?= htmlspecialchars($item['status']) ?></span>
                                 <?php endif; ?>
                                 <div class="d-flex gap-1 mt-2 pt-2 border-top" onclick="event.stopPropagation();">
+                                    <?php if ($podeEncaminhamento && $userId > 0 && $tipoAso !== ''): ?>
+                                        <a href="<?= htmlspecialchars($encUrl) ?>" class="btn btn-primary btn-sm flex-fill"><i class="fas fa-file-pdf"></i> PDF</a>
+                                    <?php endif; ?>
                                     <?php if (in_array('SstRegistrarResultadosAso', $perms, true) && SstAsoStatusHelper::isAguardando($item)): ?>
                                         <a href="<?= $_ENV['URL_ADM']; ?>sst-registrar-resultados-aso/<?= $id ?>" class="btn btn-warning btn-sm flex-fill"><i class="fas fa-clipboard-check"></i> Resultados</a>
                                     <?php elseif ($canView): ?>

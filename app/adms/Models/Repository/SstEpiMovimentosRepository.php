@@ -138,16 +138,51 @@ class SstEpiMovimentosRepository extends DbConnection
         return (bool) $stmt->fetchColumn();
     }
 
+    /** @return list<string> */
+    public function getCaNumerosPorEpi(int $epiId, int $limit = 15): array
+    {
+        if (!$this->hasTable() || $epiId <= 0 || !$this->hasColumn('ca_numero')) {
+            return [];
+        }
+        $sql = "SELECT ca_numero FROM adms_sst_epi_movimentos
+                WHERE adms_sst_epi_id = :eid
+                  AND ca_numero IS NOT NULL AND TRIM(ca_numero) <> ''
+                  AND tipo_movimento IN ('Entrada', 'Devolução')
+                GROUP BY ca_numero
+                ORDER BY MAX(id) DESC
+                LIMIT :lim";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        $out = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $ca = trim((string) ($row['ca_numero'] ?? ''));
+            if ($ca !== '' && !in_array($ca, $out, true)) {
+                $out[] = $ca;
+            }
+        }
+
+        return $out;
+    }
+
     public function create(array $data): int|false
     {
         if (!$this->hasTable()) {
             return false;
         }
         $sql = 'INSERT INTO adms_sst_epi_movimentos
+            (adms_sst_epi_id, tipo_movimento, quantidade, ca_numero, ca_validade, data_movimento, documento_ref,
+             referencia_tipo, referencia_id, saldo_apos, observacoes, created_by, created_at)
+            VALUES
+            (:epi_id, :tipo, :qty, :ca_numero, :ca_validade, :data_mov, :doc_ref, :ref_tipo, :ref_id, :saldo_apos, :obs, :created_by, NOW())';
+        if (!$this->hasColumn('ca_numero')) {
+            $sql = 'INSERT INTO adms_sst_epi_movimentos
             (adms_sst_epi_id, tipo_movimento, quantidade, data_movimento, documento_ref,
              referencia_tipo, referencia_id, saldo_apos, observacoes, created_by, created_at)
             VALUES
             (:epi_id, :tipo, :qty, :data_mov, :doc_ref, :ref_tipo, :ref_id, :saldo_apos, :obs, :created_by, NOW())';
+        }
         $stmt = $this->getConnection()->prepare($sql);
         $epiId = (int) ($data['adms_sst_epi_id'] ?? 0);
         $tipo = (string) ($data['tipo_movimento'] ?? 'Entrada');
@@ -159,6 +194,12 @@ class SstEpiMovimentosRepository extends DbConnection
         $stmt->bindValue(':epi_id', $epiId, PDO::PARAM_INT);
         $stmt->bindValue(':tipo', (string) ($data['tipo_movimento'] ?? 'Entrada'), PDO::PARAM_STR);
         $stmt->bindValue(':qty', $qty, PDO::PARAM_INT);
+        if ($this->hasColumn('ca_numero')) {
+            $ca = trim((string) ($data['ca_numero'] ?? ''));
+            $stmt->bindValue(':ca_numero', $ca !== '' ? $ca : null, $ca !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $val = trim((string) ($data['ca_validade'] ?? ''));
+            $stmt->bindValue(':ca_validade', $val !== '' ? $val : null, $val !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        }
         $stmt->bindValue(':data_mov', (string) ($data['data_movimento'] ?? date('Y-m-d')), PDO::PARAM_STR);
         $doc = trim((string) ($data['documento_ref'] ?? ''));
         $stmt->bindValue(':doc_ref', $doc !== '' ? $doc : null, $doc !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
@@ -195,7 +236,11 @@ class SstEpiMovimentosRepository extends DbConnection
             $params[':tipo'] = $filters['tipo_movimento'];
         }
         if (!empty($filters['search'])) {
-            $where[] = '(ep.nome LIKE :search OR m.documento_ref LIKE :search)';
+            $search = '(ep.nome LIKE :search OR m.documento_ref LIKE :search';
+            if ($this->hasColumn('ca_numero')) {
+                $search .= ' OR m.ca_numero LIKE :search';
+            }
+            $where[] = $search . ')';
             $params[':search'] = '%' . $filters['search'] . '%';
         }
         if (!empty($filters['estoque_baixo'])) {
@@ -204,5 +249,28 @@ class SstEpiMovimentosRepository extends DbConnection
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
         return [$whereClause, $params];
+    }
+
+    private function hasColumn(string $column): bool
+    {
+        static $cache = [];
+        if (array_key_exists($column, $cache)) {
+            return $cache[$column];
+        }
+        if (!$this->hasTable()) {
+            $cache[$column] = false;
+
+            return false;
+        }
+        try {
+            $stmt = $this->getConnection()->query(
+                'SHOW COLUMNS FROM adms_sst_epi_movimentos LIKE ' . $this->getConnection()->quote($column)
+            );
+            $cache[$column] = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            $cache[$column] = false;
+        }
+
+        return $cache[$column];
     }
 }

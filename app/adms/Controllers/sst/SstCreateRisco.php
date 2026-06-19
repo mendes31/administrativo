@@ -20,7 +20,8 @@ class SstCreateRisco
             $this->create();
             return;
         }
-        $this->data['item'] = [];
+        $repo = new SstRiscosRepository();
+        $this->data['item'] = ['codigo' => $repo->getProximoCodigo()];
         $this->data['entity'] = [
             'table' => 'adms_sst_riscos',
             'singular' => 'Risco',
@@ -50,6 +51,9 @@ class SstCreateRisco
         }
         $repo = new SstRiscosRepository();
         $data = SstRiscoCatalogHelper::parseFormData($_POST);
+        if (empty($data['codigo'])) {
+            $data['codigo'] = $repo->getProximoCodigo();
+        }
         $error = SstRiscoCatalogHelper::validate($data, $repo);
         if ($error !== null) {
             $_SESSION['msg'] = $error;

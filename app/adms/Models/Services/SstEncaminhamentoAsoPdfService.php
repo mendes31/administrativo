@@ -24,14 +24,10 @@ final class SstEncaminhamentoAsoPdfService
         $nome = htmlspecialchars((string) ($user['name'] ?? ''));
         $funcao = htmlspecialchars((string) ($user['pos_name'] ?? ''));
         $setor = htmlspecialchars((string) ($user['dep_name'] ?? ''));
-        $empresaSlug = (string) ($user['empresa_contratante'] ?? '');
+        $empresaSlug = UserFormHelper::resolveEmpresaContratanteSlug($user['empresa_contratante'] ?? null) ?? '';
         $dataFmt = $this->formatDate($dataEncaminhamento);
 
-        $empresas = [
-            'tiaraju_farma' => 'Tiaraju Farma, Alimentos e Cosméticos Ltda',
-            'lab_tiaraju_matriz' => 'Lab. Tiaraju Alimentos e Cosméticos Ltda',
-            'lab_tiaraju_filial' => 'Lab. Tiaraju Alimentos e Cosméticos Ltda - filial',
-        ];
+        $empresas = UserFormHelper::empresaContratantePdfOptions();
 
         $categoriasCurto = [
             SstCategoriaAsoHelper::ADMISSIONAL => 'Admissional',
@@ -50,6 +46,8 @@ final class SstEncaminhamentoAsoPdfService
             table.exames td { padding: 4px 6px; vertical-align: top; }
             .assinatura { margin-top: 40px; border-top: 1px solid #000; width: 280px; text-align: center; padding-top: 4px; font-size: 9pt; }
             .obs { margin-top: 24px; font-size: 9pt; }
+            table.categorias-aso { width: 100%; border-collapse: collapse; margin: 10px 0 4px; }
+            table.categorias-aso td { padding: 6px 22px 6px 0; white-space: nowrap; vertical-align: middle; }
         </style>';
 
         $html .= '<div class="titulo">EMPRESA: LABORATÓRIO TIARAJU</div>';
@@ -61,11 +59,21 @@ final class SstEncaminhamentoAsoPdfService
         }
 
         $html .= '<p style="margin:16px 0 8px;">Autorizamos o Portador a realizar o ASO:</p>';
-        foreach (SstCategoriaAsoHelper::all() as $cat) {
+        $categoriasOrdenadas = SstCategoriaAsoHelper::all();
+        usort(
+            $categoriasOrdenadas,
+            static fn (string $a, string $b): int => strcasecmp(
+                $categoriasCurto[$a] ?? $a,
+                $categoriasCurto[$b] ?? $b
+            )
+        );
+        $html .= '<table class="categorias-aso"><tr>';
+        foreach ($categoriasOrdenadas as $cat) {
             $mark = ($cat === $categoriaAso) ? '☑' : '☐';
             $lbl = $categoriasCurto[$cat] ?? $cat;
-            $html .= '<span style="display:inline-block;margin-right:18px;"><span class="chk">' . $mark . '</span> ' . htmlspecialchars($lbl) . '</span>';
+            $html .= '<td><span class="chk">' . $mark . '</span> ' . htmlspecialchars($lbl) . '</td>';
         }
+        $html .= '</tr></table>';
 
         $html .= '<p style="margin:18px 0 6px;font-weight:bold;">Exames complementares:</p>';
         $html .= '<table class="exames">';
@@ -118,8 +126,8 @@ final class SstEncaminhamentoAsoPdfService
         $html .= '<div class="assinatura">responsável pelo encaminhamento</div>';
         $html .= '<p class="obs"><strong>OBS:</strong> Trazer SEMPRE a Cart. Identidade.</p>';
 
-        if ($empresaSlug === '' || !UserFormHelper::normalizeEmpresaContratante($empresaSlug)) {
-            $html .= '<p class="obs" style="color:#666;">Empresa contratante não informada no cadastro do colaborador.</p>';
+        if ($empresaSlug === '') {
+            $html .= '<p class="obs" style="color:#666;">Empresa contratante não informada no cadastro do colaborador (Dados contratuais do usuário).</p>';
         }
 
         return $html;

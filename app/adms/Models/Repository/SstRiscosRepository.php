@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstCatalogCodigoHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -77,6 +78,25 @@ class SstRiscosRepository extends DbConnection
         $stmt->execute();
 
         return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getProximoCodigo(): string
+    {
+        if (!$this->hasColumn('codigo')) {
+            return '';
+        }
+
+        $stmt = $this->getConnection()->query(
+            "SELECT codigo FROM adms_sst_riscos WHERE codigo IS NOT NULL AND codigo <> ''"
+        );
+        $codigos = array_column($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'codigo');
+
+        return SstCatalogCodigoHelper::proximo(
+            'RIS',
+            3,
+            $codigos,
+            fn (string $c) => $this->existsCodigo($c)
+        );
     }
 
     public function create(array $data): int|false

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\SstEpiMovimentoHelper;
 use App\adms\Models\Repository\SstEpiMovimentosRepository;
 use App\adms\Models\Repository\SstEpisRepository;
 
@@ -36,6 +37,12 @@ class SstEpiEstoqueService
         $tipo = (string) ($data['tipo_movimento'] ?? '');
         if ($epiId <= 0 || $tipo === '') {
             return ['ok' => false, 'error' => 'EPI e tipo de movimento são obrigatórios.'];
+        }
+
+        $data = SstEpiMovimentoHelper::normalize($data);
+        $validationError = SstEpiMovimentoHelper::validate($data);
+        if ($validationError !== null) {
+            return ['ok' => false, 'error' => $validationError];
         }
 
         $epi = $this->epiRepo->getById($epiId);
@@ -83,8 +90,13 @@ class SstEpiEstoqueService
     }
 
     /** Saídas automáticas ao assinar ficha de entrega. */
-    public function registrarSaidaPorFicha(int $fichaId, int $epiId, int $quantidade, string $dataMovimento): void
-    {
+    public function registrarSaidaPorFicha(
+        int $fichaId,
+        int $epiId,
+        int $quantidade,
+        string $dataMovimento,
+        ?string $caNumero = null
+    ): void {
         if (!$this->movRepo->hasTable() || $fichaId <= 0 || $epiId <= 0 || $quantidade <= 0) {
             return;
         }
@@ -93,7 +105,8 @@ class SstEpiEstoqueService
             return;
         }
 
-        $this->registrarMovimento([
+        $ca = SstEpiMovimentoHelper::normalizeCa((string) ($caNumero ?? ''));
+        $payload = [
             'adms_sst_epi_id' => $epiId,
             'tipo_movimento' => 'Entrega',
             'quantidade' => $quantidade,
@@ -101,7 +114,12 @@ class SstEpiEstoqueService
             'referencia_tipo' => 'ficha_epi_item',
             'referencia_id' => $refId,
             'observacoes' => 'Saída automática — ficha de entrega #' . $fichaId,
-        ]);
+        ];
+        if ($ca !== '') {
+            $payload['ca_numero'] = $ca;
+        }
+
+        $this->registrarMovimento($payload);
     }
 
     public function syncEstoqueCache(int $epiId): void

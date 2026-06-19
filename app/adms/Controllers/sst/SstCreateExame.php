@@ -29,6 +29,7 @@ class SstCreateExame
         }
         $repo = new SstExamesRepository();
         $this->loadFormData();
+        $this->data['item'] = ['codigo' => $repo->getProximoCodigo()];
         $this->data['entity'] = array (
   'table' => 'adms_sst_exames',
   'singular' => 'Exame',
@@ -106,6 +107,9 @@ class SstCreateExame
         }
         $repo = new SstExamesRepository();
         $data = SstExameCatalogHelper::parseFormData($_POST);
+        if (empty($data['codigo'])) {
+            $data['codigo'] = $repo->getProximoCodigo();
+        }
         $error = SstExameCatalogHelper::validate($data, $repo);
         if ($error !== null) {
             $_SESSION['msg'] = $error;

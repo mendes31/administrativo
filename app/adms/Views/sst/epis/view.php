@@ -34,9 +34,8 @@ function formatCellValue(string $col, mixed $value): string {
                 <div class="card-header"><h5 class="mb-0">Dados</h5></div>
                 <div class="card-body"><table class="table table-sm mb-0">
                     <tr><th width="35%">Nome:</th><td><?= formatCellValue('nome', $item['nome'] ?? null) ?></td></tr>
+<tr><th width="35%">Categoria:</th><td><?= formatCellValue('categoria', $item['categoria'] ?? null) ?></td></tr>
 <tr><th width="35%">Descrição:</th><td><?= formatCellValue('descricao', $item['descricao'] ?? null) ?></td></tr>
-<tr><th width="35%">Nº CA:</th><td><?= formatCellValue('ca_numero', $item['ca_numero'] ?? null) ?></td></tr>
-<tr><th width="35%">Validade CA:</th><td><?= formatCellValue('ca_validade', $item['ca_validade'] ?? null) ?></td></tr>
 <tr><th width="35%">Estoque atual:</th><td>
     <?= formatCellValue('estoque_atual', $item['estoque_atual'] ?? null) ?>
     <?php if (in_array('SstCreateEpiMovimento', $perms, true)): ?>
@@ -60,13 +59,14 @@ function formatCellValue(string $col, mixed $value): string {
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Saldo</th></tr></thead>
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>CA</th><th>Saldo</th></tr></thead>
                         <tbody>
                         <?php foreach ($this->data['movimentos'] as $m): ?>
                         <tr>
                             <td><?= !empty($m['data_movimento']) ? date('d/m/Y', strtotime($m['data_movimento'])) : '-' ?></td>
                             <td><?= htmlspecialchars($m['tipo_movimento'] ?? '') ?></td>
                             <td><?= (int)($m['quantidade'] ?? 0) ?></td>
+                            <td><?= htmlspecialchars($m['ca_numero'] ?? '-') ?></td>
                             <td><?= isset($m['saldo_apos']) ? (int)$m['saldo_apos'] : '-' ?></td>
                         </tr>
                         <?php endforeach; ?>

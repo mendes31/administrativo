@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstEpiFichasRepository;
+use App\adms\Models\Repository\SstEpiMovimentosRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\SstEpiFichaPdfService;
 use App\adms\Models\Services\SstEpiFichaPublishNotifier;
@@ -25,6 +26,12 @@ class SstCreateEpiFicha
         }
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $this->data['epis'] = (new SstEpisRepository())->getAll(1, 500);
+        $movRepo = new SstEpiMovimentosRepository();
+        $casPorEpi = [];
+        foreach ($this->data['epis'] as $ep) {
+            $casPorEpi[(int) ($ep['id'] ?? 0)] = $movRepo->getCaNumerosPorEpi((int) ($ep['id'] ?? 0));
+        }
+        $this->data['cas_por_epi_json'] = json_encode($casPorEpi, JSON_UNESCAPED_UNICODE);
         $this->data['item'] = [];
         if (!empty($_GET['adms_user_id'])) {
             $this->data['item']['adms_user_id'] = (int) $_GET['adms_user_id'];
@@ -59,7 +66,7 @@ class SstCreateEpiFicha
 
         $itens = $this->parseItens($_POST, $dataEntrega);
         if ($itens === []) {
-            $_SESSION['msg'] = 'Adicione ao menos um EPI à ficha.';
+            $_SESSION['msg'] = 'Adicione ao menos um EPI com Nº CA informado à ficha.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi-ficha');
             exit;
@@ -125,6 +132,10 @@ class SstCreateEpiFicha
             if ($epiId <= 0) {
                 continue;
             }
+            $ca = trim((string) ($row['ca_utilizado'] ?? ''));
+            if ($ca === '') {
+                continue;
+            }
             $prev = trim((string) ($row['data_prevista_troca'] ?? ''));
             if ($prev === '') {
                 $prev = SstEpiFichaPdfService::calcPrevistaTroca($dataEntrega, $epiId) ?? '';
@@ -132,7 +143,7 @@ class SstCreateEpiFicha
             $out[] = [
                 'adms_sst_epi_id' => $epiId,
                 'quantidade' => max(1, (int) ($row['quantidade'] ?? 1)),
-                'ca_utilizado' => trim((string) ($row['ca_utilizado'] ?? '')),
+                'ca_utilizado' => \App\adms\Helpers\SstEpiMovimentoHelper::normalizeCa(trim((string) ($row['ca_utilizado'] ?? ''))),
                 'data_prevista_troca' => $prev !== '' ? $prev : null,
                 'observacoes' => trim((string) ($row['observacoes'] ?? '')),
             ];

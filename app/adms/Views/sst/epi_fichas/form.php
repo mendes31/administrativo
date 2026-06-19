@@ -3,6 +3,7 @@ use App\adms\Helpers\CSRFHelper;
 $item = $this->data['item'] ?? [];
 $epis = $this->data['epis'] ?? [];
 $users = $this->data['users'] ?? [];
+$casPorEpiJson = $this->data['cas_por_epi_json'] ?? '{}';
 $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
 ?>
 <div class="container-fluid px-4">
@@ -48,7 +49,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
                             <select name="itens[0][adms_sst_epi_id]" class="form-select epi-select" required>
                                 <option value="">Selecione...</option>
                                 <?php foreach ($epis as $ep): ?>
-                                <option value="<?= (int)$ep['id'] ?>" data-ca="<?= htmlspecialchars($ep['ca_numero'] ?? '') ?>"><?= htmlspecialchars($ep['nome'] ?? '') ?></option>
+                                <option value="<?= (int)$ep['id'] ?>"><?= htmlspecialchars($ep['nome'] ?? '') ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -57,8 +58,9 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
                             <input type="number" name="itens[0][quantidade]" class="form-control" value="1" min="1">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">CA utilizado</label>
-                            <input type="text" name="itens[0][ca_utilizado]" class="form-control ca-input" placeholder="Nº CA">
+                            <label class="form-label">CA utilizado *</label>
+                            <input type="text" name="itens[0][ca_utilizado]" class="form-control ca-input text-uppercase" placeholder="Nº CA" required list="caList0">
+                            <datalist id="caList0"></datalist>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Prev. substituição</label>
@@ -72,7 +74,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
                 <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="btnAddItem"><i class="fas fa-plus me-1"></i> Adicionar EPI</button>
 
                 <div class="alert alert-info small">
-                    Ao salvar, o sistema gera o PDF da ficha e notifica o colaborador no portal (sino + push) para confirmar o recebimento.
+                    Informe o CA do lote entregue ao colaborador. Sugestões vêm das últimas entradas de estoque desse EPI.
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i> Gerar ficha e notificar</button>
@@ -84,13 +86,31 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
 </div>
 <script>
 (function () {
+    const casPorEpi = <?= $casPorEpiJson ?>;
     let idx = 1;
     const container = document.getElementById('itensContainer');
     const tpl = container.querySelector('.item-row').outerHTML;
 
+    function refreshCaList(row) {
+        const sel = row.querySelector('.epi-select');
+        const ca = row.querySelector('.ca-input');
+        const list = row.querySelector('datalist');
+        if (!sel || !ca || !list) return;
+        const epiId = sel.value;
+        list.innerHTML = '';
+        (casPorEpi[epiId] || []).forEach(function (n) {
+            const opt = document.createElement('option');
+            opt.value = n;
+            list.appendChild(opt);
+        });
+        if (!ca.value && list.options.length === 1) {
+            ca.value = list.options[0].value;
+        }
+    }
+
     document.getElementById('btnAddItem').addEventListener('click', function () {
         const div = document.createElement('div');
-        div.innerHTML = tpl.replace(/itens\[0\]/g, 'itens[' + idx + ']');
+        div.innerHTML = tpl.replace(/itens\[0\]/g, 'itens[' + idx + ']').replace(/caList0/g, 'caList' + idx);
         const row = div.firstElementChild;
         row.querySelector('.remove-row').classList.remove('d-none');
         row.querySelector('.epi-select').value = '';
@@ -102,13 +122,10 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
 
     function bindRow(row) {
         const sel = row.querySelector('.epi-select');
-        const ca = row.querySelector('.ca-input');
-        sel.addEventListener('change', function () {
-            const opt = sel.options[sel.selectedIndex];
-            if (opt && opt.dataset.ca && !ca.value) ca.value = opt.dataset.ca;
-        });
+        sel.addEventListener('change', function () { refreshCaList(row); });
         const rm = row.querySelector('.remove-row');
         if (rm) rm.addEventListener('click', function () { row.remove(); });
+        refreshCaList(row);
     }
     bindRow(container.querySelector('.item-row'));
 })();
