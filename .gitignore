@@ -27,6 +27,15 @@ app/adms/Controllers/serveFile/*.txt
 # Folhas de pagamento (PDF) — dados sensíveis (LGPD)
 storage/private/payroll/*
 !storage/private/payroll/.gitkeep
+storage/private/payroll/signed_bundles/**
+
+# Arquivos gerados em runtime (SST, LGPD) — não versionar
+storage/sst/epi_fichas/**
+!storage/sst/epi_fichas/.gitkeep
+storage/sst/attachments/**
+!storage/sst/attachments/.gitkeep
+storage/lgpd/consentimentos/**
+!storage/lgpd/consentimentos/.gitkeep
 
 # qpdf portátil (opcional — binário grande; copiar manualmente em cada servidor)
 /bin/qpdf.exe

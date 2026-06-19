@@ -80,6 +80,16 @@ jobs:
             vendor/**
             lib/
             lib/**
+            storage/sst/epi_fichas/**
+            storage/sst/attachments/**
+            storage/lgpd/consentimentos/**
+            storage/private/payroll/**
+            !storage/private/payroll/.gitkeep
+            storage/cache/**
+            storage/logs/**
+            logs/**
+            app/storage/cache/**
+            app/storage/logs/**
 
       # Verificação e deploy incremental da tentativa 2
       - name: Deploy Incremental - Tentativa 2
@@ -112,6 +122,16 @@ jobs:
             vendor/**
             lib/
             lib/**
+            storage/sst/epi_fichas/**
+            storage/sst/attachments/**
+            storage/lgpd/consentimentos/**
+            storage/private/payroll/**
+            !storage/private/payroll/.gitkeep
+            storage/cache/**
+            storage/logs/**
+            logs/**
+            app/storage/cache/**
+            app/storage/logs/**
 
       # Verificação e deploy incremental da tentativa 3
       - name: Deploy Incremental - Tentativa 3
@@ -144,6 +164,16 @@ jobs:
             vendor/**
             lib/
             lib/**
+            storage/sst/epi_fichas/**
+            storage/sst/attachments/**
+            storage/lgpd/consentimentos/**
+            storage/private/payroll/**
+            !storage/private/payroll/.gitkeep
+            storage/cache/**
+            storage/logs/**
+            logs/**
+            app/storage/cache/**
+            app/storage/logs/**
 
       # Verificação e deploy incremental da tentativa 4
       - name: Deploy Incremental - Tentativa 4
@@ -176,6 +206,16 @@ jobs:
             vendor/**
             lib/
             lib/**
+            storage/sst/epi_fichas/**
+            storage/sst/attachments/**
+            storage/lgpd/consentimentos/**
+            storage/private/payroll/**
+            !storage/private/payroll/.gitkeep
+            storage/cache/**
+            storage/logs/**
+            logs/**
+            app/storage/cache/**
+            app/storage/logs/**
 
       # Verificação e deploy incremental da tentativa 5
       - name: Deploy Incremental - Tentativa 5
@@ -208,6 +248,16 @@ jobs:
             vendor/**
             lib/
             lib/**
+            storage/sst/epi_fichas/**
+            storage/sst/attachments/**
+            storage/lgpd/consentimentos/**
+            storage/private/payroll/**
+            !storage/private/payroll/.gitkeep
+            storage/cache/**
+            storage/logs/**
+            logs/**
+            app/storage/cache/**
+            app/storage/logs/**
 
       # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
       # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
@@ -260,6 +310,13 @@ jobs:
             --exclude-glob '**/*.log' \
             --exclude-glob vendor/** \
             --exclude-glob lib/** \
+            --exclude-glob storage/sst/epi_fichas/** \
+            --exclude-glob storage/sst/attachments/** \
+            --exclude-glob storage/lgpd/consentimentos/** \
+            --exclude-glob storage/private/payroll/** \
+            --exclude-glob storage/cache/** \
+            --exclude-glob storage/logs/** \
+            --exclude-glob logs/** \
             --exclude-glob node_modules/** \
             --exclude-glob .vscode/** \
             --exclude-glob .DS_Store \
