@@ -1,4 +1,4 @@
-name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
+﻿name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
 
 # Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
 # (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
@@ -48,6 +48,7 @@ jobs:
       # Estratégia 1: Deploy incremental inteligente com verificação
       - name: Deploy Incremental - Tentativa 1
         id: deploy1
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           # server: ${{ secrets.FTP_SERVER }}
@@ -93,8 +94,9 @@ jobs:
 
       # Verificação e deploy incremental da tentativa 2
       - name: Deploy Incremental - Tentativa 2
-        if: failure() && steps.deploy1.outcome == 'failure'
+        if: always() && steps.deploy1.conclusion != 'success'
         id: deploy2
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
@@ -135,8 +137,9 @@ jobs:
 
       # Verificação e deploy incremental da tentativa 3
       - name: Deploy Incremental - Tentativa 3
-        if: failure() && steps.deploy2.outcome == 'failure'
+        if: always() && steps.deploy1.conclusion != 'success' && steps.deploy2.conclusion != 'success'
         id: deploy3
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
@@ -177,8 +180,9 @@ jobs:
 
       # Verificação e deploy incremental da tentativa 4
       - name: Deploy Incremental - Tentativa 4
-        if: failure() && steps.deploy3.outcome == 'failure'
+        if: always() && steps.deploy1.conclusion != 'success' && steps.deploy2.conclusion != 'success' && steps.deploy3.conclusion != 'success'
         id: deploy4
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
@@ -219,8 +223,9 @@ jobs:
 
       # Verificação e deploy incremental da tentativa 5
       - name: Deploy Incremental - Tentativa 5
-        if: failure() && steps.deploy4.outcome == 'failure'
+        if: always() && steps.deploy1.conclusion != 'success' && steps.deploy2.conclusion != 'success' && steps.deploy3.conclusion != 'success' && steps.deploy4.conclusion != 'success'
         id: deploy5
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER_PROD }}
@@ -262,12 +267,13 @@ jobs:
       # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
       # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
       - name: Install lftp (Fallback Inteligente)
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
+        if: always() && steps.deploy1.conclusion != 'success' && steps.deploy2.conclusion != 'success' && steps.deploy3.conclusion != 'success' && steps.deploy4.conclusion != 'success' && steps.deploy5.conclusion != 'success'
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via lftp (Fallback Incremental)
         id: lftp_fallback_deploy
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
+        continue-on-error: true
+        if: always() && steps.deploy1.conclusion != 'success' && steps.deploy2.conclusion != 'success' && steps.deploy3.conclusion != 'success' && steps.deploy4.conclusion != 'success' && steps.deploy5.conclusion != 'success'
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -338,16 +344,16 @@ jobs:
         if: always()
         run: |
           echo "📊 Resumo das tentativas:"
-          echo "   Tentativa 1: ${{ steps.deploy1.outcome }}"
-          echo "   Tentativa 2: ${{ steps.deploy2.outcome }}"
-          echo "   Tentativa 3: ${{ steps.deploy3.outcome }}"
-          echo "   Tentativa 4: ${{ steps.deploy4.outcome }}"
-          echo "   Tentativa 5: ${{ steps.deploy5.outcome }}"
-          echo "   Fallback lftp: ${{ steps.lftp_fallback_deploy.outcome }}"
+          echo "   Tentativa 1: ${{ steps.deploy1.conclusion }}"
+          echo "   Tentativa 2: ${{ steps.deploy2.conclusion }}"
+          echo "   Tentativa 3: ${{ steps.deploy3.conclusion }}"
+          echo "   Tentativa 4: ${{ steps.deploy4.conclusion }}"
+          echo "   Tentativa 5: ${{ steps.deploy5.conclusion }}"
+          echo "   Fallback lftp: ${{ steps.lftp_fallback_deploy.conclusion }}"
           echo ""
-          if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
+          if [ "${{ steps.deploy1.conclusion }}" == "success" ] || [ "${{ steps.deploy2.conclusion }}" == "success" ] || [ "${{ steps.deploy3.conclusion }}" == "success" ] || [ "${{ steps.deploy4.conclusion }}" == "success" ] || [ "${{ steps.deploy5.conclusion }}" == "success" ]; then
             echo "✅ Deploy concluído via FTP-Deploy-Action."
-          elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "success" ]; then
+          elif [ "${{ steps.lftp_fallback_deploy.conclusion }}" == "success" ]; then
             echo "✅ Deploy concluído via fallback lftp."
           else
             echo "❌ Deploy não concluído."
@@ -357,11 +363,11 @@ jobs:
         if: always()
         run: |
           ok=0
-          if [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy3.outcome }}" = "success" ] || [ "${{ steps.deploy4.outcome }}" = "success" ] || [ "${{ steps.deploy5.outcome }}" = "success" ]; then
+          if [ "${{ steps.deploy1.conclusion }}" = "success" ] || [ "${{ steps.deploy2.conclusion }}" = "success" ] || [ "${{ steps.deploy3.conclusion }}" = "success" ] || [ "${{ steps.deploy4.conclusion }}" = "success" ] || [ "${{ steps.deploy5.conclusion }}" = "success" ]; then
             ok=1
             echo "✅ Job aprovado: deploy FTP (SamKirkland) concluído com sucesso."
           fi
-          if [ "${{ steps.lftp_fallback_deploy.outcome }}" = "success" ]; then
+          if [ "${{ steps.lftp_fallback_deploy.conclusion }}" = "success" ]; then
             ok=1
             echo "✅ Job aprovado: deploy incremental via lftp (fallback) concluído com sucesso."
           fi
