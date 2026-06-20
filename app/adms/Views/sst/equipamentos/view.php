@@ -1,0 +1,66 @@
+<?php
+use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
+$item = $this->data['item'] ?? [];
+$historico = $this->data['historico'] ?? [];
+$perms = $this->data['buttonPermission'] ?? [];
+$csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
+$id = (int)($item['id'] ?? 0);
+?>
+<div class="container-fluid px-4">
+    <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <div class="mb-1 hstack gap-2 flex-wrap">
+        <h2 class="mt-3"><i class="fas fa-fire-extinguisher me-2"></i><?= htmlspecialchars($item['codigo'] ?? 'Equipamento') ?></h2>
+        <ol class="breadcrumb mb-3 ms-auto">
+            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-equipamentos">Equipamentos</a></li>
+            <li class="breadcrumb-item active">Detalhe</li>
+        </ol>
+    </div>
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header hstack gap-2">
+            <span><?= htmlspecialchars($item['tipo_nome'] ?? '') ?></span>
+            <span class="ms-auto">
+                <?php if (in_array('SstUpdateEquipamento', $perms, true)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-update-equipamento/<?= $id ?>" class="btn btn-warning btn-sm"><i class="fa-regular fa-pen-to-square"></i> Editar</a><?php endif; ?>
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3"><strong>Localização:</strong><br><?= htmlspecialchars($item['localizacao'] ?? '-') ?></div>
+                <div class="col-md-3"><strong>Departamento:</strong><br><?= htmlspecialchars($item['departamento_nome'] ?? '—') ?></div>
+                <div class="col-md-3"><strong>Responsável:</strong><br><?= htmlspecialchars($item['responsavel_nome'] ?? '— (fila geral)') ?></div>
+                <div class="col-md-3"><strong>Periodicidade:</strong><br><?= htmlspecialchars(SstEquipamentoPeriodicidadeHelper::label((int)($item['periodicidade_meses'] ?? 1))) ?></div>
+                <div class="col-md-3 mt-2"><strong>Status:</strong> <?= htmlspecialchars($item['status'] ?? '') ?></div>
+                <?php if (!empty($item['capacidade'])): ?><div class="col-md-3 mt-2"><strong>Capacidade:</strong> <?= htmlspecialchars($item['capacidade']) ?></div><?php endif; ?>
+                <?php if (!empty($item['data_proxima_recarga'])): ?><div class="col-md-3 mt-2"><strong>Próx. recarga:</strong> <?= date('d/m/Y', strtotime($item['data_proxima_recarga'])) ?></div><?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-header">Histórico de vistorias</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead><tr><th>Competência</th><th>Prevista</th><th>Realizada</th><th>Status</th><th>Resultado</th><th>Executor</th><th></th></tr></thead>
+                    <tbody>
+                    <?php foreach ($historico as $h): ?>
+                        <tr class="<?= ($h['resultado'] ?? '') === 'Não conforme' ? 'table-danger' : '' ?>">
+                            <td><?= htmlspecialchars($h['competencia'] ?? '') ?></td>
+                            <td><?= !empty($h['data_prevista']) ? date('d/m/Y', strtotime($h['data_prevista'])) : '-' ?></td>
+                            <td><?= !empty($h['data_realizada']) ? date('d/m/Y H:i', strtotime($h['data_realizada'])) : '-' ?></td>
+                            <td><?= htmlspecialchars($h['status'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($h['resultado'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars($h['executor_nome'] ?? '-') ?></td>
+                            <td>
+                                <?php if (in_array('SstExecuteEquipamentoVistoria', $perms, true)): ?>
+                                <a href="<?= $_ENV['URL_ADM']; ?>sst-execute-equipamento-vistoria/<?= (int)$h['id'] ?>" class="btn btn-sm btn-outline-primary"><?= ($h['status'] ?? '') === 'Concluída' ? 'Ver' : 'Executar' ?></a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if ($historico === []): ?><tr><td colspan="7" class="text-center text-muted py-3">Nenhuma vistoria registrada.</td></tr><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -213,7 +213,11 @@ class LoadPageAdm
         "SstPacoteExamesAso",
         "SstEncaminhamentoAso",
         "SstExportEncaminhamentoAsoPdf",
-        "SstSearchCids"
+        "SstSearchCids",
+        "SstListEquipamentoTipos", "SstCreateEquipamentoTipo", "SstViewEquipamentoTipo", "SstUpdateEquipamentoTipo", "SstDeleteEquipamentoTipo",
+        "SstManageEquipamentoChecklistItem",
+        "SstListEquipamentos", "SstCreateEquipamento", "SstViewEquipamento", "SstUpdateEquipamento", "SstDeleteEquipamento",
+        "SstListEquipamentoVistorias", "SstMinhasEquipamentoVistorias", "SstExecuteEquipamentoVistoria",
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

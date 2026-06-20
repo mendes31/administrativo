@@ -682,6 +682,20 @@ class PageLayoutService
             'SstViewPpp',
             'SstGeneratePpp',
             'SstExportPppPdf',
+            'SstListEquipamentoTipos',
+            'SstCreateEquipamentoTipo',
+            'SstViewEquipamentoTipo',
+            'SstUpdateEquipamentoTipo',
+            'SstDeleteEquipamentoTipo',
+            'SstManageEquipamentoChecklistItem',
+            'SstListEquipamentos',
+            'SstCreateEquipamento',
+            'SstViewEquipamento',
+            'SstUpdateEquipamento',
+            'SstDeleteEquipamento',
+            'SstListEquipamentoVistorias',
+            'SstMinhasEquipamentoVistorias',
+            'SstExecuteEquipamentoVistoria',
         ];
 
         // Verificar se o usuário está logado

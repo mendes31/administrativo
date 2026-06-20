@@ -1011,6 +1011,18 @@ $menus = [
                         'permission' => 'SstListRiscos',
                         'icon' => 'fas fa-exclamation-triangle'
                     ],
+                    [
+                        'label' => 'Tipos de equipamento',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-equipamento-tipos',
+                        'permission' => 'SstListEquipamentoTipos',
+                        'icon' => 'fas fa-layer-group'
+                    ],
+                    [
+                        'label' => 'Equipamentos de segurança',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-equipamentos',
+                        'permission' => 'SstListEquipamentos',
+                        'icon' => 'fas fa-fire-extinguisher'
+                    ],
                 ]
             ],
             [
@@ -1052,6 +1064,12 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'sst-list-inspecoes',
                         'permission' => 'SstListInspecoes',
                         'icon' => 'fas fa-search'
+                    ],
+                    [
+                        'label' => 'Vistorias de equipamentos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-minhas-equipamento-vistorias',
+                        'permission' => 'SstMinhasEquipamentoVistorias',
+                        'icon' => 'fas fa-clipboard-check'
                     ],
                     [
                         'label' => 'CIPA',
