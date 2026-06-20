@@ -1011,6 +1011,7 @@ $menus = [
                         'permission' => 'SstListRiscos',
                         'icon' => 'fas fa-exclamation-triangle'
                     ],
+                    // SST equipamentos de segurança e vistorias periódicas
                     [
                         'label' => 'Tipos de equipamento',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-equipamento-tipos',
