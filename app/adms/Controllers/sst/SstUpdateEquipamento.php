@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Models\Repository\SstEquipamentoSettingsRepository;
 use App\adms\Models\Repository\SstEquipamentoTiposRepository;
 use App\adms\Models\Repository\SstEquipamentosRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -37,6 +38,8 @@ class SstUpdateEquipamento
         $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $this->data['periodicidades'] = SstEquipamentoPeriodicidadeHelper::options();
+        $this->data['dias'] = SstEquipamentoPeriodicidadeHelper::dayOptions();
+        $this->data['settings_defaults'] = (new SstEquipamentoSettingsRepository())->get();
         $pageElements = [
             'title_head' => 'Editar equipamento - SST',
             'menu' => 'sst-list-equipamentos',
@@ -69,6 +72,8 @@ class SstUpdateEquipamento
             'data_proxima_recarga' => $_POST['data_proxima_recarga'] ?? null,
             'periodicidade_meses' => (int) ($_POST['periodicidade_meses'] ?? 1),
             'data_referencia_inspecao' => $_POST['data_referencia_inspecao'] ?? null,
+            'dia_previsto_vistoria' => $_POST['dia_previsto_vistoria'] ?? null,
+            'vistoria_automatica' => !empty($_POST['vistoria_automatica']),
             'responsavel_adms_user_id' => $_POST['responsavel_adms_user_id'] ?? null,
             'status' => $_POST['status'] ?? 'Ativo',
             'observacoes' => $_POST['observacoes'] ?? null,

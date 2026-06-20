@@ -73,6 +73,7 @@ class SstEquipamentosRepository extends DbConnection
                 FROM adms_sst_equipamentos e
                 INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
                 WHERE e.status = 'Ativo' AND t.status = 'Ativo'
+                  AND COALESCE(e.vistoria_automatica, 1) = 1
                 ORDER BY e.id";
         $stmt = $this->getConnection()->query($sql);
 
@@ -85,12 +86,14 @@ class SstEquipamentosRepository extends DbConnection
         $sql = 'INSERT INTO adms_sst_equipamentos (
                     codigo, patrimonio, adms_sst_equipamento_tipo_id, adms_department_id, localizacao,
                     fabricante, modelo, numero_serie, capacidade, data_fabricacao, data_recarga, data_proxima_recarga,
-                    caracteristicas, periodicidade_meses, data_referencia_inspecao, responsavel_adms_user_id,
+                    caracteristicas, periodicidade_meses, data_referencia_inspecao, dia_previsto_vistoria,
+                    vistoria_automatica, responsavel_adms_user_id,
                     status, observacoes, created_by, updated_by, created_at, updated_at
                 ) VALUES (
                     :codigo, :patrimonio, :tipo_id, :dept_id, :localizacao,
                     :fabricante, :modelo, :numero_serie, :capacidade, :data_fabricacao, :data_recarga, :data_proxima_recarga,
-                    :caracteristicas, :periodicidade_meses, :data_referencia_inspecao, :responsavel_id,
+                    :caracteristicas, :periodicidade_meses, :data_referencia_inspecao, :dia_previsto_vistoria,
+                    :vistoria_automatica, :responsavel_id,
                     :status, :observacoes, :uid, :uid, NOW(), NOW()
                 )';
         $stmt = $this->getConnection()->prepare($sql);
@@ -111,7 +114,8 @@ class SstEquipamentosRepository extends DbConnection
                     fabricante = :fabricante, modelo = :modelo, numero_serie = :numero_serie, capacidade = :capacidade,
                     data_fabricacao = :data_fabricacao, data_recarga = :data_recarga, data_proxima_recarga = :data_proxima_recarga,
                     caracteristicas = :caracteristicas, periodicidade_meses = :periodicidade_meses,
-                    data_referencia_inspecao = :data_referencia_inspecao, responsavel_adms_user_id = :responsavel_id,
+                    data_referencia_inspecao = :data_referencia_inspecao, dia_previsto_vistoria = :dia_previsto_vistoria,
+                    vistoria_automatica = :vistoria_automatica, responsavel_adms_user_id = :responsavel_id,
                     status = :status, observacoes = :observacoes, updated_by = :uid, updated_at = NOW()
                 WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
@@ -168,6 +172,12 @@ class SstEquipamentosRepository extends DbConnection
         $stmt->bindValue(':caracteristicas', $car ?: null);
         $stmt->bindValue(':periodicidade_meses', (int) ($data['periodicidade_meses'] ?? 1), PDO::PARAM_INT);
         $stmt->bindValue(':data_referencia_inspecao', $data['data_referencia_inspecao'] ?? null);
+        $diaPrev = $data['dia_previsto_vistoria'] ?? null;
+        if ($diaPrev === '' || $diaPrev === '0') {
+            $diaPrev = null;
+        }
+        $stmt->bindValue(':dia_previsto_vistoria', $diaPrev !== null ? (int) $diaPrev : null, $diaPrev !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindValue(':vistoria_automatica', !empty($data['vistoria_automatica']) ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':responsavel_id', !empty($data['responsavel_adms_user_id']) ? (int) $data['responsavel_adms_user_id'] : null, PDO::PARAM_INT);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo');
         $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);

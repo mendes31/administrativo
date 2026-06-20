@@ -1023,6 +1023,12 @@ $menus = [
                         'permission' => 'SstListEquipamentos',
                         'icon' => 'fas fa-fire-extinguisher'
                     ],
+                    [
+                        'label' => 'Config. vistorias equipamentos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-equipamento-settings',
+                        'permission' => 'SstEquipamentoSettings',
+                        'icon' => 'fas fa-cog'
+                    ],
                 ]
             ],
             [

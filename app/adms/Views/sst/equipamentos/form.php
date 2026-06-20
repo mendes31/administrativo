@@ -79,21 +79,43 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                     <div class="col-md-3 mb-3"><label class="form-label" for="data_recarga">Data recarga</label><input type="date" name="data_recarga" id="data_recarga" class="form-control" value="<?= htmlspecialchars($item['data_recarga'] ?? '') ?>"></div>
                     <div class="col-md-3 mb-3"><label class="form-label" for="data_proxima_recarga">Próxima recarga</label><input type="date" name="data_proxima_recarga" id="data_proxima_recarga" class="form-control" value="<?= htmlspecialchars($item['data_proxima_recarga'] ?? '') ?>"></div>
                 </div>
-                <h6 class="text-muted text-uppercase small mb-3 mt-2">Inspeções</h6>
+                <h6 class="text-muted text-uppercase small mb-3 mt-2">Vistorias</h6>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label" for="periodicidade_meses">Periodicidade *</label>
                         <select name="periodicidade_meses" id="periodicidade_meses" class="form-select" required>
                             <?php foreach ($periodicidades as $meses => $label): ?>
-                            <option value="<?= (int)$meses ?>" <?= (int)($item['periodicidade_meses'] ?? 1) === (int)$meses ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                            <option value="<?= (int)$meses ?>" <?= (int)($item['periodicidade_meses'] ?? ($this->data['settings_defaults']['periodicidade_meses_padrao'] ?? 1)) === (int)$meses ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text">Vistorias abertas automaticamente no dia 01 de cada competência.</div>
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="dia_previsto_vistoria">Dia da vistoria</label>
+                        <select name="dia_previsto_vistoria" id="dia_previsto_vistoria" class="form-select">
+                            <option value="">Padrão do módulo</option>
+                            <?php foreach ($this->data['dias'] ?? [] as $d => $label): ?>
+                            <option value="<?= (int)$d ?>" <?= (int)($item['dia_previsto_vistoria'] ?? 0) === (int)$d ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Dia do mês em que o cron abre a vistoria e define o prazo.</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <label class="form-label" for="data_referencia_inspecao">Mês referência (1ª competência)</label>
                         <input type="date" name="data_referencia_inspecao" id="data_referencia_inspecao" class="form-control" value="<?= htmlspecialchars($item['data_referencia_inspecao'] ?? '') ?>">
                         <div class="form-text">Opcional. Se vazio, usa data de cadastro.</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="form-check mt-4 pt-1">
+                            <input class="form-check-input" type="checkbox" name="vistoria_automatica" id="vistoria_automatica" value="1"
+                                <?= ($item['vistoria_automatica'] ?? 1) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="vistoria_automatica">Gerar vistorias automaticamente</label>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <p class="form-text mb-0">
+                            Padrões globais em
+                            <a href="<?= $_ENV['URL_ADM']; ?>sst-equipamento-settings">Configurações de vistorias</a>.
+                        </p>
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label" for="observacoes">Observações</label>

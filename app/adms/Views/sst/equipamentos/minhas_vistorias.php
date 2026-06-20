@@ -25,7 +25,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             </ul>
         </div>
         <div class="card-body">
-            <p class="text-muted small">Equipamentos sem responsável ou departamento aparecem para todos com permissão nesta página.</p>
+            <p class="text-muted small">Com <strong>responsável</strong> definido, só ele vê a vistoria. Sem responsável (fila geral), aparece para todos com permissão nesta página — o departamento é apenas informativo.</p>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
                     <thead><tr><th>Competência</th><th>Equipamento</th><th>Tipo</th><th>Local</th><th>Prevista</th><th>Status</th><th></th></tr></thead>

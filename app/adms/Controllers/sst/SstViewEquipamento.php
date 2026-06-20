@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\SstEquipamentoSettingsRepository;
 use App\adms\Models\Repository\SstEquipamentosRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -25,10 +26,14 @@ class SstViewEquipamento
         }
         $this->data['item'] = $item;
         $this->data['historico'] = $repo->getVistoriaHistorico($id);
+        $this->data['settings'] = (new SstEquipamentoSettingsRepository())->get();
         $pageElements = [
             'title_head' => 'Equipamento ' . ($item['codigo'] ?? '') . ' - SST',
             'menu' => 'sst-list-equipamentos',
-            'buttonPermission' => ['SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento', 'SstExecuteEquipamentoVistoria'],
+            'buttonPermission' => [
+                'SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento',
+                'SstExecuteEquipamentoVistoria', 'SstGenerateEquipamentoVistoria',
+            ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/equipamentos/view', $this->data))->loadView();

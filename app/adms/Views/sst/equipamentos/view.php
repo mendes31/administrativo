@@ -5,6 +5,8 @@ $item = $this->data['item'] ?? [];
 $historico = $this->data['historico'] ?? [];
 $perms = $this->data['buttonPermission'] ?? [];
 $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
+$csrfGerarVistoria = CSRFHelper::generateCSRFToken('sst_generate_equipamento_vistoria');
+$competenciaAtual = date('Y-m');
 $id = (int)($item['id'] ?? 0);
 ?>
 <div class="container-fluid px-4">
@@ -29,6 +31,14 @@ $id = (int)($item['id'] ?? 0);
                 <div class="col-md-3"><strong>Departamento:</strong><br><?= htmlspecialchars($item['departamento_nome'] ?? '—') ?></div>
                 <div class="col-md-3"><strong>Responsável:</strong><br><?= htmlspecialchars($item['responsavel_nome'] ?? '— (fila geral)') ?></div>
                 <div class="col-md-3"><strong>Periodicidade:</strong><br><?= htmlspecialchars(SstEquipamentoPeriodicidadeHelper::label((int)($item['periodicidade_meses'] ?? 1))) ?></div>
+                <div class="col-md-3"><strong>Dia previsto:</strong><br><?php
+                    if (!empty($item['dia_previsto_vistoria'])) {
+                        echo 'Dia ' . (int) $item['dia_previsto_vistoria'];
+                    } else {
+                        echo 'Padrão do módulo (dia ' . (int)($this->data['settings']['dia_previsto_padrao'] ?? 1) . ')';
+                    }
+                ?></div>
+                <div class="col-md-3"><strong>Vistoria automática:</strong><br><?= !empty($item['vistoria_automatica']) ? 'Sim' : 'Não' ?></div>
                 <div class="col-md-3 mt-2"><strong>Status:</strong> <?= htmlspecialchars($item['status'] ?? '') ?></div>
                 <?php if (!empty($item['capacidade'])): ?><div class="col-md-3 mt-2"><strong>Capacidade:</strong> <?= htmlspecialchars($item['capacidade']) ?></div><?php endif; ?>
                 <?php if (!empty($item['data_proxima_recarga'])): ?><div class="col-md-3 mt-2"><strong>Próx. recarga:</strong> <?= date('d/m/Y', strtotime($item['data_proxima_recarga'])) ?></div><?php endif; ?>
@@ -36,7 +46,19 @@ $id = (int)($item['id'] ?? 0);
         </div>
     </div>
     <div class="card shadow-sm">
-        <div class="card-header">Histórico de vistorias</div>
+        <div class="card-header hstack gap-2 flex-wrap">
+            <span>Histórico de vistorias</span>
+            <?php if (in_array('SstGenerateEquipamentoVistoria', $perms, true) && ($item['status'] ?? '') === 'Ativo'): ?>
+            <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-generate-equipamento-vistoria" class="ms-auto d-inline">
+                <input type="hidden" name="csrf_token" value="<?= $csrfGerarVistoria ?>">
+                <input type="hidden" name="adms_sst_equipamento_id" value="<?= $id ?>">
+                <input type="hidden" name="competencia" value="<?= htmlspecialchars($competenciaAtual) ?>">
+                <button type="submit" class="btn btn-primary btn-sm" title="Competência <?= htmlspecialchars($competenciaAtual) ?>">
+                    <i class="fas fa-plus-circle me-1"></i>Gerar vistoria (<?= htmlspecialchars($competenciaAtual) ?>)
+                </button>
+            </form>
+            <?php endif; ?>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-sm table-bordered mb-0">

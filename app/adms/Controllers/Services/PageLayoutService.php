@@ -696,6 +696,8 @@ class PageLayoutService
             'SstListEquipamentoVistorias',
             'SstMinhasEquipamentoVistorias',
             'SstExecuteEquipamentoVistoria',
+            'SstEquipamentoSettings',
+            'SstGenerateEquipamentoVistoria',
         ];
 
         // Verificar se o usuário está logado

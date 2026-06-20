@@ -85,6 +85,19 @@ class SstEquipamentoVistoriasRepository extends DbConnection
         return (bool) $stmt->fetchColumn();
     }
 
+    public function getByEquipamentoCompetencia(int $equipamentoId, string $competencia): ?array
+    {
+        $sql = 'SELECT * FROM adms_sst_equipamento_vistorias
+                WHERE adms_sst_equipamento_id = :eq AND competencia = :comp LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eq', $equipamentoId, PDO::PARAM_INT);
+        $stmt->bindValue(':comp', $competencia);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function hasPending(int $equipamentoId): bool
     {
         $sql = "SELECT 1 FROM adms_sst_equipamento_vistorias
@@ -224,12 +237,15 @@ class SstEquipamentoVistoriasRepository extends DbConnection
         }
     }
 
-    public function markOverdue(string $today): int
+    public function markOverdue(string $today, int $graceDays = 0): int
     {
+        $graceDays = max(0, $graceDays);
         $sql = "UPDATE adms_sst_equipamento_vistorias SET status = 'Vencida', updated_at = NOW()
-                WHERE status IN ('Pendente','Em andamento') AND data_prevista < :today";
+                WHERE status IN ('Pendente','Em andamento')
+                  AND DATE_ADD(data_prevista, INTERVAL :grace DAY) < :today";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':today', $today);
+        $stmt->bindValue(':grace', $graceDays, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->rowCount();
@@ -300,17 +316,13 @@ class SstEquipamentoVistoriasRepository extends DbConnection
         }
         if (!empty($filters['minhas'])) {
             $userId = (int) ($filters['adms_user_id'] ?? 0);
-            $deptId = $filters['adms_department_id_user'] ?? null;
             $parts = [];
             if ($userId > 0) {
                 $parts[] = 'e.responsavel_adms_user_id = :minhas_user';
                 $params[':minhas_user'] = $userId;
             }
-            if ($deptId) {
-                $parts[] = '(e.responsavel_adms_user_id IS NULL AND e.adms_department_id = :minhas_dept)';
-                $params[':minhas_dept'] = (int) $deptId;
-            }
-            $parts[] = '(e.responsavel_adms_user_id IS NULL AND e.adms_department_id IS NULL)';
+            // Fila geral: sem responsável nomeado → visível para todos com permissão na página
+            $parts[] = 'e.responsavel_adms_user_id IS NULL';
             $where[] = '(' . implode(' OR ', $parts) . ')';
         }
 
