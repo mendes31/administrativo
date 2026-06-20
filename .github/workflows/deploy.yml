@@ -1,22 +1,26 @@
-name: Deploy PHP para Kinghost (Deploy Incremental Inteligente)
+name: Deploy PHP para Kinghost (lftp incremental)
 
-# Se o deploy falhar com ETIMEDOUT na porta 21: o runner do GitHub não alcança o FTP
-# (firewall/hospedagem). Não é corrigível só com timeout. Ver docs/COMANDOS_SERVIDOR_SSH.md
-# (seção "GitHub Actions: erro FTP ETIMEDOUT").
+# FTP-Deploy-Action (Node) costuma falhar com ETIMEDOUT/FIN packet a partir dos runners GitHub.
+# Este workflow usa apenas lftp, que se conecta de forma mais estável à Kinghost.
+# Após deploys falhos: rode manualmente com "Forçar reenvio" ou envie via FileZilla.
 
 on:
   push:
     branches:
       - main
       - dev-master
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_upload:
+        description: 'Forçar reenvio de arquivos (ignora --only-newer; use após deploys falhos)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      # Antecipar mudança do GitHub Actions de Node 20 -> 24
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    timeout-minutes: 120
 
     steps:
       - name: Checkout código
@@ -24,292 +28,62 @@ jobs:
         with:
           fetch-depth: 1
 
-      # Diagnóstico: Verificar se os secrets estão configurados
       - name: Verificar Secrets FTP
         run: |
-          echo "🔍 === VERIFICAÇÃO DE SECRETS ==="
-          if [ -z "${{ secrets.FTP_SERVER_PROD }}" ]; then
-            echo "❌ ERRO: FTP_SERVER_PROD não está configurado!"
+          if [ -z "${{ secrets.FTP_SERVER_PROD }}" ] || [ -z "${{ secrets.FTP_USER_PROD }}" ] || [ -z "${{ secrets.FTP_PASS_PROD }}" ]; then
+            echo "❌ Configure FTP_SERVER_PROD, FTP_USER_PROD e FTP_PASS_PROD nos secrets."
             exit 1
           fi
-          if [ -z "${{ secrets.FTP_USER_PROD }}" ]; then
-            echo "❌ ERRO: FTP_USER_PROD não está configurado!"
-            exit 1
-          fi
-          if [ -z "${{ secrets.FTP_PASS_PROD }}" ]; then
-            echo "❌ ERRO: FTP_PASS_PROD não está configurado!"
-            exit 1
-          fi
-          echo "✅ Todos os secrets estão configurados"
-          echo "📋 Servidor: ${{ secrets.FTP_SERVER_PROD }}"
-          echo "📋 Usuário: ${{ secrets.FTP_USER_PROD }}"
-          echo "📋 Senha: [OCULTA]"
+          echo "✅ Secrets FTP configurados."
 
-      # Estratégia 1: Deploy incremental inteligente com verificação
-      - name: Deploy Incremental - Tentativa 1
-        id: deploy1
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          # server: ${{ secrets.FTP_SERVER }}
-          # username: ${{ secrets.FTP_USER }}
-          # password: ${{ secrets.FTP_PASS }}
-          # local-dir: ./
-          # server-dir: ./administrativo/
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ./
-          dangerous-clean-slate: false
-          log-level: standard
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-            storage/sst/epi_fichas/**
-            storage/sst/attachments/**
-            storage/lgpd/consentimentos/**
-            storage/private/payroll/**
-            !storage/private/payroll/.gitkeep
-            storage/cache/**
-            storage/logs/**
-            logs/**
-            app/storage/cache/**
-            app/storage/logs/**
-
-      # Verificação e deploy incremental da tentativa 2
-      - name: Deploy Incremental - Tentativa 2
-        if: failure() && steps.deploy1.outcome == 'failure'
-        id: deploy2
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ./
-          dangerous-clean-slate: false
-          log-level: standard
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-            storage/sst/epi_fichas/**
-            storage/sst/attachments/**
-            storage/lgpd/consentimentos/**
-            storage/private/payroll/**
-            !storage/private/payroll/.gitkeep
-            storage/cache/**
-            storage/logs/**
-            logs/**
-            app/storage/cache/**
-            app/storage/logs/**
-
-      # Verificação e deploy incremental da tentativa 3
-      - name: Deploy Incremental - Tentativa 3
-        if: failure() && steps.deploy2.outcome == 'failure'
-        id: deploy3
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ./
-          dangerous-clean-slate: false
-          log-level: standard
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-            storage/sst/epi_fichas/**
-            storage/sst/attachments/**
-            storage/lgpd/consentimentos/**
-            storage/private/payroll/**
-            !storage/private/payroll/.gitkeep
-            storage/cache/**
-            storage/logs/**
-            logs/**
-            app/storage/cache/**
-            app/storage/logs/**
-
-      # Verificação e deploy incremental da tentativa 4
-      - name: Deploy Incremental - Tentativa 4
-        if: failure() && steps.deploy3.outcome == 'failure'
-        id: deploy4
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ./
-          dangerous-clean-slate: false
-          log-level: standard
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-            storage/sst/epi_fichas/**
-            storage/sst/attachments/**
-            storage/lgpd/consentimentos/**
-            storage/private/payroll/**
-            !storage/private/payroll/.gitkeep
-            storage/cache/**
-            storage/logs/**
-            logs/**
-            app/storage/cache/**
-            app/storage/logs/**
-
-      # Verificação e deploy incremental da tentativa 5
-      - name: Deploy Incremental - Tentativa 5
-        if: failure() && steps.deploy4.outcome == 'failure'
-        id: deploy5
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER_PROD }}
-          username: ${{ secrets.FTP_USER_PROD }}
-          password: ${{ secrets.FTP_PASS_PROD }}
-          local-dir: ./
-          server-dir: ./
-          dangerous-clean-slate: false
-          log-level: standard
-          timeout: 180000
-          exclude: |
-            .git/
-            .git/**
-            .github/
-            .github/**
-            .gitignore
-            .DS_Store
-            LICENSE.txt
-            node_modules/
-            node_modules/**
-            .vscode/
-            .vscode/**
-            **/*.log
-            vendor/
-            vendor/**
-            lib/
-            lib/**
-            storage/sst/epi_fichas/**
-            storage/sst/attachments/**
-            storage/lgpd/consentimentos/**
-            storage/private/payroll/**
-            !storage/private/payroll/.gitkeep
-            storage/cache/**
-            storage/logs/**
-            logs/**
-            app/storage/cache/**
-            app/storage/logs/**
-
-      # Estratégia 2: Fallback lftp só se NENHUMA das 5 tentativas FTP tiver sucesso
-      # (NÃO usar "deploy5 == skipped": isso ocorre também quando deploy1..4 já deu certo e gera mirror duplicado + falha falsa)
-      - name: Install lftp (Fallback Inteligente)
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
+      - name: Instalar lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy via lftp (Fallback Incremental)
-        id: lftp_fallback_deploy
-        if: failure() && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success' && steps.deploy3.outcome != 'success' && steps.deploy4.outcome != 'success' && steps.deploy5.outcome != 'success'
+      - name: Deploy via lftp
+        id: lftp_deploy
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+          FORCE_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && inputs.force_upload && '1' || '0' }}
         run: |
-          echo "🚨 FTP falhou 5 vezes, usando lftp incremental..."
-          echo "📁 Verificando arquivos existentes e enviando apenas o que falta..."
-          
-          # Deploy incremental com lftp (--only-newer e --continue)
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
+          set -euo pipefail
+          MIRROR_OPTS="-R --parallel=2 --continue --no-perms --verbose"
+          if [ "$FORCE_UPLOAD" = "1" ]; then
+            echo "⚠️ Modo forçado: reenviando arquivos locais (sem --only-newer)."
+          else
+            MIRROR_OPTS="$MIRROR_OPTS --only-newer"
+            echo "📋 Modo incremental: --only-newer + --continue"
+          fi
+
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<EOF
           set cmd:fail-exit yes
           set ftp:passive-mode true
           set ftp:ssl-allow no
-          set dns:order "inet inet6"
+          set ftp:prefer-ipv4 yes
+          set dns:order inet
           set net:timeout 120
           set net:max-retries 50
           set net:reconnect-interval-base 2
           set net:reconnect-interval-max 10
           set net:idle 60
           set xfer:clobber on
-          
-          echo "🔄 Iniciando deploy incremental..."
-          echo "📋 Usando --only-newer para enviar apenas arquivos novos/modificados"
-          echo "📋 Usando --continue para continuar transferências interrompidas"
-          echo "📋 Usando --verbose para mostrar cada arquivo processado"
-          echo ""
-          echo "📊 FLAGS lftp utilizadas:"
-          echo "   --only-newer: Envia apenas arquivos mais recentes/modificados"
-          echo "   --continue: Continua transferências interrompidas"
-          echo "   --verbose: Mostra detalhes de cada arquivo"
-          echo "   --no-perms: Não perde tempo com permissões"
-          echo ""
-          
-          mirror -R --parallel=1 --only-newer --continue --no-perms --verbose \
+
+          mirror $MIRROR_OPTS \
             --exclude-glob .git/** \
             --exclude-glob .github/** \
             --exclude-glob .gitignore \
             --exclude-glob .env \
+            --exclude-glob .env.* \
             --exclude-glob '*.log' \
             --exclude-glob '**/*.log' \
             --exclude-glob vendor/** \
             --exclude-glob lib/** \
+            --exclude-glob node_modules/** \
+            --exclude-glob .vscode/** \
+            --exclude-glob .DS_Store \
+            --exclude-glob LICENSE.txt \
+            --exclude-glob .ftp-deploy-sync-state.json \
             --exclude-glob storage/sst/epi_fichas/** \
             --exclude-glob storage/sst/attachments/** \
             --exclude-glob storage/lgpd/consentimentos/** \
@@ -317,58 +91,22 @@ jobs:
             --exclude-glob storage/cache/** \
             --exclude-glob storage/logs/** \
             --exclude-glob logs/** \
-            --exclude-glob node_modules/** \
-            --exclude-glob .vscode/** \
-            --exclude-glob .DS_Store \
-            --exclude-glob LICENSE.txt \
-            --exclude-glob 'app/adms/Controllers/receive copy' \
+            --exclude-glob app/storage/cache/** \
+            --exclude-glob app/storage/logs/** \
             --exclude-glob 'app/adms/Controllers/receive copy/**' \
             ./ .
-          
-          echo ""
-          echo "✅ Deploy lftp incremental concluído!"
-          echo "📊 Resumo do que foi enviado:"
-          echo "   🆕 Arquivos novos: Enviados pela primeira vez"
-          echo "   🔄 Arquivos modificados: Atualizados no servidor"
-          echo "   ⏭️ Arquivos idênticos: Pulados (já existiam)"
+
           quit
           EOF
 
-      - name: Resumo do deploy
-        if: always()
-        run: |
-          echo "📊 Resumo das tentativas:"
-          echo "   Tentativa 1: ${{ steps.deploy1.outcome }}"
-          echo "   Tentativa 2: ${{ steps.deploy2.outcome }}"
-          echo "   Tentativa 3: ${{ steps.deploy3.outcome }}"
-          echo "   Tentativa 4: ${{ steps.deploy4.outcome }}"
-          echo "   Tentativa 5: ${{ steps.deploy5.outcome }}"
-          echo "   Fallback lftp: ${{ steps.lftp_fallback_deploy.outcome }}"
-          echo ""
-          if [ "${{ steps.deploy1.outcome }}" == "success" ] || [ "${{ steps.deploy2.outcome }}" == "success" ] || [ "${{ steps.deploy3.outcome }}" == "success" ] || [ "${{ steps.deploy4.outcome }}" == "success" ] || [ "${{ steps.deploy5.outcome }}" == "success" ]; then
-            echo "✅ Deploy concluído via FTP-Deploy-Action."
-          elif [ "${{ steps.lftp_fallback_deploy.outcome }}" == "success" ]; then
-            echo "✅ Deploy concluído via fallback lftp."
-          else
-            echo "❌ Deploy não concluído."
-          fi
+          echo "✅ Deploy lftp concluído."
 
-      - name: Resultado final do deploy
+      - name: Resultado final
         if: always()
         run: |
-          ok=0
-          if [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy3.outcome }}" = "success" ] || [ "${{ steps.deploy4.outcome }}" = "success" ] || [ "${{ steps.deploy5.outcome }}" = "success" ]; then
-            ok=1
-            echo "✅ Job aprovado: deploy FTP (SamKirkland) concluído com sucesso."
-          fi
-          if [ "${{ steps.lftp_fallback_deploy.outcome }}" = "success" ]; then
-            ok=1
-            echo "✅ Job aprovado: deploy incremental via lftp (fallback) concluído com sucesso."
-          fi
-          if [ "$ok" -eq 1 ]; then
-            echo "🎯 Conclusão: SUCESSO — alterações consideradas publicadas (FTP ou lftp)."
+          if [ "${{ steps.lftp_deploy.outcome }}" = "success" ]; then
+            echo "🎯 SUCESSO — código publicado via lftp."
             exit 0
           fi
-          echo "❌ Conclusão: FALHA — nem FTP nem lftp completaram com sucesso."
-          echo "   Revise secrets, rede (ETIMEDOUT), opções do mirror lftp nos logs e docs/COMANDOS_SERVIDOR_SSH.md."
+          echo "❌ FALHA — use FileZilla do seu PC ou workflow manual com 'Forçar reenvio'."
           exit 1
