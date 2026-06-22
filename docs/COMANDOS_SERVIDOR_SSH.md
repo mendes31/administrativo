@@ -419,9 +419,10 @@ php scripts/detect_ftp_deploy_root.php
 
 Pushes em `main` ou `dev-master` disparam o deploy. O workflow actual:
 
-1. **lftp `mirror -R` sem `--delete`** — só envia/atualiza ficheiros do Git; **nunca apaga** no servidor
-2. **Verificação SHA-256** de ficheiros críticos (`scripts/verify_ftp_deploy_hashes.php`)
-3. Exclusões: `public/adms/uploads/**`, `.env`, `vendor/`, `storage/cache/`, `logs/`, etc.
+1. **Até 3 tentativas lftp** (`scripts/deploy_lftp_upload.sh`) — `mirror -R` **sem `--delete`**; só upload
+2. **Verificação SHA-256** de 12 ficheiros críticos (`scripts/verify_ftp_deploy_hashes.php`)
+3. **Exclusões:** `public/adms/uploads/**`, `.env`, `vendor/`, `storage/cache/`, `logs/`, etc.
+4. **Timeout do job:** 45 minutos
 
 **Ressync:** não existe opção de “ressync forçado” que apague estado — o deploy **nunca remove** ficheiros no servidor. Push normal em `dev-master`/`main` basta.
 

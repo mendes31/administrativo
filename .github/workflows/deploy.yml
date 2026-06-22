@@ -1,12 +1,12 @@
-﻿name: Deploy PHP para Kinghost (somente upload — nunca apaga)
+﻿name: Deploy PHP para Kinghost (upload seguro)
 
-# Política: o deploy APENAS envia/atualiza ficheiros do Git no servidor.
-# NUNCA remove pastas ou ficheiros que existam só em produção (uploads, .env, cache, etc.).
+# Política:
+# - Só envia/atualiza ficheiros do Git (lftp mirror -R SEM --delete).
+# - Nunca apaga uploads, .env, cache, logs nem dados só de produção.
+# - Até 3 tentativas lftp se a Kinghost falhar por timeout.
+# - Verificação SHA-256 de ficheiros críticos após upload.
 #
-# O SamKirkland/FTP-Deploy-Action foi removido porque sincroniza com DELETE
-# (apagava public/adms/uploads/users/* no force_full_resync).
-#
-# Raiz FTP Kinghost: login abre em ~/www/administrativo/ → server-dir ./
+# Raiz FTP: login abre em ~/www/administrativo/ (server-dir ./)
 
 on:
   push:
@@ -22,9 +22,13 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       FTP_REMOTE_BASE: ''
+      FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
+      FTP_USER: ${{ secrets.FTP_USER_PROD }}
+      FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
 
     steps:
       - name: Checkout código
@@ -34,8 +38,8 @@ jobs:
 
       - name: Verificar Secrets FTP
         run: |
-          if [ -z "${{ secrets.FTP_SERVER_PROD }}" ] || [ -z "${{ secrets.FTP_USER_PROD }}" ] || [ -z "${{ secrets.FTP_PASS_PROD }}" ]; then
-            echo "❌ Secrets FTP incompletos"
+          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ] || [ -z "$FTP_PASS" ]; then
+            echo "❌ Secrets FTP incompletos (FTP_SERVER_PROD, FTP_USER_PROD, FTP_PASS_PROD)"
             exit 1
           fi
           echo "✅ Secrets FTP configurados"
@@ -43,78 +47,74 @@ jobs:
       - name: Instalar lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy via lftp (upload only — sem --delete)
-        id: lftp_deploy
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
-          FTP_USER: ${{ secrets.FTP_USER_PROD }}
-          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-        run: |
-          echo "📤 Deploy incremental: só envia/atualiza ficheiros do Git."
-          echo "   Não usa --delete — nada é removido no servidor."
-          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
-          set cmd:fail-exit yes
-          set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set dns:order "inet inet6"
-          set net:timeout 120
-          set net:max-retries 50
-          set net:reconnect-interval-base 2
-          set net:reconnect-interval-max 10
-          set net:idle 60
-          set xfer:clobber on
+      - name: Permissão do script de deploy
+        run: chmod +x scripts/deploy_lftp_upload.sh
 
-          mirror -R --parallel=2 --ignore-time --continue --no-perms --verbose \
-            --exclude-glob .git/** \
-            --exclude-glob .github/** \
-            --exclude-glob .gitignore \
-            --exclude-glob .env \
-            --exclude-glob .ftp-deploy-sync-state.json \
-            --exclude-glob '*.log' \
-            --exclude-glob '**/*.log' \
-            --exclude-glob vendor/** \
-            --exclude-glob lib/** \
-            --exclude-glob node_modules/** \
-            --exclude-glob .vscode/** \
-            --exclude-glob .DS_Store \
-            --exclude-glob LICENSE.txt \
-            --exclude-glob storage/sst/epi_fichas/** \
-            --exclude-glob storage/sst/attachments/** \
-            --exclude-glob storage/lgpd/consentimentos/** \
-            --exclude-glob storage/private/payroll/** \
-            --exclude-glob storage/cache/** \
-            --exclude-glob storage/logs/** \
-            --exclude-glob logs/** \
-            --exclude-glob app/storage/cache/** \
-            --exclude-glob app/storage/logs/** \
-            --exclude-glob public/adms/uploads/** \
-            --exclude-glob 'app/adms/Controllers/receive copy/**' \
-            ./ ./
-          quit
-          EOF
-          echo "✅ Upload concluído (sem remoções no servidor)."
+      - name: Deploy lftp — tentativa 1
+        id: deploy1
+        continue-on-error: true
+        run: ./scripts/deploy_lftp_upload.sh 1
+
+      - name: Aguardar antes do retry (45s)
+        if: steps.deploy1.outcome != 'success'
+        run: sleep 45
+
+      - name: Deploy lftp — tentativa 2
+        id: deploy2
+        if: steps.deploy1.outcome != 'success'
+        continue-on-error: true
+        run: ./scripts/deploy_lftp_upload.sh 2
+
+      - name: Aguardar antes do retry (45s)
+        if: steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success'
+        run: sleep 45
+
+      - name: Deploy lftp — tentativa 3
+        id: deploy3
+        if: steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success'
+        continue-on-error: true
+        run: ./scripts/deploy_lftp_upload.sh 3
 
       - name: Verificar ficheiros críticos no servidor (SHA-256)
         id: verify_hashes
-        if: steps.lftp_deploy.outcome == 'success'
+        if: steps.deploy1.outcome == 'success' || steps.deploy2.outcome == 'success' || steps.deploy3.outcome == 'success'
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-          FTP_REMOTE_BASE: ''
         run: php scripts/verify_ftp_deploy_hashes.php
 
-      - name: Resultado final do deploy
+      - name: Resumo do deploy
         if: always()
         run: |
-          echo "📊 lftp upload: ${{ steps.lftp_deploy.conclusion }}"
-          echo "📊 Verificação SHA-256: ${{ steps.verify_hashes.conclusion }}"
-          if [ "${{ steps.lftp_deploy.conclusion }}" != "success" ]; then
-            echo "❌ Falha no upload FTP."
+          echo "📊 Resumo das tentativas:"
+          echo "   Tentativa 1: ${{ steps.deploy1.conclusion }}"
+          echo "   Tentativa 2: ${{ steps.deploy2.conclusion }}"
+          echo "   Tentativa 3: ${{ steps.deploy3.conclusion }}"
+          echo "   Verificação SHA-256: ${{ steps.verify_hashes.conclusion }}"
+          echo ""
+          if [ "${{ steps.verify_hashes.conclusion }}" = "success" ]; then
+            echo "✅ Deploy validado — código no servidor coincide com o Git."
+            echo "   Nenhum ficheiro foi apagado no servidor (upload only)."
+          elif [ "${{ steps.deploy1.conclusion }}" = "success" ] || [ "${{ steps.deploy2.conclusion }}" = "success" ] || [ "${{ steps.deploy3.conclusion }}" = "success" ]; then
+            echo "⚠️ Upload concluído mas verificação SHA-256 falhou."
+          else
+            echo "❌ Todas as tentativas lftp falharam."
+          fi
+
+      - name: Resultado final
+        if: always()
+        run: |
+          ok=0
+          if [ "${{ steps.deploy1.conclusion }}" = "success" ] || [ "${{ steps.deploy2.conclusion }}" = "success" ] || [ "${{ steps.deploy3.conclusion }}" = "success" ]; then
+            ok=1
+          fi
+          if [ "$ok" -eq 0 ]; then
+            echo "❌ FALHA — nenhuma tentativa lftp completou."
             exit 1
           fi
           if [ "${{ steps.verify_hashes.conclusion }}" != "success" ]; then
-            echo "❌ Upload OK mas ficheiros críticos divergem do Git."
+            echo "❌ FALHA — ficheiros críticos no servidor divergem do Git."
             exit 1
           fi
-          echo "✅ Deploy concluído — código atualizado, nada apagado no servidor."
+          echo "🎯 SUCESSO — deploy seguro concluído."

@@ -33,6 +33,7 @@ $Files = @(
     "scripts/detect_ftp_deploy_root.php",
     "scripts/deploy_critical_manifest.php",
     "scripts/verify_ftp_deploy_hashes.php",
+    "scripts/deploy_lftp_upload.sh",
     "scripts/upload_ftp_sync_state.php"
 )
 
