@@ -300,6 +300,73 @@ git push origin dev-master
 
 ---
 
+## Deploy em produção (Kinghost)
+
+Publicação **automática** via GitHub Actions ao fazer push em `dev-master` ou `main`.
+
+**Documentação completa:** [docs/DEPLOY_PRODUCAO.md](docs/DEPLOY_PRODUCAO.md) · [docs/COMANDOS_SERVIDOR_SSH.md](docs/COMANDOS_SERVIDOR_SSH.md) (SSH/PuTTY).
+
+### Fluxo normal
+
+```
+git commit → git push origin dev-master → GitHub Actions (~3 min) → produção actualizada
+```
+
+1. Push dispara o workflow **Deploy PHP para Kinghost (upload seguro)** (`.github/workflows/deploy.yml`).
+2. **Até 3 tentativas** `lftp` (`scripts/deploy_lftp_upload.sh`) — envia/atualiza ficheiros do Git.
+3. **Verificação SHA-256** de 12 ficheiros críticos no servidor (`scripts/verify_ftp_deploy_hashes.php`).
+4. Se a verificação falhar, o job **falha** (mesmo que o FTP tenha enviado ficheiros).
+
+### Política de segurança
+
+| Regra | Detalhe |
+|-------|---------|
+| **Só upload** | `mirror -R` **sem** `--delete` — **nunca apaga** ficheiros no servidor |
+| **Uploads protegidos** | `public/adms/uploads/**` excluído (fotos, anexos, timeline, CRM) |
+| **Não enviar** | `.env`, `vendor/`, `storage/cache/`, `logs/`, dados SST/LGPD/folha |
+| **Raiz FTP** | Login abre em `~/www/administrativo/` — deploy usa `./` (não criar subpasta `administrativo/`) |
+
+**Não usar FileZilla** para PHP do projecto. **Não usar** o antigo FTP-Deploy-Action com ressync (apagava uploads).
+
+### Migrations após deploy
+
+O FTP **não executa** migrations. Se o commit incluir ficheiros em `database/migrations/`, no **PuTTY**:
+
+```bash
+cd /home/tiaraju/www/administrativo
+php vendor/bin/phinx migrate -c database/phinx.php -e production
+```
+
+### Verificação manual no servidor (opcional)
+
+```bash
+php scripts/verify_production_deploy.php
+```
+
+### Hotfix de emergência (SCP)
+
+Se o GitHub Actions falhar e for urgente:
+
+```powershell
+.\scripts\hotfix_training_compliance_deploy.ps1
+```
+
+Depois no servidor: `php scripts/generate_ftp_deploy_state.php` (opcional, legado) e `php scripts/verify_production_deploy.php`.
+
+### Scripts de deploy
+
+| Script | Uso |
+|--------|-----|
+| `scripts/deploy_lftp_upload.sh` | Upload FTP (usado pelo GitHub Actions) |
+| `scripts/verify_ftp_deploy_hashes.php` | Compara SHA-256 Git vs servidor |
+| `scripts/verify_production_deploy.php` | Validação via SSH no servidor |
+| `scripts/deploy_excludes.php` | Lista de exclusões (paridade com workflow) |
+| `scripts/detect_ftp_deploy_root.php` | Diagnóstico da raiz FTP |
+
+**Produção:** `https://tiaraju.com.br/administrativo/` — SSH `tiaraju02@web119.kinghost.net`, path `/home/tiaraju/www/administrativo`.
+
+---
+
 ## Lista de erros
 001 - DBConnection.php - Erro de conexão com o banco de dados  
 002 - LoadPageAdm.php - Não encontrou a página  

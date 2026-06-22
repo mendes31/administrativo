@@ -424,7 +424,7 @@ Pushes em `main` ou `dev-master` disparam o deploy. O workflow actual:
 3. **Exclusões:** `public/adms/uploads/**`, `.env`, `vendor/`, `storage/cache/`, `logs/`, etc.
 4. **Timeout do job:** 45 minutos
 
-**Ressync:** não existe opção de “ressync forçado” que apague estado — o deploy **nunca remove** ficheiros no servidor. Push normal em `dev-master`/`main` basta.
+**Ressync:** push normal em `dev-master`/`main` basta. Guia completo: [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md).
 
 **Hotfix imediato (Erro 004 no Dashboard de Necessidades):**
 
@@ -442,57 +442,18 @@ php scripts/verify_production_deploy.php
 php vendor/bin/phinx migrate -c database/phinx.php -e production
 ```
 
-### Arquivos sempre como `uploading` no GitHub Actions (estado FTP desatualizado)
+### Estado FTP legado (`.ftp-deploy-sync-state.json`)
 
-O **FTP-Deploy-Action** grava no servidor o ficheiro **`.ftp-deploy-sync-state.json`** (hash SHA-256 de cada ficheiro). Só no **fim** de um deploy **bem-sucedido** esse ficheiro é atualizado.
+O ficheiro `.ftp-deploy-sync-state.json` era usado pelo **FTP-Deploy-Action** (removido). O deploy actual **não depende** dele — usa `lftp` upload-only.
 
-| Situação | Efeito no próximo deploy |
-|----------|---------------------------|
-| Timeout FTP (`421 No transfer timeout`) a meio do envio | Estado **não** gravado → ficheiros voltam como `uploading` |
-| Upload manual (FileZilla/SCP) sem atualizar o estado | Servidor tem o ficheiro, mas o Action **não sabe** → `uploading` de novo |
-| Deploy interrompido / dois deploys ao mesmo tempo | Estado incompleto ou corrompido |
-
-**Importante:** `uploading` ≠ ficheiro errado no Git; significa “ainda não está registado no estado de sync”.
-
-#### Passo 1 — Garantir que o servidor está igual ao Git
-
-Exemplo (menu truncado):
+Se fizer **SCP manual** de muitos ficheiros, pode regenerar no servidor (opcional, legado):
 
 ```bash
 cd /home/tiaraju/www/administrativo
-wc -l app/adms/Views/partials/menu.php    # ~1777
-php -l app/adms/Views/partials/menu.php   # No syntax errors
-```
-
-Corrija no PC com `scp` o ficheiro completo **antes** de regenerar o estado.
-
-#### Passo 2 — Regenerar o estado a partir do repositório local (PC)
-
-```powershell
-cd C:\wamp64\www\administrativo
 php scripts/generate_ftp_deploy_state.php
-scp .ftp-deploy-sync-state.json tiaraju02@web119.kinghost.net:/home/tiaraju/www/administrativo/
 ```
 
-No servidor:
-
-```bash
-ls -lh /home/tiaraju/www/administrativo/.ftp-deploy-sync-state.json
-```
-
-#### Passo 3 — Próximo deploy
-
-Deve aparecer sobretudo **`File content is the same, doing nothing`** e só `replacing`/`uploading` em ficheiros **realmente novos ou alterados** no Git.
-
-#### Alternativa (sem script)
-
-Apagar o estado e deixar **um** deploy FTP concluir até ao fim (pode demorar e ainda falhar por timeout na Kinghost):
-
-```bash
-cd /home/tiaraju/www/administrativo
-mv .ftp-deploy-sync-state.json .ftp-deploy-sync-state.json.bak
-# Disparar deploy no GitHub Actions (Run workflow) e aguardar SUCESSO completo
-```
+O workflow GitHub **não apaga** ficheiros no servidor; só envia/atualiza do Git.
 
 #### Evitar repetir
 

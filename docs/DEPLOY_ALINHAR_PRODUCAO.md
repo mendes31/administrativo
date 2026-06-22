@@ -2,7 +2,9 @@
 
 Use este guia quando produção ficou atrás do `dev-master` (ex.: `menu.php` restaurado de `.bak`, menu SST incompleto).
 
-**Regra:** publicar código **só** via push → GitHub Actions (FTP). Não usar FileZilla para ficheiros PHP do projeto.
+**Regra:** publicar código **só** via push → GitHub Actions (FTP upload-only). Não usar FileZilla para PHP do projecto.
+
+**Guia do pipeline:** [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md)
 
 **Onde correr comandos**
 
