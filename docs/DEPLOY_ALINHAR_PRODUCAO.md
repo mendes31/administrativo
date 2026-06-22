@@ -4,6 +4,14 @@ Use este guia quando produção ficou atrás do `dev-master` (ex.: `menu.php` re
 
 **Regra:** publicar código **só** via push → GitHub Actions (FTP). Não usar FileZilla para ficheiros PHP do projeto.
 
+**Onde correr comandos**
+
+| Onde | Ferramenta | Exemplos |
+|------|------------|----------|
+| Servidor Linux | **PuTTY** (SSH) | `wc -l`, `find`, `php vendor/bin/phinx` |
+| PC Windows | **PowerShell** | `git push`, `php scripts/...` local |
+| **Não** é comando de terminal | — | `server-dir: administrativo/` (isto é só configuração no `deploy.yml`) |
+
 ---
 
 ## Antes do deploy (SSH — uma vez)
@@ -21,6 +29,17 @@ cp app/adms/Views/partials/menu.php app/adms/Views/partials/menu.php.pre-deploy-
 No PC: `git push origin dev-master` (ou merge para `main`, conforme o ramo do workflow).
 
 Aguarde o workflow **Deploy PHP para Kinghost** terminar com **SUCESSO** (sem timeout `421`).
+
+O deploy deve demorar **vários minutos** (centenas de `uploading`/`replacing`). Se terminar em ~15–20 s, o caminho FTP ainda está errado — confira no FileZilla se, ao ligar, o `index.php` do projeto está em `administrativo/` dentro da raiz FTP.
+
+**Diagnóstico no PuTTY** (não no PowerShell):
+
+```bash
+find /home/tiaraju /home/tiaraju02 -name "verify_production_deploy.php" 2>/dev/null
+find /home/tiaraju /home/tiaraju02 -name ".ftp-deploy-sync-state.json" 2>/dev/null
+```
+
+Se o ficheiro aparecer fora de `~/www/administrativo`, o FTP estava a publicar na pasta errada.
 
 ---
 

@@ -60,12 +60,12 @@ jobs:
           # username: ${{ secrets.FTP_USER }}
           # password: ${{ secrets.FTP_PASS }}
           # local-dir: ./
-          # server-dir: ./administrativo/
           server: ${{ secrets.FTP_SERVER_PROD }}
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          # Kinghost: raiz FTP costuma ser ~/www — o site vive em administrativo/ (não na raiz da conta).
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: standard
           timeout: 180000
@@ -108,7 +108,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: standard
           timeout: 180000
@@ -151,7 +151,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: standard
           timeout: 180000
@@ -194,7 +194,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: standard
           timeout: 180000
@@ -237,7 +237,7 @@ jobs:
           username: ${{ secrets.FTP_USER_PROD }}
           password: ${{ secrets.FTP_PASS_PROD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: administrativo/
           dangerous-clean-slate: false
           log-level: standard
           timeout: 180000
@@ -334,7 +334,7 @@ jobs:
             --exclude-glob LICENSE.txt \
             --exclude-glob 'app/adms/Controllers/receive copy' \
             --exclude-glob 'app/adms/Controllers/receive copy/**' \
-            ./ .
+            ./ administrativo/
           
           echo ""
           echo "✅ Deploy lftp incremental concluído!"
