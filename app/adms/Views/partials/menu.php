@@ -552,7 +552,7 @@ $menus = [
                 'permission' => 'ListTrainings'
             ],
             [
-                'label' => 'Dashboard de KPIs ',
+                'label' => 'Dashboard de KPIs',
                 'url' => $_ENV['URL_ADM'] . 'training-kpi-dashboard',
                 'permission' => 'TrainingKpiDashboard'
             ],
@@ -1754,7 +1754,10 @@ if (!function_exists('countPermittedSubmenus')) {
                 if (isset($_SESSION['menu_override']) && is_string($_SESSION['menu_override']) && $_SESSION['menu_override'] !== '') {
                     $menuAtivo = $_SESSION['menu_override'];
                 }
-                renderMenu($menus, $this->data['menuPermission'], $menuAtivo);
+                $menuPermissionList = is_array($this->data['menuPermission'] ?? null)
+                    ? $this->data['menuPermission']
+                    : [];
+                renderMenu($menus, $menuPermissionList, $menuAtivo);
                 ?>
             </div>
         </div>
