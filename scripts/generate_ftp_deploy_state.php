@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * Gera .ftp-deploy-sync-state.json compatível com SamKirkland/FTP-Deploy-Action v4.
  *
@@ -7,67 +10,13 @@
  *
  * Uso (na raiz do projeto):
  *   php scripts/generate_ftp_deploy_state.php
- *   scp .ftp-deploy-sync-state.json USER@HOST:~/www/administrativo/
+ *   scp .ftp-deploy-sync-state.json USER@HOST:/home/tiaraju/www/administrativo/
  */
 
-declare(strict_types=1);
+require __DIR__ . '/deploy_excludes.php';
 
 $projectRoot = dirname(__DIR__);
 $outputFile = $projectRoot . DIRECTORY_SEPARATOR . '.ftp-deploy-sync-state.json';
-$stateFileName = '.ftp-deploy-sync-state.json';
-
-/**
- * Mesmas exclusões do .github/workflows/deploy.yml (FTP-Deploy-Action).
- */
-function deployPathExcluded(string $relPath): bool
-{
-    $relPath = str_replace('\\', '/', $relPath);
-
-    if ($relPath === '' || $relPath === '.ftp-deploy-sync-state.json') {
-        return true;
-    }
-
-    if (in_array(basename($relPath), ['.gitignore', '.DS_Store', 'LICENSE.txt', '.env'], true)) {
-        return true;
-    }
-
-    if (str_ends_with($relPath, '.log')) {
-        return true;
-    }
-
-    $prefixes = [
-        '.git/',
-        '.github/',
-        'node_modules/',
-        '.vscode/',
-        'vendor/',
-        'lib/',
-        'storage/sst/epi_fichas/',
-        'storage/sst/attachments/',
-        'storage/lgpd/consentimentos/',
-        'storage/private/payroll/',
-        'storage/cache/',
-        'storage/logs/',
-        'logs/',
-        'app/storage/cache/',
-        'app/storage/logs/',
-    ];
-
-    foreach ($prefixes as $prefix) {
-        if ($relPath === rtrim($prefix, '/')) {
-            return true;
-        }
-        if (str_starts_with($relPath, $prefix)) {
-            if ($relPath === 'storage/private/payroll/.gitkeep') {
-                return false;
-            }
-
-            return true;
-        }
-    }
-
-    return false;
-}
 
 $files = [];
 $folders = [];
@@ -146,4 +95,5 @@ file_put_contents($outputFile, $json . "\n");
 echo "Gerado: {$outputFile}\n";
 echo 'Pastas: ' . count($folders) . ', arquivos: ' . count($files) . "\n";
 echo "Envie ao servidor:\n";
-echo "  scp .ftp-deploy-sync-state.json USER@HOST:~/www/administrativo/\n";
+echo "  scp .ftp-deploy-sync-state.json USER@HOST:/home/tiaraju/www/administrativo/\n";
+echo "  ou: FTP_SERVER=... FTP_USER=... FTP_PASS=... php scripts/upload_ftp_sync_state.php\n";

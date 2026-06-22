@@ -10,7 +10,23 @@ Use este guia quando produção ficou atrás do `dev-master` (ex.: `menu.php` re
 |------|------------|----------|
 | Servidor Linux | **PuTTY** (SSH) | `wc -l`, `find`, `php vendor/bin/phinx` |
 | PC Windows | **PowerShell** | `git push`, `php scripts/...` local |
-| **Não** é comando de terminal | — | `server-dir: administrativo/` (isto é só configuração no `deploy.yml`) |
+| **Não** é comando de terminal | — | `server-dir: ./` no `deploy.yml` (raiz FTP = projeto) |
+
+---
+
+## Raiz FTP (Kinghost)
+
+O login FTP/WebFTP **já abre dentro de** `~/www/administrativo/`. O deploy usa `server-dir: ./`.
+
+Se existir uma pasta **`Administrativo`** ou **`administrativo`** *dentro* do projeto (ao lado de `app/`, `routes/`), é lixo de deploy antigo — **apague antes** do próximo deploy:
+
+```bash
+cd ~/www/administrativo
+rm -rf administrativo Administrativo
+ls index.php app routes   # deve existir na raiz, sem subpasta duplicada
+```
+
+No WebFTP, o caminho correcto é `.../files/app/adms/` (ou `.../administrativo/app/adms/` na UI), **não** `Administrativo/App/Adms/`.
 
 ---
 
@@ -30,7 +46,7 @@ No PC: `git push origin dev-master` (ou merge para `main`, conforme o ramo do wo
 
 Aguarde o workflow **Deploy PHP para Kinghost** terminar com **SUCESSO** (sem timeout `421`).
 
-O deploy deve demorar **vários minutos** (centenas de `uploading`/`replacing`). Se terminar em ~15–20 s, o caminho FTP ainda está errado — confira no FileZilla se, ao ligar, o `index.php` do projeto está em `administrativo/` dentro da raiz FTP.
+O deploy deve demorar **vários minutos** (centenas de `uploading`/`replacing`). Se terminar em ~15–20 s, o caminho FTP ainda está errado — confira no WebFTP se `index.php` e `app/` estão **na raiz da sessão FTP** (não dentro de uma subpasta `Administrativo/`).
 
 **Diagnóstico no PuTTY** (não no PowerShell):
 

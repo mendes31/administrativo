@@ -377,9 +377,56 @@ O pacote `lftp` do **ubuntu-latest** costuma ser antigo: a opção **`--exclude-
 
 Use também **`set cmd:fail-exit yes`** no início do script enviado ao `lftp`: assim, se o `mirror` falhar, o `lftp` termina com código de erro e o passo do Actions **falha de verdade**, em vez de continuar e imprimir mensagens de sucesso enganadoras.
 
+### Raiz FTP — NÃO usar subpasta `administrativo/`
+
+No **WebFTP Kinghost**, ao abrir o site, a raiz da sessão **já é** `~/www/administrativo/` (`app/`, `index.php`, `vendor/` no mesmo nível).
+
+| Configuração | Efeito |
+|--------------|--------|
+| `server-dir: ./` **(correto)** | Ficheiros caem em `app/`, `routes/`, etc. |
+| `server-dir: administrativo/` **(errado)** | Cria pasta aninhada `Administrativo/App/Adms/...` e o site real **não** recebe os ficheiros |
+
+**Apagar lixo no servidor (PuTTY ou WebFTP), uma vez:**
+
+```bash
+cd /home/tiaraju/www/administrativo
+rm -rf administrativo Administrativo
+ls -la | head -20   # deve listar app, index.php, routes — SEM subpasta Administrativo
+```
+
+**Detectar automaticamente (PC ou GitHub Actions):**
+
+```powershell
+php scripts/detect_ftp_deploy_root.php
+```
+
+(Configurar `FTP_SERVER`, `FTP_USER`, `FTP_PASS` no ambiente ou secrets.)
+
 ### Estado de referência do workflow de deploy
 
-Pushes em `main` ou `dev-master` disparam o deploy. O conteúdo exato de `.github/workflows/deploy.yml` depende do commit (FTP + fallback lftp, ou SSH/rsync noutra variante). Consulte o ficheiro no ramo em uso.
+Pushes em `main` ou `dev-master` disparam o deploy. O workflow atual:
+
+1. **2 tentativas** `FTP-Deploy-Action` (timeout 5 min) + **fallback lftp** (sem `--only-newer`, usa `--ignore-time`)
+2. **Verificação SHA-256** de ficheiros críticos no servidor (`scripts/verify_ftp_deploy_hashes.php`) — se falhar, o job **falha** mesmo que o FTP tenha marcado sucesso
+3. **Sincronização do estado** `.ftp-deploy-sync-state.json` a partir do Git (`scripts/upload_ftp_sync_state.php`)
+
+**Ressync forçado (GitHub → Actions → Run workflow):** marque `force_full_resync=true` para apagar o estado FTP no servidor e reenviar tudo.
+
+**Hotfix imediato (Erro 004 no Dashboard de Necessidades):**
+
+```powershell
+cd C:\wamp64\www\administrativo
+.\scripts\hotfix_training_compliance_deploy.ps1
+```
+
+Depois no PuTTY:
+
+```bash
+cd /home/tiaraju/www/administrativo
+php scripts/generate_ftp_deploy_state.php
+php scripts/verify_production_deploy.php
+php vendor/bin/phinx migrate -c database/phinx.php -e production
+```
 
 ### Arquivos sempre como `uploading` no GitHub Actions (estado FTP desatualizado)
 
