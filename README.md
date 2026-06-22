@@ -309,12 +309,12 @@ Publicação **automática** via GitHub Actions ao fazer push em `dev-master` ou
 ### Fluxo normal
 
 ```
-git commit → git push origin dev-master → GitHub Actions (~15–30s se poucos ficheiros) → produção actualizada
+git push → Deploy rápido (só ficheiros do push, ~10–20s) → SHA-256 OK
 ```
 
-1. Push dispara o workflow **Deploy PHP para Kinghost (incremental + seguro)**.
-2. **2 tentativas FTP-Deploy-Action** (incremental por hash — **rápido**, como antes).
-3. Se falhar (timeout Kinghost): **1 fallback lftp** upload-only (sem `--delete`).
+1. **Deploy rápido** (`scripts/deploy_push_changed_files.php`) — envia **apenas** o que mudou no commit.
+2. Se falhar ou >150 ficheiros: **FTP-Deploy-Action** (incremental por hash).
+3. Se FTP falhar: **fallback lftp** (upload only, sem `--delete`).
 4. **Verificação SHA-256** de 12 ficheiros críticos.
 
 ### Política de segurança
