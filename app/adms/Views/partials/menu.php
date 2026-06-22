@@ -558,6 +558,11 @@ $menus = [
                 'permission' => 'TrainingKpiDashboard'
             ],
             [
+                'label' => 'Dashboard de Necessidades',
+                'url' => $_ENV['URL_ADM'] . 'training-compliance-dashboard',
+                'permission' => 'TrainingComplianceDashboard'
+            ],
+            [
                 'label' => 'Matriz por Colaborador',
                 'url' => $_ENV['URL_ADM'] . 'matrix-by-user',
                 'permission' => 'MatrixByUser'

@@ -79,6 +79,7 @@ class LoadPageAdm
         "Movements","CashFlow","ExportPdfCashFlow",
         "EditMovement", "DeleteMovement",
         "TrainingKpiDashboard",
+        "TrainingComplianceDashboard",
         "ListTrainings", "CreateTraining", "UpdateTraining", "DeleteTraining", "ViewTraining", "TrainingPositions", "TrainingMatrixManager", "ListTrainingStatus", "ApplyTraining", "NewTrainingVersion", "TrainingVersionAudit",
         "UpdateTrainingMatrix",
         "ListEvaluationModels", "CreateEvaluationModel", "UpdateEvaluationModel", "DeleteEvaluationModel", "ViewEvaluationModel",

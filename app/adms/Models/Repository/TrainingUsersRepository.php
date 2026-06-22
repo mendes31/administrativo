@@ -2670,4 +2670,464 @@ class TrainingUsersRepository extends DbConnection
         
         return $results;
     }
+
+    /**
+     * FROM/JOIN da matriz consolidada (mesma regra da LNT / getMandatoryMatrixByUser).
+     */
+    private function complianceMatrixFromSql(): string
+    {
+        return 'FROM adms_training_users tu
+            INNER JOIN (
+                SELECT
+                    adms_user_id,
+                    adms_training_id,
+                    COALESCE(
+                        MAX(CASE WHEN status <> "concluido" THEN id END),
+                        MAX(id)
+                    ) AS latest_id
+                FROM adms_training_users
+                GROUP BY adms_user_id, adms_training_id
+            ) tu_latest
+                ON tu_latest.adms_user_id = tu.adms_user_id
+               AND tu_latest.adms_training_id = tu.adms_training_id
+               AND tu_latest.latest_id = tu.id
+            INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = "Ativo"
+            INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1';
+    }
+
+    /**
+     * Cláusula WHERE para filtros do dashboard de necessidades.
+     *
+     * @param array<string, mixed> $filters
+     * @param array<int, mixed> $params
+     */
+    private function complianceWhereFilters(array $filters, array &$params): string
+    {
+        $sql = '';
+
+        if (!empty($filters['departamento'])) {
+            $sql .= ' AND u.user_department_id = ?';
+            $params[] = (int)$filters['departamento'];
+        }
+        if (!empty($filters['cargo'])) {
+            $sql .= ' AND u.user_position_id = ?';
+            $params[] = (int)$filters['cargo'];
+        }
+        if (!empty($filters['colaborador'])) {
+            $sql .= ' AND u.id = ?';
+            $params[] = (int)$filters['colaborador'];
+        }
+
+        return $sql;
+    }
+
+    private function hasComplianceFilters(array $filters): bool
+    {
+        return !empty($filters['departamento'])
+            || !empty($filters['cargo'])
+            || !empty($filters['colaborador']);
+    }
+
+    /**
+     * Treinamentos distintos (código) na matriz filtrada.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function countComplianceDistinctCodigos(array $filters = []): int
+    {
+        $params = [];
+        $sql = 'SELECT COUNT(DISTINCT t.codigo) AS total
+                ' . $this->complianceMatrixFromSql() . '
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params);
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+
+        return (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    /**
+     * Total de obrigações (vínculos) na matriz filtrada.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function countComplianceObrigacoes(array $filters = []): int
+    {
+        $params = [];
+        $sql = 'SELECT COUNT(*) AS total
+                ' . $this->complianceMatrixFromSql() . '
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params);
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+
+        return (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    /**
+     * Total de obrigações pendentes na matriz filtrada.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function countCompliancePendentes(array $filters = []): int
+    {
+        $params = [];
+        $sql = 'SELECT SUM(CASE WHEN tu.status <> "concluido" THEN 1 ELSE 0 END) AS total
+                ' . $this->complianceMatrixFromSql() . '
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params);
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+
+        return (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    /**
+     * Total de obrigações concluídas (realizadas) na matriz filtrada.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function countComplianceRealizados(array $filters = []): int
+    {
+        $params = [];
+        $sql = 'SELECT SUM(CASE WHEN tu.status = "concluido" THEN 1 ELSE 0 END) AS total
+                ' . $this->complianceMatrixFromSql() . '
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params);
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+
+        return (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    private function complianceAggregateSelect(): string
+    {
+        return 'COUNT(DISTINCT t.codigo) AS total_vinculados,
+                COUNT(*) AS total_obrigacoes,
+                SUM(CASE WHEN tu.status = "concluido" THEN 1 ELSE 0 END) AS realizados,
+                SUM(CASE WHEN tu.status <> "concluido" THEN 1 ELSE 0 END) AS pendentes';
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function normalizeComplianceRow(array $row): array
+    {
+        $totalObrig = (int)($row['total_obrigacoes'] ?? 0);
+        $realizados = (int)($row['realizados'] ?? max(0, $totalObrig - (int)($row['pendentes'] ?? 0)));
+        $pendentes = (int)($row['pendentes'] ?? max(0, $totalObrig - $realizados));
+
+        return [
+            'group_id' => (int)($row['group_id'] ?? $row['user_id'] ?? 0),
+            'group_name' => (string)($row['group_name'] ?? ''),
+            'user_id' => isset($row['user_id']) ? (int)$row['user_id'] : null,
+            'user_name' => $row['user_name'] ?? null,
+            'department_name' => $row['department_name'] ?? null,
+            'position_name' => $row['position_name'] ?? null,
+            'total_vinculados' => (int)($row['total_vinculados'] ?? 0),
+            'total_obrigacoes' => $totalObrig,
+            'realizados' => $realizados,
+            'pendentes' => $pendentes,
+        ];
+    }
+
+    /**
+     * Estatísticas de necessidade por departamento (matriz materializada, DISTINCT codigo).
+     *
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComplianceStatsByDepartment(array $filters = []): array
+    {
+        $params = [];
+        $sql = 'SELECT
+                    d.id AS group_id,
+                    d.name AS group_name,
+                    ' . $this->complianceAggregateSelect() . '
+                ' . $this->complianceMatrixFromSql() . '
+                INNER JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params) . '
+                GROUP BY d.id, d.name
+                ORDER BY pendentes DESC, d.name ASC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        if ($this->hasComplianceFilters($filters)) {
+            return $this->sortComplianceRows($rows);
+        }
+
+        return $this->mergeComplianceGroupsWithCatalog(
+            $rows,
+            'SELECT id, name FROM adms_departments ORDER BY name'
+        );
+    }
+
+    /**
+     * Estatísticas de necessidade por cargo.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComplianceStatsByPosition(array $filters = []): array
+    {
+        $params = [];
+        $sql = 'SELECT
+                    p.id AS group_id,
+                    p.name AS group_name,
+                    ' . $this->complianceAggregateSelect() . '
+                ' . $this->complianceMatrixFromSql() . '
+                INNER JOIN adms_positions p ON u.user_position_id = p.id
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params) . '
+                GROUP BY p.id, p.name
+                ORDER BY pendentes DESC, p.name ASC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        if ($this->hasComplianceFilters($filters)) {
+            return $this->sortComplianceRows($rows);
+        }
+
+        return $this->mergeComplianceGroupsWithCatalog(
+            $rows,
+            'SELECT id, name FROM adms_positions ORDER BY name'
+        );
+    }
+
+    /**
+     * Pagina uma lista já normalizada de estatísticas de compliance.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array{data: array<int, array<string, mixed>>, total: int, page: int, per_page: int, total_pages: int}
+     */
+    private function paginateComplianceList(array $rows, int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(200, $perPage));
+        $total = count($rows);
+        $offset = ($page - 1) * $perPage;
+
+        return [
+            'data' => array_slice($rows, $offset, $perPage),
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{data: array<int, array<string, mixed>>, total: int, page: int, per_page: int, total_pages: int}
+     */
+    public function getComplianceStatsByDepartmentPaginated(array $filters = [], int $page = 1, int $perPage = 10): array
+    {
+        $rows = $this->getComplianceStatsByDepartment($filters);
+        if ($this->hasComplianceFilters($filters)) {
+            $rows = array_values(array_filter(
+                $rows,
+                static fn(array $row): bool => (int)($row['total_obrigacoes'] ?? 0) > 0
+            ));
+        }
+
+        return $this->paginateComplianceList($rows, $page, $perPage);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComplianceStatsByDepartmentAll(array $filters = []): array
+    {
+        return $this->getComplianceStatsByDepartmentPaginated($filters, 1, 200000)['data'];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{data: array<int, array<string, mixed>>, total: int, page: int, per_page: int, total_pages: int}
+     */
+    public function getComplianceStatsByPositionPaginated(array $filters = [], int $page = 1, int $perPage = 10): array
+    {
+        $rows = $this->getComplianceStatsByPosition($filters);
+        if ($this->hasComplianceFilters($filters)) {
+            $rows = array_values(array_filter(
+                $rows,
+                static fn(array $row): bool => (int)($row['total_obrigacoes'] ?? 0) > 0
+            ));
+        }
+
+        return $this->paginateComplianceList($rows, $page, $perPage);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComplianceStatsByPositionAll(array $filters = []): array
+    {
+        return $this->getComplianceStatsByPositionPaginated($filters, 1, 200000)['data'];
+    }
+
+    /**
+     * Estatísticas por colaborador com paginação.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{data: array<int, array<string, mixed>>, total: int, page: int, per_page: int, total_pages: int}
+     */
+    public function getComplianceStatsByUserPaginated(array $filters = [], int $page = 1, int $perPage = 50): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(200, $perPage));
+        $offset = ($page - 1) * $perPage;
+
+        $params = [];
+        $baseFrom = $this->complianceMatrixFromSql() . '
+                INNER JOIN adms_departments d ON u.user_department_id = d.id
+                INNER JOIN adms_positions p ON u.user_position_id = p.id
+                WHERE 1=1'
+                . $this->complianceWhereFilters($filters, $params);
+
+        $countSql = 'SELECT COUNT(*) AS total FROM (
+                SELECT u.id
+                ' . $baseFrom . '
+                GROUP BY u.id
+                HAVING COUNT(DISTINCT t.codigo) > 0
+            ) AS user_count';
+        $countStmt = $this->getConnection()->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int)($countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        $sql = 'SELECT
+                    u.id AS user_id,
+                    u.name AS user_name,
+                    d.name AS department_name,
+                    p.name AS position_name,
+                    ' . $this->complianceAggregateSelect() . '
+                ' . $baseFrom . '
+                GROUP BY u.id, u.name, d.name, p.name
+                HAVING total_vinculados > 0
+                ORDER BY pendentes DESC, u.name ASC
+                LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $data = array_map(fn(array $row): array => $this->normalizeComplianceRow($row), $rows);
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => $total > 0 ? (int)ceil($total / $perPage) : 1,
+        ];
+    }
+
+    /**
+     * Todas as estatísticas por colaborador (exportação).
+     *
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComplianceStatsByUserAll(array $filters = []): array
+    {
+        $result = $this->getComplianceStatsByUserPaginated($filters, 1, 200000);
+
+        return $result['data'];
+    }
+
+    /**
+     * @deprecated Use getComplianceStatsByUserPaginated ou getComplianceStatsByUserAll
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComplianceStatsByUser(int $limit = 100, array $filters = []): array
+    {
+        $result = $this->getComplianceStatsByUserPaginated($filters, 1, $limit);
+
+        return $result['data'];
+    }
+
+    /**
+     * Maior quantidade de pendências primeiro.
+     *
+     * @param array<string, mixed> $a
+     * @param array<string, mixed> $b
+     */
+    private function compareComplianceByPendentesDesc(array $a, array $b): int
+    {
+        $cmp = ((int)($b['pendentes'] ?? 0)) <=> ((int)($a['pendentes'] ?? 0));
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+
+        $nameA = (string)($a['group_name'] ?: $a['user_name'] ?? '');
+        $nameB = (string)($b['group_name'] ?: $b['user_name'] ?? '');
+
+        return strcasecmp($nameA, $nameB);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortComplianceRows(array $rows): array
+    {
+        $normalized = [];
+        foreach ($rows as $row) {
+            $item = $this->normalizeComplianceRow($row);
+            if ($item['group_name'] === '' && !empty($item['user_name'])) {
+                $item['group_name'] = (string)$item['user_name'];
+            }
+            $normalized[] = $item;
+        }
+
+        usort($normalized, fn(array $a, array $b): int => $this->compareComplianceByPendentesDesc($a, $b));
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeComplianceGroupsWithCatalog(array $rows, string $catalogSql): array
+    {
+        $byId = [];
+        foreach ($rows as $row) {
+            $id = (int)($row['group_id'] ?? 0);
+            $byId[$id] = $this->normalizeComplianceRow($row);
+        }
+
+        $catalog = $this->getConnection()->query($catalogSql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($catalog as $item) {
+            $id = (int)($item['id'] ?? 0);
+            if (!isset($byId[$id])) {
+                $byId[$id] = $this->normalizeComplianceRow([
+                    'group_id' => $id,
+                    'group_name' => (string)($item['name'] ?? ''),
+                    'total_vinculados' => 0,
+                    'total_obrigacoes' => 0,
+                    'realizados' => 0,
+                    'pendentes' => 0,
+                ]);
+            }
+        }
+
+        $result = array_values($byId);
+        usort($result, fn(array $a, array $b): int => $this->compareComplianceByPendentesDesc($a, $b));
+
+        return $result;
+    }
 } 

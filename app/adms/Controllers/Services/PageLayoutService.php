@@ -274,6 +274,7 @@ class PageLayoutService
             'TestNotification',
             'TrainingDashboard',
             'TrainingKpiDashboard',
+            'TrainingComplianceDashboard',
             'TrainingMatrixManager',
             'UpdateTrainingMatrix',
             'UpdateInventoryItem',

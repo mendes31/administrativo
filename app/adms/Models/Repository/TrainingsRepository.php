@@ -749,6 +749,22 @@ class TrainingsRepository extends DbConnection
     }
 
     /**
+     * Total de famílias de treinamento ativas (DISTINCT codigo), ignorando versões.
+     */
+    public function countActiveDistinctCodigos(): int
+    {
+        $sql = "SELECT COUNT(DISTINCT t.codigo) AS total
+                FROM adms_trainings t
+                WHERE t.ativo = 1
+                  AND t.codigo IS NOT NULL
+                  AND TRIM(t.codigo) <> ''";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    /**
      * Retorna o total de colaboradores vinculados ao treinamento (direto ou por cargo obrigatório, sem duplicidade)
      */
     public function getTotalColaboradoresVinculados(int $trainingId): int
