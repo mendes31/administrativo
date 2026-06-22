@@ -153,9 +153,24 @@ thead th {
         </div>
     </div>
 
+    <?php
+    $exportParams = array_filter($this->data['filters'] ?? [], static function ($value) {
+        return $value !== null && $value !== '';
+    });
+    $exportQuery = http_build_query($exportParams);
+    $exportSuffix = $exportQuery !== '' ? $exportQuery . '&' : '';
+    ?>
     <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>Listar</span>
+            <div>
+                <a href="<?= $_ENV['URL_ADM'] ?>list-training-status?<?= $exportSuffix ?>export=excel" class="btn btn-success btn-sm me-2">
+                    <i class="fas fa-file-excel me-1"></i>Exportar Excel
+                </a>
+                <a href="<?= $_ENV['URL_ADM'] ?>list-training-status?<?= $exportSuffix ?>export=pdf" class="btn btn-danger btn-sm">
+                    <i class="fas fa-file-pdf me-1"></i>Exportar PDF
+                </a>
+            </div>
         </div>
         <div class="card-body">
             <form method="GET" class="row g-2 mb-3">

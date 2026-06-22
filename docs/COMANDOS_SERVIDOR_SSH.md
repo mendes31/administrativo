@@ -2,25 +2,72 @@
 
 ## 📍 **PASSO 1: Navegar para o Diretório do Projeto**
 
-Você está em `~` (home), mas precisa estar no diretório do projeto:
+### Caminho canónico em produção (Kinghost)
+
+| Item | Valor |
+|------|--------|
+| Utilizador SSH/FTP | `tiaraju02` |
+| Host | `web119.kinghost.net` |
+| **Raiz do projeto** | **`/home/tiaraju/www/administrativo`** |
+
+O login é `tiaraju02`, mas o site **não** fica em `/home/tiaraju02/`. No PuTTY, `cd ~/www/administrativo` costuma resolver para `/home/tiaraju/www/administrativo` — confirme sempre com `pwd`.
 
 ```bash
 # Verificar onde você está
 pwd
+# Esperado: /home/tiaraju/www/administrativo
 
-# Navegar para o diretório do projeto (ajuste conforme necessário)
-cd ~/www/administrativo
-
-# OU se o projeto estiver em outro local, tente:
-cd /files/administrativo
-# ou
-cd /home/tiaraju/public_html/administrativo
-# ou
-cd /var/www/administrativo
+cd /home/tiaraju/www/administrativo
 
 # Verificar se está no diretório correto (deve mostrar vendor, database, app, etc.)
 ls -la
 ```
+
+Outros caminhos só se `pwd` não bater (instalações antigas ou outro hosting):
+
+```bash
+cd /home/tiaraju/public_html/administrativo
+# ou
+cd /files/administrativo
+```
+
+### SCP a partir do Windows (PowerShell)
+
+No **OpenSSH do Windows**, `~` no destino remoto **não** expande como no PuTTY. Use sempre o caminho **absoluto** `/home/tiaraju/www/administrativo/...`.
+
+```powershell
+cd C:\wamp64\www\administrativo
+
+# Exemplo: enviar um ficheiro PHP
+scp app/adms/Views/trainings/matrixManager.php tiaraju02@web119.kinghost.net:/home/tiaraju/www/administrativo/app/adms/Views/trainings/matrixManager.php
+
+# Exemplo: estado FTP após upload manual
+php scripts/generate_ftp_deploy_state.php
+scp .ftp-deploy-sync-state.json tiaraju02@web119.kinghost.net:/home/tiaraju/www/administrativo/
+```
+
+**Erro comum:** `dest open "www/administrativo/...": No such file or directory` — o destino usou `~/www/...` em vez de `/home/tiaraju/www/...`.
+
+**Validação no servidor** (após `scp`):
+
+```bash
+cd /home/tiaraju/www/administrativo
+php -l app/adms/Views/trainings/matrixManager.php
+ls -la app/adms/Views/trainings/matrixManager.php
+```
+
+**Caso real (jun/2026):** o controller `TrainingMatrixManager.php` foi atualizado no deploy (passa `summary`), mas a view `matrixManager.php` ficou na versão antiga (`status_stats`) → warnings PHP na matriz de treinamentos. Corrigido com `scp` do ficheiro local + regeneração de `.ftp-deploy-sync-state.json`.
+
+### Aviso `.bash_history` (tiaraju02)
+
+Se cada comando no PuTTY mostrar `cannot create: .bash_history`, é independente do deploy:
+
+```bash
+touch /home/tiaraju02/.bash_history
+chmod 600 /home/tiaraju02/.bash_history
+```
+
+Se `touch` falhar, abra ticket na Kinghost (permissões em `/home/tiaraju02`).
 
 ## ⚙️ **Editar o `.env` no servidor**
 
@@ -351,7 +398,7 @@ O **FTP-Deploy-Action** grava no servidor o ficheiro **`.ftp-deploy-sync-state.j
 Exemplo (menu truncado):
 
 ```bash
-cd ~/www/administrativo
+cd /home/tiaraju/www/administrativo
 wc -l app/adms/Views/partials/menu.php    # ~1777
 php -l app/adms/Views/partials/menu.php   # No syntax errors
 ```
@@ -369,7 +416,7 @@ scp .ftp-deploy-sync-state.json tiaraju02@web119.kinghost.net:/home/tiaraju/www/
 No servidor:
 
 ```bash
-ls -lh ~/www/administrativo/.ftp-deploy-sync-state.json
+ls -lh /home/tiaraju/www/administrativo/.ftp-deploy-sync-state.json
 ```
 
 #### Passo 3 — Próximo deploy
@@ -381,9 +428,9 @@ Deve aparecer sobretudo **`File content is the same, doing nothing`** e só `rep
 Apagar o estado e deixar **um** deploy FTP concluir até ao fim (pode demorar e ainda falhar por timeout na Kinghost):
 
 ```bash
-cd ~/www/administrativo
+cd /home/tiaraju/www/administrativo
 mv .ftp-deploy-sync-state.json .ftp-deploy-sync-state.json.bak
-# Disparar deploy no GitHub Actions e aguardar SUCESSO completo
+# Disparar deploy no GitHub Actions (Run workflow) e aguardar SUCESSO completo
 ```
 
 #### Evitar repetir
