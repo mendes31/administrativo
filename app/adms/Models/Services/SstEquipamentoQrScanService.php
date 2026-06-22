@@ -8,24 +8,28 @@ use App\adms\Models\Repository\SstEquipamentosRepository;
 use App\adms\Models\Repository\SstEquipamentoVistoriasRepository;
 
 /**
- * Resolve leitura de QR → vistoria executável.
+ * Contexto da leitura de QR: equipamento + vistoria aberta (sem redirecionar nem gerar automaticamente).
  */
 final class SstEquipamentoQrScanService
 {
     public function __construct(
         private ?SstEquipamentosRepository $equipamentosRepo = null,
         private ?SstEquipamentoVistoriasRepository $vistoriasRepo = null,
-        private ?SstEquipamentoVistoriaGeneratorService $generator = null,
     ) {
         $this->equipamentosRepo = $equipamentosRepo ?? new SstEquipamentosRepository();
         $this->vistoriasRepo = $vistoriasRepo ?? new SstEquipamentoVistoriasRepository();
-        $this->generator = $generator ?? new SstEquipamentoVistoriaGeneratorService();
     }
 
     /**
-     * @return array{ok: bool, code: string, message: string, vistoria_id?: int, equipamento?: array}
+     * @return array{
+     *   ok: bool,
+     *   code: string,
+     *   message: string,
+     *   equipamento?: array<string, mixed>,
+     *   vistoria?: array<string, mixed>
+     * }
      */
-    public function resolveForUser(string $qrToken, int $userId): array
+    public function getScanContext(string $qrToken, int $userId): array
     {
         $token = trim($qrToken);
         if ($token === '') {
@@ -39,7 +43,7 @@ final class SstEquipamentoQrScanService
 
         if (($equipamento['status'] ?? '') !== 'Ativo') {
             return [
-                'ok' => false,
+                'ok' => true,
                 'code' => 'inactive',
                 'message' => 'Equipamento inativo ou baixado — vistoria não permitida.',
                 'equipamento' => $equipamento,
@@ -48,56 +52,56 @@ final class SstEquipamentoQrScanService
 
         if (!$this->userCanExecuteOnEquipamento($equipamento, $userId)) {
             return [
-                'ok' => false,
+                'ok' => true,
                 'code' => 'forbidden',
-                'message' => 'Você não é o responsável por este equipamento. Solicite acesso ao SESMT.',
+                'message' => 'Você não é o responsável por este equipamento. Os dados abaixo são apenas para consulta.',
                 'equipamento' => $equipamento,
             ];
         }
 
-        $vistoria = $this->vistoriasRepo->findOpenForEquipamento((int) $equipamento['id']);
-        if ($vistoria && ($vistoria['status'] ?? '') === 'Concluída') {
-            $vistoria = null;
-        }
+        $equipamentoId = (int) $equipamento['id'];
+        $vistoria = $this->vistoriasRepo->findOpenForEquipamento($equipamentoId);
 
-        if (!$vistoria) {
-            $gen = $this->generator->tryGenerateManual((int) $equipamento['id']);
-            if (!empty($gen['vistoria_id'])) {
-                $loaded = $this->vistoriasRepo->getById((int) $gen['vistoria_id']);
-                if ($gen['code'] === 'completed' || ($loaded['status'] ?? '') === 'Concluída') {
-                    return [
-                        'ok' => true,
-                        'code' => 'completed',
-                        'message' => $gen['message'] ?? 'Vistoria desta competência já foi concluída.',
-                        'vistoria_id' => (int) $gen['vistoria_id'],
-                        'equipamento' => $equipamento,
-                    ];
-                }
-                $vistoria = $loaded;
-            } elseif (!$vistoria) {
-                return [
-                    'ok' => false,
-                    'code' => $gen['code'] ?? 'no_vistoria',
-                    'message' => $gen['message'] ?? 'Não há vistoria pendente para este equipamento.',
-                    'equipamento' => $equipamento,
-                ];
-            }
-        }
-
-        if (!$vistoria) {
+        if ($vistoria) {
             return [
-                'ok' => false,
-                'code' => 'no_vistoria',
-                'message' => 'Não foi possível abrir uma vistoria para este equipamento.',
+                'ok' => true,
+                'code' => 'ready',
+                'message' => 'Vistoria pendente localizada. Confira os dados e inicie quando estiver no local do equipamento.',
                 'equipamento' => $equipamento,
+                'vistoria' => $vistoria,
+            ];
+        }
+
+        $competenciaAtual = (new \DateTimeImmutable('today'))->format('Y-m');
+        $vistoriaMes = $this->vistoriasRepo->getByEquipamentoCompetencia($equipamentoId, $competenciaAtual);
+        if ($vistoriaMes && ($vistoriaMes['status'] ?? '') === 'Concluída') {
+            $loaded = $this->vistoriasRepo->getById((int) $vistoriaMes['id']) ?? $vistoriaMes;
+
+            return [
+                'ok' => true,
+                'code' => 'completed',
+                'message' => "A vistoria de {$competenciaAtual} já foi concluída para este equipamento.",
+                'equipamento' => $equipamento,
+                'vistoria' => $loaded,
+            ];
+        }
+
+        if ($vistoriaMes) {
+            $loaded = $this->vistoriasRepo->getById((int) $vistoriaMes['id']) ?? $vistoriaMes;
+
+            return [
+                'ok' => true,
+                'code' => 'ready',
+                'message' => 'Vistoria localizada para a competência atual.',
+                'equipamento' => $equipamento,
+                'vistoria' => $loaded,
             ];
         }
 
         return [
             'ok' => true,
-            'code' => 'ready',
-            'message' => 'Vistoria localizada.',
-            'vistoria_id' => (int) $vistoria['id'],
+            'code' => 'no_open',
+            'message' => 'Não há vistoria aberta para este equipamento no momento. Solicite ao SESMT a geração da vistoria.',
             'equipamento' => $equipamento,
         ];
     }

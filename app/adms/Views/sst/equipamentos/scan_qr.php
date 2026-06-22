@@ -17,8 +17,8 @@ $perms = $this->data['buttonPermission'] ?? [];
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body p-3 p-md-4">
                     <p class="text-muted small mb-3">
-                        Aponte a câmera para a etiqueta do equipamento. Ao reconhecer o código, o checklist da vistoria será aberto automaticamente.
-                        No celular, permita o acesso à câmera quando o navegador solicitar.
+                        Aponte a câmera para a etiqueta do equipamento. Ao reconhecer o código, os dados do equipamento serão exibidos
+                        e, se houver vistoria aberta, você poderá iniciá-la. No celular, permita o acesso à câmera quando o navegador solicitar.
                     </p>
 
                     <div id="sst-qr-insecure-hint" class="alert alert-warning small d-none mb-3">
@@ -99,7 +99,7 @@ $perms = $this->data['buttonPermission'] ?? [];
     function goToToken(token) {
         if (!token || navigating) return;
         navigating = true;
-        setStatus('QR reconhecido. Abrindo vistoria…', 'success');
+        setStatus('QR reconhecido. Carregando equipamento…', 'success');
         if (scanner && scanner.isScanning) {
             scanner.stop().finally(function () {
                 window.location.href = baseUrl + scanPathPrefix + encodeURIComponent(token) + '?from=camera';

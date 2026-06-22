@@ -17,7 +17,10 @@ class SstGenerateEquipamentoVistoria
         }
 
         $equipamentoId = (int) ($_POST['adms_sst_equipamento_id'] ?? 0);
-        $redirect = $_ENV['URL_ADM'] . 'sst-view-equipamento/' . $equipamentoId;
+        $returnScanToken = trim((string) ($_POST['return_scan_token'] ?? ''));
+        $redirect = $returnScanToken !== ''
+            ? $_ENV['URL_ADM'] . 'sst-scan-equipamento/' . rawurlencode($returnScanToken)
+            : $_ENV['URL_ADM'] . 'sst-view-equipamento/' . $equipamentoId;
 
         if ($equipamentoId <= 0 || !CSRFHelper::validateCSRFToken('sst_generate_equipamento_vistoria', $_POST['csrf_token'] ?? '')) {
             $_SESSION['msg'] = 'Requisição inválida.';
@@ -44,12 +47,12 @@ class SstGenerateEquipamentoVistoria
             default => 'danger',
         };
 
-        if ($result['ok'] && !empty($result['vistoria_id'])) {
+        if ($result['ok'] && !empty($result['vistoria_id']) && $returnScanToken === '') {
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . (int) $result['vistoria_id']);
             exit;
         }
 
-        if (!$result['ok'] && !empty($result['vistoria_id']) && in_array($result['code'], ['exists', 'completed'], true)) {
+        if (!$result['ok'] && !empty($result['vistoria_id']) && in_array($result['code'], ['exists', 'completed'], true) && $returnScanToken === '') {
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . (int) $result['vistoria_id']);
             exit;
         }
