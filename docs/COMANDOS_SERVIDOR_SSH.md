@@ -377,16 +377,15 @@ O pacote `lftp` do **ubuntu-latest** costuma ser antigo: a opção **`--exclude-
 
 Use também **`set cmd:fail-exit yes`** no início do script enviado ao `lftp`: assim, se o `mirror` falhar, o `lftp` termina com código de erro e o passo do Actions **falha de verdade**, em vez de continuar e imprimir mensagens de sucesso enganadoras.
 
-### Política de deploy: só upload, nunca apagar
+### Política de deploy: incremental rápido + uploads protegidos
 
-O workflow usa **lftp `mirror -R` sem `--delete`**. Envia/atualiza ficheiros do Git; **não remove** nada que exista só no servidor.
+**Principal:** FTP-Deploy-Action (`dangerous-clean-slate: false`) — compara hash e **só envia alterados** (~15–30 s).
 
-**Nunca sincronizar/apagar via deploy** (excluídos):
+**Fallback:** lftp upload-only (sem `--delete`) — só se o FTP incremental falhar (timeout).
 
-- `public/adms/uploads/**` — fotos, anexos, timeline, CRM, etc.
-- `.env`, `vendor/`, `storage/cache/`, `logs/`, uploads SST/LGPD/folha
+**Exclude (nunca enviados nem apagados):** `public/adms/uploads/**`, `.env`, `vendor/`, cache, logs.
 
-O antigo **FTP-Deploy-Action** foi removido porque, no ressync, apagava pastas de upload que não estavam no Git. **Não use `force_full_resync`** — essa opção foi eliminada.
+**Não use** ressync forçado / apagar `.ftp-deploy-sync-state.json` sem necessidade.
 
 Se um deploy removeu pastas em `public/adms/uploads/users/`, restaure via **backup Kinghost**.
 
@@ -419,10 +418,10 @@ php scripts/detect_ftp_deploy_root.php
 
 Pushes em `main` ou `dev-master` disparam o deploy. O workflow actual:
 
-1. **Até 3 tentativas lftp** (`scripts/deploy_lftp_upload.sh`) — `mirror -R` **sem `--delete`**; só upload
-2. **Verificação SHA-256** de 12 ficheiros críticos (`scripts/verify_ftp_deploy_hashes.php`)
-3. **Exclusões:** `public/adms/uploads/**`, `.env`, `vendor/`, `storage/cache/`, `logs/`, etc.
-4. **Timeout do job:** 45 minutos
+1. **2 tentativas FTP-Deploy-Action** (incremental por hash — **~15–30 s** se poucos ficheiros mudaram)
+2. **1 fallback lftp** upload-only (só se incremental falhar — mais lento, ~3 min)
+3. **Verificação SHA-256** de 12 ficheiros críticos
+4. **`public/adms/uploads/**` em exclude** — nunca enviado nem apagado
 
 **Ressync:** push normal em `dev-master`/`main` basta. Guia completo: [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md).
 
@@ -444,7 +443,7 @@ php vendor/bin/phinx migrate -c database/phinx.php -e production
 
 ### Estado FTP legado (`.ftp-deploy-sync-state.json`)
 
-O ficheiro `.ftp-deploy-sync-state.json` era usado pelo **FTP-Deploy-Action** (removido). O deploy actual **não depende** dele — usa `lftp` upload-only.
+O ficheiro `.ftp-deploy-sync-state.json` é usado pelo **FTP-Deploy-Action** para deploy incremental rápido. O **fallback lftp** não depende dele.
 
 Se fizer **SCP manual** de muitos ficheiros, pode regenerar no servidor (opcional, legado):
 

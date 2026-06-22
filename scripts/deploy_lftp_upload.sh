@@ -15,10 +15,12 @@ if [[ -z "${FTP_HOST:-}" || -z "${FTP_USER:-}" || -z "${FTP_PASS:-}" ]]; then
 fi
 
 echo "════════════════════════════════════════════════════════"
-echo "📤 Deploy lftp — tentativa ${attempt}"
-echo "   Política: só envia/atualiza do Git; NUNCA apaga no servidor."
+echo "📤 Deploy lftp — ${attempt}"
+echo "   Fallback upload-only (sem --delete). Exclui uploads/.env."
 echo "════════════════════════════════════════════════════════"
 
+# --only-newer: mais rápido que --ignore-time; só envia ficheiros novos/alterados.
+# Sem --delete: nunca remove pastas no servidor.
 lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<'EOF'
 set cmd:fail-exit yes
 set ftp:passive-mode true
@@ -31,7 +33,7 @@ set net:reconnect-interval-max 10
 set net:idle 60
 set xfer:clobber on
 
-mirror -R --parallel=2 --ignore-time --continue --no-perms --verbose \
+mirror -R --parallel=2 --only-newer --continue --no-perms --verbose \
   --exclude-glob .git/** \
   --exclude-glob .github/** \
   --exclude-glob .gitignore \

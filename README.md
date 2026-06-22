@@ -309,24 +309,25 @@ Publicação **automática** via GitHub Actions ao fazer push em `dev-master` ou
 ### Fluxo normal
 
 ```
-git commit → git push origin dev-master → GitHub Actions (~3 min) → produção actualizada
+git commit → git push origin dev-master → GitHub Actions (~15–30s se poucos ficheiros) → produção actualizada
 ```
 
-1. Push dispara o workflow **Deploy PHP para Kinghost (upload seguro)** (`.github/workflows/deploy.yml`).
-2. **Até 3 tentativas** `lftp` (`scripts/deploy_lftp_upload.sh`) — envia/atualiza ficheiros do Git.
-3. **Verificação SHA-256** de 12 ficheiros críticos no servidor (`scripts/verify_ftp_deploy_hashes.php`).
-4. Se a verificação falhar, o job **falha** (mesmo que o FTP tenha enviado ficheiros).
+1. Push dispara o workflow **Deploy PHP para Kinghost (incremental + seguro)**.
+2. **2 tentativas FTP-Deploy-Action** (incremental por hash — **rápido**, como antes).
+3. Se falhar (timeout Kinghost): **1 fallback lftp** upload-only (sem `--delete`).
+4. **Verificação SHA-256** de 12 ficheiros críticos.
 
 ### Política de segurança
 
 | Regra | Detalhe |
 |-------|---------|
-| **Só upload** | `mirror -R` **sem** `--delete` — **nunca apaga** ficheiros no servidor |
+| **Incremental rápido** | FTP-Deploy-Action compara hash (`.ftp-deploy-sync-state.json`) — só envia alterados |
+| **Só upload no fallback** | lftp `mirror -R` **sem** `--delete` |
 | **Uploads protegidos** | `public/adms/uploads/**` excluído (fotos, anexos, timeline, CRM) |
 | **Não enviar** | `.env`, `vendor/`, `storage/cache/`, `logs/`, dados SST/LGPD/folha |
 | **Raiz FTP** | Login abre em `~/www/administrativo/` — deploy usa `./` (não criar subpasta `administrativo/`) |
 
-**Não usar FileZilla** para PHP do projecto. **Não usar** o antigo FTP-Deploy-Action com ressync (apagava uploads).
+**Não usar FileZilla** para PHP do projecto. **Nunca** usar ressync forçado que apague estado FTP — uploads estão em `exclude`.
 
 ### Migrations após deploy
 
