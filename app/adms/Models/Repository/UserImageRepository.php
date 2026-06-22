@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Helpers\SlugImg;
 use App\adms\Helpers\Upload;
 use App\adms\Helpers\ValExtImg;
@@ -88,6 +89,8 @@ class UserImageRepository extends DbConnection
 
             // Limpar diretório de imagens não utilizadas
             $this->cleanUnusedImages($data['id']);
+
+            $this->syncNavbarAfterImageChange((int) $data['id']);
 
             return true;
 
@@ -367,11 +370,27 @@ class UserImageRepository extends DbConnection
                 }
             }
 
+            $this->syncNavbarAfterImageChange($userId);
+
             return true;
 
         } catch (Exception $e) {
             error_log("UserImageRepository: Erro ao deletar imagem: " . $e->getMessage());
             return false;
+        }
+    }
+
+    private function syncNavbarAfterImageChange(int $userId): void
+    {
+        NavbarLayoutCacheHelper::clear();
+
+        if ($userId <= 0 || (int) ($_SESSION['user_id'] ?? 0) !== $userId) {
+            return;
+        }
+
+        $row = $this->getUserImageRow($userId);
+        if (is_array($row) && array_key_exists('image', $row)) {
+            $_SESSION['user_image'] = (string) $row['image'];
         }
     }
 

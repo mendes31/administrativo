@@ -5,6 +5,7 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -149,7 +150,6 @@ class Profile
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
-            // Criar a mensagem de sucesso
             $_SESSION['success'] = "Foto do perfil atualizada com sucesso!";
 
             // Redirecionar o usuário para a página de perfil
@@ -185,7 +185,9 @@ class Profile
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
-            // Criar a mensagem de sucesso
+            NavbarLayoutCacheHelper::clear();
+            $_SESSION['user_image'] = 'icon_user.png';
+
             $_SESSION['success'] = "Foto do perfil removida com sucesso!";
 
             // Redirecionar o usuário para a página de perfil

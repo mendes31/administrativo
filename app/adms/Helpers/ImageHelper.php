@@ -107,7 +107,16 @@ class ImageHelper
             return $_ENV['URL_ADM'] . 'serve-file?path=' . self::encodePathForServeFile($logical);
         }
 
-        return $_ENV['URL_ADM'] . 'serve-file?path=' . self::encodePathForServeFile($imagePath);
+        $url = $_ENV['URL_ADM'] . 'serve-file?path=' . self::encodePathForServeFile($imagePath);
+        $normalized = str_replace('\\', '/', (string) $imagePath);
+        if (str_starts_with($normalized, 'users/')) {
+            $fsPath = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, 'public/adms/uploads/' . $normalized);
+            if (is_file($fsPath)) {
+                $url .= '&v=' . (int) filemtime($fsPath);
+            }
+        }
+
+        return $url;
     }
 
     /**
