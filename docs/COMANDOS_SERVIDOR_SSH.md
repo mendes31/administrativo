@@ -377,6 +377,19 @@ O pacote `lftp` do **ubuntu-latest** costuma ser antigo: a opção **`--exclude-
 
 Use também **`set cmd:fail-exit yes`** no início do script enviado ao `lftp`: assim, se o `mirror` falhar, o `lftp` termina com código de erro e o passo do Actions **falha de verdade**, em vez de continuar e imprimir mensagens de sucesso enganadoras.
 
+### Política de deploy: só upload, nunca apagar
+
+O workflow usa **lftp `mirror -R` sem `--delete`**. Envia/atualiza ficheiros do Git; **não remove** nada que exista só no servidor.
+
+**Nunca sincronizar/apagar via deploy** (excluídos):
+
+- `public/adms/uploads/**` — fotos, anexos, timeline, CRM, etc.
+- `.env`, `vendor/`, `storage/cache/`, `logs/`, uploads SST/LGPD/folha
+
+O antigo **FTP-Deploy-Action** foi removido porque, no ressync, apagava pastas de upload que não estavam no Git. **Não use `force_full_resync`** — essa opção foi eliminada.
+
+Se um deploy removeu pastas em `public/adms/uploads/users/`, restaure via **backup Kinghost**.
+
 ### Raiz FTP — NÃO usar subpasta `administrativo/`
 
 No **WebFTP Kinghost**, ao abrir o site, a raiz da sessão **já é** `~/www/administrativo/` (`app/`, `index.php`, `vendor/` no mesmo nível).
@@ -404,13 +417,13 @@ php scripts/detect_ftp_deploy_root.php
 
 ### Estado de referência do workflow de deploy
 
-Pushes em `main` ou `dev-master` disparam o deploy. O workflow atual:
+Pushes em `main` ou `dev-master` disparam o deploy. O workflow actual:
 
-1. **2 tentativas** `FTP-Deploy-Action` (timeout 5 min) + **fallback lftp** (sem `--only-newer`, usa `--ignore-time`)
-2. **Verificação SHA-256** de ficheiros críticos no servidor (`scripts/verify_ftp_deploy_hashes.php`) — se falhar, o job **falha** mesmo que o FTP tenha marcado sucesso
-3. **Sincronização do estado** `.ftp-deploy-sync-state.json` a partir do Git (`scripts/upload_ftp_sync_state.php`)
+1. **lftp `mirror -R` sem `--delete`** — só envia/atualiza ficheiros do Git; **nunca apaga** no servidor
+2. **Verificação SHA-256** de ficheiros críticos (`scripts/verify_ftp_deploy_hashes.php`)
+3. Exclusões: `public/adms/uploads/**`, `.env`, `vendor/`, `storage/cache/`, `logs/`, etc.
 
-**Ressync forçado (GitHub → Actions → Run workflow):** marque `force_full_resync=true` para apagar o estado FTP no servidor e reenviar tudo.
+**Ressync:** não existe opção de “ressync forçado” que apague estado — o deploy **nunca remove** ficheiros no servidor. Push normal em `dev-master`/`main` basta.
 
 **Hotfix imediato (Erro 004 no Dashboard de Necessidades):**
 

@@ -26,6 +26,8 @@ function deployExcludePrefixes(): array
         'logs/',
         'app/storage/cache/',
         'app/storage/logs/',
+        // Uploads de utilizadores (produção) — NUNCA sincronizar/apagar via deploy
+        'public/adms/uploads/',
     ];
 }
 
@@ -107,6 +109,8 @@ function deployExcludeYamlBlock(): string
         'logs/**',
         'app/storage/cache/**',
         'app/storage/logs/**',
+        'public/adms/uploads/**',
+        '.env',
     ];
 
     return implode("\n", $lines);
