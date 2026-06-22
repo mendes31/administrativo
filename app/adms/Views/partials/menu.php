@@ -1,6 +1,6 @@
 <?php
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
-// comentário para atualizar arquivo e fazer commit
+// deploy-sync: 2026-06-22 — menu completo (SST equipamentos + treinamentos)
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 
 static $admsMenuPasswordPolicyId = null;
