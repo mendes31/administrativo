@@ -334,6 +334,64 @@ Use também **`set cmd:fail-exit yes`** no início do script enviado ao `lftp`: 
 
 Pushes em `main` ou `dev-master` disparam o deploy. O conteúdo exato de `.github/workflows/deploy.yml` depende do commit (FTP + fallback lftp, ou SSH/rsync noutra variante). Consulte o ficheiro no ramo em uso.
 
+### Arquivos sempre como `uploading` no GitHub Actions (estado FTP desatualizado)
+
+O **FTP-Deploy-Action** grava no servidor o ficheiro **`.ftp-deploy-sync-state.json`** (hash SHA-256 de cada ficheiro). Só no **fim** de um deploy **bem-sucedido** esse ficheiro é atualizado.
+
+| Situação | Efeito no próximo deploy |
+|----------|---------------------------|
+| Timeout FTP (`421 No transfer timeout`) a meio do envio | Estado **não** gravado → ficheiros voltam como `uploading` |
+| Upload manual (FileZilla/SCP) sem atualizar o estado | Servidor tem o ficheiro, mas o Action **não sabe** → `uploading` de novo |
+| Deploy interrompido / dois deploys ao mesmo tempo | Estado incompleto ou corrompido |
+
+**Importante:** `uploading` ≠ ficheiro errado no Git; significa “ainda não está registado no estado de sync”.
+
+#### Passo 1 — Garantir que o servidor está igual ao Git
+
+Exemplo (menu truncado):
+
+```bash
+cd ~/www/administrativo
+wc -l app/adms/Views/partials/menu.php    # ~1777
+php -l app/adms/Views/partials/menu.php   # No syntax errors
+```
+
+Corrija no PC com `scp` o ficheiro completo **antes** de regenerar o estado.
+
+#### Passo 2 — Regenerar o estado a partir do repositório local (PC)
+
+```powershell
+cd C:\wamp64\www\administrativo
+php scripts/generate_ftp_deploy_state.php
+scp .ftp-deploy-sync-state.json tiaraju02@web119.kinghost.net:/home/tiaraju/www/administrativo/
+```
+
+No servidor:
+
+```bash
+ls -lh ~/www/administrativo/.ftp-deploy-sync-state.json
+```
+
+#### Passo 3 — Próximo deploy
+
+Deve aparecer sobretudo **`File content is the same, doing nothing`** e só `replacing`/`uploading` em ficheiros **realmente novos ou alterados** no Git.
+
+#### Alternativa (sem script)
+
+Apagar o estado e deixar **um** deploy FTP concluir até ao fim (pode demorar e ainda falhar por timeout na Kinghost):
+
+```bash
+cd ~/www/administrativo
+mv .ftp-deploy-sync-state.json .ftp-deploy-sync-state.json.bak
+# Disparar deploy no GitHub Actions e aguardar SUCESSO completo
+```
+
+#### Evitar repetir
+
+- Não enviar ficheiros grandes (ex.: `menu.php`) só por FileZilla; usar deploy ou `scp` + regenerar estado.
+- Após `scp` manual, validar com `wc -l` e `php -l`.
+- O workflow usa `concurrency` para não correr dois deploys em paralelo no mesmo ramo.
+
 ---
 
 ## 🔔 **Web Push (PWA) — limpeza de inscrições 410/404 e logs**

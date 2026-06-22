@@ -11,6 +11,11 @@ on:
       - dev-master
   workflow_dispatch: {}
 
+# Evita dois deploys simultâneos sobrescrevendo .ftp-deploy-sync-state.json no servidor.
+concurrency:
+  group: deploy-kinghost-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

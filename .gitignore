@@ -1,3 +1,6 @@
+# Estado do deploy FTP (fica só no servidor; gerar com scripts/generate_ftp_deploy_state.php)
+.ftp-deploy-sync-state.json
+
 # Dependências
 /vendor/
 
