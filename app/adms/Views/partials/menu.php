@@ -1,5 +1,6 @@
 <?php
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
+// comentário para atualizar arquivo e fazer commit
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 
 static $admsMenuPasswordPolicyId = null;
