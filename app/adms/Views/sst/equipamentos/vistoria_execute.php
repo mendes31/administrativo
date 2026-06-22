@@ -5,9 +5,14 @@ $respostas = $this->data['respostas'] ?? [];
 $readonly = !empty($this->data['readonly']);
 $csrfToken = CSRFHelper::generateCSRFToken('sst_equipamento_vistoria');
 $id = (int)($vistoria['id'] ?? 0);
+$fromQr = isset($_GET['from']) && $_GET['from'] === 'qr';
+$assinaturaEm = $vistoria['assinatura_confirmada_em'] ?? null;
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php if ($fromQr && !$readonly): ?>
+    <div class="alert alert-info py-2"><i class="fas fa-qrcode me-1"></i>Equipamento identificado via QR Code. Preencha o checklist e confirme a declaração para concluir.</div>
+    <?php endif; ?>
     <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3"><i class="fas fa-clipboard-check me-2"></i>Vistoria <?= htmlspecialchars($vistoria['competencia'] ?? '') ?></h2>
         <ol class="breadcrumb mb-3 ms-auto">
@@ -67,8 +72,34 @@ $id = (int)($vistoria['id'] ?? 0);
                         <textarea name="observacao" id="observacao" class="form-control" rows="2"><?= htmlspecialchars($vistoria['observacao'] ?? '') ?></textarea>
                     <?php endif; ?>
                 </div>
+                <?php if ($readonly && !empty($assinaturaEm)): ?>
+                <div class="alert alert-light border small mb-3">
+                    <strong>Assinatura eletrônica:</strong>
+                    confirmada em <?= date('d/m/Y H:i', strtotime((string) $assinaturaEm)) ?>
+                    <?php if (!empty($vistoria['executor_nome'])): ?>
+                    por <?= htmlspecialchars($vistoria['executor_nome']) ?>
+                    <?php endif; ?>
+                    <?php if (!empty($vistoria['assinatura_ip'])): ?>
+                    · IP <?= htmlspecialchars($vistoria['assinatura_ip']) ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
                 <?php if (!$readonly): ?>
-                <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i>Concluir vistoria</button>
+                <div class="card bg-light border mb-3">
+                    <div class="card-body py-3">
+                        <p class="small mb-2">
+                            Ao concluir, declaro ter realizado a inspeção física deste equipamento conforme o checklist acima,
+                            registrando fielmente as condições observadas. O sistema armazena data/hora, usuário, IP e navegador.
+                        </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="aceite_assinatura" id="aceite_assinatura" value="1" required>
+                            <label class="form-check-label" for="aceite_assinatura">
+                                Confirmo a realização da vistoria e a veracidade das informações registradas.
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i>Concluir e assinar vistoria</button>
                 <?php endif; ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias" class="btn btn-secondary">Voltar</a>
             </form>

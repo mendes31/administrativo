@@ -219,6 +219,7 @@ class LoadPageAdm
         "SstManageEquipamentoChecklistItem",
         "SstListEquipamentos", "SstCreateEquipamento", "SstViewEquipamento", "SstUpdateEquipamento", "SstDeleteEquipamento",
         "SstListEquipamentoVistorias", "SstMinhasEquipamentoVistorias", "SstExecuteEquipamentoVistoria",
+        "SstGenerateEquipamentoVistoria", "SstScanEquipamento", "SstExportEquipamentoQr",
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

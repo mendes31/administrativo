@@ -6,10 +6,17 @@ $perms = $this->data['buttonPermission'] ?? [];
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3"><i class="fas fa-tasks me-2"></i>Minhas vistorias</h2>
-        <ol class="breadcrumb mb-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-equipamentos">Equipamentos</a></li>
-            <li class="breadcrumb-item active">Minhas vistorias</li>
-        </ol>
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+            <?php if (in_array('SstScanEquipamento', $perms, true)): ?>
+            <a href="<?= $_ENV['URL_ADM']; ?>sst-scan-equipamento" class="btn btn-success btn-sm">
+                <i class="fas fa-qrcode me-1"></i>Ler QR Code
+            </a>
+            <?php endif; ?>
+            <ol class="breadcrumb mb-3 mb-0">
+                <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-equipamentos">Equipamentos</a></li>
+                <li class="breadcrumb-item active">Minhas vistorias</li>
+            </ol>
+        </div>
     </div>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
     <div class="row mb-3 g-2">

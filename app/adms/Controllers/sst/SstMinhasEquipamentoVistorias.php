@@ -46,7 +46,7 @@ class SstMinhasEquipamentoVistorias
         $pageElements = [
             'title_head' => 'Minhas vistorias - SST',
             'menu' => 'sst-minhas-equipamento-vistorias',
-            'buttonPermission' => ['SstMinhasEquipamentoVistorias', 'SstExecuteEquipamentoVistoria'],
+            'buttonPermission' => ['SstMinhasEquipamentoVistorias', 'SstExecuteEquipamentoVistoria', 'SstScanEquipamento'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/equipamentos/minhas_vistorias', $this->data))->loadView();

@@ -699,6 +699,8 @@ class PageLayoutService
             'SstExecuteEquipamentoVistoria',
             'SstEquipamentoSettings',
             'SstGenerateEquipamentoVistoria',
+            'SstScanEquipamento',
+            'SstExportEquipamentoQr',
         ];
 
         // Verificar se o usuário está logado

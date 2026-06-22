@@ -17,6 +17,9 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
         <div class="card-header hstack gap-2">
             <span>Cadastro</span>
             <span class="ms-auto d-flex gap-1">
+                <?php if (in_array('SstScanEquipamento', $perms, true)): ?>
+                <a href="<?= $_ENV['URL_ADM']; ?>sst-scan-equipamento" class="btn btn-success btn-sm"><i class="fas fa-qrcode"></i> Ler QR</a>
+                <?php endif; ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias" class="btn btn-outline-primary btn-sm"><i class="fas fa-tasks"></i> Minhas vistorias</a>
                 <?php if (in_array('SstCreateEquipamento', $perms, true)): ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-create-equipamento" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Novo</a>

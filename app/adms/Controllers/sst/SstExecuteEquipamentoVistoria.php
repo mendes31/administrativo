@@ -78,11 +78,19 @@ class SstExecuteEquipamentoVistoria
                 exit;
             }
         }
+        if (empty($_POST['aceite_assinatura'])) {
+            $_SESSION['msg'] = 'Confirme a declaração de realização da vistoria para concluir.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . $id);
+            exit;
+        }
         $ok = $repo->saveRespostasAndConclude(
             $id,
             $respostas,
             $_POST['observacao'] ?? null,
-            (int) ($_SESSION['user_id'] ?? 0)
+            (int) ($_SESSION['user_id'] ?? 0),
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            $_SERVER['HTTP_USER_AGENT'] ?? null,
         );
         $_SESSION['msg'] = $ok ? 'Vistoria concluída.' : 'Erro ao salvar vistoria.';
         $_SESSION['msg_type'] = $ok ? 'success' : 'danger';

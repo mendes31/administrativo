@@ -1085,6 +1085,12 @@ $menus = [
                         'icon' => 'fas fa-clipboard-check'
                     ],
                     [
+                        'label' => 'Ler QR equipamento',
+                        'url' => $_ENV['URL_ADM'] . 'sst-scan-equipamento',
+                        'permission' => 'SstScanEquipamento',
+                        'icon' => 'fas fa-qrcode'
+                    ],
+                    [
                         'label' => 'CIPA',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-cipa-mandatos',
                         'permission' => 'SstListCipaMandatos',

@@ -195,9 +195,33 @@ class SstEquipamentoVistoriasRepository extends DbConnection
         return $stmt->execute();
     }
 
-    /** @param list<array{id: int, resposta: ?string, observacao: ?string}> $respostas */
-    public function saveRespostasAndConclude(int $vistoriaId, array $respostas, ?string $observacaoGeral, int $userId): bool
+    public function findOpenForEquipamento(int $equipamentoId): ?array
     {
+        $sql = "SELECT v.*, e.codigo AS equipamento_codigo, e.localizacao, t.nome AS tipo_nome
+                FROM adms_sst_equipamento_vistorias v
+                INNER JOIN adms_sst_equipamentos e ON e.id = v.adms_sst_equipamento_id
+                INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
+                WHERE v.adms_sst_equipamento_id = :eq
+                  AND v.status IN ('Pendente','Em andamento','Vencida')
+                ORDER BY v.data_prevista ASC, v.id ASC
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eq', $equipamentoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /** @param list<array{id: int, resposta: ?string, observacao: ?string}> $respostas */
+    public function saveRespostasAndConclude(
+        int $vistoriaId,
+        array $respostas,
+        ?string $observacaoGeral,
+        int $userId,
+        ?string $assinaturaIp = null,
+        ?string $assinaturaUserAgent = null,
+    ): bool {
         $conn = $this->getConnection();
         try {
             $conn->beginTransaction();
@@ -217,12 +241,16 @@ class SstEquipamentoVistoriasRepository extends DbConnection
             $resultado = $hasNc ? 'Não conforme' : 'Conforme';
             $sqlV = "UPDATE adms_sst_equipamento_vistorias SET
                      status = 'Concluída', resultado = :resultado, observacao = :obs,
-                     data_realizada = NOW(), executor_adms_user_id = :uid, updated_at = NOW()
+                     data_realizada = NOW(), executor_adms_user_id = :uid,
+                     assinatura_confirmada_em = NOW(), assinatura_ip = :ip, assinatura_user_agent = :ua,
+                     updated_at = NOW()
                      WHERE id = :id";
             $stmtV = $conn->prepare($sqlV);
             $stmtV->bindValue(':resultado', $resultado);
             $stmtV->bindValue(':obs', $observacaoGeral);
             $stmtV->bindValue(':uid', $userId, PDO::PARAM_INT);
+            $stmtV->bindValue(':ip', $assinaturaIp);
+            $stmtV->bindValue(':ua', $assinaturaUserAgent !== null ? substr($assinaturaUserAgent, 0, 255) : null);
             $stmtV->bindValue(':id', $vistoriaId, PDO::PARAM_INT);
             $stmtV->execute();
             $conn->commit();

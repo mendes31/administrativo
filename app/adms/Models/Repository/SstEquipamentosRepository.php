@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstEquipamentoQrHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -102,7 +103,58 @@ class SstEquipamentosRepository extends DbConnection
             return false;
         }
 
-        return (int) $this->getConnection()->lastInsertId();
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            $this->ensureQrToken($newId);
+        }
+
+        return $newId;
+    }
+
+    public function getByQrToken(string $token): ?array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return null;
+        }
+
+        $sql = "SELECT e.*, t.nome AS tipo_nome, t.codigo AS tipo_codigo,
+                       d.name AS departamento_nome, u.name AS responsavel_nome
+                FROM adms_sst_equipamentos e
+                INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
+                LEFT JOIN adms_departments d ON d.id = e.adms_department_id
+                LEFT JOIN adms_users u ON u.id = e.responsavel_adms_user_id
+                WHERE e.qr_token = :token LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':token', $token);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function ensureQrToken(int $id): ?string
+    {
+        $item = $this->getById($id);
+        if (!$item) {
+            return null;
+        }
+        $existing = trim((string) ($item['qr_token'] ?? ''));
+        if ($existing !== '') {
+            return $existing;
+        }
+
+        for ($i = 0; $i < 5; $i++) {
+            $token = SstEquipamentoQrHelper::generateToken();
+            $sql = 'UPDATE adms_sst_equipamentos SET qr_token = :token, updated_at = NOW() WHERE id = :id';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':token', $token);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            if ($stmt->execute()) {
+                return $token;
+            }
+        }
+
+        return null;
     }
 
     public function update(int $id, array $data): bool

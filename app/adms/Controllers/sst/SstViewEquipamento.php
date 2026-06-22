@@ -25,6 +25,8 @@ class SstViewEquipamento
             exit;
         }
         $this->data['item'] = $item;
+        $this->data['qr_token'] = $repo->ensureQrToken($id);
+        $this->data['qr_scan_url'] = \App\adms\Helpers\SstEquipamentoQrHelper::buildScanUrl((string) $this->data['qr_token']);
         $this->data['historico'] = $repo->getVistoriaHistorico($id);
         $this->data['settings'] = (new SstEquipamentoSettingsRepository())->get();
         $pageElements = [
@@ -33,6 +35,7 @@ class SstViewEquipamento
             'buttonPermission' => [
                 'SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento',
                 'SstExecuteEquipamentoVistoria', 'SstGenerateEquipamentoVistoria',
+                'SstExportEquipamentoQr', 'SstScanEquipamento',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

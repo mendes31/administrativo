@@ -8,6 +8,7 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
 $csrfGerarVistoria = CSRFHelper::generateCSRFToken('sst_generate_equipamento_vistoria');
 $competenciaAtual = date('Y-m');
 $id = (int)($item['id'] ?? 0);
+$qrScanUrl = (string)($this->data['qr_scan_url'] ?? '');
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -45,6 +46,46 @@ $id = (int)($item['id'] ?? 0);
             </div>
         </div>
     </div>
+    <?php if ($qrScanUrl !== ''): ?>
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header hstack gap-2 flex-wrap">
+            <span><i class="fas fa-qrcode me-1"></i>QR Code — vistoria no celular</span>
+            <?php if (in_array('SstExportEquipamentoQr', $perms, true)): ?>
+            <a href="<?= $_ENV['URL_ADM']; ?>sst-export-equipamento-qr/<?= $id ?>" class="btn btn-outline-secondary btn-sm ms-auto" target="_blank" rel="noopener">
+                <i class="fas fa-download me-1"></i>Baixar PNG (etiqueta)
+            </a>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center g-3">
+                <div class="col-md-auto text-center">
+                    <div id="sst-equipamento-qr" class="d-inline-block p-2 bg-white border rounded"></div>
+                </div>
+                <div class="col-md">
+                    <p class="small text-muted mb-2">
+                        Cole a etiqueta no equipamento. O responsável pode ler o QR pela câmera do celular
+                        (<a href="<?= $_ENV['URL_ADM']; ?>sst-scan-equipamento">Ler QR dentro do sistema</a>)
+                        ou pelo app de câmera — em ambos os casos abre o checklist da vistoria pendente.
+                    </p>
+                    <p class="small mb-0"><strong>Link:</strong> <code class="user-select-all"><?= htmlspecialchars($qrScanUrl) ?></code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+    (function () {
+        var el = document.getElementById('sst-equipamento-qr');
+        if (!el || typeof QRCode === 'undefined') return;
+        new QRCode(el, {
+            text: <?= json_encode($qrScanUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+            width: 200,
+            height: 200,
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    })();
+    </script>
+    <?php endif; ?>
     <div class="card shadow-sm">
         <div class="card-header hstack gap-2 flex-wrap">
             <span>Histórico de vistorias</span>
