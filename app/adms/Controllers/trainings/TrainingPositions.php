@@ -59,7 +59,6 @@ class TrainingPositions
                 foreach ($cargosDesvinculados as $cargoId) {
                     $trainingUsersRepo->removeActiveLinksByCargoAndTraining($cargoId, $trainingId);
                     
-                    // Log da ação
                     \App\adms\Helpers\GenerateLog::generateLog(
                         "info", 
                         "Cargo desvinculado do treinamento - vínculos removidos", 
@@ -73,22 +72,9 @@ class TrainingPositions
                 }
             }
             
-            // Buscar todos os cargos obrigatórios do treinamento (não só os recém-marcados)
-            $allObrigatorios = $trainingPositionsRepo->getPositionIdsByTraining($trainingId);
-            $usersRepo = new \App\adms\Models\Repository\UsersRepository();
             $trainingUsersRepo = new \App\adms\Models\Repository\TrainingUsersRepository();
-            foreach ($allObrigatorios as $cargoId) {
-                $users = $usersRepo->getUsersByPosition($cargoId);
-                foreach ($users as $user) {
-                    // Verificar se o usuário está ativo antes de recriar vínculos
-                    // (otimização: evita chamar recreateLinksForUser para usuários inativos)
-                    if (isset($user['status']) && $user['status'] === 'Ativo') {
-                        // Sincronização robusta: materializa vínculo obrigatório por cargo
-                        // para todos os usuários ativos do cargo selecionado.
-                        $trainingUsersRepo->syncUserTrainingLinks((int)$user['id'], (int)$cargoId);
-                    }
-                }
-            }
+            $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers($trainingId);
+            \App\adms\Models\Services\TrainingStatusUpdaterService::ensureUpdated(true);
         } else {
             $_SESSION['error'] = 'Erro ao atualizar vínculos!';
         }
@@ -133,16 +119,5 @@ class TrainingPositions
 
         $loadView = new LoadViewService('adms/Views/trainings/trainingPositions', $this->data);
         $loadView->loadView();
-    }
-
-    private function updateTrainingMatrix(): void
-    {
-        try {
-            $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
-            $matrixService->updateMatrixForAllUsers();
-        } catch (\Exception $e) {
-            // Log do erro, mas não interrompe o fluxo
-            error_log('Erro ao atualizar matriz de treinamentos: ' . $e->getMessage());
-        }
     }
 } 

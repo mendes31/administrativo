@@ -106,8 +106,6 @@ class CreateTraining
         }
         $result = $repo->createTraining($this->data['form']);
         if ($result) {
-            $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
-            $matrixService->updateMatrixForAllUsers();
             $_SESSION['success'] = 'Treinamento cadastrado com sucesso!';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
             exit;

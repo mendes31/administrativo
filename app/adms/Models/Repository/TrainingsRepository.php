@@ -618,6 +618,13 @@ class TrainingsRepository extends DbConnection
                 $stmtCreateConcludedLinks->execute();
             }
 
+            // Remove vínculos da versão anterior: a matriz passa a ser da versão nova.
+            // Histórico de aplicações permanece em adms_training_applications (source_training_id).
+            $sqlCleanupSource = 'DELETE FROM adms_training_users WHERE adms_training_id = :source_training_id';
+            $stmtCleanupSource = $conn->prepare($sqlCleanupSource);
+            $stmtCleanupSource->bindValue(':source_training_id', $sourceTrainingId, PDO::PARAM_INT);
+            $stmtCleanupSource->execute();
+
             $conn->commit();
 
             \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(

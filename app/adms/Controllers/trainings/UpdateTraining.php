@@ -161,8 +161,10 @@ class UpdateTraining
                     ]
                 );
             } else {
-                // Atualização normal - atualizar matriz
-                $matrixService->updateMatrixForAllUsers();
+                // Atualização normal: sincroniza apenas o treinamento editado
+                $trainingUsersRepo = new \App\adms\Models\Repository\TrainingUsersRepository();
+                $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers($this->id);
+                \App\adms\Models\Services\TrainingStatusUpdaterService::ensureUpdated(true);
             }
             
             $_SESSION['success'] = 'Treinamento atualizado com sucesso!';

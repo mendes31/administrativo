@@ -134,7 +134,7 @@ class TrainingUsersRepository extends DbConnection
             }
 
             // Buscar vínculos atuais para consolidar escrita e evitar duplicados
-            $sqlCheck = "SELECT id, tipo_vinculo
+            $sqlCheck = "SELECT id, tipo_vinculo, status
                          FROM adms_training_users
                          WHERE adms_user_id = :user_id
                            AND adms_training_id = :training_id
@@ -148,6 +148,7 @@ class TrainingUsersRepository extends DbConnection
             $hasCargoAtivo = false;
             $latestSameTypeId = null;
             $latestAnyId = null;
+            $concluidoId = null;
 
             foreach ($ativos as $ativo) {
                 $currentId = (int)$ativo['id'];
@@ -158,6 +159,9 @@ class TrainingUsersRepository extends DbConnection
                 if (($ativo['tipo_vinculo'] ?? '') === $tipoVinculo) {
                     $latestSameTypeId = $latestSameTypeId === null ? $currentId : max($latestSameTypeId, $currentId);
                 }
+                if (($ativo['status'] ?? '') === 'concluido') {
+                    $concluidoId = $concluidoId === null ? $currentId : max($concluidoId, $currentId);
+                }
             }
 
             // Regra: se já há vínculo por cargo, não permitir criar vínculo individual
@@ -166,23 +170,38 @@ class TrainingUsersRepository extends DbConnection
             }
 
             if (!empty($ativos)) {
-                // Consolidar para um único vínculo por usuário+treinamento.
-                $keeperId = $latestSameTypeId ?? $latestAnyId;
+                // Priorizar registro concluído para não perder histórico na sincronização por cargo.
+                $keeperId = $concluidoId ?? $latestSameTypeId ?? $latestAnyId;
+                $keeperIsConcluido = $concluidoId !== null;
 
-                $sqlUpdate = "UPDATE adms_training_users
-                              SET status = :status,
-                                  tipo_vinculo = :tipo_vinculo,
-                                  motivo = :motivo,
-                                  updated_at = NOW(),
-                                  data_limite_primeiro_treinamento = :data_limite
-                              WHERE id = :id";
-                $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
-                $stmtUpdate->bindValue(':status', $status, PDO::PARAM_STR);
-                $stmtUpdate->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
-                $stmtUpdate->bindValue(':motivo', $motivo, PDO::PARAM_STR);
-                $stmtUpdate->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
-                $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
-                $stmtUpdate->execute();
+                if ($keeperIsConcluido) {
+                    // Apenas ajustar tipo de vínculo quando necessário; nunca reabrir treinamento concluído.
+                    $sqlUpdate = "UPDATE adms_training_users
+                                  SET tipo_vinculo = :tipo_vinculo,
+                                      updated_at = NOW()
+                                  WHERE id = :id
+                                    AND tipo_vinculo <> :tipo_vinculo_2";
+                    $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+                    $stmtUpdate->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
+                    $stmtUpdate->bindValue(':tipo_vinculo_2', $tipoVinculo, PDO::PARAM_STR);
+                    $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
+                    $stmtUpdate->execute();
+                } else {
+                    $sqlUpdate = "UPDATE adms_training_users
+                                  SET status = :status,
+                                      tipo_vinculo = :tipo_vinculo,
+                                      motivo = :motivo,
+                                      updated_at = NOW(),
+                                      data_limite_primeiro_treinamento = :data_limite
+                                  WHERE id = :id";
+                    $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+                    $stmtUpdate->bindValue(':status', $status, PDO::PARAM_STR);
+                    $stmtUpdate->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
+                    $stmtUpdate->bindValue(':motivo', $motivo, PDO::PARAM_STR);
+                    $stmtUpdate->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
+                    $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
+                    $stmtUpdate->execute();
+                }
 
                 $this->backupRowsForDedupeByUserTraining($userId, $trainingId, (int)$keeperId);
                 $sqlDeleteExtras = "DELETE FROM adms_training_users
@@ -1165,6 +1184,7 @@ class TrainingUsersRepository extends DbConnection
             INNER JOIN adms_trainings t 
                 ON t.id = tu.adms_training_id 
                AND t.ativo = 1
+            WHERE tu.status != "concluido" OR tu.status IS NULL
         ';
 
         $stmtActive = $pdo->prepare($sqlActive);
@@ -1226,6 +1246,212 @@ class TrainingUsersRepository extends DbConnection
         ];
     }
 
+    /**
+     * Estatísticas da matriz agrupadas por departamento.
+     * Regra: status em aberto = usuário/treinamento ativos; concluídos = não órfãos.
+     */
+    public function getMatrixStatisticsByDepartment(): array
+    {
+        $pdo = $this->getConnection();
+
+        $sqlActive = "SELECT
+                    d.id   AS group_id,
+                    d.name AS group_name,
+                    COUNT(*) AS total_entries,
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) AS em_dia,
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) AS pendentes,
+                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) AS vencidos,
+                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) AS agendados
+                FROM adms_training_users tu
+                INNER JOIN adms_users u
+                    ON u.id = tu.adms_user_id
+                   AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t
+                    ON t.id = tu.adms_training_id
+                   AND t.ativo = 1
+                INNER JOIN adms_departments d
+                    ON u.user_department_id = d.id
+                WHERE tu.status != 'concluido' OR tu.status IS NULL
+                GROUP BY d.id, d.name";
+
+        $sqlConcluidos = "SELECT
+                    d.id AS group_id,
+                    COUNT(*) AS concluidos
+                FROM adms_training_users tu
+                LEFT JOIN adms_users u ON u.id = tu.adms_user_id
+                LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
+                LEFT JOIN adms_departments d ON u.user_department_id = d.id
+                WHERE tu.status = 'concluido'
+                  AND u.id IS NOT NULL
+                  AND t.id IS NOT NULL
+                  AND d.id IS NOT NULL
+                GROUP BY d.id";
+
+        $byId = $this->mergeGroupedMatrixStatistics($pdo, $sqlActive, $sqlConcluidos, 'department');
+
+        $stmtAllDepts = $pdo->query('SELECT id, name FROM adms_departments ORDER BY name');
+        $allDepts = $stmtAllDepts->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($allDepts as $dept) {
+            $deptId = (int)$dept['id'];
+            if (!isset($byId[$deptId])) {
+                $byId[$deptId] = $this->emptyMatrixGroupRow('department', $deptId, $dept['name']);
+            }
+        }
+
+        usort($byId, static fn(array $a, array $b) => $b['total_vinculos'] <=> $a['total_vinculos']);
+
+        return array_values($byId);
+    }
+
+    /**
+     * Estatísticas da matriz agrupadas por cargo (top N por volume).
+     */
+    public function getMatrixStatisticsByPosition(int $limit = 10): array
+    {
+        $pdo = $this->getConnection();
+
+        $sqlActive = "SELECT
+                    p.id   AS group_id,
+                    p.name AS group_name,
+                    COUNT(*) AS total_entries,
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo') THEN 1 ELSE 0 END) AS em_dia,
+                    SUM(CASE WHEN tu.status = 'proximo_vencimento' THEN 1 ELSE 0 END) AS pendentes,
+                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) AS vencidos,
+                    SUM(CASE WHEN tu.status = 'agendado' THEN 1 ELSE 0 END) AS agendados
+                FROM adms_training_users tu
+                INNER JOIN adms_users u
+                    ON u.id = tu.adms_user_id
+                   AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t
+                    ON t.id = tu.adms_training_id
+                   AND t.ativo = 1
+                INNER JOIN adms_positions p
+                    ON u.user_position_id = p.id
+                WHERE tu.status != 'concluido' OR tu.status IS NULL
+                GROUP BY p.id, p.name";
+
+        $sqlConcluidos = "SELECT
+                    p.id AS group_id,
+                    COUNT(*) AS concluidos
+                FROM adms_training_users tu
+                LEFT JOIN adms_users u ON u.id = tu.adms_user_id
+                LEFT JOIN adms_trainings t ON t.id = tu.adms_training_id
+                LEFT JOIN adms_positions p ON u.user_position_id = p.id
+                WHERE tu.status = 'concluido'
+                  AND u.id IS NOT NULL
+                  AND t.id IS NOT NULL
+                  AND p.id IS NOT NULL
+                GROUP BY p.id";
+
+        $byId = $this->mergeGroupedMatrixStatistics($pdo, $sqlActive, $sqlConcluidos, 'position');
+
+        usort($byId, static fn(array $a, array $b) => $b['total_vinculos'] <=> $a['total_vinculos']);
+
+        return array_slice(array_values($byId), 0, $limit);
+    }
+
+    /**
+     * Combina contagens de status em aberto e concluídos por grupo.
+     */
+    private function mergeGroupedMatrixStatistics(
+        \PDO $pdo,
+        string $sqlActive,
+        string $sqlConcluidos,
+        string $entityType
+    ): array {
+        $stmtActive = $pdo->prepare($sqlActive);
+        $stmtActive->execute();
+        $activeStats = $stmtActive->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $stmtConc = $pdo->prepare($sqlConcluidos);
+        $stmtConc->execute();
+        $concluidosStats = $stmtConc->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $concluidosMap = [];
+        foreach ($concluidosStats as $row) {
+            $concluidosMap[(int)$row['group_id']] = (int)($row['concluidos'] ?? 0);
+        }
+
+        $byId = [];
+        foreach ($activeStats as $row) {
+            $groupId = (int)$row['group_id'];
+            $concluidos = $concluidosMap[$groupId] ?? 0;
+            $totalDinamicos = (int)($row['total_entries'] ?? 0);
+
+            $byId[$groupId] = $this->buildMatrixGroupRow(
+                $entityType,
+                $groupId,
+                $row['group_name'],
+                $totalDinamicos,
+                $concluidos,
+                $row
+            );
+            unset($concluidosMap[$groupId]);
+        }
+
+        foreach ($concluidosMap as $groupId => $concluidos) {
+            $name = $this->resolveMatrixGroupName($pdo, $entityType, (int)$groupId);
+            if ($name === null) {
+                continue;
+            }
+            $byId[(int)$groupId] = $this->buildMatrixGroupRow(
+                $entityType,
+                (int)$groupId,
+                $name,
+                0,
+                $concluidos,
+                []
+            );
+        }
+
+        return $byId;
+    }
+
+    private function buildMatrixGroupRow(
+        string $entityType,
+        int $groupId,
+        string $groupName,
+        int $totalDinamicos,
+        int $concluidos,
+        array $statusRow
+    ): array {
+        $base = [
+            'total_vinculos' => $totalDinamicos + $concluidos,
+            'concluidos'      => $concluidos,
+            'em_dia'          => (int)($statusRow['em_dia'] ?? 0),
+            'pendentes'       => (int)($statusRow['pendentes'] ?? 0),
+            'vencidos'        => (int)($statusRow['vencidos'] ?? 0),
+            'agendados'       => (int)($statusRow['agendados'] ?? 0),
+        ];
+
+        if ($entityType === 'department') {
+            return array_merge([
+                'department_id'   => $groupId,
+                'department_name' => $groupName,
+            ], $base);
+        }
+
+        return array_merge([
+            'position_id'   => $groupId,
+            'position_name' => $groupName,
+        ], $base);
+    }
+
+    private function emptyMatrixGroupRow(string $entityType, int $groupId, string $groupName): array
+    {
+        return $this->buildMatrixGroupRow($entityType, $groupId, $groupName, 0, 0, []);
+    }
+
+    private function resolveMatrixGroupName(\PDO $pdo, string $entityType, int $groupId): ?string
+    {
+        $table = $entityType === 'department' ? 'adms_departments' : 'adms_positions';
+        $stmt = $pdo->prepare("SELECT name FROM {$table} WHERE id = ?");
+        $stmt->execute([$groupId]);
+        $name = $stmt->fetchColumn();
+
+        return $name !== false ? (string)$name : null;
+    }
+
     public function getSummaryMandatory(): array
     {
         $sql = 'SELECT 
@@ -1277,10 +1503,10 @@ class TrainingUsersRepository extends DbConnection
                     ta.data_realizacao,
                     ta.data_agendada
                 FROM adms_training_users tu
-                INNER JOIN adms_users u ON u.id = tu.adms_user_id
+                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = "Ativo"
                 INNER JOIN adms_departments d ON u.user_department_id = d.id
                 INNER JOIN adms_positions p ON u.user_position_id = p.id
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
                 INNER JOIN adms_training_positions tp ON tp.adms_training_id = t.id 
                     AND tp.adms_position_id = u.user_position_id 
                     AND tp.obrigatorio = 1
@@ -1675,33 +1901,16 @@ class TrainingUsersRepository extends DbConnection
      */
     public function getStatusCounts(): array
     {
-        $sql = 'SELECT status, COUNT(*) as count FROM adms_training_users GROUP BY status';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $counts = [
-            'pendente' => 0,
-            'em_dia' => 0,               // inclui em_dia + dentro_do_prazo
-            'proximo_vencimento' => 0,
-            'vencido' => 0,
-            'agendado' => 0,
-            'concluido' => 0,
+        $summary = $this->getSummaryAll();
+
+        return [
+            'pendente'            => (int)($summary['pendentes'] ?? 0),
+            'em_dia'              => (int)($summary['em_dia'] ?? 0),
+            'proximo_vencimento'  => (int)($summary['proximo_vencimento'] ?? 0),
+            'vencido'             => (int)($summary['vencidos'] ?? 0),
+            'agendado'            => (int)($summary['agendados'] ?? 0),
+            'concluido'           => (int)($summary['concluidos'] ?? 0),
         ];
-        foreach ($result as $row) {
-            $status = $row['status'];
-            $count  = (int) $row['count'];
-
-            // Agrupar "dentro_do_prazo" e "em_dia" dentro de "em_dia" para manter coerência com os cards
-            if ($status === 'dentro_do_prazo' || $status === 'em_dia') {
-                $counts['em_dia'] += $count;
-                continue;
-            }
-
-            if (isset($counts[$status])) {
-                $counts[$status] += $count;
-            }
-        }
-        return $counts;
     }
 
     /**
@@ -1752,13 +1961,14 @@ class TrainingUsersRepository extends DbConnection
     {
         // Pendências: treinamentos dentro do prazo, próximos do vencimento ou vencidos (exclui concluídos e agendados)
         // Nota: Repetir a expressão SUM no HAVING e ORDER BY para compatibilidade com MySQL
-        $sql = "SELECT 
-                    u.id as user_id, 
-                    u.name, 
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) as pendentes 
-                FROM adms_training_users tu 
-                INNER JOIN adms_users u ON u.id = tu.adms_user_id 
-                GROUP BY u.id, u.name 
+        $sql = "SELECT
+                    u.id as user_id,
+                    u.name,
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) as pendentes
+                FROM adms_training_users tu
+                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
+                GROUP BY u.id, u.name
                 HAVING SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) > 0
                 ORDER BY SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) DESC, u.name ASC 
                 LIMIT 5";
@@ -1774,15 +1984,16 @@ class TrainingUsersRepository extends DbConnection
     {
         // Nota: MySQL não permite referenciar aliases de agregação dentro de expressões no HAVING/ORDER BY.
         // Repetimos as expressões de agregação completas para compatibilidade.
-        $sql = "SELECT 
-                    t.id as training_id, 
-                    t.nome as training_name, 
+        $sql = "SELECT
+                    t.id as training_id,
+                    t.nome as training_name,
                     -- Pendentes: dentro do prazo + próximo do vencimento
-                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento') THEN 1 ELSE 0 END) as pendentes, 
+                    SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento') THEN 1 ELSE 0 END) as pendentes,
                     -- Vencidos
-                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos 
-                FROM adms_training_users tu 
-                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id 
+                    SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END) as vencidos
+                FROM adms_training_users tu
+                INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
+                INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
                 GROUP BY t.id, t.nome
                 HAVING (SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento') THEN 1 ELSE 0 END) + 
                         SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END)) > 0
@@ -1915,7 +2126,7 @@ class TrainingUsersRepository extends DbConnection
     /**
      * Retorna os usuários já vinculados a um treinamento
      */
-    public function getUsuariosVinculados($trainingId)
+    public function getUsuariosVinculados(int $trainingId): array
     {
         // Vínculos diretos (apenas usuários ATIVOS)
         $sqlDireto = "SELECT u.id, u.name, u.email, 'direto' as tipo
@@ -1952,7 +2163,7 @@ class TrainingUsersRepository extends DbConnection
      * - Direto: todos os usuários com tipo_vinculo = 'individual'
      * Adiciona o nome do cargo ao lado do nome
      */
-    public function getAllVinculadosPorTreinamento($trainingId)
+    public function getAllVinculadosPorTreinamento(int $trainingId): array
     {
         // Buscar todos os vínculos individuais (apenas usuários ATIVOS)
         $sqlIndividuais = "SELECT tu.adms_user_id as id, u.name, u.email, 'individual' as tipo, p.name as cargo_nome, d.name as department_nome, tp.tipo_treinamento
@@ -2298,14 +2509,16 @@ class TrainingUsersRepository extends DbConnection
         $this->insertOrUpdate($userId, $trainingId, $status, $tipoVinculo, $dataLimite, $motivo);
     }
 
-    public function removeActiveLinksByUser($userId) {
+    public function removeActiveLinksByUser(int $userId): void
+    {
         $sql = "DELETE FROM adms_training_users WHERE adms_user_id = :user_id AND status != 'concluido'";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
     }
 
-    public function removeActiveLinksByCargoAndTraining($cargoId, $trainingId) {
+    public function removeActiveLinksByCargoAndTraining(int $cargoId, int $trainingId): void
+    {
         $sql = "DELETE tu FROM adms_training_users tu
                 INNER JOIN adms_users u ON u.id = tu.adms_user_id
                 WHERE u.user_position_id = :cargo_id AND tu.adms_training_id = :training_id AND tu.tipo_vinculo = 'cargo' AND tu.status != 'concluido'";
@@ -2315,14 +2528,16 @@ class TrainingUsersRepository extends DbConnection
         $stmt->execute();
     }
 
-    public function removeActiveLinksByTraining($trainingId) {
+    public function removeActiveLinksByTraining(int $trainingId): void
+    {
         $sql = "DELETE FROM adms_training_users WHERE adms_training_id = :training_id AND status != 'concluido'";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
         $stmt->execute();
     }
 
-    public function getLastCompletedTraining($userId, $trainingId) {
+    public function getLastCompletedTraining(int $userId, int $trainingId): ?array
+    {
         // Fonte oficial de conclusão: aplicações registradas.
         $sqlApp = "SELECT id, adms_user_id, adms_training_id, data_realizacao, status, created_at, updated_at
                    FROM adms_training_applications
@@ -2343,13 +2558,17 @@ class TrainingUsersRepository extends DbConnection
         return null;
     }
 
-    public function isReciclagemVencida($dataRealizacao, $reciclagemPeriodo) {
-        if (!$dataRealizacao || !$reciclagemPeriodo) return true;
-        $dataVencimento = (new \DateTime($dataRealizacao))->modify('+' . $reciclagemPeriodo . ' months');
-        return (new \DateTime() > $dataVencimento);
+    public function isReciclagemVencida(?string $dataRealizacao, int|string|null $reciclagemPeriodo): bool
+    {
+        if (!$dataRealizacao || !$reciclagemPeriodo) {
+            return true;
+        }
+        $dataVencimento = (new \DateTime($dataRealizacao))->modify('+' . (int)$reciclagemPeriodo . ' months');
+        return new \DateTime() > $dataVencimento;
     }
 
-    public function recreateLinksForUser($userId, $userPositionId) {
+    public function recreateLinksForUser(int $userId, int $userPositionId): void
+    {
         // Verificar se o usuário está ativo antes de recriar vínculos
         $usersRepo = new \App\adms\Models\Repository\UsersRepository();
         $user = $usersRepo->getUser($userId);
@@ -2380,7 +2599,8 @@ class TrainingUsersRepository extends DbConnection
         }
     }
 
-    public function recreateLinksForTraining($trainingId) {
+    public function recreateLinksForTraining(int $trainingId): void
+    {
         // Verificar se o treinamento está ativo antes de recriar vínculos
         $trainingsRepo = new \App\adms\Models\Repository\TrainingsRepository();
         $training = $trainingsRepo->getTraining($trainingId);

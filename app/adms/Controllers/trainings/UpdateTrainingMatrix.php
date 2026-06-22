@@ -2,14 +2,16 @@
 
 namespace App\adms\Controllers\trainings;
 
+/**
+ * Rota legada: sincronização manual foi descontinuada.
+ * Redireciona para a visão da matriz com aviso.
+ */
 class UpdateTrainingMatrix
 {
     public function index(): void
     {
-        $service = new TrainingMatrixService();
-        $service->updateMatrixForAllUsers();
-        $_SESSION['msg'] = '<div class="alert alert-success">Matriz de treinamentos obrigatórios atualizada com sucesso para todos os colaboradores!</div>';
-        header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
+        $_SESSION['success'] = 'A matriz de treinamentos é atualizada automaticamente a cada operação no módulo. Não é necessário sincronizar manualmente.';
+        header('Location: ' . $_ENV['URL_ADM'] . 'training-matrix-manager');
         exit;
     }
-} 
+}

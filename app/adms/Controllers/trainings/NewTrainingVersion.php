@@ -4,6 +4,7 @@ namespace App\adms\Controllers\trainings;
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\TrainingsRepository;
+use App\adms\Controllers\trainings\TrainingMatrixService;
 
 class NewTrainingVersion
 {
@@ -67,6 +68,9 @@ class NewTrainingVersion
             header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $sourceTrainingId);
             exit;
         }
+
+        $matrixService = new TrainingMatrixService();
+        $matrixService->syncAfterTrainingVersion((int)$newId);
 
         $_SESSION['success'] = 'Nova versão criada com sucesso.';
         header('Location: ' . $_ENV['URL_ADM'] . 'view-training/' . $newId);

@@ -237,13 +237,14 @@ Os pontos principais são:
   - Após excluir um cargo, o sistema chama `updateMatrixForAllUsers()` para limpar/ajustar vínculos que ficaram inconsistentes.
 
 - **Ferramentas administrativas da matriz (`TrainingMatrixManager`)**  
-  - Permite:
-    - atualizar a matriz de **todos** os usuários (`updateMatrixForAllUsers()`);
-    - atualizar a matriz de **um usuário específico** (`updateMatrixForUser($userId)`);
-    - atualizar a matriz de **um cargo** (recalculando para todos os usuários daquele cargo).
+  - Tela somente leitura com estatísticas da matriz (totais e distribuição por status).
+  - A sincronização é automática; não há mais botões de atualização manual.
 
-- **Sincronizações pontuais (`TrainingDashboard`, `SyncTrainingLinks`)**  
-  - Usam `TrainingUsersRepository::syncUserTrainingLinks($userId, $positionId)` para alinhar manualmente os vínculos de um colaborador com um cargo específico, sem recalcular toda a matriz.
+- **Nova versão de treinamento (`NewTrainingVersion`)**  
+  - Após `createNewVersion()`, o sistema:
+    - remove vínculos da versão anterior em `adms_training_users` (histórico permanece em `adms_training_applications`);
+    - chama `syncAfterTrainingVersion($newId)` para materializar vínculos da versão atual nos cargos obrigatórios;
+    - recalcula status dinâmicos imediatamente.
 
 > Importante: o `TrainingUsersRepository` não chama mais `recreateLinksForUser` internamente em operações básicas (como `insertOrUpdate`), para evitar recursão e estouro de memória.  
 > O recálculo “global” da matriz sempre deve ser feito via `TrainingMatrixService` ou pelas telas administrativas citadas acima.

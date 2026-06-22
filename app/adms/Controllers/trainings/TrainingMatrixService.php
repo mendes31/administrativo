@@ -96,6 +96,16 @@ class TrainingMatrixService
             $this->updateMatrixForUser($user['id']);
         }
     }
+
+    /**
+     * Sincroniza a matriz após criação de nova versão de treinamento.
+     */
+    public function syncAfterTrainingVersion(int $newTrainingId): void
+    {
+        $trainingUsersRepo = $this->getTrainingUsersRepo();
+        $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers($newTrainingId);
+        \App\adms\Models\Services\TrainingStatusUpdaterService::ensureUpdated(true);
+    }
     
     /**
      * Recria vínculos quando um treinamento é reativado
