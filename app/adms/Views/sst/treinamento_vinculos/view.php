@@ -13,6 +13,9 @@ $st = (string)($item['status'] ?? '');
             <?php if (in_array('SstApplyTreinamento', $perms)): ?>
             <a href="<?= $_ENV['URL_ADM']; ?>sst-apply-treinamento/<?= (int)$item['id'] ?>" class="btn btn-success btn-sm">Aplicar / agendar</a>
             <?php endif; ?>
+            <?php if (in_array('SstExportTreinamentoCertificadoPdf', $perms) && !empty($item['data_realizacao'])): ?>
+            <a href="<?= $_ENV['URL_ADM']; ?>sst-export-treinamento-certificado-pdf/<?= (int)$item['id'] ?>" class="btn btn-outline-primary btn-sm" target="_blank">Certificado PDF</a>
+            <?php endif; ?>
             <a href="<?= $_ENV['URL_ADM']; ?>sst-list-treinamento-vinculos" class="btn btn-secondary btn-sm">Voltar</a>
         </span>
     </div>
@@ -30,7 +33,16 @@ $st = (string)($item['status'] ?? '');
                     <tr><th>Validade:</th><td><?= !empty($item['data_validade']) ? date('d/m/Y', strtotime($item['data_validade'])) : '-' ?></td></tr>
                     <tr><th>Limite 1º treinamento:</th><td><?= !empty($item['data_limite_primeiro']) ? date('d/m/Y', strtotime($item['data_limite_primeiro'])) : '-' ?></td></tr>
                     <tr><th>Nota:</th><td><?= htmlspecialchars((string)($item['nota'] ?? '-')) ?></td></tr>
-                    <tr><th>Certificado:</th><td><?= htmlspecialchars($item['certificado'] ?? '-') ?></td></tr>
+                    <tr><th>Certificado:</th><td>
+                        <?php if (!empty($item['certificado'])): ?>
+                            <?= htmlspecialchars(basename((string)$item['certificado'])) ?>
+                            <?php if (in_array('SstExportTreinamentoCertificadoPdf', $perms)): ?>
+                            <a href="<?= $_ENV['URL_ADM']; ?>sst-export-treinamento-certificado-pdf/<?= (int)$item['id'] ?>" class="btn btn-link btn-sm p-0 ms-1" target="_blank">Abrir PDF</a>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td></tr>
                 </table></div>
             </div>
             <div class="card mb-4 shadow-sm">

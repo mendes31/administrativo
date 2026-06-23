@@ -214,6 +214,46 @@ class SstDashboardService extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function getTreinamentosVencidosCount(): int
+    {
+        if (!$this->hasTable('adms_sst_treinamento_vinculos')) {
+            return 0;
+        }
+        $sql = "SELECT COUNT(*) AS total FROM adms_sst_treinamento_vinculos WHERE status = 'vencido'";
+
+        return (int) ($this->getConnection()->query($sql)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    public function getTreinamentosPendentesCount(): int
+    {
+        if (!$this->hasTable('adms_sst_treinamento_vinculos')) {
+            return 0;
+        }
+        $sql = "SELECT COUNT(*) AS total FROM adms_sst_treinamento_vinculos
+                WHERE status IN ('pendente', 'agendado', 'proximo_vencimento', 'vencido')";
+
+        return (int) ($this->getConnection()->query($sql)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+    }
+
+    public function getTreinamentosPendentes(int $limit = 5): array
+    {
+        if (!$this->hasTable('adms_sst_treinamento_vinculos')) {
+            return [];
+        }
+        $sql = "SELECT v.*, u.name AS colaborador_nome, tr.nome AS treinamento_nome
+                FROM adms_sst_treinamento_vinculos v
+                INNER JOIN adms_users u ON u.id = v.adms_user_id
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = v.adms_sst_treinamento_id
+                WHERE v.status IN ('pendente', 'agendado', 'proximo_vencimento', 'vencido')
+                ORDER BY FIELD(v.status, 'vencido', 'pendente', 'agendado', 'proximo_vencimento'), v.data_validade ASC, v.id DESC
+                LIMIT :lim";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     private function hasTable(string $table): bool
     {
         $stmt = $this->getConnection()->prepare(

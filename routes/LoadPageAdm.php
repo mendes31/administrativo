@@ -55,7 +55,7 @@ class LoadPageAdm
 
     private array $listPgPrivate = [
         "Dashboard",
-        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "PayrollImportBatchReport", "PayrollImportBatchAudit", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "ViewPayrollSignedBundle", "ConfirmPayrollDocumentDownload", "SignPayrollDocument", "PayrollSignatureReceipt", "ListPayrollSigningPendencies", "PayrollRemindersCron", "PayrollCronConfig", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf", "MyEpiDeliveries", "SignEpiFicha", "ViewEpiFichaPdf",
+        "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "PayrollImportBatchReport", "PayrollImportBatchAudit", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "ViewPayrollSignedBundle", "ConfirmPayrollDocumentDownload", "SignPayrollDocument", "PayrollSignatureReceipt", "ListPayrollSigningPendencies", "PayrollRemindersCron", "PayrollCronConfig", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf", "MyEpiDeliveries", "SignEpiFicha", "ViewEpiFichaPdf", "MySstTreinamentos", "ViewSstTreinamentoCertificadoPdf",
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
         "ExportAccessLevelsPermissionsPdf", "ExportAccessLevelsPermissionsExcel",
@@ -213,7 +213,7 @@ class LoadPageAdm
         "SstListTreinamentos", "SstCreateTreinamento", "SstViewTreinamento", "SstUpdateTreinamento", "SstDeleteTreinamento",
         "SstListTreinamentoNecessidade", "SstCreateTreinamentoNecessidade", "SstUpdateTreinamentoNecessidade", "SstDeleteTreinamentoNecessidade",
         "SstListRiscoTreinamento", "SstCreateRiscoTreinamento", "SstUpdateRiscoTreinamento", "SstDeleteRiscoTreinamento", "SstSaveRiscoTreinamentos",
-        "SstListTreinamentoVinculos", "SstViewTreinamentoVinculo", "SstApplyTreinamento", "SstSyncTreinamentoVinculos", "SstReportTreinamentos",
+        "SstListTreinamentoVinculos", "SstViewTreinamentoVinculo", "SstApplyTreinamento", "SstSyncTreinamentoVinculos", "SstReportTreinamentos", "SstExportTreinamentoCertificadoPdf",
         "SstListRiscoCargo", "SstCreateRiscoCargo", "SstUpdateRiscoCargo", "SstDeleteRiscoCargo",
         "SstListRiscoExame", "SstCreateRiscoExame", "SstUpdateRiscoExame", "SstDeleteRiscoExame",
         "SstListRiscoEpi", "SstCreateRiscoEpi", "SstUpdateRiscoEpi", "SstDeleteRiscoEpi",

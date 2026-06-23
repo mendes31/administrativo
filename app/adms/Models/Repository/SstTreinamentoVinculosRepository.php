@@ -86,6 +86,36 @@ class SstTreinamentoVinculosRepository extends DbConnection
         return $row ?: null;
     }
 
+    /** @return list<array<string, mixed>> */
+    public function getByUserId(int $userId, int $limit = 100): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $sql = "SELECT v.*, tr.nome AS treinamento_nome, tr.codigo AS treinamento_codigo,
+                       tr.nr_referencia, tr.modalidade AS treinamento_modalidade
+                FROM adms_sst_treinamento_vinculos v
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = v.adms_sst_treinamento_id
+                WHERE v.adms_user_id = :uid
+                ORDER BY
+                    FIELD(v.status, 'vencido', 'pendente', 'agendado', 'proximo_vencimento', 'dentro_do_prazo', 'concluido'),
+                    tr.nome
+                LIMIT :lim";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function getByIdForUser(int $id, int $userId): ?array
+    {
+        $row = $this->getById($id);
+
+        return ($row !== null && (int) ($row['adms_user_id'] ?? 0) === $userId) ? $row : null;
+    }
+
     public function calculateStatus(array $vinculo): string
     {
         return (new SstTreinamentoStatusService())->calculateStatus($vinculo);

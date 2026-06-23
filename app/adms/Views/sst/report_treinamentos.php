@@ -28,7 +28,7 @@ use App\adms\Helpers\SstTreinamentoStatusHelper;
         </div>
         <div class="col-auto"><button class="btn btn-primary btn-sm">Filtrar</button></div>
     </form>
-    <div class="table-responsive">
+    <div class="table-responsive d-none d-md-block">
         <table class="table table-bordered table-striped">
             <thead><tr><th>Colaborador</th><th>Treinamento</th><th>Status</th><th>Realização</th><th>Validade</th><th>Motivo</th></tr></thead>
             <tbody>
@@ -44,6 +44,23 @@ use App\adms\Helpers\SstTreinamentoStatusHelper;
             </tr><?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+    <div class="d-block d-md-none">
+        <?php foreach ($this->data['items'] ?? [] as $r):
+            $st = (string)($r['status'] ?? '');
+        ?>
+        <div class="card mb-2 shadow-sm">
+            <div class="card-body py-2 px-3">
+                <div class="fw-bold small"><?= htmlspecialchars($r['colaborador_nome'] ?? '') ?></div>
+                <div class="small"><?= htmlspecialchars($r['treinamento_nome'] ?? '') ?></div>
+                <span class="badge <?= SstTreinamentoStatusHelper::badgeClass($st) ?>"><?= htmlspecialchars(SstTreinamentoStatusHelper::label($st)) ?></span>
+                <div class="small text-muted mt-1">
+                    Realização: <?= !empty($r['data_realizacao']) ? date('d/m/Y', strtotime($r['data_realizacao'])) : '-' ?>
+                    · Validade: <?= !empty($r['data_validade']) ? date('d/m/Y', strtotime($r['data_validade'])) : '-' ?>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
     </div>
     <a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard" class="btn btn-secondary">Voltar</a>
 </div>

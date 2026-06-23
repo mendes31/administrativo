@@ -10,6 +10,7 @@ use App\adms\Models\Repository\SstTreinamentoAplicacoesRepository;
 use App\adms\Models\Repository\SstTreinamentosRepository;
 use App\adms\Models\Repository\SstTreinamentoVinculosRepository;
 use App\adms\Models\Services\SstPendenciasService;
+use App\adms\Models\Services\SstTreinamentoCertificadoPdfService;
 use App\adms\Models\Services\SstTreinamentoStatusService;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -79,7 +80,7 @@ class SstApplyTreinamento
             $dataValidade = SstTreinamentoStatusService::calcularDataValidade($dataRealizacao, $validadeMeses > 0 ? $validadeMeses : null);
         }
 
-        (new SstTreinamentoAplicacoesRepository())->create([
+        $aplicacaoId = (new SstTreinamentoAplicacoesRepository())->create([
             'adms_sst_treinamento_vinculo_id' => $vinculoId,
             'adms_user_id' => (int) $vinculo['adms_user_id'],
             'adms_sst_treinamento_id' => (int) $vinculo['adms_sst_treinamento_id'],
@@ -89,7 +90,7 @@ class SstApplyTreinamento
             'instrutor_nome' => $_POST['instrutor_nome'] ?? null,
             'instrutor_registro' => $_POST['instrutor_registro'] ?? null,
             'modalidade_aplicada' => $_POST['modalidade_aplicada'] ?? null,
-            'certificado' => $_POST['certificado'] ?? null,
+            'certificado' => null,
             'observacoes' => $_POST['observacoes'] ?? null,
             'status' => $statusAplicacao,
         ]);
@@ -99,12 +100,28 @@ class SstApplyTreinamento
             'data_agendada' => $statusAplicacao === 'agendado' ? ($dataAgendada !== '' ? $dataAgendada : null) : null,
             'data_validade' => $dataValidade ?? $vinculo['data_validade'] ?? null,
             'nota' => $_POST['nota'] ?? null,
-            'certificado' => $_POST['certificado'] ?? null,
+            'certificado' => null,
             'observacoes' => $_POST['observacoes'] ?? null,
             'motivo' => !empty($vinculo['data_realizacao']) ? 'reciclagem' : ($vinculo['motivo'] ?? 'primeiro'),
         ]);
         $vinculoRepo->update($vinculoId, $updateData);
         (new SstTreinamentoStatusService())->recalculateVinculo($vinculoId);
+
+        if ($statusAplicacao === 'concluido' && $dataRealizacao !== '') {
+            try {
+                (new SstTreinamentoCertificadoPdfService())->generateForVinculo(
+                    $vinculoId,
+                    is_int($aplicacaoId) && $aplicacaoId > 0 ? $aplicacaoId : null
+                );
+            } catch (\Throwable $e) {
+                $_SESSION['msg'] = 'Treinamento registrado, mas o certificado PDF não foi gerado: ' . $e->getMessage();
+                $_SESSION['msg_type'] = 'warning';
+                SstPendenciasService::invalidateDashboardCache();
+                header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-treinamento-vinculo/' . $vinculoId);
+                exit;
+            }
+        }
+
         SstPendenciasService::invalidateDashboardCache();
 
         $_SESSION['msg'] = 'Treinamento registrado com sucesso.';

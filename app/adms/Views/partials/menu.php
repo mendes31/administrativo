@@ -692,6 +692,12 @@ $menus = [
                 'icon' => 'fas fa-hard-hat'
             ],
             [
+                'label' => 'Meus treinamentos SST',
+                'url' => $_ENV['URL_ADM'] . 'my-sst-treinamentos',
+                'permission' => 'MySstTreinamentos',
+                'icon' => 'fas fa-graduation-cap'
+            ],
+            [
                 'label' => 'Importar documentos RH (PDF)',
                 'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
                 'permission' => 'ImportPayrollDocuments',

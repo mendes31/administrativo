@@ -126,6 +126,7 @@ jobs:
             lib/
             lib/**
             storage/sst/epi_fichas/**
+            storage/sst/treinamento_certificados/**
             storage/sst/attachments/**
             storage/lgpd/consentimentos/**
             storage/private/payroll/**
@@ -174,6 +175,7 @@ jobs:
             lib/
             lib/**
             storage/sst/epi_fichas/**
+            storage/sst/treinamento_certificados/**
             storage/sst/attachments/**
             storage/lgpd/consentimentos/**
             storage/private/payroll/**

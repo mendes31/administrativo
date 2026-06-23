@@ -49,6 +49,9 @@ class SstPendenciasService extends DbConnection
             'epis_amostra' => $this->getPendenciasEpiGeral(['_limit' => $amostra]),
             'exames_amostra' => $this->getPendenciasExameGeral(['_limit' => $amostra]),
         ];
+        if (self::incluirTreinamentos()) {
+            $data['treinamentos_amostra'] = $this->getPendenciasTreinamentoGeral(['_limit' => $amostra]);
+        }
         $this->writeDashboardCache($data);
 
         return $data;

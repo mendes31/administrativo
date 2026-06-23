@@ -74,6 +74,28 @@ class SstTreinamentoAplicacoesRepository extends DbConnection
         return $newId;
     }
 
+    public function updateCertificado(int $id, string $relPath): bool
+    {
+        $oldData = $this->getById($id);
+        if (!$oldData) {
+            return false;
+        }
+        $sql = 'UPDATE adms_sst_treinamento_aplicacoes SET certificado = :certificado, updated_at = NOW() WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':certificado', $relPath, PDO::PARAM_STR);
+        $ok = $stmt->execute();
+        if ($ok) {
+            $newData = $this->getById($id);
+            if ($newData) {
+                $uid = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao('adms_sst_treinamento_aplicacoes', $id, $uid, 'UPDATE', $oldData, $newData);
+            }
+        }
+
+        return $ok;
+    }
+
     private function bindFields(\PDOStatement $stmt, array $data): void
     {
         $this->bindField($stmt, ':adms_sst_treinamento_vinculo_id', $data['adms_sst_treinamento_vinculo_id'] ?? null);

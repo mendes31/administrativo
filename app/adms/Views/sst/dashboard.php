@@ -48,6 +48,21 @@
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3"><i class="fas fa-graduation-cap text-warning fa-2x"></i></div>
+                    <div>
+                        <h6 class="text-muted mb-1">Treinamentos pendentes</h6>
+                        <h3 class="mb-0 fw-bold"><?= (int)($this->data['treinamentos_pendentes_count'] ?? 0) ?></h3>
+                        <span class="small text-muted"><?= (int)($this->data['treinamentos_vencidos_count'] ?? 0) ?> vencido(s)</span>
+                        <?php if (in_array('SstReportTreinamentos', $this->data['buttonPermission'] ?? [], true)): ?>
+                        <div><a href="<?= $_ENV['URL_ADM']; ?>sst-report-treinamentos?status_vencimento=vencido" class="small">Ver relatório</a></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3"><i class="fas fa-ambulance text-primary fa-2x"></i></div>
                     <div><h6 class="text-muted mb-1">Acidentes abertos</h6><h3 class="mb-0 fw-bold"><?= (int)($this->data['open_accidents_count'] ?? 0) ?></h3></div>
                 </div>
@@ -93,6 +108,8 @@
                         ['SstListMedicos', 'sst-list-medicos', 'Médicos'],
                         ['SstListEpiNecessidade', 'sst-list-epi-necessidade', 'Necess. EPI'],
                         ['SstListExameNecessidade', 'sst-list-exame-necessidade', 'Necess. exame'],
+                        ['SstListTreinamentos', 'sst-list-treinamentos', 'Treinamentos'],
+                        ['SstListTreinamentoNecessidade', 'sst-list-treinamento-necessidade', 'Necess. trein.'],
                         ['SstListRiscos', 'sst-list-riscos', 'Riscos'],
                     ];
                     $perms = $this->data['buttonPermission'] ?? [];
@@ -116,6 +133,7 @@
                         ['SstListAsos', 'sst-list-asos', 'ASOs'],
                         ['SstEncaminhamentoAso', 'sst-encaminhamento-aso', 'Encaminhamento ASO'],
                         ['SstListEpiFichas', 'sst-list-epi-fichas', 'Fichas EPI'],
+                        ['SstListTreinamentoVinculos', 'sst-list-treinamento-vinculos', 'Vínc. trein.'],
                     ];
                     foreach ($registros as [$perm, $url, $label]) {
                         if (in_array($perm, $perms, true)) {
@@ -136,6 +154,7 @@
                         ['SstReportEpis', 'sst-report-epis', 'EPIs'],
                         ['SstReportExames', 'sst-report-exames', 'Exames'],
                         ['SstReportAfastamentos', 'sst-report-afastamentos', 'Afastamentos'],
+                        ['SstReportTreinamentos', 'sst-report-treinamentos', 'Treinamentos'],
                         ['SstReportConformidade', 'sst-report-conformidade', 'Conformidade'],
                     ];
                     foreach ($relatorios as [$perm, $url, $label]) {
@@ -149,7 +168,7 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-lg-4 mb-3">
+        <div class="col-lg-3 mb-3">
             <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (EPI)</div><div class="card-body p-0">
                 <?php if (empty($this->data['pendencias_epi_amostra'])): ?><p class="p-3 text-muted mb-0">Nenhuma.</p>
                 <?php else: foreach ($this->data['pendencias_epi_amostra'] as $r): ?>
@@ -160,7 +179,7 @@
                 <?php endforeach; endif; ?>
             </div></div>
         </div>
-        <div class="col-lg-4 mb-3">
+        <div class="col-lg-3 mb-3">
             <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (ASO)</div><div class="card-body p-0">
                 <?php if (empty($this->data['pendencias_exame_amostra'])): ?><p class="p-3 text-muted mb-0">Nenhuma.</p>
                 <?php else: foreach ($this->data['pendencias_exame_amostra'] as $r): ?>
@@ -174,7 +193,19 @@
                 <?php endforeach; endif; ?>
             </div></div>
         </div>
-        <div class="col-lg-4 mb-3">
+        <?php if (!empty($this->data['pendencias_treinamento_amostra'])): ?>
+        <div class="col-lg-3 mb-3">
+            <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (Treinamento)</div><div class="card-body p-0">
+                <?php foreach ($this->data['pendencias_treinamento_amostra'] as $r): ?>
+                    <div class="px-3 py-2 border-bottom small">
+                        <?= htmlspecialchars($r['colaborador_nome'] ?? '') ?> — <?= htmlspecialchars($r['treinamento_nome'] ?? '') ?>
+                        <span class="badge bg-<?= htmlspecialchars($r['situacao_badge'] ?? 'secondary') ?> ms-1"><?= htmlspecialchars($r['situacao_label'] ?? '') ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div></div>
+        </div>
+        <?php endif; ?>
+        <div class="col-lg-3 mb-3">
             <div class="card shadow-sm"><div class="card-header">Acidentes abertos</div><div class="card-body p-0">
                 <?php if (empty($this->data['open_accidents'])): ?><p class="p-3 text-muted mb-0">Nenhum.</p>
                 <?php else: foreach ($this->data['open_accidents'] as $r): ?>
