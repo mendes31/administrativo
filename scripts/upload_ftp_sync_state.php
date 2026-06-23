@@ -10,8 +10,10 @@ declare(strict_types=1);
  */
 
 require __DIR__ . '/deploy_config.php';
+require __DIR__ . '/deploy_changed_files_lib.php';
 
 $generateScript = __DIR__ . '/generate_ftp_deploy_state.php';
+echo "A gerar .ftp-deploy-sync-state.json (pode demorar ~1 min)...\n";
 passthru('php ' . escapeshellarg($generateScript), $genCode);
 if ($genCode !== 0) {
     fwrite(STDERR, "Falha ao gerar .ftp-deploy-sync-state.json\n");
@@ -21,8 +23,8 @@ if ($genCode !== 0) {
 $server = trim((string)(getenv('FTP_SERVER') ?: getenv('FTP_HOST') ?: ''));
 $user = trim((string)(getenv('FTP_USER') ?: ''));
 $pass = (string)(getenv('FTP_PASS') ?: '');
-$remoteBase = deployFtpRemoteBase();
 $port = (int)(getenv('FTP_PORT') ?: 21);
+$maxRetries = max(1, (int)(getenv('DEPLOY_FTP_RETRIES') ?: 4));
 
 if ($server === '' || $user === '' || $pass === '') {
     fwrite(STDERR, "Defina FTP_SERVER, FTP_USER e FTP_PASS.\n");
@@ -37,31 +39,16 @@ if (!is_file($stateFile)) {
     exit(2);
 }
 
-$conn = @ftp_connect($server, $port, 120);
-if ($conn === false) {
-    fwrite(STDERR, "Falha ao conectar FTP.\n");
-    exit(2);
-}
+$size = (int)filesize($stateFile);
+echo "A enviar estado FTP ({$size} bytes) com reconexão por tentativa...\n";
 
-if (!@ftp_login($conn, $user, $pass)) {
-    fwrite(STDERR, "Falha na autenticação FTP.\n");
-    ftp_close($conn);
-    exit(2);
-}
+$rel = '.ftp-deploy-sync-state.json';
+$ok = deployFtpUploadFile($server, $port, $user, $pass, $root, $rel, $maxRetries);
 
-@ftp_pasv($conn, true);
-@ftp_set_option($conn, FTP_TIMEOUT_SEC, 180);
-
-$remotePath = deployFtpRemotePath('.ftp-deploy-sync-state.json');
-
-if (!@ftp_put($conn, $remotePath, $stateFile, FTP_BINARY)) {
-    fwrite(STDERR, "Falha ao enviar {$remotePath}\n");
-    ftp_close($conn);
+if (!$ok) {
+    fwrite(STDERR, "Falha ao enviar {$rel} após {$maxRetries} tentativa(s).\n");
     exit(1);
 }
 
-ftp_close($conn);
-
-$size = filesize($stateFile);
-echo "Estado FTP enviado: {$remotePath} (" . number_format((int)$size) . " bytes)\n";
+echo 'Estado FTP enviado: ' . deployFtpRemotePath($rel) . ' (' . number_format($size) . " bytes)\n";
 exit(0);
