@@ -21,15 +21,32 @@
         };
     }
 
-    if (typeof window.admsOpenAttachmentUrl !== 'function') {
-        window.admsOpenAttachmentUrl = function (url) {
-            if (window.admsIsPdfUrl(url) && typeof window.showAdmsDocumentPreviewModal === 'function') {
-                window.showAdmsDocumentPreviewModal(url);
-                return;
+    /**
+     * Modal com iframe só em desktop — em mobile o iframe mostra ecrã "Abrir" extra.
+     */
+    if (typeof window.admsPreferDocumentPreviewModal !== 'function') {
+        window.admsPreferDocumentPreviewModal = function () {
+            if (window.matchMedia('(max-width: 991.98px)').matches) {
+                return false;
             }
-            window.location.href = url;
+            if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+                return false;
+            }
+            return true;
         };
     }
+
+    window.admsOpenAttachmentUrl = function (url) {
+        if (
+            window.admsIsPdfUrl(url)
+            && window.admsPreferDocumentPreviewModal()
+            && typeof window.showAdmsDocumentPreviewModal === 'function'
+        ) {
+            window.showAdmsDocumentPreviewModal(url);
+            return;
+        }
+        window.location.href = url;
+    };
 
     if (typeof window.showAdmsDocumentPreviewModal === 'function') {
         return;
@@ -98,7 +115,7 @@
             return;
         }
         event.preventDefault();
-        window.showAdmsDocumentPreviewModal(url);
+        window.admsOpenAttachmentUrl(url);
     });
 })();
 </script>
