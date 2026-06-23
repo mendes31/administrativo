@@ -67,6 +67,7 @@ $semEvento = $resumo['origens_sem_evento'] ?? [];
                         <li>Acidentes (S-2210): <strong><?= (int)($semEvento['acidentes'] ?? 0) ?></strong></li>
                         <li>ASOs (S-2220): <strong><?= (int)($semEvento['asos'] ?? 0) ?></strong></li>
                         <li>Entregas EPI (S-2240): <strong><?= (int)($semEvento['epi_entregas'] ?? 0) ?></strong></li>
+                        <li>Treinamentos (S-2245): <strong><?= (int)($semEvento['treinamentos'] ?? 0) ?></strong></li>
                     </ul>
                     <?php if (in_array('SstSyncEsocialPendentes', $perms, true)): ?>
                         <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-sync-esocial-pendentes">

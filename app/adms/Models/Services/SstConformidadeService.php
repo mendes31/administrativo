@@ -47,11 +47,32 @@ class SstConformidadeService extends DbConnection
                    WHERE e.id IS NULL AND a.tipo_movimento = 'Entrega'";
 
         $conn = $this->getConnection();
-
-        return [
+        $out = [
             'acidentes' => (int) ($conn->query($sqlAcid)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0),
             'asos' => (int) ($conn->query($sqlAso)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0),
             'epi_entregas' => (int) ($conn->query($sqlEpi)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0),
+            'treinamentos' => 0,
         ];
+
+        if ($this->hasTable('adms_sst_treinamento_aplicacoes')) {
+            $sqlTrein = "SELECT COUNT(*) AS total FROM adms_sst_treinamento_aplicacoes a
+                         LEFT JOIN adms_sst_esocial_eventos e ON e.origem_tabela = 'adms_sst_treinamento_aplicacoes'
+                             AND e.origem_id = a.id AND e.tipo_evento = 'S-2245' AND e.status <> 'Cancelado'
+                         WHERE e.id IS NULL AND a.status = 'concluido' AND a.data_realizacao IS NOT NULL";
+            $out['treinamentos'] = (int) ($conn->query($sqlTrein)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+        }
+
+        return $out;
+    }
+
+    private function hasTable(string $table): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t LIMIT 1'
+        );
+        $stmt->bindValue(':t', $table);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
     }
 }

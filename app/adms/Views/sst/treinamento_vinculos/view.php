@@ -1,9 +1,19 @@
 <?php
 use App\adms\Helpers\SstTreinamentoStatusHelper;
+use App\adms\Helpers\CSRFHelper;
+
 $item = $this->data['item'];
 $aplicacoes = $this->data['aplicacoes'] ?? [];
 $perms = $this->data['buttonPermission'] ?? [];
 $st = (string)($item['status'] ?? '');
+$csrfEsocial = CSRFHelper::generateCSRFToken('sst_esocial_actions');
+$ultimaAplicacaoConcluida = null;
+foreach ($aplicacoes as $a) {
+    if (($a['status'] ?? '') === 'concluido' && !empty($a['data_realizacao'])) {
+        $ultimaAplicacaoConcluida = $a;
+        break;
+    }
+}
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -15,6 +25,16 @@ $st = (string)($item['status'] ?? '');
             <?php endif; ?>
             <?php if (in_array('SstExportTreinamentoCertificadoPdf', $perms) && !empty($item['data_realizacao'])): ?>
             <a href="<?= $_ENV['URL_ADM']; ?>sst-export-treinamento-certificado-pdf/<?= (int)$item['id'] ?>" class="btn btn-outline-primary btn-sm" target="_blank">Certificado PDF</a>
+            <?php endif; ?>
+            <?php if (in_array('SstGenerateEsocialEvento', $perms) && $ultimaAplicacaoConcluida !== null): ?>
+            <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-generate-esocial-evento" class="d-inline">
+                <input type="hidden" name="csrf_token" value="<?= $csrfEsocial ?>">
+                <input type="hidden" name="tipo_evento" value="S-2245">
+                <input type="hidden" name="origem_tabela" value="adms_sst_treinamento_aplicacoes">
+                <input type="hidden" name="origem_id" value="<?= (int)$ultimaAplicacaoConcluida['id'] ?>">
+                <input type="hidden" name="redirect" value="<?= $_ENV['URL_ADM']; ?>sst-view-treinamento-vinculo/<?= (int)$item['id'] ?>">
+                <button type="submit" class="btn btn-outline-info btn-sm"><i class="fas fa-cloud"></i> eSocial S-2245</button>
+            </form>
             <?php endif; ?>
             <a href="<?= $_ENV['URL_ADM']; ?>sst-list-treinamento-vinculos" class="btn btn-secondary btn-sm">Voltar</a>
         </span>
@@ -53,7 +73,7 @@ $st = (string)($item['status'] ?? '');
                     <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>Data</th><th>Status</th><th>Instrutor</th><th>Nota</th></tr></thead>
+                            <thead><tr><th>Data</th><th>Status</th><th>Instrutor</th><th>Nota</th><th></th></tr></thead>
                             <tbody>
                             <?php foreach ($aplicacoes as $a): ?>
                                 <tr>
@@ -61,6 +81,18 @@ $st = (string)($item['status'] ?? '');
                                     <td><?= htmlspecialchars($a['status'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($a['instrutor_nome'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars((string)($a['nota'] ?? '-')) ?></td>
+                                    <td>
+                                        <?php if (in_array('SstGenerateEsocialEvento', $perms) && ($a['status'] ?? '') === 'concluido' && !empty($a['data_realizacao'])): ?>
+                                        <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-generate-esocial-evento" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?= $csrfEsocial ?>">
+                                            <input type="hidden" name="tipo_evento" value="S-2245">
+                                            <input type="hidden" name="origem_tabela" value="adms_sst_treinamento_aplicacoes">
+                                            <input type="hidden" name="origem_id" value="<?= (int)$a['id'] ?>">
+                                            <input type="hidden" name="redirect" value="<?= $_ENV['URL_ADM']; ?>sst-view-treinamento-vinculo/<?= (int)$item['id'] ?>">
+                                            <button type="submit" class="btn btn-link btn-sm p-0">S-2245</button>
+                                        </form>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>

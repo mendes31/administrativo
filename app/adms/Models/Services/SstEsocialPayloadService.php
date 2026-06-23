@@ -8,6 +8,7 @@ use App\adms\Models\Repository\SstAcidentesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
 use App\adms\Models\Repository\SstEsocialEventosRepository;
+use App\adms\Models\Repository\SstTreinamentoAplicacoesRepository;
 use App\adms\Models\Repository\UsersRepository;
 
 /**
@@ -19,6 +20,7 @@ class SstEsocialPayloadService
     public const EVENTO_ACIDENTE = 'S-2210';
     public const EVENTO_ASO = 'S-2220';
     public const EVENTO_EPI = 'S-2240';
+    public const EVENTO_TREINAMENTO = 'S-2245';
 
     public function gerarOuAtualizar(string $tipoEvento, string $origemTabela, int $origemId): array
     {
@@ -26,6 +28,7 @@ class SstEsocialPayloadService
             self::EVENTO_ACIDENTE => $this->buildS2210($origemId),
             self::EVENTO_ASO => $this->buildS2220($origemId),
             self::EVENTO_EPI => $this->buildS2240($origemId),
+            self::EVENTO_TREINAMENTO => $this->buildS2245($origemId),
             default => throw new \InvalidArgumentException('Tipo de evento inválido.'),
         };
 
@@ -94,6 +97,21 @@ class SstEsocialPayloadService
                 $criados++;
             } catch (\Throwable $e) {
                 $erros[] = 'EPI entrega #' . $row['id'] . ': ' . $e->getMessage();
+            }
+        }
+
+        if ($this->hasTreinamentosTable()) {
+            foreach ($this->listarOrigensSemEvento(
+                self::EVENTO_TREINAMENTO,
+                'adms_sst_treinamento_aplicacoes',
+                "status = 'concluido' AND data_realizacao IS NOT NULL"
+            ) as $row) {
+                try {
+                    $this->gerarOuAtualizar(self::EVENTO_TREINAMENTO, 'adms_sst_treinamento_aplicacoes', (int) $row['id']);
+                    $criados++;
+                } catch (\Throwable $e) {
+                    $erros[] = 'Treinamento aplicação #' . $row['id'] . ': ' . $e->getMessage();
+                }
             }
         }
 
@@ -192,6 +210,46 @@ class SstEsocialPayloadService
         ];
     }
 
+    private function buildS2245(int $aplicacaoId): array
+    {
+        $repo = new SstTreinamentoAplicacoesRepository();
+        $row = $repo->getByIdDetalhado($aplicacaoId);
+        if (!$row) {
+            throw new \RuntimeException('Aplicação de treinamento não encontrada.');
+        }
+        if (($row['status'] ?? '') !== 'concluido' || empty($row['data_realizacao'])) {
+            throw new \RuntimeException('Somente aplicações concluídas com data de realização geram S-2245.');
+        }
+
+        $user = $this->getColaborador((int) $row['adms_user_id']);
+        $cargaMin = (int) ($row['carga_horaria_minutos'] ?? 0);
+
+        return [
+            'evento' => self::EVENTO_TREINAMENTO,
+            'descricao' => 'Treinamentos, Capacitações, Exercícios Simulados e Outras Anotações',
+            'layout_referencia' => 'S-1.2',
+            'gerado_em' => date('c'),
+            'origem_sistema' => ['tabela' => 'adms_sst_treinamento_aplicacoes', 'id' => $aplicacaoId],
+            'colaborador' => $user,
+            'dados' => [
+                'treinamento' => $row['treinamento_nome'] ?? null,
+                'codigo' => $row['treinamento_codigo'] ?? null,
+                'nr_referencia' => $row['nr_referencia'] ?? null,
+                'tipo_treinamento' => $row['treinamento_tipo'] ?? null,
+                'modalidade' => $row['modalidade_aplicada'] ?? $row['treinamento_modalidade'] ?? null,
+                'carga_horaria_minutos' => $cargaMin > 0 ? $cargaMin : null,
+                'data_realizacao' => $row['data_realizacao'] ?? null,
+                'data_validade' => $row['data_validade_vinculo'] ?? null,
+                'instrutor_nome' => $row['instrutor_nome'] ?? null,
+                'instrutor_registro' => $row['instrutor_registro'] ?? null,
+                'nota' => $row['nota'] ?? null,
+                'certificado' => !empty($row['certificado']),
+                'vinculo_id' => (int) ($row['adms_sst_treinamento_vinculo_id'] ?? 0),
+            ],
+            'observacao' => 'Payload simplificado para conferência e exportação. Validar no transmissor eSocial antes do envio.',
+        ];
+    }
+
     /** @return array{id: int, name: string, cpf: ?string} */
     private function getColaborador(int $userId): array
     {
@@ -228,5 +286,17 @@ class SstEsocialPayloadService
         $stmt->execute();
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function hasTreinamentosTable(): bool
+    {
+        $conn = (new SstEsocialEventosRepository())->getConnection();
+        $stmt = $conn->prepare(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t LIMIT 1'
+        );
+        $stmt->bindValue(':t', 'adms_sst_treinamento_aplicacoes');
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
     }
 }

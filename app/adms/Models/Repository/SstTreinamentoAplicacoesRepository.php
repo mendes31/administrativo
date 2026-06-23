@@ -41,6 +41,26 @@ class SstTreinamentoAplicacoesRepository extends DbConnection
         return $row ?: null;
     }
 
+    public function getByIdDetalhado(int $id): ?array
+    {
+        $sql = 'SELECT a.*, u.name AS aplicado_por_nome,
+                       tr.nome AS treinamento_nome, tr.codigo AS treinamento_codigo,
+                       tr.nr_referencia, tr.tipo AS treinamento_tipo, tr.modalidade AS treinamento_modalidade,
+                       tr.carga_horaria_minutos,
+                       v.data_validade AS data_validade_vinculo
+                FROM adms_sst_treinamento_aplicacoes a
+                LEFT JOIN adms_users u ON u.id = a.aplicado_por
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = a.adms_sst_treinamento_id
+                LEFT JOIN adms_sst_treinamento_vinculos v ON v.id = a.adms_sst_treinamento_vinculo_id
+                WHERE a.id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function create(array $data): int|false
     {
         $sql = 'INSERT INTO adms_sst_treinamento_aplicacoes (

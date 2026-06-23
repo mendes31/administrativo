@@ -35,7 +35,7 @@ class SstViewTreinamentoVinculo
         $pageElements = [
             'title_head' => 'Vínculo Treinamento SST',
             'menu' => 'sst-list-treinamento-vinculos',
-            'buttonPermission' => ['SstViewTreinamentoVinculo', 'SstApplyTreinamento', 'SstExportTreinamentoCertificadoPdf'],
+            'buttonPermission' => ['SstViewTreinamentoVinculo', 'SstApplyTreinamento', 'SstExportTreinamentoCertificadoPdf', 'SstGenerateEsocialEvento'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/treinamento_vinculos/view', $this->data))->loadView();

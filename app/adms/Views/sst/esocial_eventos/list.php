@@ -6,7 +6,7 @@ $csrf = CSRFHelper::generateCSRFToken('sst_esocial_actions');
 <div class="container-fluid px-4">
     <h2 class="mt-3"><i class="fas fa-cloud-upload-alt me-2"></i>Eventos eSocial SST</h2>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
-    <p class="text-muted small">Fila de eventos S-2210 (CAT), S-2220 (ASO) e S-2240 (EPI). Geração de payload JSON para transmissão externa — sem envio automático ao governo.</p>
+    <p class="text-muted small">Fila de eventos S-2210 (CAT), S-2220 (ASO), S-2240 (EPI) e S-2245 (treinamentos). Geração de payload JSON para transmissão externa — sem envio automático ao governo.</p>
     <div class="mb-3">
         <?php if (in_array('SstSyncEsocialPendentes', $perms, true)): ?>
             <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-sync-esocial-pendentes" class="d-inline">
@@ -18,7 +18,7 @@ $csrf = CSRFHelper::generateCSRFToken('sst_esocial_actions');
     </div>
     <form method="get" class="row g-2 mb-3 align-items-end">
         <div class="col-md-2"><label class="form-label small">Evento</label><select name="tipo_evento" class="form-select form-select-sm"><option value="">Todos</option>
-            <?php foreach (['S-2210', 'S-2220', 'S-2240'] as $t): ?><option value="<?= $t ?>" <?= ($this->data['filters']['tipo_evento'] ?? '') === $t ? 'selected' : '' ?>><?= $t ?></option><?php endforeach; ?>
+            <?php foreach (['S-2210', 'S-2220', 'S-2240', 'S-2245'] as $t): ?><option value="<?= $t ?>" <?= ($this->data['filters']['tipo_evento'] ?? '') === $t ? 'selected' : '' ?>><?= $t ?></option><?php endforeach; ?>
         </select></div>
         <div class="col-md-2"><label class="form-label small">Status</label><select name="status" class="form-select form-select-sm"><option value="">Todos</option>
             <?php foreach (['Pendente', 'Gerado', 'Enviado', 'Erro', 'Cancelado'] as $s): ?><option value="<?= $s ?>" <?= ($this->data['filters']['status'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option><?php endforeach; ?>
