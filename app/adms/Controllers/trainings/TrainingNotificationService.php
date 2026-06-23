@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\trainings;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Helpers\InternalPushNotificationHelper;
 use App\adms\Helpers\SendEmailService;
 use App\adms\Models\Services\NotificationSettingsService;
@@ -44,6 +45,9 @@ class TrainingNotificationService
             $pendingTrainings = $this->trainingUsersRepo->getExpiringTrainingsForNotification();
 
             foreach ($pendingTrainings as $training) {
+                if (InstitutionalSystemUserHelper::isExemptFromAcknowledgment((int) ($training['user_id'] ?? 0))) {
+                    continue;
+                }
                 $outcome = $this->notifyPendingTraining($training);
 
                 if ($outcome['sent']) {
@@ -86,6 +90,9 @@ class TrainingNotificationService
             $expiringTrainings = $this->trainingUsersRepo->getExpiringTrainingsForNotification(30);
 
             foreach ($expiringTrainings as $training) {
+                if (InstitutionalSystemUserHelper::isExemptFromAcknowledgment((int) ($training['user_id'] ?? 0))) {
+                    continue;
+                }
                 $outcome = $this->notifyExpiringTraining($training);
 
                 if ($outcome['sent']) {
@@ -128,6 +135,9 @@ class TrainingNotificationService
             $expiredTrainings = $this->trainingUsersRepo->getExpiredTrainingsForNotification();
 
             foreach ($expiredTrainings as $training) {
+                if (InstitutionalSystemUserHelper::isExemptFromAcknowledgment((int) ($training['user_id'] ?? 0))) {
+                    continue;
+                }
                 $outcome = $this->notifyExpiredTraining($training);
 
                 if ($outcome['sent']) {

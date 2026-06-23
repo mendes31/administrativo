@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\portal;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\RequestHelper;
 use App\adms\Helpers\CSRFHelper;
@@ -47,6 +48,10 @@ class SignPayrollDocument
         }
 
         $sigStatus = (string)($doc['signature_status'] ?? 'not_required');
+        if (InstitutionalSystemUserHelper::isExemptFromAcknowledgment($uid)) {
+            $this->render($doc, 'Usuário sistema isento de confirmação de recebimento.');
+            return;
+        }
         if ($sigStatus === 'signed') {
             $this->render($doc, 'Já confirmou o recebimento deste documento.');
             return;

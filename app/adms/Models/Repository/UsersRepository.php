@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Controllers\Services\Validation\ValidationEmptyField;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Helpers\SlugImg;
 use App\adms\Helpers\Upload;
 use App\adms\Helpers\ValExtImg;
@@ -28,7 +29,7 @@ class UsersRepository extends DbConnection
     /**
      * Login ignorado no organograma e nas contagens (ex.: usuário técnico "manager" do seed).
      */
-    private const ORGCHART_EXCLUDED_USERNAME = 'manager';
+    private const ORGCHART_EXCLUDED_USERNAME = InstitutionalSystemUserHelper::INSTITUTIONAL_USERNAME;
 
     /** @var array<string, int>|null slug (minúsculo) => id do departamento */
     private static ?array $timelineDeptSlugToIdCache = null;

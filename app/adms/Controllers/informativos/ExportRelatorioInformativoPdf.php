@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\informativos;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -55,7 +56,7 @@ class ExportRelatorioInformativoPdf
 
         // Montar linhas do relatório
         $usersRepo = new UsersRepository();
-        $usuarios = $usersRepo->getAllUsers(1, 10000, []);
+        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($usersRepo->getAllUsers(1, 10000, []));
 
         if ($usuarioFilterLower !== '') {
             $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {

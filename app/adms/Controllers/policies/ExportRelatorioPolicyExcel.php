@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\policies;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\PoliciesRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -40,7 +41,7 @@ class ExportRelatorioPolicyExcel
         }
 
         // Mesma base de usuários usada no RelatorioPolicy.
-        $usuarios = $repo->getUsersForPolicyReport($policyId);
+        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($repo->getUsersForPolicyReport($policyId));
 
         if ($usuarioFilterLower !== '') {
             $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {

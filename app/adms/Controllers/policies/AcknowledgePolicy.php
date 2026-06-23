@@ -49,6 +49,11 @@ class AcknowledgePolicy
 
         $userId = (int) $_SESSION['user_id'];
 
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            echo json_encode(['success' => true, 'message' => 'Usuário sistema isento de ciência']);
+            return;
+        }
+
         try {
             $repo = new PoliciesRepository();
 

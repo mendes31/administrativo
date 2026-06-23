@@ -14,6 +14,8 @@ $filtersActive = (($f['document_type'] ?? '') !== '')
     || (($f['year'] ?? '') !== '')
     || (($f['month'] ?? '') !== '');
 
+$isInstitutionalPayrollUser = !empty($this->data['is_institutional_user']);
+
 /** Classes Bootstrap 5 por código de tipo (badges coloridos). */
 $payrollDocBadgeClass = [
     'payroll' => 'text-bg-primary',
@@ -274,11 +276,14 @@ $payrollDocTypeIcon = [
                                 $hashShort = $h !== '' ? substr($h, 0, 10) . '…' : '—';
                                 $sigSt = (string)($d['signature_status'] ?? 'not_required');
                                 $reqSig = (int)($d['requires_signature_snapshot'] ?? 0) === 1;
-                                $needSign = $sigSt === 'pending' && $reqSig;
+                                $needSign = !$isInstitutionalPayrollUser && $sigSt === 'pending' && $reqSig;
                                 $signed = $sigSt === 'signed';
                                 if (!$reqSig) {
                                     $cienciaLabel = 'N/A';
                                     $cienciaClass = 'text-bg-secondary';
+                                } elseif ($isInstitutionalPayrollUser && $reqSig && !$signed) {
+                                    $cienciaLabel = 'Isento';
+                                    $cienciaClass = 'text-bg-light text-muted border';
                                 } elseif ($signed) {
                                     $cienciaLabel = 'Confirmada';
                                     $cienciaClass = 'text-bg-success';
@@ -412,11 +417,14 @@ $payrollDocTypeIcon = [
                                             $hashShort = $h !== '' ? substr($h, 0, 10) . '…' : '—';
                                             $sigSt = (string)($d['signature_status'] ?? 'not_required');
                                             $reqSig = (int)($d['requires_signature_snapshot'] ?? 0) === 1;
-                                            $needSign = $sigSt === 'pending' && $reqSig;
+                                            $needSign = !$isInstitutionalPayrollUser && $sigSt === 'pending' && $reqSig;
                                             $signed = $sigSt === 'signed';
                                             if (!$reqSig) {
                                                 $cienciaLabel = 'N/A';
                                                 $cienciaClass = 'text-bg-secondary';
+                                            } elseif ($isInstitutionalPayrollUser && $reqSig && !$signed) {
+                                                $cienciaLabel = 'Isento';
+                                                $cienciaClass = 'text-bg-light text-muted border';
                                             } elseif ($signed) {
                                                 $cienciaLabel = 'OK';
                                                 $cienciaClass = 'text-bg-success';

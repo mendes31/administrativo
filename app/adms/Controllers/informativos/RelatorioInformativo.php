@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\informativos;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -116,7 +117,7 @@ class RelatorioInformativo
 
         // Buscar todos os usuários
         $usersRepo = new UsersRepository();
-        $usuarios = $usersRepo->getAllUsers(1, 1000, []);
+        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($usersRepo->getAllUsers(1, 1000, []));
 
         // Buscar dados de visualização e ciência
         $dadosRelatorio = [];

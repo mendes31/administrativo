@@ -50,6 +50,17 @@ class AcknowledgeInformativo
         $informativoId = (int) $informativoId;
         $userId = (int) $_SESSION['user_id'];
 
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            if ($isAjax) {
+                echo json_encode(['success' => true, 'message' => 'Usuário sistema isento de ciência']);
+                return;
+            }
+            $_SESSION['msg'] = 'Usuário sistema isento de ciência obrigatória.';
+            $_SESSION['msg_type'] = 'info';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-informativo/' . $informativoId);
+            return;
+        }
+
         try {
             // Instanciar o repositório
             $informativosRepository = new InformativosRepository();

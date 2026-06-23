@@ -290,8 +290,9 @@ class PoliciesRepository extends DbConnection
                 LEFT JOIN adms_policies_reads r
                   ON r.user_id = u.id
                  AND r.policy_id = :policy_id
-                WHERE u.status = "Ativo"
-                   OR (r.acknowledged = 1)';
+                WHERE (u.status = "Ativo"
+                   OR (r.acknowledged = 1))
+                  AND ' . \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUsersAlias('u');
 
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':policy_id', $policyId, PDO::PARAM_INT);
@@ -306,6 +307,10 @@ class PoliciesRepository extends DbConnection
      */
     public function countNaoLidos(int $userId): int
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return 0;
+        }
+
         // NOT EXISTS para não “sofrer” com duplicidade de linhas em adms_policies_reads.
         // - requires_ack=1: só é não-lido se NÃO existir acknowledged=1.
         // - requires_ack=0: só é não-lido se NÃO existir read_at IS NOT NULL.
@@ -342,6 +347,10 @@ class PoliciesRepository extends DbConnection
      */
     public function getListNaoLidos(int $userId, int $limit = 15): array
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [];
+        }
+
         $sql = 'SELECT p.id, p.titulo, p.resumo, p.urgente, p.created_at
                 FROM adms_policies p
                 WHERE p.ativo = 1
@@ -382,6 +391,10 @@ class PoliciesRepository extends DbConnection
      */
     public function getNaoLidosIdsByPolicyIds(int $userId, array $policyIds): array
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [];
+        }
+
         $ids = array_values(array_unique(array_filter(array_map('intval', $policyIds), static fn ($v) => $v > 0)));
         if (empty($ids)) {
             return [];

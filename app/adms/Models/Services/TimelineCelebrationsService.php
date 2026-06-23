@@ -186,31 +186,11 @@ class TimelineCelebrationsService
      */
     private static function resolveInstitutionalUserId(UsersRepository $usersRepo): int
     {
-        try {
-            // 1) Tenta encontrar pelo nome "Grupo Tiaraju"
-            $stmt = $usersRepo->getConnection()->prepare(
-                'SELECT id FROM adms_users WHERE name = :name LIMIT 1'
-            );
-            $stmt->execute([':name' => 'Grupo Tiaraju']);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($row && !empty($row['id'])) {
-                return (int)$row['id'];
-            }
-
-            // 2) Fallback: usuário técnico "manager"
-            $stmt = $usersRepo->getConnection()->prepare(
-                "SELECT id FROM adms_users WHERE username = 'manager' LIMIT 1"
-            );
-            $stmt->execute();
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($row && !empty($row['id'])) {
-                return (int)$row['id'];
-            }
-        } catch (\Throwable) {
-            // Em caso de erro, apenas cai para o fallback do usuário logado
+        $ids = \App\adms\Helpers\InstitutionalSystemUserHelper::resolveInstitutionalUserIds();
+        if ($ids !== []) {
+            return $ids[0];
         }
 
-        // 3) Último recurso: usuário logado
         return (int)($_SESSION['user_id'] ?? 0);
     }
 }

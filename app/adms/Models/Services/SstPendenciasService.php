@@ -349,6 +349,9 @@ class SstPendenciasService extends DbConnection
         if (!self::incluirTreinamentos()) {
             return [];
         }
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [];
+        }
 
         $sql = "SELECT
                     t.id AS adms_training_id,
@@ -545,6 +548,7 @@ class SstPendenciasService extends DbConnection
                 ) tu ON tu.adms_user_id = u.id AND tu.adms_training_id = t.id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
+                  AND " . \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUserIdColumn('u.id') . "
                   {$extraWhere}
                 HAVING situacao IS NOT NULL
                 ORDER BY colaborador_nome, treinamento_nome
@@ -932,6 +936,7 @@ class SstPendenciasService extends DbConnection
                 ) tu ON tu.adms_user_id = u.id AND tu.adms_training_id = t.id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
+                  AND " . \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUserIdColumn('u.id') . "
                   {$extraWhere}
                 HAVING situacao IN ({$criticas})
             ) sub";

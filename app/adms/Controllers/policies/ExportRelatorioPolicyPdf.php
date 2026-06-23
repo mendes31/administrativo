@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\policies;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\UsersRepository;
 use Dompdf\Dompdf;
@@ -39,7 +40,7 @@ class ExportRelatorioPolicyPdf
         // Usuários para o relatório:
         // - Todos ativos
         // - E também inativos que já deram ciência desta política
-        $usuarios = $repo->getUsersForPolicyReport($policyId);
+        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($repo->getUsersForPolicyReport($policyId));
 
         if ($usuarioFilterLower !== '') {
             $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {

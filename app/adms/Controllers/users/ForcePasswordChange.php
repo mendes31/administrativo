@@ -158,8 +158,7 @@ class ForcePasswordChange
                 $user = $userRepo->getUser((int)($_SESSION['user_id'] ?? 0));
 
                 if ($user && !empty($user['username'])) {
-                    $username = $user['username'];
-                    $isManager = (strtolower($username) === 'manager');
+                    $isManager = \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUser($user);
 
                     if ($isManager) {
                         file_put_contents(__DIR__ . '/../../../logs/force_password_change_debug.log',

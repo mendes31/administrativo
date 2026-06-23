@@ -108,7 +108,7 @@ $policy = $this->data['policy'] ?? [];
                             $requiresAck = !empty($policy['requires_ack']);
                             $readStatus = $this->data['read_status'] ?? null;
                             $acknowledged = $readStatus && !empty($readStatus['acknowledged']);
-                            if ($requiresAck):
+                            if ($requiresAck && !\App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalSession()):
                                 ?>
                                 <?php if ($acknowledged): ?>
                                     <span class="badge bg-success ms-2">
@@ -164,7 +164,7 @@ $policy = $this->data['policy'] ?? [];
                         <?php
                         $requiresAck = !empty($policy['requires_ack']);
                         $userId = $_SESSION['user_id'] ?? null;
-                        if ($requiresAck && $userId) {
+                        if ($requiresAck && $userId && !\App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalSession()) {
                             // Botão de ciência, como no módulo de Informativos
                             $readStatus = $this->data['read_status'] ?? null;
                             $acknowledged = $readStatus && !empty($readStatus['acknowledged']);

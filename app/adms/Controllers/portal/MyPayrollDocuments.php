@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\PayrollDocumentTypesRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -47,6 +48,8 @@ class MyPayrollDocuments
 
         $repo = new EmployeePayrollDocumentsRepository();
         $this->data['documents'] = $repo->listForUser($userId, $filters);
+        $this->data['is_institutional_user'] = InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId);
+        $this->data['payroll_pending_signatures'] = $repo->countPendingSignaturesForUser($userId);
         $this->data['filters'] = [
             'document_type' => $type,
             'year' => $filters['year'] ?? '',

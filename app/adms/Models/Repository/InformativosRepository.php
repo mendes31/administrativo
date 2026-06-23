@@ -301,6 +301,10 @@ class InformativosRepository extends DbConnection
      */
     public function countNaoLidos(int $userId): int
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return 0;
+        }
+
         // NOT EXISTS para não “sofrer” com duplicidade de linhas em adms_informativos_reads.
         // - requires_ack=1: só é não-lido se NÃO existir acknowledged=1 para o usuário.
         // - requires_ack=0: só é não-lido se NÃO existir read_at IS NOT NULL para o usuário.
@@ -337,6 +341,10 @@ class InformativosRepository extends DbConnection
      */
     public function countUrgentesNaoLidos(int $userId): int
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return 0;
+        }
+
         $sql = 'SELECT COUNT(*) AS total
                 FROM adms_informativos i
                 LEFT JOIN adms_informativos_reads r
@@ -362,6 +370,10 @@ class InformativosRepository extends DbConnection
      */
     public function getListNaoLidos(int $userId, int $limit = 15): array
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [];
+        }
+
         $sql = 'SELECT i.id, i.titulo, i.resumo, i.urgente, i.created_at
                 FROM adms_informativos i
                 WHERE i.ativo = 1
@@ -403,6 +415,10 @@ class InformativosRepository extends DbConnection
      */
     public function getNaoLidosIdsByInformativoIds(int $userId, array $informativoIds): array
     {
+        if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [];
+        }
+
         $ids = array_values(array_unique(array_filter(array_map('intval', $informativoIds), static fn ($v) => $v > 0)));
         if (empty($ids)) {
             return [];

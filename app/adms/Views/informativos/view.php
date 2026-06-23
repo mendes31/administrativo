@@ -129,7 +129,7 @@ $informativo = $this->data['informativo'];
                         <?php
                         $requiresAck = !empty($informativo['requires_ack']);
                         $userId = $_SESSION['user_id'] ?? null;
-                        if ($requiresAck && $userId) {
+                        if ($requiresAck && $userId && !\App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalSession()) {
                             $read = $this->data['read_status'] ?? null;
                             $acknowledged = $read && !empty($read['acknowledged']);
                             if ($acknowledged) {

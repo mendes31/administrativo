@@ -80,7 +80,7 @@ class LgpdConsentimentoLogin
         $stmt->execute();
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
         
-        if ($user && isset($user['username']) && strtolower($user['username']) === 'manager') {
+        if ($user && \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUser($user)) {
             header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
             exit;
         }

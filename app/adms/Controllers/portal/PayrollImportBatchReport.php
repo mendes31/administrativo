@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Helpers\UrlAdmHelper;
 use App\adms\Models\Repository\EmployeePayrollDocumentsRepository;
 use App\adms\Models\Repository\NotificationsRepository;
@@ -44,6 +45,10 @@ class PayrollImportBatchReport
 
         $reportRows = [];
         foreach ($docs as $d) {
+            $ownerUserId = (int)($d['user_id'] ?? 0);
+            if ($ownerUserId > 0 && InstitutionalSystemUserHelper::isExemptFromAcknowledgment($ownerUserId)) {
+                continue;
+            }
             $id = (int)($d['id'] ?? 0);
             $ev = $eventAgg[$id] ?? [];
             $reqSig = (int)($d['requires_signature_snapshot'] ?? 0) === 1;

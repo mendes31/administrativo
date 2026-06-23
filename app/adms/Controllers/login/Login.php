@@ -223,7 +223,7 @@ class Login
             // 2. Se não houver termos cadastrados ou ativos, não solicitar consentimento
             
             $username = $result['username'] ?? '';
-            $isManager = (strtolower($username) === 'manager');
+            $isManager = \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUser(['username' => $username]);
             
             // Se for manager, pular verificação de consentimento
             if ($isManager) {

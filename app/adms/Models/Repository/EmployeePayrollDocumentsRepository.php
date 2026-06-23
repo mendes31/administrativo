@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -329,6 +330,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
             WHERE d.status_version = \'active\'
               AND d.signature_status = \'pending\'
               AND d.requires_signature_snapshot = 1
+              AND ' . InstitutionalSystemUserHelper::sqlExcludeUserIdColumn('d.user_id') . '
             ORDER BY d.published_at ASC, d.id ASC
             LIMIT ' . $limit;
         $stmt = $this->getConnection()->query($sql);
@@ -350,6 +352,7 @@ class EmployeePayrollDocumentsRepository extends DbConnection
               AND requires_signature_snapshot = 1
               AND published_at IS NOT NULL
               AND reminder_stage < 3
+              AND ' . InstitutionalSystemUserHelper::sqlExcludeUserIdColumn('user_id') . '
             ORDER BY published_at ASC
             LIMIT ' . $limit;
         $stmt = $this->getConnection()->query($sql);
@@ -400,6 +403,38 @@ class EmployeePayrollDocumentsRepository extends DbConnection
         }
 
         return $changed;
+    }
+
+    public function countPendingSignaturesForUser(int $userId): int
+    {
+        if (InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return 0;
+        }
+
+        $sql = 'SELECT COUNT(*) AS total FROM adms_employee_payroll_documents
+            WHERE user_id = :uid
+              AND status_version = \'active\'
+              AND signature_status = \'pending\'
+              AND requires_signature_snapshot = 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @param array<string, mixed> $doc
+     */
+    public function userRequiresSignatureAction(int $userId, array $doc): bool
+    {
+        if (InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return false;
+        }
+
+        return (string) ($doc['signature_status'] ?? '') === 'pending'
+            && (int) ($doc['requires_signature_snapshot'] ?? 0) === 1;
     }
 
     public function updateSignedBundleStoragePath(int $documentId, ?string $relativePath): void

@@ -55,6 +55,7 @@ class Dashboard
         $this->data['meeting_rooms_active_count'] = 0;
         $this->data['payroll_documents_total'] = 0;
         $this->data['payroll_documents_latest'] = [];
+        $this->data['payroll_pending_signatures'] = 0;
         $this->data['my_calendar_month_count'] = 0;
         $this->data['my_calendar_modal_events_json'] = '[]';
     }
@@ -291,11 +292,13 @@ class Dashboard
 
         $this->data['payroll_documents_total'] = 0;
         $this->data['payroll_documents_latest'] = [];
+        $this->data['payroll_pending_signatures'] = 0;
         if ($userId > 0 && $this->data['show_payroll_documents_card']) {
             $payrollRepo = new EmployeePayrollDocumentsRepository();
             $allDocs = $payrollRepo->listForUser($userId);
             $this->data['payroll_documents_total'] = count($allDocs);
             $this->data['payroll_documents_latest'] = array_slice($allDocs, 0, 3);
+            $this->data['payroll_pending_signatures'] = $payrollRepo->countPendingSignaturesForUser($userId);
         }
 
         $this->data['my_calendar_month_count'] = 0;

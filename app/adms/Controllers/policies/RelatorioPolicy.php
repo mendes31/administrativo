@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\policies;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -66,7 +67,7 @@ class RelatorioPolicy
         // Usuários para o relatório:
         // - Todos ativos
         // - E também inativos que já deram ciência desta política
-        $usuarios = $repo->getUsersForPolicyReport($policyId);
+        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($repo->getUsersForPolicyReport($policyId));
 
         $dadosRelatorio = [];
         foreach ($usuarios as $usuario) {

@@ -4,11 +4,17 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use PDO;
 use Exception;
 
 class TrainingUsersRepository extends DbConnection
 {
+    private static function sqlExcludeInstitutionalUser(string $userIdColumn): string
+    {
+        return InstitutionalSystemUserHelper::sqlExcludeUserIdColumn($userIdColumn);
+    }
+
     /**
      * Garante tabela de backup para vínculos removidos por deduplicação.
      */
@@ -371,7 +377,8 @@ class TrainingUsersRepository extends DbConnection
                     AND ta1.created_at = ta2.max_created_at
             ) ta_last ON ta_last.adms_user_id = tu.adms_user_id 
                 AND ta_last.adms_training_id = tu.adms_training_id
-            WHERE 1=1';
+            WHERE 1=1
+              AND ' . self::sqlExcludeInstitutionalUser('u.id');
         
         $params = [];
         
@@ -557,7 +564,8 @@ class TrainingUsersRepository extends DbConnection
                 AND t.reciclagem_periodo > 0
                 AND tu.data_realizacao IS NOT NULL
                 AND DATE_ADD(tu.data_realizacao, INTERVAL t.reciclagem_periodo MONTH) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
-                AND (tu.last_notification_expiring IS NULL OR tu.last_notification_expiring < DATE_SUB(CURDATE(), INTERVAL 7 DAY))';
+                AND (tu.last_notification_expiring IS NULL OR tu.last_notification_expiring < DATE_SUB(CURDATE(), INTERVAL 7 DAY))
+                AND ' . self::sqlExcludeInstitutionalUser('u.id') . "'";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(1, $daysAhead, PDO::PARAM_INT);
@@ -590,7 +598,8 @@ class TrainingUsersRepository extends DbConnection
                 AND t.reciclagem_periodo > 0
                 AND tu.data_realizacao IS NOT NULL
                 AND DATE_ADD(tu.data_realizacao, INTERVAL t.reciclagem_periodo MONTH) < CURDATE()
-                AND (tu.last_notification_expired IS NULL OR tu.last_notification_expired < DATE_SUB(CURDATE(), INTERVAL 7 DAY))';
+                AND (tu.last_notification_expired IS NULL OR tu.last_notification_expired < DATE_SUB(CURDATE(), INTERVAL 7 DAY))
+                AND ' . self::sqlExcludeInstitutionalUser('u.id') . "'";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute();
@@ -1184,7 +1193,8 @@ class TrainingUsersRepository extends DbConnection
             INNER JOIN adms_trainings t 
                 ON t.id = tu.adms_training_id 
                AND t.ativo = 1
-            WHERE tu.status != "concluido" OR tu.status IS NULL
+            WHERE (tu.status != "concluido" OR tu.status IS NULL)
+              AND ' . self::sqlExcludeInstitutionalUser('tu.adms_user_id') . '
         ';
 
         $stmtActive = $pdo->prepare($sqlActive);
@@ -1210,6 +1220,7 @@ class TrainingUsersRepository extends DbConnection
             WHERE tu.status = "concluido"
               AND u.id IS NOT NULL
               AND t.id IS NOT NULL
+              AND ' . self::sqlExcludeInstitutionalUser('u.id') . '
         ';
 
         $stmtConc = $pdo->prepare($sqlConcluidos);
@@ -1271,7 +1282,8 @@ class TrainingUsersRepository extends DbConnection
                    AND t.ativo = 1
                 INNER JOIN adms_departments d
                     ON u.user_department_id = d.id
-                WHERE tu.status != 'concluido' OR tu.status IS NULL
+                WHERE (tu.status != 'concluido' OR tu.status IS NULL)
+                  AND ' . self::sqlExcludeInstitutionalUser('tu.adms_user_id') . '
                 GROUP BY d.id, d.name";
 
         $sqlConcluidos = "SELECT
@@ -1285,6 +1297,7 @@ class TrainingUsersRepository extends DbConnection
                   AND u.id IS NOT NULL
                   AND t.id IS NOT NULL
                   AND d.id IS NOT NULL
+                  AND ' . self::sqlExcludeInstitutionalUser('u.id') . '
                 GROUP BY d.id";
 
         $byId = $this->mergeGroupedMatrixStatistics($pdo, $sqlActive, $sqlConcluidos, 'department');
@@ -1327,7 +1340,8 @@ class TrainingUsersRepository extends DbConnection
                    AND t.ativo = 1
                 INNER JOIN adms_positions p
                     ON u.user_position_id = p.id
-                WHERE tu.status != 'concluido' OR tu.status IS NULL
+                WHERE (tu.status != 'concluido' OR tu.status IS NULL)
+                  AND ' . self::sqlExcludeInstitutionalUser('tu.adms_user_id') . '
                 GROUP BY p.id, p.name";
 
         $sqlConcluidos = "SELECT
@@ -1341,6 +1355,7 @@ class TrainingUsersRepository extends DbConnection
                   AND u.id IS NOT NULL
                   AND t.id IS NOT NULL
                   AND p.id IS NOT NULL
+                  AND ' . self::sqlExcludeInstitutionalUser('u.id') . '
                 GROUP BY p.id";
 
         $byId = $this->mergeGroupedMatrixStatistics($pdo, $sqlActive, $sqlConcluidos, 'position');
@@ -1968,6 +1983,7 @@ class TrainingUsersRepository extends DbConnection
                 FROM adms_training_users tu
                 INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
                 INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
+                WHERE ' . self::sqlExcludeInstitutionalUser('u.id') . '
                 GROUP BY u.id, u.name
                 HAVING SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) > 0
                 ORDER BY SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento','vencido') THEN 1 ELSE 0 END) DESC, u.name ASC 
@@ -1994,6 +2010,7 @@ class TrainingUsersRepository extends DbConnection
                 FROM adms_training_users tu
                 INNER JOIN adms_trainings t ON t.id = tu.adms_training_id AND t.ativo = 1
                 INNER JOIN adms_users u ON u.id = tu.adms_user_id AND u.status = 'Ativo'
+                WHERE ' . self::sqlExcludeInstitutionalUser('u.id') . '
                 GROUP BY t.id, t.nome
                 HAVING (SUM(CASE WHEN tu.status IN ('em_dia','dentro_do_prazo','proximo_vencimento') THEN 1 ELSE 0 END) + 
                         SUM(CASE WHEN tu.status = 'vencido' THEN 1 ELSE 0 END)) > 0

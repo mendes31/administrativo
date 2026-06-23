@@ -12,8 +12,17 @@ final class InformativoReadStatusHelper
      * @param array<string, mixed>|null $read linha de adms_informativos_reads ou null
      * @return array{text: string, badge_class: string, icon: string}
      */
-    public static function forCurrentUser(array $informativo, ?array $read): array
+    public static function forCurrentUser(array $informativo, ?array $read, ?int $userId = null): array
     {
+        $userId = $userId ?? (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId > 0 && InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [
+                'text' => 'Isento (usuário sistema)',
+                'badge_class' => 'bg-light text-muted border',
+                'icon' => 'fa-solid fa-robot',
+            ];
+        }
+
         $requiresAck = !empty($informativo['requires_ack']);
         $readAt = $read && !empty($read['read_at']);
         $ack = $read && !empty($read['acknowledged']);

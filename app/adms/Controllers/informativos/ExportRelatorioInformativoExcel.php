@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\informativos;
 
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\InformativosPermissionService;
@@ -57,7 +58,7 @@ class ExportRelatorioInformativoExcel
 
         // Mesma base de usuários usada no RelatorioInformativo.
         $usersRepo = new UsersRepository();
-        $usuarios = $usersRepo->getAllUsers(1, 1000, []);
+        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($usersRepo->getAllUsers(1, 1000, []));
 
         // Filtrar por usuário (opcional) usando a mesma lógica do filtro da tela.
         if ($usuarioFilterLower !== '') {

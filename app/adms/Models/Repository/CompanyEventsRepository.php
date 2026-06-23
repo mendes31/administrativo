@@ -77,7 +77,7 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
      */
     public function countUnreadIntersectingMonth(int $year, int $month, int $userId): int
     {
-        if ($userId <= 0) {
+        if ($userId <= 0 || \App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
             return 0;
         }
         $month = max(1, min(12, $month));
@@ -105,7 +105,7 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
      */
     public function countUnreadIntersectingYear(int $year, int $userId): int
     {
-        if ($userId <= 0) {
+        if ($userId <= 0 || \App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
             return 0;
         }
         $start = sprintf('%04d-01-01 00:00:00', $year);
