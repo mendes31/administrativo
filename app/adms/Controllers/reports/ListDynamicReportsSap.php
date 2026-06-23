@@ -3,9 +3,9 @@
 namespace App\adms\Controllers\reports;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\DynamicReportScopeHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\DynamicReportsRepository;
-use App\adms\Models\Services\DynamicQueryBuilderService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -23,7 +23,7 @@ class ListDynamicReportsSap
         $this->data['reports'] = $repo->getUserReports($userId, UserAccessHelper::hasFullSystemAccess());
 
         foreach ($this->data['reports'] as &$report) {
-            $report['is_sap'] = $this->isSapReport($report);
+            $report['is_sap'] = DynamicReportScopeHelper::isSapReport($report);
         }
         unset($report);
 
@@ -54,18 +54,5 @@ class ListDynamicReportsSap
 
         $loadView = new LoadViewService('adms/Views/reports/list', $this->data);
         $loadView->loadView();
-    }
-
-    private function isSapReport(array $report): bool
-    {
-        if (!empty($report['data_source']) && $report['data_source'] === 'sap_b1') {
-            return true;
-        }
-
-        if (!empty($report['custom_sql'])) {
-            return DynamicQueryBuilderService::hasSapSignature($report['custom_sql']);
-        }
-
-        return false;
     }
 }
