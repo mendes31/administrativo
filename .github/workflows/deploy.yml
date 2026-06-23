@@ -1,8 +1,10 @@
 ﻿name: Deploy PHP para Kinghost (rápido + seguro)
 
-# 1) Deploy rápido: só ficheiros alterados no push (segundos).
-# 2) Se falhar ou >150 ficheiros: FTP-Deploy-Action (hash incremental).
-# 3) Fallback lftp upload-only (sem --delete) se FTP falhar.
+# 1) Deploy rápido: só ficheiros alterados no push (conexão FTP por ficheiro + retry).
+# 2) Se falhar: lftp só dos ficheiros do push (evita sync de 3000+ ficheiros).
+# 3) Se ainda falhar ou >150 ficheiros: FTP-Deploy-Action (hash incremental).
+# 4) Fallback lftp upload-only (sem --delete) se tudo falhar.
+# 5) Verificação SHA-256 dos ficheiros críticos (bloqueia deploy incompleto).
 #
 # Uploads (.env, public/adms/uploads/**) nunca enviados. dangerous-clean-slate: false.
 
@@ -12,6 +14,15 @@ on:
       - main
       - dev-master
   workflow_dispatch:
+    inputs:
+      git_before:
+        description: 'Commit anterior (re-deploy manual, ex. 0dddd42)'
+        required: false
+        type: string
+      git_after:
+        description: 'Commit destino (re-deploy manual, ex. 11559c2 ou vazio=HEAD)'
+        required: false
+        type: string
 
 concurrency:
   group: deploy-kinghost-${{ github.ref }}
@@ -24,6 +35,7 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       FTP_REMOTE_BASE: ''
+      DEPLOY_FTP_RETRIES: '4'
 
     steps:
       - name: Checkout código
@@ -46,13 +58,38 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
           FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
-          GIT_BEFORE: ${{ github.event.before }}
-          GIT_AFTER: ${{ github.sha }}
+          GIT_BEFORE: ${{ github.event.inputs.git_before || github.event.before }}
+          GIT_AFTER: ${{ github.event.inputs.git_after || github.sha }}
         run: php scripts/deploy_push_changed_files.php
+
+      - name: Instalar lftp (fallback ficheiros do push)
+        if: steps.deploy_fast.outcome != 'success'
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy lftp — só ficheiros deste push
+        id: deploy_lftp_changed
+        if: steps.deploy_fast.outcome != 'success'
+        continue-on-error: true
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+          GIT_BEFORE: ${{ github.event.inputs.git_before || github.event.before }}
+          GIT_AFTER: ${{ github.event.inputs.git_after || github.sha }}
+        run: php scripts/deploy_push_changed_lftp.php
+
+      - name: Actualizar estado FTP-Deploy (evitar full sync)
+        if: steps.deploy_fast.outcome == 'success' || steps.deploy_lftp_changed.outcome == 'success'
+        continue-on-error: true
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: php scripts/upload_ftp_sync_state.php
 
       - name: Deploy incremental — tentativa 1
         id: deploy1
-        if: steps.deploy_fast.outcome != 'success'
+        if: steps.deploy_fast.outcome != 'success' && steps.deploy_lftp_changed.outcome != 'success'
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -62,8 +99,8 @@ jobs:
           local-dir: ./
           server-dir: ./
           dangerous-clean-slate: false
-          log-level: minimal
-          timeout: 300000
+          log-level: standard
+          timeout: 900000
           exclude: |
             .git/
             .git/**
@@ -95,12 +132,12 @@ jobs:
             .env
 
       - name: Aguardar retry (20s)
-        if: steps.deploy_fast.outcome != 'success' && steps.deploy1.outcome != 'success'
+        if: steps.deploy_fast.outcome != 'success' && steps.deploy_lftp_changed.outcome != 'success' && steps.deploy1.outcome != 'success'
         run: sleep 20
 
       - name: Deploy incremental — tentativa 2
         id: deploy2
-        if: steps.deploy_fast.outcome != 'success' && steps.deploy1.outcome != 'success'
+        if: steps.deploy_fast.outcome != 'success' && steps.deploy_lftp_changed.outcome != 'success' && steps.deploy1.outcome != 'success'
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -110,8 +147,8 @@ jobs:
           local-dir: ./
           server-dir: ./
           dangerous-clean-slate: false
-          log-level: minimal
-          timeout: 300000
+          log-level: standard
+          timeout: 900000
           exclude: |
             .git/
             .git/**
@@ -142,13 +179,9 @@ jobs:
             public/adms/uploads/**
             .env
 
-      - name: Instalar lftp (fallback)
-        if: steps.deploy_fast.outcome != 'success' && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success'
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Fallback lftp — upload only
+      - name: Fallback lftp — upload only (repositório completo)
         id: deploy_lftp
-        if: steps.deploy_fast.outcome != 'success' && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success'
+        if: steps.deploy_fast.outcome != 'success' && steps.deploy_lftp_changed.outcome != 'success' && steps.deploy1.outcome != 'success' && steps.deploy2.outcome != 'success'
         continue-on-error: true
         env:
           FTP_HOST: ${{ secrets.FTP_SERVER_PROD }}
@@ -160,7 +193,7 @@ jobs:
 
       - name: Verificar ficheiros críticos (SHA-256)
         id: verify_hashes
-        if: steps.deploy_fast.outcome == 'success' || steps.deploy1.outcome == 'success' || steps.deploy2.outcome == 'success' || steps.deploy_lftp.outcome == 'success'
+        if: steps.deploy_fast.outcome == 'success' || steps.deploy_lftp_changed.outcome == 'success' || steps.deploy1.outcome == 'success' || steps.deploy2.outcome == 'success' || steps.deploy_lftp.outcome == 'success'
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -172,16 +205,17 @@ jobs:
         run: |
           echo "📊 Resumo:"
           echo "   Deploy rápido (push):    ${{ steps.deploy_fast.conclusion }}"
+          echo "   lftp só push:            ${{ steps.deploy_lftp_changed.conclusion }}"
           echo "   Incremental tent. 1:     ${{ steps.deploy1.conclusion }}"
           echo "   Incremental tent. 2:     ${{ steps.deploy2.conclusion }}"
-          echo "   Fallback lftp:           ${{ steps.deploy_lftp.conclusion }}"
+          echo "   Fallback lftp completo:  ${{ steps.deploy_lftp.conclusion }}"
           echo "   SHA-256:                 ${{ steps.verify_hashes.conclusion }}"
 
       - name: Resultado final
         if: always()
         run: |
           ok=0
-          if [ "${{ steps.deploy_fast.outcome }}" = "success" ] || [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy_lftp.outcome }}" = "success" ]; then
+          if [ "${{ steps.deploy_fast.outcome }}" = "success" ] || [ "${{ steps.deploy_lftp_changed.outcome }}" = "success" ] || [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy_lftp.outcome }}" = "success" ]; then
             ok=1
           fi
           if [ "$ok" -eq 0 ]; then

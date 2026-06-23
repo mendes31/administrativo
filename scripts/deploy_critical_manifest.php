@@ -52,5 +52,21 @@ function deployCriticalManifest(): array
         [
             'path' => 'database/migrations/20260622140000_register_training_compliance_dashboard_page.php',
         ],
+        [
+            'path' => 'app/adms/Helpers/InstitutionalSystemUserHelper.php',
+            'must_contain' => ['isInstitutionalUserId', 'INSTITUTIONAL_USERNAME'],
+        ],
+        [
+            'path' => 'app/adms/Models/Repository/EmployeePayrollDocumentsRepository.php',
+            'must_contain' => ['countPendingSignaturesForUser', 'userRequiresSignatureAction'],
+        ],
+        [
+            'path' => 'app/adms/Controllers/dashboard/Dashboard.php',
+            'must_contain' => ['payroll_pending_signatures'],
+        ],
+        [
+            'path' => 'app/adms/Helpers/InformativoReadStatusHelper.php',
+            'must_contain' => ['InstitutionalSystemUserHelper'],
+        ],
     ];
 }
