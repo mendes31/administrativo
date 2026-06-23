@@ -277,6 +277,29 @@ if (!empty($ultimoAso['data_validade'])) {
 
 
 
+    <?php if (!empty($this->data['bloqueio_epi_treinamento_ativo']) && ($this->data['impedimentos_epi_treinamento'] ?? []) !== []): ?>
+        <div class="alert alert-danger py-2 mb-3">
+            <i class="fas fa-ban me-1"></i>
+            <strong>Entrega de EPI bloqueada</strong> por treinamento SST:
+            <?php foreach ($this->data['impedimentos_epi_treinamento'] as $imp): ?>
+                <span class="badge bg-danger ms-1"><?= htmlspecialchars($imp['treinamento_nome'] ?? '') ?> — <?= htmlspecialchars($imp['situacao_label'] ?? '') ?></span>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php $gheAtivo = $this->data['ghe_ativo'] ?? null; ?>
+    <?php if (!empty($gheAtivo)): ?>
+        <div class="alert alert-info py-2 mb-3 d-flex flex-wrap align-items-center gap-2">
+            <span><i class="fas fa-industry me-1"></i><strong>GHE:</strong> <?= htmlspecialchars($gheAtivo['nome'] ?? '') ?>
+            <?php if (!empty($gheAtivo['ambiente_local'])): ?> — <?= htmlspecialchars($gheAtivo['ambiente_local']) ?><?php endif; ?>
+            <?php if (!empty($gheAtivo['data_inicio'])): ?><small class="text-muted ms-1">(desde <?= date('d/m/Y', strtotime($gheAtivo['data_inicio'])) ?>)</small><?php endif; ?>
+            </span>
+            <?php if (in_array('SstViewGhe', $this->data['buttonPermission'] ?? [], true)): ?>
+                <a href="<?= $_ENV['URL_ADM']; ?>sst-view-ghe/<?= (int)($gheAtivo['id'] ?? 0) ?>" class="btn btn-outline-primary btn-sm ms-auto">Ver GHE</a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
 

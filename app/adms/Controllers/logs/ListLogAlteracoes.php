@@ -575,6 +575,11 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'sst-list-treinamento-vinculos';
             case 'adms_sst_riscos_cargo':
                 return $_ENV['URL_ADM'] . 'sst-update-risco-cargo/' . $objetoId;
+            case 'adms_sst_ghe':
+                return $_ENV['URL_ADM'] . 'sst-view-ghe/' . $objetoId;
+            case 'adms_sst_ghe_colaboradores':
+            case 'adms_sst_ghe_treinamentos':
+                return $_ENV['URL_ADM'] . 'sst-list-ghe';
             case 'adms_sst_anexos':
                 return $_ENV['URL_ADM'] . 'sst-dashboard';
             default:

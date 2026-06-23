@@ -636,6 +636,7 @@ class PageLayoutService
             'SstListTreinamentoNecessidade',
             'SstListTreinamentoVinculos',
             'SstListTreinamentos',
+            'SstListGhe',
             'SstListExameNecessidade',
             'SstListExames',
             'SstListMedicos',

@@ -14,6 +14,7 @@ use App\adms\Models\Repository\SstEpiMovimentosRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\SstEpiFichaPdfService;
 use App\adms\Models\Services\SstEpiFichaPublishNotifier;
+use App\adms\Models\Services\SstTreinamentoBloqueioService;
 use App\adms\Views\Services\LoadViewService;
 
 class SstCreateEpiFicha
@@ -45,6 +46,12 @@ class SstCreateEpiFicha
             $this->data['item']['adms_user_id'] = (int) $_GET['adms_user_id'];
         }
         $this->data['item']['data_entrega'] = date('Y-m-d');
+        $this->data['bloqueio_treinamento_ativo'] = SstTreinamentoBloqueioService::isAtivo();
+        $this->data['pode_ignorar_bloqueio_treinamento'] = (new SstTreinamentoBloqueioService())->podeIgnorarBloqueio();
+        $uidPreview = (int) ($this->data['item']['adms_user_id'] ?? 0);
+        $this->data['impedimentos_treinamento_preview'] = $uidPreview > 0
+            ? (new SstTreinamentoBloqueioService())->getImpedimentosEntregaEpi($uidPreview)
+            : [];
         $pageElements = [
             'title_head' => 'Nova ficha de entrega EPI - SST',
             'menu' => 'sst-list-epi-fichas',
@@ -77,6 +84,16 @@ class SstCreateEpiFicha
             $_SESSION['msg'] = 'Adicione ao menos um EPI com CA em estoque selecionado.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi-ficha');
+            exit;
+        }
+
+        $bloqueioSvc = new SstTreinamentoBloqueioService();
+        $bypass = !empty($_POST['confirmar_bypass_bloqueio_treinamento']);
+        $avaliacao = $bloqueioSvc->avaliarEntregaEpi($userId, $bypass);
+        if (!$avaliacao['permitido']) {
+            $_SESSION['msg'] = $avaliacao['mensagem'] ?? 'Entrega bloqueada por treinamento SST.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi-ficha?adms_user_id=' . $userId);
             exit;
         }
 

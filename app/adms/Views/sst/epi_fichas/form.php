@@ -6,6 +6,9 @@ $users = $this->data['users'] ?? [];
 $casEstoqueJson = $this->data['cas_estoque_por_epi_json'] ?? '{}';
 $vidaUtilJson = $this->data['vida_util_por_epi_json'] ?? '{}';
 $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
+$bloqueioAtivo = !empty($this->data['bloqueio_treinamento_ativo']);
+$podeIgnorarBloqueio = !empty($this->data['pode_ignorar_bloqueio_treinamento']);
+$impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -37,6 +40,24 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
                         <input type="date" name="data_entrega" id="data_entrega" class="form-control" value="<?= htmlspecialchars($item['data_entrega'] ?? date('Y-m-d')) ?>" required>
                     </div>
                 </div>
+                <?php if ($bloqueioAtivo && $impedimentosPreview !== []): ?>
+                <div class="alert alert-danger py-2">
+                    <strong>Treinamento SST impede entrega de EPI:</strong>
+                    <ul class="mb-0 small">
+                        <?php foreach ($impedimentosPreview as $imp): ?>
+                        <li><?= htmlspecialchars($imp['treinamento_nome'] ?? '') ?> — <?= htmlspecialchars($imp['situacao_label'] ?? '') ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php if ($podeIgnorarBloqueio): ?>
+                    <div class="form-check mt-2 mb-0">
+                        <input class="form-check-input" type="checkbox" name="confirmar_bypass_bloqueio_treinamento" value="1" id="confirmar_bypass_bloqueio_treinamento">
+                        <label class="form-check-label small" for="confirmar_bypass_bloqueio_treinamento">Liberar entrega mesmo com pendência (administrador)</label>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php elseif ($bloqueioAtivo): ?>
+                <p class="small text-muted mb-3">Com bloqueio SST ativo, colaboradores com treinamento vencido ou pendente não recebem nova ficha de EPI.</p>
+                <?php endif; ?>
                 <div class="mb-3">
                     <label class="form-label" for="observacoes">Observações gerais</label>
                     <textarea name="observacoes" id="observacoes" class="form-control" rows="2"></textarea>
@@ -246,5 +267,14 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
     });
 
     bindRow(container.querySelector('.item-row'));
+
+    const selUser = document.getElementById('adms_user_id');
+    if (selUser) {
+        selUser.addEventListener('change', function () {
+            const id = this.value;
+            const base = '<?= $_ENV['URL_ADM']; ?>sst-create-epi-ficha';
+            window.location.href = id ? base + '?adms_user_id=' + encodeURIComponent(id) : base;
+        });
+    }
 })();
 </script>

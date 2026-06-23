@@ -1041,6 +1041,12 @@ $menus = [
                         'permission' => 'SstListTreinamentos',
                         'icon' => 'fas fa-graduation-cap'
                     ],
+                    [
+                        'label' => 'GHE (ambientes)',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-ghe',
+                        'permission' => 'SstListGhe',
+                        'icon' => 'fas fa-industry'
+                    ],
                     // SST equipamentos de segurança e vistorias periódicas
                     [
                         'label' => 'Tipos de equipamento',

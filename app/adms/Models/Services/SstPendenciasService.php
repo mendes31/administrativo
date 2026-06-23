@@ -348,9 +348,9 @@ class SstPendenciasService extends DbConnection
      *
      * @return array<int, array<string, mixed>>
      */
-    public function getPendenciasTreinamentoPorUsuario(int $userId): array
+    public function getPendenciasTreinamentoPorUsuario(int $userId, bool $ignorarFlagIncluir = false): array
     {
-        if (!self::incluirTreinamentos()) {
+        if (!$ignorarFlagIncluir && !self::incluirTreinamentos()) {
             return [];
         }
         if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
@@ -970,6 +970,15 @@ class SstPendenciasService extends DbConnection
                 INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
                 WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
                   AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+            )";
+        }
+        if ($this->hasTable('adms_sst_ghe_colaboradores') && $this->hasTable('adms_sst_ghe_treinamentos')) {
+            $parts[] = "EXISTS (
+                SELECT 1 FROM adms_sst_ghe_colaboradores gc
+                INNER JOIN adms_sst_ghe g ON g.id = gc.adms_sst_ghe_id AND g.status = 'Ativo'
+                INNER JOIN adms_sst_ghe_treinamentos gt ON gt.adms_sst_ghe_id = g.id AND gt.obrigatorio = 1
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = gt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE gc.adms_user_id = {$aliasUser}.id AND gc.data_fim IS NULL
             )";
         }
 

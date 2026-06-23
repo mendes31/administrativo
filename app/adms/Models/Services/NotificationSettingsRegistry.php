@@ -42,6 +42,22 @@ final class NotificationSettingsRegistry
                 'order' => 3,
                 'is_notification' => false,
             ],
+            'sst_bloquear_epi_treinamento_vencido' => [
+                'module' => 'SST — Saúde e Segurança do Trabalho',
+                'module_order' => 10,
+                'label' => 'Bloquear entrega de EPI — treinamento vencido',
+                'description' => 'Impede criar ficha de entrega de EPI para colaborador com treinamento SST obrigatório vencido.',
+                'order' => 4,
+                'is_notification' => false,
+            ],
+            'sst_bloquear_epi_treinamento_pendente' => [
+                'module' => 'SST — Saúde e Segurança do Trabalho',
+                'module_order' => 10,
+                'label' => 'Bloquear entrega de EPI — treinamento pendente',
+                'description' => 'Impede entrega de EPI quando o colaborador nunca realizou o treinamento SST obrigatório (sem vínculo ou pendente).',
+                'order' => 5,
+                'is_notification' => false,
+            ],
             'training_pending_email' => [
                 'module' => 'Treinamentos (alertas automáticos)',
                 'module_order' => 20,

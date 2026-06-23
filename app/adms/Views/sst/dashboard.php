@@ -110,6 +110,7 @@
                         ['SstListExameNecessidade', 'sst-list-exame-necessidade', 'Necess. exame'],
                         ['SstListTreinamentos', 'sst-list-treinamentos', 'Treinamentos'],
                         ['SstListTreinamentoNecessidade', 'sst-list-treinamento-necessidade', 'Necess. trein.'],
+                        ['SstListGhe', 'sst-list-ghe', 'GHE'],
                         ['SstListRiscos', 'sst-list-riscos', 'Riscos'],
                     ];
                     $perms = $this->data['buttonPermission'] ?? [];

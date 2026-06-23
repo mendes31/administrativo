@@ -10,10 +10,12 @@ use App\adms\Models\Repository\SstAfastamentosRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstEpiEntregasRepository;
 use App\adms\Models\Repository\SstEpiFichasRepository;
+use App\adms\Models\Repository\SstGheRepository;
 use App\adms\Models\Repository\SstPppRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\SstEmployeeProfileService;
 use App\adms\Models\Services\SstPendenciasService;
+use App\adms\Models\Services\SstTreinamentoBloqueioService;
 use App\adms\Views\Services\LoadViewService;
 
 class SstEmployeeProfile
@@ -58,6 +60,9 @@ class SstEmployeeProfile
             $this->data['acidentes']
         );
         $this->data['ppp_historico'] = (new SstPppRepository())->getByUserId($userId);
+        $this->data['impedimentos_epi_treinamento'] = (new SstTreinamentoBloqueioService())->getImpedimentosEntregaEpi($userId);
+        $this->data['bloqueio_epi_treinamento_ativo'] = SstTreinamentoBloqueioService::isAtivo();
+        $this->data['ghe_ativo'] = (new SstGheRepository())->getAtivoByUserId($userId);
 
         $pageElements = [
             'title_head' => 'SST - ' . ($this->data['user']['name'] ?? 'Colaborador'),
@@ -71,6 +76,7 @@ class SstEmployeeProfile
                 'SstViewAso', 'SstViewAfastamento', 'SstViewEpiEntrega', 'SstViewEpiFicha', 'SstViewAcidente',
                 'SstExportEpiFichaPdf',
                 'SstGeneratePpp', 'SstListPpp', 'SstViewPpp', 'SstExportPppPdf',
+                'SstViewGhe', 'SstListGhe',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

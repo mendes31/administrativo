@@ -27,7 +27,8 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
 
         return $this->deduplicateRows(array_merge(
             $this->fetchFromRiscoTreinamento($userId),
-            $this->fetchFromTreinamentoNecessidade($userId)
+            $this->fetchFromTreinamentoNecessidade($userId),
+            $this->fetchFromGheTreinamento($userId)
         ));
     }
 
@@ -87,6 +88,32 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
                 INNER JOIN adms_sst_treinamentos tr ON tr.id = n.adms_sst_treinamento_id AND tr.status = 'Ativo'
                 WHERE u.id = :uid
                   AND n.obrigatorio = 1";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function fetchFromGheTreinamento(int $userId): array
+    {
+        if (!$this->hasTable('adms_sst_ghe_treinamentos') || !$this->hasTable('adms_sst_ghe_colaboradores')) {
+            return [];
+        }
+
+        $sql = "SELECT DISTINCT
+                    tr.id AS adms_sst_treinamento_id,
+                    tr.nome AS treinamento_nome,
+                    COALESCE(gt.validade_meses, tr.validade_meses) AS validade_meses,
+                    'ghe' AS origem
+                FROM adms_sst_ghe_colaboradores gc
+                INNER JOIN adms_sst_ghe g ON g.id = gc.adms_sst_ghe_id AND g.status = 'Ativo'
+                INNER JOIN adms_sst_ghe_treinamentos gt ON gt.adms_sst_ghe_id = g.id AND gt.obrigatorio = 1
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = gt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE gc.adms_user_id = :uid
+                  AND gc.data_fim IS NULL";
 
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
