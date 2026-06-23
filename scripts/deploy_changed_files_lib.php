@@ -129,3 +129,43 @@ function deployFtpUploadFile(
 
     return false;
 }
+
+/**
+ * @return string|null caminho temporário com conteúdo remoto, ou null em falha
+ */
+function deployFtpDownloadFile(
+    string $server,
+    int $port,
+    string $user,
+    string $pass,
+    string $rel,
+    int $maxAttempts = 4
+): ?string {
+    $remote = deployFtpRemotePath($rel);
+
+    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+        $conn = deployFtpConnect($server, $port, $user, $pass);
+        if ($conn === false) {
+            usleep(500_000);
+            continue;
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'ftpv_');
+        if ($tmp === false) {
+            ftp_close($conn);
+            return null;
+        }
+
+        $ok = @ftp_get($conn, $tmp, $remote, FTP_BINARY);
+        ftp_close($conn);
+
+        if ($ok) {
+            return $tmp;
+        }
+
+        @unlink($tmp);
+        usleep(500_000);
+    }
+
+    return null;
+}
