@@ -9,8 +9,7 @@ declare(strict_types=1);
  *   FTP_SERVER=host FTP_USER=user FTP_PASS=pass php scripts/upload_ftp_sync_state.php
  */
 
-require __DIR__ . '/deploy_config.php';
-require __DIR__ . '/deploy_changed_files_lib.php';
+require_once __DIR__ . '/deploy_changed_files_lib.php';
 
 $generateScript = __DIR__ . '/generate_ftp_deploy_state.php';
 echo "A gerar .ftp-deploy-sync-state.json (pode demorar ~1 min)...\n";

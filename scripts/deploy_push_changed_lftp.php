@@ -12,7 +12,7 @@ declare(strict_types=1);
  * Exit 0 = OK | 1 = falha | 3 = demasiados ficheiros
  */
 
-require __DIR__ . '/deploy_changed_files_lib.php';
+require_once __DIR__ . '/deploy_changed_files_lib.php';
 
 $root = dirname(__DIR__);
 $server = trim((string)(getenv('FTP_SERVER') ?: getenv('FTP_HOST') ?: ''));

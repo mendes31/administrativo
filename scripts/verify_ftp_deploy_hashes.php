@@ -13,9 +13,8 @@ declare(strict_types=1);
  *   FTP_SERVER=host FTP_USER=user FTP_PASS=pass php scripts/verify_ftp_deploy_hashes.php
  */
 
-require __DIR__ . '/deploy_critical_manifest.php';
-require __DIR__ . '/deploy_config.php';
-require __DIR__ . '/deploy_changed_files_lib.php';
+require_once __DIR__ . '/deploy_critical_manifest.php';
+require_once __DIR__ . '/deploy_changed_files_lib.php';
 
 $root = dirname(__DIR__);
 $server = trim((string)(getenv('FTP_SERVER') ?: getenv('FTP_HOST') ?: ''));

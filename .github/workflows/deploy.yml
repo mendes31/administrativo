@@ -200,7 +200,7 @@ jobs:
 
       - name: Verificar ficheiros críticos (SHA-256)
         id: verify_hashes
-        if: steps.deploy_fast.outcome == 'success' || steps.deploy_lftp_changed.outcome == 'success' || steps.deploy1.outcome == 'success' || steps.deploy2.outcome == 'success' || steps.deploy_lftp.outcome == 'success'
+        if: (steps.deploy_fast.outcome == 'success' || steps.deploy_lftp_changed.outcome == 'success' || steps.deploy1.outcome == 'success' || steps.deploy2.outcome == 'success' || steps.deploy_lftp.outcome == 'success') && steps.deploy_repair.outcome != 'success'
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
           FTP_USER: ${{ secrets.FTP_USER_PROD }}
@@ -247,7 +247,9 @@ jobs:
             echo "❌ FALHA no deploy."
             exit 1
           fi
-          if [ "${{ steps.verify_hashes.conclusion }}" != "success" ] && [ "${{ steps.deploy_repair.conclusion }}" != "success" ]; then
+          if [ "${{ steps.deploy_repair.outcome }}" = "success" ]; then
+            echo "✅ Gate produção validado no passo de reparo."
+          elif [ "${{ steps.verify_hashes.conclusion }}" != "success" ]; then
             echo "❌ FALHA na verificação SHA-256."
             exit 1
           fi

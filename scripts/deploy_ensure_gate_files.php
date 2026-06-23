@@ -9,7 +9,7 @@ declare(strict_types=1);
  *   FTP_SERVER=... FTP_USER=... FTP_PASS=... php scripts/deploy_ensure_gate_files.php
  */
 
-require __DIR__ . '/deploy_changed_files_lib.php';
+require_once __DIR__ . '/deploy_changed_files_lib.php';
 
 $root = dirname(__DIR__);
 $server = trim((string)(getenv('FTP_SERVER') ?: getenv('FTP_HOST') ?: ''));

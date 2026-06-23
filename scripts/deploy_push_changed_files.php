@@ -20,7 +20,7 @@ declare(strict_types=1);
  * Exit 3 = demasiados ficheiros alterados → usar FTP-Deploy-Action
  */
 
-require __DIR__ . '/deploy_changed_files_lib.php';
+require_once __DIR__ . '/deploy_changed_files_lib.php';
 
 $root = dirname(__DIR__);
 $server = trim((string)(getenv('FTP_SERVER') ?: getenv('FTP_HOST') ?: ''));

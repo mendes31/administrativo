@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/deploy_excludes.php';
-require __DIR__ . '/deploy_config.php';
+require_once __DIR__ . '/deploy_excludes.php';
+require_once __DIR__ . '/deploy_config.php';
 
 /**
  * Hash SHA-256 normalizado (LF) — evita falso negativo CRLF no servidor.
