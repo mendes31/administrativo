@@ -51,9 +51,9 @@ class DynamicReportBuilder
         
         $pageElements = [
             'title_head' => $sapScope ? 'Construtor de Relatórios SAP (API)' : 'Construtor de Relatórios Locais',
-            // Mantém o mesmo submenu ativo das listas correspondentes (usa o nome da controller/permission)
             'menu' => $sapScope ? 'ListDynamicReportsSap' : 'ListDynamicReports',
-            'buttonPermission' => []
+            'menu_override' => $sapScope ? 'ListDynamicReportsSap' : 'ListDynamicReports',
+            'buttonPermission' => [],
         ];
         
         $pageLayoutService = new PageLayoutService();

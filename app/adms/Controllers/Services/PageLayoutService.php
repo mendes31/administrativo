@@ -11,6 +11,21 @@ class PageLayoutService
 {
     public function configurePageElements(array $data): array
     {
+        if (!empty($data['menu_override']) && is_string($data['menu_override'])) {
+            $_SESSION['menu_override'] = $data['menu_override'];
+        } else {
+            $pageMenu = $data['menu'] ?? null;
+            $sessionOverride = $_SESSION['menu_override'] ?? null;
+            if (
+                is_string($sessionOverride) && $sessionOverride !== ''
+                && is_string($pageMenu) && $pageMenu !== ''
+                && $pageMenu !== $sessionOverride
+                && $pageMenu !== 'relatorios'
+            ) {
+                unset($_SESSION['menu_override']);
+            }
+        }
+
         // Array com os itens de menu
         $menu = [
             'Dashboard',

@@ -759,7 +759,13 @@ class AccessLevelsPagesRepository extends DbConnection
      *
      * @param string $filterName Filtro opcional por nome do nível (mesmo critério da listagem).
      *
-     * @return list<array{id: int, name: string, pages: list<array{id: int, name: string, controller_url: string, group_name: string}>}>
+     * @return list<array{
+     *     id: int,
+     *     name: string,
+     *     permissions_authorized_count: int,
+     *     permissions_pages_total: int,
+     *     pages: list<array{id: int, name: string, controller_url: string, group_name: string}>
+     * }>
      *         Páginas ordenadas por grupo (A–Z) e, dentro do grupo, por nome da página (A–Z).
      */
     public function getPermittedPagesGroupedByAccessLevel(string $filterName = ''): array
@@ -771,6 +777,16 @@ class AccessLevelsPagesRepository extends DbConnection
 
         $sql = 'SELECT al.id AS level_id,
                        al.name AS level_name,
+                       (
+                           SELECT COUNT(*)
+                           FROM adms_access_levels_pages alp_cnt
+                           WHERE alp_cnt.adms_access_level_id = al.id AND alp_cnt.permission = 1
+                       ) AS permissions_authorized_count,
+                       (
+                           SELECT COUNT(*)
+                           FROM adms_access_levels_pages alp_tot
+                           WHERE alp_tot.adms_access_level_id = al.id
+                       ) AS permissions_pages_total,
                        p.id AS page_id,
                        p.name AS page_name,
                        p.controller_url,
@@ -802,6 +818,8 @@ class AccessLevelsPagesRepository extends DbConnection
                 $grouped[$levelId] = [
                     'id' => $levelId,
                     'name' => (string) ($row['level_name'] ?? ''),
+                    'permissions_authorized_count' => (int) ($row['permissions_authorized_count'] ?? 0),
+                    'permissions_pages_total' => (int) ($row['permissions_pages_total'] ?? 0),
                     'pages' => [],
                 ];
             }

@@ -100,15 +100,23 @@ class ExportAccessLevelsPermissionsPdf
     }
 
     /**
-     * @param array{id: int, name: string, pages: list<array{id: int, name: string, controller_url: string, group_name: string}>} $level
+     * @param array{
+     *     id: int,
+     *     name: string,
+     *     permissions_authorized_count: int,
+     *     permissions_pages_total: int,
+     *     pages: list<array{id: int, name: string, controller_url: string, group_name: string}>
+     * } $level
      */
     private function buildLevelBlock(array $level): string
     {
         $pageCount = count($level['pages']);
+        $authCount = (int) ($level['permissions_authorized_count'] ?? $pageCount);
+        $totalCount = (int) ($level['permissions_pages_total'] ?? $authCount);
         $html = '<div class="level-block">';
         $html .= '<h2>' . htmlspecialchars($level['name'])
             . ' <span class="count">(ID ' . (int) $level['id'] . ' — '
-            . $pageCount . ' página' . ($pageCount === 1 ? '' : 's') . ')</span></h2>';
+            . $authCount . '/' . $totalCount . ')</span></h2>';
 
         if ($pageCount === 0) {
             $html .= '<p class="empty">Nenhuma página autorizada.</p>';

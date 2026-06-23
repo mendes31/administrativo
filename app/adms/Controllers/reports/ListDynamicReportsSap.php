@@ -19,24 +19,17 @@ class ListDynamicReportsSap
     {
         $repo = new DynamicReportsRepository();
         $userId = $_SESSION['user_id'] ?? 0;
-        $sapOnly = true;
 
-        // Garante que o menu \"Relatórios SAP (API)\" fique em destaque
-        $_SESSION['menu_override'] = 'ListDynamicReportsSap';
-
-        // Recupera todos os relatórios do usuário
         $this->data['reports'] = $repo->getUserReports($userId, UserAccessHelper::hasFullSystemAccess());
 
-        // Marca quais relatórios são SAP
         foreach ($this->data['reports'] as &$report) {
             $report['is_sap'] = $this->isSapReport($report);
         }
         unset($report);
 
-        // Apenas relatórios SAP nesta página
         $this->data['reports'] = array_values(array_filter(
             $this->data['reports'],
-            fn($report) => !empty($report['is_sap'])
+            static fn ($report) => !empty($report['is_sap'])
         ));
 
         $this->data['categories'] = [];
@@ -51,9 +44,9 @@ class ListDynamicReportsSap
 
         $pageElements = [
             'title_head' => $title,
-            // Mantém submenu \"Relatórios SAP (API)\" em destaque (usa o nome da controller/permission)
             'menu' => 'ListDynamicReportsSap',
-            'buttonPermission' => ['DynamicReportBuilder']
+            'menu_override' => 'ListDynamicReportsSap',
+            'buttonPermission' => ['DynamicReportBuilder'],
         ];
 
         $pageLayoutService = new PageLayoutService();
@@ -76,5 +69,3 @@ class ListDynamicReportsSap
         return false;
     }
 }
-
-

@@ -39,7 +39,11 @@ class ExportAccessLevelsPermissionsExcel
         $row = 4;
 
         foreach ($levels as $level) {
-            $levelLabel = (string) $level['name'] . ' (ID ' . (int) $level['id'] . ')';
+            $authCount = (int) ($level['permissions_authorized_count'] ?? count($level['pages']));
+            $totalCount = (int) ($level['permissions_pages_total'] ?? $authCount);
+            $levelLabel = (string) $level['name']
+                . ' (ID ' . (int) $level['id'] . ') ('
+                . $authCount . '/' . $totalCount . ')';
             $sheet->setCellValue('A' . $row, $levelLabel);
             $sheet->mergeCells('A' . $row . ':D' . $row);
             $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(12);

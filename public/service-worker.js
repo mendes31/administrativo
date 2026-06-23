@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tiaraju-pwa-root-v4';
+const CACHE_NAME = 'tiaraju-pwa-root-v5';
 const URL_PREFIX = '/administrativo/';
 
 // Rotas e assets principais para cache inicial (escopo raiz /administrativo/)
@@ -51,10 +51,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Exportações (PDF/Excel/etc.): não cachear nem abrir em janela PWA vazia.
+  if (/\/export[-_]/i.test(request.url) || /export[-_][^/?#]+/i.test(request.url)) {
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
         if (!response || !response.ok) {
+          return response;
+        }
+        const contentType = (response.headers.get('content-type') || '').toLowerCase();
+        if (
+          contentType.includes('application/pdf') ||
+          contentType.includes('spreadsheetml') ||
+          contentType.includes('application/vnd.ms-excel') ||
+          contentType.includes('application/octet-stream')
+        ) {
           return response;
         }
         const clone = response.clone();

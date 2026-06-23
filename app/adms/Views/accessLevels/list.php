@@ -39,7 +39,7 @@ $csrf_token_copy   = CSRFHelper::generateCSRFToken('form_copy_access_level_permi
                 if (in_array('ExportAccessLevelsPermissionsPdf', $this->data['buttonPermission'])
                     || in_array('ExportAccessLevelsPermissionsExcel', $this->data['buttonPermission'])) {
                     if (in_array('ExportAccessLevelsPermissionsPdf', $this->data['buttonPermission'])) {
-                        echo "<a href='{$_ENV['URL_ADM']}export-access-levels-permissions-pdf{$exportQuery}' class='btn btn-outline-danger btn-sm' target='_blank' rel='noopener' title='Relatório PDF de permissões por nível'><i class='fa-solid fa-file-pdf'></i> PDF</a>";
+                        echo "<a href='{$_ENV['URL_ADM']}export-access-levels-permissions-pdf{$exportQuery}' class='btn btn-outline-danger btn-sm js-pwa-file-export' data-export-filename='permissoes_niveis_acesso.pdf' title='Relatório PDF de permissões por nível'><i class='fa-solid fa-file-pdf'></i> PDF</a>";
                     }
                     if (in_array('ExportAccessLevelsPermissionsExcel', $this->data['buttonPermission'])) {
                         echo "<a href='{$_ENV['URL_ADM']}export-access-levels-permissions-excel{$exportQuery}' class='btn btn-outline-success btn-sm' title='Relatório Excel de permissões por nível'><i class='fa-solid fa-file-excel'></i> Excel</a>";
@@ -307,6 +307,67 @@ $csrf_token_copy   = CSRFHelper::generateCSRFToken('form_copy_access_level_permi
             const baseUrl = '<?= $_ENV['URL_ADM']; ?>';
             const targetId = targetSelect.value;
             this.action = baseUrl + 'list-access-levels-permissions/' + encodeURIComponent(targetId);
+        });
+    })();
+
+    // PWA: evita abrir nova janela (tela verde do theme-color) ao exportar PDF.
+    (function () {
+        function isPwaStandalone() {
+            if (window.matchMedia) {
+                var modes = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'];
+                for (var i = 0; i < modes.length; i++) {
+                    if (window.matchMedia('(display-mode: ' + modes[i] + ')').matches) {
+                        return true;
+                    }
+                }
+            }
+            return window.navigator.standalone === true;
+        }
+
+        document.querySelectorAll('a.js-pwa-file-export').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                if (!isPwaStandalone()) {
+                    return;
+                }
+                event.preventDefault();
+                var url = link.getAttribute('href');
+                if (!url) {
+                    return;
+                }
+                var fallbackName = link.getAttribute('data-export-filename') || 'relatorio.pdf';
+                link.classList.add('disabled');
+                fetch(url, { credentials: 'same-origin' })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Falha ao gerar o arquivo.');
+                        }
+                        var disposition = response.headers.get('content-disposition') || '';
+                        var match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                        var filename = match ? match[1] : fallbackName;
+                        return response.blob().then(function (blob) {
+                            return { blob: blob, filename: filename };
+                        });
+                    })
+                    .then(function (result) {
+                        var objectUrl = URL.createObjectURL(result.blob);
+                        var anchor = document.createElement('a');
+                        anchor.href = objectUrl;
+                        anchor.download = result.filename;
+                        anchor.style.display = 'none';
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        anchor.remove();
+                        setTimeout(function () {
+                            URL.revokeObjectURL(objectUrl);
+                        }, 1000);
+                    })
+                    .catch(function () {
+                        window.alert('Não foi possível gerar o PDF. Tente novamente.');
+                    })
+                    .finally(function () {
+                        link.classList.remove('disabled');
+                    });
+            });
         });
     })();
 </script>
