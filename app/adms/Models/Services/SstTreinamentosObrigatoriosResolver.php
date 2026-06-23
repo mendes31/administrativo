@@ -148,6 +148,145 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
         return array_values($out);
     }
 
+    /**
+     * Treinamentos obrigatórios efetivos para um cargo (e departamento opcional).
+     *
+     * @return list<array{adms_sst_treinamento_id: int, treinamento_nome: string, validade_meses: int|null, origem: string}>
+     */
+    public function resolveForPosition(int $positionId, ?int $departmentId = null): array
+    {
+        if ($positionId <= 0) {
+            return [];
+        }
+
+        return $this->deduplicateRows(array_merge(
+            $this->resolveFromRiscoForPosition($positionId, $departmentId),
+            $this->resolveDirectForPosition($positionId, $departmentId),
+            $this->resolveFromGheForPosition($positionId, $departmentId)
+        ));
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function resolveFromRiscoForPosition(int $positionId, ?int $departmentId = null): array
+    {
+        if (!$this->hasTable('adms_sst_risco_treinamento') || !$this->hasTable('adms_sst_riscos_cargo')) {
+            return [];
+        }
+
+        $deptClause = $this->sqlRiscoCargoDepartamentoParaCargo($departmentId, 'rc', 'p');
+        $sql = "SELECT DISTINCT
+                    tr.id AS adms_sst_treinamento_id,
+                    tr.nome AS treinamento_nome,
+                    COALESCE(rt.validade_meses, tr.validade_meses) AS validade_meses,
+                    'risco_treinamento' AS origem
+                FROM adms_positions p
+                INNER JOIN adms_sst_riscos_cargo rc
+                    ON (rc.adms_position_id IS NULL OR rc.adms_position_id = p.id)
+                   AND {$deptClause}
+                INNER JOIN adms_sst_risco_treinamento rt
+                    ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE p.id = :pid";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':pid', $positionId, PDO::PARAM_INT);
+        if ($departmentId !== null && $departmentId > 0) {
+            $stmt->bindValue(':dep', $departmentId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** Vínculos diretos na matriz (necessidade sem risco). */
+    public function resolveDirectForPosition(int $positionId, ?int $departmentId = null): array
+    {
+        if (!$this->hasTable('adms_sst_treinamento_necessidade')) {
+            return [];
+        }
+
+        $sql = "SELECT DISTINCT
+                    tr.id AS adms_sst_treinamento_id,
+                    tr.nome AS treinamento_nome,
+                    COALESCE(n.validade_meses, tr.validade_meses) AS validade_meses,
+                    'matriz_direta' AS origem
+                FROM adms_sst_treinamento_necessidade n
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = n.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE n.adms_position_id = :pid
+                  AND n.adms_sst_risco_id IS NULL
+                  AND n.obrigatorio = 1";
+        if ($departmentId !== null && $departmentId > 0) {
+            $sql .= ' AND n.adms_department_id = :dep';
+        } else {
+            $sql .= ' AND n.adms_department_id IS NULL';
+        }
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':pid', $positionId, PDO::PARAM_INT);
+        if ($departmentId !== null && $departmentId > 0) {
+            $stmt->bindValue(':dep', $departmentId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** Treinamentos via GHE de colaboradores ativos neste cargo (e dept, se informado). */
+    public function resolveFromGheForPosition(int $positionId, ?int $departmentId = null): array
+    {
+        if (!$this->hasTable('adms_sst_ghe_treinamentos') || !$this->hasTable('adms_sst_ghe_colaboradores')) {
+            return [];
+        }
+
+        $deptUser = '';
+        if ($departmentId !== null && $departmentId > 0) {
+            $deptUser = ' AND u.user_department_id = :dep';
+        }
+
+        $sql = "SELECT DISTINCT
+                    tr.id AS adms_sst_treinamento_id,
+                    tr.nome AS treinamento_nome,
+                    COALESCE(gt.validade_meses, tr.validade_meses) AS validade_meses,
+                    'ghe' AS origem
+                FROM adms_users u
+                INNER JOIN adms_sst_ghe_colaboradores gc
+                    ON gc.adms_user_id = u.id AND gc.data_fim IS NULL
+                INNER JOIN adms_sst_ghe g ON g.id = gc.adms_sst_ghe_id AND g.status = 'Ativo'
+                INNER JOIN adms_sst_ghe_treinamentos gt ON gt.adms_sst_ghe_id = g.id AND gt.obrigatorio = 1
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = gt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE u.user_position_id = :pid
+                  AND u.status = 'Ativo'
+                  AND u.data_desligamento IS NULL
+                  {$deptUser}";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':pid', $positionId, PDO::PARAM_INT);
+        if ($departmentId !== null && $departmentId > 0) {
+            $stmt->bindValue(':dep', $departmentId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function sqlRiscoCargoDepartamentoParaCargo(?int $departmentId, string $aliasRc, string $aliasPos): string
+    {
+        if ($departmentId !== null && $departmentId > 0) {
+            return "({$aliasRc}.adms_department_id IS NULL OR {$aliasRc}.adms_department_id = :dep)";
+        }
+
+        return "(
+            {$aliasRc}.adms_department_id IS NULL
+            OR EXISTS (
+                SELECT 1 FROM adms_users u
+                WHERE u.user_position_id = {$aliasPos}.id
+                  AND u.user_department_id = {$aliasRc}.adms_department_id
+                  AND u.status = 'Ativo'
+                  AND u.data_desligamento IS NULL
+            )
+        )";
+    }
+
     private function hasTable(string $table): bool
     {
         $stmt = $this->getConnection()->prepare(

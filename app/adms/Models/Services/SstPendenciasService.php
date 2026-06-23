@@ -6,6 +6,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\SstCategoriaAsoHelper;
 use App\adms\Models\Repository\SstAsoExamesRepository;
+use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstTreinamentosRepository;
 use App\adms\Models\Repository\SstTreinamentoVinculosRepository;
 use App\adms\Models\Services\DbConnection;

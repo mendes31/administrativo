@@ -171,21 +171,88 @@ class SstTreinamentoNecessidadeRepository extends DbConnection
     /** @return list<array<string, mixed>> */
     public function getResumoMatrizPorCargo(): array
     {
-        $sql = "SELECT p.id, p.name AS cargo_nome,
-                       COUNT(t.id) AS total_treinamentos
-                FROM adms_positions p
-                LEFT JOIN adms_sst_treinamento_necessidade t
-                    ON t.adms_position_id = p.id
-                   AND t.adms_sst_risco_id IS NULL
-                   AND t.adms_department_id IS NULL
-                GROUP BY p.id, p.name
-                ORDER BY p.name";
-        $stmt = $this->getConnection()->query($sql);
+        if (!$this->hasTable('adms_sst_treinamento_necessidade')) {
+            return [];
+        }
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $hasRisco = $this->hasTable('adms_sst_risco_treinamento') && $this->hasTable('adms_sst_riscos_cargo');
+        $hasGhe = $this->hasTable('adms_sst_ghe_treinamentos') && $this->hasTable('adms_sst_ghe_colaboradores');
+
+        $riscoSub = $hasRisco ? "
+            UNION
+            SELECT p2.id AS position_id, rt.adms_sst_treinamento_id AS tid, 'risco' AS origem
+            FROM adms_positions p2
+            INNER JOIN adms_sst_riscos_cargo rc
+                ON (rc.adms_position_id IS NULL OR rc.adms_position_id = p2.id)
+               AND (
+                    rc.adms_department_id IS NULL
+                    OR EXISTS (
+                        SELECT 1 FROM adms_users u
+                        WHERE u.user_position_id = p2.id
+                          AND u.user_department_id = rc.adms_department_id
+                          AND u.status = 'Ativo'
+                          AND u.data_desligamento IS NULL
+                    )
+               )
+            INNER JOIN adms_sst_risco_treinamento rt
+                ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
+            INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+        " : '';
+
+        $gheSub = $hasGhe ? "
+            UNION
+            SELECT u.user_position_id AS position_id, gt.adms_sst_treinamento_id AS tid, 'ghe' AS origem
+            FROM adms_users u
+            INNER JOIN adms_sst_ghe_colaboradores gc ON gc.adms_user_id = u.id AND gc.data_fim IS NULL
+            INNER JOIN adms_sst_ghe g ON g.id = gc.adms_sst_ghe_id AND g.status = 'Ativo'
+            INNER JOIN adms_sst_ghe_treinamentos gt ON gt.adms_sst_ghe_id = g.id AND gt.obrigatorio = 1
+            INNER JOIN adms_sst_treinamentos tr ON tr.id = gt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+            WHERE u.user_position_id IS NOT NULL
+              AND u.status = 'Ativo'
+              AND u.data_desligamento IS NULL
+        " : '';
+
+        $sql = "SELECT p.id, p.name AS cargo_nome,
+                       COALESCE(e.total_efetivo, 0) AS total_efetivo,
+                       COALESCE(e.total_diretos, 0) AS total_diretos,
+                       COALESCE(e.total_via_risco, 0) AS total_via_risco,
+                       COALESCE(e.total_via_ghe, 0) AS total_via_ghe
+                FROM adms_positions p
+                LEFT JOIN (
+                    SELECT position_id,
+                           COUNT(DISTINCT tid) AS total_efetivo,
+                           COUNT(DISTINCT CASE WHEN origem = 'direto' THEN tid END) AS total_diretos,
+                           COUNT(DISTINCT CASE WHEN origem = 'risco' THEN tid END) AS total_via_risco,
+                           COUNT(DISTINCT CASE WHEN origem = 'ghe' THEN tid END) AS total_via_ghe
+                    FROM (
+                        SELECT n.adms_position_id AS position_id, n.adms_sst_treinamento_id AS tid, 'direto' AS origem
+                        FROM adms_sst_treinamento_necessidade n
+                        WHERE n.adms_position_id IS NOT NULL
+                          AND n.adms_sst_risco_id IS NULL
+                          AND n.adms_department_id IS NULL
+                          AND n.obrigatorio = 1
+                        {$riscoSub}
+                        {$gheSub}
+                    ) efetivos
+                    GROUP BY position_id
+                ) e ON e.position_id = p.id
+                ORDER BY p.name";
+
+        return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /** @param list<int> $treinamentoIds */
+    private function hasTable(string $table): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t LIMIT 1'
+        );
+        $stmt->bindValue(':t', $table);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /** @return array{0: string, 1: array<string, mixed>} */
     public function syncMatrizForPosition(int $positionId, ?int $departmentId, array $treinamentoIds): void
     {
         if ($positionId <= 0) {

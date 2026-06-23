@@ -65,7 +65,7 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
         <div class="tab-content border border-top-0 rounded-bottom p-3">
             <div class="tab-pane fade show active" id="tab-cargos" role="tabpanel">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                    <p class="small text-muted mb-0 flex-grow-1">Cargos e setores expostos a este risco — base para pendências de exame e EPI.</p>
+                    <p class="small text-muted flex-grow-1">Cargos e setores expostos a este risco — base para pendências de exame, EPI e treinamento.</p>
                     <?php if ($podeGerirCargos): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-risco-cargo?adms_sst_risco_id=<?= $riscoId ?>" class="btn btn-success btn-sm">
                         <i class="fas fa-plus me-1"></i>Adicionar vínculo
@@ -243,20 +243,20 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
                     <?php else: ?>
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
-                                <thead><tr><th width="40"></th><th>Treinamento</th><th width="100">Validade (meses)</th><th class="text-center" width="120">Obrigatório</th></tr></thead>
+                                <thead><tr><th width="40"></th><th>Treinamento</th><th width="100">Validade (meses)</th><th class="text-center" width="120">Opcional</th></tr></thead>
                                 <tbody>
                                 <?php foreach ($treinamentos as $tr):
                                     $trId = (int) ($tr['id'] ?? 0);
                                     if ($trId <= 0 || ($tr['status'] ?? '') === 'Inativo') continue;
                                     $vinculado = isset($treinamentosVinculadosMap[$trId]);
-                                    $obrigatorio = $vinculado && !empty($treinamentosVinculadosMap[$trId]['obrigatorio']);
+                                    $opcional = $vinculado && empty($treinamentosVinculadosMap[$trId]['obrigatorio']);
                                     $valMeses = $vinculado ? ($treinamentosVinculadosMap[$trId]['validade_meses'] ?? '') : '';
                                 ?>
                                 <tr>
                                     <td><input class="form-check-input tr-check" type="checkbox" name="treinamentos[]" value="<?= $trId ?>" id="tr_<?= $trId ?>" <?= $vinculado ? 'checked' : '' ?>></td>
                                     <td><label class="form-check-label mb-0" for="tr_<?= $trId ?>"><?= htmlspecialchars($tr['nome'] ?? '') ?></label></td>
                                     <td><input type="number" class="form-control form-control-sm" name="treinamentos_validade[<?= $trId ?>]" min="1" value="<?= htmlspecialchars((string)$valMeses) ?>" <?= $vinculado ? '' : 'disabled' ?>></td>
-                                    <td class="text-center"><input class="form-check-input" type="checkbox" name="treinamentos_obrigatorio[<?= $trId ?>]" value="1" <?= $obrigatorio ? 'checked' : '' ?> <?= $vinculado ? '' : 'disabled' ?>></td>
+                                    <td class="text-center"><input class="form-check-input tr-opcional" type="checkbox" name="treinamentos_obrigatorio[<?= $trId ?>_opcional]" value="1" id="tr_op_<?= $trId ?>" <?= $opcional ? 'checked' : '' ?> <?= $vinculado ? '' : 'disabled' ?> title="Marque apenas se o treinamento for recomendado, não obrigatório"></td>
                                 </tr>
                                 <?php endforeach; ?>
                                 </tbody>
@@ -294,6 +294,10 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
                     row.querySelectorAll('input').forEach(function (inp) {
                         if (inp !== chk) inp.disabled = !chk.checked;
                     });
+                    if (chk.checked) {
+                        const op = row.querySelector('.tr-opcional');
+                        if (op) op.checked = false;
+                    }
                 });
             });
             const hash = window.location.hash;

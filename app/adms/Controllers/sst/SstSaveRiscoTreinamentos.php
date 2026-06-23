@@ -33,8 +33,9 @@ class SstSaveRiscoTreinamentos
         foreach ($treinamentoIds as $treinamentoId) {
             if ($treinamentoId > 0) {
                 $validade = trim((string) ($validadePost[$treinamentoId] ?? ''));
+                // Vinculado ao risco = obrigatório por padrão (desmarque "Opcional" para excluir).
                 $treinamentoMap[$treinamentoId] = [
-                    'obrigatorio' => isset($obrigatorioPost[$treinamentoId]),
+                    'obrigatorio' => !isset($obrigatorioPost[$treinamentoId . '_opcional']),
                     'validade_meses' => $validade !== '' ? (int) $validade : null,
                 ];
             }
