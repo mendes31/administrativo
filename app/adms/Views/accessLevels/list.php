@@ -28,9 +28,24 @@ $csrf_token_copy   = CSRFHelper::generateCSRFToken('form_copy_access_level_permi
         <div class="card-header hstack gap-2">
             <span>Listar</span>
 
-            <span class="ms-auto">
+            <span class="ms-auto d-flex flex-wrap gap-1 justify-content-end">
 
                 <?php
+                $exportQuery = '';
+                if (!empty($this->data['filter_name'])) {
+                    $exportQuery = '?name=' . rawurlencode((string) $this->data['filter_name']);
+                }
+
+                if (in_array('ExportAccessLevelsPermissionsPdf', $this->data['buttonPermission'])
+                    || in_array('ExportAccessLevelsPermissionsExcel', $this->data['buttonPermission'])) {
+                    if (in_array('ExportAccessLevelsPermissionsPdf', $this->data['buttonPermission'])) {
+                        echo "<a href='{$_ENV['URL_ADM']}export-access-levels-permissions-pdf{$exportQuery}' class='btn btn-outline-danger btn-sm' target='_blank' rel='noopener' title='Relatório PDF de permissões por nível'><i class='fa-solid fa-file-pdf'></i> PDF</a>";
+                    }
+                    if (in_array('ExportAccessLevelsPermissionsExcel', $this->data['buttonPermission'])) {
+                        echo "<a href='{$_ENV['URL_ADM']}export-access-levels-permissions-excel{$exportQuery}' class='btn btn-outline-success btn-sm' title='Relatório Excel de permissões por nível'><i class='fa-solid fa-file-excel'></i> Excel</a>";
+                    }
+                }
+
                 if (in_array('CreateAccessLevel', $this->data['buttonPermission'])) {
                     echo "<a href='{$_ENV['URL_ADM']}create-access-level' class='btn btn-success btn-sm'><i class='fa-regular fa-square-plus'></i> Cadastrar</a> ";
                 }

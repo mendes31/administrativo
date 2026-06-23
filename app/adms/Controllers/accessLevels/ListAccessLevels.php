@@ -66,7 +66,7 @@ class ListAccessLevels
         $pageElements = [
             'title_head' => 'Listar Níveis de Acesso',
             'menu' => 'list-access-levels',
-            'buttonPermission' => ['CreateAccessLevel', 'ViewAccessLevel', 'UpdateAccessLevel', 'DeleteAccessLevel', 'AccessLevelPageSync', 'ListAccessLevelsPermissions'],
+            'buttonPermission' => ['CreateAccessLevel', 'ViewAccessLevel', 'UpdateAccessLevel', 'DeleteAccessLevel', 'AccessLevelPageSync', 'ListAccessLevelsPermissions', 'ListAccessLevels', 'ExportAccessLevelsPermissionsPdf', 'ExportAccessLevelsPermissionsExcel'],
         ];
 
         $pageLayoutService = new PageLayoutService();

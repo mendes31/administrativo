@@ -58,6 +58,7 @@ class LoadPageAdm
         "ListUsers", "ViewUser", "CreateUser", "UpdateUser", "UpdateUserImage", "DeleteUserImage", "DeleteUser", "UpdatePasswordUser", "UpdatePassword", "Profile", "ImportUsers", "ImportPayrollDocuments", "PayrollImportBatchReport", "PayrollImportBatchAudit", "ListPayrollDocumentTypes", "CreatePayrollDocumentType", "UpdatePayrollDocumentType", "DeletePayrollDocumentType", "MyPayrollDocuments", "ViewPayrollDocument", "ViewPayrollSignedBundle", "ConfirmPayrollDocumentDownload", "SignPayrollDocument", "PayrollSignatureReceipt", "ListPayrollSigningPendencies", "PayrollRemindersCron", "PayrollCronConfig", "OrganizationChart", "ExportUsersExcel", "ExportUsersPdf", "MyEpiDeliveries", "SignEpiFicha", "ViewEpiFichaPdf",
         "Logout", 
         "ListAccessLevels", "CreateAccessLevel", "ViewAccessLevel", "UpdateAccessLevel", "DeleteAccessLevel", "ImportAccessLevels",
+        "ExportAccessLevelsPermissionsPdf", "ExportAccessLevelsPermissionsExcel",
         "ListDepartments",  "CreateDepartment",  "ViewDepartment", "UpdateDepartments", "DeleteDepartment", "ImportDepartments",
         "ListWorkShifts", "CreateWorkShift", "ViewWorkShift", "UpdateWorkShift", "DeleteWorkShift",
         "UpdateUserAccessLevels",

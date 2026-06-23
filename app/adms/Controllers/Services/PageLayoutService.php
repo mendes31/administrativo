@@ -147,6 +147,8 @@ class PageLayoutService
             'LgpdTiaTemplates',
             'LgpdWorkflowReport',
             'ListAccessLevels',
+            'ExportAccessLevelsPermissionsPdf',
+            'ExportAccessLevelsPermissionsExcel',
             'ListAccountsPlan',
             'ListBanks',
             'ListBranches',

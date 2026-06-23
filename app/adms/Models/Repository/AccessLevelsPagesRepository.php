@@ -753,4 +753,69 @@ class AccessLevelsPagesRepository extends DbConnection
             return false;
         }
     }
+
+    /**
+     * Relatório: níveis de acesso (A–Z) com páginas permitidas (permission = 1).
+     *
+     * @param string $filterName Filtro opcional por nome do nível (mesmo critério da listagem).
+     *
+     * @return list<array{id: int, name: string, pages: list<array{id: int, name: string, controller_url: string, group_name: string}>}>
+     */
+    public function getPermittedPagesGroupedByAccessLevel(string $filterName = ''): array
+    {
+        $where = '';
+        if ($filterName !== '') {
+            $where = 'WHERE al.name LIKE :filter_name';
+        }
+
+        $sql = 'SELECT al.id AS level_id,
+                       al.name AS level_name,
+                       p.id AS page_id,
+                       p.name AS page_name,
+                       p.controller_url,
+                       COALESCE(gpg.name, \'\') AS group_name
+                FROM adms_access_levels al
+                LEFT JOIN adms_access_levels_pages alp
+                    ON alp.adms_access_level_id = al.id AND alp.permission = 1
+                LEFT JOIN adms_pages p
+                    ON p.id = alp.adms_page_id AND p.page_status = 1
+                LEFT JOIN adms_groups_pages gpg
+                    ON gpg.id = p.adms_groups_page_id
+                ' . $where . '
+                ORDER BY al.name ASC, p.name ASC';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        if ($filterName !== '') {
+            $stmt->bindValue(':filter_name', '%' . $filterName . '%', PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $levelId = (int) ($row['level_id'] ?? 0);
+            if ($levelId <= 0) {
+                continue;
+            }
+            if (!isset($grouped[$levelId])) {
+                $grouped[$levelId] = [
+                    'id' => $levelId,
+                    'name' => (string) ($row['level_name'] ?? ''),
+                    'pages' => [],
+                ];
+            }
+            $pageId = (int) ($row['page_id'] ?? 0);
+            if ($pageId <= 0) {
+                continue;
+            }
+            $grouped[$levelId]['pages'][] = [
+                'id' => $pageId,
+                'name' => (string) ($row['page_name'] ?? ''),
+                'controller_url' => (string) ($row['controller_url'] ?? ''),
+                'group_name' => (string) ($row['group_name'] ?? ''),
+            ];
+        }
+
+        return array_values($grouped);
+    }
 }
