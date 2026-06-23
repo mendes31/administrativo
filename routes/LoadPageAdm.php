@@ -212,6 +212,7 @@ class LoadPageAdm
         "SstListExameNecessidade", "SstCreateExameNecessidade", "SstUpdateExameNecessidade", "SstDeleteExameNecessidade",
         "SstListTreinamentos", "SstCreateTreinamento", "SstViewTreinamento", "SstUpdateTreinamento", "SstDeleteTreinamento",
         "SstListTreinamentoNecessidade", "SstCreateTreinamentoNecessidade", "SstUpdateTreinamentoNecessidade", "SstDeleteTreinamentoNecessidade",
+        "SstMatrizTreinamentoCargo", "SstSaveMatrizTreinamentoCargo",
         "SstListRiscoTreinamento", "SstCreateRiscoTreinamento", "SstUpdateRiscoTreinamento", "SstDeleteRiscoTreinamento", "SstSaveRiscoTreinamentos",
         "SstListTreinamentoVinculos", "SstViewTreinamentoVinculo", "SstApplyTreinamento", "SstSyncTreinamentoVinculos", "SstReportTreinamentos", "SstExportTreinamentoCertificadoPdf",
         "SstListGhe", "SstCreateGhe", "SstViewGhe", "SstUpdateGhe", "SstDeleteGhe", "SstSaveGheRelacionamentos",

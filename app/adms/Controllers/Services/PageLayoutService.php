@@ -634,6 +634,7 @@ class PageLayoutService
             'SstListEpiNecessidade',
             'SstListEpis',
             'SstListTreinamentoNecessidade',
+            'SstMatrizTreinamentoCargo',
             'SstListTreinamentoVinculos',
             'SstListTreinamentos',
             'SstListGhe',

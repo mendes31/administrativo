@@ -110,6 +110,7 @@
                         ['SstListExameNecessidade', 'sst-list-exame-necessidade', 'Necess. exame'],
                         ['SstListTreinamentos', 'sst-list-treinamentos', 'Treinamentos'],
                         ['SstListTreinamentoNecessidade', 'sst-list-treinamento-necessidade', 'Necess. trein.'],
+                        ['SstMatrizTreinamentoCargo', 'sst-matriz-treinamento-cargo', 'Matriz cargo'],
                         ['SstListGhe', 'sst-list-ghe', 'GHE'],
                         ['SstListRiscos', 'sst-list-riscos', 'Riscos'],
                     ];

@@ -141,6 +141,101 @@ class SstTreinamentoNecessidadeRepository extends DbConnection
         return $deleted;
     }
 
+    /** Regras de matriz cargo (sem risco): position + dept opcional. */
+    public function getMatrizByPosition(int $positionId, ?int $departmentId = null): array
+    {
+        if ($positionId <= 0) {
+            return [];
+        }
+        $sql = 'SELECT t.*, tr.nome AS treinamento_nome, tr.validade_meses AS treinamento_validade_meses
+                FROM adms_sst_treinamento_necessidade t
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = t.adms_sst_treinamento_id
+                WHERE t.adms_position_id = :pid AND t.adms_sst_risco_id IS NULL';
+        $params = [':pid' => $positionId];
+        if ($departmentId !== null && $departmentId > 0) {
+            $sql .= ' AND t.adms_department_id = :dep';
+            $params[':dep'] = $departmentId;
+        } else {
+            $sql .= ' AND t.adms_department_id IS NULL';
+        }
+        $sql .= ' ORDER BY tr.nome';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getResumoMatrizPorCargo(): array
+    {
+        $sql = "SELECT p.id, p.name AS cargo_nome,
+                       COUNT(t.id) AS total_treinamentos
+                FROM adms_positions p
+                LEFT JOIN adms_sst_treinamento_necessidade t
+                    ON t.adms_position_id = p.id
+                   AND t.adms_sst_risco_id IS NULL
+                   AND t.adms_department_id IS NULL
+                GROUP BY p.id, p.name
+                ORDER BY p.name";
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** @param list<int> $treinamentoIds */
+    public function syncMatrizForPosition(int $positionId, ?int $departmentId, array $treinamentoIds): void
+    {
+        if ($positionId <= 0) {
+            return;
+        }
+        $treinamentoIds = array_values(array_unique(array_filter(array_map('intval', $treinamentoIds), static fn(int $id): bool => $id > 0)));
+        $dep = ($departmentId !== null && $departmentId > 0) ? $departmentId : null;
+
+        $atuais = $this->getMatrizByPosition($positionId, $dep);
+        $atuaisPorTreinamento = [];
+        foreach ($atuais as $row) {
+            $atuaisPorTreinamento[(int) ($row['adms_sst_treinamento_id'] ?? 0)] = $row;
+        }
+
+        foreach ($atuaisPorTreinamento as $treinamentoId => $row) {
+            if (!in_array($treinamentoId, $treinamentoIds, true)) {
+                $this->delete((int) ($row['id'] ?? 0));
+            }
+        }
+
+        $treinamentosRepo = new SstTreinamentosRepository();
+        foreach ($treinamentoIds as $treinamentoId) {
+            if (isset($atuaisPorTreinamento[$treinamentoId])) {
+                continue;
+            }
+            $treinamento = $treinamentosRepo->getById($treinamentoId);
+            if (!$treinamento || ($treinamento['status'] ?? '') !== 'Ativo') {
+                continue;
+            }
+            $validade = $treinamento['validade_meses'] ?? null;
+            if ($validade !== null) {
+                $validade = (int) $validade;
+                if ($validade === 0) {
+                    $validade = null;
+                }
+            }
+            $this->create([
+                'adms_position_id' => $positionId,
+                'adms_department_id' => $dep,
+                'adms_sst_risco_id' => null,
+                'adms_sst_treinamento_id' => $treinamentoId,
+                'validade_meses' => $validade,
+                'obrigatorio' => true,
+                'observacoes' => 'Matriz cargo × treinamento',
+            ]);
+        }
+
+        \App\adms\Models\Services\SstPendenciasService::invalidateDashboardCache();
+    }
+
     /** @return array{0: string, 1: array<string, mixed>} */
     private function buildWhere(array $filters): array
     {

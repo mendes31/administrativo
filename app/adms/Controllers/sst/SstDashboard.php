@@ -50,7 +50,7 @@ class SstDashboard
                 'SstReportTreinamentos',
                 'SstListExames', 'SstListEpis', 'SstListRiscos', 'SstListCids', 'SstListMedicos',
                 'SstListEpiNecessidade', 'SstListExameNecessidade', 'SstListRiscoCargo',
-                'SstListTreinamentos', 'SstListTreinamentoNecessidade', 'SstListTreinamentoVinculos', 'SstListGhe',
+                'SstListTreinamentos', 'SstListTreinamentoNecessidade', 'SstMatrizTreinamentoCargo', 'SstListTreinamentoVinculos', 'SstListGhe',
                 'SstListAsos', 'SstListAfastamentos', 'SstListEpiEntregas', 'SstListAcidentes',
             ],
         ];

@@ -1030,6 +1030,12 @@ $menus = [
                         'icon' => 'fas fa-clipboard-list'
                     ],
                     [
+                        'label' => 'Matriz trein. × cargo',
+                        'url' => $_ENV['URL_ADM'] . 'sst-matriz-treinamento-cargo',
+                        'permission' => 'SstMatrizTreinamentoCargo',
+                        'icon' => 'fas fa-th'
+                    ],
+                    [
                         'label' => 'Riscos',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-riscos',
                         'permission' => 'SstListRiscos',

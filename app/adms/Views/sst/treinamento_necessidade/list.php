@@ -15,6 +15,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_sst_treinamento_necessi
                 <?php if (in_array('SstCreateTreinamentoNecessidade', $perms)): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-treinamento-necessidade" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Cadastrar</a>
                 <?php endif; ?>
+                <?php if (in_array('SstMatrizTreinamentoCargo', $perms)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-matriz-treinamento-cargo" class="btn btn-outline-primary btn-sm"><i class="fas fa-th me-1"></i>Matriz por cargo</a>
+                <?php endif; ?>
             </span>
         </div>
         <div class="card-body">
