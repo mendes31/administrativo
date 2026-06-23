@@ -230,12 +230,20 @@ $policy = $this->data['policy'] ?? [];
                     <?php endif; ?>
 
                     <?php if (!empty($policy['anexo'])): ?>
+                        <?php
+                        $policyAnexoUrl = $_ENV['URL_ADM'] . 'serve-file?path=' . urlencode($policy['anexo']);
+                        $policyAnexoIsPdf = (bool) preg_match('/\.pdf$/i', (string) ($policy['anexo'] ?? ''));
+                        ?>
                         <div class="mb-4">
                             <h5>Anexo</h5>
                             <div class="d-grid gap-2">
-                                <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($policy['anexo']); ?>"
-                                   target="_blank"
-                                   class="btn btn-sm btn-primary">
+                                <a href="<?php echo htmlspecialchars($policyAnexoUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                                   class="btn btn-sm btn-primary"
+                                   <?php if ($policyAnexoIsPdf): ?>
+                                   data-adms-document-preview="<?php echo htmlspecialchars($policyAnexoUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                                   <?php else: ?>
+                                   target="_blank" rel="noopener"
+                                   <?php endif; ?>>
                                     <i class="fas fa-paperclip me-1"></i>Abrir/Download do Anexo
                                 </a>
                             </div>

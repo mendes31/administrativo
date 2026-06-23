@@ -592,6 +592,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
     </div>
 </div> 
 
+<?php include __DIR__ . '/../partials/document_preview_modal.php'; ?>
+
 <script>
 // Modal de imagem compatível com Bootstrap (participa do controle global de histórico)
 function showImageModal(url) {
@@ -650,8 +652,12 @@ function openInformativoAttachment(event, informativoId, requiresAck, url) {
         } catch (e) {}
     }
 
-    // Navega para o anexo na MESMA aba; o botão Voltar retorna para a listagem
-    window.location.href = url;
+    // PDF: modal na app (PWA); outros formatos: mesma aba
+    if (typeof window.admsOpenAttachmentUrl === 'function') {
+        window.admsOpenAttachmentUrl(url);
+    } else {
+        window.location.href = url;
+    }
 
     return false;
 }

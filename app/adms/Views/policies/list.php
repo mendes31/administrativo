@@ -578,6 +578,8 @@ use App\adms\Helpers\FormatHelper;
     </div>
 </div>
 
+<?php include __DIR__ . '/../partials/document_preview_modal.php'; ?>
+
 <script>
     // Modal de imagem (Bootstrap; coerente com list-informativos)
     function showPolicyListImageModal(url) {
@@ -683,7 +685,11 @@ use App\adms\Helpers\FormatHelper;
             } catch (e) {}
         }
 
-        window.location.href = url;
+        if (typeof window.admsOpenAttachmentUrl === 'function') {
+            window.admsOpenAttachmentUrl(url);
+        } else {
+            window.location.href = url;
+        }
 
         return false;
     }

@@ -1147,6 +1147,7 @@
     </div>
   </div>
 </div>
+<?php include __DIR__ . '/../partials/document_preview_modal.php'; ?>
 <script>
 function applyDashboardSoftBackdropToAll() {
     document.querySelectorAll('.modal-backdrop.show').forEach(function (b) {
@@ -1231,8 +1232,11 @@ function openDashboardInformativoAttachment(event, informativoId, requiresAck, u
         }).catch(function () {});
     }
 
-    // Abrir anexo na mesma aba: botão Voltar retorna para o dashboard
-    window.location.href = url;
+    if (typeof window.admsOpenAttachmentUrl === 'function') {
+        window.admsOpenAttachmentUrl(url);
+    } else {
+        window.location.href = url;
+    }
 
     return false;
 }

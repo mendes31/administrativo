@@ -217,10 +217,20 @@ $informativo = $this->data['informativo'];
                     
                     <!-- Anexo -->
                     <?php if (!empty($informativo['anexo'])): ?>
+                        <?php
+                        $informativoAnexoUrl = $_ENV['URL_ADM'] . 'serve-file?path=' . urlencode($informativo['anexo']);
+                        $informativoAnexoIsPdf = (bool) preg_match('/\.pdf$/i', (string) ($informativo['anexo'] ?? ''));
+                        ?>
                         <div class="mb-4">
                             <h5>Anexo</h5>
                             <div class="d-grid gap-2">
-                                <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?php echo urlencode($informativo['anexo']); ?>" target="_blank" class="btn btn-sm btn-primary">
+                                <a href="<?php echo htmlspecialchars($informativoAnexoUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                                   class="btn btn-sm btn-primary"
+                                   <?php if ($informativoAnexoIsPdf): ?>
+                                   data-adms-document-preview="<?php echo htmlspecialchars($informativoAnexoUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                                   <?php else: ?>
+                                   target="_blank" rel="noopener"
+                                   <?php endif; ?>>
                                     <?php echo \App\adms\Helpers\FormatHelper::renderFileIcon($informativo['anexo'], 'me-1'); ?>
                                     Abrir/Download do Anexo
                                 </a>

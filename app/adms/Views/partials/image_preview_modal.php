@@ -67,3 +67,4 @@
     });
 })();
 </script>
+<?php include __DIR__ . '/document_preview_modal.php'; ?>
