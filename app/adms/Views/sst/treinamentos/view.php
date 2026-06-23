@@ -1,9 +1,12 @@
 <?php
+use App\adms\Helpers\SstTreinamentoAplicacaoHelper;
+use App\adms\Helpers\SstTreinamentoDisplayHelper;
 use App\adms\Helpers\SstTreinamentoStatusHelper;
 
 $item = $this->data['item'];
 $perms = $this->data['buttonPermission'] ?? [];
 $riscosRelacionados = $this->data['riscosRelacionados'] ?? [];
+$aplicacaoLabels = SstTreinamentoAplicacaoHelper::labelList($item['aplicacao_momentos'] ?? []);
 
 function fmtTrein(mixed $v): string {
     return ($v === null || $v === '') ? '-' : htmlspecialchars((string)$v);
@@ -34,11 +37,11 @@ function fmtTrein(mixed $v): string {
                 <div class="card-body"><table class="table table-sm mb-0">
                     <tr><th width="35%">Código:</th><td><?= fmtTrein($item['codigo'] ?? null) ?></td></tr>
                     <tr><th>NR referência:</th><td><?= fmtTrein($item['nr_referencia'] ?? null) ?></td></tr>
-                    <tr><th>Tipo:</th><td><?= fmtTrein($item['tipo'] ?? null) ?></td></tr>
+                    <tr><th>Quando exigir:</th><td><?= fmtTrein($aplicacaoLabels) ?></td></tr>
                     <tr><th>Modalidade:</th><td><?= fmtTrein($item['modalidade'] ?? null) ?></td></tr>
-                    <tr><th>Carga horária:</th><td><?= !empty($item['carga_horaria_minutos']) ? (int)$item['carga_horaria_minutos'] . ' min' : '-' ?></td></tr>
-                    <tr><th>Validade reciclagem:</th><td><?= !empty($item['validade_meses']) ? (int)$item['validade_meses'] . ' meses' : '-' ?></td></tr>
-                    <tr><th>Prazo 1º treinamento:</th><td><?= !empty($item['prazo_primeiro_dias']) ? (int)$item['prazo_primeiro_dias'] . ' dias' : '-' ?></td></tr>
+                    <tr><th>Carga horária:</th><td><?= SstTreinamentoDisplayHelper::cargaHorariaHoras(isset($item['carga_horaria_minutos']) ? (int)$item['carga_horaria_minutos'] : null) ?></td></tr>
+                    <tr><th>Validade reciclagem:</th><td><?= SstTreinamentoDisplayHelper::validadeReciclagem(isset($item['validade_meses']) ? (int)$item['validade_meses'] : null) ?></td></tr>
+                    <tr><th>Prazo 1º treinamento:</th><td><?= SstTreinamentoDisplayHelper::prazoPrimeiro(isset($item['prazo_primeiro_dias']) ? (int)$item['prazo_primeiro_dias'] : null) ?></td></tr>
                     <tr><th>Descrição:</th><td><?= fmtTrein($item['descricao'] ?? null) ?></td></tr>
                     <tr><th>Status:</th><td><?= fmtTrein($item['status'] ?? null) ?></td></tr>
                 </table></div>

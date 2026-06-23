@@ -11,6 +11,8 @@ final class SstTreinamentoNrHelper
     public static function all(): array
     {
         return [
+            'Não se aplica',
+            'NBR 14276',
             'NR-1',
             'NR-4',
             'NR-5',

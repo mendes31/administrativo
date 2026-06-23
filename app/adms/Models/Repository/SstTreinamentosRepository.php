@@ -52,8 +52,23 @@ class SstTreinamentosRepository extends DbConnection
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
 
-        return $row ?: null;
+        return $this->hydrateRow($row);
+    }
+
+    /** @param array<string, mixed> $row */
+    private function hydrateRow(array $row): array
+    {
+        $momentos = \App\adms\Helpers\SstTreinamentoAplicacaoHelper::decodeFromDb($row['aplicacao_momentos'] ?? null);
+        if ($momentos === [] && !empty($row['tipo'])) {
+            $momentos = \App\adms\Helpers\SstTreinamentoAplicacaoHelper::fromLegacyTipo((string) $row['tipo']);
+        }
+        $row['aplicacao_momentos'] = $momentos;
+
+        return $row;
     }
 
     public function existsCodigo(string $codigo, ?int $excludeId = null): bool
@@ -97,11 +112,11 @@ class SstTreinamentosRepository extends DbConnection
     public function create(array $data): int|false
     {
         $sql = 'INSERT INTO adms_sst_treinamentos (
-                    codigo, nome, descricao, nr_referencia, tipo, modalidade,
+                    codigo, nome, descricao, nr_referencia, tipo, aplicacao_momentos, modalidade,
                     carga_horaria_minutos, validade_meses, prazo_primeiro_dias,
                     status, created_by, updated_by, created_at, updated_at
                 ) VALUES (
-                    :codigo, :nome, :descricao, :nr_referencia, :tipo, :modalidade,
+                    :codigo, :nome, :descricao, :nr_referencia, :tipo, :aplicacao_momentos, :modalidade,
                     :carga_horaria_minutos, :validade_meses, :prazo_primeiro_dias,
                     :status, :created_by, :updated_by, NOW(), NOW()
                 )';
@@ -133,6 +148,7 @@ class SstTreinamentosRepository extends DbConnection
                     descricao = :descricao,
                     nr_referencia = :nr_referencia,
                     tipo = :tipo,
+                    aplicacao_momentos = :aplicacao_momentos,
                     modalidade = :modalidade,
                     carga_horaria_minutos = :carga_horaria_minutos,
                     validade_meses = :validade_meses,
@@ -181,6 +197,10 @@ class SstTreinamentosRepository extends DbConnection
         $this->bindField($stmt, ':descricao', $data['descricao'] ?? null);
         $this->bindField($stmt, ':nr_referencia', $data['nr_referencia'] ?? null);
         $this->bindField($stmt, ':tipo', $data['tipo'] ?? 'Ambos');
+        $aplicacaoJson = \App\adms\Helpers\SstTreinamentoAplicacaoHelper::encodeForDb(
+            is_array($data['aplicacao_momentos'] ?? null) ? $data['aplicacao_momentos'] : []
+        );
+        $this->bindField($stmt, ':aplicacao_momentos', $aplicacaoJson);
         $this->bindField($stmt, ':modalidade', $data['modalidade'] ?? 'Presencial');
         $this->bindField($stmt, ':carga_horaria_minutos', $data['carga_horaria_minutos'] ?? null);
         $this->bindField($stmt, ':validade_meses', $data['validade_meses'] ?? null);

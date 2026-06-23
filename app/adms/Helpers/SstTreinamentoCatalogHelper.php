@@ -18,27 +18,44 @@ final class SstTreinamentoCatalogHelper
         $nome = trim((string) ($post['nome'] ?? ''));
         $descricao = trim((string) ($post['descricao'] ?? ''));
         $nrReferencia = trim((string) ($post['nr_referencia'] ?? ''));
-        $tipo = trim((string) ($post['tipo'] ?? 'Ambos'));
         $modalidade = trim((string) ($post['modalidade'] ?? 'Presencial'));
         $status = (string) ($post['status'] ?? 'Ativo');
 
-        $cargaHoraria = trim((string) ($post['carga_horaria_minutos'] ?? ''));
+        $cargaHoras = str_replace(',', '.', trim((string) ($post['carga_horaria_horas'] ?? '')));
         $validadeMeses = trim((string) ($post['validade_meses'] ?? ''));
         $prazoPrimeiro = trim((string) ($post['prazo_primeiro_dias'] ?? ''));
 
-        $tiposValidos = ['Inicial', 'Reciclagem', 'Ambos'];
+        $aplicacaoPost = is_array($post['aplicacao'] ?? null) ? $post['aplicacao'] : [];
+        $aplicacaoMomentos = SstTreinamentoAplicacaoHelper::normalizeFromPost($aplicacaoPost);
+
         $modalidadesValidas = ['Presencial', 'EAD', 'Hibrido'];
+
+        $cargaMinutos = null;
+        if ($cargaHoras !== '') {
+            $cargaMinutos = max(1, (int) round((float) $cargaHoras * 60));
+        }
+
+        $validade = null;
+        if ($validadeMeses !== '') {
+            $validade = max(0, (int) $validadeMeses);
+        }
+
+        $prazo = null;
+        if ($prazoPrimeiro !== '') {
+            $prazo = max(0, (int) $prazoPrimeiro);
+        }
 
         return [
             'codigo' => $codigo !== '' ? strtoupper($codigo) : null,
             'nome' => $nome !== '' ? $nome : null,
             'descricao' => $descricao !== '' ? $descricao : null,
             'nr_referencia' => $nrReferencia !== '' ? $nrReferencia : null,
-            'tipo' => in_array($tipo, $tiposValidos, true) ? $tipo : 'Ambos',
+            'aplicacao_momentos' => $aplicacaoMomentos,
+            'tipo' => SstTreinamentoAplicacaoHelper::toLegacyTipo($aplicacaoMomentos),
             'modalidade' => in_array($modalidade, $modalidadesValidas, true) ? $modalidade : 'Presencial',
-            'carga_horaria_minutos' => $cargaHoraria !== '' ? (int) $cargaHoraria : null,
-            'validade_meses' => $validadeMeses !== '' ? (int) $validadeMeses : null,
-            'prazo_primeiro_dias' => $prazoPrimeiro !== '' ? (int) $prazoPrimeiro : null,
+            'carga_horaria_minutos' => $cargaMinutos,
+            'validade_meses' => $validade,
+            'prazo_primeiro_dias' => $prazo,
             'status' => in_array($status, ['Ativo', 'Inativo'], true) ? $status : 'Ativo',
         ];
     }
@@ -47,6 +64,10 @@ final class SstTreinamentoCatalogHelper
     {
         if (empty($data['nome'])) {
             return 'Informe o nome do treinamento.';
+        }
+
+        if (empty($data['aplicacao_momentos'])) {
+            return 'Selecione ao menos um momento de aplicação (quando exigir).';
         }
 
         if (!empty($data['codigo']) && $repo->existsCodigo((string) $data['codigo'], $excludeId)) {
@@ -61,8 +82,12 @@ final class SstTreinamentoCatalogHelper
             return 'Carga horária deve ser maior que zero.';
         }
 
-        if (!empty($data['validade_meses']) && (int) $data['validade_meses'] < 1) {
-            return 'Validade em meses deve ser maior que zero.';
+        if ($data['validade_meses'] !== null && (int) $data['validade_meses'] < 0) {
+            return 'Validade de reciclagem inválida.';
+        }
+
+        if ($data['prazo_primeiro_dias'] !== null && (int) $data['prazo_primeiro_dias'] < 0) {
+            return 'Prazo para 1º treinamento inválido.';
         }
 
         return null;

@@ -1,20 +1,27 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstTreinamentoAplicacaoHelper;
+use App\adms\Helpers\SstTreinamentoDisplayHelper;
 use App\adms\Helpers\SstTreinamentoNrHelper;
 
-function formatCellValue(string $col, mixed $value): string
+function formatCellValue(string $col, mixed $value, array $row = []): string
 {
+    if ($col === 'aplicacao_momentos') {
+        $momentos = is_array($value) ? $value : SstTreinamentoAplicacaoHelper::decodeFromDb($value);
+        if ($momentos === [] && !empty($row['tipo'])) {
+            $momentos = SstTreinamentoAplicacaoHelper::fromLegacyTipo((string) $row['tipo']);
+        }
+        return htmlspecialchars(SstTreinamentoAplicacaoHelper::labelList($momentos));
+    }
     if ($value === null || $value === '') {
         return '-';
     }
     if ($col === 'carga_horaria_minutos' && is_numeric($value)) {
-        $h = floor((int) $value / 60);
-        $m = (int) $value % 60;
-        return $h > 0 ? sprintf('%dh %02dmin', $h, $m) : sprintf('%d min', $m);
+        return SstTreinamentoDisplayHelper::cargaHorariaHoras((int) $value);
     }
     if ($col === 'validade_meses' && is_numeric($value)) {
-        return (string) $value . ' meses';
+        return SstTreinamentoDisplayHelper::validadeReciclagem((int) $value);
     }
     return htmlspecialchars((string) $value);
 }
@@ -82,7 +89,7 @@ $filtersId = 'sstFiltersTreinamento';
                 <div class="d-none d-md-block table-responsive">
                     <table class="table table-bordered table-striped table-hover">
                         <thead><tr>
-                            <th>Código</th><th>Nome</th><th>NR</th><th>Tipo</th><th>Validade</th><th>Status</th><th class="text-center">Ações</th>
+                            <th>Código</th><th>Nome</th><th>NR</th><th>Quando exigir</th><th>Carga</th><th>Validade</th><th>Status</th><th class="text-center">Ações</th>
                         </tr></thead>
                         <tbody>
                         <?php foreach ($this->data['items'] as $item): $id = (int)($item['id'] ?? 0); ?>
@@ -90,7 +97,8 @@ $filtersId = 'sstFiltersTreinamento';
                                 <td><?= formatCellValue('codigo', $item['codigo'] ?? null) ?></td>
                                 <td><?= formatCellValue('nome', $item['nome'] ?? null) ?></td>
                                 <td><?= formatCellValue('nr_referencia', $item['nr_referencia'] ?? null) ?></td>
-                                <td><?= formatCellValue('tipo', $item['tipo'] ?? null) ?></td>
+                                <td><?= formatCellValue('aplicacao_momentos', $item['aplicacao_momentos'] ?? null, $item) ?></td>
+                                <td><?= formatCellValue('carga_horaria_minutos', $item['carga_horaria_minutos'] ?? null) ?></td>
                                 <td><?= formatCellValue('validade_meses', $item['validade_meses'] ?? null) ?></td>
                                 <td><span class="badge bg-<?= ($item['status'] ?? '') === 'Ativo' ? 'success' : 'secondary' ?>"><?= htmlspecialchars($item['status'] ?? '') ?></span></td>
                                 <td class="text-center">
