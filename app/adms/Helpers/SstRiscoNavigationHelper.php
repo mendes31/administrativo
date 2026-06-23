@@ -47,6 +47,7 @@ final class SstRiscoNavigationHelper
                 str_contains($_SERVER['REQUEST_URI'] ?? '', 'risco-cargo') => 'cargos',
                 str_contains($_SERVER['REQUEST_URI'] ?? '', 'risco-exame') => 'exames',
                 str_contains($_SERVER['REQUEST_URI'] ?? '', 'risco-epi') => 'epis',
+                str_contains($_SERVER['REQUEST_URI'] ?? '', 'risco-treinamento') => 'treinamentos',
                 default => '',
             };
             header('Location: ' . self::viewUrl($riscoId, $tab));

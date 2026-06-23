@@ -38,7 +38,7 @@ final class NotificationSettingsRegistry
                 'module' => 'SST — Saúde e Segurança do Trabalho',
                 'module_order' => 10,
                 'label' => 'Incluir treinamentos nas pendências SST',
-                'description' => 'Cruza treinamentos obrigatórios nas telas e alertas SST. Não altera o módulo de Treinamentos.',
+                'description' => 'Inclui treinamentos SST obrigatórios (matriz cargo/risco) nas telas e alertas de pendências. Não altera o módulo de Treinamentos.',
                 'order' => 3,
                 'is_notification' => false,
             ],

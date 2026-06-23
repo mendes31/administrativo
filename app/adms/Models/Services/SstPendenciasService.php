@@ -6,7 +6,8 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\SstCategoriaAsoHelper;
 use App\adms\Models\Repository\SstAsoExamesRepository;
-use App\adms\Models\Repository\SstAsosRepository;
+use App\adms\Models\Repository\SstTreinamentosRepository;
+use App\adms\Models\Repository\SstTreinamentoVinculosRepository;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -352,43 +353,35 @@ class SstPendenciasService extends DbConnection
         if (\App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
             return [];
         }
+        if (!$this->hasTable('adms_sst_treinamentos')) {
+            return [];
+        }
 
-        $sql = "SELECT
-                    t.id AS adms_training_id,
-                    t.nome AS treinamento_nome,
-                    t.codigo AS treinamento_codigo,
-                    tu.status AS treinamento_status,
-                    CASE
-                        WHEN tu.id IS NULL THEN 'sem_vinculo_treinamento'
-                        WHEN tu.status = 'vencido' THEN 'treinamento_vencido'
-                        WHEN tu.status IN ('pendente', 'agendado') THEN 'treinamento_pendente'
-                        WHEN tu.status = 'proximo_vencimento' THEN 'treinamento_a_vencer'
-                        ELSE NULL
-                    END AS situacao
-                FROM adms_users u
-                INNER JOIN adms_training_positions tp
-                    ON tp.adms_position_id = u.user_position_id AND tp.obrigatorio = 1
-                INNER JOIN adms_trainings t ON t.id = tp.adms_training_id AND t.ativo = 1
-                LEFT JOIN (
-                    SELECT tu1.*
-                    FROM adms_training_users tu1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_training_id, MAX(id) AS max_id
-                        FROM adms_training_users
-                        WHERE adms_user_id = :uid_tu
-                        GROUP BY adms_user_id, adms_training_id
-                    ) latest ON latest.max_id = tu1.id
-                ) tu ON tu.adms_user_id = u.id AND tu.adms_training_id = t.id
-                WHERE u.id = :uid
-                HAVING situacao IS NOT NULL
-                ORDER BY treinamento_nome";
+        $resolver = new SstTreinamentosObrigatoriosResolver();
+        $vinculoRepo = new SstTreinamentoVinculosRepository();
+        $treinamentoRepo = new SstTreinamentosRepository();
+        $rows = [];
+        foreach ($resolver->resolveForUser($userId) as $obrigatorio) {
+            $treinamentoId = (int) ($obrigatorio['adms_sst_treinamento_id'] ?? 0);
+            if ($treinamentoId <= 0) {
+                continue;
+            }
+            $vinculo = $vinculoRepo->getByUserAndTreinamento($userId, $treinamentoId);
+            $situacao = $this->avaliarSituacaoTreinamentoSst($vinculo);
+            if ($situacao === null) {
+                continue;
+            }
+            $catalogo = $treinamentoRepo->getById($treinamentoId);
+            $rows[] = [
+                'adms_sst_treinamento_id' => $treinamentoId,
+                'treinamento_nome' => (string) ($obrigatorio['treinamento_nome'] ?? $catalogo['nome'] ?? ''),
+                'treinamento_codigo' => $catalogo['codigo'] ?? null,
+                'treinamento_status' => $vinculo['status'] ?? null,
+                'situacao' => $situacao,
+            ];
+        }
 
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':uid_tu', $userId, PDO::PARAM_INT);
-        $stmt->execute();
-
-        return $this->enriquecerPendencias($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'treinamento');
+        return $this->enriquecerPendencias($rows, 'treinamento');
     }
 
     /**
@@ -513,54 +506,43 @@ class SstPendenciasService extends DbConnection
             return [];
         }
 
+        $limit = isset($filters['_limit']) ? (int) $filters['_limit'] : null;
+        unset($filters['_limit']);
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
-
-        $sql = "SELECT
-                    u.id AS adms_user_id,
-                    u.name AS colaborador_nome,
-                    dep.name AS departamento_nome,
-                    pos.name AS cargo_nome,
-                    t.id AS adms_training_id,
-                    t.nome AS treinamento_nome,
-                    t.codigo AS treinamento_codigo,
-                    tu.status AS treinamento_status,
-                    CASE
-                        WHEN tu.id IS NULL THEN 'sem_vinculo_treinamento'
-                        WHEN tu.status = 'vencido' THEN 'treinamento_vencido'
-                        WHEN tu.status IN ('pendente', 'agendado') THEN 'treinamento_pendente'
-                        WHEN tu.status = 'proximo_vencimento' THEN 'treinamento_a_vencer'
-                        ELSE NULL
-                    END AS situacao
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoTreinamento('u');
+        $sql = "SELECT u.id AS adms_user_id, u.name AS colaborador_nome,
+                       dep.name AS departamento_nome, pos.name AS cargo_nome
                 FROM adms_users u
                 LEFT JOIN adms_departments dep ON dep.id = u.user_department_id
                 LEFT JOIN adms_positions pos ON pos.id = u.user_position_id
-                INNER JOIN adms_training_positions tp
-                    ON tp.adms_position_id = u.user_position_id AND tp.obrigatorio = 1
-                INNER JOIN adms_trainings t ON t.id = tp.adms_training_id AND t.ativo = 1
-                LEFT JOIN (
-                    SELECT tu1.*
-                    FROM adms_training_users tu1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_training_id, MAX(id) AS max_id
-                        FROM adms_training_users
-                        GROUP BY adms_user_id, adms_training_id
-                    ) latest ON latest.max_id = tu1.id
-                ) tu ON tu.adms_user_id = u.id AND tu.adms_training_id = t.id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
+                  AND {$obrigacaoSql}
                   AND " . \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUserIdColumn('u.id') . "
                   {$extraWhere}
-                HAVING situacao IS NOT NULL
-                ORDER BY colaborador_nome, treinamento_nome
-                LIMIT 1000";
-
+                ORDER BY colaborador_nome
+                LIMIT 500";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
         }
         $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $out = [];
+        foreach ($users as $user) {
+            $uid = (int) ($user['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($this->getPendenciasTreinamentoPorUsuario($uid) as $row) {
+                $out[] = array_merge($user, $row);
+                if ($limit !== null && count($out) >= $limit) {
+                    return $out;
+                }
+            }
+        }
 
-        return $this->enriquecerPendencias($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'treinamento');
+        return $out;
     }
 
     /**
@@ -910,44 +892,85 @@ class SstPendenciasService extends DbConnection
         }
 
         [$extraWhere, $params] = $this->buildUserFilters($filters, 'u');
-        $criticas = "'" . implode("','", ['sem_vinculo_treinamento', 'treinamento_vencido']) . "'";
-
-        $sql = "SELECT COUNT(*) AS total FROM (
-                SELECT
-                    CASE
-                        WHEN tu.id IS NULL THEN 'sem_vinculo_treinamento'
-                        WHEN tu.status = 'vencido' THEN 'treinamento_vencido'
-                        WHEN tu.status IN ('pendente', 'agendado') THEN 'treinamento_pendente'
-                        WHEN tu.status = 'proximo_vencimento' THEN 'treinamento_a_vencer'
-                        ELSE NULL
-                    END AS situacao
+        $obrigacaoSql = $this->sqlUsuarioComObrigacaoTreinamento('u');
+        $sql = "SELECT u.id AS adms_user_id
                 FROM adms_users u
-                INNER JOIN adms_training_positions tp
-                    ON tp.adms_position_id = u.user_position_id AND tp.obrigatorio = 1
-                INNER JOIN adms_trainings t ON t.id = tp.adms_training_id AND t.ativo = 1
-                LEFT JOIN (
-                    SELECT tu1.*
-                    FROM adms_training_users tu1
-                    INNER JOIN (
-                        SELECT adms_user_id, adms_training_id, MAX(id) AS max_id
-                        FROM adms_training_users
-                        GROUP BY adms_user_id, adms_training_id
-                    ) latest ON latest.max_id = tu1.id
-                ) tu ON tu.adms_user_id = u.id AND tu.adms_training_id = t.id
                 WHERE u.status = 'Ativo'
                   AND (u.data_desligamento IS NULL)
+                  AND {$obrigacaoSql}
                   AND " . \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUserIdColumn('u.id') . "
-                  {$extraWhere}
-                HAVING situacao IN ({$criticas})
-            ) sub";
-
+                  {$extraWhere}";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
         }
         $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+        $criticas = ['sem_vinculo_treinamento', 'treinamento_vencido'];
+        $total = 0;
+        foreach ($users as $user) {
+            $uid = (int) ($user['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($this->getPendenciasTreinamentoPorUsuario($uid) as $row) {
+                if (in_array($row['situacao'] ?? '', $criticas, true)) {
+                    $total++;
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /** @param array<string, mixed>|null $vinculo */
+    private function avaliarSituacaoTreinamentoSst(?array $vinculo): ?string
+    {
+        if ($vinculo === null) {
+            return 'sem_vinculo_treinamento';
+        }
+        $status = (string) ($vinculo['status'] ?? '');
+
+        return match ($status) {
+            'vencido' => 'treinamento_vencido',
+            'pendente', 'agendado' => 'treinamento_pendente',
+            'proximo_vencimento' => 'treinamento_a_vencer',
+            default => null,
+        };
+    }
+
+    private function sqlUsuarioComObrigacaoTreinamento(string $aliasUser = 'u'): string
+    {
+        $parts = [];
+        if ($this->hasTable('adms_sst_treinamento_necessidade')) {
+            $parts[] = "EXISTS (
+                SELECT 1 FROM adms_sst_treinamento_necessidade n
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = n.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE n.obrigatorio = 1
+                  AND {$this->sqlRegraNecessidade('n', $aliasUser)}
+                  AND (
+                    n.adms_sst_risco_id IS NULL
+                    OR EXISTS (
+                        SELECT 1 FROM adms_sst_riscos_cargo rc2
+                        WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
+                          AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = {$aliasUser}.user_position_id)
+                          AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = {$aliasUser}.user_department_id)
+                    )
+                  )
+            )";
+        }
+        if ($this->hasTable('adms_sst_risco_treinamento')) {
+            $parts[] = "EXISTS (
+                SELECT 1 FROM adms_sst_riscos_cargo rc
+                INNER JOIN adms_sst_risco_treinamento rt ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
+                INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
+                WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
+                  AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+            )";
+        }
+
+        return $parts === [] ? '0' : '(' . implode(' OR ', $parts) . ')';
     }
 
     private function countPendenciasExameCriticas(array $filters = []): int

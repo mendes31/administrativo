@@ -563,6 +563,16 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'sst-update-epi-necessidade/' . $objetoId;
             case 'adms_sst_exame_necessidade':
                 return $_ENV['URL_ADM'] . 'sst-update-exame-necessidade/' . $objetoId;
+            case 'adms_sst_treinamentos':
+                return $_ENV['URL_ADM'] . 'sst-view-treinamento/' . $objetoId;
+            case 'adms_sst_treinamento_necessidade':
+                return $_ENV['URL_ADM'] . 'sst-update-treinamento-necessidade/' . $objetoId;
+            case 'adms_sst_risco_treinamento':
+                return $_ENV['URL_ADM'] . 'sst-list-riscos';
+            case 'adms_sst_treinamento_vinculos':
+                return $_ENV['URL_ADM'] . 'sst-view-treinamento-vinculo/' . $objetoId;
+            case 'adms_sst_treinamento_aplicacoes':
+                return $_ENV['URL_ADM'] . 'sst-list-treinamento-vinculos';
             case 'adms_sst_riscos_cargo':
                 return $_ENV['URL_ADM'] . 'sst-update-risco-cargo/' . $objetoId;
             case 'adms_sst_anexos':

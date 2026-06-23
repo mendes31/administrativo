@@ -170,6 +170,61 @@ class SstDashboardService extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function getReportTreinamentos(array $filters = []): array
+    {
+        if (!$this->hasTable('adms_sst_treinamento_vinculos')) {
+            return [];
+        }
+
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty($filters['adms_user_id'])) {
+            $where[] = 'v.adms_user_id = :uid';
+            $params[':uid'] = (int) $filters['adms_user_id'];
+        }
+        if (!empty($filters['status'])) {
+            $where[] = 'v.status = :status';
+            $params[':status'] = (string) $filters['status'];
+        }
+
+        $statusVenc = $filters['status_vencimento'] ?? '';
+        if ($statusVenc === 'vencido') {
+            $where[] = "v.status = 'vencido'";
+        } elseif ($statusVenc === 'a_vencer') {
+            $where[] = "v.status = 'proximo_vencimento'";
+        } elseif ($statusVenc === 'valido') {
+            $where[] = "v.status IN ('dentro_do_prazo', 'concluido')";
+        }
+
+        $whereClause = implode(' AND ', $where);
+        $sql = "SELECT v.*, u.name AS colaborador_nome, tr.nome AS treinamento_nome, tr.codigo AS treinamento_codigo
+                FROM adms_sst_treinamento_vinculos v
+                LEFT JOIN adms_users u ON u.id = v.adms_user_id
+                LEFT JOIN adms_sst_treinamentos tr ON tr.id = v.adms_sst_treinamento_id
+                WHERE {$whereClause}
+                ORDER BY v.data_validade ASC, v.id DESC
+                LIMIT 500";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function hasTable(string $table): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t LIMIT 1'
+        );
+        $stmt->bindValue(':t', $table);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
     public function listAfastamentosAtivos(int $limit = 5): array
     {
         $sql = "SELECT a.*, u.name AS colaborador_nome, c.codigo AS cid_codigo

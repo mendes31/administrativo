@@ -10,6 +10,8 @@ use App\adms\Models\Repository\SstExamesRepository;
 use App\adms\Models\Repository\SstRiscoCargoRepository;
 use App\adms\Models\Repository\SstRiscoEpiRepository;
 use App\adms\Models\Repository\SstRiscoExameRepository;
+use App\adms\Models\Repository\SstRiscoTreinamentoRepository;
+use App\adms\Models\Repository\SstTreinamentosRepository;
 use App\adms\Models\Repository\SstRiscosRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
@@ -50,11 +52,25 @@ class SstViewRisco
         }
         $this->data['episVinculadosMap'] = $episVinculadosMap;
 
+        $this->data['treinamentos'] = (new SstTreinamentosRepository())->getAll(1, 500, ['status' => 'Ativo']);
+        $treinamentoRows = (new SstRiscoTreinamentoRepository())->getAllByRisco($itemId);
+        $treinamentosVinculadosMap = [];
+        foreach ($treinamentoRows as $row) {
+            $tid = (int) ($row['adms_sst_treinamento_id'] ?? 0);
+            if ($tid > 0) {
+                $treinamentosVinculadosMap[$tid] = [
+                    'obrigatorio' => !empty($row['obrigatorio']),
+                    'validade_meses' => $row['validade_meses'] ?? null,
+                ];
+            }
+        }
+        $this->data['treinamentosVinculadosMap'] = $treinamentosVinculadosMap;
+
         $pageElements = [
             'title_head' => 'Visualizar Risco - SST',
             'menu' => 'sst-list-riscos',
             'buttonPermission' => [
-                'SstViewRisco', 'SstUpdateRisco', 'SstDeleteRisco', 'SstSaveRiscoRelacionamentos',
+                'SstViewRisco', 'SstUpdateRisco', 'SstDeleteRisco', 'SstSaveRiscoRelacionamentos', 'SstSaveRiscoTreinamentos',
                 'SstCreateRiscoCargo', 'SstUpdateRiscoCargo', 'SstDeleteRiscoCargo',
                 'SstCreateRiscoExame', 'SstUpdateRiscoExame', 'SstDeleteRiscoExame',
             ],

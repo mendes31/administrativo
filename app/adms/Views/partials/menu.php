@@ -1018,10 +1018,22 @@ $menus = [
                         'icon' => 'fas fa-clipboard-list'
                     ],
                     [
+                        'label' => 'Necessidades de treinamento',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-treinamento-necessidade',
+                        'permission' => 'SstListTreinamentoNecessidade',
+                        'icon' => 'fas fa-clipboard-list'
+                    ],
+                    [
                         'label' => 'Riscos',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-riscos',
                         'permission' => 'SstListRiscos',
                         'icon' => 'fas fa-exclamation-triangle'
+                    ],
+                    [
+                        'label' => 'Treinamentos SST',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-treinamentos',
+                        'permission' => 'SstListTreinamentos',
+                        'icon' => 'fas fa-graduation-cap'
                     ],
                     // SST equipamentos de segurança e vistorias periódicas
                     [
@@ -1065,6 +1077,18 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'sst-list-asos',
                         'permission' => 'SstListAsos',
                         'icon' => 'fas fa-file-medical'
+                    ],
+                    [
+                        'label' => 'Status treinamentos SST',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-treinamento-vinculos',
+                        'permission' => 'SstListTreinamentoVinculos',
+                        'icon' => 'fas fa-user-graduate'
+                    ],
+                    [
+                        'label' => 'Aplicar treinamento SST',
+                        'url' => $_ENV['URL_ADM'] . 'sst-apply-treinamento',
+                        'permission' => 'SstApplyTreinamento',
+                        'icon' => 'fas fa-check-circle'
                     ],
                     [
                         'label' => 'Fichas de entrega EPI',
@@ -1155,6 +1179,12 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'sst-report-exames',
                         'permission' => 'SstReportExames',
                         'icon' => 'fas fa-chart-bar'
+                    ],
+                    [
+                        'label' => 'Relatório treinamentos SST',
+                        'url' => $_ENV['URL_ADM'] . 'sst-report-treinamentos',
+                        'permission' => 'SstReportTreinamentos',
+                        'icon' => 'fas fa-graduation-cap'
                     ],
                     [
                         'label' => 'Relatório de afastamentos',
