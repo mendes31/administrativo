@@ -3,18 +3,14 @@
 declare(strict_types=1);
 
 /**
- * Compara ficheiros no servidor FTP com o checkout Git (SHA-256).
+ * Compara ficheiros no servidor FTP com o checkout Git (SHA-256 normalizado LF).
  *
  * Modos (DEPLOY_VERIFY_MODE):
- *   changed — só ficheiros alterados no push (deploy rápido / lftp push)
- *   full    — manifesto completo deployCriticalManifest() (deploy incremental)
+ *   changed — ficheiros enviados neste deploy (git diff ou DEPLOY_FEATURE_MANIFEST)
+ *   full    — manifesto completo deployCriticalManifest()
  *
  * Uso:
  *   FTP_SERVER=host FTP_USER=user FTP_PASS=pass php scripts/verify_ftp_deploy_hashes.php
- *
- * Variáveis opcionais:
- *   GIT_BEFORE, GIT_AFTER — intervalo Git (modo changed)
- *   FTP_REMOTE_BASE, FTP_PORT, DEPLOY_FTP_RETRIES
  */
 
 require __DIR__ . '/deploy_critical_manifest.php';
@@ -51,7 +47,7 @@ function deployVerifyEntries(string $root, string $mode, string $gitBefore, stri
         return deployCriticalManifest();
     }
 
-    $changed = deployCollectChangedFiles($root, $gitBefore, $gitAfter);
+    $changed = deployResolveFilesToUpload($root, $gitBefore, $gitAfter);
     if ($changed === []) {
         return [];
     }
@@ -63,6 +59,9 @@ function deployVerifyEntries(string $root, string $mode, string $gitBefore, stri
 
     $entries = [];
     foreach ($changed as $path) {
+        if (deployPathExcluded($path)) {
+            continue;
+        }
         $entries[] = $manifestByPath[$path] ?? ['path' => $path];
     }
 
@@ -75,6 +74,10 @@ $checked = 0;
 
 echo '=== Verificação FTP pós-deploy — ' . date('Y-m-d H:i:s') . " ===\n";
 echo "Modo: {$mode}\n";
+$featureManifest = trim((string)(getenv('DEPLOY_FEATURE_MANIFEST') ?: ''));
+if ($featureManifest !== '') {
+    echo "Manifesto: {$featureManifest}\n";
+}
 echo "Servidor: {$server}, base remota: " . ($remoteBase === '' ? '(raiz da sessão FTP)' : $remoteBase . '/') . "\n";
 echo 'Ficheiros a verificar: ' . count($entries) . "\n\n";
 
@@ -92,7 +95,7 @@ foreach ($entries as $entry) {
         continue;
     }
 
-    $localHash = hash_file('sha256', $localPath);
+    $localHash = deployContentHash($localPath);
     if ($localHash === false) {
         $errors[] = "Não foi possível ler hash local: {$rel}";
         continue;
@@ -104,8 +107,9 @@ foreach ($entries as $entry) {
         continue;
     }
 
-    $remoteHash = hash_file('sha256', $tmp);
+    $remoteHash = deployContentHash($tmp);
     $remoteContent = (string)file_get_contents($tmp);
+    $remoteContent = str_replace("\r\n", "\n", str_replace("\r", "\n", $remoteContent));
     @unlink($tmp);
     $checked++;
 
@@ -129,8 +133,8 @@ if ($errors !== []) {
         echo "  - {$error}\n";
     }
     echo "\nO deploy FTP marcou sucesso mas o servidor não reflete o Git.\n";
-    if ($mode === 'changed') {
-        echo "Reexecute com workflow_dispatch e git_before/git_after do intervalo em falta.\n";
+    if ($mode === 'changed' && $featureManifest === '') {
+        echo "Para re-deploy de ficheiros antigos: workflow_dispatch + feature_manifest=institutional-user\n";
     }
     exit(1);
 }

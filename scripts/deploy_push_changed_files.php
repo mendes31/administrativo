@@ -37,10 +37,15 @@ if ($server === '' || $user === '' || $pass === '') {
     exit(1);
 }
 
-$changed = deployCollectChangedFiles($root, $gitBefore, $gitAfter);
+$changed = deployResolveFilesToUpload($root, $gitBefore, $gitAfter);
+$manifestName = trim((string)(getenv('DEPLOY_FEATURE_MANIFEST') ?: ''));
 
 echo '=== Deploy rápido (ficheiros do push) — ' . date('Y-m-d H:i:s') . " ===\n";
-echo 'Git: ' . ($gitBefore !== '' ? substr($gitBefore, 0, 7) : 'HEAD~1') . ' → ' . substr($gitAfter, 0, 7) . "\n";
+if ($manifestName !== '') {
+    echo "Manifesto: {$manifestName}\n";
+} else {
+    echo 'Git: ' . ($gitBefore !== '' ? substr($gitBefore, 0, 7) : 'HEAD~1') . ' → ' . substr($gitAfter, 0, 7) . "\n";
+}
 echo 'Ficheiros a enviar (após exclude): ' . count($changed) . "\n";
 echo "Modo: conexão FTP por ficheiro, até {$maxRetries} tentativa(s) cada.\n";
 

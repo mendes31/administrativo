@@ -34,9 +34,13 @@ if ($lftpBin === '') {
     exit(1);
 }
 
-$changed = deployCollectChangedFiles($root, $gitBefore, $gitAfter);
+$changed = deployResolveFilesToUpload($root, $gitBefore, $gitAfter);
+$manifestName = trim((string)(getenv('DEPLOY_FEATURE_MANIFEST') ?: ''));
 
 echo '=== Deploy lftp (só ficheiros do push) — ' . date('Y-m-d H:i:s') . " ===\n";
+if ($manifestName !== '') {
+    echo "Manifesto: {$manifestName}\n";
+}
 echo 'Ficheiros: ' . count($changed) . "\n";
 
 if ($changed === []) {

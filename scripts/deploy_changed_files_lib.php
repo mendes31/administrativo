@@ -6,6 +6,21 @@ require __DIR__ . '/deploy_excludes.php';
 require __DIR__ . '/deploy_config.php';
 
 /**
+ * Hash SHA-256 normalizado (LF) — evita falso negativo CRLF no servidor.
+ */
+function deployContentHash(string $absolutePath): string|false
+{
+    $content = file_get_contents($absolutePath);
+    if ($content === false) {
+        return false;
+    }
+
+    $content = str_replace("\r\n", "\n", str_replace("\r", "\n", $content));
+
+    return hash('sha256', $content);
+}
+
+/**
  * @return list<string> caminhos relativos com /
  */
 function deployCollectChangedFiles(string $root, string $gitBefore, string $gitAfter): array
@@ -45,6 +60,46 @@ function deployCollectChangedFiles(string $root, string $gitBefore, string $gitA
     }
 
     return array_values(array_unique($files));
+}
+
+/**
+ * Lista final de ficheiros a enviar/verificar neste deploy.
+ *
+ * Prioridade:
+ *   1) DEPLOY_FEATURE_MANIFEST (ex. institutional-user)
+ *   2) git diff GIT_BEFORE..GIT_AFTER (exclui .github, vendor, etc.)
+ *
+ * @return list<string>
+ */
+function deployResolveFilesToUpload(string $root, string $gitBefore, string $gitAfter): array
+{
+    $manifestName = trim((string)(getenv('DEPLOY_FEATURE_MANIFEST') ?: ''));
+    if ($manifestName !== '') {
+        require_once __DIR__ . '/deploy_feature_manifests.php';
+        $listed = deployFeatureManifestFiles($manifestName);
+        if ($listed === null) {
+            fwrite(STDERR, "❌ Manifesto desconhecido: {$manifestName}\n");
+            exit(1);
+        }
+
+        $files = [];
+        foreach ($listed as $rel) {
+            $rel = trim(str_replace('\\', '/', $rel));
+            if ($rel === '' || deployPathExcluded($rel)) {
+                continue;
+            }
+            $local = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+            if (!is_file($local)) {
+                fwrite(STDERR, "❌ Ficheiro do manifesto ausente no checkout: {$rel}\n");
+                exit(1);
+            }
+            $files[] = $rel;
+        }
+
+        return array_values(array_unique($files));
+    }
+
+    return deployCollectChangedFiles($root, $gitBefore, $gitAfter);
 }
 
 /**

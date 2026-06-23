@@ -1,12 +1,11 @@
 ﻿name: Deploy PHP para Kinghost (rápido + seguro)
 
-# 1) Deploy rápido: só ficheiros alterados no push (conexão FTP por ficheiro + retry).
-# 2) Se falhar: lftp só dos ficheiros do push (evita sync de 3000+ ficheiros).
-# 3) Se ainda falhar ou >150 ficheiros: FTP-Deploy-Action (hash incremental).
-# 4) Fallback lftp upload-only (sem --delete) se tudo falhar.
-# 5) Verificação SHA-256 dos ficheiros críticos (bloqueia deploy incompleto).
+# 1) Deploy rápido: git diff OU manifesto fixo (institutional-user).
+# 2) Se falhar: lftp só desses ficheiros.
+# 3) Se ainda falhar: FTP-Deploy-Action incremental.
+# 4) Verificação SHA-256 só dos ficheiros enviados (hash LF normalizado).
 #
-# Uploads (.env, public/adms/uploads/**) nunca enviados. dangerous-clean-slate: false.
+# Re-deploy manual: workflow_dispatch + feature_manifest=institutional-user
 
 on:
   push:
@@ -15,12 +14,19 @@ on:
       - dev-master
   workflow_dispatch:
     inputs:
+      feature_manifest:
+        description: 'Manifesto fixo (re-deploy de ficheiros em falta no servidor)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - institutional-user
       git_before:
-        description: 'Commit anterior (re-deploy manual, ex. 0dddd42)'
+        description: 'Commit anterior (opcional, com git diff)'
         required: false
         type: string
       git_after:
-        description: 'Commit destino (re-deploy manual, ex. 11559c2 ou vazio=HEAD)'
+        description: 'Commit destino (opcional, default HEAD)'
         required: false
         type: string
 
@@ -36,12 +42,13 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       FTP_REMOTE_BASE: ''
       DEPLOY_FTP_RETRIES: '4'
+      DEPLOY_FEATURE_MANIFEST: ${{ github.event.inputs.feature_manifest || '' }}
 
     steps:
       - name: Checkout código
         uses: actions/checkout@v6
         with:
-          fetch-depth: 2
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && 0 || 2 }}
 
       - name: Verificar Secrets FTP
         run: |
@@ -211,6 +218,7 @@ jobs:
         if: always()
         run: |
           echo "📊 Resumo:"
+          echo "   Manifesto:               ${{ github.event.inputs.feature_manifest || '(git diff)' }}"
           echo "   Deploy rápido (push):    ${{ steps.deploy_fast.conclusion }}"
           echo "   lftp só push:            ${{ steps.deploy_lftp_changed.conclusion }}"
           echo "   Incremental tent. 1:     ${{ steps.deploy1.conclusion }}"
