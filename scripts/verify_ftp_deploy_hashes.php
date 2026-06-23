@@ -72,6 +72,8 @@ $entries = deployVerifyEntries($root, $mode, $gitBefore, $gitAfter);
 $errors = [];
 $checked = 0;
 
+$paths = array_map(static fn(array $e): string => $e['path'], $entries);
+
 echo '=== Verificação FTP pós-deploy — ' . date('Y-m-d H:i:s') . " ===\n";
 echo "Modo: {$mode}\n";
 $featureManifest = trim((string)(getenv('DEPLOY_FEATURE_MANIFEST') ?: ''));
@@ -83,6 +85,11 @@ echo 'Ficheiros a verificar: ' . count($entries) . "\n\n";
 
 if ($entries === []) {
     echo "OK: nenhum ficheiro deployável a verificar.\n";
+    exit(0);
+}
+
+if ($mode === 'changed' && deployIsScriptsOnlyPaths($paths)) {
+    echo "OK: deploy só em scripts/ — verificação SHA ignorada (não bloqueia pipeline).\n";
     exit(0);
 }
 

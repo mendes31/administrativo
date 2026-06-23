@@ -103,6 +103,109 @@ function deployResolveFilesToUpload(string $root, string $gitBefore, string $git
 }
 
 /**
+ * @param list<string> $paths
+ */
+function deployIsScriptsOnlyPaths(array $paths): bool
+{
+    if ($paths === []) {
+        return false;
+    }
+
+    foreach ($paths as $path) {
+        if (!str_starts_with(str_replace('\\', '/', $path), 'scripts/')) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Ficheiros mínimos que indicam se o manifesto institutional-user está em produção.
+ *
+ * @return list<string>
+ */
+function deployProductionGatePaths(): array
+{
+    return [
+        'app/adms/Helpers/InstitutionalSystemUserHelper.php',
+        'app/adms/Models/Repository/EmployeePayrollDocumentsRepository.php',
+        'app/adms/Controllers/dashboard/Dashboard.php',
+    ];
+}
+
+function deployRemoteMatchesLocal(
+    string $server,
+    int $port,
+    string $user,
+    string $pass,
+    string $root,
+    string $rel,
+    int $maxAttempts = 4
+): bool {
+    $localPath = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+    if (!is_file($localPath)) {
+        return false;
+    }
+
+    $localHash = deployContentHash($localPath);
+    if ($localHash === false) {
+        return false;
+    }
+
+    $tmp = deployFtpDownloadFile($server, $port, $user, $pass, $rel, $maxAttempts);
+    if ($tmp === null) {
+        return false;
+    }
+
+    $remoteHash = deployContentHash($tmp);
+    @unlink($tmp);
+
+    return $remoteHash === $localHash;
+}
+
+/**
+ * @param list<string> $files
+ * @return list<string> ficheiros que falharam
+ */
+function deployUploadFilesList(
+    string $server,
+    int $port,
+    string $user,
+    string $pass,
+    string $root,
+    array $files,
+    int $maxRetries = 4
+): array {
+    $errors = [];
+
+    foreach ($files as $rel) {
+        if (deployFtpUploadFile($server, $port, $user, $pass, $root, $rel, $maxRetries)) {
+            echo "  ↑ {$rel}\n";
+        } else {
+            $errors[] = $rel;
+            fwrite(STDERR, "  ✗ falha: {$rel}\n");
+        }
+    }
+
+    if ($errors !== []) {
+        echo "\n↻ Retry final para " . count($errors) . " ficheiro(s)...\n";
+        $retryErrors = [];
+        foreach ($errors as $rel) {
+            if (deployFtpUploadFile($server, $port, $user, $pass, $root, $rel, $maxRetries)) {
+                echo "  ↑ {$rel} (retry)\n";
+            } else {
+                $retryErrors[] = $rel;
+                fwrite(STDERR, "  ✗ falha (retry): {$rel}\n");
+            }
+        }
+        $errors = $retryErrors;
+    }
+
+    return $errors;
+}
+
+/**
  * @return \FTP\Connection|false
  */
 function deployFtpConnect(string $server, int $port, string $user, string $pass)

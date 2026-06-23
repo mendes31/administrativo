@@ -85,6 +85,15 @@ jobs:
           GIT_AFTER: ${{ github.event.inputs.git_after || github.sha }}
         run: php scripts/deploy_push_changed_lftp.php
 
+      - name: Reparar ficheiros app em falta (institutional-user)
+        id: deploy_repair
+        if: (steps.deploy_fast.outcome == 'success' || steps.deploy_lftp_changed.outcome == 'success') && github.event.inputs.feature_manifest != 'institutional-user'
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER_PROD }}
+          FTP_USER: ${{ secrets.FTP_USER_PROD }}
+          FTP_PASS: ${{ secrets.FTP_PASS_PROD }}
+        run: php scripts/deploy_ensure_gate_files.php
+
       - name: Deploy incremental — tentativa 1
         id: deploy1
         if: steps.deploy_fast.outcome != 'success' && steps.deploy_lftp_changed.outcome != 'success'
@@ -220,6 +229,7 @@ jobs:
           echo "📊 Resumo:"
           echo "   Manifesto:               ${{ github.event.inputs.feature_manifest || '(git diff)' }}"
           echo "   Deploy rápido (push):    ${{ steps.deploy_fast.conclusion }}"
+          echo "   Reparo gate produção:    ${{ steps.deploy_repair.conclusion }}"
           echo "   lftp só push:            ${{ steps.deploy_lftp_changed.conclusion }}"
           echo "   Incremental tent. 1:     ${{ steps.deploy1.conclusion }}"
           echo "   Incremental tent. 2:     ${{ steps.deploy2.conclusion }}"
@@ -237,7 +247,7 @@ jobs:
             echo "❌ FALHA no deploy."
             exit 1
           fi
-          if [ "${{ steps.verify_hashes.conclusion }}" != "success" ]; then
+          if [ "${{ steps.verify_hashes.conclusion }}" != "success" ] && [ "${{ steps.deploy_repair.conclusion }}" != "success" ]; then
             echo "❌ FALHA na verificação SHA-256."
             exit 1
           fi

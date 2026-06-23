@@ -60,33 +60,8 @@ if (count($changed) > $maxChanged) {
 }
 
 $uploaded = 0;
-$errors = [];
-
-foreach ($changed as $rel) {
-    if (deployFtpUploadFile($server, $port, $user, $pass, $root, $rel, $maxRetries)) {
-        echo "  ↑ {$rel}\n";
-        $uploaded++;
-    } else {
-        $errors[] = $rel;
-        fwrite(STDERR, "  ✗ falha: {$rel}\n");
-    }
-}
-
-// Segunda ronda só para falhas (reconexão limpa).
-if ($errors !== []) {
-    echo "\n↻ Retry final para " . count($errors) . " ficheiro(s) com falha...\n";
-    $retryErrors = [];
-    foreach ($errors as $rel) {
-        if (deployFtpUploadFile($server, $port, $user, $pass, $root, $rel, $maxRetries)) {
-            echo "  ↑ {$rel} (retry)\n";
-            $uploaded++;
-        } else {
-            $retryErrors[] = $rel;
-            fwrite(STDERR, "  ✗ falha (retry): {$rel}\n");
-        }
-    }
-    $errors = $retryErrors;
-}
+$errors = deployUploadFilesList($server, $port, $user, $pass, $root, $changed, $maxRetries);
+$uploaded = count($changed) - count($errors);
 
 echo "\nEnviados: {$uploaded}/" . count($changed) . "\n";
 
