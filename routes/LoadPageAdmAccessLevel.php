@@ -173,6 +173,12 @@ class LoadPageAdmAccessLevel
                 $this->urlController = 'ListConnectedUsers';
             }
         }
+        if (!$this->page && preg_match('#list-users-last-access#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
+            $this->page = $accessLevelPage->getPageByControllerUrl('list-users-last-access');
+            if ($this->page) {
+                $this->urlController = 'ListUsersLastAccess';
+            }
+        }
 
         // Imagens/anexos via serve-file: se a linha em adms_pages faltar ou estiver inativa, ainda resolvemos a rota.
         if (!$this->page && preg_match('#serve-file|servefile#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
@@ -513,6 +519,16 @@ class LoadPageAdmAccessLevel
             $out[] = $root . '/app/adms/Controllers/logs/ListConnectedUsers.php';
             $out[] = $root . '/app/adms/Controllers/Logs/ListConnectedUsers.php';
         }
+        if (str_ends_with($fqcn, 'ListUsersLastAccess')) {
+            $out[] = $root . '/app/adms/Controllers/logs/ListUsersLastAccess.php';
+            $out[] = $root . '/app/adms/Controllers/Logs/ListUsersLastAccess.php';
+        }
+        if (str_ends_with($fqcn, 'ExportUsersLastAccessPdf')) {
+            $out[] = $root . '/app/adms/Controllers/logs/ExportUsersLastAccessPdf.php';
+        }
+        if (str_ends_with($fqcn, 'ExportUsersLastAccessExcel')) {
+            $out[] = $root . '/app/adms/Controllers/logs/ExportUsersLastAccessExcel.php';
+        }
 
         return array_values(array_unique(array_filter($out)));
     }
@@ -558,6 +574,21 @@ class LoadPageAdmAccessLevel
             || $this->urlController === 'ListConnectedUsers'
             || preg_match('#list-connected-users#i', $uri)) {
             $this->classLoad = \App\adms\Controllers\logs\ListConnectedUsers::class;
+        }
+        if ($slug === 'list-users-last-access'
+            || $this->urlController === 'ListUsersLastAccess'
+            || preg_match('#list-users-last-access#i', $uri)) {
+            $this->classLoad = \App\adms\Controllers\logs\ListUsersLastAccess::class;
+        }
+        if ($slug === 'export-users-last-access-pdf'
+            || $this->urlController === 'ExportUsersLastAccessPdf'
+            || preg_match('#export-users-last-access-pdf#i', $uri)) {
+            $this->classLoad = \App\adms\Controllers\logs\ExportUsersLastAccessPdf::class;
+        }
+        if ($slug === 'export-users-last-access-excel'
+            || $this->urlController === 'ExportUsersLastAccessExcel'
+            || preg_match('#export-users-last-access-excel#i', $uri)) {
+            $this->classLoad = \App\adms\Controllers\logs\ExportUsersLastAccessExcel::class;
         }
 
         if ($this->ensureControllerClassLoaded()) {

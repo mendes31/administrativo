@@ -5,28 +5,7 @@ $currentUserId = (int)($this->data['current_user_id'] ?? 0);
 $idleDescription = (string)($this->data['idle_description'] ?? '');
 $consultedAt = (string)($this->data['consulted_at'] ?? '');
 
-$renderConnectedUserAvatar = function (array $row, int $sizePx): string {
-    $uid = (int)($row['user_id'] ?? 0);
-    $name = (string)($row['user_name'] ?? '—');
-    $img = (string)($row['user_image'] ?? '');
-    $hasCustom = \App\adms\Helpers\ImageHelper::userImageExists($uid, $img);
-    $style = sprintf('width:%dpx;height:%dpx;object-fit:cover;', $sizePx, $sizePx);
-    if ($hasCustom) {
-        return \App\adms\Helpers\ImageHelper::displayImage(
-            'users/' . $uid . '/' . $img,
-            [
-                'class' => 'rounded-circle flex-shrink-0 connected-user-thumb',
-                'style' => $style,
-                'alt' => 'Foto de ' . $name,
-            ],
-            'icon_user.png',
-            'users'
-        );
-    }
-    return \App\adms\Helpers\ImageHelper::renderInitialsAvatar($name, $sizePx, [
-        'class' => 'flex-shrink-0 connected-user-thumb',
-    ]);
-};
+include './app/adms/Views/logs/partials/userAvatarHelper.php';
 ?>
 <style>
     /* Mobile: cartões em largura total; evita tabela cortada */
@@ -69,6 +48,12 @@ $renderConnectedUserAvatar = function (array $row, int $sizePx): string {
             <li class="breadcrumb-item active text-truncate" style="max-width: 11rem;" aria-current="page">Conectados</li>
         </ol>
     </div>
+
+    <?php
+    $activeTab = 'connected';
+    include './app/adms/Views/logs/partials/accessUsersTabs.php';
+    ?>
+
     <div class="card mb-4 border-light shadow">
         <div class="card-header d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center justify-content-between">
             <span class="fw-semibold">Listar</span>
@@ -121,7 +106,7 @@ $renderConnectedUserAvatar = function (array $row, int $sizePx): string {
                                 <tr class="<?= $isSelf ? 'table-primary' : ''; ?>">
                                     <td class="text-start ps-2">
                                         <div class="d-flex align-items-center gap-2">
-                                            <?= $renderConnectedUserAvatar($row, 36); ?>
+                                            <?= $renderUserAvatar($row, 36); ?>
                                             <span class="text-break">
                                                 <?= htmlspecialchars((string)($row['user_name'] ?? '—')); ?>
                                                 <?php if ($isSelf): ?>
@@ -155,7 +140,7 @@ $renderConnectedUserAvatar = function (array $row, int $sizePx): string {
                         <div class="card mb-3 shadow-sm border <?= $isSelf ? 'border-primary border-2' : ''; ?>">
                             <div class="card-header py-2 <?= $isSelf ? 'bg-primary bg-opacity-10' : 'bg-light'; ?>">
                                 <div class="d-flex align-items-center gap-2">
-                                    <?= $renderConnectedUserAvatar($row, 44); ?>
+                                    <?= $renderUserAvatar($row, 44); ?>
                                     <span class="fw-semibold text-break"><?= htmlspecialchars((string)($row['user_name'] ?? '—')); ?></span>
                                     <?php if ($isSelf): ?>
                                         <span class="badge bg-primary">Você</span>

@@ -143,4 +143,166 @@ class LogAcessosRepository extends DbConnection
         
         return $this->insert($data) !== false;
     }
+
+    /**
+     * Lista usuários com data do último LOGIN (adms_log_acessos) ou sem registro (nunca acessou).
+     *
+     * @param array{usuario_nome?: string, status?: string, apenas_nunca?: string, sort?: string} $filtros
+     * @return array<int, array<string, mixed>>
+     */
+    public function listUsersLastLogin(int $page, int $perPage, array $filtros = []): array
+    {
+        $offset = max(0, ($page - 1) * $perPage);
+        [$whereSql, $params] = $this->buildUsersLastLoginWhere($filtros);
+        $orderSql = $this->buildUsersLastLoginOrder($filtros);
+
+        $sql = 'SELECT u.id AS user_id,
+                       u.name AS user_name,
+                       u.email AS user_email,
+                       u.username AS user_username,
+                       u.image AS user_image,
+                       u.status AS user_status,
+                       last_log.data_acesso AS ultimo_login,
+                       last_log.ip AS ultimo_ip,
+                       last_log.hostname AS ultimo_hostname
+                FROM adms_users u
+                LEFT JOIN (
+                    SELECT l.usuario_id, l.data_acesso, l.ip, l.hostname
+                    FROM adms_log_acessos l
+                    INNER JOIN (
+                        SELECT usuario_id, MAX(id) AS max_id
+                        FROM adms_log_acessos
+                        WHERE tipo_acesso = \'LOGIN\'
+                        GROUP BY usuario_id
+                    ) lm ON l.id = lm.max_id
+                ) last_log ON last_log.usuario_id = u.id
+                ' . $whereSql . '
+                ORDER BY ' . $orderSql . '
+                LIMIT :limit OFFSET :offset';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Exportação: todos os usuários que atendem aos filtros (sem paginação).
+     *
+     * @param array{usuario_nome?: string, status?: string, apenas_nunca?: string, sort?: string} $filtros
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAllUsersLastLogin(array $filtros = []): array
+    {
+        [$whereSql, $params] = $this->buildUsersLastLoginWhere($filtros);
+        $orderSql = $this->buildUsersLastLoginOrder($filtros);
+
+        $sql = 'SELECT u.id AS user_id,
+                       u.name AS user_name,
+                       u.email AS user_email,
+                       u.username AS user_username,
+                       u.status AS user_status,
+                       last_log.data_acesso AS ultimo_login,
+                       last_log.ip AS ultimo_ip,
+                       last_log.hostname AS ultimo_hostname
+                FROM adms_users u
+                LEFT JOIN (
+                    SELECT l.usuario_id, l.data_acesso, l.ip, l.hostname
+                    FROM adms_log_acessos l
+                    INNER JOIN (
+                        SELECT usuario_id, MAX(id) AS max_id
+                        FROM adms_log_acessos
+                        WHERE tipo_acesso = \'LOGIN\'
+                        GROUP BY usuario_id
+                    ) lm ON l.id = lm.max_id
+                ) last_log ON last_log.usuario_id = u.id
+                ' . $whereSql . '
+                ORDER BY ' . $orderSql;
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @param array{usuario_nome?: string, status?: string, apenas_nunca?: string} $filtros
+     */
+    public function countUsersLastLogin(array $filtros = []): int
+    {
+        [$whereSql, $params] = $this->buildUsersLastLoginWhere($filtros);
+
+        $sql = 'SELECT COUNT(*) AS total
+                FROM adms_users u
+                LEFT JOIN (
+                    SELECT l.usuario_id, l.data_acesso
+                    FROM adms_log_acessos l
+                    INNER JOIN (
+                        SELECT usuario_id, MAX(id) AS max_id
+                        FROM adms_log_acessos
+                        WHERE tipo_acesso = \'LOGIN\'
+                        GROUP BY usuario_id
+                    ) lm ON l.id = lm.max_id
+                ) last_log ON last_log.usuario_id = u.id
+                ' . $whereSql;
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @param array{usuario_nome?: string, status?: string, apenas_nunca?: string} $filtros
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function buildUsersLastLoginWhere(array $filtros): array
+    {
+        $where = [];
+        $params = [];
+
+        $nome = trim((string) ($filtros['usuario_nome'] ?? ''));
+        if ($nome !== '') {
+            $where[] = '(u.name LIKE :usuario_nome OR u.email LIKE :usuario_nome OR u.username LIKE :usuario_nome)';
+            $params[':usuario_nome'] = '%' . $nome . '%';
+        }
+
+        $status = trim((string) ($filtros['status'] ?? ''));
+        if ($status !== '' && in_array($status, ['Ativo', 'Inativo'], true)) {
+            $where[] = 'u.status = :status';
+            $params[':status'] = $status;
+        }
+
+        if (($filtros['apenas_nunca'] ?? '') === '1') {
+            $where[] = 'last_log.data_acesso IS NULL';
+        }
+
+        $whereSql = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        return [$whereSql, $params];
+    }
+
+    /**
+     * @param array{sort?: string} $filtros
+     */
+    private function buildUsersLastLoginOrder(array $filtros): string
+    {
+        if (($filtros['sort'] ?? '') === 'ultimo_login') {
+            return 'last_log.data_acesso DESC, u.name ASC';
+        }
+
+        return 'u.name ASC';
+    }
 } 

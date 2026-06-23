@@ -110,6 +110,12 @@ $menus = [
                             'icon' => 'fas fa-user-check'
                         ],
                         [
+                            'label' => 'Último acesso',
+                            'url' => $_ENV['URL_ADM'] . 'list-users-last-access',
+                            'permission' => 'ListUsersLastAccess',
+                            'icon' => 'fas fa-clock-rotate-left'
+                        ],
+                        [
                             'label' => 'Configurações',
                             'url' => $_ENV['URL_ADM'] . 'log-settings',
                             'permission' => 'LogSettings',

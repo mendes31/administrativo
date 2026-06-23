@@ -99,6 +99,8 @@ class LoadPageAdm
         "AjaxSimplePasswordValidate",
         "AjaxPasswordPolicy",
         "ListLogAlteracoes", "ViewLogAlteracao", "ExportLogCsv", "ExportLogExcel", "ExportLogPdf", "ListLogAcessos", "ExportLogAcessosExcel", "ExportLogAcessosPdf",
+        "ListConnectedUsers", "ListUsersLastAccess",
+        "ExportUsersLastAccessPdf", "ExportUsersLastAccessExcel",
         "ForcePasswordChange",
         "ListStrategicPlans", "CreateStrategicPlan", "EditStrategicPlan", "UpdateStrategicPlan", "DeleteStrategicPlan", "ViewStrategicPlan",
         "ViewStrategicPlanObservations", "AddStrategicPlanObservation",
