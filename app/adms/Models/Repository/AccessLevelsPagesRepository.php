@@ -760,6 +760,7 @@ class AccessLevelsPagesRepository extends DbConnection
      * @param string $filterName Filtro opcional por nome do nível (mesmo critério da listagem).
      *
      * @return list<array{id: int, name: string, pages: list<array{id: int, name: string, controller_url: string, group_name: string}>}>
+     *         Páginas ordenadas por grupo (A–Z) e, dentro do grupo, por nome da página (A–Z).
      */
     public function getPermittedPagesGroupedByAccessLevel(string $filterName = ''): array
     {
@@ -782,7 +783,7 @@ class AccessLevelsPagesRepository extends DbConnection
                 LEFT JOIN adms_groups_pages gpg
                     ON gpg.id = p.adms_groups_page_id
                 ' . $where . '
-                ORDER BY al.name ASC, p.name ASC';
+                ORDER BY al.name ASC, COALESCE(gpg.name, \'\') ASC, p.name ASC';
 
         $stmt = $this->getConnection()->prepare($sql);
         if ($filterName !== '') {
