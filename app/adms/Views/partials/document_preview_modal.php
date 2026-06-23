@@ -2,6 +2,13 @@
 [data-adms-document-preview] {
     cursor: pointer;
 }
+#admsDocumentPreviewModalLoading {
+    z-index: 2;
+    pointer-events: none;
+}
+#admsDocumentPreviewModalFrame {
+    transition: opacity 0.2s ease;
+}
 </style>
 <script>
 (function () {
@@ -34,6 +41,17 @@
             }
             return true;
         };
+    }
+
+    function setPreviewLoading(isLoading) {
+        var loader = document.getElementById('admsDocumentPreviewModalLoading');
+        var frame = document.getElementById('admsDocumentPreviewModalFrame');
+        if (loader) {
+            loader.classList.toggle('d-none', !isLoading);
+        }
+        if (frame) {
+            frame.style.opacity = isLoading ? '0' : '1';
+        }
     }
 
     window.admsOpenAttachmentUrl = function (url) {
@@ -70,8 +88,12 @@
                 + '      <span class="text-white-50 small"><i class="fas fa-file-pdf text-danger me-1"></i>Documento PDF</span>'
                 + '      <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>'
                 + '    </div>'
-                + '    <div class="modal-body p-0 d-flex flex-column" style="min-height:70vh;">'
-                + '      <iframe id="admsDocumentPreviewModalFrame" title="Visualização do PDF" class="flex-grow-1 w-100 border-0 bg-white" style="min-height:70vh;height:85vh;"></iframe>'
+                + '    <div class="modal-body p-0 d-flex flex-column position-relative" style="min-height:70vh;">'
+                + '      <div id="admsDocumentPreviewModalLoading" class="position-absolute top-50 start-50 translate-middle text-center">'
+                + '        <div class="spinner-border text-light" role="status" aria-hidden="true"></div>'
+                + '        <div class="text-white-50 small mt-2">Carregando documento...</div>'
+                + '      </div>'
+                + '      <iframe id="admsDocumentPreviewModalFrame" title="Visualização do PDF" class="flex-grow-1 w-100 border-0 bg-white" style="min-height:70vh;height:85vh;opacity:0;"></iframe>'
                 + '    </div>'
                 + '    <div class="modal-footer border-0 py-2 justify-content-between">'
                 + '      <a id="admsDocumentPreviewModalDownload" href="#" class="btn btn-sm btn-outline-light" download><i class="fas fa-download me-1"></i>Download</a>'
@@ -84,14 +106,25 @@
             modalEl.addEventListener('hidden.bs.modal', function () {
                 var frame = document.getElementById('admsDocumentPreviewModalFrame');
                 if (frame) {
-                    frame.src = 'about:blank';
+                    frame.removeAttribute('src');
+                    frame.style.opacity = '0';
                 }
+                setPreviewLoading(true);
             });
         }
 
         iframeEl = document.getElementById('admsDocumentPreviewModalFrame');
         downloadEl = document.getElementById('admsDocumentPreviewModalDownload');
+
+        setPreviewLoading(true);
         if (iframeEl) {
+            iframeEl.onload = function () {
+                setPreviewLoading(false);
+            };
+            iframeEl.onerror = function () {
+                setPreviewLoading(false);
+            };
+            iframeEl.removeAttribute('src');
             iframeEl.src = url;
         }
         if (downloadEl) {

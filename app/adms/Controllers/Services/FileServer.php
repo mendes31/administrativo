@@ -11,28 +11,62 @@ class FileServer
     private string $uploadBasePath = 'public/adms/uploads/';
 
     /**
-     * Vídeos com suporte a Range (206) — evita baixar o arquivo inteiro só para metadata/seek.
+     * Arquivos binários grandes (vídeo, PDF): Range (206), cache e 304.
+     * O visualizador de PDF no iframe depende de Range para exibir sem baixar o arquivo inteiro.
      */
-    private function serveVideoWithRange(string $fullPath, string $mimeType, int $fileSize): void
-    {
+    private function serveStreamableWithRange(
+        string $fullPath,
+        string $mimeType,
+        int $fileSize,
+        string $dispositionFilename,
+        bool $inline = true
+    ): void {
         while (ob_get_level()) {
             ob_end_clean();
         }
 
+        $lastmod = (int) filemtime($fullPath);
+        $etag = '"' . md5($fullPath . $lastmod . $fileSize) . '"';
+
         header('Accept-Ranges: bytes');
         header('Content-Type: ' . $mimeType);
-        header('Content-Disposition: inline; filename="' . basename($fullPath) . '"');
-        header('Cache-Control: private, max-age=3600');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastmod) . ' GMT');
+        header('ETag: ' . $etag);
+        header('Cache-Control: private, max-age=86400');
+        header(
+            'Content-Disposition: '
+            . ($inline ? 'inline' : 'attachment')
+            . '; filename="' . $dispositionFilename . '"'
+        );
+
+        $rangeHeader = (string) ($_SERVER['HTTP_RANGE'] ?? '');
+        $rangeMatches = [];
+        $hasRange = $rangeHeader !== ''
+            && preg_match('/bytes=(\d*)-(\d*)/', $rangeHeader, $rangeMatches) === 1;
+
+        if (!$hasRange) {
+            if (!empty($_SERVER['HTTP_IF_NONE_MATCH']) && trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+                http_response_code(304);
+                exit;
+            }
+            if (!empty($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+                $ifModifiedSince = strtotime((string) $_SERVER['HTTP_IF_MODIFIED_SINCE']);
+                if ($ifModifiedSince !== false && $lastmod <= $ifModifiedSince) {
+                    http_response_code(304);
+                    exit;
+                }
+            }
+        }
 
         $start = 0;
         $end = $fileSize - 1;
 
-        if (!empty($_SERVER['HTTP_RANGE']) && preg_match('/bytes=(\d*)-(\d*)/', (string) $_SERVER['HTTP_RANGE'], $matches)) {
-            if ($matches[1] !== '') {
-                $start = (int) $matches[1];
+        if ($hasRange) {
+            if ($rangeMatches[1] !== '') {
+                $start = (int) $rangeMatches[1];
             }
-            if ($matches[2] !== '') {
-                $end = (int) $matches[2];
+            if ($rangeMatches[2] !== '') {
+                $end = (int) $rangeMatches[2];
             }
             if ($start > $end || $start >= $fileSize) {
                 http_response_code(416);
@@ -54,7 +88,7 @@ class FileServer
             }
             fseek($handle, $start);
             $remaining = $length;
-            $chunkSize = 8192;
+            $chunkSize = 65536;
             while ($remaining > 0 && !feof($handle)) {
                 $read = (int) min($chunkSize, $remaining);
                 $buffer = fread($handle, $read);
@@ -170,8 +204,14 @@ class FileServer
         $fileSize = filesize($fullPath);
         $lastmod = filemtime($fullPath);
 
-        if (in_array($extension, ['mp4', 'webm'], true)) {
-            $this->serveVideoWithRange($fullPath, $mimeType, $fileSize);
+        if (in_array($extension, ['mp4', 'webm', 'pdf'], true)) {
+            $this->serveStreamableWithRange(
+                $fullPath,
+                $mimeType,
+                $fileSize,
+                basename($fullPath),
+                true
+            );
 
             return;
         }
@@ -204,12 +244,7 @@ class FileServer
         }
 
         if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
-            // PDF e vídeos curtos da timeline: inline no navegador; demais: download
-            if ($extension === 'pdf' || in_array($extension, ['mp4', 'webm'], true)) {
-                header('Content-Disposition: inline; filename="' . basename($fullPath) . '"');
-            } else {
-                header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
-            }
+            header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
         }
 
         // Limpar buffers antes de enviar arquivo binário
