@@ -14,9 +14,10 @@ final class EnhanceSstTreinamentosCatalog extends AbstractMigration
 
         $table = $this->table('adms_sst_treinamentos');
         if (!$table->hasColumn('aplicacao_momentos')) {
-            $table->addColumn('aplicacao_momentos', 'json', [
+            // TEXT em vez de JSON: compatível com MySQL/MariaDB antigos em produção.
+            $table->addColumn('aplicacao_momentos', 'text', [
                 'null' => true,
-                'comment' => 'Momentos de exigência: admissional, reciclagem, periodico, etc.',
+                'comment' => 'JSON: momentos de exigencia (admissional, reciclagem, etc.)',
             ])->update();
         }
 
