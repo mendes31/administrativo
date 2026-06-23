@@ -863,6 +863,55 @@
         bindClickOnce('btnPwaDashboardPushLater', deferPushBanner);
     }
 
+    function initPwaFileExportLinks() {
+        document.querySelectorAll('a.js-pwa-file-export').forEach(function (link) {
+            if (link.dataset.pwaExportBound === '1') {
+                return;
+            }
+            link.dataset.pwaExportBound = '1';
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                var url = link.getAttribute('href');
+                if (!url) {
+                    return;
+                }
+                var fallbackName = link.getAttribute('data-export-filename') || 'relatorio.pdf';
+                link.classList.add('disabled');
+                fetch(url, { credentials: 'same-origin' })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Falha ao gerar o arquivo.');
+                        }
+                        var disposition = response.headers.get('content-disposition') || '';
+                        var match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                        var filename = match ? match[1] : fallbackName;
+                        return response.blob().then(function (blob) {
+                            return { blob: blob, filename: filename };
+                        });
+                    })
+                    .then(function (result) {
+                        var objectUrl = URL.createObjectURL(result.blob);
+                        var anchor = document.createElement('a');
+                        anchor.href = objectUrl;
+                        anchor.download = result.filename;
+                        anchor.style.display = 'none';
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        anchor.remove();
+                        setTimeout(function () {
+                            URL.revokeObjectURL(objectUrl);
+                        }, 1000);
+                    })
+                    .catch(function () {
+                        window.alert('Não foi possível gerar o arquivo. Tente novamente.');
+                    })
+                    .finally(function () {
+                        link.classList.remove('disabled');
+                    });
+            });
+        });
+    }
+
     function initServiceWorker() {
         if (!('serviceWorker' in navigator)) {
             checkPushNeedsActivation().then(refreshPwaPromoState);
@@ -906,6 +955,7 @@
         }
         initPushBannerHandlers();
         initInstallHandlers();
+        initPwaFileExportLinks();
         initServiceWorker();
     });
 })();

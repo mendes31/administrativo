@@ -63,7 +63,7 @@ include './app/adms/Views/logs/partials/userAvatarHelper.php';
             <div class="d-flex gap-2 align-items-center justify-content-between justify-content-sm-end flex-wrap">
                 <?php
                 if (in_array('ExportUsersLastAccessPdf', $buttonPermission, true)) {
-                    echo "<a href='{$_ENV['URL_ADM']}export-users-last-access-pdf{$exportQuery}' class='btn btn-outline-danger btn-sm' target='_blank' rel='noopener' title='Exportar PDF com filtros atuais'><i class='fa-solid fa-file-pdf'></i> PDF</a>";
+                    echo "<a href='{$_ENV['URL_ADM']}export-users-last-access-pdf{$exportQuery}' class='btn btn-outline-danger btn-sm js-pwa-file-export' data-export-filename='ultimo_acesso_usuarios.pdf' title='Exportar PDF com filtros atuais'><i class='fa-solid fa-file-pdf'></i> PDF</a>";
                 }
                 if (in_array('ExportUsersLastAccessExcel', $buttonPermission, true)) {
                     echo "<a href='{$_ENV['URL_ADM']}export-users-last-access-excel{$exportQuery}' class='btn btn-outline-success btn-sm' title='Exportar Excel com filtros atuais'><i class='fa-solid fa-file-excel'></i> Excel</a>";
