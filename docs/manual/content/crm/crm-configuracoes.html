@@ -1,0 +1,27 @@
+<h1>Configurações CRM</h1>
+<p>Tags, campos customizáveis e automações para adaptar o CRM ao processo comercial.</p>
+<p><strong>Quem acessa:</strong> administradores CRM com <em>CrmListTags</em>, <em>CrmListCustomFields</em>, <em>CrmListAutomations</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Cadastre <strong>Tags</strong> para segmentação de parceiros e oportunidades.</li>
+<li>Crie <strong>Campos customizados</strong> (texto, número, lista) por entidade.</li>
+<li>Configure <strong>Automações</strong>: gatilho (estágio, tag) → ação (e-mail, tarefa).</li>
+<li>Teste automação com registro de homologação.</li>
+<li>Documente tags e campos para a equipe comercial.</li>
+</ol>
+<h2 id="cfg-tags">Tags</h2>
+<div class="help-field"><strong>Nome / Cor</strong> Identificação visual nos cards e listagens.</div>
+<h2 id="cfg-campos">Campos customizados</h2>
+<div class="help-field"><strong>Entidade</strong> Parceiro, oportunidade ou atividade.</div>
+<div class="help-field"><strong>Tipo</strong> Texto, número, data, lista de opções.</div>
+<div class="help-field"><strong>Obrigatório</strong> Exige preenchimento ao salvar.</div>
+<h2 id="cfg-automacoes">Automações</h2>
+<div class="help-field"><strong>Gatilho</strong> Evento que inicia (mudança de estágio, nova oportunidade).</div>
+<div class="help-field"><strong>Ação</strong> Criar tarefa, enviar notificação, atribuir tag.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Campo custom não aparece na tela</dt><dd>Entidade ou ordem de exibição incorreta; reative campo.</dd>
+<dt>Automação em loop</dt><dd>Gatilho dispara na própria ação; revise condições.</dd>
+<dt>Tag não filtra pipeline</dt><dd>Aplique filtro de tag no Kanban; confirme vínculo no registro.</dd>
+<dt>Exclusão de campo com dados</dt><dd>Dados históricos podem permanecer no banco; prefira inativar.</dd>
+</dl>

@@ -1,20 +1,53 @@
 <h1>Dashboard SST</h1>
-<p>Painel operacional com indicadores e amostras das principais pendências de conformidade.</p>
+<p>Painel operacional com indicadores consolidados e atalhos para as áreas do módulo. Use como ponto de partida diário da equipe SST.</p>
 
-<h2>Cards de indicadores</h2>
-<div class="help-field"><strong>Exames pendentes / vencidos</strong> Colaboradores com ASO ou exame complementar em atraso ou a vencer.</div>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>SstDashboard</em>.</p>
+
+<h2 id="secao-indicadores">Cards de indicadores</h2>
+<p>A primeira faixa de cards resume a situação atual. Valores são calculados em tempo real a partir dos registros e vínculos.</p>
+
+<div class="help-field"><strong>Pendências (vínculos)</strong> Total consolidado de itens críticos; link direto para o relatório de Pendências.</div>
+<div class="help-field"><strong>Exames vencidos</strong> Colaboradores com ASO ou exame complementar em atraso ou sem registro na validade.</div>
 <div class="help-field"><strong>EPIs vencidos</strong> Entregas com troca vencida ou EPI obrigatório não entregue.</div>
-<div class="help-field"><strong>Treinamentos</strong> Vínculos pendentes, vencidos ou em reciclagem.</div>
-<div class="help-field"><strong>Acidentes abertos</strong> Registros sem encerramento.</div>
+<div class="help-field"><strong>Treinamentos pendentes / vencidos</strong> Vínculos sem realização ou com validade expirada.</div>
+<div class="help-field"><strong>Acidentes abertos</strong> Registros sem encerramento ou plano de ação pendente.</div>
 <div class="help-field"><strong>Afastamentos ativos</strong> Colaboradores afastados no momento.</div>
-<div class="help-field"><strong>Estoque baixo</strong> EPIs abaixo do estoque mínimo configurado.</div>
+<div class="help-field"><strong>EPI estoque baixo</strong> Itens abaixo do estoque mínimo configurado.</div>
 <div class="help-field"><strong>Planos de ação vencidos</strong> Ações corretivas de acidentes/inspeções em atraso.</div>
-<div class="help-field"><strong>ASOs aguardando</strong> Solicitações abertas aguardando resultados de exames.</div>
 
-<h2>Listas rápidas</h2>
-<p>Abaixo dos cards, amostras clicáveis levam às telas de registro (ASO, EPI, treinamento) para tratamento.</p>
+<p>O alerta amarelo no topo indica ASOs <strong>aguardando resultados</strong> de exames complementares — clique em <em>Ir para fila de ASOs</em> para concluir.</p>
+
+<h2 id="secao-atalhos">Atalhos por área</h2>
+<p>Três cartões agrupam links conforme seu perfil de permissão:</p>
+<ul>
+    <li><strong>Cadastros e vínculos</strong> — catálogos, necessidades, matriz, riscos, GHE.</li>
+    <li><strong>Registros</strong> — acidentes, afastamentos, ASOs, fichas EPI, status de treinamentos.</li>
+    <li><strong>Relatórios</strong> — pendências, EPIs, exames, treinamentos, conformidade.</li>
+</ul>
+<p>Botões só aparecem se você tiver permissão para a tela correspondente.</p>
+
+<h2 id="secao-pendencias">Amostras de pendências</h2>
+<p>Na parte inferior, listas resumidas mostram exemplos de pendências de EPI, exames e treinamentos com link para o registro ou perfil do colaborador. Use para ação rápida; para visão completa e exportação, abra o <strong>relatório de Pendências</strong>.</p>
+
+<h2>Rotina sugerida (passo a passo)</h2>
+<ol>
+    <li>Abra o dashboard no início do expediente.</li>
+    <li>Priorize cards vermelhos/amarelos (exames, EPIs, treinamentos vencidos).</li>
+    <li>Trate ASOs aguardando resultados.</li>
+    <li>Abra o relatório de Pendências para planejar o dia por setor.</li>
+    <li>Após registros (ASO, ficha EPI, aplicar treinamento), atualize a página para conferir redução dos indicadores.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Card zerado mas sei que há pendência</dt>
+    <dd>Filtros do cálculo consideram cargo/setor ativos e itens <em>obrigatórios</em>. Confira vínculos de risco e sincronização de treinamentos.</dd>
+    <dt>Não vejo atalho para uma tela</dt>
+    <dd>Falta permissão no seu nível de acesso — solicite ao administrador.</dd>
+    <dt>Pendências (vínculos) diferente do relatório</dt>
+    <dd>O card é um total resumido; o relatório detalha por tipo (EPI, exame, treinamento) com filtros adicionais.</dd>
+</dl>
 
 <div class="help-note">
-    <strong>Dica</strong>
-    Use o relatório de <strong>Pendências</strong> para visão completa exportável e filtros por setor.
+    Pressione <kbd>F1</kbd> com o foco em cada área do dashboard para abrir esta página na seção correspondente.
 </div>

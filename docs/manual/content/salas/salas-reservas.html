@@ -1,0 +1,23 @@
+<h1>Reservas de salas</h1>
+<p>Criação, edição, cancelamento de reservas e lista de espera.</p>
+<p><strong>Quem acessa:</strong> usuários com <em>CreateBooking</em>, <em>ListBookings</em>, <em>BookingWaitlist</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>No calendário, clique em slot livre ou <strong>Nova reserva</strong>.</li>
+<li>Selecione sala, data, hora início/fim e título da reunião.</li>
+<li>Adicione participantes e descrição.</li>
+<li>Confirme; convites enviados se integração ativa.</li>
+<li>Para cancelar, abra reserva e use <strong>Cancelar</strong>.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Sala</strong> Capacidade e recursos (projetor, VC).</div>
+<div class="help-field"><strong>Horário</strong> Início, fim e timezone.</div>
+<div class="help-field"><strong>Organizador</strong> Responsável pela reserva.</div>
+<div class="help-field"><strong>Lista de espera</strong> Fila quando sala ocupada.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Não consigo reservar passado</dt><dd>Política impede retroativo.</dd>
+<dt>Reserva duplicada</dt><dd>Verifique calendário antes de confirmar.</dd>
+<dt>Participante não recebe convite</dt><dd>Integração calendário desabilitada.</dd>
+<dt>Waitlist não promove</dt><dd>Cancelamento da reserva principal libera vaga automaticamente.</dd>
+</dl>

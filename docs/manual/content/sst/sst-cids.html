@@ -1,8 +1,22 @@
 <h1>Catálogo CID-10</h1>
-<p>Códigos da Classificação Internacional de Doenças usados em afastamentos, acidentes e relatórios.</p>
-
+<p>Códigos da Classificação Internacional de Doenças usados em afastamentos, acidentes e relatórios analíticos SST.</p>
+<p><strong>Quem acessa:</strong> equipe SST/medicina do trabalho com <em>SstListCids</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Acesse <strong>SST → Cadastros → CIDs</strong>.</li>
+<li>Busque código ou descrição; importe/atualize catálogo se disponível.</li>
+<li>Mantenha códigos usados em afastamentos ativos.</li>
+<li>Use autocomplete ao registrar afastamento ou acidente.</li>
+</ol>
+<h2>Campos e telas</h2>
 <div class="help-field"><strong>Código CID</strong> Código oficial (ex.: M54.5).</div>
 <div class="help-field"><strong>Descrição</strong> Nome da doença ou condição.</div>
-<div class="help-field"><strong>Capítulo</strong> Agrupamento para relatórios analíticos.</div>
-
-<p>Utilizado em campos de busca com autocomplete ao registrar afastamentos e acidentes.</p>
+<div class="help-field"><strong>Capítulo</strong> Agrupamento para relatórios por capítulo CID.</div>
+<div class="help-field"><strong>Status</strong> Inativos não aparecem em novos registros.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>CID não encontrado no autocomplete</dt><dd>Código inexistente ou inativo; cadastre ou corrija digitação.</dd>
+<dt>Relatório por CID vazio</dt><dd>Afastamentos sem CID preenchido.</dd>
+<dt>Capítulo incorreto</dt><dd>Atualize importação oficial CID-10.</dd>
+<dt>Duplicidade de código</dt><dd>Mantenha um registro por código; inative duplicatas.</dd>
+</dl>

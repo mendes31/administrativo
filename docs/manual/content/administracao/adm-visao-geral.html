@@ -1,0 +1,40 @@
+<h1>Visão geral — Administração</h1>
+<p>Módulo central de governança: configurações de integração, logs de auditoria, controle de permissões (páginas, pacotes, grupos) e treinamentos obrigatórios globais.</p>
+
+<p><strong>Quem acessa:</strong> administradores de TI, superusuários e perfis com permissões em <em>Administração</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Revise <strong>Configurações</strong> (e-mail, SAP, WhatsApp, senha, filiais) antes de liberar novos usuários.</li>
+    <li>Configure <strong>Logs</strong> e retenção para auditoria e segurança.</li>
+    <li>Cadastre <strong>Grupos de Páginas → Pacotes → Páginas</strong> e associe aos níveis de acesso.</li>
+    <li>Defina <strong>Treinamentos Obrigatórios</strong> que bloqueiam login quando vencidos.</li>
+    <li>Monitore usuários conectados e últimos acessos periodicamente.</li>
+</ol>
+
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Configurações</strong> Parâmetros globais de e-mail, notificações, integrações e filiais.</div>
+<div class="help-field"><strong>Logs</strong> Rastreio de acessos, alterações e sessões ativas.</div>
+<div class="help-field"><strong>Páginas / ACL</strong> Estrutura de permissões do sistema.</div>
+<div class="help-field"><strong>Treinamentos obrigatórios</strong> Regras de bloqueio por pendência de treinamento.</div>
+
+<h2>Ordem recomendada de implantação</h2>
+<ol>
+    <li>Filiais e e-mail</li>
+    <li>Pacotes e níveis de acesso</li>
+    <li>Política de senha</li>
+    <li>Integrações (SAP, WhatsApp)</li>
+    <li>Logs e notificações</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Usuário não vê menu esperado</dt>
+    <dd>Confira pacote no nível de acesso e se a página está ativa em <em>Listar Páginas</em>.</dd>
+    <dt>E-mail não envia</dt>
+    <dd>Valide SMTP em Configuração de E-mail e teste com notificação automática.</dd>
+    <dt>Integração SAP falha</dt>
+    <dd>Revise URL, credenciais e permissão <em>SapApiConfig</em>; consulte logs de alteração.</dd>
+    <dt>Treinamento obrigatório não bloqueia</dt>
+    <dd>Verifique se está marcado como obrigatório e se o job de status foi executado.</dd>
+</dl>

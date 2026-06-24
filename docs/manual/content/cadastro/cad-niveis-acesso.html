@@ -1,0 +1,23 @@
+<h1>Níveis de acesso</h1>
+<p>Perfis de permissão que agrupam pacotes de páginas (ACL). Cada usuário recebe um nível de acesso.</p>
+<p><strong>Quem acessa:</strong> administradores com <em>ListAccessLevels</em>, <em>UpdateAccessLevel</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Liste níveis existentes e identifique perfis padrão (Colaborador, Gestor, Admin).</li>
+<li>Duplique um nível similar como base para novo perfil, se disponível.</li>
+<li>Marque/desmarque <strong>Pacotes</strong> conforme necessidade do perfil.</li>
+<li>Salve e atribua o nível aos usuários em Cadastro → Usuários.</li>
+<li>Teste login com usuário de homologação.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Nome do nível</strong> Identificação do perfil (ex.: Vendedor CRM).</div>
+<div class="help-field"><strong>Pacotes</strong> Conjuntos de páginas liberadas.</div>
+<div class="help-field"><strong>Descrição</strong> Documentação interna do propósito do perfil.</div>
+<div class="help-field"><strong>Status</strong> Níveis inativos não podem ser atribuídos.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Perfil muito permissivo</dt><dd>Revise pacotes; princípio do menor privilégio.</dd>
+<dt>Alteração não surte efeito</dt><dd>Usuário deve fazer logout/login.</dd>
+<dt>Dois níveis conflitantes</dt><dd>Padronize nomenclatura; evite duplicar perfis equivalentes.</dd>
+<dt>Erro 004 em tela liberada</dt><dd>Pacote pode incluir listagem mas não ação de edição; inclua página filha.</dd>
+</dl>

@@ -1,0 +1,25 @@
+<h1>Matriz de permissões — Salvar alterações</h1>
+<p>Processa o envio do formulário da matriz de permissões ao clicar em <strong>Salvar</strong> na tela de permissões do nível de acesso.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> <em>UpdatePermission</em> (ação POST da matriz).</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Altere os checkboxes desejados na matriz.</li>
+    <li>Clique em <strong>Salvar</strong> uma única vez e aguarde confirmação.</li>
+    <li>Valide com usuário vinculado ao nível (logout/login).</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>adms_access_level_id</strong> Identifica qual nível de acesso está sendo alterado.</div>
+<div class="help-field"><strong>Permissões marcadas</strong> Gravadas como autorizadas (permission = 1) para cada página.</div>
+<div class="help-field"><strong>Permissões desmarcadas</strong> Removem autorização explícita; comportamento depende de pacotes e páginas padrão.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Alteração parcial não aplicada</dt>
+    <dd>Verifique mensagem de erro CSRF ou sessão expirada; recarregue a página.</dd>
+</dl>

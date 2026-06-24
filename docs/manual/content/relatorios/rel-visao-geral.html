@@ -1,0 +1,17 @@
+<h1>Visão geral — Relatórios</h1>
+<p>Relatórios dinâmicos locais, consultas SAP via API e dashboards configuráveis.</p>
+<p><strong>Quem acessa:</strong> analistas e gestores com <em>ListDynamicReports</em>, <em>ListDashboards</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Escolha fonte: relatório local, SAP ou dashboard.</li>
+<li>Aplique parâmetros (data, filial, conta).</li>
+<li>Execute e analise resultado.</li>
+<li>Exporte ou salve layout favorito quando disponível.</li>
+</ol>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Relatório SAP timeout</dt><dd>Reduza parâmetros; verifique SapApiConfig.</dd>
+<dt>Sem permissão ao relatório</dt><dd>Página vinculada ao pacote do usuário.</dd>
+<dt>Dados locais inconsistentes</dt><dd>Confira origem SQL/view do relatório dinâmico.</dd>
+<dt>Dashboard desatualizado</dt><dd>Cache; force refresh ou aguarde job.</dd>
+</dl>

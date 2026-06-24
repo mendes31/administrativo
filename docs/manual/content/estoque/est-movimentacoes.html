@@ -1,0 +1,23 @@
+<h1>Movimentações de estoque</h1>
+<p>Entrada, saída, transferência entre estoques e ajuste de inventário com rastreabilidade.</p>
+<p><strong>Quem acessa:</strong> almoxarifado com <em>CreateInventoryEntry</em>, <em>CreateInventoryExit</em>, <em>CreateInventoryTransfer</em>, <em>CreateInventoryAdjust</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Escolha tipo: <strong>Entrada</strong> (compra/devolução), <strong>Saída</strong> (consumo/venda), <strong>Transferência</strong> ou <strong>Ajuste</strong>.</li>
+<li>Selecione estoque origem/destino e data.</li>
+<li>Adicione itens, quantidades e lote se aplicável.</li>
+<li>Informe documento referência (NF, OP).</li>
+<li>Confirme; saldo atualiza imediatamente.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Tipo</strong> Entrada, saída, transferência, ajuste.</div>
+<div class="help-field"><strong>Item / Quantidade</strong> Linhas da movimentação.</div>
+<div class="help-field"><strong>Documento</strong> NF, pedido ou ordem de produção.</div>
+<div class="help-field"><strong>Observação</strong> Justificativa, especialmente em ajustes.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Saldo insuficiente na saída</dt><dd>Verifique saldo por estoque/posição; transfira antes se necessário.</dd>
+<dt>Ajuste sem aprovação</dt><dd>Alguns perfis só visualizam; solicite permissão de ajuste.</dd>
+<dt>Transferência parcial</dt><dd>Confirme quantidade disponível na posição origem.</dd>
+<dt>Movimentação não aparece no histórico</dt><dd>Filtro de data; movimentação pode ter sido estornada.</dd>
+</dl>

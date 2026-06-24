@@ -1,0 +1,18 @@
+<h1>Documentos de folha</h1>
+<p>Importação de holerites/contracheques PDF, tipos de documento, ciência eletrônica e lembretes.</p>
+<p><strong>Quem acessa:</strong> RH (<em>ImportPayrollDocuments</em>) e colaboradores (<em>MyPayrollDocuments</em>).</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Cadastre <strong>tipos de documento RH</strong>.</li>
+<li>Importe PDFs em lote vinculando matrícula/CPF.</li>
+<li>Colaborador acessa <strong>Meus documentos (folha)</strong> e assina ciência.</li>
+<li>Acompanhe <strong>pendências de ciência</strong>.</li>
+<li>Configure <strong>cron de lembretes</strong> com token seguro.</li>
+</ol>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>PDF não vincula ao colaborador</dt><dd>Matrícula no filename ou metadados incorretos.</dd>
+<dt>Ciência não registra</dt><dd>Colaborador deve abrir PDF completo.</dd>
+<dt>Cron não executa</dt><dd>Token ou URL do cron inválidos.</dd>
+<dt>Documento duplicado</dt><dd>Competência já importada; remova duplicata.</dd>
+</dl>

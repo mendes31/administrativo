@@ -1,10 +1,24 @@
 <h1>Catálogo de exames</h1>
 <p>Exames ocupacionais e complementares usados em ASOs e na matriz risco → exame.</p>
-
-<div class="help-field"><strong>Nome</strong> Nome do exame (ex.: Audiometria tonal liminar).</div>
-<div class="help-field"><strong>Código / Tipo</strong> Identificação interna ou classificação.</div>
-<div class="help-field"><strong>Periodicidade padrão (meses)</strong> Intervalo sugerido entre realizações.</div>
-<div class="help-field"><strong>Categoria ASO</strong> Admissional, periódico, retorno, mudança de função, demissional.</div>
-<div class="help-field"><strong>Status</strong> Exames inativos não entram em novas regras.</div>
-
-<p>Exames obrigatórios por exposição são configurados no <strong>cadastro do risco</strong> (aba Exames) ou em <strong>Necessidades de exame</strong> por cargo/setor.</p>
+<p><strong>Quem acessa:</strong> medicina do trabalho com <em>SstListExames</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Cadastre exame com nome, tipo e periodicidade padrão.</li>
+<li>Associe categorias ASO aplicáveis (admissional, periódico, etc.).</li>
+<li>Vincule ao <strong>risco</strong> (aba Exames) como obrigatório ou recomendado.</li>
+<li>Use em ASOs; complementares sugeridos automaticamente.</li>
+<li>Inative exames obsoletos sem excluir histórico.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Nome</strong> Ex.: Audiometria tonal liminar.</div>
+<div class="help-field"><strong>Código / Tipo</strong> Identificação interna.</div>
+<div class="help-field"><strong>Periodicidade (meses)</strong> Intervalo entre realizações.</div>
+<div class="help-field"><strong>Categoria ASO</strong> Admissional, periódico, retorno, etc.</div>
+<div class="help-field"><strong>Status</strong> Inativos não entram em novas regras.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Exame não sugere no ASO</dt><dd>Sem vínculo risco/cargo ou categoria ASO incompatível.</dd>
+<dt>Periodicidade errada na pendência</dt><dd>Ajuste periodicidade padrão ou validade do último ASO.</dd>
+<dt>Duplicidade admissional/periódico</dt><dd>Exame em ASO pendente não gera pendência avulsa.</dd>
+<dt>Exame inativo ainda obrigatório</dt><dd>Remova vínculos do risco antes de inativar.</dd>
+</dl>

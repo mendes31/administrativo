@@ -1,15 +1,28 @@
 <h1>eSocial e PPP</h1>
-
+<p>Fila de eventos eSocial gerados pelo sistema e emissão do Perfil Profissiográfico Previdenciário.</p>
+<p><strong>Quem acessa:</strong> SST com <em>SstListEsocialEventos</em>, <em>SstListPpp</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Registre treinamentos/acidentes que geram eventos eSocial.</li>
+<li>Em <strong>Fila eSocial</strong>, gere evento ou sincronize pendentes.</li>
+<li>Exporte JSON e transmita ao eSocial; marque enviado com protocolo.</li>
+<li>Para PPP, selecione colaborador e <strong>Gerar PPP</strong>.</li>
+<li>Exporte PDF para entrega ao trabalhador ou INSS.</li>
+</ol>
 <h2>Fila eSocial</h2>
-<p>Eventos gerados pelo sistema (ex.: S-2245 treinamentos, S-2210 acidentes) aguardando envio ao eSocial.</p>
 <ul>
-    <li><strong>Gerar evento</strong> — monta JSON conforme layout oficial.</li>
-    <li><strong>Exportar JSON</strong> — download para transmissão manual ou integração.</li>
-    <li><strong>Marcar enviado</strong> — registra protocolo após transmissão bem-sucedida.</li>
-    <li><strong>Sincronizar pendentes</strong> — geração em lote de eventos elegíveis.</li>
+<li><strong>Gerar evento</strong> — monta JSON conforme layout.</li>
+<li><strong>Exportar JSON</strong> — download para transmissão.</li>
+<li><strong>Marcar enviado</strong> — registra protocolo.</li>
+<li><strong>Sincronizar pendentes</strong> — geração em lote.</li>
 </ul>
-
-<h2>PPP — Perfil Profissiográfico Previdenciário</h2>
-<p>Gera snapshot das exposições e histórico ocupacional do colaborador para fins previdenciários.</p>
-<div class="help-field"><strong>Gerar PPP</strong> Cria registro com dados consolidados de riscos, EPIs e treinamentos.</div>
-<div class="help-field"><strong>Exportar PDF</strong> Documento para entrega ao trabalhador ou INSS.</div>
+<h2>PPP</h2>
+<div class="help-field"><strong>Gerar PPP</strong> Snapshot de exposições e histórico ocupacional.</div>
+<div class="help-field"><strong>Exportar PDF</strong> Documento oficial.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Evento S-2245 não gera</dt><dd>Treinamento sem dados obrigatórios eSocial.</dd>
+<dt>JSON rejeitado</dt><dd>Valide layout versão; campos CPF/matricula inconsistentes.</dd>
+<dt>PPP incompleto</dt><dd>Faltam riscos/EPIs históricos no cadastro.</dd>
+<dt>Duplicidade de evento</dt><dd>Verifique se já marcado enviado antes de regerar.</dd>
+</dl>

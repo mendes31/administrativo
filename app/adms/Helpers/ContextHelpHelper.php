@@ -13,124 +13,34 @@ final class ContextHelpHelper
 
     public const TOPIC_UNDER_DEVELOPMENT = 'em-desenvolvimento';
 
-    /** Slug da página (menu / controller_url) → id do tópico no manual. */
-    private const PAGE_TOPIC_MAP = [
-        'sst-dashboard' => 'sst-dashboard',
-        'sst-employee-profile' => 'sst-perfil-colaborador',
-
-        'sst-list-cids' => 'sst-cids',
-        'sst-create-cid' => 'sst-cids',
-        'sst-update-cid' => 'sst-cids',
-
-        'sst-list-epis' => 'sst-epis',
-        'sst-create-epi' => 'sst-epis',
-        'sst-view-epi' => 'sst-epis',
-        'sst-update-epi' => 'sst-epis',
-
-        'sst-list-exames' => 'sst-exames',
-        'sst-create-exame' => 'sst-exames',
-        'sst-view-exame' => 'sst-exames',
-        'sst-update-exame' => 'sst-exames',
-
-        'sst-list-medicos' => 'sst-medicos',
-        'sst-create-medico' => 'sst-medicos',
-        'sst-update-medico' => 'sst-medicos',
-
-        'sst-list-epi-necessidade' => 'sst-necessidades',
-        'sst-create-epi-necessidade' => 'sst-necessidades',
-        'sst-update-epi-necessidade' => 'sst-necessidades',
-        'sst-list-exame-necessidade' => 'sst-necessidades',
-        'sst-create-exame-necessidade' => 'sst-necessidades',
-        'sst-update-exame-necessidade' => 'sst-necessidades',
-        'sst-list-treinamento-necessidade' => 'sst-necessidades',
-        'sst-create-treinamento-necessidade' => 'sst-necessidades',
-        'sst-update-treinamento-necessidade' => 'sst-necessidades',
-
-        'sst-matriz-treinamento-cargo' => 'sst-matriz-treinamento',
-        'sst-save-matriz-treinamento-cargo' => 'sst-matriz-treinamento',
-
-        'sst-list-riscos' => 'sst-riscos',
-        'sst-create-risco' => 'sst-riscos',
-        'sst-view-risco' => 'sst-riscos',
-        'sst-update-risco' => 'sst-riscos',
-        'sst-save-risco-relacionamentos' => 'sst-riscos',
-        'sst-save-risco-treinamentos' => 'sst-riscos',
-        'sst-list-risco-cargo' => 'sst-riscos',
-        'sst-create-risco-cargo' => 'sst-riscos',
-        'sst-update-risco-cargo' => 'sst-riscos',
-        'sst-list-risco-exame' => 'sst-riscos',
-        'sst-list-risco-epi' => 'sst-riscos',
-        'sst-list-risco-treinamento' => 'sst-riscos',
-
-        'sst-list-treinamentos' => 'sst-treinamentos',
-        'sst-create-treinamento' => 'sst-treinamentos',
-        'sst-view-treinamento' => 'sst-treinamentos',
-        'sst-update-treinamento' => 'sst-treinamentos',
-
-        'sst-list-ghe' => 'sst-ghe',
-        'sst-create-ghe' => 'sst-ghe',
-        'sst-view-ghe' => 'sst-ghe',
-        'sst-update-ghe' => 'sst-ghe',
-        'sst-save-ghe-relacionamentos' => 'sst-ghe',
-
-        'sst-list-equipamento-tipos' => 'sst-equipamentos',
-        'sst-list-equipamentos' => 'sst-equipamentos',
-        'sst-equipamento-settings' => 'sst-equipamentos',
-        'sst-minhas-equipamento-vistorias' => 'sst-equipamentos',
-        'sst-scan-equipamento' => 'sst-equipamentos',
-        'sst-execute-equipamento-vistoria' => 'sst-equipamentos',
-
-        'sst-list-acidentes' => 'sst-acidentes-afastamentos',
-        'sst-create-acidente' => 'sst-acidentes-afastamentos',
-        'sst-view-acidente' => 'sst-acidentes-afastamentos',
-        'sst-list-afastamentos' => 'sst-acidentes-afastamentos',
-        'sst-create-afastamento' => 'sst-acidentes-afastamentos',
-        'sst-view-afastamento' => 'sst-acidentes-afastamentos',
-
-        'sst-list-asos' => 'sst-asos',
-        'sst-create-aso' => 'sst-asos',
-        'sst-view-aso' => 'sst-asos',
-        'sst-update-aso' => 'sst-asos',
-        'sst-abrir-aso-pendencia' => 'sst-asos',
-        'sst-registrar-resultados-aso' => 'sst-asos',
-        'sst-encaminhamento-aso' => 'sst-asos',
-
-        'sst-list-treinamento-vinculos' => 'sst-treinamentos',
-        'sst-view-treinamento-vinculo' => 'sst-treinamentos',
-        'sst-apply-treinamento' => 'sst-treinamentos',
-        'sst-sync-treinamento-vinculos' => 'sst-treinamentos',
-
-        'sst-list-epi-fichas' => 'sst-epi-fichas',
-        'sst-create-epi-ficha' => 'sst-epi-fichas',
-        'sst-view-epi-ficha' => 'sst-epi-fichas',
-        'sst-list-epi-movimentos' => 'sst-epi-fichas',
-        'sst-create-epi-movimento' => 'sst-epi-fichas',
-        'sst-list-epi-estoque' => 'sst-epi-fichas',
-
-        'sst-list-inspecoes' => 'sst-cipa-inspecoes',
-        'sst-create-inspecao' => 'sst-cipa-inspecoes',
-        'sst-view-inspecao' => 'sst-cipa-inspecoes',
-        'sst-list-cipa-mandatos' => 'sst-cipa-inspecoes',
-        'sst-create-cipa-mandato' => 'sst-cipa-inspecoes',
-        'sst-view-cipa-mandato' => 'sst-cipa-inspecoes',
-
-        'sst-report-conformidade' => 'sst-conformidade',
-        'sst-list-programas' => 'sst-conformidade',
-        'sst-view-programa' => 'sst-conformidade',
-        'sst-list-esocial-eventos' => 'sst-esocial-ppp',
-        'sst-view-esocial-evento' => 'sst-esocial-ppp',
-        'sst-list-ppp' => 'sst-esocial-ppp',
-        'sst-view-ppp' => 'sst-esocial-ppp',
-
-        'sst-report-pendencias' => 'sst-report-pendencias',
-        'sst-report-epis' => 'sst-relatorios',
-        'sst-report-exames' => 'sst-relatorios',
-        'sst-report-treinamentos' => 'sst-relatorios',
-        'sst-report-afastamentos' => 'sst-relatorios',
-        'sst-report-cids' => 'sst-relatorios',
-
-        'my-sst-treinamentos' => 'sst-treinamentos',
+    /** Fallback slug → tópico visão geral do módulo (prefixo mais longo primeiro). */
+    private const MODULE_PREFIX_FALLBACK = [
+        'lgpd-aipd-template-' => 'lgpd-aipd',
+        'lgpd-' => 'lgpd-dashboard',
+        'crm-' => 'crm-visao-geral',
+        'sst-' => 'sst-visao-geral',
+        'sac-' => 'sac-atendimento',
+        'rh-' => 'gp-recrutamento',
+        'rooms-' => 'salas-administracao',
+        'booking-' => 'salas-reservas',
+        'room-' => 'salas-reservas',
+        'list-inventory-' => 'est-cadastros',
+        'create-inventory-' => 'est-movimentacoes',
+        'report-inventory-' => 'est-relatorios',
+        'gamification-' => 'com-gamificacao',
+        'training-' => 'rh-trein-catalogo',
+        'list-training' => 'rh-trein-catalogo',
+        'performance-' => 'gp-desempenho',
+        'list-performance-' => 'gp-desempenho',
+        'list-employee-' => 'gp-solicitacoes',
+        'people-' => 'gp-analytics',
+        'payroll-' => 'gp-folha',
+        'strategic-' => 'pe-estrategico',
+        'list-strategic-' => 'pe-estrategico',
+        'list-dynamic-' => 'rel-dinamicos',
     ];
+
+    private static ?array $pageTopicMap = null;
 
     public static function resolveTopicFromPageSlug(string $pageSlug): string
     {
@@ -152,12 +62,52 @@ final class ContextHelpHelper
             return $slug;
         }
 
-        $mapped = self::PAGE_TOPIC_MAP[$slug] ?? null;
+        $mapped = self::pageTopicMap()[$slug] ?? null;
         if ($mapped !== null && self::isTopicDocumented($mapped)) {
             return $mapped;
         }
 
+        $fallback = self::resolveModulePrefixFallback($slug);
+        if ($fallback !== null) {
+            return $fallback;
+        }
+
         return self::TOPIC_UNDER_DEVELOPMENT;
+    }
+
+    /** @return array<string, string> */
+    private static function pageTopicMap(): array
+    {
+        if (self::$pageTopicMap !== null) {
+            return self::$pageTopicMap;
+        }
+
+        $path = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'docs' . DIRECTORY_SEPARATOR . 'manual' . DIRECTORY_SEPARATOR . 'page-topic-map.json';
+        if (!is_readable($path)) {
+            self::$pageTopicMap = [];
+
+            return self::$pageTopicMap;
+        }
+
+        $json = file_get_contents($path);
+        $data = is_string($json) ? json_decode($json, true) : null;
+        self::$pageTopicMap = is_array($data) ? $data : [];
+
+        return self::$pageTopicMap;
+    }
+
+    private static function resolveModulePrefixFallback(string $slug): ?string
+    {
+        foreach (self::MODULE_PREFIX_FALLBACK as $prefix => $topicId) {
+            if (!str_starts_with($slug, $prefix)) {
+                continue;
+            }
+            if (self::isTopicDocumented($topicId)) {
+                return $topicId;
+            }
+        }
+
+        return null;
     }
 
     public static function isTopicDocumented(string $topicId): bool
@@ -285,6 +235,20 @@ final class ContextHelpHelper
         }
 
         return $urlBase . $basename . '.svg';
+    }
+
+    /** @return array{version?: int, modules: list<array<string, mixed>>} */
+    public static function loadHelpMenuNav(): array
+    {
+        $path = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'docs' . DIRECTORY_SEPARATOR . 'manual' . DIRECTORY_SEPARATOR . 'help-menu.json';
+        if (!is_readable($path)) {
+            return ['modules' => []];
+        }
+
+        $json = file_get_contents($path);
+        $data = is_string($json) ? json_decode($json, true) : null;
+
+        return is_array($data) ? $data : ['modules' => []];
     }
 
     /** @return list<array{id: string, title: string, module_id: string, module_title: string}> */

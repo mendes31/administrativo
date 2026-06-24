@@ -1,0 +1,51 @@
+<h1>Configurações do sistema</h1>
+<p>Centraliza parâmetros de e-mail, notificações automáticas, calendário, integrações (SAP, MCP, Push PWA), WhatsApp, política de senha e cadastro de filiais.</p>
+
+<p><strong>Quem acessa:</strong> administradores com permissões <em>EmailConfig</em>, <em>NotificationSettings</em>, <em>SapApiConfig</em>, <em>WhatsAppConfig</em>, <em>PasswordPolicy</em>, <em>ListBranches</em>, etc.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse <strong>Administração → Configurações</strong> e escolha a tela desejada.</li>
+    <li>Em <strong>E-mail</strong>, informe servidor SMTP, porta, usuário, senha e remetente; salve e teste envio.</li>
+    <li>Em <strong>Notificações Automáticas</strong>, ative gatilhos (treinamentos, folha, SST) e canais.</li>
+    <li>Configure <strong>SAP API</strong> com endpoint, autenticação e timeout.</li>
+    <li>Ajuste <strong>WhatsApp</strong> (token, número, webhook) se usar mensagens transacionais.</li>
+    <li>Defina <strong>Política de Senha</strong> e cadastre <strong>Filiais</strong> para o filtro global.</li>
+</ol>
+
+<h2 id="cfg-email">Configuração de E-mail</h2>
+<div class="help-field"><strong>Servidor SMTP / Porta</strong> Host e porta (TLS recomendado).</div>
+<div class="help-field"><strong>Usuário / Senha SMTP</strong> Credenciais de autenticação do remetente.</div>
+<div class="help-field"><strong>Remetente padrão</strong> Nome e e-mail exibidos nas mensagens automáticas.</div>
+
+<h2 id="cfg-notificacoes">Notificações automáticas</h2>
+<p>Cada evento (treinamento vencendo, documento folha, pendência SST) pode disparar e-mail, push ou WhatsApp conforme habilitado.</p>
+
+<h2 id="cfg-sap">SAP e integrações</h2>
+<div class="help-field"><strong>URL base</strong> Endpoint da API SAP ou integração configurada.</div>
+<div class="help-field"><strong>Autenticação</strong> Token ou usuário/senha conforme ambiente.</div>
+
+<h2 id="cfg-whatsapp">WhatsApp</h2>
+<div class="help-field"><strong>Token / Número</strong> Credenciais da API oficial ou provedor homologado.</div>
+
+<h2 id="cfg-senha">Política de senha</h2>
+<div class="help-field"><strong>Complexidade</strong> Tamanho mínimo, caracteres especiais, validade em dias.</div>
+<div class="help-field"><strong>Histórico</strong> Impede reutilização das últimas N senhas.</div>
+
+<h2 id="cfg-filiais">Filiais</h2>
+<div class="help-field"><strong>Código / Nome</strong> Identificação usada em filtros e relatórios multi-unidade.</div>
+<div class="help-field"><strong>Status</strong> Filiais inativas não aparecem no filtro global.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>E-mails caem em spam</dt>
+    <dd>Configure SPF/DKIM no domínio; use endereço corporativo válido.</dd>
+    <dt>SAP retorna 401/403</dt>
+    <dd>Credenciais expiradas ou usuário sem permissão na API.</dd>
+    <dt>WhatsApp não entrega</dt>
+    <dd>Verifique template aprovado, número verificado e limite da API.</dd>
+    <dt>Política de senha não aplica</dt>
+    <dd>Usuários podem precisar trocar senha no próximo login.</dd>
+    <dt>Filial não aparece no filtro</dt>
+    <dd>Cadastro inativo ou usuário sem vínculo à filial no perfil.</dd>
+</dl>

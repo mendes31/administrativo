@@ -1,49 +1,2134 @@
 {
-  "version": 1,
-  "modules": [
-    {
-      "id": "geral",
-      "title": "Geral",
-      "topics": [
+    "version": 1,
+    "modules": [
         {
-          "id": "index",
-          "title": "Início do manual",
-          "file": "index.html"
+            "id": "geral",
+            "title": "Geral",
+            "topics": [
+                {
+                    "id": "index",
+                    "title": "Início do manual",
+                    "file": "index.html"
+                },
+                {
+                    "id": "em-desenvolvimento",
+                    "title": "Documentação em desenvolvimento",
+                    "file": "em-desenvolvimento.html"
+                }
+            ]
         },
         {
-          "id": "em-desenvolvimento",
-          "title": "Documentação em desenvolvimento",
-          "file": "em-desenvolvimento.html"
+            "id": "dashboard",
+            "title": "Dashboard",
+            "topics": [
+                {
+                    "id": "dashboard-visao-geral",
+                    "title": "Dashboard — visão geral",
+                    "file": "dashboard/dashboard-visao-geral.html"
+                },
+                {
+                    "id": "dashboard",
+                    "title": "Dashboard",
+                    "file": "dashboard/dashboard.html"
+                }
+            ]
+        },
+        {
+            "id": "administracao",
+            "title": "Administração",
+            "topics": [
+                {
+                    "id": "adm-visao-geral",
+                    "title": "Administração — visão geral",
+                    "file": "administracao/adm-visao-geral.html"
+                },
+                {
+                    "id": "adm-configuracoes",
+                    "title": "Configurações do sistema",
+                    "file": "administracao/adm-configuracoes.html"
+                },
+                {
+                    "id": "adm-logs",
+                    "title": "Logs e auditoria",
+                    "file": "administracao/adm-logs.html"
+                },
+                {
+                    "id": "adm-permissoes",
+                    "title": "Permissões (grupos, pacotes, páginas)",
+                    "file": "administracao/adm-permissoes.html"
+                },
+                {
+                    "id": "adm-treinamentos-obrigatorios",
+                    "title": "Treinamentos obrigatórios",
+                    "file": "administracao/adm-treinamentos-obrigatorios.html"
+                },
+                {
+                    "id": "create-branch",
+                    "title": "Cadastrar — Branch",
+                    "file": "administracao/create-branch.html"
+                },
+                {
+                    "id": "create-mandatory-training",
+                    "title": "Cadastrar — Mandatory Training",
+                    "file": "administracao/create-mandatory-training.html"
+                },
+                {
+                    "id": "calendar-config",
+                    "title": "Calendar Config",
+                    "file": "administracao/calendar-config.html"
+                },
+                {
+                    "id": "update-branch",
+                    "title": "Editar — Branch",
+                    "file": "administracao/update-branch.html"
+                },
+                {
+                    "id": "update-mandatory-training",
+                    "title": "Editar — Mandatory Training",
+                    "file": "administracao/update-mandatory-training.html"
+                },
+                {
+                    "id": "update-password-policy",
+                    "title": "Editar — Password Policy",
+                    "file": "administracao/update-password-policy.html"
+                },
+                {
+                    "id": "email-config",
+                    "title": "Email Config",
+                    "file": "administracao/email-config.html"
+                },
+                {
+                    "id": "create-group-page",
+                    "title": "Grupos de Páginas — Cadastrar",
+                    "file": "administracao/create-group-page.html"
+                },
+                {
+                    "id": "update-group-page",
+                    "title": "Grupos de Páginas — Editar",
+                    "file": "administracao/update-group-page.html"
+                },
+                {
+                    "id": "list-groups-pages",
+                    "title": "Grupos de Páginas — Listar",
+                    "file": "administracao/list-groups-pages.html"
+                },
+                {
+                    "id": "view-group-page",
+                    "title": "Grupos de Páginas — Visualizar",
+                    "file": "administracao/view-group-page.html"
+                },
+                {
+                    "id": "list-branches",
+                    "title": "Listar — Branches",
+                    "file": "administracao/list-branches.html"
+                },
+                {
+                    "id": "list-connected-users",
+                    "title": "Listar — Connected Users",
+                    "file": "administracao/list-connected-users.html"
+                },
+                {
+                    "id": "list-log-acessos",
+                    "title": "Listar — Log Acessos",
+                    "file": "administracao/list-log-acessos.html"
+                },
+                {
+                    "id": "list-log-alteracoes",
+                    "title": "Listar — Log Alteracoes",
+                    "file": "administracao/list-log-alteracoes.html"
+                },
+                {
+                    "id": "list-mandatory-trainings",
+                    "title": "Listar — Mandatory Trainings",
+                    "file": "administracao/list-mandatory-trainings.html"
+                },
+                {
+                    "id": "list-users-last-access",
+                    "title": "Listar — Users Last Access",
+                    "file": "administracao/list-users-last-access.html"
+                },
+                {
+                    "id": "log-settings",
+                    "title": "Log Settings",
+                    "file": "administracao/log-settings.html"
+                },
+                {
+                    "id": "list-permission",
+                    "title": "Matriz de permissões — Listar",
+                    "file": "administracao/list-permission.html"
+                },
+                {
+                    "id": "update-permission",
+                    "title": "Matriz de permissões — Salvar",
+                    "file": "administracao/update-permission.html"
+                },
+                {
+                    "id": "mcp-api-config",
+                    "title": "Mcp Api Config",
+                    "file": "administracao/mcp-api-config.html"
+                },
+                {
+                    "id": "notification-settings",
+                    "title": "Notification Settings",
+                    "file": "administracao/notification-settings.html"
+                },
+                {
+                    "id": "create-package",
+                    "title": "Pacotes — Cadastrar",
+                    "file": "administracao/create-package.html"
+                },
+                {
+                    "id": "update-package",
+                    "title": "Pacotes — Editar",
+                    "file": "administracao/update-package.html"
+                },
+                {
+                    "id": "list-packages",
+                    "title": "Pacotes — Listar",
+                    "file": "administracao/list-packages.html"
+                },
+                {
+                    "id": "view-package",
+                    "title": "Pacotes — Visualizar",
+                    "file": "administracao/view-package.html"
+                },
+                {
+                    "id": "password-policy",
+                    "title": "Password Policy",
+                    "file": "administracao/password-policy.html"
+                },
+                {
+                    "id": "push-config",
+                    "title": "Push Config",
+                    "file": "administracao/push-config.html"
+                },
+                {
+                    "id": "create-page",
+                    "title": "Páginas (ACL) — Cadastrar",
+                    "file": "administracao/create-page.html"
+                },
+                {
+                    "id": "update-page",
+                    "title": "Páginas (ACL) — Editar",
+                    "file": "administracao/update-page.html"
+                },
+                {
+                    "id": "list-pages",
+                    "title": "Páginas (ACL) — Listar",
+                    "file": "administracao/list-pages.html"
+                },
+                {
+                    "id": "view-page",
+                    "title": "Páginas (ACL) — Visualizar",
+                    "file": "administracao/view-page.html"
+                },
+                {
+                    "id": "sap-api-config",
+                    "title": "Sap Api Config",
+                    "file": "administracao/sap-api-config.html"
+                },
+                {
+                    "id": "view-branch",
+                    "title": "Visualizar — Branch",
+                    "file": "administracao/view-branch.html"
+                },
+                {
+                    "id": "whats-app-config",
+                    "title": "Whats App Config",
+                    "file": "administracao/whats-app-config.html"
+                }
+            ]
+        },
+        {
+            "id": "cadastro",
+            "title": "Cadastro",
+            "topics": [
+                {
+                    "id": "cad-visao-geral",
+                    "title": "Cadastro — visão geral",
+                    "file": "cadastro/cad-visao-geral.html"
+                },
+                {
+                    "id": "cadastro",
+                    "title": "Cadastro",
+                    "file": "cadastro/cadastro.html"
+                },
+                {
+                    "id": "cad-usuarios",
+                    "title": "Cadastro de usuários",
+                    "file": "cadastro/cad-usuarios.html"
+                },
+                {
+                    "id": "cad-estrutura",
+                    "title": "Estrutura organizacional",
+                    "file": "cadastro/cad-estrutura.html"
+                },
+                {
+                    "id": "cad-niveis-acesso",
+                    "title": "Níveis de acesso",
+                    "file": "cadastro/cad-niveis-acesso.html"
+                },
+                {
+                    "id": "cad-organograma",
+                    "title": "Organograma",
+                    "file": "cadastro/cad-organograma.html"
+                },
+                {
+                    "id": "create-access-level",
+                    "title": "Cadastrar — Access Level",
+                    "file": "cadastro/create-access-level.html"
+                },
+                {
+                    "id": "create-cost-center",
+                    "title": "Cadastrar — Cost Center",
+                    "file": "cadastro/create-cost-center.html"
+                },
+                {
+                    "id": "create-department",
+                    "title": "Cadastrar — Department",
+                    "file": "cadastro/create-department.html"
+                },
+                {
+                    "id": "create-position",
+                    "title": "Cadastrar — Position",
+                    "file": "cadastro/create-position.html"
+                },
+                {
+                    "id": "create-user",
+                    "title": "Cadastrar — User",
+                    "file": "cadastro/create-user.html"
+                },
+                {
+                    "id": "create-work-shift",
+                    "title": "Cadastrar — Work Shift",
+                    "file": "cadastro/create-work-shift.html"
+                },
+                {
+                    "id": "update-access-level",
+                    "title": "Editar — Access Level",
+                    "file": "cadastro/update-access-level.html"
+                },
+                {
+                    "id": "update-access-levels-permissions",
+                    "title": "Editar — Access Levels Permissions",
+                    "file": "cadastro/update-access-levels-permissions.html"
+                },
+                {
+                    "id": "update-cost-center",
+                    "title": "Editar — Cost Center",
+                    "file": "cadastro/update-cost-center.html"
+                },
+                {
+                    "id": "update-department",
+                    "title": "Editar — Department",
+                    "file": "cadastro/update-department.html"
+                },
+                {
+                    "id": "update-position",
+                    "title": "Editar — Position",
+                    "file": "cadastro/update-position.html"
+                },
+                {
+                    "id": "update-user",
+                    "title": "Editar — User",
+                    "file": "cadastro/update-user.html"
+                },
+                {
+                    "id": "update-work-shift",
+                    "title": "Editar — Work Shift",
+                    "file": "cadastro/update-work-shift.html"
+                },
+                {
+                    "id": "import-users",
+                    "title": "Import Users",
+                    "file": "cadastro/import-users.html"
+                },
+                {
+                    "id": "list-access-levels",
+                    "title": "Listar — Access Levels",
+                    "file": "cadastro/list-access-levels.html"
+                },
+                {
+                    "id": "list-access-levels-permissions",
+                    "title": "Listar — Access Levels Permissions",
+                    "file": "cadastro/list-access-levels-permissions.html"
+                },
+                {
+                    "id": "list-cost-centers",
+                    "title": "Listar — Cost Centers",
+                    "file": "cadastro/list-cost-centers.html"
+                },
+                {
+                    "id": "list-departments",
+                    "title": "Listar — Departments",
+                    "file": "cadastro/list-departments.html"
+                },
+                {
+                    "id": "list-positions",
+                    "title": "Listar — Positions",
+                    "file": "cadastro/list-positions.html"
+                },
+                {
+                    "id": "list-users",
+                    "title": "Listar — Users",
+                    "file": "cadastro/list-users.html"
+                },
+                {
+                    "id": "list-work-shifts",
+                    "title": "Listar — Work Shifts",
+                    "file": "cadastro/list-work-shifts.html"
+                },
+                {
+                    "id": "organization-chart",
+                    "title": "Organization Chart",
+                    "file": "cadastro/organization-chart.html"
+                },
+                {
+                    "id": "view-access-level",
+                    "title": "Visualizar — Access Level",
+                    "file": "cadastro/view-access-level.html"
+                },
+                {
+                    "id": "view-cost-center",
+                    "title": "Visualizar — Cost Center",
+                    "file": "cadastro/view-cost-center.html"
+                },
+                {
+                    "id": "view-department",
+                    "title": "Visualizar — Department",
+                    "file": "cadastro/view-department.html"
+                },
+                {
+                    "id": "view-position",
+                    "title": "Visualizar — Position",
+                    "file": "cadastro/view-position.html"
+                },
+                {
+                    "id": "view-user",
+                    "title": "Visualizar — User",
+                    "file": "cadastro/view-user.html"
+                },
+                {
+                    "id": "view-work-shift",
+                    "title": "Visualizar — Work Shift",
+                    "file": "cadastro/view-work-shift.html"
+                }
+            ]
+        },
+        {
+            "id": "comunicacao",
+            "title": "Comunicação Interna",
+            "topics": [
+                {
+                    "id": "com-visao-geral",
+                    "title": "Comunicação interna — visão geral",
+                    "file": "comunicacao/com-visao-geral.html"
+                },
+                {
+                    "id": "com-eventos",
+                    "title": "Eventos corporativos",
+                    "file": "comunicacao/com-eventos.html"
+                },
+                {
+                    "id": "com-gamificacao",
+                    "title": "Gamificação",
+                    "file": "comunicacao/com-gamificacao.html"
+                },
+                {
+                    "id": "com-informativos",
+                    "title": "Informativos",
+                    "file": "comunicacao/com-informativos.html"
+                },
+                {
+                    "id": "timeline",
+                    "title": "Timeline",
+                    "file": "comunicacao/timeline.html"
+                },
+                {
+                    "id": "com-timeline",
+                    "title": "Timeline e moderação",
+                    "file": "comunicacao/com-timeline.html"
+                },
+                {
+                    "id": "create-company-event",
+                    "title": "Cadastrar — Company Event",
+                    "file": "comunicacao/create-company-event.html"
+                },
+                {
+                    "id": "create-gamification-quiz",
+                    "title": "Cadastrar — Gamification Quiz",
+                    "file": "comunicacao/create-gamification-quiz.html"
+                },
+                {
+                    "id": "create-gamification-timeline-rule",
+                    "title": "Cadastrar — Gamification Timeline Rule",
+                    "file": "comunicacao/create-gamification-timeline-rule.html"
+                },
+                {
+                    "id": "create-informativo",
+                    "title": "Cadastrar — Informativo",
+                    "file": "comunicacao/create-informativo.html"
+                },
+                {
+                    "id": "update-company-event",
+                    "title": "Editar — Company Event",
+                    "file": "comunicacao/update-company-event.html"
+                },
+                {
+                    "id": "update-gamification-quiz",
+                    "title": "Editar — Gamification Quiz",
+                    "file": "comunicacao/update-gamification-quiz.html"
+                },
+                {
+                    "id": "update-gamification-timeline-rule",
+                    "title": "Editar — Gamification Timeline Rule",
+                    "file": "comunicacao/update-gamification-timeline-rule.html"
+                },
+                {
+                    "id": "update-informativo",
+                    "title": "Editar — Informativo",
+                    "file": "comunicacao/update-informativo.html"
+                },
+                {
+                    "id": "gamification-engagement-dashboard",
+                    "title": "Gamification Engagement Dashboard",
+                    "file": "comunicacao/gamification-engagement-dashboard.html"
+                },
+                {
+                    "id": "gamification-leaderboard",
+                    "title": "Gamification Leaderboard",
+                    "file": "comunicacao/gamification-leaderboard.html"
+                },
+                {
+                    "id": "gamification-quiz-catalog",
+                    "title": "Gamification Quiz Catalog",
+                    "file": "comunicacao/gamification-quiz-catalog.html"
+                },
+                {
+                    "id": "list-company-events",
+                    "title": "Listar — Company Events",
+                    "file": "comunicacao/list-company-events.html"
+                },
+                {
+                    "id": "list-gamification-point-ledger",
+                    "title": "Listar — Gamification Point Ledger",
+                    "file": "comunicacao/list-gamification-point-ledger.html"
+                },
+                {
+                    "id": "list-gamification-quizzes",
+                    "title": "Listar — Gamification Quizzes",
+                    "file": "comunicacao/list-gamification-quizzes.html"
+                },
+                {
+                    "id": "list-gamification-timeline-rules",
+                    "title": "Listar — Gamification Timeline Rules",
+                    "file": "comunicacao/list-gamification-timeline-rules.html"
+                },
+                {
+                    "id": "list-informativos",
+                    "title": "Listar — Informativos",
+                    "file": "comunicacao/list-informativos.html"
+                },
+                {
+                    "id": "timeline-moderate",
+                    "title": "Timeline Moderate",
+                    "file": "comunicacao/timeline-moderate.html"
+                },
+                {
+                    "id": "view-company-event",
+                    "title": "Visualizar — Company Event",
+                    "file": "comunicacao/view-company-event.html"
+                },
+                {
+                    "id": "view-informativo",
+                    "title": "Visualizar — Informativo",
+                    "file": "comunicacao/view-informativo.html"
+                }
+            ]
+        },
+        {
+            "id": "crm",
+            "title": "CRM",
+            "topics": [
+                {
+                    "id": "crm-visao-geral",
+                    "title": "CRM — visão geral",
+                    "file": "crm/crm-visao-geral.html"
+                },
+                {
+                    "id": "crm-atividades",
+                    "title": "Atividades comerciais",
+                    "file": "crm/crm-atividades.html"
+                },
+                {
+                    "id": "crm-configuracoes",
+                    "title": "Configurações CRM (tags, campos, automações)",
+                    "file": "crm/crm-configuracoes.html"
+                },
+                {
+                    "id": "crm-create-activity",
+                    "title": "Crm Create Activity",
+                    "file": "crm/crm-create-activity.html"
+                },
+                {
+                    "id": "crm-create-automation",
+                    "title": "Crm Create Automation",
+                    "file": "crm/crm-create-automation.html"
+                },
+                {
+                    "id": "crm-create-custom-field",
+                    "title": "Crm Create Custom Field",
+                    "file": "crm/crm-create-custom-field.html"
+                },
+                {
+                    "id": "crm-create-opportunity",
+                    "title": "Crm Create Opportunity",
+                    "file": "crm/crm-create-opportunity.html"
+                },
+                {
+                    "id": "crm-create-partner",
+                    "title": "Crm Create Partner",
+                    "file": "crm/crm-create-partner.html"
+                },
+                {
+                    "id": "crm-create-tag",
+                    "title": "Crm Create Tag",
+                    "file": "crm/crm-create-tag.html"
+                },
+                {
+                    "id": "crm-dashboard",
+                    "title": "Crm Dashboard",
+                    "file": "crm/crm-dashboard.html"
+                },
+                {
+                    "id": "crm-kanban-pipeline",
+                    "title": "Crm Kanban Pipeline",
+                    "file": "crm/crm-kanban-pipeline.html"
+                },
+                {
+                    "id": "crm-list-activities",
+                    "title": "Crm List Activities",
+                    "file": "crm/crm-list-activities.html"
+                },
+                {
+                    "id": "crm-list-automations",
+                    "title": "Crm List Automations",
+                    "file": "crm/crm-list-automations.html"
+                },
+                {
+                    "id": "crm-list-custom-fields",
+                    "title": "Crm List Custom Fields",
+                    "file": "crm/crm-list-custom-fields.html"
+                },
+                {
+                    "id": "crm-list-opportunities",
+                    "title": "Crm List Opportunities",
+                    "file": "crm/crm-list-opportunities.html"
+                },
+                {
+                    "id": "crm-list-partners",
+                    "title": "Crm List Partners",
+                    "file": "crm/crm-list-partners.html"
+                },
+                {
+                    "id": "crm-list-tags",
+                    "title": "Crm List Tags",
+                    "file": "crm/crm-list-tags.html"
+                },
+                {
+                    "id": "crm-manager-dashboard",
+                    "title": "Crm Manager Dashboard",
+                    "file": "crm/crm-manager-dashboard.html"
+                },
+                {
+                    "id": "crm-update-activity",
+                    "title": "Crm Update Activity",
+                    "file": "crm/crm-update-activity.html"
+                },
+                {
+                    "id": "crm-update-automation",
+                    "title": "Crm Update Automation",
+                    "file": "crm/crm-update-automation.html"
+                },
+                {
+                    "id": "crm-update-custom-field",
+                    "title": "Crm Update Custom Field",
+                    "file": "crm/crm-update-custom-field.html"
+                },
+                {
+                    "id": "crm-update-opportunity",
+                    "title": "Crm Update Opportunity",
+                    "file": "crm/crm-update-opportunity.html"
+                },
+                {
+                    "id": "crm-update-partner",
+                    "title": "Crm Update Partner",
+                    "file": "crm/crm-update-partner.html"
+                },
+                {
+                    "id": "crm-update-tag",
+                    "title": "Crm Update Tag",
+                    "file": "crm/crm-update-tag.html"
+                },
+                {
+                    "id": "crm-view-activity",
+                    "title": "Crm View Activity",
+                    "file": "crm/crm-view-activity.html"
+                },
+                {
+                    "id": "crm-view-automation",
+                    "title": "Crm View Automation",
+                    "file": "crm/crm-view-automation.html"
+                },
+                {
+                    "id": "crm-view-opportunity",
+                    "title": "Crm View Opportunity",
+                    "file": "crm/crm-view-opportunity.html"
+                },
+                {
+                    "id": "crm-view-partner",
+                    "title": "Crm View Partner",
+                    "file": "crm/crm-view-partner.html"
+                },
+                {
+                    "id": "crm-dashboards",
+                    "title": "Dashboards CRM",
+                    "file": "crm/crm-dashboards.html"
+                },
+                {
+                    "id": "crm-oportunidades",
+                    "title": "Oportunidades",
+                    "file": "crm/crm-oportunidades.html"
+                },
+                {
+                    "id": "crm-parceiros",
+                    "title": "Parceiros CRM",
+                    "file": "crm/crm-parceiros.html"
+                },
+                {
+                    "id": "crm-pipeline",
+                    "title": "Pipeline de vendas (Kanban)",
+                    "file": "crm/crm-pipeline.html"
+                }
+            ]
+        },
+        {
+            "id": "estoque",
+            "title": "Estoque",
+            "topics": [
+                {
+                    "id": "est-visao-geral",
+                    "title": "Estoque — visão geral",
+                    "file": "estoque/est-visao-geral.html"
+                },
+                {
+                    "id": "est-cadastros",
+                    "title": "Cadastros de estoque",
+                    "file": "estoque/est-cadastros.html"
+                },
+                {
+                    "id": "est-custeio",
+                    "title": "Custeio e produção",
+                    "file": "estoque/est-custeio.html"
+                },
+                {
+                    "id": "est-movimentacoes",
+                    "title": "Movimentações de estoque",
+                    "file": "estoque/est-movimentacoes.html"
+                },
+                {
+                    "id": "est-relatorios",
+                    "title": "Relatórios de estoque",
+                    "file": "estoque/est-relatorios.html"
+                },
+                {
+                    "id": "create-inventory-adjust",
+                    "title": "Cadastrar — Inventory Adjust",
+                    "file": "estoque/create-inventory-adjust.html"
+                },
+                {
+                    "id": "create-inventory-entry",
+                    "title": "Cadastrar — Inventory Entry",
+                    "file": "estoque/create-inventory-entry.html"
+                },
+                {
+                    "id": "create-inventory-exit",
+                    "title": "Cadastrar — Inventory Exit",
+                    "file": "estoque/create-inventory-exit.html"
+                },
+                {
+                    "id": "create-inventory-item",
+                    "title": "Cadastrar — Inventory Item",
+                    "file": "estoque/create-inventory-item.html"
+                },
+                {
+                    "id": "create-inventory-transfer",
+                    "title": "Cadastrar — Inventory Transfer",
+                    "file": "estoque/create-inventory-transfer.html"
+                },
+                {
+                    "id": "update-inventory-item",
+                    "title": "Editar — Inventory Item",
+                    "file": "estoque/update-inventory-item.html"
+                },
+                {
+                    "id": "list-inventory-categories",
+                    "title": "Listar — Inventory Categories",
+                    "file": "estoque/list-inventory-categories.html"
+                },
+                {
+                    "id": "list-inventory-cost-periods",
+                    "title": "Listar — Inventory Cost Periods",
+                    "file": "estoque/list-inventory-cost-periods.html"
+                },
+                {
+                    "id": "list-inventory-cost-production-batches",
+                    "title": "Listar — Inventory Cost Production Batches",
+                    "file": "estoque/list-inventory-cost-production-batches.html"
+                },
+                {
+                    "id": "list-inventory-items",
+                    "title": "Listar — Inventory Items",
+                    "file": "estoque/list-inventory-items.html"
+                },
+                {
+                    "id": "list-inventory-labor-roles",
+                    "title": "Listar — Inventory Labor Roles",
+                    "file": "estoque/list-inventory-labor-roles.html"
+                },
+                {
+                    "id": "list-inventory-movements",
+                    "title": "Listar — Inventory Movements",
+                    "file": "estoque/list-inventory-movements.html"
+                },
+                {
+                    "id": "list-inventory-operations",
+                    "title": "Listar — Inventory Operations",
+                    "file": "estoque/list-inventory-operations.html"
+                },
+                {
+                    "id": "list-inventory-positions",
+                    "title": "Listar — Inventory Positions",
+                    "file": "estoque/list-inventory-positions.html"
+                },
+                {
+                    "id": "list-inventory-production-resources",
+                    "title": "Listar — Inventory Production Resources",
+                    "file": "estoque/list-inventory-production-resources.html"
+                },
+                {
+                    "id": "list-inventory-stocks",
+                    "title": "Listar — Inventory Stocks",
+                    "file": "estoque/list-inventory-stocks.html"
+                },
+                {
+                    "id": "list-inventory-units",
+                    "title": "Listar — Inventory Units",
+                    "file": "estoque/list-inventory-units.html"
+                },
+                {
+                    "id": "report-inventory-balance",
+                    "title": "Report Inventory Balance",
+                    "file": "estoque/report-inventory-balance.html"
+                },
+                {
+                    "id": "report-inventory-history",
+                    "title": "Report Inventory History",
+                    "file": "estoque/report-inventory-history.html"
+                },
+                {
+                    "id": "simulate-inventory-cost",
+                    "title": "Simulate Inventory Cost",
+                    "file": "estoque/simulate-inventory-cost.html"
+                },
+                {
+                    "id": "view-inventory-item",
+                    "title": "Visualizar — Inventory Item",
+                    "file": "estoque/view-inventory-item.html"
+                },
+                {
+                    "id": "view-inventory-movement",
+                    "title": "Visualizar — Inventory Movement",
+                    "file": "estoque/view-inventory-movement.html"
+                }
+            ]
+        },
+        {
+            "id": "financeiro",
+            "title": "Financeiro",
+            "topics": [
+                {
+                    "id": "fin-visao-geral",
+                    "title": "Financeiro — visão geral",
+                    "file": "financeiro/fin-visao-geral.html"
+                },
+                {
+                    "id": "fin-cadastros",
+                    "title": "Cadastros financeiros",
+                    "file": "financeiro/fin-cadastros.html"
+                },
+                {
+                    "id": "fin-pagar-receber",
+                    "title": "Contas a pagar e receber",
+                    "file": "financeiro/fin-pagar-receber.html"
+                },
+                {
+                    "id": "movements",
+                    "title": "Movements",
+                    "file": "financeiro/movements.html"
+                },
+                {
+                    "id": "fin-relatorios",
+                    "title": "Relatórios financeiros",
+                    "file": "financeiro/fin-relatorios.html"
+                },
+                {
+                    "id": "create-account-plan",
+                    "title": "Cadastrar — Account Plan",
+                    "file": "financeiro/create-account-plan.html"
+                },
+                {
+                    "id": "create-bank",
+                    "title": "Cadastrar — Bank",
+                    "file": "financeiro/create-bank.html"
+                },
+                {
+                    "id": "create-frequency",
+                    "title": "Cadastrar — Frequency",
+                    "file": "financeiro/create-frequency.html"
+                },
+                {
+                    "id": "create-mov-between-accounts",
+                    "title": "Cadastrar — Mov Between Accounts",
+                    "file": "financeiro/create-mov-between-accounts.html"
+                },
+                {
+                    "id": "create-payment",
+                    "title": "Cadastrar — Payment",
+                    "file": "financeiro/create-payment.html"
+                },
+                {
+                    "id": "create-payment-method",
+                    "title": "Cadastrar — Payment Method",
+                    "file": "financeiro/create-payment-method.html"
+                },
+                {
+                    "id": "create-receipt",
+                    "title": "Cadastrar — Receipt",
+                    "file": "financeiro/create-receipt.html"
+                },
+                {
+                    "id": "cash-flow",
+                    "title": "Cash Flow",
+                    "file": "financeiro/cash-flow.html"
+                },
+                {
+                    "id": "cost-center-summary",
+                    "title": "Cost Center Summary",
+                    "file": "financeiro/cost-center-summary.html"
+                },
+                {
+                    "id": "update-account-plan",
+                    "title": "Editar — Account Plan",
+                    "file": "financeiro/update-account-plan.html"
+                },
+                {
+                    "id": "update-bank",
+                    "title": "Editar — Bank",
+                    "file": "financeiro/update-bank.html"
+                },
+                {
+                    "id": "update-frequency",
+                    "title": "Editar — Frequency",
+                    "file": "financeiro/update-frequency.html"
+                },
+                {
+                    "id": "update-payment",
+                    "title": "Editar — Payment",
+                    "file": "financeiro/update-payment.html"
+                },
+                {
+                    "id": "update-payment-method",
+                    "title": "Editar — Payment Method",
+                    "file": "financeiro/update-payment-method.html"
+                },
+                {
+                    "id": "update-receipt",
+                    "title": "Editar — Receipt",
+                    "file": "financeiro/update-receipt.html"
+                },
+                {
+                    "id": "flow-cash-competence",
+                    "title": "Flow Cash Competence",
+                    "file": "financeiro/flow-cash-competence.html"
+                },
+                {
+                    "id": "list-accounts-plan",
+                    "title": "Listar — Accounts Plan",
+                    "file": "financeiro/list-accounts-plan.html"
+                },
+                {
+                    "id": "list-banks",
+                    "title": "Listar — Banks",
+                    "file": "financeiro/list-banks.html"
+                },
+                {
+                    "id": "list-frequencies",
+                    "title": "Listar — Frequencies",
+                    "file": "financeiro/list-frequencies.html"
+                },
+                {
+                    "id": "list-mov-between-accounts",
+                    "title": "Listar — Mov Between Accounts",
+                    "file": "financeiro/list-mov-between-accounts.html"
+                },
+                {
+                    "id": "list-payment-methods",
+                    "title": "Listar — Payment Methods",
+                    "file": "financeiro/list-payment-methods.html"
+                },
+                {
+                    "id": "list-payments",
+                    "title": "Listar — Payments",
+                    "file": "financeiro/list-payments.html"
+                },
+                {
+                    "id": "list-receipts",
+                    "title": "Listar — Receipts",
+                    "file": "financeiro/list-receipts.html"
+                },
+                {
+                    "id": "view-payment",
+                    "title": "Visualizar — Payment",
+                    "file": "financeiro/view-payment.html"
+                },
+                {
+                    "id": "view-receipt",
+                    "title": "Visualizar — Receipt",
+                    "file": "financeiro/view-receipt.html"
+                }
+            ]
+        },
+        {
+            "id": "parceiros",
+            "title": "Parceiros de Negócio",
+            "topics": [
+                {
+                    "id": "parceiros-negocio",
+                    "title": "Clientes e fornecedores",
+                    "file": "parceiros/parceiros-negocio.html"
+                },
+                {
+                    "id": "create-customer",
+                    "title": "Cadastrar — Customer",
+                    "file": "parceiros/create-customer.html"
+                },
+                {
+                    "id": "create-supplier",
+                    "title": "Cadastrar — Supplier",
+                    "file": "parceiros/create-supplier.html"
+                },
+                {
+                    "id": "update-customer",
+                    "title": "Editar — Customer",
+                    "file": "parceiros/update-customer.html"
+                },
+                {
+                    "id": "update-supplier",
+                    "title": "Editar — Supplier",
+                    "file": "parceiros/update-supplier.html"
+                },
+                {
+                    "id": "list-customers",
+                    "title": "Listar — Customers",
+                    "file": "parceiros/list-customers.html"
+                },
+                {
+                    "id": "list-suppliers",
+                    "title": "Listar — Suppliers",
+                    "file": "parceiros/list-suppliers.html"
+                },
+                {
+                    "id": "view-customer",
+                    "title": "Visualizar — Customer",
+                    "file": "parceiros/view-customer.html"
+                },
+                {
+                    "id": "view-supplier",
+                    "title": "Visualizar — Supplier",
+                    "file": "parceiros/view-supplier.html"
+                }
+            ]
+        },
+        {
+            "id": "qualidade",
+            "title": "Garantia da Qualidade",
+            "topics": [
+                {
+                    "id": "qualidade-documentos",
+                    "title": "Documentos (qualidade)",
+                    "file": "qualidade/qualidade-documentos.html"
+                },
+                {
+                    "id": "create-document",
+                    "title": "Cadastrar — Document",
+                    "file": "qualidade/create-document.html"
+                },
+                {
+                    "id": "update-document",
+                    "title": "Editar — Document",
+                    "file": "qualidade/update-document.html"
+                },
+                {
+                    "id": "list-documents",
+                    "title": "Listar — Documents",
+                    "file": "qualidade/list-documents.html"
+                },
+                {
+                    "id": "view-document",
+                    "title": "Visualizar — Document",
+                    "file": "qualidade/view-document.html"
+                }
+            ]
+        },
+        {
+            "id": "rh_treinamentos",
+            "title": "Gestão de Treinamentos",
+            "topics": [
+                {
+                    "id": "rh-trein-visao-geral",
+                    "title": "Gestão de Treinamentos — visão geral",
+                    "file": "rh_treinamentos/rh-trein-visao-geral.html"
+                },
+                {
+                    "id": "rh-trein-avaliacoes",
+                    "title": "Avaliações e questionários",
+                    "file": "rh_treinamentos/rh-trein-avaliacoes.html"
+                },
+                {
+                    "id": "rh-trein-catalogo",
+                    "title": "Catálogo de treinamentos",
+                    "file": "rh_treinamentos/rh-trein-catalogo.html"
+                },
+                {
+                    "id": "rh-trein-dashboards",
+                    "title": "Dashboards de treinamentos",
+                    "file": "rh_treinamentos/rh-trein-dashboards.html"
+                },
+                {
+                    "id": "rh-trein-matrizes",
+                    "title": "Matrizes de treinamentos",
+                    "file": "rh_treinamentos/rh-trein-matrizes.html"
+                },
+                {
+                    "id": "rh-trein-notificacoes",
+                    "title": "Notificações de treinamento",
+                    "file": "rh_treinamentos/rh-trein-notificacoes.html"
+                },
+                {
+                    "id": "assign-evaluation",
+                    "title": "Assign Evaluation",
+                    "file": "rh_treinamentos/assign-evaluation.html"
+                },
+                {
+                    "id": "create-evaluation-model-with-questions",
+                    "title": "Cadastrar — Evaluation Model With Questions",
+                    "file": "rh_treinamentos/create-evaluation-model-with-questions.html"
+                },
+                {
+                    "id": "create-training",
+                    "title": "Cadastrar — Training",
+                    "file": "rh_treinamentos/create-training.html"
+                },
+                {
+                    "id": "completed-trainings-matrix",
+                    "title": "Completed Trainings Matrix",
+                    "file": "rh_treinamentos/completed-trainings-matrix.html"
+                },
+                {
+                    "id": "update-training",
+                    "title": "Editar — Training",
+                    "file": "rh_treinamentos/update-training.html"
+                },
+                {
+                    "id": "list-evaluation-assignments",
+                    "title": "Listar — Evaluation Assignments",
+                    "file": "rh_treinamentos/list-evaluation-assignments.html"
+                },
+                {
+                    "id": "list-evaluation-models",
+                    "title": "Listar — Evaluation Models",
+                    "file": "rh_treinamentos/list-evaluation-models.html"
+                },
+                {
+                    "id": "list-training-status",
+                    "title": "Listar — Training Status",
+                    "file": "rh_treinamentos/list-training-status.html"
+                },
+                {
+                    "id": "list-trainings",
+                    "title": "Listar — Trainings",
+                    "file": "rh_treinamentos/list-trainings.html"
+                },
+                {
+                    "id": "matrix-by-user",
+                    "title": "Matrix By User",
+                    "file": "rh_treinamentos/matrix-by-user.html"
+                },
+                {
+                    "id": "my-evaluations",
+                    "title": "My Evaluations",
+                    "file": "rh_treinamentos/my-evaluations.html"
+                },
+                {
+                    "id": "test-notification",
+                    "title": "Test Notification",
+                    "file": "rh_treinamentos/test-notification.html"
+                },
+                {
+                    "id": "training-compliance-dashboard",
+                    "title": "Training Compliance Dashboard",
+                    "file": "rh_treinamentos/training-compliance-dashboard.html"
+                },
+                {
+                    "id": "training-kpi-dashboard",
+                    "title": "Training Kpi Dashboard",
+                    "file": "rh_treinamentos/training-kpi-dashboard.html"
+                },
+                {
+                    "id": "view-evaluation-assignment",
+                    "title": "Visualizar — Evaluation Assignment",
+                    "file": "rh_treinamentos/view-evaluation-assignment.html"
+                },
+                {
+                    "id": "view-training",
+                    "title": "Visualizar — Training",
+                    "file": "rh_treinamentos/view-training.html"
+                }
+            ]
+        },
+        {
+            "id": "projetos",
+            "title": "Gestão de Projetos",
+            "topics": [
+                {
+                    "id": "proj-projetos",
+                    "title": "Gestão de projetos",
+                    "file": "projetos/proj-projetos.html"
+                },
+                {
+                    "id": "create-project",
+                    "title": "Cadastrar — Project",
+                    "file": "projetos/create-project.html"
+                },
+                {
+                    "id": "create-project-stage",
+                    "title": "Cadastrar — Project Stage",
+                    "file": "projetos/create-project-stage.html"
+                },
+                {
+                    "id": "create-stage-group",
+                    "title": "Cadastrar — Stage Group",
+                    "file": "projetos/create-stage-group.html"
+                },
+                {
+                    "id": "update-project",
+                    "title": "Editar — Project",
+                    "file": "projetos/update-project.html"
+                },
+                {
+                    "id": "update-project-stage",
+                    "title": "Editar — Project Stage",
+                    "file": "projetos/update-project-stage.html"
+                },
+                {
+                    "id": "update-stage-group",
+                    "title": "Editar — Stage Group",
+                    "file": "projetos/update-stage-group.html"
+                },
+                {
+                    "id": "list-project-stages",
+                    "title": "Listar — Project Stages",
+                    "file": "projetos/list-project-stages.html"
+                },
+                {
+                    "id": "list-projects",
+                    "title": "Listar — Projects",
+                    "file": "projetos/list-projects.html"
+                },
+                {
+                    "id": "list-stage-groups",
+                    "title": "Listar — Stage Groups",
+                    "file": "projetos/list-stage-groups.html"
+                },
+                {
+                    "id": "view-project",
+                    "title": "Visualizar — Project",
+                    "file": "projetos/view-project.html"
+                }
+            ]
+        },
+        {
+            "id": "gestao_pessoas",
+            "title": "Gestão de Pessoas",
+            "topics": [
+                {
+                    "id": "gp-visao-geral",
+                    "title": "Gestão de Pessoas — visão geral",
+                    "file": "gestao_pessoas/gp-visao-geral.html"
+                },
+                {
+                    "id": "gp-desempenho",
+                    "title": "Desempenho e competências",
+                    "file": "gestao_pessoas/gp-desempenho.html"
+                },
+                {
+                    "id": "gp-folha",
+                    "title": "Documentos de folha (RH)",
+                    "file": "gestao_pessoas/gp-folha.html"
+                },
+                {
+                    "id": "gp-analytics",
+                    "title": "People Analytics",
+                    "file": "gestao_pessoas/gp-analytics.html"
+                },
+                {
+                    "id": "gp-politicas",
+                    "title": "Políticas internas",
+                    "file": "gestao_pessoas/gp-politicas.html"
+                },
+                {
+                    "id": "gp-portal",
+                    "title": "Portal do colaborador",
+                    "file": "gestao_pessoas/gp-portal.html"
+                },
+                {
+                    "id": "gp-recrutamento",
+                    "title": "Recrutamento e currículos",
+                    "file": "gestao_pessoas/gp-recrutamento.html"
+                },
+                {
+                    "id": "gp-solicitacoes",
+                    "title": "Solicitações e chamados",
+                    "file": "gestao_pessoas/gp-solicitacoes.html"
+                },
+                {
+                    "id": "create-competency",
+                    "title": "Cadastrar — Competency",
+                    "file": "gestao_pessoas/create-competency.html"
+                },
+                {
+                    "id": "create-employee-request",
+                    "title": "Cadastrar — Employee Request",
+                    "file": "gestao_pessoas/create-employee-request.html"
+                },
+                {
+                    "id": "create-employee-ticket",
+                    "title": "Cadastrar — Employee Ticket",
+                    "file": "gestao_pessoas/create-employee-ticket.html"
+                },
+                {
+                    "id": "create-payroll-document-type",
+                    "title": "Cadastrar — Payroll Document Type",
+                    "file": "gestao_pessoas/create-payroll-document-type.html"
+                },
+                {
+                    "id": "create-performance-feedback",
+                    "title": "Cadastrar — Performance Feedback",
+                    "file": "gestao_pessoas/create-performance-feedback.html"
+                },
+                {
+                    "id": "create-performance-goal",
+                    "title": "Cadastrar — Performance Goal",
+                    "file": "gestao_pessoas/create-performance-goal.html"
+                },
+                {
+                    "id": "create-performance-review",
+                    "title": "Cadastrar — Performance Review",
+                    "file": "gestao_pessoas/create-performance-review.html"
+                },
+                {
+                    "id": "create-policy",
+                    "title": "Cadastrar — Policy",
+                    "file": "gestao_pessoas/create-policy.html"
+                },
+                {
+                    "id": "create-policy-category",
+                    "title": "Cadastrar — Policy Category",
+                    "file": "gestao_pessoas/create-policy-category.html"
+                },
+                {
+                    "id": "create-request-type",
+                    "title": "Cadastrar — Request Type",
+                    "file": "gestao_pessoas/create-request-type.html"
+                },
+                {
+                    "id": "create-rh-vaga",
+                    "title": "Cadastrar — Rh Vaga",
+                    "file": "gestao_pessoas/create-rh-vaga.html"
+                },
+                {
+                    "id": "competency-matrix",
+                    "title": "Competency Matrix",
+                    "file": "gestao_pessoas/competency-matrix.html"
+                },
+                {
+                    "id": "update-competency",
+                    "title": "Editar — Competency",
+                    "file": "gestao_pessoas/update-competency.html"
+                },
+                {
+                    "id": "update-payroll-document-type",
+                    "title": "Editar — Payroll Document Type",
+                    "file": "gestao_pessoas/update-payroll-document-type.html"
+                },
+                {
+                    "id": "update-performance-goal",
+                    "title": "Editar — Performance Goal",
+                    "file": "gestao_pessoas/update-performance-goal.html"
+                },
+                {
+                    "id": "update-performance-review",
+                    "title": "Editar — Performance Review",
+                    "file": "gestao_pessoas/update-performance-review.html"
+                },
+                {
+                    "id": "update-policy",
+                    "title": "Editar — Policy",
+                    "file": "gestao_pessoas/update-policy.html"
+                },
+                {
+                    "id": "update-policy-category",
+                    "title": "Editar — Policy Category",
+                    "file": "gestao_pessoas/update-policy-category.html"
+                },
+                {
+                    "id": "update-request-type",
+                    "title": "Editar — Request Type",
+                    "file": "gestao_pessoas/update-request-type.html"
+                },
+                {
+                    "id": "update-rh-vaga",
+                    "title": "Editar — Rh Vaga",
+                    "file": "gestao_pessoas/update-rh-vaga.html"
+                },
+                {
+                    "id": "employee-portal",
+                    "title": "Employee Portal",
+                    "file": "gestao_pessoas/employee-portal.html"
+                },
+                {
+                    "id": "import-payroll-documents",
+                    "title": "Import Payroll Documents",
+                    "file": "gestao_pessoas/import-payroll-documents.html"
+                },
+                {
+                    "id": "list-competencies",
+                    "title": "Listar — Competencies",
+                    "file": "gestao_pessoas/list-competencies.html"
+                },
+                {
+                    "id": "list-employee-requests",
+                    "title": "Listar — Employee Requests",
+                    "file": "gestao_pessoas/list-employee-requests.html"
+                },
+                {
+                    "id": "list-employee-tickets",
+                    "title": "Listar — Employee Tickets",
+                    "file": "gestao_pessoas/list-employee-tickets.html"
+                },
+                {
+                    "id": "list-payroll-document-types",
+                    "title": "Listar — Payroll Document Types",
+                    "file": "gestao_pessoas/list-payroll-document-types.html"
+                },
+                {
+                    "id": "list-payroll-signing-pendencies",
+                    "title": "Listar — Payroll Signing Pendencies",
+                    "file": "gestao_pessoas/list-payroll-signing-pendencies.html"
+                },
+                {
+                    "id": "list-performance-feedbacks",
+                    "title": "Listar — Performance Feedbacks",
+                    "file": "gestao_pessoas/list-performance-feedbacks.html"
+                },
+                {
+                    "id": "list-performance-goals",
+                    "title": "Listar — Performance Goals",
+                    "file": "gestao_pessoas/list-performance-goals.html"
+                },
+                {
+                    "id": "list-performance-reviews",
+                    "title": "Listar — Performance Reviews",
+                    "file": "gestao_pessoas/list-performance-reviews.html"
+                },
+                {
+                    "id": "list-policies",
+                    "title": "Listar — Policies",
+                    "file": "gestao_pessoas/list-policies.html"
+                },
+                {
+                    "id": "list-policy-categories",
+                    "title": "Listar — Policy Categories",
+                    "file": "gestao_pessoas/list-policy-categories.html"
+                },
+                {
+                    "id": "list-request-types",
+                    "title": "Listar — Request Types",
+                    "file": "gestao_pessoas/list-request-types.html"
+                },
+                {
+                    "id": "my-payroll-documents",
+                    "title": "My Payroll Documents",
+                    "file": "gestao_pessoas/my-payroll-documents.html"
+                },
+                {
+                    "id": "nine-box-matrix",
+                    "title": "Nine Box Matrix",
+                    "file": "gestao_pessoas/nine-box-matrix.html"
+                },
+                {
+                    "id": "payroll-cron-config",
+                    "title": "Payroll Cron Config",
+                    "file": "gestao_pessoas/payroll-cron-config.html"
+                },
+                {
+                    "id": "pending-approvals",
+                    "title": "Pending Approvals",
+                    "file": "gestao_pessoas/pending-approvals.html"
+                },
+                {
+                    "id": "people-analytics",
+                    "title": "People Analytics",
+                    "file": "gestao_pessoas/people-analytics.html"
+                },
+                {
+                    "id": "people-reports",
+                    "title": "People Reports",
+                    "file": "gestao_pessoas/people-reports.html"
+                },
+                {
+                    "id": "performance-dashboard",
+                    "title": "Performance Dashboard",
+                    "file": "gestao_pessoas/performance-dashboard.html"
+                },
+                {
+                    "id": "rh-candidatos",
+                    "title": "Rh Candidatos",
+                    "file": "gestao_pessoas/rh-candidatos.html"
+                },
+                {
+                    "id": "rh-entrevistas",
+                    "title": "Rh Entrevistas",
+                    "file": "gestao_pessoas/rh-entrevistas.html"
+                },
+                {
+                    "id": "rh-kpi-dashboard",
+                    "title": "Rh Kpi Dashboard",
+                    "file": "gestao_pessoas/rh-kpi-dashboard.html"
+                },
+                {
+                    "id": "rh-vagas",
+                    "title": "Rh Vagas",
+                    "file": "gestao_pessoas/rh-vagas.html"
+                },
+                {
+                    "id": "view-employee-request",
+                    "title": "Visualizar — Employee Request",
+                    "file": "gestao_pessoas/view-employee-request.html"
+                },
+                {
+                    "id": "view-employee-ticket",
+                    "title": "Visualizar — Employee Ticket",
+                    "file": "gestao_pessoas/view-employee-ticket.html"
+                },
+                {
+                    "id": "view-policy",
+                    "title": "Visualizar — Policy",
+                    "file": "gestao_pessoas/view-policy.html"
+                },
+                {
+                    "id": "view-rh-candidato",
+                    "title": "Visualizar — Rh Candidato",
+                    "file": "gestao_pessoas/view-rh-candidato.html"
+                }
+            ]
+        },
+        {
+            "id": "salas",
+            "title": "Reserva de Salas",
+            "topics": [
+                {
+                    "id": "salas-visao-geral",
+                    "title": "Reserva de Salas — visão geral",
+                    "file": "salas/salas-visao-geral.html"
+                },
+                {
+                    "id": "salas-administracao",
+                    "title": "Administração de salas",
+                    "file": "salas/salas-administracao.html"
+                },
+                {
+                    "id": "salas-reservas",
+                    "title": "Calendário e reservas",
+                    "file": "salas/salas-reservas.html"
+                },
+                {
+                    "id": "admin-booking-dashboard",
+                    "title": "Admin Booking Dashboard",
+                    "file": "salas/admin-booking-dashboard.html"
+                },
+                {
+                    "id": "book-room",
+                    "title": "Book Room",
+                    "file": "salas/book-room.html"
+                },
+                {
+                    "id": "booking-reports",
+                    "title": "Booking Reports",
+                    "file": "salas/booking-reports.html"
+                },
+                {
+                    "id": "booking-waitlist",
+                    "title": "Booking Waitlist",
+                    "file": "salas/booking-waitlist.html"
+                },
+                {
+                    "id": "create-booking",
+                    "title": "Cadastrar — Booking",
+                    "file": "salas/create-booking.html"
+                },
+                {
+                    "id": "create-meeting-room",
+                    "title": "Cadastrar — Meeting Room",
+                    "file": "salas/create-meeting-room.html"
+                },
+                {
+                    "id": "cancel-booking",
+                    "title": "Cancel Booking",
+                    "file": "salas/cancel-booking.html"
+                },
+                {
+                    "id": "update-booking",
+                    "title": "Editar — Booking",
+                    "file": "salas/update-booking.html"
+                },
+                {
+                    "id": "update-meeting-room",
+                    "title": "Editar — Meeting Room",
+                    "file": "salas/update-meeting-room.html"
+                },
+                {
+                    "id": "list-bookings",
+                    "title": "Listar — Bookings",
+                    "file": "salas/list-bookings.html"
+                },
+                {
+                    "id": "list-meeting-rooms",
+                    "title": "Listar — Meeting Rooms",
+                    "file": "salas/list-meeting-rooms.html"
+                },
+                {
+                    "id": "room-calendar",
+                    "title": "Room Calendar",
+                    "file": "salas/room-calendar.html"
+                },
+                {
+                    "id": "rooms-calendar-integration-settings",
+                    "title": "Rooms Calendar Integration Settings",
+                    "file": "salas/rooms-calendar-integration-settings.html"
+                },
+                {
+                    "id": "rooms-list-request-groups",
+                    "title": "Rooms List Request Groups",
+                    "file": "salas/rooms-list-request-groups.html"
+                },
+                {
+                    "id": "rooms-list-request-types",
+                    "title": "Rooms List Request Types",
+                    "file": "salas/rooms-list-request-types.html"
+                },
+                {
+                    "id": "rooms-list-service-requests",
+                    "title": "Rooms List Service Requests",
+                    "file": "salas/rooms-list-service-requests.html"
+                },
+                {
+                    "id": "view-booking",
+                    "title": "Visualizar — Booking",
+                    "file": "salas/view-booking.html"
+                },
+                {
+                    "id": "view-meeting-room",
+                    "title": "Visualizar — Meeting Room",
+                    "file": "salas/view-meeting-room.html"
+                }
+            ]
+        },
+        {
+            "id": "sac",
+            "title": "SAC",
+            "topics": [
+                {
+                    "id": "sac-visao-geral",
+                    "title": "SAC — visão geral",
+                    "file": "sac/sac-visao-geral.html"
+                },
+                {
+                    "id": "sac-atendimento",
+                    "title": "Chamados e SLA",
+                    "file": "sac/sac-atendimento.html"
+                },
+                {
+                    "id": "sac-create-category",
+                    "title": "Sac Create Category",
+                    "file": "sac/sac-create-category.html"
+                },
+                {
+                    "id": "sac-create-client",
+                    "title": "Sac Create Client",
+                    "file": "sac/sac-create-client.html"
+                },
+                {
+                    "id": "sac-create-sla-rule",
+                    "title": "Sac Create Sla Rule",
+                    "file": "sac/sac-create-sla-rule.html"
+                },
+                {
+                    "id": "sac-create-ticket",
+                    "title": "Sac Create Ticket",
+                    "file": "sac/sac-create-ticket.html"
+                },
+                {
+                    "id": "sac-dashboard",
+                    "title": "Sac Dashboard",
+                    "file": "sac/sac-dashboard.html"
+                },
+                {
+                    "id": "sac-list-categories",
+                    "title": "Sac List Categories",
+                    "file": "sac/sac-list-categories.html"
+                },
+                {
+                    "id": "sac-list-clients",
+                    "title": "Sac List Clients",
+                    "file": "sac/sac-list-clients.html"
+                },
+                {
+                    "id": "sac-list-sla-rules",
+                    "title": "Sac List Sla Rules",
+                    "file": "sac/sac-list-sla-rules.html"
+                },
+                {
+                    "id": "sac-list-tickets",
+                    "title": "Sac List Tickets",
+                    "file": "sac/sac-list-tickets.html"
+                },
+                {
+                    "id": "sac-update-category",
+                    "title": "Sac Update Category",
+                    "file": "sac/sac-update-category.html"
+                },
+                {
+                    "id": "sac-update-client",
+                    "title": "Sac Update Client",
+                    "file": "sac/sac-update-client.html"
+                },
+                {
+                    "id": "sac-update-sla-rule",
+                    "title": "Sac Update Sla Rule",
+                    "file": "sac/sac-update-sla-rule.html"
+                },
+                {
+                    "id": "sac-update-ticket",
+                    "title": "Sac Update Ticket",
+                    "file": "sac/sac-update-ticket.html"
+                },
+                {
+                    "id": "sac-view-ticket",
+                    "title": "Sac View Ticket",
+                    "file": "sac/sac-view-ticket.html"
+                }
+            ]
+        },
+        {
+            "id": "sst",
+            "title": "Segurança e Medicina",
+            "topics": [
+                {
+                    "id": "sst-visao-geral",
+                    "title": "Visão geral do módulo SST",
+                    "file": "sst/sst-visao-geral.html"
+                },
+                {
+                    "id": "sst-asos",
+                    "title": "ASOs e encaminhamentos",
+                    "file": "sst/sst-asos.html"
+                },
+                {
+                    "id": "sst-acidentes-afastamentos",
+                    "title": "Acidentes e afastamentos",
+                    "file": "sst/sst-acidentes-afastamentos.html"
+                },
+                {
+                    "id": "sst-cipa-inspecoes",
+                    "title": "CIPA e inspeções",
+                    "file": "sst/sst-cipa-inspecoes.html"
+                },
+                {
+                    "id": "sst-cids",
+                    "title": "Catálogo CID-10",
+                    "file": "sst/sst-cids.html"
+                },
+                {
+                    "id": "sst-epis",
+                    "title": "Catálogo de EPIs",
+                    "file": "sst/sst-epis.html"
+                },
+                {
+                    "id": "sst-exames",
+                    "title": "Catálogo de exames",
+                    "file": "sst/sst-exames.html"
+                },
+                {
+                    "id": "sst-conceitos",
+                    "title": "Conceitos: Cargo, Risco, GHE e Matriz",
+                    "file": "sst/sst-conceitos.html"
+                },
+                {
+                    "id": "sst-dashboard",
+                    "title": "Dashboard SST",
+                    "file": "sst/sst-dashboard.html"
+                },
+                {
+                    "id": "sst-equipamentos",
+                    "title": "Equipamentos e vistorias",
+                    "file": "sst/sst-equipamentos.html"
+                },
+                {
+                    "id": "sst-epi-fichas",
+                    "title": "Fichas, estoque e movimentações EPI",
+                    "file": "sst/sst-epi-fichas.html"
+                },
+                {
+                    "id": "sst-ghe",
+                    "title": "GHE — Grupos Homogêneos de Exposição",
+                    "file": "sst/sst-ghe.html"
+                },
+                {
+                    "id": "sst-matriz-treinamento",
+                    "title": "Matriz cargo × treinamento",
+                    "file": "sst/sst-matriz-treinamento.html"
+                },
+                {
+                    "id": "sst-medicos",
+                    "title": "Médicos do trabalho",
+                    "file": "sst/sst-medicos.html"
+                },
+                {
+                    "id": "sst-necessidades",
+                    "title": "Necessidades (EPI, exame, treinamento)",
+                    "file": "sst/sst-necessidades.html"
+                },
+                {
+                    "id": "sst-report-pendencias",
+                    "title": "Pendências SST",
+                    "file": "sst/sst-report-pendencias.html"
+                },
+                {
+                    "id": "sst-perfil-colaborador",
+                    "title": "Perfil SST do colaborador",
+                    "file": "sst/sst-perfil-colaborador.html"
+                },
+                {
+                    "id": "sst-conformidade",
+                    "title": "Programas e conformidade",
+                    "file": "sst/sst-conformidade.html"
+                },
+                {
+                    "id": "sst-relatorios",
+                    "title": "Relatórios SST",
+                    "file": "sst/sst-relatorios.html"
+                },
+                {
+                    "id": "sst-riscos",
+                    "title": "Riscos ocupacionais",
+                    "file": "sst/sst-riscos.html"
+                },
+                {
+                    "id": "sst-treinamentos",
+                    "title": "Treinamentos SST",
+                    "file": "sst/sst-treinamentos.html"
+                },
+                {
+                    "id": "sst-esocial-ppp",
+                    "title": "eSocial e PPP",
+                    "file": "sst/sst-esocial-ppp.html"
+                }
+            ]
+        },
+        {
+            "id": "lgpd",
+            "title": "LGPD",
+            "topics": [
+                {
+                    "id": "lgpd-visao-geral",
+                    "title": "LGPD — visão geral",
+                    "file": "lgpd/lgpd-visao-geral.html"
+                },
+                {
+                    "id": "lgpd-aipd",
+                    "title": "AIPD, RIPD e TIA",
+                    "file": "lgpd/lgpd-aipd.html"
+                },
+                {
+                    "id": "lgpd-consentimentos",
+                    "title": "Consentimentos e termos",
+                    "file": "lgpd/lgpd-consentimentos.html"
+                },
+                {
+                    "id": "lgpd-dashboard",
+                    "title": "Dashboard LGPD",
+                    "file": "lgpd/lgpd-dashboard.html"
+                },
+                {
+                    "id": "lgpd-inventario",
+                    "title": "Inventário, ROPA e mapeamento",
+                    "file": "lgpd/lgpd-inventario.html"
+                },
+                {
+                    "id": "lgpd-aipd-suggest",
+                    "title": "Lgpd Aipd Suggest",
+                    "file": "lgpd/lgpd-aipd-suggest.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-ecommerce",
+                    "title": "Lgpd Aipd Template Ecommerce",
+                    "file": "lgpd/lgpd-aipd-template-ecommerce.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-educacao",
+                    "title": "Lgpd Aipd Template Educacao",
+                    "file": "lgpd/lgpd-aipd-template-educacao.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-financeiro",
+                    "title": "Lgpd Aipd Template Financeiro",
+                    "file": "lgpd/lgpd-aipd-template-financeiro.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-juridico",
+                    "title": "Lgpd Aipd Template Juridico",
+                    "file": "lgpd/lgpd-aipd-template-juridico.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-logistica",
+                    "title": "Lgpd Aipd Template Logistica",
+                    "file": "lgpd/lgpd-aipd-template-logistica.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-marketing",
+                    "title": "Lgpd Aipd Template Marketing",
+                    "file": "lgpd/lgpd-aipd-template-marketing.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-rh",
+                    "title": "Lgpd Aipd Template Rh",
+                    "file": "lgpd/lgpd-aipd-template-rh.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-saude",
+                    "title": "Lgpd Aipd Template Saude",
+                    "file": "lgpd/lgpd-aipd-template-saude.html"
+                },
+                {
+                    "id": "lgpd-aipd-template-telecom",
+                    "title": "Lgpd Aipd Template Telecom",
+                    "file": "lgpd/lgpd-aipd-template-telecom.html"
+                },
+                {
+                    "id": "lgpd-bases-legais",
+                    "title": "Lgpd Bases Legais",
+                    "file": "lgpd/lgpd-bases-legais.html"
+                },
+                {
+                    "id": "lgpd-categorias-titulares",
+                    "title": "Lgpd Categorias Titulares",
+                    "file": "lgpd/lgpd-categorias-titulares.html"
+                },
+                {
+                    "id": "lgpd-classificacoes-dados",
+                    "title": "Lgpd Classificacoes Dados",
+                    "file": "lgpd/lgpd-classificacoes-dados.html"
+                },
+                {
+                    "id": "lgpd-data-mapping",
+                    "title": "Lgpd Data Mapping",
+                    "file": "lgpd/lgpd-data-mapping.html"
+                },
+                {
+                    "id": "lgpd-finalidades",
+                    "title": "Lgpd Finalidades",
+                    "file": "lgpd/lgpd-finalidades.html"
+                },
+                {
+                    "id": "lgpd-inventory",
+                    "title": "Lgpd Inventory",
+                    "file": "lgpd/lgpd-inventory.html"
+                },
+                {
+                    "id": "lgpd-ripd",
+                    "title": "Lgpd Ripd",
+                    "file": "lgpd/lgpd-ripd.html"
+                },
+                {
+                    "id": "lgpd-ropa",
+                    "title": "Lgpd Ropa",
+                    "file": "lgpd/lgpd-ropa.html"
+                },
+                {
+                    "id": "lgpd-termos",
+                    "title": "Lgpd Termos",
+                    "file": "lgpd/lgpd-termos.html"
+                },
+                {
+                    "id": "lgpd-tia",
+                    "title": "Lgpd Tia",
+                    "file": "lgpd/lgpd-tia.html"
+                },
+                {
+                    "id": "lgpd-tipos-dados",
+                    "title": "Lgpd Tipos Dados",
+                    "file": "lgpd/lgpd-tipos-dados.html"
+                },
+                {
+                    "id": "lgpd-workflow-report",
+                    "title": "Lgpd Workflow Report",
+                    "file": "lgpd/lgpd-workflow-report.html"
+                },
+                {
+                    "id": "create-lgpd-termo",
+                    "title": "Cadastrar — Lgpd Termo",
+                    "file": "lgpd/create-lgpd-termo.html"
+                },
+                {
+                    "id": "update-lgpd-termo",
+                    "title": "Editar — Lgpd Termo",
+                    "file": "lgpd/update-lgpd-termo.html"
+                }
+            ]
+        },
+        {
+            "id": "planejamento",
+            "title": "Planejamento Estratégico",
+            "topics": [
+                {
+                    "id": "pe-estrategico",
+                    "title": "Planejamento estratégico",
+                    "file": "planejamento/pe-estrategico.html"
+                },
+                {
+                    "id": "create-strategic-indicator",
+                    "title": "Cadastrar — Strategic Indicator",
+                    "file": "planejamento/create-strategic-indicator.html"
+                },
+                {
+                    "id": "create-strategic-plan",
+                    "title": "Cadastrar — Strategic Plan",
+                    "file": "planejamento/create-strategic-plan.html"
+                },
+                {
+                    "id": "update-strategic-indicator",
+                    "title": "Editar — Strategic Indicator",
+                    "file": "planejamento/update-strategic-indicator.html"
+                },
+                {
+                    "id": "update-strategic-plan",
+                    "title": "Editar — Strategic Plan",
+                    "file": "planejamento/update-strategic-plan.html"
+                },
+                {
+                    "id": "list-strategic-plans",
+                    "title": "Listar — Strategic Plans",
+                    "file": "planejamento/list-strategic-plans.html"
+                },
+                {
+                    "id": "strategic-dashboard",
+                    "title": "Strategic Dashboard",
+                    "file": "planejamento/strategic-dashboard.html"
+                },
+                {
+                    "id": "strategic-indicators-list",
+                    "title": "Strategic Indicators List",
+                    "file": "planejamento/strategic-indicators-list.html"
+                }
+            ]
+        },
+        {
+            "id": "relatorios",
+            "title": "Relatórios",
+            "topics": [
+                {
+                    "id": "rel-visao-geral",
+                    "title": "Relatórios — visão geral",
+                    "file": "relatorios/rel-visao-geral.html"
+                },
+                {
+                    "id": "rel-dinamicos",
+                    "title": "Relatórios dinâmicos e dashboards",
+                    "file": "relatorios/rel-dinamicos.html"
+                },
+                {
+                    "id": "create-dashboard",
+                    "title": "Cadastrar — Dashboard",
+                    "file": "relatorios/create-dashboard.html"
+                },
+                {
+                    "id": "create-dynamic-report",
+                    "title": "Cadastrar — Dynamic Report",
+                    "file": "relatorios/create-dynamic-report.html"
+                },
+                {
+                    "id": "update-dashboard",
+                    "title": "Editar — Dashboard",
+                    "file": "relatorios/update-dashboard.html"
+                },
+                {
+                    "id": "update-dynamic-report",
+                    "title": "Editar — Dynamic Report",
+                    "file": "relatorios/update-dynamic-report.html"
+                },
+                {
+                    "id": "list-dashboards",
+                    "title": "Listar — Dashboards",
+                    "file": "relatorios/list-dashboards.html"
+                },
+                {
+                    "id": "list-dynamic-reports",
+                    "title": "Listar — Dynamic Reports",
+                    "file": "relatorios/list-dynamic-reports.html"
+                },
+                {
+                    "id": "list-dynamic-reports-sap",
+                    "title": "Listar — Dynamic Reports Sap",
+                    "file": "relatorios/list-dynamic-reports-sap.html"
+                },
+                {
+                    "id": "sales-dashboard",
+                    "title": "Sales Dashboard",
+                    "file": "relatorios/sales-dashboard.html"
+                },
+                {
+                    "id": "sales-dashboard-data",
+                    "title": "Sales Dashboard Data",
+                    "file": "relatorios/sales-dashboard-data.html"
+                },
+                {
+                    "id": "view-dynamic-report",
+                    "title": "Visualizar — Dynamic Report",
+                    "file": "relatorios/view-dynamic-report.html"
+                }
+            ]
         }
-      ]
-    },
-    {
-      "id": "sst",
-      "title": "Segurança e Medicina",
-      "topics": [
-        { "id": "sst-visao-geral", "title": "Visão geral do módulo SST", "file": "sst/sst-visao-geral.html" },
-        { "id": "sst-conceitos", "title": "Conceitos: Cargo, Risco, GHE e Matriz", "file": "sst/sst-conceitos.html" },
-        { "id": "sst-dashboard", "title": "Dashboard SST", "file": "sst/sst-dashboard.html" },
-        { "id": "sst-riscos", "title": "Riscos ocupacionais", "file": "sst/sst-riscos.html" },
-        { "id": "sst-exames", "title": "Catálogo de exames", "file": "sst/sst-exames.html" },
-        { "id": "sst-asos", "title": "ASOs e encaminhamentos", "file": "sst/sst-asos.html" },
-        { "id": "sst-epis", "title": "Catálogo de EPIs", "file": "sst/sst-epis.html" },
-        { "id": "sst-epi-fichas", "title": "Fichas, estoque e movimentações EPI", "file": "sst/sst-epi-fichas.html" },
-        { "id": "sst-necessidades", "title": "Necessidades (EPI, exame, treinamento)", "file": "sst/sst-necessidades.html" },
-        { "id": "sst-treinamentos", "title": "Treinamentos SST", "file": "sst/sst-treinamentos.html" },
-        { "id": "sst-matriz-treinamento", "title": "Matriz cargo × treinamento", "file": "sst/sst-matriz-treinamento.html" },
-        { "id": "sst-ghe", "title": "GHE — Grupos Homogêneos de Exposição", "file": "sst/sst-ghe.html" },
-        { "id": "sst-medicos", "title": "Médicos do trabalho", "file": "sst/sst-medicos.html" },
-        { "id": "sst-cids", "title": "Catálogo CID-10", "file": "sst/sst-cids.html" },
-        { "id": "sst-acidentes-afastamentos", "title": "Acidentes e afastamentos", "file": "sst/sst-acidentes-afastamentos.html" },
-        { "id": "sst-conformidade", "title": "Programas e conformidade", "file": "sst/sst-conformidade.html" },
-        { "id": "sst-esocial-ppp", "title": "eSocial e PPP", "file": "sst/sst-esocial-ppp.html" },
-        { "id": "sst-equipamentos", "title": "Equipamentos e vistorias", "file": "sst/sst-equipamentos.html" },
-        { "id": "sst-cipa-inspecoes", "title": "CIPA e inspeções", "file": "sst/sst-cipa-inspecoes.html" },
-        { "id": "sst-relatorios", "title": "Relatórios SST", "file": "sst/sst-relatorios.html" },
-        { "id": "sst-report-pendencias", "title": "Pendências SST", "file": "sst/sst-report-pendencias.html" },
-        { "id": "sst-perfil-colaborador", "title": "Perfil SST do colaborador", "file": "sst/sst-perfil-colaborador.html" }
-      ]
-    }
-  ]
+    ]
 }

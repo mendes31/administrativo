@@ -1,9 +1,29 @@
 <h1>ASOs e encaminhamentos</h1>
 <p>Atestado de Saúde Ocupacional — registro do exame clínico e exames complementares do colaborador.</p>
 
+<p><strong>Quem acessa:</strong> equipe SST / medicina do trabalho (<em>SstListAsos</em>, <em>SstCreateAso</em>, etc.).</p>
+
+<h2>Fluxo admissional (passo a passo)</h2>
+<ol>
+    <li>Em <strong>ASOs → Novo</strong>, selecione o colaborador e categoria <em>Admissional</em>.</li>
+    <li>Informe médico, data do exame e clínica.</li>
+    <li>Revise exames complementares sugeridos (cargo + riscos + categoria).</li>
+    <li>Se faltam laudos: status <em>Aguardando exames</em> e gere <strong>Encaminhamento</strong> (PDF) para laboratório.</li>
+    <li>Após resultados, use <strong>Registrar resultados</strong> e conclua com aptidão e validade do ASO.</li>
+    <li>Anexe documentos na aba <strong>Anexos</strong>, se necessário.</li>
+</ol>
+
+<h2>Fluxo periódico (passo a passo)</h2>
+<ol>
+    <li>Identifique colaboradores no <strong>relatório de Pendências</strong> ou dashboard (exames vencidos).</li>
+    <li>Crie ASO com categoria <em>Periódico</em>.</li>
+    <li>Repita o ciclo de complementares → resultados → conclusão.</li>
+    <li>A validade do novo ASO substitui a contagem de vencimento nas pendências.</li>
+</ol>
+
 <h2 id="aba-dados">Dados do ASO</h2>
 <div class="help-field"><strong>Colaborador</strong> Trabalhador avaliado.</div>
-<div class="help-field"><strong>Médico</strong> Médico do trabalho responsável.</div>
+<div class="help-field"><strong>Médico</strong> Médico do trabalho responsável (cadastro em Médicos).</div>
 <div class="help-field"><strong>Categoria</strong> Admissional, periódico, retorno ao trabalho, mudança de função, demissional.</div>
 <div class="help-field"><strong>Data do exame / Validade</strong> Data da consulta e vencimento do ASO.</div>
 <div class="help-field"><strong>Resultado</strong> Apto, inapto, apto com restrições.</div>
@@ -11,17 +31,26 @@
 <div class="help-field"><strong>Restrições / Clínica / Observações</strong> Informações clínicas e administrativas.</div>
 
 <h2 id="aba-complementares">Exames complementares</h2>
-<p>Lista de exames realizados no mesmo evento ASO, com exigência (obrigatório, recomendado) e resultados.</p>
+<p>Lista de exames do evento ASO, com exigência (obrigatório/recomendado) e lançamento de resultados. Exames já incluídos em ASO pendente não duplicam pendência avulsa.</p>
 
 <h2 id="aba-anexos">Anexos</h2>
-<p>Documentos digitalizados do ASO ou laudos anexados ao registro.</p>
-
-<h2>Fluxo “aguardando exames”</h2>
-<p>Permite abrir solicitação antes de todos os complementares estarem prontos. Após resultados, use <strong>Registrar resultados</strong> para concluir.</p>
+<p>Documentos digitalizados do ASO ou laudos vinculados ao registro.</p>
 
 <h2>Encaminhamento</h2>
-<p>Gera documento/PDF para encaminhar o colaborador ao laboratório ou clínica com exames sugeridos conforme cargo, risco e categoria ASO.</p>
+<p>Gera PDF para o colaborador realizar exames em laboratório/clínica, com base em cargo, riscos e categoria do ASO. Acesse pela listagem ou visualização do ASO.</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Exame não aparece na sugestão</dt>
+    <dd>Verifique vínculo exame ↔ risco ↔ cargo/setor do colaborador e se o exame está ativo no catálogo.</dd>
+    <dt>Não consigo concluir o ASO</dt>
+    <dd>Status <em>aguardando exames</em> exige lançar resultados dos complementares obrigatórios ou ajustar status.</dd>
+    <dt>Pendência de exame continua após ASO concluído</dt>
+    <dd>Confirme validade informada e se o exame estava no pacote do ASO (evita duplicidade). Atualize pendências após salvar.</dd>
+    <dt>Erro 004 em ações do ASO</dt>
+    <dd>Permissão específica da ação (criar, editar, encaminhamento) pode faltar no seu nível de acesso.</dd>
+</dl>
 
 <div class="help-note">
-    O sistema consolida pendências priorizando o evento ASO e evitando duplicar exames já incluídos no pacote do ASO pendente.
+    Com uma seção visível na tela do ASO, <kbd>F1</kbd> abre esta página na aba correspondente.
 </div>

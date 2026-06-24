@@ -1,0 +1,22 @@
+<h1>Organograma</h1>
+<p>Visualização hierárquica da empresa com base no vínculo gestor-subordinado de cada usuário ativo.</p>
+<p><strong>Quem acessa:</strong> gestores e RH com <em>OrganizationChart</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Garanta que todos os usuários ativos tenham <strong>gestor imediato</strong> preenchido.</li>
+<li>Acesse <strong>Cadastro → Usuários → Organograma</strong>.</li>
+<li>Navegue pelos níveis expandindo departamentos ou gestores.</li>
+<li>Clique em colaborador para abrir ficha (se permitido).</li>
+<li>Exporte ou imprima quando disponível para apresentações.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Nó — Colaborador</strong> Nome, cargo e foto no organograma.</div>
+<div class="help-field"><strong>Agrupamento</strong> Por departamento ou linha de gestão.</div>
+<div class="help-field"><strong>Zoom / Expandir</strong> Controles de navegação na árvore.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Colaborador fora da árvore</dt><dd>Gestor não cadastrado ou referência circular (A reporta B e B reporta A).</dd>
+<dt>Hierarquia incompleta</dt><dd>Diretoria raiz deve ter gestor vazio ou usuário sistema definido como topo.</dd>
+<dt>Departamento errado na visualização</dt><dd>Organograma usa gestor, não departamento; ajuste vínculos.</dd>
+<dt>Usuário inativo ainda aparece</dt><dd>Confirme status inativo; cache pode exigir refresh.</dd>
+</dl>

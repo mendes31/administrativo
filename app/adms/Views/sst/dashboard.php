@@ -9,6 +9,7 @@
     </div>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
     <?php $asosAguardando = (int) ($this->data['asos_aguardando_count'] ?? 0); ?>
+    <div data-adms-help-section="secao-indicadores">
     <?php if ($asosAguardando > 0): ?>
         <div class="alert alert-warning py-2 mb-3 d-flex flex-wrap align-items-center gap-2">
             <span><i class="fas fa-clipboard-check me-1"></i>
@@ -95,6 +96,8 @@
             </div>
         </div>
     </div>
+    </div>
+    <div data-adms-help-section="secao-atalhos">
     <div class="row mb-4">
         <div class="col-lg-4 mb-3">
             <div class="card shadow-sm h-100">
@@ -169,6 +172,8 @@
             </div>
         </div>
     </div>
+    </div>
+    <div data-adms-help-section="secao-pendencias">
     <div class="row">
         <div class="col-lg-3 mb-3">
             <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (EPI)</div><div class="card-body p-0">
@@ -215,5 +220,6 @@
                 <?php endforeach; endif; ?>
             </div></div>
         </div>
+    </div>
     </div>
 </div>

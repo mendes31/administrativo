@@ -1,5 +1,7 @@
 <h1>Visão geral — Segurança e Medicina (SST)</h1>
-<p>O módulo SST centraliza a gestão de saúde e segurança do trabalho: exames ocupacionais, EPIs, riscos, treinamentos, acidentes, conformidade legal (PGR, PCMSO, eSocial, PPP) e indicadores operacionais.</p>
+<p>O módulo SST centraliza saúde e segurança do trabalho: exames ocupacionais, EPIs, riscos, treinamentos, acidentes, conformidade (PGR, PCMSO, eSocial, PPP) e indicadores operacionais.</p>
+
+<p><strong>Público:</strong> técnico de segurança, medicina do trabalho, RH e gestores com permissão SST.</p>
 
 <h2>Fluxo operacional recomendado</h2>
 <ol>
@@ -12,14 +14,55 @@
 
 <div class="help-note">
     <strong>Nota</strong>
-    O sistema calcula obrigações a partir do <strong>cargo + setor → riscos</strong>. O <strong>GHE</strong> é opcional, para casos em que o mesmo cargo tem exposições diferentes por ambiente.
+    Obrigações vêm de <strong>cargo + setor → riscos</strong>. O <strong>GHE</strong> é opcional quando o mesmo cargo tem exposições diferentes por ambiente.
 </div>
+
+<h2 id="fluxo-admissional">Fluxo ponta a ponta — Admissional</h2>
+<ol>
+    <li>Confirme <strong>cargo e setor</strong> do colaborador em Cadastro → Usuários.</li>
+    <li>Verifique <strong>riscos</strong> vinculados ao cargo/setor e exames/EPIs/treinamentos em cada risco.</li>
+    <li>Abra o <strong>relatório de Pendências</strong> ou o <strong>perfil SST</strong> do colaborador.</li>
+    <li>Crie <strong>ASO admissional</strong> — use <em>Encaminhamento</em> se precisar de exames complementares antes da conclusão.</li>
+    <li>Registre <strong>ficha de entrega EPI</strong> com os itens obrigatórios.</li>
+    <li><strong>Aplique treinamentos</strong> admissionais e sincronize vínculos se alterou regras recentemente.</li>
+    <li>Confira o dashboard: pendências do colaborador devem reduzir conforme registros são concluídos.</li>
+</ol>
+
+<h2 id="fluxo-epi">Fluxo ponta a ponta — Entrega de EPI</h2>
+<ol>
+    <li>Cadastre o <strong>EPI</strong> no catálogo (CA, validade padrão de troca).</li>
+    <li>Garanta <strong>estoque</strong> (entrada de movimentação, se necessário).</li>
+    <li>Confirme obrigatoriedade via <strong>risco</strong> ou <strong>necessidade de EPI</strong> para o cargo/setor.</li>
+    <li>Crie <strong>ficha de entrega</strong>, adicione itens e salve.</li>
+    <li>O colaborador assina em <strong>Meus EPIs</strong> (portal) ou conforme processo interno.</li>
+    <li>Exporte PDF da ficha para arquivo físico/digital.</li>
+</ol>
+
+<h2 id="fluxo-treinamento">Fluxo ponta a ponta — Treinamento obrigatório</h2>
+<ol>
+    <li>Cadastre o <strong>treinamento SST</strong> (validade, prazo 1º treinamento, NR).</li>
+    <li>Vincule ao <strong>risco</strong>, <strong>matriz cargo × treinamento</strong> ou <strong>necessidade de treinamento</strong>.</li>
+    <li>Execute <strong>Sincronizar vínculos</strong> em Status treinamentos SST (após mudanças de regras).</li>
+    <li>Realize o treinamento e use <strong>Aplicar treinamento</strong> (data, instrutor, validade).</li>
+    <li>Colaborador acessa certificado em <strong>Meus treinamentos SST</strong>.</li>
+    <li>Se aplicável, confira evento <strong>eSocial S-2245</strong> na fila.</li>
+</ol>
 
 <h2>Menu do módulo</h2>
 <ul>
     <li><strong>Dashboard</strong> — indicadores e pendências críticas.</li>
     <li><strong>Cadastros e vínculos</strong> — catálogos e regras de necessidade.</li>
-    <li><strong>Registros</strong> — operações do dia a dia (ASO, EPI, treinamento, acidentes).</li>
+    <li><strong>Registros</strong> — ASO, EPI, treinamento, acidentes (dia a dia).</li>
     <li><strong>Conformidade</strong> — programas, eSocial, PPP.</li>
     <li><strong>Relatórios</strong> — exportação e análise.</li>
 </ul>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Pendência não aparece para o colaborador</dt>
+    <dd>Verifique cargo/setor ativos, risco vinculado ao cargo, item marcado como <em>obrigatório</em> e treinamento/EPI <em>ativo</em>. Execute sincronização de vínculos (treinamentos).</dd>
+    <dt>F1 abre “Documentação em desenvolvimento”</dt>
+    <dd>A tela ainda não tem tópico no manual; consulte a visão geral ou o tópico SST mais próximo no menu lateral da ajuda.</dd>
+    <dt>Erro 004 ao abrir ajuda</dt>
+    <dd>Seu nível de acesso precisa da permissão <em>ContextHelp</em>. Solicite ao administrador.</dd>
+</dl>

@@ -1,7 +1,22 @@
 <h1>Médicos do trabalho</h1>
-<p>Cadastro de médicos responsáveis por ASOs e programas de saúde ocupacional.</p>
-
+<p>Cadastro de médicos responsáveis por ASOs, programas PCMSO e encaminhamentos.</p>
+<p><strong>Quem acessa:</strong> medicina do trabalho com <em>SstListMedicos</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Cadastre médico com nome, CRM/UF e contatos.</li>
+<li>Associe a programas PCMSO como responsável técnico quando aplicável.</li>
+<li>Selecione médico ao criar ASO ou concluir exame clínico.</li>
+<li>Inative médicos desligados; histórico preservado.</li>
+</ol>
+<h2>Campos e telas</h2>
 <div class="help-field"><strong>Nome</strong> Nome completo do médico.</div>
 <div class="help-field"><strong>CRM / UF</strong> Registro profissional.</div>
 <div class="help-field"><strong>Contato</strong> E-mail e telefone para encaminhamentos.</div>
-<div class="help-field"><strong>Status</strong> Médicos inativos não aparecem em novos ASOs.</div>
+<div class="help-field"><strong>Status</strong> Inativos não aparecem em novos ASOs.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Médico não lista no ASO</dt><dd>Status inativo ou CRM não preenchido.</dd>
+<dt>CRM inválido</dt><dd>Confira UF e número sem formatação extra.</dd>
+<dt>PCMSO sem responsável</dt><dd>Vincule médico no cadastro do programa.</dd>
+<dt>Encaminhamento sem contato</dt><dd>Preencha e-mail/clínica para laboratório.</dd>
+</dl>

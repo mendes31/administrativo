@@ -1,24 +1,48 @@
 <h1>Treinamentos SST</h1>
-<p>Gestão do ciclo completo: catálogo, obrigatoriedade, vínculos por colaborador, aplicação e certificados.</p>
+<p>Gestão do ciclo completo: catálogo, obrigatoriedade, vínculos por colaborador, aplicação, certificados e eSocial.</p>
+
+<p><strong>Quem acessa:</strong> equipe SST e RH com permissões de treinamento SST. Colaboradores usam <em>Meus treinamentos SST</em>.</p>
+
+<h2>Fluxo operacional (passo a passo)</h2>
+<ol>
+    <li>Cadastre o treinamento no <strong>catálogo</strong> (código TR automático, validade, NR, prazo 1º treinamento).</li>
+    <li>Defina obrigatoriedade via <strong>risco</strong>, <strong>matriz cargo × treinamento</strong> ou <strong>necessidade de treinamento</strong>.</li>
+    <li>Em <strong>Status treinamentos SST</strong>, clique <em>Sincronizar matriz</em> após alterar regras (cria/atualiza vínculos).</li>
+    <li>Filtre vínculos <em>pendentes</em> ou <em>vencidos</em> e aplique o treinamento realizado.</li>
+    <li>Em <strong>Aplicar treinamento</strong>, informe data, instrutor, carga horária e validade — gera certificado PDF.</li>
+    <li>Colaborador baixa certificado no portal; evento <strong>S-2245</strong> pode ser gerado na fila eSocial.</li>
+</ol>
 
 <h2>Catálogo de treinamentos</h2>
-<div class="help-field"><strong>Código (TR0001…)</strong> Gerado automaticamente de forma sequencial.</div>
+<div class="help-field"><strong>Código (TR0001…)</strong> Sequencial automático.</div>
 <div class="help-field"><strong>Nome</strong> Descrição do treinamento.</div>
-<div class="help-field"><strong>Quando exigir</strong> Situações de aplicação (admissão, mudança de função, periódico…).</div>
-<div class="help-field"><strong>Carga horária</strong> Informada em horas; armazenada em minutos.</div>
-<div class="help-field"><strong>NR / NBR</strong> Norma regulamentadora relacionada (ou “Não se aplica”).</div>
-<div class="help-field"><strong>Validade (meses)</strong> Prazo para reciclagem; 0 = sem validade fixa.</div>
-<div class="help-field"><strong>Prazo 1º treinamento (dias)</strong> Dias após admissão/mudança para conclusão; 0 = imediato.</div>
-<div class="help-field"><strong>Status</strong> Somente treinamentos ativos geram pendências.</div>
+<div class="help-field"><strong>Quando exigir</strong> Admissão, mudança de função, periódico, etc.</div>
+<div class="help-field"><strong>Carga horária</strong> Em horas (armazenada em minutos).</div>
+<div class="help-field"><strong>NR / NBR</strong> Norma relacionada ou “Não se aplica”.</div>
+<div class="help-field"><strong>Validade (meses)</strong> Reciclagem; 0 = sem validade fixa.</div>
+<div class="help-field"><strong>Prazo 1º treinamento (dias)</strong> Dias após admissão/mudança; 0 = imediato.</div>
+<div class="help-field"><strong>Status</strong> Somente ativos geram pendências.</div>
 
 <h2>Status por colaborador</h2>
-<p>Listagem dos vínculos treinamento × colaborador com situação: pendente, em dia, vencido, reciclagem.</p>
+<p>Listagem treinamento × colaborador: pendente, em dia, vencido, reciclagem. Use filtros por setor, status e busca. Ações levam à aplicação ou detalhe do vínculo.</p>
 
 <h2>Aplicar treinamento</h2>
-<p>Registra a realização (data, instrutor, carga horária, validade). Gera certificado PDF e pode alimentar evento eSocial S-2245.</p>
+<p>Registra realização com evidência (data, instrutor). Atualiza validade do vínculo e disponibiliza certificado.</p>
 
 <h2>Sincronizar vínculos</h2>
-<p>Recalcula obrigações com base em cargo, riscos, matriz e GHE. Execute após alterar regras de necessidade.</p>
+<p>Recalcula obrigações para colaboradores ativos com base em cargo, riscos, matriz e GHE. <strong>Obrigatório</strong> após mudanças em necessidades, matriz ou riscos.</p>
 
 <h2>Portal do colaborador</h2>
-<p>Em <em>Meus treinamentos SST</em>, o colaborador visualiza pendências e baixa certificados.</p>
+<p><em>Meus treinamentos SST</em> (Gestão de Pessoas): pendências, certificados e validades do próprio usuário.</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Vínculo não aparece após cadastrar regra</dt>
+    <dd>Execute <strong>Sincronizar matriz</strong>. Confirme cargo/setor do colaborador e treinamento ativo.</dd>
+    <dt>Status “pendente” após aplicar treinamento</dt>
+    <dd>Verifique se a aplicação foi salva com data e se não há outro vínculo do mesmo treinamento (readmissão/mudança).</dd>
+    <dt>Reciclagem não gerada</dt>
+    <dd>Validade em meses no cadastro do treinamento ou no vínculo risco; ao vencer, status muda para reciclagem/vencido.</dd>
+    <dt>Diferença entre Treinamentos RH e SST</dt>
+    <dd>Este módulo é SST (NR, conformidade ocupacional). Gestão de Treinamentos no menu principal é módulo RH separado.</dd>
+</dl>

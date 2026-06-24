@@ -1,0 +1,43 @@
+<h1>Páginas (ACL) — Cadastrar</h1>
+<p>Registra uma nova rota/controller no ACL para que possa receber permissões e aparecer no menu.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> <em>CreatePage</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Após implementar o controller em <code>app/adms/Controllers/</code>, abra <strong>Cadastrar Página</strong>.</li>
+    <li>Preencha <strong>Nome</strong> descritivo para a matriz.</li>
+    <li>Informe <strong>Classe (controller)</strong> em PascalCase (ex.: <em>ListUsers</em>).</li>
+    <li>Informe <strong>URL (slug)</strong> em kebab-case (ex.: <em>list-users</em>) — deve coincidir com a rota.</li>
+    <li>Informe <strong>Diretório</strong> da pasta do controller (sensível a maiúsculas no Linux).</li>
+    <li>Selecione <strong>Pacote</strong> e <strong>Grupo</strong> adequados.</li>
+    <li>Defina <strong>Status</strong>, <strong>Pública</strong> e <strong>Página Padrão</strong> conforme regras abaixo.</li>
+    <li>Salve e inclua a página no pacote do nível de acesso; teste com usuário de homologação.</li>
+</ol>
+
+<h2>Ordem recomendada</h2>
+<ol><li>Deploy do controller</li><li>Cadastro da página ACL</li><li>Inclusão no pacote</li><li>Marcação no nível de acesso</li><li>Logout/login do usuário teste</li></ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Classe (controller PHP)</strong> Nome exato da classe; o sistema resolve o arquivo em Controllers/{diretório}/.</div>
+<div class="help-field"><strong>URL (slug)</strong> Primeiro segmento da URL; usado em F1, menu e roteamento.</div>
+<div class="help-field"><strong>Diretório</strong> Subpasta em Controllers (ex.: users, accessLevels).</div>
+<div class="help-field"><strong>Status — Ativa</strong> Página disponível para permissões e menu.</div>
+<div class="help-field"><strong>Status — Inativa</strong> Página oculta; útil para descontinuar rotas.</div>
+<div class="help-field"><strong>Pública — Sim</strong> Rota sem login; sistema tende a conceder permissão na matriz (exceto super admin).</div>
+<div class="help-field"><strong>Pública — Não</strong> Exige autenticação e permissão explícita.</div>
+<div class="help-field"><strong>Página Padrão — Sim</strong> Novos níveis de acesso ganham esta permissão automaticamente; não remove permissões já existentes.</div>
+<div class="help-field"><strong>Pacote</strong> Vincula a página a um pacote para atribuição em massa via nível de acesso.</div>
+<div class="help-field"><strong>Grupo</strong> Agrupa visualmente na matriz de permissões.</div>
+<div class="help-field"><strong>Observação</strong> Documentação interna na matriz ACL.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Erro 404 após cadastrar</dt>
+    <dd>Slug ou diretório não bate com o controller real; confira case do diretório no servidor Linux.</dd>
+    <dt>Pública marcada por engano</dt>
+    <dd>Risco de segurança — rotas administrativas devem ser privadas.</dd>
+</dl>

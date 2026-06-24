@@ -1,0 +1,29 @@
+<h1>Pacotes — Listar</h1>
+<p>Lista <strong>pacotes de páginas</strong>: conjuntos de permissões que serão atribuídos aos níveis de acesso (perfis).</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> <em>ListPackages</em>; cadastro/edição com <em>CreatePackage</em>, <em>UpdatePackage</em>, <em>DeletePackage</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse <strong>Administração → Páginas → Pacotes</strong>.</li>
+    <li>Filtre por nome se necessário.</li>
+    <li>Crie pacotes por perfil funcional (ex.: <em>CRM — Vendedor</em>, <em>Financeiro — Analista</em>).</li>
+    <li>Associe páginas a cada pacote ao cadastrar/editar em <strong>Listar Páginas</strong>.</li>
+    <li>Marque os pacotes nos <strong>Níveis de Acesso</strong> (Cadastro).</li>
+</ol>
+
+<h2>Pacote vs. Grupo</h2>
+<p><strong>Grupo</strong> organiza visualmente na matriz ACL. <strong>Pacote</strong> define quais páginas um perfil pode receber em bloco via nível de acesso.</p>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Nome (filtro)</strong> Busca na listagem sem alterar dados.</div>
+<div class="help-field"><strong>Nome do pacote</strong> Identificação usada ao vincular páginas e níveis de acesso.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Pacote vazio (sem páginas)</dt>
+    <dd>Atribuir pacote a um nível não libera menu até haver páginas vinculadas ao pacote.</dd>
+</dl>

@@ -1,19 +1,60 @@
 <h1>Necessidades (EPI, exame, treinamento)</h1>
-<p>Regras diretas de obrigatoriedade por cargo, setor e opcionalmente risco — complementam a matriz risco → item.</p>
+<p>Regras diretas de obrigatoriedade por cargo, setor e opcionalmente risco — complementam (ou substituem em exceções) a matriz risco → item.</p>
 
-<h2>Quando usar</h2>
-<ul>
-    <li>Exigência que não passa pelo catálogo de riscos.</li>
-    <li>Exceção para cargo/setor específico.</li>
-    <li>Treinamento direto na matriz cargo × treinamento (sem risco).</li>
-</ul>
+<p><strong>Quem acessa:</strong> equipe SST com permissão nas listagens de necessidade (EPI, exame ou treinamento).</p>
+
+<h2>Quando usar necessidade vs risco</h2>
+<table class="table table-sm">
+    <thead><tr><th>Situação</th><th>Onde configurar</th></tr></thead>
+    <tbody>
+        <tr><td>Obrigação vem da exposição ocupacional</td><td>Abas do <strong>cadastro de risco</strong> (exames, EPIs, treinamentos)</td></tr>
+        <tr><td>Exceção para um cargo/setor específico</td><td><strong>Necessidade</strong> correspondente</td></tr>
+        <tr><td>Treinamento por cargo sem risco</td><td><strong>Matriz cargo × treinamento</strong> ou necessidade de treinamento</td></tr>
+        <tr><td>Regra temporária ou projeto piloto</td><td>Necessidade com filtro de setor/cargo</td></tr>
+    </tbody>
+</table>
+
+<h2>Cadastrar necessidade de EPI (passo a passo)</h2>
+<ol>
+    <li>Acesse <strong>Necessidades de EPI → Novo</strong>.</li>
+    <li>Selecione o <strong>EPI</strong> do catálogo.</li>
+    <li>Informe <strong>cargo</strong> e/ou <strong>setor</strong> (vazio = mais amplo — use com cautela).</li>
+    <li>Opcional: restrinja a um <strong>risco</strong> específico.</li>
+    <li>Marque <strong>Obrigatório</strong> e validade de troca, se diferente do padrão.</li>
+    <li>Salve e confira pendências no relatório ou perfil do colaborador.</li>
+</ol>
+
+<h2>Cadastrar necessidade de exame (passo a passo)</h2>
+<ol>
+    <li><strong>Necessidades de exame → Novo</strong>.</li>
+    <li>Escolha exame, cargo/setor, categoria ASO (admissional, periódico…).</li>
+    <li>Defina periodicidade em meses, se sobrescrever o catálogo.</li>
+    <li>Salve — impacta sugestão de complementares em novos ASOs.</li>
+</ol>
+
+<h2>Cadastrar necessidade de treinamento (passo a passo)</h2>
+<ol>
+    <li><strong>Necessidades de treinamento → Novo</strong>.</li>
+    <li>Vincule treinamento SST a cargo/setor/risco.</li>
+    <li>Após salvar, execute <strong>Sincronizar vínculos</strong> em Status treinamentos SST.</li>
+</ol>
 
 <h2>Campos comuns</h2>
-<div class="help-field"><strong>Cargo</strong> Posição organizacional (pode ser vazio = todos).</div>
-<div class="help-field"><strong>Setor / Departamento</strong> Filtra por departamento do colaborador.</div>
-<div class="help-field"><strong>Risco</strong> Opcional — restringe a quem tem aquele risco vinculado.</div>
-<div class="help-field"><strong>Obrigatório</strong> Se desmarcado, item é recomendado, não obrigatório.</div>
+<div class="help-field"><strong>Cargo</strong> Posição organizacional (vazio = todos os cargos, conforme filtros).</div>
+<div class="help-field"><strong>Setor / Departamento</strong> Departamento do colaborador.</div>
+<div class="help-field"><strong>Risco</strong> Opcional — restringe a quem tem o risco vinculado.</div>
+<div class="help-field"><strong>Obrigatório</strong> Desmarcado = recomendado (não gera pendência crítica).</div>
 <div class="help-field"><strong>Validade / Periodicidade</strong> Sobrescreve padrão do catálogo quando informado.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Regra duplicada com o risco</dt>
+    <dd>Evite mesma obrigação no risco e na necessidade — pode gerar confusão na auditoria. Prefira um único lugar.</dd>
+    <dt>Necessidade não afeta ninguém</dt>
+    <dd>Cargo/setor do colaborador deve coincidir com o filtro; colaborador inativo não entra no cálculo.</dd>
+    <dt>Alterei necessidade de treinamento e nada mudou</dt>
+    <dd>Execute <strong>Sincronizar matriz</strong> nos vínculos de treinamento.</dd>
+</dl>
 
 <div class="help-note">
     Prefira configurar EPIs e exames no <strong>cadastro do risco</strong> quando a obrigação vem da exposição. Use necessidades para exceções pontuais.

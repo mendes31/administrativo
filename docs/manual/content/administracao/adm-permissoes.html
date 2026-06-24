@@ -1,0 +1,44 @@
+<h1>Permissões — Grupos, Pacotes e Páginas</h1>
+<p>Estrutura ACL: grupos organizam pacotes; pacotes agrupam páginas (controllers); níveis de acesso recebem pacotes.</p>
+
+<h2>Telas desta área</h2>
+<p>Pressione <kbd>F1</kbd> em cada tela para abrir a ajuda específica com fluxo e parâmetros.</p>
+<ul>
+    <li><strong>Grupos de Páginas</strong> — <code>list-groups-pages</code>, <code>create-group-page</code>, <code>update-group-page</code>, <code>view-group-page</code></li>
+    <li><strong>Pacotes</strong> — <code>list-packages</code>, <code>create-package</code>, <code>update-package</code>, <code>view-package</code></li>
+    <li><strong>Páginas (ACL)</strong> — <code>list-pages</code>, <code>create-page</code>, <code>update-page</code>, <code>view-page</code></li>
+    <li><strong>Matriz de permissões</strong> — <code>list-permission</code>, <code>update-permission</code> (via Cadastro → Níveis de Acesso)</li>
+</ul>
+
+<p><strong>Quem acessa:</strong> administradores com <em>ListGroupsPages</em>, <em>ListPackages</em>, <em>ListPages</em> e <em>ListAccessLevels</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Cadastre <strong>Grupos de Páginas</strong> por área (Financeiro, SST, CRM).</li>
+    <li>Crie <strong>Pacotes</strong> vinculados a grupos; cada pacote representa um perfil funcional.</li>
+    <li>Registre <strong>Páginas</strong> (slug do controller) e associe aos pacotes.</li>
+    <li>Em <strong>Cadastro → Níveis de Acesso</strong>, marque os pacotes permitidos.</li>
+    <li>Teste com usuário de homologação antes de produção.</li>
+</ol>
+
+<h2>Modelo ACL</h2>
+<pre style="background:#f8f9fa;padding:1rem;border-radius:.25rem;">Usuário → Nível de Acesso → Pacotes → Páginas (controllers)</pre>
+<p>Erro <strong>004</strong> indica falta de permissão na ação específica dentro da página.</p>
+
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Grupo</strong> Agrupamento lógico de pacotes.</div>
+<div class="help-field"><strong>Pacote</strong> Conjunto de páginas liberadas (ex.: CRM — Vendedor).</div>
+<div class="help-field"><strong>Página</strong> Entrada ACL mapeada ao controller (ex.: <em>CrmListOpportunities</em>).</div>
+<div class="help-field"><strong>Nível de acesso</strong> Perfil atribuído ao usuário.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu aparece mas ação retorna erro 004</dt>
+    <dd>Usuário tem listagem, mas não criar/editar; inclua páginas filhas no pacote.</dd>
+    <dt>Nova tela não aparece no menu</dt>
+    <dd>Cadastre a página e inclua no pacote do nível de acesso.</dd>
+    <dt>Alteração não reflete imediatamente</dt>
+    <dd>Usuário precisa logout/login para recarregar permissões.</dd>
+    <dt>Pacotes sobrepostos confundem perfis</dt>
+    <dd>Documente qual perfil usa qual pacote; evite duplicidade desnecessária.</dd>
+</dl>

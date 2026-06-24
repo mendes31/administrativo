@@ -1,15 +1,26 @@
 <h1>Acidentes e afastamentos</h1>
-
-<h2>Acidentes e incidentes</h2>
-<div class="help-field"><strong>Tipo</strong> Acidente com ou sem afastamento, incidente (quase acidente).</div>
-<div class="help-field"><strong>Data / Local</strong> Quando e onde ocorreu.</div>
-<div class="help-field"><strong>Colaborador</strong> Envolvido principal.</div>
-<div class="help-field"><strong>Descrição / Causa</strong> Narrativa e análise preliminar.</div>
-<div class="help-field"><strong>CAT</strong> Indicador se Comunicação de Acidente de Trabalho foi emitida.</div>
-<div class="help-field"><strong>Planos de ação</strong> Ações corretivas com responsável e prazo.</div>
-
+<p>Registro de acidentes/incidentes de trabalho e afastamentos com CID, CAT e planos de ação.</p>
+<p><strong>Quem acessa:</strong> SST e RH com <em>SstListAcidentes</em>, <em>SstListAfastamentos</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Registre <strong>acidente/incidente</strong> com data, local, envolvidos e descrição.</li>
+<li>Informe se houve CAT e abra planos de ação corretivos.</li>
+<li>Para afastamento, vincule colaborador, CID e período.</li>
+<li>Atualize retorno efetivo ao encerrar afastamento.</li>
+<li>Afastamentos ativos aparecem no dashboard e relatórios.</li>
+</ol>
+<h2>Acidentes</h2>
+<div class="help-field"><strong>Tipo</strong> Com/sem afastamento, incidente.</div>
+<div class="help-field"><strong>CAT</strong> Comunicação de Acidente de Trabalho emitida.</div>
+<div class="help-field"><strong>Planos de ação</strong> Correções com responsável e prazo.</div>
 <h2>Afastamentos</h2>
-<div class="help-field"><strong>Tipo</strong> INSS, acidentário, doença ocupacional, etc.</div>
-<div class="help-field"><strong>CID</strong> Diagnóstico associado.</div>
-<div class="help-field"><strong>Período</strong> Data início e retorno previsto/efetivo.</div>
-<div class="help-field"><strong>Status</strong> Ativo ou encerrado — afastamentos ativos aparecem no dashboard.</div>
+<div class="help-field"><strong>Tipo</strong> INSS, acidentário, doença ocupacional.</div>
+<div class="help-field"><strong>CID</strong> Diagnóstico (autocomplete catálogo CID).</div>
+<div class="help-field"><strong>Período</strong> Início e retorno previsto/efetivo.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>CID inválido</dt><dd>Selecione do catálogo CID-10 cadastrado.</dd>
+<dt>Acidente sem eSocial S-2210</dt><dd>Gere evento na fila após conclusão do registro.</dd>
+<dt>Afastamento ativo após retorno</dt><dd>Informe data de retorno efetivo.</dd>
+<dt>Plano de ação aberto</dt><dd>Encerre ou prorrogue com justificativa.</dd>
+</dl>

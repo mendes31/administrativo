@@ -1,0 +1,23 @@
+<h1>Custeio e produção</h1>
+<p>Lotes produzidos, períodos de custeio, simulação de custo e apontamentos de mão de obra e recursos.</p>
+<p><strong>Quem acessa:</strong> controladoria e produção com <em>ListInvCostPeriods</em>, <em>SimulateInventoryCost</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Abra <strong>Período de Custeio</strong> para o mês/ano.</li>
+<li>Registre <strong>Lotes produzidos</strong> com consumo de insumos.</li>
+<li>Aponte <strong>recursos de produção</strong> e MO por operação.</li>
+<li>Execute <strong>simulação</strong> antes do fechamento.</li>
+<li>Feche período; custos alimentam relatórios e itens.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Período</strong> Mês/ano de competência do custo.</div>
+<div class="help-field"><strong>Lote</strong> Ordem de produção com quantidade boa.</div>
+<div class="help-field"><strong>Insumos</strong> Materiais consumidos no lote.</div>
+<div class="help-field"><strong>MO / Recursos</strong> Horas e custo de máquina.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Período fechado — não edita</dt><dd>Reabra com permissão ou crie período correção.</dd>
+<dt>Custo unitário divergente</dt><dd>Confira apontamentos e rateio de MO.</dd>
+<dt>Insumo não baixa do estoque</dt><dd>Movimentação de saída pode ser manual ou automática conforme config.</dd>
+<dt>Simulação lenta</dt><dd>Reduza lotes no período ou execute fora do horário de pico.</dd>
+</dl>

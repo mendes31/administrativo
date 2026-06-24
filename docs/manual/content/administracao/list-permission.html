@@ -1,0 +1,39 @@
+<h1>Matriz de permissões — Listar</h1>
+<p>Exibe a <strong>matriz de permissões</strong> de um nível de acesso: todas as páginas agrupadas por grupo, com checkboxes para autorizar ou negar cada tela.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> <em>ListPermission</em> (acesso via <strong>Cadastro → Níveis de Acesso → Permissões</strong>).</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Em <strong>Níveis de Acesso</strong>, abra o nível desejado e clique em <strong>Permissões</strong>.</li>
+    <li>Use a busca <em>Buscar por grupo</em> para localizar áreas (Financeiro, SST…).</li>
+    <li>Expanda/colapse grupos com os botões ou clique no cabeçalho do grupo.</li>
+    <li>Marque ou desmarque checkboxes das páginas que o perfil deve acessar.</li>
+    <li>Clique em <strong>Salvar</strong> para gravar a matriz (exceto nível Super Administrador, somente leitura).</li>
+    <li>Exporte PDF para documentação de auditoria se necessário.</li>
+    <li>Peça aos usuários <strong>logout/login</strong> para recarregar permissões da sessão.</li>
+</ol>
+
+<h2>Super Administrador</h2>
+<p>O nível Super Administrador tem matriz bloqueada (somente leitura) com acesso total implícito.</p>
+
+<h2>Erro 004</h2>
+<p>Usuário com página de listagem mas sem página de <em>create/update/delete</em> recebe erro 004 na ação. Inclua todas as páginas do fluxo no pacote.</p>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Buscar por grupo</strong> Filtra visualmente grupos na matriz; não altera dados até salvar.</div>
+<div class="help-field"><strong>Checkbox da página</strong> Autoriza (marcado) ou remove permissão explícita (desmarcado) para aquele nível.</div>
+<div class="help-field"><strong>Status / Tipo</strong> Indica se a página está ativa e se é pública ou padrão.</div>
+<div class="help-field"><strong>Expandir / Colapsar todos</strong> Facilita navegação em matrizes grandes.</div>
+<div class="help-field"><strong>Salvar</strong> Persiste todas as alterações da matriz para o nível de acesso atual.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Salvei mas usuário não vê menu</dt>
+    <dd>Confirme pacote no nível de acesso, página ativa e logout/login.</dd>
+    <dt>Checkbox não salva</dt>
+    <dd>Nível Super Admin é somente leitura; use outro nível de teste.</dd>
+</dl>

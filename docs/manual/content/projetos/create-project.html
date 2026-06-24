@@ -1,0 +1,30 @@
+<h1>Create Project</h1>
+<p>Cadastra um novo registro em <strong>Create Project</strong>. Preencha os campos obrigatórios e salve; o registro passará a aparecer nas listagens e poderá receber permissões conforme o pacote.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Gestão de projetos</em> (<code>proj-projetos</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CreateProject</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-project</code>).</li>
+    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
+    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
+    <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
+    <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
+<div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu desta tela</dt>
+    <dd>Permissão <em>CreateProject</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dt>Erro 004 ao executar ação</dt>
+    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
+    <dt>F1 abre documentação genérica</dt>
+    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+</dl>

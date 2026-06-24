@@ -41,6 +41,7 @@ class ContextHelp
         $this->data['topic_meta'] = $meta;
         $this->data['topic_html'] = $html ?? '<p class="text-muted">Documentação em elaboração para este tópico.</p>';
         $this->data['topics'] = ContextHelpHelper::flatTopicList();
+        $this->data['help_menu'] = ContextHelpHelper::loadHelpMenuNav();
         $this->data['manifest'] = ContextHelpHelper::loadManifest();
         $this->data['title_head'] = ($meta['title'] ?? 'Manual do sistema') . ' — Ajuda';
 

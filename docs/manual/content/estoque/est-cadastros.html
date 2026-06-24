@@ -1,0 +1,24 @@
+<h1>Cadastros de estoque</h1>
+<p>Base de dados: unidades de medida, categorias, estoques, posições internas, operações e recursos de produção.</p>
+<p><strong>Quem acessa:</strong> almoxarifado com <em>ListInventoryUnits</em>, <em>ListInventoryCategories</em>, <em>ListInventoryStocks</em>, etc.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Cadastre <strong>Unidades de Medida</strong> (UN, KG, CX).</li>
+<li>Crie <strong>Categorias</strong> para classificar itens.</li>
+<li>Registre <strong>Estoques</strong> (almoxarifado principal, produção).</li>
+<li>Defina <strong>Posições internas</strong> (corredor, prateleira).</li>
+<li>Configure <strong>Operações de produção</strong> e recursos se usar custeio.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Unidade — Sigla</strong> Código usado nos itens.</div>
+<div class="help-field"><strong>Categoria</strong> Agrupamento para relatórios.</div>
+<div class="help-field"><strong>Estoque — Filial</strong> Vínculo multi-unidade.</div>
+<div class="help-field"><strong>Posição</strong> Endereçamento WMS simplificado.</div>
+<div class="help-field"><strong>Operação MO</strong> Roteiro de produção para custeio.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Unidade incompatível na movimentação</dt><dd>Item usa UN; conversão não configurada.</dd>
+<dt>Estoque duplicado</dt><dd>Padronize nomes; inative duplicatas.</dd>
+<dt>Posição obrigatória não preenchida</dt><dd>Configure se posição é exigida por estoque.</dd>
+<dt>Recurso de produção ocioso</dt><dd>Vincule a operações no roteiro de custeio.</dd>
+</dl>

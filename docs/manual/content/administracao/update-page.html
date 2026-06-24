@@ -1,0 +1,26 @@
+<h1>Páginas (ACL) — Editar</h1>
+<p>Altera metadados da página ACL. Mudar slug ou controller afeta roteamento e F1; mudar status afeta menu imediato após recarregar permissões.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> <em>UpdatePage</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Localize a página em <strong>Listar Páginas</strong> e clique em <strong>Editar</strong>.</li>
+    <li>Ajuste pacote, grupo, status ou observação.</li>
+    <li>Evite alterar slug em produção sem atualizar links e bookmarks.</li>
+    <li>Salve e valide com usuário de teste (logout/login).</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Status → Inativa</strong> Remove a página das seleções ativas; usuários perdem acesso após recarregar sessão.</div>
+<div class="help-field"><strong>Pública / Padrão</strong> Mesmas regras do cadastro; desmarcar padrão não revoga permissões já concedidas.</div>
+<div class="help-field"><strong>Pacote / Grupo</strong> Reorganiza onde a página aparece na matriz e quais perfis a recebem via pacote.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Alterei slug e F1 quebrou</dt>
+    <dd>Atualize também o mapeamento se necessário; slug é a chave da rota e da ajuda contextual.</dd>
+</dl>

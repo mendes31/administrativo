@@ -1,0 +1,22 @@
+<h1>Relatórios dinâmicos</h1>
+<p>Relatórios configuráveis com SQL/views locais e integração SAP Business One via API.</p>
+<p><strong>Quem acessa:</strong> usuários com <em>ListDynamicReports</em>, <em>ListDynamicReportsSap</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Liste relatórios disponíveis (locais ou SAP).</li>
+<li>Selecione relatório e preencha parâmetros obrigatórios.</li>
+<li>Execute; aguarde processamento (SAP pode demorar).</li>
+<li>Visualize tabela/gráfico e exporte Excel/PDF.</li>
+<li>Para dashboards, acesse <strong>Dashboards</strong> no mesmo módulo.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Parâmetros</strong> Filtros definidos no cadastro do relatório.</div>
+<div class="help-field"><strong>Fonte</strong> Banco local ou endpoint SAP.</div>
+<div class="help-field"><strong>Exportação</strong> Formatos disponíveis por relatório.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Erro SQL no relatório local</dt><dd>View desatualizada; contate TI.</dd>
+<dt>SAP retorna vazio</dt><dd>Parâmetros incorretos ou sem dados no ERP.</dd>
+<dt>Parâmetro obrigatório</dt><dd>Preencha todos campos marcados antes de executar.</dd>
+<dt>Timeout</dt><dd>Execute fora do horário de pico ou estreite filtros.</dd>
+</dl>

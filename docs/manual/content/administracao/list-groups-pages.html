@@ -1,0 +1,33 @@
+<h1>Grupos de Páginas — Listar</h1>
+<p>Lista os <strong>grupos de páginas</strong>, que organizam o menu de configuração ACL e agrupam páginas na matriz de permissões por área (Financeiro, SST, CRM, etc.).</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> administradores com permissão <em>ListGroupsPages</em>; ações de cadastro/edição exigem <em>CreateGroupPage</em>, <em>UpdateGroupPage</em>, <em>DeleteGroupPage</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse <strong>Administração → Páginas → Grupos de Páginas</strong>.</li>
+    <li>Filtre por <strong>Nome</strong> se houver muitos grupos.</li>
+    <li>Use <strong>Cadastrar</strong> para criar um novo grupo antes de cadastrar páginas.</li>
+    <li>Em cada linha, use <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Apagar</strong> conforme sua permissão.</li>
+    <li>Após criar grupos, prossiga para <strong>Pacotes</strong> e <strong>Páginas</strong> para montar o ACL.</li>
+</ol>
+
+<h2>Relação com o ACL</h2>
+<p>Grupo → Pacote → Página → Nível de acesso. Sem grupo, a página aparece como <em>Sem Grupo</em> na matriz.</p>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Nome (filtro)</strong> Busca parcial no nome do grupo; não altera cadastros.</div>
+<div class="help-field"><strong>Mostrar N registros</strong> Paginação da listagem (10–100).</div>
+<div class="help-field"><strong>ID</strong> Identificador interno usado em vínculos com páginas.</div>
+<div class="help-field"><strong>Nome</strong> Rótulo exibido na matriz de permissões e agrupamento do menu ACL.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não consigo apagar grupo</dt>
+    <dd>Pode haver páginas vinculadas; remova ou reassocie as páginas antes.</dd>
+    <dt>Grupo não aparece na matriz</dt>
+    <dd>Confirme se há páginas ativas vinculadas ao grupo.</dd>
+</dl>

@@ -1,0 +1,32 @@
+<h1>Treinamentos obrigatórios (bloqueio de acesso)</h1>
+<p>Define treinamentos corporativos que impedem login ou exibem aviso até conclusão, independente dos módulos SST ou RH.</p>
+
+<p><strong>Quem acessa:</strong> RH, compliance e administradores com <em>ListMandatoryTrainings</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse <strong>Administração → Treinamentos Obrigatórios</strong>.</li>
+    <li>Cadastre treinamento, validade e público-alvo (todos, cargo, departamento).</li>
+    <li>Marque como <em>obrigatório</em> e defina se bloqueia login ou exibe banner.</li>
+    <li>Vincule ao catálogo de treinamentos RH quando aplicável.</li>
+    <li>Comunique colaboradores antes de ativar bloqueio em produção.</li>
+</ol>
+
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Treinamento</strong> Curso ou conteúdo que deve ser concluído.</div>
+<div class="help-field"><strong>Validade (dias)</strong> Prazo para reciclagem após conclusão.</div>
+<div class="help-field"><strong>Bloquear login</strong> Impede acesso ao sistema até regularização.</div>
+<div class="help-field"><strong>Escopo</strong> Todos, cargo, departamento ou filial.</div>
+<div class="help-field"><strong>Status</strong> Ativo/inativo controla se a regra é avaliada.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Colaborador bloqueado indevidamente</dt>
+    <dd>Verifique conclusão em Status de Treinamentos e data de validade.</dd>
+    <dt>Bloqueio não ocorre</dt>
+    <dd>Treinamento pode não estar obrigatório ou job de status não rodou.</dd>
+    <dt>Conflito com treinamento SST</dt>
+    <dd>SST e obrigatório global são regras distintas; regularize ambos se aplicável.</dd>
+    <dt>Exceção temporária necessária</dt>
+    <dd>Use perfil com permissão de aplicar treinamento ou desative bloqueio com prazo definido.</dd>
+</dl>

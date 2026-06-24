@@ -1,0 +1,33 @@
+<h1>Logs e auditoria</h1>
+<p>Consulta de log de acessos, alterações em registros, usuários conectados, último acesso e configurações de retenção de logs.</p>
+
+<p><strong>Quem acessa:</strong> administradores e auditores com <em>ListLogAcessos</em>, <em>ListLogAlteracoes</em>, <em>ListConnectedUsers</em>, <em>LogSettings</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Em <strong>Log de Acessos</strong>, filtre por usuário, IP, data e ação (login, logout, falha).</li>
+    <li>Em <strong>Log de Alterações</strong>, busque por tabela, registro ou usuário que modificou dados.</li>
+    <li>Use <strong>Usuários conectados</strong> para ver sessões ativas.</li>
+    <li>Consulte <strong>Último acesso</strong> para identificar contas inativas.</li>
+    <li>Ajuste retenção e nível de detalhe em <strong>Configurações de Log</strong>.</li>
+</ol>
+
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Data/hora</strong> Momento do evento registrado.</div>
+<div class="help-field"><strong>Usuário</strong> Conta que executou a ação.</div>
+<div class="help-field"><strong>IP / User-Agent</strong> Origem da requisição (acessos).</div>
+<div class="help-field"><strong>Tabela / Registro</strong> Entidade alterada (log de alterações).</div>
+<div class="help-field"><strong>Ação</strong> INSERT, UPDATE, DELETE ou tipo de acesso.</div>
+<div class="help-field"><strong>Retenção (dias)</strong> Período de armazenamento configurável.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Log de alteração vazio</dt>
+    <dd>Confirme se auditoria está habilitada em Configurações de Log para a tabela.</dd>
+    <dt>Consulta muito lenta</dt>
+    <dd>Use filtros de data estreitos; exporte e arquive registros antigos.</dd>
+    <dt>Usuário aparece conectado após logout</dt>
+    <dd>Sessão pode expirar por timeout; verifique configuração de sessão.</dd>
+    <dt>Não vejo menu de Logs</dt>
+    <dd>Permissões específicas por sub-tela; solicite pacote de auditoria.</dd>
+</dl>

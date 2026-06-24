@@ -1,0 +1,2212 @@
+{
+    "version": 1,
+    "generated_at": "2026-06-24T20:28:54+00:00",
+    "modules": [
+        {
+            "id": "geral",
+            "title": "Geral",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "index",
+                    "title": "Início do manual"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "em-desenvolvimento",
+                    "title": "Documentação em desenvolvimento"
+                }
+            ]
+        },
+        {
+            "id": "dashboard",
+            "title": "Dashboard",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "dashboard-visao-geral",
+                    "title": "Dashboard — visão geral"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "dashboard",
+                    "title": "Dashboard"
+                }
+            ]
+        },
+        {
+            "id": "administracao",
+            "title": "Administração",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "adm-visao-geral",
+                    "title": "Administração — visão geral"
+                },
+                {
+                    "type": "group",
+                    "label": "Configurações",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "calendar-config",
+                            "title": "Calendar Config"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "mcp-api-config",
+                            "title": "Mcp Api Config"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "email-config",
+                            "title": "Email Config"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "whats-app-config",
+                            "title": "Whats App Config"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "push-config",
+                            "title": "Push Config"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sap-api-config",
+                            "title": "Sap Api Config"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-branches",
+                            "title": "Listar — Branches"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "notification-settings",
+                            "title": "Notification Settings"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "password-policy",
+                            "title": "Password Policy"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Logs",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "log-settings",
+                            "title": "Log Settings"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-log-acessos",
+                            "title": "Listar — Log Acessos"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-log-alteracoes",
+                            "title": "Listar — Log Alteracoes"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-connected-users",
+                            "title": "Listar — Connected Users"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-users-last-access",
+                            "title": "Listar — Users Last Access"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Páginas",
+                    "children": [
+                        {
+                            "type": "group",
+                            "label": "Grupos de Páginas",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-groups-pages",
+                                    "title": "Listar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-group-page",
+                                    "title": "Cadastrar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-group-page",
+                                    "title": "Editar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-group-page",
+                                    "title": "Visualizar"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Pacotes",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-packages",
+                                    "title": "Listar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-package",
+                                    "title": "Cadastrar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-package",
+                                    "title": "Editar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-package",
+                                    "title": "Visualizar"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Páginas",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-pages",
+                                    "title": "Listar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-page",
+                                    "title": "Cadastrar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-page",
+                                    "title": "Editar"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-page",
+                                    "title": "Visualizar"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Treinamentos Obrigatórios",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-mandatory-trainings",
+                            "title": "Mandatory Trainings"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-mandatory-training",
+                            "title": "Mandatory Training"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-mandatory-training",
+                            "title": "Mandatory Training"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cadastro",
+            "title": "Cadastro",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "cad-visao-geral",
+                    "title": "Cadastro — visão geral"
+                },
+                {
+                    "type": "group",
+                    "label": "Cargos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-positions",
+                            "title": "Positions"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-position",
+                            "title": "Position"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-position",
+                            "title": "Position"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-position",
+                            "title": "Position"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Centros de Custo",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-cost-centers",
+                            "title": "Cost Centers"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-cost-center",
+                            "title": "Cost Center"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-cost-center",
+                            "title": "Cost Center"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-cost-center",
+                            "title": "Cost Center"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Departamentos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-departments",
+                            "title": "Departments"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-department",
+                            "title": "Department"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-department",
+                            "title": "Department"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-department",
+                            "title": "Department"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Níveis de Acesso",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-access-levels",
+                            "title": "Access Levels"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-access-level",
+                            "title": "Access Level"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-access-level",
+                            "title": "Access Level"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-access-level",
+                            "title": "Access Level"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Turnos de trabalho",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-work-shifts",
+                            "title": "Work Shifts"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-work-shift",
+                            "title": "Work Shift"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-work-shift",
+                            "title": "Work Shift"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-work-shift",
+                            "title": "Work Shift"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Usuários",
+                    "children": [
+                        {
+                            "type": "group",
+                            "label": "Listar Usuários",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-users",
+                                    "title": "Users"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-user",
+                                    "title": "User"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-user",
+                                    "title": "User"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-user",
+                                    "title": "User"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "organization-chart",
+                            "title": "Organization Chart"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "comunicacao_interna",
+            "title": "Comunicação Interna",
+            "children": [
+                {
+                    "type": "group",
+                    "label": "Eventos corporativos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-company-events",
+                            "title": "Company Events"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-company-event",
+                            "title": "Company Event"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-company-event",
+                            "title": "Company Event"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-company-event",
+                            "title": "Company Event"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Gamificação",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "gamification-engagement-dashboard",
+                            "title": "Gamification Engagement Dashboard"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-gamification-point-ledger",
+                            "title": "Listar — Gamification Point Ledger"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-gamification-quizzes",
+                            "title": "Listar — Gamification Quizzes"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "gamification-quiz-catalog",
+                            "title": "Gamification Quiz Catalog"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "gamification-leaderboard",
+                            "title": "Gamification Leaderboard"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Regras (timeline)",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-gamification-timeline-rules",
+                                    "title": "Gamification Timeline Rules"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-gamification-timeline-rule",
+                                    "title": "Gamification Timeline Rule"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-gamification-timeline-rule",
+                                    "title": "Gamification Timeline Rule"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Informativos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-informativos",
+                            "title": "Informativos"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-informativo",
+                            "title": "Informativo"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-informativo",
+                            "title": "Informativo"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-informativo",
+                            "title": "Informativo"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "timeline-moderate",
+                    "title": "Timeline Moderate"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "timeline",
+                    "title": "Timeline"
+                }
+            ]
+        },
+        {
+            "id": "crm",
+            "title": "CRM",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "crm-visao-geral",
+                    "title": "CRM — visão geral"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "crm-dashboard",
+                    "title": "Crm Dashboard"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "crm-manager-dashboard",
+                    "title": "Crm Manager Dashboard"
+                },
+                {
+                    "type": "group",
+                    "label": "Atividades",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "crm-list-activities",
+                            "title": "Crm List Activities"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Configurações",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "crm-list-automations",
+                            "title": "Crm List Automations"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "crm-list-custom-fields",
+                            "title": "Crm List Custom Fields"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "crm-list-tags",
+                            "title": "Crm List Tags"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Oportunidades",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "crm-list-opportunities",
+                            "title": "Crm List Opportunities"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Parceiros CRM",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "crm-list-partners",
+                            "title": "Crm List Partners"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "crm-kanban-pipeline",
+                    "title": "Crm Kanban Pipeline"
+                }
+            ]
+        },
+        {
+            "id": "estoque",
+            "title": "Estoque",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "est-visao-geral",
+                    "title": "Estoque — visão geral"
+                },
+                {
+                    "type": "group",
+                    "label": "Cadastros Bases",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-categories",
+                            "title": "Listar — Inventory Categories"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-stocks",
+                            "title": "Listar — Inventory Stocks"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-operations",
+                            "title": "Listar — Inventory Operations"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-labor-roles",
+                            "title": "Listar — Inventory Labor Roles"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-positions",
+                            "title": "Listar — Inventory Positions"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-production-resources",
+                            "title": "Listar — Inventory Production Resources"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-units",
+                            "title": "Listar — Inventory Units"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Itens",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-items",
+                            "title": "Inventory Items"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-inventory-item",
+                            "title": "Inventory Item"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-inventory-item",
+                            "title": "Inventory Item"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-inventory-item",
+                            "title": "Inventory Item"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-inventory-cost-production-batches",
+                    "title": "Listar — Inventory Cost Production Batches"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-inventory-cost-periods",
+                    "title": "Listar — Inventory Cost Periods"
+                },
+                {
+                    "type": "group",
+                    "label": "Relatórios",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "report-inventory-history",
+                            "title": "Report Inventory History"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "report-inventory-balance",
+                            "title": "Report Inventory Balance"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Transações de Estoque",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "create-inventory-adjust",
+                            "title": "Cadastrar — Inventory Adjust"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-inventory-entry",
+                            "title": "Cadastrar — Inventory Entry"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-inventory-exit",
+                            "title": "Cadastrar — Inventory Exit"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-inventory-transfer",
+                            "title": "Cadastrar — Inventory Transfer"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "financeiro",
+            "title": "Financeiro",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "fin-visao-geral",
+                    "title": "Financeiro — visão geral"
+                },
+                {
+                    "type": "group",
+                    "label": "Bancos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-banks",
+                            "title": "Banks"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-bank",
+                            "title": "Bank"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-bank",
+                            "title": "Bank"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Bancos - Transferência entre Contas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-mov-between-accounts",
+                            "title": "Mov Between Accounts"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-mov-between-accounts",
+                            "title": "Mov Between Accounts"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Formas de Pagamento",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-payment-methods",
+                            "title": "Payment Methods"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-payment-method",
+                            "title": "Payment Method"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-payment-method",
+                            "title": "Payment Method"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Frequências",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-frequencies",
+                            "title": "Frequencies"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-frequency",
+                            "title": "Frequency"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-frequency",
+                            "title": "Frequency"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Pagar",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-payments",
+                            "title": "Payments"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-payment",
+                            "title": "Payment"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-payment",
+                            "title": "Payment"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-payment",
+                            "title": "Payment"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Plano de Contas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-accounts-plan",
+                            "title": "Accounts Plan"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-account-plan",
+                            "title": "Account Plan"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-account-plan",
+                            "title": "Account Plan"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Receber",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-receipts",
+                            "title": "Receipts"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-receipt",
+                            "title": "Receipt"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-receipt",
+                            "title": "Receipt"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-receipt",
+                            "title": "Receipt"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "cost-center-summary",
+                    "title": "Cost Center Summary"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "movements",
+                    "title": "Movements"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "cash-flow",
+                    "title": "Cash Flow"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "flow-cash-competence",
+                    "title": "Flow Cash Competence"
+                }
+            ]
+        },
+        {
+            "id": "garantia",
+            "title": "Garantia da Qualidade",
+            "children": [
+                {
+                    "type": "group",
+                    "label": "Documentos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-documents",
+                            "title": "Documents"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-document",
+                            "title": "Document"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-document",
+                            "title": "Document"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-document",
+                            "title": "Document"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "gestao_pessoas",
+            "title": "Gestão de Pessoas",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "gp-visao-geral",
+                    "title": "Gestão de Pessoas — visão geral"
+                },
+                {
+                    "type": "group",
+                    "label": "Categorias de Políticas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-policy-categories",
+                            "title": "Policy Categories"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-policy-category",
+                            "title": "Policy Category"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-policy-category",
+                            "title": "Policy Category"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Chamados",
+                    "children": [
+                        {
+                            "type": "group",
+                            "label": "Meus Chamados",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-employee-tickets",
+                                    "title": "Employee Tickets"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-employee-ticket",
+                                    "title": "Employee Ticket"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-employee-ticket",
+                                    "title": "Employee Ticket"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "payroll-cron-config",
+                    "title": "Payroll Cron Config"
+                },
+                {
+                    "type": "group",
+                    "label": "Desempenho",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "performance-dashboard",
+                            "title": "Performance Dashboard"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Avaliações de Desempenho",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-performance-reviews",
+                                    "title": "Performance Reviews"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-performance-review",
+                                    "title": "Performance Review"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-performance-review",
+                                    "title": "Performance Review"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Competências",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-competencies",
+                                    "title": "Competencies"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-competency",
+                                    "title": "Competency"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-competency",
+                                    "title": "Competency"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Feedbacks",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-performance-feedbacks",
+                                    "title": "Performance Feedbacks"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-performance-feedback",
+                                    "title": "Performance Feedback"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "nine-box-matrix",
+                            "title": "Nine Box Matrix"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "competency-matrix",
+                            "title": "Competency Matrix"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Metas (OKRs)",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-performance-goals",
+                                    "title": "Performance Goals"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-performance-goal",
+                                    "title": "Performance Goal"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-performance-goal",
+                                    "title": "Performance Goal"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "import-payroll-documents",
+                    "title": "Import Payroll Documents"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "my-payroll-documents",
+                    "title": "My Payroll Documents"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sst-epi-fichas",
+                    "title": "Fichas, estoque e movimentações EPI"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sst-treinamentos",
+                    "title": "Treinamentos SST"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-payroll-signing-pendencies",
+                    "title": "Listar — Payroll Signing Pendencies"
+                },
+                {
+                    "type": "group",
+                    "label": "People Analytics",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "people-analytics",
+                            "title": "People Analytics"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "people-reports",
+                            "title": "People Reports"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Políticas Internas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-policies",
+                            "title": "Policies"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-policy",
+                            "title": "Policy"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-policy",
+                            "title": "Policy"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-policy",
+                            "title": "Policy"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "employee-portal",
+                    "title": "Employee Portal"
+                },
+                {
+                    "type": "group",
+                    "label": "Recrutamento / Currículos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "rh-kpi-dashboard",
+                            "title": "Rh Kpi Dashboard"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "rh-candidatos",
+                            "title": "Rh Candidatos"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "rh-entrevistas",
+                            "title": "Rh Entrevistas"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Vagas de Emprego",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-rh-vaga",
+                                    "title": "Rh Vaga"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-rh-vaga",
+                                    "title": "Rh Vaga"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Solicitações",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "pending-approvals",
+                            "title": "Pending Approvals"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Minhas Solicitações",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-employee-requests",
+                                    "title": "Employee Requests"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-employee-request",
+                                    "title": "Employee Request"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-employee-request",
+                                    "title": "Employee Request"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Tipos de Solicitação",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-request-types",
+                                    "title": "Request Types"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-request-type",
+                                    "title": "Request Type"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-request-type",
+                                    "title": "Request Type"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Tipos de documento (RH)",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-payroll-document-types",
+                            "title": "Payroll Document Types"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-payroll-document-type",
+                            "title": "Payroll Document Type"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-payroll-document-type",
+                            "title": "Payroll Document Type"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "gestao_projetos",
+            "title": "Gestão de Projetos",
+            "children": [
+                {
+                    "type": "group",
+                    "label": "Etapas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-project-stages",
+                            "title": "Project Stages"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-project-stage",
+                            "title": "Project Stage"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-project-stage",
+                            "title": "Project Stage"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Grupos de Etapas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-stage-groups",
+                            "title": "Stage Groups"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-stage-group",
+                            "title": "Stage Group"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-stage-group",
+                            "title": "Stage Group"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Projetos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-projects",
+                            "title": "Projects"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-project",
+                            "title": "Project"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-project",
+                            "title": "Project"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-project",
+                            "title": "Project"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "gestao_treinamentos",
+            "title": "Gestão de Treinamentos",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "training-kpi-dashboard",
+                    "title": "Training Kpi Dashboard"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "training-compliance-dashboard",
+                    "title": "Training Compliance Dashboard"
+                },
+                {
+                    "type": "group",
+                    "label": "Avaliações e Questionários",
+                    "children": [
+                        {
+                            "type": "group",
+                            "label": "Atribuições",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "assign-evaluation",
+                                    "title": "Assign Evaluation"
+                                },
+                                {
+                                    "type": "group",
+                                    "label": "Listar Atribuições",
+                                    "children": [
+                                        {
+                                            "type": "topic",
+                                            "topic_id": "list-evaluation-assignments",
+                                            "title": "Evaluation Assignments"
+                                        },
+                                        {
+                                            "type": "topic",
+                                            "topic_id": "view-evaluation-assignment",
+                                            "title": "Evaluation Assignment"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Gerenciar Questionários",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-evaluation-model-with-questions",
+                                    "title": "Cadastrar — Evaluation Model With Questions"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-evaluation-models",
+                                    "title": "Listar — Evaluation Models"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "my-evaluations",
+                            "title": "My Evaluations"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Cadastrar Treinamentos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-trainings",
+                            "title": "Trainings"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-training",
+                            "title": "Training"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-training",
+                            "title": "Training"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-training",
+                            "title": "Training"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "completed-trainings-matrix",
+                    "title": "Completed Trainings Matrix"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "matrix-by-user",
+                    "title": "Matrix By User"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-training-status",
+                    "title": "Listar — Training Status"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "test-notification",
+                    "title": "Test Notification"
+                }
+            ]
+        },
+        {
+            "id": "lgpd",
+            "title": "LGPD",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-visao-geral",
+                    "title": "LGPD — visão geral"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-dashboard",
+                    "title": "Dashboard LGPD"
+                },
+                {
+                    "type": "group",
+                    "label": "AIPD",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "lgpd-aipd",
+                            "title": "AIPD, RIPD e TIA"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "lgpd-aipd-suggest",
+                            "title": "Lgpd Aipd Suggest"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Templates AIPD",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-ecommerce",
+                                    "title": "Lgpd Aipd Template Ecommerce"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-educacao",
+                                    "title": "Lgpd Aipd Template Educacao"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-financeiro",
+                                    "title": "Lgpd Aipd Template Financeiro"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-juridico",
+                                    "title": "Lgpd Aipd Template Juridico"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-logistica",
+                                    "title": "Lgpd Aipd Template Logistica"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-marketing",
+                                    "title": "Lgpd Aipd Template Marketing"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-rh",
+                                    "title": "Lgpd Aipd Template Rh"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-saude",
+                                    "title": "Lgpd Aipd Template Saude"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "lgpd-aipd-template-telecom",
+                                    "title": "Lgpd Aipd Template Telecom"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-bases-legais",
+                    "title": "Lgpd Bases Legais"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-categorias-titulares",
+                    "title": "Lgpd Categorias Titulares"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-classificacoes-dados",
+                    "title": "Lgpd Classificacoes Dados"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-consentimentos",
+                    "title": "Consentimentos e termos"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-data-mapping",
+                    "title": "Lgpd Data Mapping"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-finalidades",
+                    "title": "Lgpd Finalidades"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-inventory",
+                    "title": "Lgpd Inventory"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-workflow-report",
+                    "title": "Lgpd Workflow Report"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-ripd",
+                    "title": "Lgpd Ripd"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-ropa",
+                    "title": "Lgpd Ropa"
+                },
+                {
+                    "type": "group",
+                    "label": "Termos LGPD",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "create-lgpd-termo",
+                            "title": "Lgpd Termo"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-lgpd-termo",
+                            "title": "Lgpd Termo"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-tia",
+                    "title": "Lgpd Tia"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-tipos-dados",
+                    "title": "Lgpd Tipos Dados"
+                }
+            ]
+        },
+        {
+            "id": "parceiros",
+            "title": "Parceiros de Negócio",
+            "children": [
+                {
+                    "type": "group",
+                    "label": "Clientes",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-customers",
+                            "title": "Customers"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-customer",
+                            "title": "Customer"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-customer",
+                            "title": "Customer"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-customer",
+                            "title": "Customer"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Fornecedores",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-suppliers",
+                            "title": "Suppliers"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-supplier",
+                            "title": "Supplier"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-supplier",
+                            "title": "Supplier"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-supplier",
+                            "title": "Supplier"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "planejamento-estrategico",
+            "title": "Planejamento Estratégico",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "strategic-dashboard",
+                    "title": "Strategic Dashboard"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "strategic-indicators-list",
+                    "title": "Strategic Indicators List"
+                },
+                {
+                    "type": "group",
+                    "label": "Planos Estratégicos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-strategic-plans",
+                            "title": "Strategic Plans"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-strategic-plan",
+                            "title": "Strategic Plan"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-strategic-plan",
+                            "title": "Strategic Plan"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "relatorios",
+            "title": "Relatórios",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "rel-visao-geral",
+                    "title": "Relatórios — visão geral"
+                },
+                {
+                    "type": "group",
+                    "label": "Dashboards",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-dashboards",
+                            "title": "Dashboards"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-dashboard",
+                            "title": "Dashboard"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-dashboard",
+                            "title": "Dashboard"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Relatórios Locais",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "list-dynamic-reports",
+                            "title": "Dynamic Reports"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-dynamic-report",
+                            "title": "Dynamic Report"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "update-dynamic-report",
+                            "title": "Dynamic Report"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "view-dynamic-report",
+                            "title": "Dynamic Report"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-dynamic-reports-sap",
+                    "title": "Listar — Dynamic Reports Sap"
+                }
+            ]
+        },
+        {
+            "id": "reserva_salas",
+            "title": "Reserva de Salas",
+            "children": [
+                {
+                    "type": "group",
+                    "label": "Administrativo",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "admin-booking-dashboard",
+                            "title": "Admin Booking Dashboard"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "rooms-calendar-integration-settings",
+                            "title": "Rooms Calendar Integration Settings"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "booking-reports",
+                            "title": "Booking Reports"
+                        }
+                    ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "room-calendar",
+                    "title": "Room Calendar"
+                },
+                {
+                    "type": "group",
+                    "label": "Reservas",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "booking-waitlist",
+                            "title": "Booking Waitlist"
+                        },
+                        {
+                            "type": "group",
+                            "label": "Todas as Reservas",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-bookings",
+                                    "title": "Bookings"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-booking",
+                                    "title": "Booking"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-booking",
+                                    "title": "Booking"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-booking",
+                                    "title": "Booking"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Salas",
+                    "children": [
+                        {
+                            "type": "group",
+                            "label": "Criar Sala",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-meeting-rooms",
+                                    "title": "Meeting Rooms"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-meeting-room",
+                                    "title": "Meeting Room"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-meeting-room",
+                                    "title": "Meeting Room"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-meeting-room",
+                                    "title": "Meeting Room"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Listar Salas",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-meeting-rooms",
+                                    "title": "Meeting Rooms"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "create-meeting-room",
+                                    "title": "Meeting Room"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-meeting-room",
+                                    "title": "Meeting Room"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "view-meeting-room",
+                                    "title": "Meeting Room"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Solicitações",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "rooms-list-request-groups",
+                            "title": "Rooms List Request Groups"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "rooms-list-service-requests",
+                            "title": "Rooms List Service Requests"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "rooms-list-request-types",
+                            "title": "Rooms List Request Types"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sac",
+            "title": "SAC",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "sac-visao-geral",
+                    "title": "SAC — visão geral"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sac-dashboard",
+                    "title": "Sac Dashboard"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sac-list-categories",
+                    "title": "Sac List Categories"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sac-list-tickets",
+                    "title": "Sac List Tickets"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sac-list-clients",
+                    "title": "Sac List Clients"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sac-list-sla-rules",
+                    "title": "Sac List Sla Rules"
+                }
+            ]
+        },
+        {
+            "id": "sst",
+            "title": "Segurança e Medicina",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "sst-visao-geral",
+                    "title": "Visão geral do módulo SST"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "sst-dashboard",
+                    "title": "Dashboard SST"
+                },
+                {
+                    "type": "group",
+                    "label": "Cadastros e vínculos",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-cids",
+                            "title": "Catálogo CID-10"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-equipamentos",
+                            "title": "Equipamentos e vistorias"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-epis",
+                            "title": "Catálogo de EPIs"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-equipamentos",
+                            "title": "Equipamentos e vistorias"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-exames",
+                            "title": "Catálogo de exames"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-ghe",
+                            "title": "GHE — Grupos Homogêneos de Exposição"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-matriz-treinamento",
+                            "title": "Matriz cargo × treinamento"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-medicos",
+                            "title": "Médicos do trabalho"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-necessidades",
+                            "title": "Necessidades (EPI, exame, treinamento)"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-necessidades",
+                            "title": "Necessidades (EPI, exame, treinamento)"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-necessidades",
+                            "title": "Necessidades (EPI, exame, treinamento)"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-riscos",
+                            "title": "Riscos ocupacionais"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-equipamentos",
+                            "title": "Equipamentos e vistorias"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-treinamentos",
+                            "title": "Treinamentos SST"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Conformidade",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-esocial-ppp",
+                            "title": "eSocial e PPP"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-conformidade",
+                            "title": "Programas e conformidade"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-esocial-ppp",
+                            "title": "eSocial e PPP"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-conformidade",
+                            "title": "Programas e conformidade"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Registros",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-acidentes-afastamentos",
+                            "title": "Acidentes e afastamentos"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-acidentes-afastamentos",
+                            "title": "Acidentes e afastamentos"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-treinamentos",
+                            "title": "Treinamentos SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-asos",
+                            "title": "ASOs e encaminhamentos"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-cipa-inspecoes",
+                            "title": "CIPA e inspeções"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-epi-fichas",
+                            "title": "Fichas, estoque e movimentações EPI"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-cipa-inspecoes",
+                            "title": "CIPA e inspeções"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-equipamentos",
+                            "title": "Equipamentos e vistorias"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-epi-fichas",
+                            "title": "Fichas, estoque e movimentações EPI"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-treinamentos",
+                            "title": "Treinamentos SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-equipamentos",
+                            "title": "Equipamentos e vistorias"
+                        }
+                    ]
+                },
+                {
+                    "type": "group",
+                    "label": "Relatórios",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-report-pendencias",
+                            "title": "Pendências SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-relatorios",
+                            "title": "Relatórios SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-relatorios",
+                            "title": "Relatórios SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-relatorios",
+                            "title": "Relatórios SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-relatorios",
+                            "title": "Relatórios SST"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "sst-relatorios",
+                            "title": "Relatórios SST"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

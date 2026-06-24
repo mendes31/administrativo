@@ -1,0 +1,24 @@
+<h1>Estrutura organizacional</h1>
+<p>Cadastro de cargos, departamentos, centros de custo e turnos — base para usuários, financeiro, SST e relatórios.</p>
+<p><strong>Quem acessa:</strong> RH e administradores com <em>ListPositions</em>, <em>ListDepartments</em>, <em>ListCostCenters</em>, <em>ListWorkShifts</em>.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Cadastre <strong>Departamentos</strong> (nome, sigla, responsável).</li>
+<li>Registre <strong>Centros de Custo</strong> alinhados ao plano contábil.</li>
+<li>Crie <strong>Cargos</strong> com descrição e CBO quando aplicável.</li>
+<li>Configure <strong>Turnos</strong> (horários, tolerâncias) para escalas.</li>
+<li>Revise consistência antes de importar ou criar usuários em massa.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Cargo — Nome / CBO</strong> Identificação e classificação ocupacional.</div>
+<div class="help-field"><strong>Departamento — Sigla</strong> Usado em filtros e organograma.</div>
+<div class="help-field"><strong>Centro de Custo — Código</strong> Integração com financeiro e SAP.</div>
+<div class="help-field"><strong>Turno — Horário</strong> Início, fim e intervalo do expediente.</div>
+<div class="help-field"><strong>Status</strong> Registros inativos não aparecem em novos vínculos.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Duplicidade de departamento</dt><dd>Padronize siglas; inative registros obsoletos em vez de duplicar.</dd>
+<dt>CC não aparece em lançamento</dt><dd>Verifique status ativo e permissão do usuário na filial.</dd>
+<dt>Cargo usado em SST sem riscos</dt><dd>Vincule riscos ao cargo/setor no módulo SST.</dd>
+<dt>Turno incorreto em escala</dt><dd>Confirme timezone e horário de verão na configuração.</dd>
+</dl>

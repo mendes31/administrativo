@@ -1,0 +1,23 @@
+<h1>Atendimento — Chamados SAC</h1>
+<p>Abertura, triagem, tratamento e encerramento de tickets com histórico e anexos.</p>
+<p><strong>Quem acessa:</strong> analistas SAC com <em>SacListTickets</em>, permissões de criar/editar ticket.</p>
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+<li>Abra chamado informando cliente, categoria e descrição.</li>
+<li>Classifique prioridade; SLA calculado automaticamente.</li>
+<li>Atribua analista ou fila.</li>
+<li>Registre interações e anexos na timeline do ticket.</li>
+<li>Encerre com solução documentada.</li>
+</ol>
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Cliente</strong> Cadastro SAC vinculado.</div>
+<div class="help-field"><strong>Categoria</strong> Define SLA e roteamento.</div>
+<div class="help-field"><strong>Prioridade</strong> Urgente, alta, normal, baixa.</div>
+<div class="help-field"><strong>Status</strong> Aberto, em andamento, aguardando cliente, resolvido.</div>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>SLA não calcula</dt><dd>Categoria sem regra ou horário comercial não configurado.</dd>
+<dt>Cliente não localizado</dt><dd>Cadastre em SAC → Clientes.</dd>
+<dt>Anexo rejeitado</dt><dd>Tamanho ou tipo não permitido.</dd>
+<dt>Reabertura indevida</dt><dd>Use status aguardando cliente antes de encerrar definitivo.</dd>
+</dl>

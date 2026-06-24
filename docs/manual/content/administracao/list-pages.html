@@ -1,0 +1,36 @@
+<h1>Páginas (ACL) — Listar</h1>
+<p>Lista todas as <strong>páginas</strong> registradas no ACL: cada entrada mapeia um controller PHP a uma URL e controla aparecimento no menu e na matriz de permissões.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Permissões — visão geral</em> (<code>adm-permissoes</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> <em>ListPages</em>; cadastro com <em>CreatePage</em>, edição <em>UpdatePage</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse <strong>Administração → Páginas → Páginas</strong>.</li>
+    <li>Use filtros: ID, Nome, Controller, Grupo, Status, Pública, Padrão.</li>
+    <li>Localize a tela desejada e edite para corrigir slug, pacote ou status.</li>
+    <li>Cadastre novas páginas após criar controllers no código-fonte.</li>
+    <li>Inclua a página no pacote do perfil e marque na matriz do nível de acesso.</li>
+</ol>
+
+<h2>Impacto de Status e Pública</h2>
+<p><strong>Inativa:</strong> página não é oferecida em novas configurações. <strong>Pública:</strong> ignora autenticação. <strong>Padrão:</strong> facilita bootstrap de novos perfis, mas não remove permissões já dadas.</p>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>ID</strong> Identificador interno da página no banco.</div>
+<div class="help-field"><strong>Nome</strong> Rótulo na matriz de permissões.</div>
+<div class="help-field"><strong>Controller (filtro)</strong> Busca pela classe PHP (ex.: <em>ListUsers</em>).</div>
+<div class="help-field"><strong>Grupo (filtro)</strong> Restringe às páginas de um grupo de páginas.</div>
+<div class="help-field"><strong>Status</strong> Ativa (1) ou Inativa (0) — inativa some do menu e da matriz ativa.</div>
+<div class="help-field"><strong>Pública</strong> Sim = rota acessível sem login (login, recuperar senha, etc.).</div>
+<div class="help-field"><strong>Padrão</strong> Sim = novos níveis de acesso recebem esta permissão automaticamente na matriz.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Nova tela no código não aparece no menu</dt>
+    <dd>Cadastre a página aqui com <code>controller_url</code> igual ao slug da rota.</dd>
+    <dt>Controller_url errado</dt>
+    <dd>Deve ser kebab-case minúsculo, igual à URL (ex.: <em>list-users</em>).</dd>
+</dl>
