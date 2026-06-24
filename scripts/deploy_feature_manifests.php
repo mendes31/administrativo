@@ -14,6 +14,7 @@ function deployFeatureManifestMap(): array
             'app/adms/Controllers/databaseSchema/ListDatabaseTables.php',
             'app/adms/Controllers/databaseSchema/ViewDatabaseTable.php',
             'app/adms/Models/Repository/DatabaseSchemaRepository.php',
+            'app/adms/Models/Services/DatabaseSchemaCacheService.php',
             'app/adms/Views/databaseSchema/list.php',
             'app/adms/Views/databaseSchema/view.php',
             'app/adms/Views/partials/menu.php',

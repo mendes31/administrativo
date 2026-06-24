@@ -6,6 +6,9 @@ $appVersion = htmlspecialchars((string) ($_ENV['APP_VERSION'] ?? '1.0'));
 $canView = in_array('ViewDatabaseTable', $this->data['buttonPermission'] ?? [], true);
 $urlAdm = htmlspecialchars((string) ($_ENV['URL_ADM'] ?? ''));
 $totalTables = (int) ($this->data['pagination']['total'] ?? count($this->data['tables'] ?? []));
+$catalogUpdatedAt = trim((string) ($this->data['catalog_updated_at'] ?? ''));
+$catalogEmpty = !empty($this->data['catalog_empty']);
+$canRefresh = in_array('ListDatabaseTables', $this->data['menuPermission'] ?? [], true);
 ?>
 <div class="container-fluid px-4 db-schema-page">
     <div class="db-schema-breadcrumb text-muted small mb-2 mt-3">
@@ -18,7 +21,20 @@ $totalTables = (int) ($this->data['pagination']['total'] ?? count($this->data['t
 
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h2 class="h4 mb-0">Biblioteca — Base de dados do sistema</h2>
-        <div class="text-muted small fw-semibold"><?= $totalTables ?> TABELAS</div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <?php if ($catalogUpdatedAt !== ''): ?>
+            <span class="text-muted small">Atualizado em <?= htmlspecialchars($catalogUpdatedAt) ?></span>
+            <?php endif; ?>
+            <span class="text-muted small fw-semibold"><?= $totalTables ?> TABELAS</span>
+            <?php if ($canRefresh): ?>
+            <form method="post" class="d-inline" onsubmit="return confirm('Consultar o INFORMATION_SCHEMA pode levar alguns segundos. Deseja atualizar o catálogo agora?');">
+                <input type="hidden" name="refresh_catalog" value="1">
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class="fa-solid fa-rotate"></i> Atualizar catálogo
+                </button>
+            </form>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="card mb-4 border-0 shadow-sm">
@@ -26,8 +42,16 @@ $totalTables = (int) ($this->data['pagination']['total'] ?? count($this->data['t
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
             <p class="text-muted small mb-3">
-                Catálogo MySQL da base <strong><?= $databaseName ?></strong> — metadados em tempo real via <code>INFORMATION_SCHEMA</code>.
+                Catálogo MySQL da base <strong><?= $databaseName ?></strong> — lido do <strong>cache em disco</strong>.
+                Após migrations ou novas tabelas, use <strong>Atualizar catálogo</strong> (não consulta o banco a cada acesso).
             </p>
+
+            <?php if ($catalogEmpty): ?>
+            <div class="alert alert-info mb-3">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                O catálogo ainda não foi carregado. Clique em <strong>Atualizar catálogo</strong> para consultar o banco uma vez e armazenar o resultado em cache.
+            </div>
+            <?php endif; ?>
 
             <form method="get" class="row g-2 mb-3 align-items-end">
                 <div class="col-md-3">
@@ -112,7 +136,13 @@ $totalTables = (int) ($this->data['pagination']['total'] ?? count($this->data['t
             </p>
             <?php endif; ?>
             <?php else: ?>
-            <div class="alert alert-warning mb-0">Nenhuma tabela encontrada com os filtros informados.</div>
+            <div class="alert alert-warning mb-0">
+                <?php if ($catalogEmpty): ?>
+                Nenhuma tabela no cache. Clique em <strong>Atualizar catálogo</strong> para carregar a lista.
+                <?php else: ?>
+                Nenhuma tabela encontrada com os filtros informados.
+                <?php endif; ?>
+            </div>
             <?php endif; ?>
         </div>
     </div>

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Models\Services\DatabaseSchemaCacheService;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
 /**
- * Metadados do schema MySQL do sistema (INFORMATION_SCHEMA).
+ * Metadados do schema MySQL do sistema (INFORMATION_SCHEMA) com cache em disco.
  */
 class DatabaseSchemaRepository extends DbConnection
 {
@@ -29,9 +30,74 @@ class DatabaseSchemaRepository extends DbConnection
         'phinx' => 'Migrações (Phinx)',
     ];
 
+    private ?DatabaseSchemaCacheService $cache = null;
+
     public function getDatabaseName(): string
     {
         return (string) ($_ENV['DB_NAME'] ?? '');
+    }
+
+    public function getCacheService(): DatabaseSchemaCacheService
+    {
+        if ($this->cache === null) {
+            $this->cache = new DatabaseSchemaCacheService($this->getDatabaseName());
+        }
+
+        return $this->cache;
+    }
+
+    public function getCatalogUpdatedAt(): ?string
+    {
+        $catalog = $this->getCacheService()->getCatalog();
+
+        return is_array($catalog) ? (string) ($catalog['updated_at'] ?? '') : null;
+    }
+
+    public function hasCatalogCache(): bool
+    {
+        return $this->getCacheService()->getCatalog() !== null;
+    }
+
+    /**
+     * Reconstrói o catálogo completo a partir do banco (operação pesada — manual).
+     *
+     * @return array{updated_at: string, table_count: int}
+     */
+    public function refreshCatalogCache(): array
+    {
+        $cache = $this->getCacheService();
+        $cache->clearAll();
+
+        $tables = $this->fetchAllTablesFromDatabase();
+        $modules = $this->extractModules($tables);
+        $cache->putCatalog($tables, $modules);
+
+        $catalog = $cache->getCatalog();
+
+        return [
+            'updated_at' => (string) ($catalog['updated_at'] ?? date('Y-m-d H:i:s')),
+            'table_count' => count($tables),
+        ];
+    }
+
+    /**
+     * Atualiza o cache de detalhe de uma única tabela.
+     *
+     * @return array{updated_at: string, table: string}
+     */
+    public function refreshTableDetailCache(string $tableName): array
+    {
+        if (!$this->isValidTableIdentifier($tableName) || !$this->tableExistsInDatabase($tableName)) {
+            throw new \InvalidArgumentException('Tabela inválida ou inexistente.');
+        }
+
+        $detail = $this->fetchTableDetailFromDatabase($tableName);
+        $this->getCacheService()->putTableDetail($tableName, $detail);
+
+        return [
+            'updated_at' => (string) ($detail['updated_at'] ?? date('Y-m-d H:i:s')),
+            'table' => $tableName,
+        ];
     }
 
     public function resolveModule(string $tableName): string
@@ -47,9 +113,172 @@ class DatabaseSchemaRepository extends DbConnection
     }
 
     /**
+     * Lista tabelas a partir do cache (sem consultar INFORMATION_SCHEMA).
+     *
      * @return list<array<string, mixed>>
      */
     public function listTables(?string $moduleFilter = null, string $search = ''): array
+    {
+        $catalog = $this->getCacheService()->getCatalog();
+        if ($catalog === null) {
+            return [];
+        }
+
+        $search = strtolower(trim($search));
+        $moduleFilter = $moduleFilter !== null && $moduleFilter !== '' ? $moduleFilter : null;
+
+        $out = [];
+        foreach ($catalog['tables'] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $module = (string) ($row['module'] ?? 'Geral');
+            if ($moduleFilter !== null && $module !== $moduleFilter) {
+                continue;
+            }
+            if ($search !== '') {
+                $tableName = (string) ($row['table_name'] ?? '');
+                $blob = strtolower($tableName . ' ' . ($row['table_comment'] ?? '') . ' ' . $module);
+                if (!str_contains($blob, $search)) {
+                    continue;
+                }
+            }
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function listModules(): array
+    {
+        $catalog = $this->getCacheService()->getCatalog();
+        if ($catalog !== null && is_array($catalog['modules'] ?? null)) {
+            return $catalog['modules'];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $tables
+     * @return list<string>
+     */
+    public function extractModules(array $tables): array
+    {
+        $modules = [];
+        foreach ($tables as $row) {
+            $modules[(string) ($row['module'] ?? 'Geral')] = true;
+        }
+        $keys = array_keys($modules);
+        sort($keys, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $keys;
+    }
+
+    public function tableExists(string $tableName): bool
+    {
+        if (!$this->isValidTableIdentifier($tableName)) {
+            return false;
+        }
+
+        $catalog = $this->getCacheService()->getCatalog();
+        if ($catalog !== null) {
+            foreach ($catalog['tables'] as $row) {
+                if (is_array($row) && (string) ($row['table_name'] ?? '') === $tableName) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return $this->tableExistsInDatabase($tableName);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getTableSummary(string $tableName): ?array
+    {
+        $detail = $this->getTableDetailBundle($tableName);
+
+        return is_array($detail['summary'] ?? null) ? $detail['summary'] : null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function getTableColumnsDetailed(string $tableName): array
+    {
+        $detail = $this->getTableDetailBundle($tableName);
+        $columns = $detail['columns'] ?? [];
+
+        return is_array($columns) ? $columns : [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function getTableIndexes(string $tableName): array
+    {
+        $detail = $this->getTableDetailBundle($tableName);
+        $indexes = $detail['indexes'] ?? [];
+
+        return is_array($indexes) ? $indexes : [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function getTableForeignKeys(string $tableName): array
+    {
+        $detail = $this->getTableDetailBundle($tableName);
+        $fks = $detail['foreign_keys'] ?? [];
+
+        return is_array($fks) ? $fks : [];
+    }
+
+    public function getCreateTableDdl(string $tableName): ?string
+    {
+        $detail = $this->getTableDetailBundle($tableName);
+        $ddl = $detail['create_ddl'] ?? null;
+
+        return is_string($ddl) && $ddl !== '' ? $ddl : null;
+    }
+
+    public function getTableDetailUpdatedAt(string $tableName): ?string
+    {
+        $cached = $this->getCacheService()->getTableDetail($tableName);
+
+        return is_array($cached) ? (string) ($cached['updated_at'] ?? '') : null;
+    }
+
+    public function hasTableDetailCache(string $tableName): bool
+    {
+        return $this->getCacheService()->getTableDetail($tableName) !== null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getTableDetailBundle(string $tableName): array
+    {
+        if (!$this->isValidTableIdentifier($tableName)) {
+            return [];
+        }
+
+        $cached = $this->getCacheService()->getTableDetail($tableName);
+
+        return is_array($cached) ? $cached : [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchAllTablesFromDatabase(): array
     {
         $db = $this->getDatabaseName();
         if ($db === '') {
@@ -87,23 +316,10 @@ class DatabaseSchemaRepository extends DbConnection
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        $search = strtolower(trim($search));
-        $moduleFilter = $moduleFilter !== null && $moduleFilter !== '' ? $moduleFilter : null;
-
         $out = [];
         foreach ($rows as $row) {
             $tableName = (string) ($row['table_name'] ?? '');
-            $module = $this->resolveModule($tableName);
-            if ($moduleFilter !== null && $module !== $moduleFilter) {
-                continue;
-            }
-            if ($search !== '') {
-                $blob = strtolower($tableName . ' ' . ($row['table_comment'] ?? '') . ' ' . $module);
-                if (!str_contains($blob, $search)) {
-                    continue;
-                }
-            }
-            $row['module'] = $module;
+            $row['module'] = $this->resolveModule($tableName);
             $out[] = $row;
         }
 
@@ -111,35 +327,44 @@ class DatabaseSchemaRepository extends DbConnection
     }
 
     /**
-     * @param list<array<string, mixed>> $tables
-     * @return list<string>
+     * @return array<string, mixed>
      */
-    public function extractModules(array $tables): array
+    private function fetchTableDetailFromDatabase(string $tableName): array
     {
-        $modules = [];
-        foreach ($tables as $row) {
-            $modules[(string) ($row['module'] ?? 'Geral')] = true;
-        }
-        $keys = array_keys($modules);
-        sort($keys, SORT_NATURAL | SORT_FLAG_CASE);
-
-        return $keys;
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function listModules(): array
-    {
-        return $this->extractModules($this->listTables());
-    }
-
-    public function tableExists(string $tableName): bool
-    {
-        if (!$this->isValidTableIdentifier($tableName)) {
-            return false;
+        $summary = $this->fetchTableSummaryFromDatabase($tableName);
+        if ($summary === null) {
+            throw new \InvalidArgumentException('Tabela não encontrada.');
         }
 
+        $fks = $this->fetchTableForeignKeysFromDatabase($tableName);
+        $fkByColumn = [];
+        foreach ($fks as $fk) {
+            $fkByColumn[(string) ($fk['COLUMN_NAME'] ?? '')] = $fk;
+        }
+
+        $columns = [];
+        foreach ($this->fetchTableColumnsFromDatabase($tableName) as $col) {
+            $name = (string) ($col['COLUMN_NAME'] ?? '');
+            $parsed = self::parseMysqlColumnType((string) ($col['COLUMN_TYPE'] ?? ''));
+            $fk = $fkByColumn[$name] ?? null;
+            $columns[] = array_merge($col, $parsed, [
+                'relation_table' => $fk['REFERENCED_TABLE_NAME'] ?? null,
+                'relation_column' => $fk['REFERENCED_COLUMN_NAME'] ?? null,
+                'constraints_label' => self::formatColumnConstraints($col),
+            ]);
+        }
+
+        return [
+            'summary' => $summary,
+            'columns' => $columns,
+            'indexes' => $this->fetchTableIndexesFromDatabase($tableName),
+            'foreign_keys' => $fks,
+            'create_ddl' => $this->fetchCreateTableDdlFromDatabase($tableName),
+        ];
+    }
+
+    private function tableExistsInDatabase(string $tableName): bool
+    {
         $sql = 'SELECT 1 FROM INFORMATION_SCHEMA.TABLES
                 WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = :table AND TABLE_TYPE = \'BASE TABLE\'
                 LIMIT 1';
@@ -154,12 +379,8 @@ class DatabaseSchemaRepository extends DbConnection
     /**
      * @return array<string, mixed>|null
      */
-    public function getTableSummary(string $tableName): ?array
+    private function fetchTableSummaryFromDatabase(string $tableName): ?array
     {
-        if (!$this->tableExists($tableName)) {
-            return null;
-        }
-
         $sql = "SELECT TABLE_NAME AS table_name, TABLE_COMMENT AS table_comment,
                        ENGINE AS engine, TABLE_ROWS AS table_rows,
                        CREATE_TIME AS create_time, UPDATE_TIME AS update_time
@@ -182,12 +403,8 @@ class DatabaseSchemaRepository extends DbConnection
     /**
      * @return list<array<string, mixed>>
      */
-    public function getTableColumns(string $tableName): array
+    private function fetchTableColumnsFromDatabase(string $tableName): array
     {
-        if (!$this->tableExists($tableName)) {
-            return [];
-        }
-
         $sql = 'SELECT ORDINAL_POSITION, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY,
                        COLUMN_DEFAULT, EXTRA, COLUMN_COMMENT
                 FROM INFORMATION_SCHEMA.COLUMNS
@@ -204,12 +421,8 @@ class DatabaseSchemaRepository extends DbConnection
     /**
      * @return list<array<string, mixed>>
      */
-    public function getTableIndexes(string $tableName): array
+    private function fetchTableIndexesFromDatabase(string $tableName): array
     {
-        if (!$this->tableExists($tableName)) {
-            return [];
-        }
-
         $sql = 'SELECT INDEX_NAME, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR \', \') AS columns
                 FROM INFORMATION_SCHEMA.STATISTICS
                 WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = :table
@@ -226,12 +439,8 @@ class DatabaseSchemaRepository extends DbConnection
     /**
      * @return list<array<string, mixed>>
      */
-    public function getTableForeignKeys(string $tableName): array
+    private function fetchTableForeignKeysFromDatabase(string $tableName): array
     {
-        if (!$this->tableExists($tableName)) {
-            return [];
-        }
-
         $sql = 'SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
                 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                 WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = :table
@@ -245,38 +454,8 @@ class DatabaseSchemaRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function getTableColumnsDetailed(string $tableName): array
+    private function fetchCreateTableDdlFromDatabase(string $tableName): ?string
     {
-        $fks = $this->getTableForeignKeys($tableName);
-        $fkByColumn = [];
-        foreach ($fks as $fk) {
-            $fkByColumn[(string) ($fk['COLUMN_NAME'] ?? '')] = $fk;
-        }
-
-        $out = [];
-        foreach ($this->getTableColumns($tableName) as $col) {
-            $name = (string) ($col['COLUMN_NAME'] ?? '');
-            $parsed = self::parseMysqlColumnType((string) ($col['COLUMN_TYPE'] ?? ''));
-            $fk = $fkByColumn[$name] ?? null;
-            $out[] = array_merge($col, $parsed, [
-                'relation_table' => $fk['REFERENCED_TABLE_NAME'] ?? null,
-                'relation_column' => $fk['REFERENCED_COLUMN_NAME'] ?? null,
-                'constraints_label' => self::formatColumnConstraints($col),
-            ]);
-        }
-
-        return $out;
-    }
-
-    public function getCreateTableDdl(string $tableName): ?string
-    {
-        if (!$this->tableExists($tableName)) {
-            return null;
-        }
-
         $safe = str_replace('`', '``', $tableName);
         $stmt = $this->getConnection()->query('SHOW CREATE TABLE `' . $safe . '`');
         if ($stmt === false) {

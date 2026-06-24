@@ -116,8 +116,10 @@ class ValidationUserLogin
                 (new \App\adms\Models\Repository\MenuPermissionUserRepository())->warmSessionCache((int) $id);
                 // Limpar mensagem de erro da sessão após login bem-sucedido
                 unset($_SESSION['error']);
-                // Log temporário para depuração de sessões
-                file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Login: username={$result['username']} id={$result['id']}\n", FILE_APPEND);
+                \App\adms\Helpers\LogSettingsHelper::writeDebugLog(
+                    'login_debug.log',
+                    "Login: username={$result['username']} id={$result['id']}"
+                );
             }
             
             return $result;

@@ -83,5 +83,27 @@ final class LogSettingsHelper
         }
         return self::$frontendDebugEnabled;
     }
+
+    /**
+     * Grava em app/logs/ apenas quando o debug de sessão está ativo (Administração → Logs).
+     */
+    public static function writeDebugLog(string $basename, string $message): void
+    {
+        if (!self::isSessionDebugEnabled()) {
+            return;
+        }
+
+        $logDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'logs';
+        if (!is_dir($logDir) || !is_writable($logDir)) {
+            return;
+        }
+
+        $line = date('Y-m-d H:i:s') . ' ' . $message;
+        if (!str_ends_with($line, PHP_EOL)) {
+            $line .= PHP_EOL;
+        }
+
+        @file_put_contents($logDir . DIRECTORY_SEPARATOR . $basename, $line, FILE_APPEND);
+    }
 }
 

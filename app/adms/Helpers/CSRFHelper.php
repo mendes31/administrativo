@@ -43,11 +43,7 @@ class CSRFHelper
         // Salvar o TOKEN CSRF na sessão
         $_SESSION['csrf_tokens'][$formIdentifier] = $token;
         
-        // Log para debug
-        file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
-            date('Y-m-d H:i:s') . " - [CSRF] TOKEN GERADO - form: {$formIdentifier}, token: {$token}\n", 
-            FILE_APPEND
-        );
+        LogSettingsHelper::writeDebugLog('csrf_debug.log', "[CSRF] TOKEN GERADO - form: {$formIdentifier}, token: {$token}");
 
         // Retornar o token gerado
         return $token;
@@ -67,37 +63,23 @@ class CSRFHelper
      */
      public static function validateCSRFToken(string $formIdentifier, string $token, bool $consume = true)
      {
-        // Log detalhado para debug
-        file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
-            date('Y-m-d H:i:s') . " - [CSRF] VALIDANDO - form: {$formIdentifier}, token_recebido: {$token}\n", 
-            FILE_APPEND
-        );
+        LogSettingsHelper::writeDebugLog('csrf_debug.log', "[CSRF] VALIDANDO - form: {$formIdentifier}, token_recebido: {$token}");
         
         // Verificar se a sessão tem tokens CSRF
         if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
-            file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
-                date('Y-m-d H:i:s') . " - [CSRF] ERRO: Sessão não tem tokens CSRF\n", 
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('csrf_debug.log', '[CSRF] ERRO: Sessão não tem tokens CSRF');
             return false;
         }
         
         // Verificar se existe o token específico para este formulário
         if (!isset($_SESSION['csrf_tokens'][$formIdentifier])) {
-            file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
-                date('Y-m-d H:i:s') . " - [CSRF] ERRO: Token não encontrado para form: {$formIdentifier}\n", 
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('csrf_debug.log', "[CSRF] ERRO: Token não encontrado para form: {$formIdentifier}");
             return false;
         }
         
         // Verificar se o token recebido é igual ao token salvo na sessão
         if (hash_equals($_SESSION['csrf_tokens'][$formIdentifier], $token)) {
-            // Log para debug
-            file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
-                date('Y-m-d H:i:s') . " - [CSRF] TOKEN VALIDO - form: {$formIdentifier}, token: {$token}\n", 
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('csrf_debug.log', "[CSRF] TOKEN VALIDO - form: {$formIdentifier}, token: {$token}");
             
             if ($consume) {
                 unset($_SESSION['csrf_tokens'][$formIdentifier]);
@@ -106,10 +88,9 @@ class CSRFHelper
             return true;
         }
         
-        // Log para debug
-        file_put_contents(__DIR__ . '/../../../logs/csrf_debug.log', 
-            date('Y-m-d H:i:s') . " - [CSRF] TOKEN INVALIDO - form: {$formIdentifier}, token_recebido: {$token}, token_sessao: " . ($_SESSION['csrf_tokens'][$formIdentifier] ?? 'NULL') . "\n", 
-            FILE_APPEND
+        LogSettingsHelper::writeDebugLog(
+            'csrf_debug.log',
+            "[CSRF] TOKEN INVALIDO - form: {$formIdentifier}, token_recebido: {$token}, token_sessao: " . ($_SESSION['csrf_tokens'][$formIdentifier] ?? 'NULL')
         );
         
         return false;

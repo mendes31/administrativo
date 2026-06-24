@@ -17,6 +17,12 @@ class ListDatabaseTables
 
     public function index(string|int $page = 1): void
     {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['refresh_catalog'])) {
+            $this->handleRefreshCatalog();
+
+            return;
+        }
+
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int) $_GET['page'];
         }
@@ -28,16 +34,17 @@ class ListDatabaseTables
         $filterSearch = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
 
         $repo = new DatabaseSchemaRepository();
-        $allTables = $repo->listTables($filterModule !== '' ? $filterModule : null, $filterSearch);
+        $hasCache = $repo->hasCatalogCache();
+        $allTables = $hasCache
+            ? $repo->listTables($filterModule !== '' ? $filterModule : null, $filterSearch)
+            : [];
         $total = count($allTables);
         $offset = max(0, ((int) $page - 1) * $this->limitResult);
         $this->data['tables'] = array_slice($allTables, $offset, $this->limitResult);
-        $this->data['modules'] = $repo->extractModules(
-            $filterModule === '' && $filterSearch === ''
-                ? $allTables
-                : $repo->listTables()
-        );
+        $this->data['modules'] = $hasCache ? $repo->listModules() : [];
         $this->data['database_name'] = $repo->getDatabaseName();
+        $this->data['catalog_updated_at'] = $repo->getCatalogUpdatedAt();
+        $this->data['catalog_empty'] = !$hasCache;
         $this->data['filter_module'] = $filterModule;
         $this->data['filter_search'] = $filterSearch;
         $this->data['per_page'] = $this->limitResult;
@@ -61,5 +68,33 @@ class ListDatabaseTables
         ]));
 
         (new LoadViewService('adms/Views/databaseSchema/list', $this->data))->loadView();
+    }
+
+    private function handleRefreshCatalog(): void
+    {
+        $pageLayoutService = new PageLayoutService();
+        $layout = $pageLayoutService->configurePageElements([
+            'title_head' => 'Biblioteca — Base de dados do sistema',
+            'menu' => 'list-database-tables',
+            'buttonPermission' => ['ListDatabaseTables'],
+        ]);
+        if (!in_array('ListDatabaseTables', $layout['menuPermission'] ?? [], true)) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Sem permissão para atualizar o catálogo.</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-database-tables');
+            exit;
+        }
+
+        set_time_limit(120);
+
+        try {
+            $result = (new DatabaseSchemaRepository())->refreshCatalogCache();
+            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Catálogo atualizado com sucesso — '
+                . (int) $result['table_count'] . ' tabela(s) em ' . htmlspecialchars((string) $result['updated_at']) . '.</div>';
+        } catch (\Throwable $e) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Falha ao atualizar o catálogo. Tente novamente.</div>';
+        }
+
+        header('Location: ' . $_ENV['URL_ADM'] . 'list-database-tables');
+        exit;
     }
 }

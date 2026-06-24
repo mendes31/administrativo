@@ -5,6 +5,7 @@ namespace App\adms\Controllers\login;
 use App\adms\Controllers\Services\Validation\ValidationLoginService;
 use App\adms\Controllers\Services\ValidationUserLogin;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\LogSettingsHelper;
 use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\LogAcessosRepository;
 use App\adms\Controllers\Services\RequestHelper;
@@ -31,11 +32,7 @@ class Login
      */
     public function index(): void
     {
-        // Log para debug
-        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-            date('Y-m-d H:i:s') . " - [index] INICIO - SESSION: " . json_encode($_SESSION) . "\n", 
-            FILE_APPEND
-        );
+        LogSettingsHelper::writeDebugLog('login_debug.log', '[index] INICIO - SESSION: ' . json_encode($_SESSION));
         
         // Verificar se já está logado ANTES de qualquer processamento
         if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
@@ -61,28 +58,18 @@ class Login
         // Receber dados do formulário
         $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
         
-        // Log dos dados recebidos
-        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-            date('Y-m-d H:i:s') . " - [index] DADOS POST: " . json_encode($this->data['form']) . "\n", 
-            FILE_APPEND
-        );
+        LogSettingsHelper::writeDebugLog('login_debug.log', '[index] DADOS POST: ' . json_encode($this->data['form']));
         
         // Se não há dados POST, apenas mostrar a view
         if (empty($this->data['form'])) {
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-                date('Y-m-d H:i:s') . " - [index] SEM DADOS POST - MOSTRANDO VIEW\n", 
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('login_debug.log', '[index] SEM DADOS POST - MOSTRANDO VIEW');
             $this->viewLogin();
             return;
         }
         
         // Verificar se já foi processado (proteção contra duplo submit)
         if (isset($_SESSION['login_processed']) && $_SESSION['login_processed'] === true) {
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-                date('Y-m-d H:i:s') . " - [index] DUPLO SUBMIT DETECTADO - REDIRECIONANDO\n", 
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('login_debug.log', '[index] DUPLO SUBMIT DETECTADO - REDIRECIONANDO');
             // Limpar flag e redirecionar para dashboard
             unset($_SESSION['login_processed']);
             header("Location: {$_ENV['URL_ADM']}dashboard");
@@ -126,26 +113,23 @@ class Login
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
-        file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] INICIO - session_id: ' . session_id() . ' - ' . json_encode($_SESSION) . "\n", FILE_APPEND);
-        @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
-            date('Y-m-d H:i:s') . ' [Login::login] INICIO php_session_id=' . session_id() . ' $_SESSION=' . json_encode($_SESSION) . PHP_EOL,
-            FILE_APPEND
-        );
-        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Início do método login\n", FILE_APPEND);
+        LogSettingsHelper::writeDebugLog('session_debug.log', '[login] INICIO - session_id: ' . session_id() . ' - ' . json_encode($_SESSION));
+        LogSettingsHelper::writeDebugLog('session_investigar.log', '[Login::login] INICIO php_session_id=' . session_id() . ' $_SESSION=' . json_encode($_SESSION));
+        LogSettingsHelper::writeDebugLog('login_debug.log', 'Início do método login');
         $validationLogin = new ValidationLoginService();
         $this->data['errors'] = $validationLogin->validate($this->data['form']);
-        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Após validação: " . json_encode($this->data['errors']) . "\n", FILE_APPEND);
+        LogSettingsHelper::writeDebugLog('login_debug.log', 'Após validação: ' . json_encode($this->data['errors']));
         if (!empty($this->data['errors'])) {
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Erro de validação\n", FILE_APPEND);
+            LogSettingsHelper::writeDebugLog('login_debug.log', 'Erro de validação');
             $this->viewLogin();
             return;
         }
         $validationUserLogin = new ValidationUserLogin();
         $result = $validationUserLogin->validationUserLogin($this->data['form']);
-        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Após autenticação: " . json_encode($result) . "\n", FILE_APPEND);
+        LogSettingsHelper::writeDebugLog('login_debug.log', 'Após autenticação: ' . json_encode($result));
         if($result && isset($result['id']) && is_numeric($result['id'])){
             if (isset($result['modificar_senha_proximo_logon']) && $result['modificar_senha_proximo_logon'] === 'Sim') {
-                file_put_contents(__DIR__ . '/../../../logs/session_debug2.log', date('Y-m-d H:i:s') . ' - [login] ANTES HEADER force-password-change - session_id: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION) . "\n", FILE_APPEND);
+                LogSettingsHelper::writeDebugLog('session_debug2.log', '[login] ANTES HEADER force-password-change - session_id: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION));
                 $_SESSION['force_password_change'] = true;
                 $_SESSION['session_id'] = session_id();
                 // Salvar a sessão no banco ANTES do redirecionamento
@@ -166,7 +150,7 @@ class Login
                 header("Location: {$_ENV['URL_ADM']}force-password-change");
                 exit;
             }
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Login OK - verificando consentimento LGPD\n", FILE_APPEND);
+            LogSettingsHelper::writeDebugLog('login_debug.log', 'Login OK - verificando consentimento LGPD');
             $logAcessosRepo = new LogAcessosRepository();
             $ip = RequestHelper::getClientIp();
             $userAgent = RequestHelper::getUserAgent();
@@ -195,18 +179,12 @@ class Login
                     $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? ''), $hostnameConc); 
                 }
             }
-            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
-                date('Y-m-d H:i:s') . ' [Login::login] BEFORE invalidate/save user_id=' . (int)$result['id'] . ' php_session_id=' . session_id() . PHP_EOL,
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('session_investigar.log', '[Login::login] BEFORE invalidate/save user_id=' . (int)$result['id'] . ' php_session_id=' . session_id());
             $sessionRepo->invalidateAllSessionsByUserId((int)$result['id']);
             $_SESSION['session_id'] = session_id();
             $sessionRepo->saveSession((int)$result['id'], session_id());
-            file_put_contents(__DIR__ . '/../../../logs/session_debug.log', date('Y-m-d H:i:s') . ' - [login] SALVOU SESSION NO BANCO: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION) . "\n", FILE_APPEND);
-            @file_put_contents(__DIR__ . '/../../../logs/session_investigar.log',
-                date('Y-m-d H:i:s') . ' [Login::login] AFTER saveSession user_id=' . (int)$result['id'] . ' php_session_id=' . session_id() . ' $_SESSION=' . json_encode($_SESSION) . PHP_EOL,
-                FILE_APPEND
-            );
+            LogSettingsHelper::writeDebugLog('session_debug.log', '[login] SALVOU SESSION NO BANCO: ' . session_id() . ' - $_SESSION: ' . json_encode($_SESSION));
+            LogSettingsHelper::writeDebugLog('session_investigar.log', '[Login::login] AFTER saveSession user_id=' . (int)$result['id'] . ' php_session_id=' . session_id() . ' $_SESSION=' . json_encode($_SESSION));
 
             // Serviços diários disparados no primeiro login de qualquer usuário
             // - Atualização de status dinâmicos de treinamentos
@@ -227,10 +205,7 @@ class Login
             
             // Se for manager, pular verificação de consentimento
             if ($isManager) {
-                file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-                    date('Y-m-d H:i:s') . " - Usuario manager detectado - pulando verificação de consentimento LGPD\n", 
-                    FILE_APPEND
-                );
+                LogSettingsHelper::writeDebugLog('login_debug.log', 'Usuario manager detectado - pulando verificação de consentimento LGPD');
             } else {
                 // Verificar se existe termo ativo antes de solicitar consentimento
                 $lgpdTermosRepo = new LgpdTermosRepository();
@@ -243,10 +218,7 @@ class Login
                 
                 // Se não houver termo ativo, não solicitar consentimento
                 if (!$termoLogin) {
-                    file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-                        date('Y-m-d H:i:s') . " - Nenhum termo LGPD ativo encontrado - não solicitando consentimento\n", 
-                        FILE_APPEND
-                    );
+                    LogSettingsHelper::writeDebugLog('login_debug.log', 'Nenhum termo LGPD ativo encontrado - não solicitando consentimento');
                 } else {
                     // Há termo ativo, verificar consentimento
                     $consentVersionAtual = $termoLogin['versao'] ?? ($_ENV['LGPD_CONSENT_VERSION'] ?? '1.0');
@@ -262,13 +234,11 @@ class Login
                         $ultimoConsent = $consentRepo->getUltimoConsentimentoAtivoPorEmail($emailLogin, 'sistema_login');
                     }
 
-                    // Log detalhado para depuração
-                    file_put_contents(
-                        __DIR__ . '/../../../logs/login_debug.log',
-                        date('Y-m-d H:i:s') . ' - Verificando consentimento LGPD - email=' . $emailLogin .
-                        ' | versao_atual=' . $consentVersionAtual .
-                        ' | ultimoConsent=' . json_encode($ultimoConsent) . PHP_EOL,
-                        FILE_APPEND
+                    LogSettingsHelper::writeDebugLog(
+                        'login_debug.log',
+                        'Verificando consentimento LGPD - email=' . $emailLogin
+                        . ' | versao_atual=' . $consentVersionAtual
+                        . ' | ultimoConsent=' . json_encode($ultimoConsent)
                     );
 
                     if ($ultimoConsent && !empty($ultimoConsent['versao_termo']) && $ultimoConsent['versao_termo'] === $consentVersionAtual) {
@@ -276,10 +246,7 @@ class Login
                     }
 
                     if (!$temConsentimentoValido) {
-                        file_put_contents(__DIR__ . '/../../../logs/login_debug.log', 
-                            date('Y-m-d H:i:s') . " - Consentimento LGPD pendente/versão diferente - redirecionando para lgpd-consentimento-login\n", 
-                            FILE_APPEND
-                        );
+                        LogSettingsHelper::writeDebugLog('login_debug.log', 'Consentimento LGPD pendente/versão diferente - redirecionando para lgpd-consentimento-login');
                         header("Location: {$_ENV['URL_ADM']}lgpd-consentimento-login");
                         exit;
                     }
@@ -291,7 +258,7 @@ class Login
             header("Location: " . $redirectUrl);
             exit;
         } else {
-            file_put_contents(__DIR__ . '/../../../logs/login_debug.log', date('Y-m-d H:i:s') . " - Falha no login\n", FILE_APPEND);
+            LogSettingsHelper::writeDebugLog('login_debug.log', 'Falha no login');
             $this->viewLogin();
             return;
         }

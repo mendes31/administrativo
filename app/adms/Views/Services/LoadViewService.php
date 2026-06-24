@@ -2,6 +2,8 @@
 
 namespace App\adms\Views\Services;
 
+use App\adms\Helpers\LogSettingsHelper;
+
 /**
  * Carregar as páginas da View
  * 
@@ -44,11 +46,12 @@ class LoadViewService
 
         // Verificar se o arquivo existe
         if (file_exists($this->view)) {
-            // Incluir o layout principal (log apenas se diretório existir e for gravável)
-            $logDir = __DIR__ . '/../../../logs';
-            if (is_dir($logDir) && is_writable($logDir)) {
-                @file_put_contents($logDir . '/filtro_global_debug.log', date('Y-m-d H:i:s') . ' - main.php executado em ' . ($_SERVER['REQUEST_URI'] ?? '') . ' user_id=' . ($_SESSION['user_id'] ?? 'null') . ' session_id=' . ($_SESSION['session_id'] ?? 'null') . PHP_EOL, FILE_APPEND);
-            }
+            LogSettingsHelper::writeDebugLog(
+                'filtro_global_debug.log',
+                '- main.php executado em ' . ($_SERVER['REQUEST_URI'] ?? '')
+                . ' user_id=' . ($_SESSION['user_id'] ?? 'null')
+                . ' session_id=' . ($_SESSION['session_id'] ?? 'null')
+            );
             include './app/adms/Views/layouts/main.php';
         } else {
             die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
