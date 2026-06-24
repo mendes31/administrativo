@@ -59,7 +59,56 @@ class DatabaseSchemaRepository extends DbConnection
     }
 
     /**
-     * Reconstrói o catálogo completo a partir do banco (operação pesada — manual).
+     * Garante catálogo em cache (gera automaticamente na primeira visita).
+     */
+    public function ensureCatalogCache(): void
+    {
+        if (!$this->hasCatalogCache()) {
+            $this->refreshCatalogCache();
+        }
+    }
+
+    /**
+     * Detalhe desatualizado após novo catálogo ou mudança no número de colunas.
+     */
+    public function isTableDetailStale(string $tableName): bool
+    {
+        if (!$this->hasTableDetailCache($tableName)) {
+            return true;
+        }
+
+        $catalogAt = $this->getCatalogUpdatedAt();
+        $detailAt = $this->getTableDetailUpdatedAt($tableName);
+        if ($catalogAt !== null && $catalogAt !== '' && $detailAt !== null && $detailAt !== '') {
+            if (strtotime($catalogAt) > strtotime($detailAt)) {
+                return true;
+            }
+        }
+
+        $catalogRow = $this->findCatalogTableRow($tableName);
+        if ($catalogRow === null) {
+            return true;
+        }
+
+        $cached = $this->getCacheService()->getTableDetail($tableName);
+        $cachedColumnCount = is_array($cached['columns'] ?? null) ? count($cached['columns']) : 0;
+        $catalogColumnCount = (int) ($catalogRow['column_count'] ?? 0);
+
+        return $catalogColumnCount !== $cachedColumnCount;
+    }
+
+    /**
+     * Carrega colunas/índices da tabela no cache se ainda não existirem ou estiverem desatualizados.
+     */
+    public function ensureTableDetailCache(string $tableName): void
+    {
+        if ($this->isTableDetailStale($tableName)) {
+            $this->refreshTableDetailCache($tableName);
+        }
+    }
+
+    /**
+     * Reconstrói o catálogo e invalida detalhes das tabelas (novas tabelas/colunas após migrations).
      *
      * @return array{updated_at: string, table_count: int}
      */
@@ -196,6 +245,29 @@ class DatabaseSchemaRepository extends DbConnection
         }
 
         return $this->tableExistsInDatabase($tableName);
+    }
+
+    public function tableExistsInLiveDatabase(string $tableName): bool
+    {
+        if (!$this->isValidTableIdentifier($tableName)) {
+            return false;
+        }
+
+        return $this->tableExistsInDatabase($tableName);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findCatalogTableRow(string $tableName): ?array
+    {
+        foreach ($this->listTables() as $row) {
+            if ((string) ($row['table_name'] ?? '') === $tableName) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     /**

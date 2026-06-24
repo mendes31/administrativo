@@ -37,7 +37,7 @@ class LoadViewService
      * 
      * @return void
      * 
-     * @throws Exception Se o arquivo da VIEW não for encontrado, exibe uma mensagem de erro e encerra a execução.
+     * @throws \Exception Se o arquivo da VIEW não for encontrado, exibe uma mensagem de erro e encerra a execução.
      */
     public function loadView(): void
     {
@@ -66,7 +66,7 @@ class LoadViewService
      * 
      * @return void
      * 
-     * @throws Exception Se o arquivo da VIEW não for encontrado, exibe uma mensagem de erro e encerra a execução.
+     * @throws \Exception Se o arquivo da VIEW não for encontrado, exibe uma mensagem de erro e encerra a execução.
      */
     public function loadViewLogin(): void
     {

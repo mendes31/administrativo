@@ -7,7 +7,6 @@ $canView = in_array('ViewDatabaseTable', $this->data['buttonPermission'] ?? [], 
 $urlAdm = htmlspecialchars((string) ($_ENV['URL_ADM'] ?? ''));
 $totalTables = (int) ($this->data['pagination']['total'] ?? count($this->data['tables'] ?? []));
 $catalogUpdatedAt = trim((string) ($this->data['catalog_updated_at'] ?? ''));
-$catalogEmpty = !empty($this->data['catalog_empty']);
 $canRefresh = in_array('ListDatabaseTables', $this->data['menuPermission'] ?? [], true);
 ?>
 <div class="container-fluid px-4 db-schema-page">
@@ -42,16 +41,10 @@ $canRefresh = in_array('ListDatabaseTables', $this->data['menuPermission'] ?? []
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
             <p class="text-muted small mb-3">
-                Catálogo MySQL da base <strong><?= $databaseName ?></strong> — lido do <strong>cache em disco</strong>.
-                Após migrations ou novas tabelas, use <strong>Atualizar catálogo</strong> (não consulta o banco a cada acesso).
+                Catálogo MySQL da base <strong><?= $databaseName ?></strong> em cache local.
+                A lista carrega automaticamente; ao abrir uma tabela, colunas e índices são sincronizados.
+                Após migrations, use <strong>Atualizar catálogo</strong> para incluir novas tabelas e colunas.
             </p>
-
-            <?php if ($catalogEmpty): ?>
-            <div class="alert alert-info mb-3">
-                <i class="fa-solid fa-circle-info me-1"></i>
-                O catálogo ainda não foi carregado. Clique em <strong>Atualizar catálogo</strong> para consultar o banco uma vez e armazenar o resultado em cache.
-            </div>
-            <?php endif; ?>
 
             <form method="get" class="row g-2 mb-3 align-items-end">
                 <div class="col-md-3">
@@ -136,13 +129,7 @@ $canRefresh = in_array('ListDatabaseTables', $this->data['menuPermission'] ?? []
             </p>
             <?php endif; ?>
             <?php else: ?>
-            <div class="alert alert-warning mb-0">
-                <?php if ($catalogEmpty): ?>
-                Nenhuma tabela no cache. Clique em <strong>Atualizar catálogo</strong> para carregar a lista.
-                <?php else: ?>
-                Nenhuma tabela encontrada com os filtros informados.
-                <?php endif; ?>
-            </div>
+            <div class="alert alert-warning mb-0">Nenhuma tabela encontrada com os filtros informados.</div>
             <?php endif; ?>
         </div>
     </div>

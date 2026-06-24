@@ -34,17 +34,21 @@ class ListDatabaseTables
         $filterSearch = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
 
         $repo = new DatabaseSchemaRepository();
-        $hasCache = $repo->hasCatalogCache();
-        $allTables = $hasCache
-            ? $repo->listTables($filterModule !== '' ? $filterModule : null, $filterSearch)
-            : [];
+
+        try {
+            set_time_limit(120);
+            $repo->ensureCatalogCache();
+        } catch (\Throwable $e) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Não foi possível carregar o catálogo de tabelas. Tente novamente.</div>';
+        }
+
+        $allTables = $repo->listTables($filterModule !== '' ? $filterModule : null, $filterSearch);
         $total = count($allTables);
         $offset = max(0, ((int) $page - 1) * $this->limitResult);
         $this->data['tables'] = array_slice($allTables, $offset, $this->limitResult);
-        $this->data['modules'] = $hasCache ? $repo->listModules() : [];
+        $this->data['modules'] = $repo->listModules();
         $this->data['database_name'] = $repo->getDatabaseName();
         $this->data['catalog_updated_at'] = $repo->getCatalogUpdatedAt();
-        $this->data['catalog_empty'] = !$hasCache;
         $this->data['filter_module'] = $filterModule;
         $this->data['filter_search'] = $filterSearch;
         $this->data['per_page'] = $this->limitResult;
@@ -84,12 +88,12 @@ class ListDatabaseTables
             exit;
         }
 
-        set_time_limit(120);
+        set_time_limit(180);
 
         try {
             $result = (new DatabaseSchemaRepository())->refreshCatalogCache();
-            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Catálogo atualizado com sucesso — '
-                . (int) $result['table_count'] . ' tabela(s) em ' . htmlspecialchars((string) $result['updated_at']) . '.</div>';
+            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Catálogo sincronizado — '
+                . (int) $result['table_count'] . ' tabela(s). Novas tabelas e colunas serão carregadas ao abrir cada tabela.</div>';
         } catch (\Throwable $e) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Falha ao atualizar o catálogo. Tente novamente.</div>';
         }

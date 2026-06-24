@@ -12,9 +12,6 @@ $urlAdm = htmlspecialchars((string) ($_ENV['URL_ADM'] ?? ''));
 $appVersion = htmlspecialchars((string) ($_ENV['APP_VERSION'] ?? '1.0'));
 $createDdl = (string) ($this->data['create_ddl'] ?? '');
 $detailUpdatedAt = trim((string) ($this->data['detail_updated_at'] ?? ''));
-$detailEmpty = !empty($this->data['detail_empty']);
-$canRefreshDetail = in_array('ViewDatabaseTable', $this->data['buttonPermission'] ?? [], true);
-$catalogUpdatedAt = trim((string) ($this->data['catalog_updated_at'] ?? ''));
 
 $dbTableUrl = static function (string $name) use ($urlAdm): string {
     return $urlAdm . 'view-database-table/' . rawurlencode(str_replace('_', '-', $name));
@@ -41,30 +38,11 @@ $dbTableUrl = static function (string $name) use ($urlAdm): string {
         </h2>
         <div class="d-flex flex-wrap align-items-center gap-2">
             <?php if ($detailUpdatedAt !== ''): ?>
-            <span class="text-muted small">Detalhe em <?= htmlspecialchars($detailUpdatedAt) ?></span>
+            <span class="text-muted small">Sincronizado em <?= htmlspecialchars($detailUpdatedAt) ?></span>
             <?php endif; ?>
             <span class="text-muted small fw-semibold"><?= $columnCount ?> COLUNAS | <?= $indexCount ?> ÍNDICES</span>
-            <?php if ($canRefreshDetail): ?>
-            <form method="post" class="d-inline" onsubmit="return confirm('Consultar colunas e índices desta tabela no banco?');">
-                <input type="hidden" name="refresh_table_detail" value="1">
-                <button type="submit" class="btn btn-success btn-sm">
-                    <i class="fa-solid fa-rotate"></i> Atualizar tabela
-                </button>
-            </form>
-            <?php endif; ?>
         </div>
     </div>
-
-    <?php if ($detailEmpty): ?>
-    <div class="alert alert-info">
-        <i class="fa-solid fa-circle-info me-1"></i>
-        Os detalhes desta tabela ainda não estão em cache.
-        Clique em <strong>Atualizar tabela</strong> para carregar colunas, índices e SQL.
-        <?php if ($catalogUpdatedAt !== ''): ?>
-        Catálogo geral atualizado em <?= htmlspecialchars($catalogUpdatedAt) ?>.
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
 
     <?php if ($canList): ?>
     <p class="mb-3">
@@ -107,7 +85,6 @@ $dbTableUrl = static function (string $name) use ($urlAdm): string {
         </div>
     </div>
 
-    <?php if (!$detailEmpty): ?>
     <div class="card mb-3 border-0 shadow-sm">
         <div class="card-header p-0 bg-white border-bottom-0">
             <ul class="nav nav-tabs db-schema-sql-tabs" id="dbSqlTabs" role="tablist">
@@ -230,7 +207,6 @@ $dbTableUrl = static function (string $name) use ($urlAdm): string {
         </div>
     </div>
     <?php endif; ?>
-    <?php endif; ?>
 </div>
 
 <style>
@@ -243,7 +219,6 @@ $dbTableUrl = static function (string $name) use ($urlAdm): string {
 .db-col-row.is-hidden { display: none; }
 </style>
 
-<?php if (!$detailEmpty): ?>
 <script>
 (function () {
     var tableName = <?= json_encode($tableName, JSON_UNESCAPED_UNICODE) ?>;
@@ -322,4 +297,3 @@ $dbTableUrl = static function (string $name) use ($urlAdm): string {
     applyFilters();
 })();
 </script>
-<?php endif; ?>
