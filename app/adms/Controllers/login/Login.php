@@ -159,7 +159,6 @@ class Login
             if($_ENV['APP_LOGS'] == 'Sim'){
             $dataLogs = [
                 'table_name' => 'adms_users',
-                'table_name' => 'adms_users',
                 'action' => 'login',
                 'record_id' => 0,
                 'description' => 'login',

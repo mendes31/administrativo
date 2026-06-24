@@ -230,7 +230,10 @@ $dbTableUrl = static function (string $name) use ($urlAdm): string {
         </div>
     </div>
     <?php endif; ?>
+    <?php endif; ?>
 </div>
+
+<style>
 .db-schema-page .db-schema-summary thead th { font-size: .78rem; text-transform: uppercase; }
 .db-schema-sql-tabs .nav-link { font-size: .85rem; font-weight: 600; color: #495057; }
 .db-schema-sql-tabs .nav-link.active { color: #0d6efd; border-bottom: 2px solid #0d6efd; }
