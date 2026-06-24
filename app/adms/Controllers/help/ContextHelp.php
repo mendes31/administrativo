@@ -18,21 +18,23 @@ class ContextHelp
             $raw = trim((string) $_GET['ctx']);
         }
 
-        if ($raw === '') {
-            $topicId = 'index';
-        } elseif (ContextHelpHelper::findTopicInManifest($raw) !== null) {
-            $topicId = $raw;
-        } else {
-            $topicId = ContextHelpHelper::resolveTopicFromPageSlug($raw);
-        }
+        $requestedSlug = $raw;
+        $topicId = $raw === ''
+            ? 'index'
+            : ContextHelpHelper::resolveHelpTopicId($raw);
 
         $meta = ContextHelpHelper::findTopicInManifest($topicId);
         $html = ContextHelpHelper::renderTopicHtml($topicId);
 
-        if ($html === null && $topicId !== 'index') {
-            $topicId = 'sst-visao-geral';
-            $meta = ContextHelpHelper::findTopicInManifest($topicId);
-            $html = ContextHelpHelper::renderTopicHtml($topicId);
+        if ($html !== null && $topicId === ContextHelpHelper::TOPIC_UNDER_DEVELOPMENT && $requestedSlug !== '') {
+            $label = ContextHelpHelper::formatPageSlugLabel($requestedSlug);
+            $pageContext = '<p class="mb-3">'
+                . 'Tela solicitada: <strong>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</strong>'
+                . ' <span class="text-muted">(<code>' . htmlspecialchars($requestedSlug, ENT_QUOTES, 'UTF-8') . '</code>)</span>'
+                . '</p>';
+            $html = str_replace('{{PAGE_CONTEXT}}', $pageContext, $html);
+        } elseif ($html !== null) {
+            $html = str_replace('{{PAGE_CONTEXT}}', '', $html);
         }
 
         $this->data['topic_id'] = $topicId;

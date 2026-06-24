@@ -9,6 +9,11 @@
           "id": "index",
           "title": "Início do manual",
           "file": "index.html"
+        },
+        {
+          "id": "em-desenvolvimento",
+          "title": "Documentação em desenvolvimento",
+          "file": "em-desenvolvimento.html"
         }
       ]
     },

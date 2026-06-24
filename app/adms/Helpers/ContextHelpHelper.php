@@ -11,6 +11,8 @@ final class ContextHelpHelper
 {
     private const MANIFEST_PATH = 'docs/manual/manifest.json';
 
+    public const TOPIC_UNDER_DEVELOPMENT = 'em-desenvolvimento';
+
     /** Slug da página (menu / controller_url) → id do tópico no manual. */
     private const PAGE_TOPIC_MAP = [
         'sst-dashboard' => 'sst-dashboard',
@@ -132,20 +134,50 @@ final class ContextHelpHelper
 
     public static function resolveTopicFromPageSlug(string $pageSlug): string
     {
-        $slug = strtolower(trim($pageSlug));
+        return self::resolveHelpTopicId($pageSlug);
+    }
+
+    /**
+     * Slug da tela ou id do tópico → id do manual a exibir.
+     * Telas sem tópico elaborado retornam {@see TOPIC_UNDER_DEVELOPMENT}.
+     */
+    public static function resolveHelpTopicId(string $raw): string
+    {
+        $slug = strtolower(trim($raw));
         if ($slug === '') {
             return 'index';
         }
 
-        if (isset(self::PAGE_TOPIC_MAP[$slug])) {
-            return self::PAGE_TOPIC_MAP[$slug];
+        if (self::isTopicDocumented($slug)) {
+            return $slug;
         }
 
-        if (str_starts_with($slug, 'sst-')) {
-            return 'sst-visao-geral';
+        $mapped = self::PAGE_TOPIC_MAP[$slug] ?? null;
+        if ($mapped !== null && self::isTopicDocumented($mapped)) {
+            return $mapped;
         }
 
-        return 'index';
+        return self::TOPIC_UNDER_DEVELOPMENT;
+    }
+
+    public static function isTopicDocumented(string $topicId): bool
+    {
+        $topicId = strtolower(trim($topicId));
+        if ($topicId === '' || $topicId === self::TOPIC_UNDER_DEVELOPMENT) {
+            return false;
+        }
+
+        return self::topicContentPath($topicId) !== null;
+    }
+
+    public static function formatPageSlugLabel(string $pageSlug): string
+    {
+        $slug = strtolower(trim($pageSlug));
+        if ($slug === '') {
+            return '';
+        }
+
+        return ucwords(str_replace('-', ' ', $slug));
     }
 
     /** @return array{modules: list<array<string, mixed>>} */
@@ -183,6 +215,21 @@ final class ContextHelpHelper
 
     public static function renderTopicHtml(string $topicId): ?string
     {
+        $full = self::topicContentPath($topicId);
+        if ($full === null) {
+            return null;
+        }
+
+        $html = file_get_contents($full);
+        if ($html === false) {
+            return null;
+        }
+
+        return self::processManualHtml($html);
+    }
+
+    private static function topicContentPath(string $topicId): ?string
+    {
         $topic = self::findTopicInManifest($topicId);
         if ($topic === null) {
             return null;
@@ -199,12 +246,7 @@ final class ContextHelpHelper
             return null;
         }
 
-        $html = file_get_contents($full);
-        if ($html === false) {
-            return null;
-        }
-
-        return self::processManualHtml($html);
+        return $full;
     }
 
     /** Substitui tokens {{IMG:nome}} e {{URL_ADM}} no HTML do manual. */
@@ -268,12 +310,12 @@ final class ContextHelpHelper
     public static function buildHelpUrl(string $pageSlug): string
     {
         $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
-        $topic = self::resolveTopicFromPageSlug($pageSlug);
-        if ($topic === 'index') {
+        $slug = strtolower(trim($pageSlug));
+        if ($slug === '') {
             return $base . '/context-help';
         }
 
-        return $base . '/context-help/' . rawurlencode($topic);
+        return $base . '/context-help/' . rawurlencode($slug);
     }
 
     private static function manifestFilePath(): string
