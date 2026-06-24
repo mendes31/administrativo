@@ -26,7 +26,7 @@ class SstReportEpis
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $pageElements = [
             'title_head' => 'Relatório de EPIs - SST',
-            'menu' => 'sst-dashboard',
+            'menu' => 'sst-report-epis',
             'buttonPermission' => ['SstReportEpis'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

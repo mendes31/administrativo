@@ -36,7 +36,7 @@ function formatCellValue(string $col, mixed $value): string {
     </div>
     <div class="row">
         <div class="col-md-8">
-            <div class="card mb-4 shadow-sm">
+            <div class="card mb-4 shadow-sm" data-adms-help-section="aba-dados">
                 <div class="card-header"><h5 class="mb-0">Dados</h5></div>
                 <div class="card-body"><table class="table table-sm mb-0">
                     <tr><th width="35%">Colaborador:</th><td><?= formatCellValue('adms_user_id', $item['adms_user_id'] ?? null) ?></td></tr>
@@ -57,7 +57,7 @@ function formatCellValue(string $col, mixed $value): string {
                 </table></div>
             </div>
             <?php if (!empty($this->data['complementares'])): ?>
-            <div class="card mb-4 shadow-sm">
+            <div class="card mb-4 shadow-sm" data-adms-help-section="aba-complementares">
                 <div class="card-header"><h5 class="mb-0">Exames complementares</h5></div>
                 <div class="card-body table-responsive">
                     <table class="table table-sm mb-0">
@@ -78,7 +78,7 @@ function formatCellValue(string $col, mixed $value): string {
                 </div>
             </div>
             <?php endif; ?>
-                        <div class="card mb-4 shadow-sm">
+                        <div class="card mb-4 shadow-sm" data-adms-help-section="aba-anexos">
                 <div class="card-header"><h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Anexos</h5></div>
                 <div class="card-body">
                     <?php if (empty($this->data['anexos'])): ?>

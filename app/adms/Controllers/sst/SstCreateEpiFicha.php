@@ -45,6 +45,9 @@ class SstCreateEpiFicha
         if (!empty($_GET['adms_user_id'])) {
             $this->data['item']['adms_user_id'] = (int) $_GET['adms_user_id'];
         }
+        if (!empty($_GET['adms_sst_epi_id'])) {
+            $this->data['item']['adms_sst_epi_id'] = (int) $_GET['adms_sst_epi_id'];
+        }
         $this->data['item']['data_entrega'] = date('Y-m-d');
         $this->data['bloqueio_treinamento_ativo'] = SstTreinamentoBloqueioService::isAtivo();
         $this->data['pode_ignorar_bloqueio_treinamento'] = (new SstTreinamentoBloqueioService())->podeIgnorarBloqueio();

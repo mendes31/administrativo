@@ -1,0 +1,19 @@
+<h1>Matriz cargo × treinamento</h1>
+<p>Visão consolidada e edição de treinamentos obrigatórios por cargo.</p>
+
+<h2>Colunas do resumo</h2>
+<div class="help-field"><strong>Total</strong> Quantidade distinta de treinamentos efetivos (sem duplicar o mesmo treinamento).</div>
+<div class="help-field"><strong>Direto</strong> Vínculos gravados diretamente na matriz.</div>
+<div class="help-field"><strong>Risco</strong> Herdados de riscos vinculados ao cargo/setor.</div>
+<div class="help-field"><strong>GHE</strong> Treinamentos de grupos homogêneos com colaboradores ativos no cargo.</div>
+
+<h2>Edição</h2>
+<p>Ao expandir um cargo, checkboxes <strong>editáveis</strong> são apenas vínculos diretos. Badges de Risco e GHE são <strong>somente leitura</strong> — altere na tela do risco ou do GHE.</p>
+
+<h2>Salvar</h2>
+<p>Grava somente necessidades diretas (<code>adms_sst_treinamento_necessidade</code> sem risco). Não duplica regras de risco/GHE no banco.</p>
+
+<div class="help-note">
+    <strong>Exemplo</strong>
+    Gerente de TI no setor TI com risco Poeira: treinamentos do risco aparecem na coluna <strong>Risco</strong>, não é necessário cadastrar na matriz.
+</div>

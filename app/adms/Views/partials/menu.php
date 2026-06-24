@@ -1731,9 +1731,21 @@ if (!function_exists('countPermittedSubmenus')) {
                                                 break;
                                             }
                                             // Match por controller/permission informado pelo controller
+                                            $submenuSlug = '';
+                                            if (isset($submenu['url'])) {
+                                                $sbPathForSlug = parse_url($submenu['url'], PHP_URL_PATH);
+                                                $submenuSlug = is_string($sbPathForSlug) && $sbPathForSlug !== ''
+                                                    ? basename($sbPathForSlug)
+                                                    : '';
+                                            }
+                                            $menuAtivoMatchesSubmenuUrl = (
+                                                $submenuSlug !== ''
+                                                && $menuAtivo == $submenuSlug
+                                                && rtrim($currentPathNoBase, '/') === rtrim($submenuPathNoBase ?? '', '/')
+                                            );
                                             if ((isset($menu['id']) && $menuAtivo == $menu['id'])
-                                                || (isset($submenu['url']) && $menuAtivo == basename($submenu['url']))
-                                                || ($firstSegment !== '' && $menuAtivo == $firstSegment)
+                                                || $menuAtivoMatchesSubmenuUrl
+                                                || ($firstSegment !== '' && $menuAtivo == $firstSegment && rtrim($currentPathNoBase, '/') === rtrim($submenuPathNoBase ?? '', '/'))
                                                 || menuEntryMatchesAtivo($submenu, $menuAtivo)) {
                                                 $submenuActive = true;
                                                 break;
@@ -1769,8 +1781,20 @@ if (!function_exists('countPermittedSubmenus')) {
                                                         $nestedPathNoBase = implode('/', $nparts);
                                                     }
                                                     // Match por controller/permission
-                                                    if ((isset($nestedSubmenu['url']) && $menuAtivo == basename($nestedSubmenu['url']))
-                                                        || ($nestedFirst !== '' && $menuAtivo == $nestedFirst)
+                                                    $nestedSlug = '';
+                                                    if (isset($nestedSubmenu['url'])) {
+                                                        $nSlugPath = parse_url($nestedSubmenu['url'], PHP_URL_PATH);
+                                                        $nestedSlug = is_string($nSlugPath) && $nSlugPath !== ''
+                                                            ? basename($nSlugPath)
+                                                            : '';
+                                                    }
+                                                    $menuAtivoMatchesNested = (
+                                                        $nestedSlug !== ''
+                                                        && $menuAtivo == $nestedSlug
+                                                        && rtrim($currentPathNoBase, '/') === rtrim($nestedPathNoBase ?? '', '/')
+                                                    );
+                                                    if ($menuAtivoMatchesNested
+                                                        || ($nestedFirst !== '' && $menuAtivo == $nestedFirst && rtrim($currentPathNoBase, '/') === rtrim($nestedPathNoBase ?? '', '/'))
                                                         || menuEntryMatchesAtivo($nestedSubmenu, $menuAtivo)) {
                                                         $submenuActive = true;
                                                         break 2;
@@ -1890,7 +1914,13 @@ if (!function_exists('countPermittedSubmenus')) {
                                         $active = 'active';
                                     } elseif ($urlBaseNameMatch || $urlFirstSegMatch) {
                                         $active = 'active';
-                                    } elseif ($menuCoarseMatch) {
+                                    } elseif (
+                                        $menuCoarseMatch
+                                        && (
+                                            ($menuPathNoBase !== '' && rtrim($currentPathNoBase, '/') === rtrim($menuPathNoBase, '/'))
+                                            || ($menuSlugBase !== '' && $currentBaseName === $menuSlugBase)
+                                        )
+                                    ) {
                                         $active = 'active';
                                     }
                                     echo '<a href="' . $menu['url'] . '" class="nav-link ' . $active . '">' . ($nivel == 0 && isset($menu['icon']) ? '<div class="sb-nav-link-icon"><i class="' . $menu['icon'] . '"></i></div> ' : '') . $menu['label'] . '</a>';

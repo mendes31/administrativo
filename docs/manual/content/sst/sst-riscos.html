@@ -1,0 +1,45 @@
+<h1>Riscos ocupacionais</h1>
+<p>Catálogo mestre de agentes e situações de risco. A partir do risco derivam exames, EPIs e treinamentos obrigatórios.</p>
+
+<h2>Listagem</h2>
+<p>Exibe riscos cadastrados com status, grupo e nível. Use filtros e busca para localizar.</p>
+
+<h2>Cadastro / edição</h2>
+<div class="help-field"><strong>Nome</strong> Identificação do risco (ex.: Ruído, Poeira mineral).</div>
+<div class="help-field"><strong>Grupo / Categoria</strong> Classificação para relatórios e PGR.</div>
+<div class="help-field"><strong>Nível</strong> Gravidade ou prioridade (Baixo, Médio, Alto…).</div>
+<div class="help-field"><strong>Status</strong> Apenas riscos ativos entram no cálculo de pendências.</div>
+<div class="help-field"><strong>Descrição / Medidas</strong> Texto livre para documentação e PPP.</div>
+
+<h2 id="aba-cargos">Aba Cargos / Setores</h2>
+<p>Define <strong>quem está exposto</strong> a este risco. Sem vínculo aqui, exames, EPIs e treinamentos do risco não geram pendências.</p>
+<ul>
+    <li><strong>Cargo + setor</strong> — exposição específica (ex.: Gerente de TI no setor TI).</li>
+    <li><strong>Somente setor</strong> — todos os cargos daquele departamento.</li>
+    <li><strong>Somente cargo</strong> — cargo em qualquer setor.</li>
+    <li><strong>Nível de exposição</strong> — registro qualitativo (Baixo, Médio, Alto).</li>
+</ul>
+
+<h2 id="aba-exames">Aba Exames</h2>
+<p>Exames complementares obrigatórios para expostos a este risco.</p>
+<div class="help-field"><strong>Exame</strong> Item do catálogo (audiometria, espirometria…).</div>
+<div class="help-field"><strong>Categoria ASO</strong> Em qual tipo de ASO o exame entra (periódico, admissional…).</div>
+<div class="help-field"><strong>Periodicidade</strong> Meses entre realizações; sobrescreve o padrão do catálogo se informado.</div>
+<div class="help-field"><strong>Obrigatório</strong> Se desmarcado, exame é recomendado, não obrigatório.</div>
+
+<h2 id="aba-epis">Aba EPIs</h2>
+<p>EPIs obrigatórios para neutralizar ou reduzir o risco.</p>
+<div class="help-field"><strong>EPI</strong> Item do catálogo (protetor auricular, PFF2…).</div>
+<div class="help-field"><strong>Validade de troca (meses)</strong> Periodicidade de substituição para quem está exposto.</div>
+<div class="help-field"><strong>Obrigatório</strong> EPI recomendado vs obrigatório.</div>
+
+<h2 id="aba-treinamentos">Aba Treinamentos</h2>
+<p>Treinamentos de segurança vinculados ao risco.</p>
+<div class="help-field"><strong>Treinamento</strong> Item do catálogo SST.</div>
+<div class="help-field"><strong>Validade (meses)</strong> Reciclagem específica para este risco.</div>
+<div class="help-field"><strong>Opcional</strong> Desmarcado = obrigatório (padrão). Marque apenas se for recomendado.</div>
+
+<div class="help-note">
+    <strong>Dica F1</strong>
+    Com uma aba selecionada na tela do risco, pressione <kbd>F1</kbd> para abrir esta página já posicionada na seção da aba ativa.
+</div>

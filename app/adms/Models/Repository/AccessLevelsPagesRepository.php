@@ -53,6 +53,7 @@ class AccessLevelsPagesRepository extends DbConnection
         'ViewInformativo',
         'AcknowledgeInformativo',
         'ReadInformativo',
+        'ContextHelp',
     ];
 
     public static function getLastErrorMessage(): ?string

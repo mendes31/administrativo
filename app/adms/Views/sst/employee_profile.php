@@ -308,7 +308,7 @@ if (!empty($ultimoAso['data_validade'])) {
 
         <li class="nav-item">
 
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pend">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pend" data-adms-help-tab="aba-pendencias">
 
                 Pendências <?php if ($pendTotal > 0): ?><span class="badge bg-danger"><?= $pendTotal ?></span><?php endif; ?>
 
@@ -316,21 +316,21 @@ if (!empty($ultimoAso['data_validade'])) {
 
         </li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-riscos">Riscos <?php if (count($riscos) > 0): ?><span class="badge bg-secondary"><?= count($riscos) ?></span><?php endif; ?></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-riscos" data-adms-help-tab="aba-riscos">Riscos <?php if (count($riscos) > 0): ?><span class="badge bg-secondary"><?= count($riscos) ?></span><?php endif; ?></button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-obrig">Obrigatoriedades</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-obrig" data-adms-help-tab="aba-obrig">Obrigatoriedades</button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-timeline">Timeline</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-timeline" data-adms-help-tab="aba-timeline">Timeline</button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-asos">ASOs</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-asos" data-adms-help-tab="aba-asos">ASOs</button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-afast">Afastamentos</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-afast" data-adms-help-tab="aba-afastamentos">Afastamentos</button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-epi">EPIs</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-epi" data-adms-help-tab="aba-epis">EPIs</button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-acid">Acidentes</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-acid" data-adms-help-tab="aba-acidentes">Acidentes</button></li>
 
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-ppp">PPP <?php if (count($pppHistorico) > 0): ?><span class="badge bg-secondary"><?= count($pppHistorico) ?></span><?php endif; ?></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-ppp" data-adms-help-tab="aba-ppp">PPP <?php if (count($pppHistorico) > 0): ?><span class="badge bg-secondary"><?= count($pppHistorico) ?></span><?php endif; ?></button></li>
 
     </ul>
 

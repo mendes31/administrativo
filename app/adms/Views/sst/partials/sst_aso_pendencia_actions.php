@@ -20,15 +20,19 @@ function sstRenderAsoPendenciaActions(
 ): void {
     $uid = (int) ($r['adms_user_id'] ?? $defaultUserId ?? 0);
     $tipoPend = (string) ($r['tipo_pendencia'] ?? '');
+
+    if ($uid <= 0) {
+        return;
+    }
+    if (!in_array($tipoPend, ['evento_aso', 'exame_complementar', 'exame'], true)) {
+        return;
+    }
+
     $categoria = trim((string) ($r['categoria_aso'] ?? ''));
     if ($categoria === '' && $tipoPend === 'evento_aso') {
         $categoria = 'Periódico';
     }
-
-    if ($uid <= 0 || $categoria === '') {
-        return;
-    }
-    if (!in_array($tipoPend, ['evento_aso', 'exame_complementar'], true)) {
+    if ($categoria === '') {
         return;
     }
 

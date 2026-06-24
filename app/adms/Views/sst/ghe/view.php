@@ -56,13 +56,13 @@ function formatGheViewCell(mixed $value): string {
                 <div class="card-header pb-0 border-bottom-0">
                     <ul class="nav nav-tabs card-header-tabs" role="tablist">
                         <li class="nav-item">
-                            <button class="nav-link active" id="tab-colaboradores-btn" data-bs-toggle="tab" data-bs-target="#tab-colaboradores" type="button" role="tab">
+                            <button class="nav-link active" id="tab-colaboradores-btn" data-bs-toggle="tab" data-bs-target="#tab-colaboradores" type="button" role="tab" data-adms-help-tab="aba-colaboradores">
                                 <i class="fas fa-users me-1"></i>Colaboradores
                                 <span class="badge bg-primary ms-1"><?= $countColab ?></span>
                             </button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link" id="tab-treinamentos-btn" data-bs-toggle="tab" data-bs-target="#tab-treinamentos" type="button" role="tab">
+                            <button class="nav-link" id="tab-treinamentos-btn" data-bs-toggle="tab" data-bs-target="#tab-treinamentos" type="button" role="tab" data-adms-help-tab="aba-treinamentos">
                                 <i class="fas fa-graduation-cap me-1"></i>Treinamentos
                                 <span class="badge bg-success ms-1"><?= $countTrein ?></span>
                             </button>

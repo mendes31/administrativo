@@ -1,0 +1,34 @@
+<h1>Conceitos: Cargo, Risco, GHE e Matriz</h1>
+<p>Entender estes conceitos evita cadastros duplicados e garante que pendências sejam calculadas corretamente.</p>
+
+<h2>Modelo principal (recomendado para a maioria dos casos)</h2>
+<pre style="background:#f8f9fa;padding:1rem;border-radius:.25rem;">Colaborador → Cargo + Setor → Riscos → Exames / EPIs / Treinamentos</pre>
+
+<ul>
+    <li><strong>Risco</strong> — agente ou situação de exposição (ruído, poeira, ergonomia…). No cadastro do risco você vincula exames, EPIs e treinamentos.</li>
+    <li><strong>Risco × Cargo/Setor</strong> — define quem está exposto àquele risco.</li>
+    <li><strong>Necessidades</strong> — regras adicionais por cargo/setor (quando não passam pelo risco).</li>
+</ul>
+
+<h2>Matriz cargo × treinamento</h2>
+<p>Visão consolidada dos treinamentos obrigatórios por cargo. Mostra origem: <strong>Direto</strong> (vínculo na matriz), <strong>Risco</strong> (herdado do risco) ou <strong>GHE</strong> (via grupo de exposição).</p>
+<p>Na edição da matriz, apenas vínculos <strong>diretos</strong> são gravados. Regras de risco e GHE são somente leitura — edite na tela de origem.</p>
+
+<h2>GHE (opcional)</h2>
+<p>Grupo Homogêneo de Exposição: colaboradores com a mesma exposição ocupacional (mesmo ambiente, mesmos riscos).</p>
+<p><strong>Quando usar:</strong> mesmo cargo em ambientes diferentes (ex.: Operador na linha Encapsulados vs Líquidos).</p>
+<p><strong>Como vincular:</strong> no <strong>colaborador</strong>, não no cargo. Hoje o GHE propaga principalmente <strong>treinamentos</strong>; EPIs e exames continuam via cargo/setor → risco.</p>
+
+<div class="help-note">
+    <strong>Sem duplicar pendências</strong>
+    Se o colaborador recebe o mesmo treinamento pelo cargo e pelo GHE, o sistema conta <strong>uma única</strong> obrigação.
+</div>
+
+<h2>Ordem sugerida de cadastro</h2>
+<ol>
+    <li>Exames, EPIs, Treinamentos (catálogos)</li>
+    <li>Riscos + abas Exames / EPIs / Treinamentos</li>
+    <li>Riscos por cargo/setor</li>
+    <li>Sync de vínculos de treinamento (se aplicável)</li>
+    <li>GHE — somente se necessário</li>
+</ol>

@@ -1,0 +1,63 @@
+<h1>Pendências SST</h1>
+<p>
+    Relatório consolidado de itens críticos por colaborador: cruza <strong>obrigatoriedades</strong>
+    (cargo, risco, GHE quando aplicável) com <strong>registros operacionais</strong> (entregas de EPI,
+    ASOs, vínculos de treinamento, afastamentos e acidentes).
+</p>
+
+<h2>Filtros</h2>
+<ul>
+    <li><strong>Colaborador</strong> — restringe a um único colaborador.</li>
+    <li><strong>Departamento</strong> — lista pendências dos colaboradores ativos do setor.</li>
+    <li><strong>Situação</strong> — filtra por tipo de pendência (ex.: EPI não entregue, ASO vencido).</li>
+</ul>
+<p>Use <strong>Filtrar</strong> para aplicar e <strong>Limpar</strong> para voltar ao relatório completo.</p>
+
+<h2 id="aba-pendencias-epi">Aba — EPIs obrigatórios</h2>
+<p>
+    Mostra colaboradores com EPI exigido por vínculo (cargo/risco) sem entrega registrada ou com
+    <strong>troca vencida</strong>.
+</p>
+<p><strong>Ações por linha:</strong></p>
+<ul>
+    <li><strong>Perfil SST</strong> (ícone olho) — histórico completo do colaborador.</li>
+    <li><strong>Registrar entrega</strong> (ícone capacete) — abre nova ficha de EPI com colaborador e EPI pré-selecionados.</li>
+</ul>
+
+<h2 id="aba-pendencias-exame">Aba — Exames obrigatórios</h2>
+<p>
+    Pendências de exames complementares e eventos ASO (admissional, periódico, etc.) conforme
+    necessidades cadastradas e periodicidade.
+</p>
+<p><strong>Ações por linha:</strong></p>
+<ul>
+    <li><strong>Perfil SST</strong> — visão geral do colaborador.</li>
+    <li><strong>Abrir ASO</strong> — cria solicitação de ASO para a categoria pendente.</li>
+    <li><strong>Registrar resultados</strong> — quando já existe ASO aguardando laudo.</li>
+</ul>
+
+<h2 id="aba-pendencias-treinamento">Aba — Treinamentos obrigatórios</h2>
+<p>
+    Treinamentos exigidos por cargo/matriz/GHE sem vínculo concluído ou com validade vencida.
+    Visível quando a integração de pendências de treinamento está ativa no ambiente.
+</p>
+<p><strong>Ações:</strong> Perfil SST e atalho para <strong>vínculos de treinamento</strong> filtrados.</p>
+
+<h2 id="aba-pendencias-afastamentos">Aba — Afastamentos ativos</h2>
+<p>Colaboradores com afastamento em andamento (sem ações de fluxo nesta aba).</p>
+
+<h2 id="aba-pendencias-acidentes">Aba — Acidentes abertos</h2>
+<p>Registros de acidente/incidente ainda não encerrados.</p>
+
+<h2>Ajuda contextual (F1)</h2>
+<p>
+    Pressione <kbd>F1</kbd> ou use <strong>Ajuda desta tela</strong> no rodapé. O manual abre em nova aba
+    focado na aba que estiver ativa no relatório.
+</p>
+
+<h2>Origem dos dados</h2>
+<p>
+    As pendências são calculadas em tempo real a partir de: necessidades de EPI/exame/treinamento,
+    matriz cargo × risco, entregas e fichas EPI, ASOs, vínculos de treinamento SST e cadastros de
+    afastamento/acidente. Alterações em cadastros ou vínculos refletem após recarregar a página.
+</p>

@@ -27,8 +27,8 @@ $perms = $this->data['buttonPermission'] ?? [];
     <div class="card mb-3 border-light shadow">
         <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item"><a class="nav-link <?= $aba !== 'concluidas' ? 'active' : '' ?>" href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias">Abertas</a></li>
-                <li class="nav-item"><a class="nav-link <?= $aba === 'concluidas' ? 'active' : '' ?>" href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias?aba=concluidas">Concluídas</a></li>
+                <li class="nav-item"><a class="nav-link <?= $aba !== 'concluidas' ? 'active' : '' ?>" href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias" data-adms-help-tab="aba-vistorias-abertas">Abertas</a></li>
+                <li class="nav-item"><a class="nav-link <?= $aba === 'concluidas' ? 'active' : '' ?>" href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias?aba=concluidas" data-adms-help-tab="aba-vistorias-concluidas">Concluídas</a></li>
             </ul>
         </div>
         <div class="card-body">

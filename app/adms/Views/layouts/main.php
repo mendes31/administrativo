@@ -206,6 +206,15 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <?php endif; ?>
     <meta name="theme-color" content="#2E9263">
     <?php if (!empty($_SESSION['user_id'])): ?>
+    <?php
+    $admsPageMenuSlug = htmlspecialchars((string) ($this->data['menu'] ?? ''), ENT_QUOTES, 'UTF-8');
+    $admsHelpBaseUrl = htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/context-help', ENT_QUOTES, 'UTF-8');
+    ?>
+    <meta name="adms-page-menu" content="<?= $admsPageMenuSlug ?>">
+    <script>
+    window.__admsPageMenu = <?= json_encode((string) ($this->data['menu'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.__admsHelpBaseUrl = <?= json_encode(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/context-help', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    </script>
     <script>
     window.__admsDeferredInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', function (e) {
@@ -327,6 +336,10 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
                             <a href="<?php echo $_ENV['URL_ADM']; ?>politica-privacidade" class="text-decoration-none">Políticas de Privacidade</a>
                             &middot;
                             <a href="<?php echo $_ENV['URL_ADM']; ?>termos-de-uso" class="text-decoration-none">Termos de Uso</a>
+                            <?php if (!empty($_SESSION['user_id'])): ?>
+                            &middot;
+                            <?php include __DIR__ . '/../partials/context_help_hint.php'; ?>
+                            <?php endif; ?>
                         </div>
                         <div class="text-muted adms-footer-copyright small">
                             Copyright &copy; <?php echo $_ENV['APP_NAME'] . " " . date("Y"); ?>
@@ -401,6 +414,9 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/swal-lite.js?v=20260420-1"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/sbadmin.js"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/script_admin.js"></script>
+    <?php if (!empty($_SESSION['user_id'])): ?>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/context-help.js?v=20260626d"></script>
+    <?php endif; ?>
     
     <!-- Fix para garantir funcionamento do menu toggle -->
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/menu-toggle-fix.js"></script>

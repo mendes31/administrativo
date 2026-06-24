@@ -22,7 +22,7 @@ class SstReportExames
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $pageElements = [
             'title_head' => 'Relatório de Exames - SST',
-            'menu' => 'sst-dashboard',
+            'menu' => 'sst-report-exames',
             'buttonPermission' => ['SstReportExames'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

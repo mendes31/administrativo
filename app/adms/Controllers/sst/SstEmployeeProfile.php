@@ -66,7 +66,7 @@ class SstEmployeeProfile
 
         $pageElements = [
             'title_head' => 'SST - ' . ($this->data['user']['name'] ?? 'Colaborador'),
-            'menu' => 'sst-dashboard',
+            'menu' => 'sst-employee-profile',
             'buttonPermission' => [
                 'SstEmployeeProfile',
                 'SstCreateAso', 'SstCreateAfastamento', 'SstCreateEpiEntrega', 'SstCreateEpiFicha', 'SstCreateAcidente',

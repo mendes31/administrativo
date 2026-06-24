@@ -3,6 +3,7 @@ use App\adms\Helpers\CSRFHelper;
 $item = $this->data['item'] ?? [];
 $epis = $this->data['epis'] ?? [];
 $users = $this->data['users'] ?? [];
+$preselectEpiId = (int) ($item['adms_sst_epi_id'] ?? 0);
 $casEstoqueJson = $this->data['cas_estoque_por_epi_json'] ?? '{}';
 $vidaUtilJson = $this->data['vida_util_por_epi_json'] ?? '{}';
 $csrfToken = CSRFHelper::generateCSRFToken('sst_epi_fichas_form');
@@ -71,7 +72,7 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
                             <select name="itens[0][adms_sst_epi_id]" class="form-select epi-select" required>
                                 <option value="">Selecione...</option>
                                 <?php foreach ($epis as $ep): ?>
-                                <option value="<?= (int)$ep['id'] ?>" data-vida-util="<?= (int)($ep['periodicidade_troca_dias'] ?? 0) ?>">
+                                <option value="<?= (int)$ep['id'] ?>" data-vida-util="<?= (int)($ep['periodicidade_troca_dias'] ?? 0) ?>" <?= $preselectEpiId === (int)($ep['id'] ?? 0) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($ep['nome'] ?? '') ?> (saldo: <?= (int)($ep['estoque_atual'] ?? 0) ?>)
                                 </option>
                                 <?php endforeach; ?>

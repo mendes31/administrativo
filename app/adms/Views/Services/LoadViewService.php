@@ -78,4 +78,15 @@ class LoadViewService
             die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
         }
     }
+
+    /** Layout dedicado ao manual (Ajuda de contexto — F1). */
+    public function loadViewHelp(): void
+    {
+        $this->view = './app/' . $this->nameView . '.php';
+        if (file_exists($this->view)) {
+            include './app/adms/Views/layouts/help.php';
+        } else {
+            die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
+        }
+    }
 }

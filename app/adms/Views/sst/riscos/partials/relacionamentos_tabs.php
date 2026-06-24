@@ -37,25 +37,25 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
     <div class="card-body">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active" id="tab-cargos-btn" data-bs-toggle="tab" data-bs-target="#tab-cargos" type="button" role="tab">
+                <button class="nav-link active" id="tab-cargos-btn" data-bs-toggle="tab" data-bs-target="#tab-cargos" type="button" role="tab" data-adms-help-tab="aba-cargos">
                     <i class="fas fa-shield-virus me-1"></i>Cargos / Setores
                     <span class="badge bg-secondary ms-1"><?= $countCargos ?></span>
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="tab-exames-btn" data-bs-toggle="tab" data-bs-target="#tab-exames" type="button" role="tab">
+                <button class="nav-link" id="tab-exames-btn" data-bs-toggle="tab" data-bs-target="#tab-exames" type="button" role="tab" data-adms-help-tab="aba-exames">
                     <i class="fas fa-stethoscope me-1"></i>Exames
                     <span class="badge bg-primary ms-1"><?= $countExames ?></span>
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="tab-epis-btn" data-bs-toggle="tab" data-bs-target="#tab-epis" type="button" role="tab">
+                <button class="nav-link" id="tab-epis-btn" data-bs-toggle="tab" data-bs-target="#tab-epis" type="button" role="tab" data-adms-help-tab="aba-epis">
                     <i class="fas fa-hard-hat me-1"></i>EPIs
                     <span class="badge bg-warning text-dark ms-1"><?= $countEpis ?></span>
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="tab-treinamentos-btn" data-bs-toggle="tab" data-bs-target="#tab-treinamentos" type="button" role="tab">
+                <button class="nav-link" id="tab-treinamentos-btn" data-bs-toggle="tab" data-bs-target="#tab-treinamentos" type="button" role="tab" data-adms-help-tab="aba-treinamentos">
                     <i class="fas fa-graduation-cap me-1"></i>Treinamentos
                     <span class="badge bg-success ms-1"><?= $countTreinamentos ?></span>
                 </button>

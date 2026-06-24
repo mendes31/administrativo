@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "id": "geral",
+      "title": "Geral",
+      "topics": [
+        {
+          "id": "index",
+          "title": "Início do manual",
+          "file": "index.html"
+        }
+      ]
+    },
+    {
+      "id": "sst",
+      "title": "Segurança e Medicina",
+      "topics": [
+        { "id": "sst-visao-geral", "title": "Visão geral do módulo SST", "file": "sst/sst-visao-geral.html" },
+        { "id": "sst-conceitos", "title": "Conceitos: Cargo, Risco, GHE e Matriz", "file": "sst/sst-conceitos.html" },
+        { "id": "sst-dashboard", "title": "Dashboard SST", "file": "sst/sst-dashboard.html" },
+        { "id": "sst-riscos", "title": "Riscos ocupacionais", "file": "sst/sst-riscos.html" },
+        { "id": "sst-exames", "title": "Catálogo de exames", "file": "sst/sst-exames.html" },
+        { "id": "sst-asos", "title": "ASOs e encaminhamentos", "file": "sst/sst-asos.html" },
+        { "id": "sst-epis", "title": "Catálogo de EPIs", "file": "sst/sst-epis.html" },
+        { "id": "sst-epi-fichas", "title": "Fichas, estoque e movimentações EPI", "file": "sst/sst-epi-fichas.html" },
+        { "id": "sst-necessidades", "title": "Necessidades (EPI, exame, treinamento)", "file": "sst/sst-necessidades.html" },
+        { "id": "sst-treinamentos", "title": "Treinamentos SST", "file": "sst/sst-treinamentos.html" },
+        { "id": "sst-matriz-treinamento", "title": "Matriz cargo × treinamento", "file": "sst/sst-matriz-treinamento.html" },
+        { "id": "sst-ghe", "title": "GHE — Grupos Homogêneos de Exposição", "file": "sst/sst-ghe.html" },
+        { "id": "sst-medicos", "title": "Médicos do trabalho", "file": "sst/sst-medicos.html" },
+        { "id": "sst-cids", "title": "Catálogo CID-10", "file": "sst/sst-cids.html" },
+        { "id": "sst-acidentes-afastamentos", "title": "Acidentes e afastamentos", "file": "sst/sst-acidentes-afastamentos.html" },
+        { "id": "sst-conformidade", "title": "Programas e conformidade", "file": "sst/sst-conformidade.html" },
+        { "id": "sst-esocial-ppp", "title": "eSocial e PPP", "file": "sst/sst-esocial-ppp.html" },
+        { "id": "sst-equipamentos", "title": "Equipamentos e vistorias", "file": "sst/sst-equipamentos.html" },
+        { "id": "sst-cipa-inspecoes", "title": "CIPA e inspeções", "file": "sst/sst-cipa-inspecoes.html" },
+        { "id": "sst-relatorios", "title": "Relatórios SST", "file": "sst/sst-relatorios.html" },
+        { "id": "sst-report-pendencias", "title": "Pendências SST", "file": "sst/sst-report-pendencias.html" },
+        { "id": "sst-perfil-colaborador", "title": "Perfil SST do colaborador", "file": "sst/sst-perfil-colaborador.html" }
+      ]
+    }
+  ]
+}

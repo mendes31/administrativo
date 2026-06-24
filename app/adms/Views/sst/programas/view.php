@@ -11,7 +11,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             <a href="<?= $_ENV['URL_ADM']; ?>sst-list-programas" class="btn btn-secondary btn-sm">Voltar</a>
         </div>
     </div>
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" data-adms-help-section="aba-programa-dados">
         <div class="card-body">
             <table class="table table-sm mb-0">
                 <tr><th width="30%">Tipo</th><td><?= htmlspecialchars($item['tipo'] ?? '') ?></td></tr>
@@ -26,7 +26,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             </table>
         </div>
     </div>
-    <div class="card shadow-sm">
+    <div class="card shadow-sm" data-adms-help-section="aba-programa-anexos">
         <div class="card-header"><i class="fas fa-paperclip me-1"></i> Documentos anexos</div>
         <div class="card-body">
             <?php if (empty($this->data['anexos'])): ?>

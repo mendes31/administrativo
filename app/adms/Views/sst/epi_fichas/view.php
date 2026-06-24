@@ -42,7 +42,7 @@ $hashShort = $hash !== '' ? substr($hash, 0, 12) . '…' : '—';
 
     <div class="row">
         <div class="col-lg-7">
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4" data-adms-help-section="aba-dados-ficha">
                 <div class="card-header"><h5 class="mb-0">Dados da ficha</h5></div>
                 <div class="card-body">
                     <table class="table table-sm mb-0">
@@ -63,7 +63,7 @@ $hashShort = $hash !== '' ? substr($hash, 0, 12) . '…' : '—';
                 </div>
             </div>
 
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4" data-adms-help-section="aba-itens">
                 <div class="card-header"><h5 class="mb-0">Itens desta ficha</h5></div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0">
@@ -84,7 +84,7 @@ $hashShort = $hash !== '' ? substr($hash, 0, 12) . '…' : '—';
         </div>
 
         <div class="col-lg-5">
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4" data-adms-help-section="aba-historico-epi">
                 <div class="card-header"><h5 class="mb-0">Todos os EPIs entregues ao colaborador</h5></div>
                 <div class="card-body p-0" style="max-height: 480px; overflow-y: auto;">
                     <?php if ($episEntregues === []): ?>

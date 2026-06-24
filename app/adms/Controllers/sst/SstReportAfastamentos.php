@@ -29,7 +29,7 @@ class SstReportAfastamentos
 
         $pageElements = [
             'title_head' => 'Relatório de Afastamentos - SST',
-            'menu' => 'sst-dashboard',
+            'menu' => 'sst-report-afastamentos',
             'buttonPermission' => ['SstReportAfastamentos'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

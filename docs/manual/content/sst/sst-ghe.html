@@ -1,0 +1,34 @@
+<h1>GHE — Grupos Homogêneos de Exposição</h1>
+<p>Recurso <strong>opcional</strong> para ambientes em que o cargo sozinho não descreve a exposição real do colaborador.</p>
+
+<h2>Quando usar</h2>
+<ul>
+    <li>Mesmo cargo em linhas/ambientes diferentes com riscos distintos.</li>
+    <li>Treinamentos específicos de um grupo de trabalhadores.</li>
+</ul>
+<p><strong>Quando não usar:</strong> se cargo + setor + risco já resolve — não cadastre GHE.</p>
+
+<h2>Cadastro do GHE</h2>
+<div class="help-field"><strong>Código</strong> Identificador interno (ex.: GHE-001).</div>
+<div class="help-field"><strong>Nome</strong> Nome do grupo (ex.: Operadores Encapsulamento).</div>
+<div class="help-field"><strong>Local / Ambiente</strong> Área física ou descrição do ambiente.</div>
+<div class="help-field"><strong>Departamento</strong> Setor organizacional de referência.</div>
+<div class="help-field"><strong>Status</strong> Apenas GHEs ativos participam do cálculo.</div>
+
+<h2 id="aba-colaboradores">Aba Colaboradores</h2>
+<p>Vincule colaboradores ao GHE. O vínculo é no <strong>colaborador</strong>, não no cargo.</p>
+<div class="help-field"><strong>Colaborador</strong> Usuário ativo a incluir no grupo.</div>
+<div class="help-field"><strong>Data início / fim</strong> Histórico de participação; vínculo sem data fim = ativo.</div>
+
+<h2 id="aba-treinamentos">Aba Treinamentos</h2>
+<p>Treinamentos obrigatórios para todos os colaboradores ativos do GHE.</p>
+<div class="help-field"><strong>Treinamento</strong> Do catálogo SST.</div>
+<div class="help-field"><strong>Opcional</strong> Marque só se for recomendado; vinculado = obrigatório por padrão.</div>
+
+<div class="help-note">
+    <strong>Evolução prevista</strong>
+    Futuramente o GHE poderá vincular <strong>riscos</strong>, herdando EPIs e exames automaticamente. Hoje EPI/exame seguem cargo + setor → risco.
+</div>
+
+<h2>Relação com a matriz</h2>
+<p>Treinamentos do GHE aparecem na coluna <strong>GHE</strong> da matriz cargo × treinamento. Não duplicam pendências se já existirem via risco.</p>

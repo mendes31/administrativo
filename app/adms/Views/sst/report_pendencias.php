@@ -7,42 +7,11 @@ $treinamentosObr = $report['treinamentos_obrigatorios'] ?? [];
 $incluirTreinamentos = !empty($this->data['incluirTreinamentos']);
 $afastAtivos = $report['afastamentos_ativos'] ?? [];
 $acidentesAbertos = $report['acidentes_abertos'] ?? [];
-$perms = $this->data['buttonPermission'] ?? [];
+$perms = is_array($this->data['buttonPermission'] ?? null) ? $this->data['buttonPermission'] : [];
 $csrfAbrirAso = \App\adms\Helpers\CSRFHelper::generateCSRFToken('sst_abrir_aso_pendencia');
 require __DIR__ . '/partials/sst_aso_pendencia_actions.php';
-
-function sstPendenciaRow(array $r, bool $mobile = false): void {
-    global $perms, $csrfAbrirAso;
-    $nome = htmlspecialchars($r['colaborador_nome'] ?? $r['name'] ?? '-');
-    $item = htmlspecialchars($r['epi_nome'] ?? $r['exame_nome'] ?? $r['treinamento_nome'] ?? '-');
-    $sit = $r['situacao_label'] ?? ($r['situacao'] ?? '-');
-    $badge = $r['situacao_badge'] ?? 'secondary';
-    $uid = (int) ($r['adms_user_id'] ?? $r['adms_user_id'] ?? 0);
-    if ($mobile) {
-        echo '<div class="card mb-2 shadow-sm"><div class="card-body py-2">';
-        echo '<div class="fw-semibold">' . $nome . '</div>';
-        echo '<div class="small text-muted">' . $item . '</div>';
-        echo '<span class="badge bg-' . htmlspecialchars($badge) . ' mt-1">' . htmlspecialchars($sit) . '</span>';
-        if ($uid > 0) {
-            echo ' <a href="' . $_ENV['URL_ADM'] . 'sst-employee-profile/' . $uid . '" class="btn btn-link btn-sm p-0 ms-2">Perfil SST</a>';
-            echo ' ';
-            sstRenderAsoPendenciaActions($r, $perms, 'sst-report-pendencias', null, $csrfAbrirAso);
-        }
-        echo '</div></div>';
-        return;
-    }
-    echo '<tr>';
-    echo '<td>' . $nome . '</td>';
-    echo '<td>' . htmlspecialchars($r['departamento_nome'] ?? $r['name_dep'] ?? '-') . '</td>';
-    echo '<td>' . $item . '</td>';
-    echo '<td><span class="badge bg-' . htmlspecialchars($badge) . '">' . htmlspecialchars($sit) . '</span></td>';
-    echo '<td class="text-center">';
-    if ($uid > 0) {
-        echo '<a href="' . $_ENV['URL_ADM'] . 'sst-employee-profile/' . $uid . '" class="btn btn-info btn-sm" title="Perfil"><i class="fa-regular fa-eye"></i></a> ';
-        sstRenderAsoPendenciaActions($r, $perms, 'sst-report-pendencias', null, $csrfAbrirAso);
-    }
-    echo '</td></tr>';
-}
+require __DIR__ . '/partials/sst_pendencia_row_actions.php';
+require __DIR__ . '/partials/sst_pendencia_row.php';
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -99,18 +68,28 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
         </div>
     </div>
 
-    <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-epi-obr">EPIs obrigatórios <span class="badge bg-danger"><?= count($episObr) ?></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-exame-obr">Exames obrigatórios <span class="badge bg-danger"><?= count($examesObr) ?></span></button></li>
+    <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto" id="sstPendenciasTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button type="button" class="nav-link active" id="sst-pend-tab-epi" role="tab" data-bs-toggle="tab" data-bs-target="#tab-epi-obr" aria-controls="tab-epi-obr" aria-selected="true" data-adms-help-tab="aba-pendencias-epi">EPIs obrigatórios <span class="badge bg-danger"><?= count($episObr) ?></span></button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button type="button" class="nav-link" id="sst-pend-tab-exame" role="tab" data-bs-toggle="tab" data-bs-target="#tab-exame-obr" aria-controls="tab-exame-obr" aria-selected="false" data-adms-help-tab="aba-pendencias-exame">Exames obrigatórios <span class="badge bg-danger"><?= count($examesObr) ?></span></button>
+        </li>
         <?php if ($incluirTreinamentos): ?>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-trein-obr">Treinamentos obrigatórios <span class="badge bg-danger"><?= count($treinamentosObr) ?></span></button></li>
+        <li class="nav-item" role="presentation">
+            <button type="button" class="nav-link" id="sst-pend-tab-trein" role="tab" data-bs-toggle="tab" data-bs-target="#tab-trein-obr" aria-controls="tab-trein-obr" aria-selected="false" data-adms-help-tab="aba-pendencias-treinamento">Treinamentos obrigatórios <span class="badge bg-danger"><?= count($treinamentosObr) ?></span></button>
+        </li>
         <?php endif; ?>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-afast">Afastamentos ativos <span class="badge bg-warning text-dark"><?= count($afastAtivos) ?></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-acid">Acidentes abertos <span class="badge bg-primary"><?= count($acidentesAbertos) ?></span></button></li>
+        <li class="nav-item" role="presentation">
+            <button type="button" class="nav-link" id="sst-pend-tab-afast" role="tab" data-bs-toggle="tab" data-bs-target="#tab-afast" aria-controls="tab-afast" aria-selected="false" data-adms-help-tab="aba-pendencias-afastamentos">Afastamentos ativos <span class="badge bg-warning text-dark"><?= count($afastAtivos) ?></span></button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button type="button" class="nav-link" id="sst-pend-tab-acid" role="tab" data-bs-toggle="tab" data-bs-target="#tab-acid" aria-controls="tab-acid" aria-selected="false" data-adms-help-tab="aba-pendencias-acidentes">Acidentes abertos <span class="badge bg-primary"><?= count($acidentesAbertos) ?></span></button>
+        </li>
     </ul>
 
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="tab-epi-obr">
+    <div class="tab-content" id="sstPendenciasTabContent">
+        <div class="tab-pane fade show active" id="tab-epi-obr" role="tabpanel" aria-labelledby="sst-pend-tab-epi" tabindex="0">
             <p class="text-muted small">Cruzamento de <strong>Necessidades de EPI</strong> (vínculos) com <strong>Entregas</strong> registradas.</p>
             <?php if (empty($episObr)): ?>
                 <p class="text-muted">Nenhuma pendência de EPI por vínculo.</p>
@@ -124,7 +103,7 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
                 <div class="d-block d-md-none"><?php foreach ($episObr as $r) { sstPendenciaRow($r, true); } ?></div>
             <?php endif; ?>
         </div>
-        <div class="tab-pane fade" id="tab-exame-obr">
+        <div class="tab-pane fade" id="tab-exame-obr" role="tabpanel" aria-labelledby="sst-pend-tab-exame" tabindex="0">
             <p class="text-muted small">Cruzamento de <strong>Necessidades de exame</strong> (vínculos) com <strong>ASOs</strong> registrados.</p>
             <?php if (empty($examesObr)): ?>
                 <p class="text-muted">Nenhuma pendência de exame por vínculo.</p>
@@ -139,7 +118,7 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
             <?php endif; ?>
         </div>
         <?php if ($incluirTreinamentos): ?>
-        <div class="tab-pane fade" id="tab-trein-obr">
+        <div class="tab-pane fade" id="tab-trein-obr" role="tabpanel" aria-labelledby="sst-pend-tab-trein" tabindex="0">
             <p class="text-muted small">Cruzamento de <strong>Treinamentos obrigatórios por cargo</strong> com <strong>vínculos em Treinamentos</strong>.</p>
             <?php if (empty($treinamentosObr)): ?>
                 <p class="text-muted">Nenhuma pendência de treinamento por vínculo de cargo.</p>
@@ -154,7 +133,7 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
             <?php endif; ?>
         </div>
         <?php endif; ?>
-        <div class="tab-pane fade" id="tab-afast">
+        <div class="tab-pane fade" id="tab-afast" role="tabpanel" aria-labelledby="sst-pend-tab-afast" tabindex="0">
             <?php if (empty($afastAtivos)): ?><p class="text-muted">Nenhum afastamento ativo.</p>
             <?php else: ?>
                 <div class="d-none d-md-block table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Fim</th></tr></thead><tbody>
@@ -173,7 +152,7 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
                 <?php endforeach; ?></div>
             <?php endif; ?>
         </div>
-        <div class="tab-pane fade" id="tab-acid">
+        <div class="tab-pane fade" id="tab-acid" role="tabpanel" aria-labelledby="sst-pend-tab-acid" tabindex="0">
             <?php if (empty($acidentesAbertos)): ?><p class="text-muted">Nenhum acidente aberto.</p>
             <?php else: ?>
                 <div class="d-none d-md-block table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Colaborador</th><th>Tipo</th><th>Data</th><th>Status</th></tr></thead><tbody>
@@ -190,3 +169,50 @@ function sstPendenciaRow(array $r, bool $mobile = false): void {
 
     <a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard" class="btn btn-secondary mt-3">Voltar ao dashboard</a>
 </div>
+<script>
+(function () {
+    var tabList = document.getElementById('sstPendenciasTabs');
+    var tabContent = document.getElementById('sstPendenciasTabContent');
+    if (!tabList || !tabContent) {
+        return;
+    }
+
+    function activateTab(btn) {
+        var targetSel = btn.getAttribute('data-bs-target');
+        if (!targetSel) {
+            return;
+        }
+        tabList.querySelectorAll('[role="tab"]').forEach(function (el) {
+            el.classList.remove('active');
+            el.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        tabContent.querySelectorAll('.tab-pane').forEach(function (pane) {
+            pane.classList.remove('show', 'active');
+        });
+        var pane = tabContent.querySelector(targetSel);
+        if (pane) {
+            pane.classList.add('show', 'active');
+        }
+    }
+
+    tabList.addEventListener('click', function (event) {
+        var btn = event.target.closest('[data-bs-target]');
+        if (!btn || !tabList.contains(btn)) {
+            return;
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            return;
+        }
+        event.preventDefault();
+        activateTab(btn);
+    });
+
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+        tabList.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (btn) {
+            bootstrap.Tab.getOrCreateInstance(btn);
+        });
+    }
+})();
+</script>
