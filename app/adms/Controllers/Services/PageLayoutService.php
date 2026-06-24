@@ -124,6 +124,8 @@ class PageLayoutService
             'LgpdInventoryView',
             'ListLogAcessos',
             'ListConnectedUsers',
+            'ListDatabaseTables',
+            'ViewDatabaseTable',
             'ListUsersLastAccess',
             'ExportUsersLastAccessPdf',
             'ExportUsersLastAccessExcel',

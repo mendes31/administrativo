@@ -144,6 +144,18 @@ $menus = [
                         ],
                     ]
                 ],
+                [
+                    'label' => 'Base de Dados',
+                    'icon' => 'fa-solid fa-database',
+                    'submenu' => [
+                        [
+                            'label' => 'Biblioteca — Sistema',
+                            'url' => $_ENV['URL_ADM'] . 'list-database-tables',
+                            'permission' => 'ListDatabaseTables',
+                            'icon' => 'fa-solid fa-table'
+                        ],
+                    ]
+                ],
                
                 
                 [

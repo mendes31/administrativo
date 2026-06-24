@@ -10,6 +10,15 @@ declare(strict_types=1);
 function deployFeatureManifestMap(): array
 {
     return [
+        'database-schema' => [
+            'app/adms/Controllers/databaseSchema/ListDatabaseTables.php',
+            'app/adms/Controllers/databaseSchema/ViewDatabaseTable.php',
+            'app/adms/Models/Repository/DatabaseSchemaRepository.php',
+            'app/adms/Views/databaseSchema/list.php',
+            'app/adms/Views/databaseSchema/view.php',
+            'app/adms/Views/partials/menu.php',
+            'database/migrations/20260627120000_register_database_schema_pages.php',
+        ],
         'institutional-user' => [
             'app/adms/Controllers/dashboard/Dashboard.php',
             'app/adms/Controllers/informativos/AcknowledgeInformativo.php',
