@@ -22,38 +22,23 @@ class SyncAccessLevelsPages extends AbstractSeed
      */
     public function run(): void
     {
-        // Recuperar todas as páginas
-        $pages = $this->query('SELECT id FROM adms_pages WHERE page_status = 1')->fetchAll();
-        
-        // Recuperar todos os níveis de acesso
-        $accessLevels = $this->query('SELECT id FROM adms_access_levels')->fetchAll();
-        
-        // Percorrer todos os níveis de acesso
-        foreach ($accessLevels as $accessLevel) {
-            $accessLevelId = $accessLevel['id'];
-            
-            // Percorrer todas as páginas
-            foreach ($pages as $page) {
-                $pageId = $page['id'];
-                
-                // Idempotente: com UNIQUE (nível, página) o IGNORE evita erro em reexecução
-                $permission = 0;
-                $createdAt  = date("Y-m-d H:i:s");
-
-                $sql = sprintf(
-                    "INSERT IGNORE INTO adms_access_levels_pages 
-                        (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
-                     VALUES (%d, %d, %d, '%s', '%s')",
-                    $permission,
-                    (int)$accessLevelId,
-                    (int)$pageId,
-                    $createdAt,
-                    $createdAt
-                );
-
-                $this->execute($sql);
-            }
+        if (
+            !$this->hasTable('adms_access_levels_pages')
+            || !$this->hasTable('adms_pages')
+            || !$this->hasTable('adms_access_levels')
+        ) {
+            return;
         }
+
+        // Uma única operação em lote — evita milhares de INSERTs e lock prolongado em produção.
+        $this->execute(
+            "INSERT IGNORE INTO adms_access_levels_pages
+                (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+             SELECT 0, al.id, p.id, NOW(), NOW()
+             FROM adms_access_levels al
+             CROSS JOIN adms_pages p
+             WHERE p.page_status = 1"
+        );
 
         $this->applyPublicAndDefaultPagePermissionsToAllLevels();
 

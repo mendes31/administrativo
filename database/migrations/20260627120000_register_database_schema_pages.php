@@ -41,6 +41,7 @@ final class RegisterDatabaseSchemaPages extends AbstractMigration
         );
 
         $this->syncPermissionsFromReference('ListLogAcessos');
+        $this->bumpMenuPermissionCache();
     }
 
     public function down(): void
@@ -149,5 +150,15 @@ final class RegisterDatabaseSchemaPages extends AbstractMigration
                  ON DUPLICATE KEY UPDATE permission = VALUES(permission), updated_at = NOW()"
             );
         }
+    }
+
+    private function bumpMenuPermissionCache(): void
+    {
+        $dir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'system';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        @file_put_contents($dir . DIRECTORY_SEPARATOR . 'menu_permission_version.txt', (string) time());
     }
 }

@@ -32,7 +32,11 @@ class ListDatabaseTables
         $total = count($allTables);
         $offset = max(0, ((int) $page - 1) * $this->limitResult);
         $this->data['tables'] = array_slice($allTables, $offset, $this->limitResult);
-        $this->data['modules'] = $repo->listModules();
+        $this->data['modules'] = $repo->extractModules(
+            $filterModule === '' && $filterSearch === ''
+                ? $allTables
+                : $repo->listTables()
+        );
         $this->data['database_name'] = $repo->getDatabaseName();
         $this->data['filter_module'] = $filterModule;
         $this->data['filter_search'] = $filterSearch;

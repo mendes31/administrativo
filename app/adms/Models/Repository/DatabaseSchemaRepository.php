@@ -61,17 +61,29 @@ class DatabaseSchemaRepository extends DbConnection
                     t.TABLE_COMMENT AS table_comment,
                     t.ENGINE AS engine,
                     t.TABLE_ROWS AS table_rows,
-                    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c
-                     WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME) AS column_count,
-                    (SELECT COUNT(DISTINCT s.INDEX_NAME) FROM INFORMATION_SCHEMA.STATISTICS s
-                     WHERE s.TABLE_SCHEMA = t.TABLE_SCHEMA AND s.TABLE_NAME = t.TABLE_NAME) AS index_count
+                    COALESCE(cc.column_count, 0) AS column_count,
+                    COALESCE(ic.index_count, 0) AS index_count
                 FROM INFORMATION_SCHEMA.TABLES t
+                LEFT JOIN (
+                    SELECT TABLE_NAME, COUNT(*) AS column_count
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = :schema_cols
+                    GROUP BY TABLE_NAME
+                ) cc ON cc.TABLE_NAME = t.TABLE_NAME
+                LEFT JOIN (
+                    SELECT TABLE_NAME, COUNT(DISTINCT INDEX_NAME) AS index_count
+                    FROM INFORMATION_SCHEMA.STATISTICS
+                    WHERE TABLE_SCHEMA = :schema_stats
+                    GROUP BY TABLE_NAME
+                ) ic ON ic.TABLE_NAME = t.TABLE_NAME
                 WHERE t.TABLE_SCHEMA = :schema
                   AND t.TABLE_TYPE = 'BASE TABLE'
                 ORDER BY t.TABLE_NAME ASC";
 
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':schema', $db, PDO::PARAM_STR);
+        $stmt->bindValue(':schema_cols', $db, PDO::PARAM_STR);
+        $stmt->bindValue(':schema_stats', $db, PDO::PARAM_STR);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -99,18 +111,27 @@ class DatabaseSchemaRepository extends DbConnection
     }
 
     /**
+     * @param list<array<string, mixed>> $tables
      * @return list<string>
      */
-    public function listModules(): array
+    public function extractModules(array $tables): array
     {
         $modules = [];
-        foreach ($this->listTables() as $row) {
-            $modules[$row['module']] = true;
+        foreach ($tables as $row) {
+            $modules[(string) ($row['module'] ?? 'Geral')] = true;
         }
         $keys = array_keys($modules);
         sort($keys, SORT_NATURAL | SORT_FLAG_CASE);
 
         return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function listModules(): array
+    {
+        return $this->extractModules($this->listTables());
     }
 
     public function tableExists(string $tableName): bool
