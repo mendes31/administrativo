@@ -152,7 +152,8 @@ $menus = [
                             'label' => 'Biblioteca — Sistema',
                             'url' => $_ENV['URL_ADM'] . 'list-database-tables',
                             'permission' => 'ListDatabaseTables',
-                            'icon' => 'fa-solid fa-table'
+                            'icon' => 'fa-solid fa-table',
+                            'target' => '_blank',
                         ],
                     ]
                 ],
@@ -1935,7 +1936,11 @@ if (!function_exists('countPermittedSubmenus')) {
                                     ) {
                                         $active = 'active';
                                     }
-                                    echo '<a href="' . $menu['url'] . '" class="nav-link ' . $active . '">' . ($nivel == 0 && isset($menu['icon']) ? '<div class="sb-nav-link-icon"><i class="' . $menu['icon'] . '"></i></div> ' : '') . $menu['label'] . '</a>';
+                                    $linkTarget = '';
+                                    if (!empty($menu['target'])) {
+                                        $linkTarget = ' target="' . htmlspecialchars((string) $menu['target'], ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer"';
+                                    }
+                                    echo '<a href="' . $menu['url'] . '"' . $linkTarget . ' class="nav-link ' . $active . '">' . ($nivel == 0 && isset($menu['icon']) ? '<div class="sb-nav-link-icon"><i class="' . $menu['icon'] . '"></i></div> ' : '') . $menu['label'] . '</a>';
                                 }
                             }
                         }

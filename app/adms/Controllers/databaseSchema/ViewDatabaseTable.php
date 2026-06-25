@@ -85,6 +85,6 @@ class ViewDatabaseTable
             'buttonPermission' => ['ListDatabaseTables', 'ViewDatabaseTable'],
         ]));
 
-        (new LoadViewService('adms/Views/databaseSchema/view', $this->data))->loadView();
+        (new LoadViewService('adms/Views/databaseSchema/view', $this->data))->loadViewSchema();
     }
 }

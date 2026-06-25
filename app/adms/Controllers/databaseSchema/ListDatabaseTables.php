@@ -71,7 +71,7 @@ class ListDatabaseTables
             'buttonPermission' => ['ViewDatabaseTable'],
         ]));
 
-        (new LoadViewService('adms/Views/databaseSchema/list', $this->data))->loadView();
+        (new LoadViewService('adms/Views/databaseSchema/list', $this->data))->loadViewSchema();
     }
 
     private function handleRefreshCatalog(): void

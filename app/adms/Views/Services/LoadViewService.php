@@ -92,4 +92,15 @@ class LoadViewService
             die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
         }
     }
+
+    /** Layout leve da biblioteca de metadados MySQL (abre em nova aba). */
+    public function loadViewSchema(): void
+    {
+        $this->view = './app/' . $this->nameView . '.php';
+        if (file_exists($this->view)) {
+            include './app/adms/Views/layouts/schema.php';
+        } else {
+            die("Erro 005: Por favor tente novamente. Caso o problema persista, entre em contato com o adminstrador {$_ENV['EMAIL_ADM']}");
+        }
+    }
 }
