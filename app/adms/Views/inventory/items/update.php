@@ -862,7 +862,9 @@ function addBomCatalogRow() {
     let optionsHtml = '<option value="">Selecione o componente</option>';
     (bomItems || []).forEach(function (item) {
         const label = (item.code + ' - ' + item.description).replace(/"/g, '&quot;');
-        optionsHtml += '<option value="' + item.id + '">' + label + '</option>';
+        const avgCost = parseFloat(item.average_cost || 0) || 0;
+        const unit = String(item.unit_name || '').replace(/"/g, '&quot;');
+        optionsHtml += '<option value="' + item.id + '" data-average-cost="' + avgCost.toFixed(6) + '" data-unit="' + unit + '">' + label + '</option>';
     });
     tr.innerHTML = `
         <td data-label="Origem">
@@ -870,14 +872,14 @@ function addBomCatalogRow() {
             <span class="badge bg-secondary">Catálogo</span>
         </td>
         <td data-label="Componente / descrição">
-            <select name="bom_component_item_id[]" class="form-select form-select-sm bom-catalog-select">${optionsHtml}</select>
+            <select name="bom_component_item_id[]" class="form-select form-select-sm bom-catalog-select" onchange="onBomCatalogSelectChange(this)">${optionsHtml}</select>
             <input type="hidden" name="bom_manual_description[]" value="">
         </td>
         <td data-label="Tipo"><span class="text-muted small">—</span><input type="hidden" name="bom_manual_component_type[]" value=""></td>
         <td data-label="Qtd / lote"><input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="0"></td>
         <td data-label="Perda (%)"><input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm bom-scrap" value="0"></td>
-        <td data-label="Unidade"><span class="text-muted small">—</span><input type="hidden" name="bom_manual_unit[]" value=""></td>
-        <td data-label="Custo unitário"><span class="text-muted small">Catálogo</span><input type="hidden" name="bom_manual_unit_cost[]" value=""></td>
+        <td data-label="Unidade"><span class="bom-catalog-unit text-muted small">—</span><input type="hidden" name="bom_manual_unit[]" value=""></td>
+        <td data-label="Custo unitário"><span class="bom-catalog-cost-display text-muted small">—</span><input type="hidden" name="bom_manual_unit_cost[]" value=""><input type="hidden" class="bom-catalog-unit-cost" value="0"></td>
         <td data-label="Total linha" class="bom-line-total">0,000000</td>
         <td data-label="Ações" class="text-end"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button></td>
     `;
@@ -938,25 +940,63 @@ function addBomManualRow() {
     bindBomRowInputs(tr);
     recalcBomGrandTotal();
 }
+function parseBomDecimal(value) {
+    const s = String(value ?? '').trim();
+    if (s === '') return 0;
+    if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)) {
+        return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+    if (s.includes(',') && !s.includes('.')) {
+        return parseFloat(s.replace(',', '.')) || 0;
+    }
+    return parseFloat(s) || 0;
+}
+
+function formatBomMoney(value) {
+    return Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+}
+
+function onBomCatalogSelectChange(select) {
+    const row = select ? select.closest('tr') : null;
+    if (!row) return;
+    const opt = select.options[select.selectedIndex];
+    const cost = parseBomDecimal(opt ? opt.getAttribute('data-average-cost') : '0');
+    const unit = opt ? (opt.getAttribute('data-unit') || '—') : '—';
+    const costHidden = row.querySelector('.bom-catalog-unit-cost');
+    const costDisplay = row.querySelector('.bom-catalog-cost-display');
+    const unitEl = row.querySelector('.bom-catalog-unit');
+    if (costHidden) costHidden.value = cost > 0 ? cost.toFixed(6) : '0';
+    if (costDisplay) costDisplay.textContent = cost > 0 ? formatBomMoney(cost) : '—';
+    if (unitEl) unitEl.textContent = unit || '—';
+    recalcBomGrandTotal();
+}
+
 function bindBomRowInputs(row) {
     if (!row) return;
     row.querySelectorAll('.bom-qty, .bom-scrap, .bom-manual-cost').forEach(function (el) {
         el.addEventListener('input', recalcBomGrandTotal);
     });
+    const catalogSelect = row.querySelector('.bom-catalog-select');
+    if (catalogSelect && !catalogSelect.dataset.bomBound) {
+        catalogSelect.dataset.bomBound = '1';
+        catalogSelect.addEventListener('change', function () { onBomCatalogSelectChange(catalogSelect); });
+    }
 }
 function recalcBomLineTotal(row) {
-    const qty = parseFloat(row.querySelector('.bom-qty')?.value || '0') || 0;
-    const scrap = parseFloat(row.querySelector('.bom-scrap')?.value || '0') || 0;
+    const qty = parseBomDecimal(row.querySelector('.bom-qty')?.value);
+    const scrap = parseBomDecimal(row.querySelector('.bom-scrap')?.value);
     const isManual = row.classList.contains('bom-row-manual');
     let cost = 0;
     if (isManual) {
-        cost = parseFloat(row.querySelector('.bom-manual-cost')?.value || '0') || 0;
+        cost = parseBomDecimal(row.querySelector('.bom-manual-cost')?.value);
+    } else {
+        cost = parseBomDecimal(row.querySelector('.bom-catalog-unit-cost')?.value);
     }
-    const effective = qty * (1 + scrap / 100);
-    const total = (qty > 0 && cost > 0) ? effective * cost : 0;
+    const effectiveQty = qty * (1 + scrap / 100);
+    const total = (qty > 0 && cost > 0) ? effectiveQty * cost : 0;
     const cell = row.querySelector('.bom-line-total');
     if (cell) {
-        cell.textContent = total.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+        cell.textContent = formatBomMoney(total);
     }
     return total;
 }
@@ -967,10 +1007,13 @@ function recalcBomGrandTotal() {
     });
     const el = document.getElementById('bom-grand-total');
     if (el) {
-        el.textContent = sum.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+        el.textContent = formatBomMoney(sum);
     }
 }
 document.querySelectorAll('#bom-table tbody .bom-row').forEach(bindBomRowInputs);
+document.querySelectorAll('#bom-table tbody .bom-row-catalog .bom-catalog-select').forEach(function (sel) {
+    if (sel.value) onBomCatalogSelectChange(sel);
+});
 recalcBomGrandTotal();
 function addBomRow() { addBomCatalogRow(); }
 function addOperationRow() {

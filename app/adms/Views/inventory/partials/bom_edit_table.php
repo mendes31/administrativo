@@ -20,8 +20,12 @@ $buildComponentOptions = static function (?int $selectedId) use ($listBomItems):
     foreach ($listBomItems as $bomItem) {
         $optVal = (int)($bomItem['id'] ?? 0);
         $sel = $optVal === (int)$selectedId ? ' selected' : '';
+        $avgCost = number_format((float)($bomItem['average_cost'] ?? 0), 6, '.', '');
+        $unitName = htmlspecialchars((string)($bomItem['unit_name'] ?? ''), ENT_QUOTES, 'UTF-8');
         $label = htmlspecialchars((string)($bomItem['code'] ?? '') . ' - ' . (string)($bomItem['description'] ?? ''));
-        $html .= '<option value="' . $optVal . '"' . $sel . '>' . $label . '</option>';
+        $html .= '<option value="' . $optVal . '"' . $sel
+            . ' data-average-cost="' . $avgCost . '" data-unit="' . $unitName . '">'
+            . $label . '</option>';
     }
 
     return $html;
@@ -98,7 +102,7 @@ foreach ($bomLines as $line) {
                 value="<?= htmlspecialchars((string)($line['manual_description'] ?? '')) ?>" placeholder="Descrição do insumo">
               <input type="hidden" name="bom_component_item_id[]" value="">
             <?php else: ?>
-              <select name="bom_component_item_id[]" class="form-select form-select-sm bom-catalog-select">
+              <select name="bom_component_item_id[]" class="form-select form-select-sm bom-catalog-select" onchange="onBomCatalogSelectChange(this)">
                 <?= $buildComponentOptions((int)($line['component_item_id'] ?? 0)) ?>
               </select>
               <input type="hidden" name="bom_manual_description[]" value="">
@@ -126,7 +130,7 @@ foreach ($bomLines as $line) {
             <?php if ($isManual): ?>
               <select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit"><?= $buildUnitOptions((string)($line['manual_unit'] ?? 'UN')) ?></select>
             <?php else: ?>
-              <?= htmlspecialchars((string)($line['unit_name'] ?? '')) ?>
+              <span class="bom-catalog-unit text-muted small"><?= htmlspecialchars((string)($line['unit_name'] ?? '')) ?></span>
               <input type="hidden" name="bom_manual_unit[]" value="">
             <?php endif; ?>
           </td>
@@ -134,8 +138,9 @@ foreach ($bomLines as $line) {
             <?php if ($isManual): ?>
               <input type="number" step="0.000001" min="0" name="bom_manual_unit_cost[]" class="form-control form-control-sm bom-manual-cost" value="<?= htmlspecialchars(number_format($unitCost, 6, '.', '')) ?>">
             <?php else: ?>
-              <?= number_format($unitCost, 6, ',', '.') ?>
+              <span class="bom-catalog-cost-display"><?= number_format($unitCost, 6, ',', '.') ?></span>
               <input type="hidden" name="bom_manual_unit_cost[]" value="">
+              <input type="hidden" class="bom-catalog-unit-cost" value="<?= htmlspecialchars(number_format($unitCost, 6, '.', '')) ?>">
             <?php endif; ?>
           </td>
           <td data-label="Total linha" class="bom-line-total"><?= number_format($rowTotal, 6, ',', '.') ?></td>

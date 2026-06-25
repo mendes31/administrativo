@@ -227,7 +227,11 @@ class InvItemsRepository extends DbConnection
 
 	public function getAllForSelectWithAdminType(): array
 	{
-		$sql = 'SELECT id, code, description, admin_type FROM inv_items WHERE active = 1 ORDER BY description ASC';
+		$sql = 'SELECT i.id, i.code, i.description, i.admin_type, i.average_cost, u.name AS unit_name
+				FROM inv_items i
+				LEFT JOIN inv_units u ON u.id = i.inv_unit_id
+				WHERE i.active = 1
+				ORDER BY i.description ASC';
 		$stmt = $this->getConnection()->query($sql);
 		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 	}
