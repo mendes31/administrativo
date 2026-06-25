@@ -118,8 +118,8 @@ $renderCostBreakdown = static function (
     </div>
 
     <div class="card-body p-4">
-      <form method="get" id="form-simulate-cost" class="mb-0">
-        <input type="hidden" name="url" value="simulate-inventory-cost/<?= $itemId ?>">
+      <div id="form-alerts" class="mb-2"></div>
+      <form method="post" id="form-simulate-cost" action="<?= htmlspecialchars($baseUrl) ?>" class="mb-0">
 
       <?php if (is_array($selectedItem)): ?>
         <div class="rounded border bg-light p-3 mb-4">
@@ -170,6 +170,16 @@ $renderCostBreakdown = static function (
           <span class="d-block mt-1"><strong>Projeto:</strong> simulação independente do custeio oficial fechado; linhas manuais na BOM são consideradas no CVAR.</span>
         <?php endif; ?>
       </p>
+
+      <?php
+      $edit_bom = $this->data['edit_bom'] ?? [];
+      $edit_operations = $this->data['edit_operations'] ?? [];
+      $listBomItems = $this->data['listBomItems'] ?? [];
+      $listUnits = $this->data['listUnits'] ?? [];
+      $listOperations = $this->data['listOperations'] ?? [];
+      $structure_customized = !empty($this->data['structure_customized']);
+      include __DIR__ . '/../partials/simulate_structure_edit.php';
+      ?>
 
       <div class="border rounded p-3 p-md-4 bg-light mb-3">
         <div class="fw-semibold mb-3">Produção no período (critério rateio 1)</div>
@@ -267,7 +277,7 @@ $renderCostBreakdown = static function (
       </form>
 
       <?php if (is_array($breakdown) && $canSave): ?>
-        <form method="post" action="<?= $_ENV['URL_ADM'] ?>save-inventory-cost-simulation/<?= $itemId ?>" class="border rounded p-3 bg-white">
+        <form method="post" action="<?= $_ENV['URL_ADM'] ?>save-inventory-cost-simulation/<?= $itemId ?>" class="border rounded p-3 bg-white mt-3" id="form-save-simulation">
           <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_save_inventory_cost_simulation') ?>">
           <input type="hidden" name="material_adjust_pct" value="<?= htmlspecialchars((string)($scenario['material_adjust_pct'] ?? 0)) ?>">
           <input type="hidden" name="operations_adjust_pct" value="<?= htmlspecialchars((string)($scenario['operations_adjust_pct'] ?? 0)) ?>">
@@ -278,6 +288,7 @@ $renderCostBreakdown = static function (
           <?php foreach ($selectedWarehouseCodes as $whCode): ?>
             <input type="hidden" name="warehouse_codes[]" value="<?= htmlspecialchars((string)$whCode) ?>">
           <?php endforeach; ?>
+          <div id="save-simulation-structure-fields"></div>
           <div class="row g-2 align-items-end">
             <div class="col-12 col-md-6">
               <label class="form-label mb-1">Nome da simulação (ao salvar)</label>
@@ -285,12 +296,42 @@ $renderCostBreakdown = static function (
                 placeholder="Ex.: Cenário +10% materiais — <?= date('d/m/Y') ?>">
             </div>
             <div class="col-12 col-md-auto">
-              <button type="submit" class="btn btn-success btn-sm">
+              <button type="submit" class="btn btn-success btn-sm" onclick="return copySimStructureToSaveForm()">
                 <i class="fa-solid fa-floppy-disk me-1"></i> Salvar simulação
               </button>
             </div>
           </div>
         </form>
+        <script>
+        function copySimStructureToSaveForm() {
+            const main = document.getElementById('form-simulate-cost');
+            const target = document.getElementById('save-simulation-structure-fields');
+            if (!main || !target) return true;
+            target.innerHTML = '';
+            const skip = new Set(['csrf_token', 'simulation_title']);
+            main.querySelectorAll('input, select, textarea').forEach(function (el) {
+                const name = el.getAttribute('name');
+                if (!name || skip.has(name)) return;
+                if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) return;
+                if (el.tagName === 'SELECT' && el.multiple) {
+                    Array.from(el.selectedOptions).forEach(function (opt) {
+                        const h = document.createElement('input');
+                        h.type = 'hidden';
+                        h.name = name;
+                        h.value = opt.value;
+                        target.appendChild(h);
+                    });
+                    return;
+                }
+                const h = document.createElement('input');
+                h.type = 'hidden';
+                h.name = name;
+                h.value = el.value;
+                target.appendChild(h);
+            });
+            return true;
+        }
+        </script>
       <?php endif; ?>
     </div>
   </div>

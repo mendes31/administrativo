@@ -34,11 +34,23 @@ $buildComponentOptions = static function (?int $selectedId) use ($listBomItems):
 $buildUnitOptions = static function (?string $selected) use ($listUnits): string {
     $selected = strtoupper(trim((string)$selected));
     $defaults = ['UN', 'KG', 'G', 'ML', 'L', 'CX'];
+    $labels = [
+        'UN' => 'Unidade',
+        'KG' => 'Quilograma',
+        'G' => 'Grama',
+        'ML' => 'Mililitro',
+        'L' => 'Litro',
+        'CX' => 'Caixa',
+    ];
     $codes = [];
     foreach ($listUnits as $u) {
         $code = strtoupper(trim((string)($u['code'] ?? '')));
         if ($code !== '') {
             $codes[] = $code;
+            $name = trim((string)($u['name'] ?? ''));
+            if ($name !== '') {
+                $labels[$code] = $name;
+            }
         }
     }
     foreach ($defaults as $d) {
@@ -50,7 +62,9 @@ $buildUnitOptions = static function (?string $selected) use ($listUnits): string
     $html = '';
     foreach ($codes as $code) {
         $sel = $code === $selected ? ' selected' : '';
-        $html .= '<option value="' . htmlspecialchars($code) . '"' . $sel . '>' . htmlspecialchars($code) . '</option>';
+        $label = $labels[$code] ?? $code;
+        $html .= '<option value="' . htmlspecialchars($code) . '"' . $sel . '>'
+            . htmlspecialchars($label . ' (' . $code . ')') . '</option>';
     }
 
     return $html;
@@ -177,7 +191,7 @@ foreach ($bomLines as $line) {
   <small>
     <?php if ($isProjectItem): ?>
       Linhas de <strong>catálogo</strong> usam itens já cadastrados; linhas <strong>manuais</strong> permitem simular MPs/MAEs hipotéticas com custo informado.
-      Na linha manual, quantidade e <em>custo unitário</em> referem-se à unidade selecionada (ex.: R$/kg); ao trocar a unidade, quantidade e custo são convertidos quando compatíveis (kg↔g, L↔ml).
+      Na linha manual, quantidade e <em>custo unitário</em> referem-se à unidade selecionada (ex.: R$/kg). Ao trocar a unidade, quantidade e custo permanecem como digitados; apenas o <em>total da linha</em> é recalculado.
     <?php else: ?>
       Selecione um item de estoque já cadastrado para usar como componente.
       Para novos projetos, cadastre o PA na categoria <strong>PA - PROJETO</strong>.

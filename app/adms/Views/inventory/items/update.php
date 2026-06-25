@@ -896,20 +896,35 @@ function addBomManualRow() {
     if (!tbody) return;
     const unitOptions = <?php
         $unitCodes = [];
+        $unitLabels = [
+            'UN' => 'Unidade',
+            'KG' => 'Quilograma',
+            'G' => 'Grama',
+            'ML' => 'Mililitro',
+            'L' => 'Litro',
+            'CX' => 'Caixa',
+        ];
         foreach ($this->data['listUnits'] ?? [] as $u) {
             $c = strtoupper(trim((string)($u['code'] ?? '')));
-            if ($c !== '') { $unitCodes[] = $c; }
+            if ($c !== '') {
+                $unitCodes[] = $c;
+                $n = trim((string)($u['name'] ?? ''));
+                if ($n !== '') {
+                    $unitLabels[$c] = $n;
+                }
+            }
         }
         foreach (['UN', 'KG', 'G', 'ML', 'L', 'CX'] as $d) {
             if (!in_array($d, $unitCodes, true)) { $unitCodes[] = $d; }
         }
         sort($unitCodes);
-        echo json_encode($unitCodes);
+        echo json_encode(['codes' => $unitCodes, 'labels' => $unitLabels], JSON_UNESCAPED_UNICODE);
     ?>;
     let unitHtml = '';
-    (unitOptions || []).forEach(function (code) {
+    (unitOptions.codes || []).forEach(function (code) {
         const sel = code === 'UN' ? ' selected' : '';
-        unitHtml += '<option value="' + code + '"' + sel + '>' + code + '</option>';
+        const name = (unitOptions.labels && unitOptions.labels[code]) ? unitOptions.labels[code] : code;
+        unitHtml += '<option value="' + code + '"' + sel + '>' + name + ' (' + code + ')</option>';
     });
     const tr = document.createElement('tr');
     tr.className = 'bom-row bom-row-manual';
@@ -1054,7 +1069,10 @@ function onBomCatalogSelectChange(select) {
 function bindBomRowInputs(row) {
     if (!row) return;
     row.querySelectorAll('.bom-qty, .bom-scrap, .bom-manual-cost').forEach(function (el) {
+        if (el.dataset.bomQtyBound) return;
+        el.dataset.bomQtyBound = '1';
         el.addEventListener('input', recalcBomGrandTotal);
+        el.addEventListener('change', recalcBomGrandTotal);
     });
     const catalogSelect = row.querySelector('.bom-catalog-select');
     if (catalogSelect && !catalogSelect.dataset.bomBound) {

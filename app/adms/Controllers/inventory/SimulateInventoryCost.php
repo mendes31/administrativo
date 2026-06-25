@@ -4,10 +4,13 @@ namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Helpers\InvCostSimulationStructureHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Repository\inventory\InvOperationsRepository;
+use App\adms\Models\Repository\inventory\InvUnitsRepository;
 use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Models\Services\InventoryCostService;
 use App\adms\Views\Services\LoadViewService;
@@ -41,25 +44,42 @@ class SimulateInventoryCost
             return;
         }
 
-        $batchSize = $this->parseBatchSize($_REQUEST['standard_batch_size'] ?? '1');
+        $batchSize = $this->parseBatchSize($this->input('standard_batch_size', '1'));
+        $requestData = $this->requestData();
+        $structureHelper = new InvCostSimulationStructureHelper();
+        $isProjectItem = InvCostProjectHelper::isProjectItem($item);
+
+        $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $requestData, $isProjectItem);
+        $editOperations = $structureHelper->resolveOperationLinesForEdit($itemId, $requestData);
+
         $scenario = [
-            'material_adjust_pct' => $this->parsePct($_REQUEST['material_adjust_pct'] ?? '0'),
-            'operations_adjust_pct' => $this->parsePct($_REQUEST['operations_adjust_pct'] ?? '0'),
-            'global_adjust_pct' => $this->parsePct($_REQUEST['global_adjust_pct'] ?? '0'),
+            'material_adjust_pct' => $this->parsePct($this->input('material_adjust_pct', '0')),
+            'operations_adjust_pct' => $this->parsePct($this->input('operations_adjust_pct', '0')),
+            'global_adjust_pct' => $this->parsePct($this->input('global_adjust_pct', '0')),
             'standard_batch_size' => $batchSize,
         ];
+        if ($structureHelper->hasStructureInRequest($requestData)) {
+            $scenario['custom_bom_rows'] = $structureHelper->bomEditLinesToComputeRows($editBom);
+            $scenario['custom_operation_rows'] = $structureHelper->operationEditLinesToComputeRows($editOperations);
+        }
 
         $this->data['selected_item_id'] = $itemId;
         $this->data['selected_item'] = $item;
-        $this->data['is_project_item'] = InvCostProjectHelper::isProjectItem($item);
+        $this->data['is_project_item'] = $isProjectItem;
         $this->data['scenario'] = $scenario;
         $this->data['scenario_batch_size'] = $batchSize;
+        $this->data['edit_bom'] = $editBom;
+        $this->data['edit_operations'] = $editOperations;
+        $this->data['structure_customized'] = $structureHelper->hasStructureInRequest($requestData);
+        $this->data['listBomItems'] = (new InvItemsRepository())->getAllForSelectWithAdminType();
+        $this->data['listUnits'] = (new InvUnitsRepository())->getAllForSelect();
+        $this->data['listOperations'] = (new InvOperationsRepository())->getAllForSelect();
         $this->data['breakdown'] = InventoryCostService::calculateBreakdown($itemId, $scenario);
         $this->data['saved_simulations'] = (new InvCostSimulationsRepository())->getByItem($itemId, 15);
 
-        $periodId = (int)($_REQUEST['inv_cost_period_id'] ?? 0);
-        $warehouseScope = (string)($_REQUEST['warehouse_scope'] ?? 'all');
-        $warehouseCodes = $this->parseWarehouseCodes($warehouseScope, $_REQUEST['warehouse_codes'] ?? null);
+        $periodId = (int)($this->input('inv_cost_period_id', '0'));
+        $warehouseScope = (string)($this->input('warehouse_scope', 'all'));
+        $warehouseCodes = $this->parseWarehouseCodes($warehouseScope, $requestData['warehouse_codes'] ?? null);
 
         $this->data['cost_periods'] = (new InvCostPeriodsRepository())->getForSelect();
         $this->data['production_warehouses'] = (new InvCostProductionWarehousesRepository())->getAllActive();
@@ -151,5 +171,24 @@ class SimulateInventoryCost
         }
 
         return $normalized === [] ? null : array_values(array_unique($normalized));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requestData(): array
+    {
+        if (!empty($_POST)) {
+            return $_POST;
+        }
+
+        return $_GET;
+    }
+
+    private function input(string $key, mixed $default = null): mixed
+    {
+        $data = $this->requestData();
+
+        return $data[$key] ?? $default;
     }
 }

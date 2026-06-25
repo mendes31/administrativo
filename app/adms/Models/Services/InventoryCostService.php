@@ -96,6 +96,10 @@ class InventoryCostService extends DbConnection
 
         $conn = self::getStaticConnection();
         $scenario = $empty['scenario'];
+        $customBomRows = $scenario['custom_bom_rows'] ?? null;
+        $customOpRows = $scenario['custom_operation_rows'] ?? null;
+        $useCustomBom = is_array($customBomRows);
+        $useCustomOps = is_array($customOpRows);
 
         $stmtItem = $conn->prepare('SELECT standard_batch_size FROM inv_items WHERE id = :item_id LIMIT 1');
         $stmtItem->bindValue(':item_id', $itemId, PDO::PARAM_INT);
@@ -106,7 +110,10 @@ class InventoryCostService extends DbConnection
             : null;
         $batchSize = $scenarioBatch ?? self::normalizeBatchSize((float)($itemRow['standard_batch_size'] ?? 1));
 
-        $sqlBom = "SELECT 
+        if ($useCustomBom) {
+            $bomRows = $customBomRows;
+        } else {
+            $sqlBom = "SELECT 
                         b.line_source,
                         b.quantity_per_batch,
                         b.scrap_percent,
@@ -123,10 +130,11 @@ class InventoryCostService extends DbConnection
                    LEFT JOIN inv_categories c ON c.id = i.inv_category_id
                    WHERE b.inv_item_id = :item_id
                    ORDER BY b.line_source ASC, c.name ASC, i.description ASC, b.id ASC";
-        $stmtBom = $conn->prepare($sqlBom);
-        $stmtBom->bindValue(':item_id', $itemId, PDO::PARAM_INT);
-        $stmtBom->execute();
-        $bomRows = $stmtBom->fetchAll(PDO::FETCH_ASSOC);
+            $stmtBom = $conn->prepare($sqlBom);
+            $stmtBom->bindValue(':item_id', $itemId, PDO::PARAM_INT);
+            $stmtBom->execute();
+            $bomRows = $stmtBom->fetchAll(PDO::FETCH_ASSOC);
+        }
 
         $materials = [];
         $materialCost = 0.0;
@@ -151,7 +159,10 @@ class InventoryCostService extends DbConnection
         }
         $materialGroups = self::buildMaterialGroupsList($materialGroupsMap);
 
-        $sqlOps = "SELECT 
+        if ($useCustomOps) {
+            $opRows = $customOpRows;
+        } else {
+            $sqlOps = "SELECT 
                         io.id,
                         io.time_per_batch_hours,
                         io.time_unit,
@@ -167,15 +178,21 @@ class InventoryCostService extends DbConnection
                    INNER JOIN inv_operations op ON op.id = io.inv_operation_id
                    WHERE io.inv_item_id = :item_id
                    ORDER BY io.sequence ASC, op.name ASC";
-        $stmtOps = $conn->prepare($sqlOps);
-        $stmtOps->bindValue(':item_id', $itemId, PDO::PARAM_INT);
-        $stmtOps->execute();
-        $opRows = $stmtOps->fetchAll(PDO::FETCH_ASSOC);
+            $stmtOps = $conn->prepare($sqlOps);
+            $stmtOps->bindValue(':item_id', $itemId, PDO::PARAM_INT);
+            $stmtOps->execute();
+            $opRows = $stmtOps->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-        $opIds = array_map(static fn(array $r): int => (int)($r['id'] ?? 0), $opRows);
         $opsRepo = new InvItemOperationsRepository();
-        $laborByOp = $opsRepo->getLaborLinesByOperationIds($opIds);
-        $resourceByOp = $opsRepo->getResourceLinesByOperationIds($opIds);
+        if (!$useCustomOps) {
+            $opIds = array_map(static fn(array $r): int => (int)($r['id'] ?? 0), $opRows);
+            $laborByOp = $opsRepo->getLaborLinesByOperationIds($opIds);
+            $resourceByOp = $opsRepo->getResourceLinesByOperationIds($opIds);
+        } else {
+            $laborByOp = [];
+            $resourceByOp = [];
+        }
 
         $operations = [];
         $operationsCost = 0.0;
@@ -184,9 +201,14 @@ class InventoryCostService extends DbConnection
         $routeEquipmentCost = 0.0;
         $laborHours = 0.0;
         foreach ($opRows as $row) {
-            $opId = (int)($row['id'] ?? 0);
-            $row['labor_lines'] = $laborByOp[$opId] ?? [];
-            $row['resource_lines'] = $resourceByOp[$opId] ?? [];
+            if (!$useCustomOps) {
+                $opId = (int)($row['id'] ?? 0);
+                $row['labor_lines'] = $laborByOp[$opId] ?? [];
+                $row['resource_lines'] = $resourceByOp[$opId] ?? [];
+            } else {
+                $row['labor_lines'] = is_array($row['labor_lines'] ?? null) ? $row['labor_lines'] : [];
+                $row['resource_lines'] = is_array($row['resource_lines'] ?? null) ? $row['resource_lines'] : [];
+            }
             $line = self::computeOperationLine($row);
             $operations[] = $line;
             $operationsCost += (float)$line['line_cost'];
@@ -573,7 +595,7 @@ class InventoryCostService extends DbConnection
      */
     private static function normalizeScenario(array $scenario): array
     {
-        return [
+        $normalized = [
             'material_adjust_pct' => (float)($scenario['material_adjust_pct'] ?? 0),
             'operations_adjust_pct' => (float)($scenario['operations_adjust_pct'] ?? 0),
             'global_adjust_pct' => (float)($scenario['global_adjust_pct'] ?? 0),
@@ -581,6 +603,14 @@ class InventoryCostService extends DbConnection
                 ? self::normalizeBatchSize((float)$scenario['standard_batch_size'])
                 : null,
         ];
+        if (array_key_exists('custom_bom_rows', $scenario) && is_array($scenario['custom_bom_rows'])) {
+            $normalized['custom_bom_rows'] = $scenario['custom_bom_rows'];
+        }
+        if (array_key_exists('custom_operation_rows', $scenario) && is_array($scenario['custom_operation_rows'])) {
+            $normalized['custom_operation_rows'] = $scenario['custom_operation_rows'];
+        }
+
+        return $normalized;
     }
 
     public static function normalizeBatchSize(float $batchSize): float

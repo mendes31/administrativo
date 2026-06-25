@@ -3,6 +3,8 @@
 namespace App\adms\Controllers\inventory;
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Helpers\InvCostSimulationStructureHelper;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Services\InvCostProductionAggregationService;
@@ -24,7 +26,7 @@ class SaveInventoryCostSimulation
             return;
         }
 
-        $form = filter_input_array(INPUT_POST, FILTER_DEFAULT) ?: [];
+        $form = !empty($_POST) ? $_POST : (filter_input_array(INPUT_POST, FILTER_DEFAULT) ?: []);
         if (empty($form['csrf_token']) || !CSRFHelper::validateCSRFToken('form_save_inventory_cost_simulation', (string)$form['csrf_token'])) {
             $_SESSION['error'] = 'Sessão expirada. Recarregue a página e tente novamente.';
             header('Location: ' . $_ENV['URL_ADM'] . 'simulate-inventory-cost/' . $itemId);
@@ -50,6 +52,16 @@ class SaveInventoryCostSimulation
             'global_adjust_pct' => $this->parsePct($form['global_adjust_pct'] ?? '0'),
             'standard_batch_size' => $this->parseBatchSize($form['standard_batch_size'] ?? '1'),
         ];
+
+        $structureHelper = new InvCostSimulationStructureHelper();
+        $isProjectItem = InvCostProjectHelper::isProjectItem($item);
+        if ($structureHelper->hasStructureInRequest($form)) {
+            $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $form, $isProjectItem);
+            $editOps = $structureHelper->resolveOperationLinesForEdit($itemId, $form);
+            $scenario['custom_bom_rows'] = $structureHelper->bomEditLinesToComputeRows($editBom);
+            $scenario['custom_operation_rows'] = $structureHelper->operationEditLinesToComputeRows($editOps);
+        }
+
         $breakdown = InventoryCostService::calculateBreakdown($itemId, $scenario);
 
         $periodId = (int)($form['inv_cost_period_id'] ?? 0);
