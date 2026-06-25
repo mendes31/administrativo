@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "generated_at": "2026-06-24T20:28:54+00:00",
+    "generated_at": "2026-06-25T13:41:32+00:00",
     "modules": [
         {
             "id": "geral",
@@ -50,47 +50,47 @@
                         {
                             "type": "topic",
                             "topic_id": "calendar-config",
-                            "title": "Calendar Config"
+                            "title": "Calendário e Feriados"
                         },
                         {
                             "type": "topic",
                             "topic_id": "mcp-api-config",
-                            "title": "Mcp Api Config"
+                            "title": "Configuração API MCP"
                         },
                         {
                             "type": "topic",
                             "topic_id": "email-config",
-                            "title": "Email Config"
+                            "title": "Configuração de E-mail"
                         },
                         {
                             "type": "topic",
                             "topic_id": "whats-app-config",
-                            "title": "Whats App Config"
+                            "title": "Configuração WhatsApp"
                         },
                         {
                             "type": "topic",
                             "topic_id": "push-config",
-                            "title": "Push Config"
+                            "title": "Configuração Push (PWA)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "sap-api-config",
-                            "title": "Sap Api Config"
+                            "title": "Configuração SAP API"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-branches",
-                            "title": "Listar — Branches"
+                            "title": "Listar Filiais"
                         },
                         {
                             "type": "topic",
                             "topic_id": "notification-settings",
-                            "title": "Notification Settings"
+                            "title": "Configurações de Notificações"
                         },
                         {
                             "type": "topic",
                             "topic_id": "password-policy",
-                            "title": "Password Policy"
+                            "title": "Política de Senha"
                         }
                     ]
                 },
@@ -101,22 +101,22 @@
                         {
                             "type": "topic",
                             "topic_id": "log-settings",
-                            "title": "Log Settings"
+                            "title": "Configurações de Logs"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-log-acessos",
-                            "title": "Listar — Log Acessos"
+                            "title": "ListLogAcessos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-log-alteracoes",
-                            "title": "Listar — Log Alteracoes"
+                            "title": "Log de Alterações"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-connected-users",
-                            "title": "Listar — Connected Users"
+                            "title": "Usuários conectados"
                         },
                         {
                             "type": "topic",
@@ -248,12 +248,12 @@
                         {
                             "type": "topic",
                             "topic_id": "list-positions",
-                            "title": "Positions"
+                            "title": "Listar Cargos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-position",
-                            "title": "Position"
+                            "title": "Cadastrar Cargo"
                         },
                         {
                             "type": "topic",
@@ -263,7 +263,7 @@
                         {
                             "type": "topic",
                             "topic_id": "view-position",
-                            "title": "Position"
+                            "title": "Visualizar Cargo"
                         }
                     ]
                 },
@@ -274,22 +274,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-cost-centers",
-                            "title": "Cost Centers"
+                            "title": "Listar Centros de Custo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-cost-center",
-                            "title": "Cost Center"
+                            "title": "Cadastrar Centros de Custo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-cost-center",
-                            "title": "Cost Center"
+                            "title": "Editar Centros de Custo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-cost-center",
-                            "title": "Cost Center"
+                            "title": "Visualizar Centros de Custo"
                         }
                     ]
                 },
@@ -300,12 +300,12 @@
                         {
                             "type": "topic",
                             "topic_id": "list-departments",
-                            "title": "Departments"
+                            "title": "Listar Departamentos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-department",
-                            "title": "Department"
+                            "title": "Cadastrar Departamento"
                         },
                         {
                             "type": "topic",
@@ -315,7 +315,7 @@
                         {
                             "type": "topic",
                             "topic_id": "view-department",
-                            "title": "Department"
+                            "title": "Visualizar Departamento"
                         }
                     ]
                 },
@@ -326,22 +326,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-access-levels",
-                            "title": "Access Levels"
+                            "title": "Listar Níveis de Acesso"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-access-level",
-                            "title": "Access Level"
+                            "title": "Cadastrar Nível de Acesso"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-access-level",
-                            "title": "Access Level"
+                            "title": "Editar Nível de Acesso"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-access-level",
-                            "title": "Access Level"
+                            "title": "Visualizar Nível de Acesso"
                         }
                     ]
                 },
@@ -352,22 +352,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-work-shifts",
-                            "title": "Work Shifts"
+                            "title": "Listar Turnos de Trabalho"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-work-shift",
-                            "title": "Work Shift"
+                            "title": "Cadastrar Turno de Trabalho"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-work-shift",
-                            "title": "Work Shift"
+                            "title": "Editar Turno de Trabalho"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-work-shift",
-                            "title": "Work Shift"
+                            "title": "Visualizar Turno de Trabalho"
                         }
                     ]
                 },
@@ -382,29 +382,29 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-users",
-                                    "title": "Users"
+                                    "title": "Listar Usuários"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-user",
-                                    "title": "User"
+                                    "title": "Cadastrar Usuário"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-user",
-                                    "title": "User"
+                                    "title": "Editar Usuário"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "view-user",
-                                    "title": "User"
+                                    "title": "Visualizar Usuário"
                                 }
                             ]
                         },
                         {
                             "type": "topic",
                             "topic_id": "organization-chart",
-                            "title": "Organization Chart"
+                            "title": "Organograma"
                         }
                     ]
                 }
@@ -421,22 +421,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-company-events",
-                            "title": "Company Events"
+                            "title": "Listar Eventos Corporativos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-company-event",
-                            "title": "Company Event"
+                            "title": "Criar Evento Corporativo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-company-event",
-                            "title": "Company Event"
+                            "title": "Editar Evento Corporativo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-company-event",
-                            "title": "Company Event"
+                            "title": "Visualizar Evento Corporativo"
                         }
                     ]
                 },
@@ -447,27 +447,27 @@
                         {
                             "type": "topic",
                             "topic_id": "gamification-engagement-dashboard",
-                            "title": "Gamification Engagement Dashboard"
+                            "title": "Dashboard de engajamento (Gamificação)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-gamification-point-ledger",
-                            "title": "Listar — Gamification Point Ledger"
+                            "title": "Extrato de pontos (Gamificação)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-gamification-quizzes",
-                            "title": "Listar — Gamification Quizzes"
+                            "title": "Quizzes (Gamificação)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "gamification-quiz-catalog",
-                            "title": "Gamification Quiz Catalog"
+                            "title": "Quizzes disponíveis"
                         },
                         {
                             "type": "topic",
                             "topic_id": "gamification-leaderboard",
-                            "title": "Gamification Leaderboard"
+                            "title": "Ranking de pontos (Gamificação)"
                         },
                         {
                             "type": "group",
@@ -476,7 +476,7 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-gamification-timeline-rules",
-                                    "title": "Gamification Timeline Rules"
+                                    "title": "Regras de pontos (Timeline)"
                                 },
                                 {
                                     "type": "topic",
@@ -486,7 +486,7 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "update-gamification-timeline-rule",
-                                    "title": "Gamification Timeline Rule"
+                                    "title": "Editar regra de pontos (Timeline)"
                                 }
                             ]
                         }
@@ -499,34 +499,34 @@
                         {
                             "type": "topic",
                             "topic_id": "list-informativos",
-                            "title": "Informativos"
+                            "title": "Listar Informativos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-informativo",
-                            "title": "Informativo"
+                            "title": "Cadastrar Informativo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-informativo",
-                            "title": "Informativo"
+                            "title": "Editar Informativo"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-informativo",
-                            "title": "Informativo"
+                            "title": "Visualizar Informativo"
                         }
                     ]
                 },
                 {
                     "type": "topic",
                     "topic_id": "timeline-moderate",
-                    "title": "Timeline Moderate"
+                    "title": "Moderação Timeline"
                 },
                 {
                     "type": "topic",
                     "topic_id": "timeline",
-                    "title": "Timeline"
+                    "title": "Feed Timeline"
                 }
             ]
         },
@@ -542,12 +542,12 @@
                 {
                     "type": "topic",
                     "topic_id": "crm-dashboard",
-                    "title": "Crm Dashboard"
+                    "title": "Dashboard CRM"
                 },
                 {
                     "type": "topic",
                     "topic_id": "crm-manager-dashboard",
-                    "title": "Crm Manager Dashboard"
+                    "title": "Dashboard Gerencial CRM"
                 },
                 {
                     "type": "group",
@@ -556,7 +556,7 @@
                         {
                             "type": "topic",
                             "topic_id": "crm-list-activities",
-                            "title": "Crm List Activities"
+                            "title": "Agenda de Atividades CRM"
                         }
                     ]
                 },
@@ -567,17 +567,17 @@
                         {
                             "type": "topic",
                             "topic_id": "crm-list-automations",
-                            "title": "Crm List Automations"
+                            "title": "Listar Automações CRM"
                         },
                         {
                             "type": "topic",
                             "topic_id": "crm-list-custom-fields",
-                            "title": "Crm List Custom Fields"
+                            "title": "Listar Campos Customizáveis CRM"
                         },
                         {
                             "type": "topic",
                             "topic_id": "crm-list-tags",
-                            "title": "Crm List Tags"
+                            "title": "Listar Tags CRM"
                         }
                     ]
                 },
@@ -588,7 +588,7 @@
                         {
                             "type": "topic",
                             "topic_id": "crm-list-opportunities",
-                            "title": "Crm List Opportunities"
+                            "title": "Listar Oportunidades CRM"
                         }
                     ]
                 },
@@ -599,14 +599,14 @@
                         {
                             "type": "topic",
                             "topic_id": "crm-list-partners",
-                            "title": "Crm List Partners"
+                            "title": "Listar Parceiros CRM"
                         }
                     ]
                 },
                 {
                     "type": "topic",
                     "topic_id": "crm-kanban-pipeline",
-                    "title": "Crm Kanban Pipeline"
+                    "title": "Pipeline Kanban CRM"
                 }
             ]
         },
@@ -626,37 +626,37 @@
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-categories",
-                            "title": "Listar — Inventory Categories"
+                            "title": "Listar Categorias de Item"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-stocks",
-                            "title": "Listar — Inventory Stocks"
+                            "title": "Listar Estoques"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-operations",
-                            "title": "Listar — Inventory Operations"
+                            "title": "Listar Operações de Produção"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-labor-roles",
-                            "title": "Listar — Inventory Labor Roles"
+                            "title": "Listar Papéis de MO"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-positions",
-                            "title": "Listar — Inventory Positions"
+                            "title": "Listar Posições Internas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-production-resources",
-                            "title": "Listar — Inventory Production Resources"
+                            "title": "Listar Recursos de Produção"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-units",
-                            "title": "Listar — Inventory Units"
+                            "title": "Listar Unidades de Medida"
                         }
                     ]
                 },
@@ -667,22 +667,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-inventory-items",
-                            "title": "Inventory Items"
+                            "title": "Listar Itens de Estoque"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-inventory-item",
-                            "title": "Inventory Item"
+                            "title": "Cadastrar Item de Estoque"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-inventory-item",
-                            "title": "Inventory Item"
+                            "title": "Editar Item de Estoque"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-inventory-item",
-                            "title": "Inventory Item"
+                            "title": "Visualizar Item de Estoque"
                         }
                     ]
                 },
@@ -703,12 +703,12 @@
                         {
                             "type": "topic",
                             "topic_id": "report-inventory-history",
-                            "title": "Report Inventory History"
+                            "title": "Relatório de Histórico de Movimentações"
                         },
                         {
                             "type": "topic",
                             "topic_id": "report-inventory-balance",
-                            "title": "Report Inventory Balance"
+                            "title": "Relatório de Saldos de Estoque"
                         }
                     ]
                 },
@@ -719,22 +719,22 @@
                         {
                             "type": "topic",
                             "topic_id": "create-inventory-adjust",
-                            "title": "Cadastrar — Inventory Adjust"
+                            "title": "Ajuste de Estoque"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-inventory-entry",
-                            "title": "Cadastrar — Inventory Entry"
+                            "title": "Entrada de Estoque"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-inventory-exit",
-                            "title": "Cadastrar — Inventory Exit"
+                            "title": "Saída de Estoque"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-inventory-transfer",
-                            "title": "Cadastrar — Inventory Transfer"
+                            "title": "Transferência de Estoque"
                         }
                     ]
                 }
@@ -756,17 +756,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-banks",
-                            "title": "Banks"
+                            "title": "Listar Bancos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-bank",
-                            "title": "Bank"
+                            "title": "Cadastrar Banco"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-bank",
-                            "title": "Bank"
+                            "title": "Editar Banco"
                         }
                     ]
                 },
@@ -777,7 +777,7 @@
                         {
                             "type": "topic",
                             "topic_id": "list-mov-between-accounts",
-                            "title": "Mov Between Accounts"
+                            "title": "ListMovBetweenAccounts"
                         },
                         {
                             "type": "topic",
@@ -793,17 +793,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-payment-methods",
-                            "title": "Payment Methods"
+                            "title": "Listar Formas de Pagamento"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-payment-method",
-                            "title": "Payment Method"
+                            "title": "Cadastrar Forma de Pagamento"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-payment-method",
-                            "title": "Payment Method"
+                            "title": "Editar Forma de Pagamento"
                         }
                     ]
                 },
@@ -814,17 +814,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-frequencies",
-                            "title": "Frequencies"
+                            "title": "Listar Frequências para Pagamentos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-frequency",
-                            "title": "Frequency"
+                            "title": "Cadastrar Frequência para Pagamento"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-frequency",
-                            "title": "Frequency"
+                            "title": "Editar Frequência para Pagamento"
                         }
                     ]
                 },
@@ -835,7 +835,7 @@
                         {
                             "type": "topic",
                             "topic_id": "list-payments",
-                            "title": "Payments"
+                            "title": "Listar Contas à Pagar"
                         },
                         {
                             "type": "topic",
@@ -861,17 +861,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-accounts-plan",
-                            "title": "Accounts Plan"
+                            "title": "Listar Plano de Contas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-account-plan",
-                            "title": "Account Plan"
+                            "title": "Cadastrar Plano de Contas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-account-plan",
-                            "title": "Account Plan"
+                            "title": "Editar Plano de Contas"
                         }
                     ]
                 },
@@ -882,7 +882,7 @@
                         {
                             "type": "topic",
                             "topic_id": "list-receipts",
-                            "title": "Receipts"
+                            "title": "Listar Contas à Receber"
                         },
                         {
                             "type": "topic",
@@ -904,22 +904,22 @@
                 {
                     "type": "topic",
                     "topic_id": "cost-center-summary",
-                    "title": "Cost Center Summary"
+                    "title": "Pagina Resumo Por Centro de Custo"
                 },
                 {
                     "type": "topic",
                     "topic_id": "movements",
-                    "title": "Movements"
+                    "title": "Listar Movimentos"
                 },
                 {
                     "type": "topic",
                     "topic_id": "cash-flow",
-                    "title": "Cash Flow"
+                    "title": "Listar Fluxo de Caixa"
                 },
                 {
                     "type": "topic",
                     "topic_id": "flow-cash-competence",
-                    "title": "Flow Cash Competence"
+                    "title": "Pagina Resumo Financeiro Regime de Caixa e Competência"
                 }
             ]
         },
@@ -934,12 +934,12 @@
                         {
                             "type": "topic",
                             "topic_id": "list-documents",
-                            "title": "Documents"
+                            "title": "Página para listar Documentos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-document",
-                            "title": "Document"
+                            "title": "Página para cadastrar Documentos"
                         },
                         {
                             "type": "topic",
@@ -949,7 +949,7 @@
                         {
                             "type": "topic",
                             "topic_id": "view-document",
-                            "title": "Document"
+                            "title": "Pagina para visualizar o cadastro do documento"
                         }
                     ]
                 }
@@ -971,17 +971,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-policy-categories",
-                            "title": "Policy Categories"
+                            "title": "Listar Categorias Políticas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-policy-category",
-                            "title": "Policy Category"
+                            "title": "Cadastrar Categoria Política"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-policy-category",
-                            "title": "Policy Category"
+                            "title": "Editar Categoria Política"
                         }
                     ]
                 },
@@ -996,17 +996,17 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-employee-tickets",
-                                    "title": "Employee Tickets"
+                                    "title": "Meus Chamados"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-employee-ticket",
-                                    "title": "Employee Ticket"
+                                    "title": "Criar Chamado"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "view-employee-ticket",
-                                    "title": "Employee Ticket"
+                                    "title": "Visualizar Chamado"
                                 }
                             ]
                         }
@@ -1024,7 +1024,7 @@
                         {
                             "type": "topic",
                             "topic_id": "performance-dashboard",
-                            "title": "Performance Dashboard"
+                            "title": "Dashboard de Desempenho"
                         },
                         {
                             "type": "group",
@@ -1033,17 +1033,17 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-performance-reviews",
-                                    "title": "Performance Reviews"
+                                    "title": "Listar Avaliações de Desempenho"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-performance-review",
-                                    "title": "Performance Review"
+                                    "title": "Criar Avaliação de Desempenho"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-performance-review",
-                                    "title": "Performance Review"
+                                    "title": "Editar Avaliação de Desempenho"
                                 }
                             ]
                         },
@@ -1054,17 +1054,17 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-competencies",
-                                    "title": "Competencies"
+                                    "title": "Listar Competências"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-competency",
-                                    "title": "Competency"
+                                    "title": "Cadastrar Competência"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-competency",
-                                    "title": "Competency"
+                                    "title": "Editar Competência"
                                 }
                             ]
                         },
@@ -1075,24 +1075,24 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-performance-feedbacks",
-                                    "title": "Performance Feedbacks"
+                                    "title": "Listar Feedbacks de Desempenho"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-performance-feedback",
-                                    "title": "Performance Feedback"
+                                    "title": "Criar Feedback de Desempenho"
                                 }
                             ]
                         },
                         {
                             "type": "topic",
                             "topic_id": "nine-box-matrix",
-                            "title": "Nine Box Matrix"
+                            "title": "Matriz 9BOX"
                         },
                         {
                             "type": "topic",
                             "topic_id": "competency-matrix",
-                            "title": "Competency Matrix"
+                            "title": "Matriz de Competências"
                         },
                         {
                             "type": "group",
@@ -1101,17 +1101,17 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-performance-goals",
-                                    "title": "Performance Goals"
+                                    "title": "Listar Metas de Desempenho"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-performance-goal",
-                                    "title": "Performance Goal"
+                                    "title": "Criar Meta de Desempenho"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-performance-goal",
-                                    "title": "Performance Goal"
+                                    "title": "Editar Meta de Desempenho"
                                 }
                             ]
                         }
@@ -1120,12 +1120,12 @@
                 {
                     "type": "topic",
                     "topic_id": "import-payroll-documents",
-                    "title": "Import Payroll Documents"
+                    "title": "Importar documentos de RH (PDF)"
                 },
                 {
                     "type": "topic",
                     "topic_id": "my-payroll-documents",
-                    "title": "My Payroll Documents"
+                    "title": "Meus documentos de folha"
                 },
                 {
                     "type": "topic",
@@ -1154,7 +1154,7 @@
                         {
                             "type": "topic",
                             "topic_id": "people-reports",
-                            "title": "People Reports"
+                            "title": "Relatórios de RH"
                         }
                     ]
                 },
@@ -1165,29 +1165,29 @@
                         {
                             "type": "topic",
                             "topic_id": "list-policies",
-                            "title": "Policies"
+                            "title": "Listar Políticas Internas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-policy",
-                            "title": "Policy"
+                            "title": "Cadastrar Política Interna"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-policy",
-                            "title": "Policy"
+                            "title": "Editar Política Interna"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-policy",
-                            "title": "Policy"
+                            "title": "Visualizar Política Interna"
                         }
                     ]
                 },
                 {
                     "type": "topic",
                     "topic_id": "employee-portal",
-                    "title": "Employee Portal"
+                    "title": "Portal do Colaborador"
                 },
                 {
                     "type": "group",
@@ -1196,17 +1196,17 @@
                         {
                             "type": "topic",
                             "topic_id": "rh-kpi-dashboard",
-                            "title": "Rh Kpi Dashboard"
+                            "title": "Dashboard de Recrutamento / Currículos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "rh-candidatos",
-                            "title": "Rh Candidatos"
+                            "title": "Listar Currículos / Candidatos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "rh-entrevistas",
-                            "title": "Rh Entrevistas"
+                            "title": "Listar Entrevistas"
                         },
                         {
                             "type": "group",
@@ -1233,7 +1233,7 @@
                         {
                             "type": "topic",
                             "topic_id": "pending-approvals",
-                            "title": "Pending Approvals"
+                            "title": "Aprovações Pendentes"
                         },
                         {
                             "type": "group",
@@ -1242,17 +1242,17 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-employee-requests",
-                                    "title": "Employee Requests"
+                                    "title": "Minhas Solicitações"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-employee-request",
-                                    "title": "Employee Request"
+                                    "title": "Criar Solicitação"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "view-employee-request",
-                                    "title": "Employee Request"
+                                    "title": "Visualizar Solicitação"
                                 }
                             ]
                         },
@@ -1263,17 +1263,17 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-request-types",
-                                    "title": "Request Types"
+                                    "title": "Listar Tipos de Solicitação"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-request-type",
-                                    "title": "Request Type"
+                                    "title": "Criar Tipo de Solicitação"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-request-type",
-                                    "title": "Request Type"
+                                    "title": "Editar Tipo de Solicitação"
                                 }
                             ]
                         }
@@ -1286,17 +1286,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-payroll-document-types",
-                            "title": "Payroll Document Types"
+                            "title": "Tipos de documento (RH)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-payroll-document-type",
-                            "title": "Payroll Document Type"
+                            "title": "Criar tipo de documento (RH)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-payroll-document-type",
-                            "title": "Payroll Document Type"
+                            "title": "Editar tipo de documento (RH)"
                         }
                     ]
                 }
@@ -1313,17 +1313,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-project-stages",
-                            "title": "Project Stages"
+                            "title": "Listar Etapas de Projeto"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-project-stage",
-                            "title": "Project Stage"
+                            "title": "Cadastrar Etapa de Projeto"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-project-stage",
-                            "title": "Project Stage"
+                            "title": "Editar Etapa de Projeto"
                         }
                     ]
                 },
@@ -1334,17 +1334,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-stage-groups",
-                            "title": "Stage Groups"
+                            "title": "Listar Grupos de Etapas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-stage-group",
-                            "title": "Stage Group"
+                            "title": "Cadastrar Grupo de Etapas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-stage-group",
-                            "title": "Stage Group"
+                            "title": "Editar Grupo de Etapas"
                         }
                     ]
                 },
@@ -1355,17 +1355,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-projects",
-                            "title": "Projects"
+                            "title": "Listar Projetos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-project",
-                            "title": "Project"
+                            "title": "Cadastrar Projeto"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-project",
-                            "title": "Project"
+                            "title": "Editar Projeto"
                         },
                         {
                             "type": "topic",
@@ -1383,12 +1383,12 @@
                 {
                     "type": "topic",
                     "topic_id": "training-kpi-dashboard",
-                    "title": "Training Kpi Dashboard"
+                    "title": "Dashboard de KPIs - Treinamentos"
                 },
                 {
                     "type": "topic",
                     "topic_id": "training-compliance-dashboard",
-                    "title": "Training Compliance Dashboard"
+                    "title": "Dashboard de Necessidades de Treinamento"
                 },
                 {
                     "type": "group",
@@ -1401,7 +1401,7 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "assign-evaluation",
-                                    "title": "Assign Evaluation"
+                                    "title": "Atribuir Avaliação para Usuários"
                                 },
                                 {
                                     "type": "group",
@@ -1410,7 +1410,7 @@
                                         {
                                             "type": "topic",
                                             "topic_id": "list-evaluation-assignments",
-                                            "title": "Evaluation Assignments"
+                                            "title": "Gerenciar Atribuições de Avaliações"
                                         },
                                         {
                                             "type": "topic",
@@ -1428,19 +1428,19 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "create-evaluation-model-with-questions",
-                                    "title": "Cadastrar — Evaluation Model With Questions"
+                                    "title": "Criar Questionário Completo"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "list-evaluation-models",
-                                    "title": "Listar — Evaluation Models"
+                                    "title": "Listar Modelos de Avaliação"
                                 }
                             ]
                         },
                         {
                             "type": "topic",
                             "topic_id": "my-evaluations",
-                            "title": "My Evaluations"
+                            "title": "Minhas Avaliações"
                         }
                     ]
                 },
@@ -1451,44 +1451,44 @@
                         {
                             "type": "topic",
                             "topic_id": "list-trainings",
-                            "title": "Trainings"
+                            "title": "Listar Treinamentos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-training",
-                            "title": "Training"
+                            "title": "Cadastrar Treinamento"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-training",
-                            "title": "Training"
+                            "title": "Editar Treinamento"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-training",
-                            "title": "Training"
+                            "title": "Visualizar Treinamento"
                         }
                     ]
                 },
                 {
                     "type": "topic",
                     "topic_id": "completed-trainings-matrix",
-                    "title": "Completed Trainings Matrix"
+                    "title": "Matriz de Treinamentos Realizados"
                 },
                 {
                     "type": "topic",
                     "topic_id": "matrix-by-user",
-                    "title": "Matrix By User"
+                    "title": "Matriz por Colaborador"
                 },
                 {
                     "type": "topic",
                     "topic_id": "list-training-status",
-                    "title": "Listar — Training Status"
+                    "title": "Status dos Treinamentos"
                 },
                 {
                     "type": "topic",
                     "topic_id": "test-notification",
-                    "title": "Test Notification"
+                    "title": "Teste de Notificações de Treinamentos"
                 }
             ]
         },
@@ -1518,7 +1518,7 @@
                         {
                             "type": "topic",
                             "topic_id": "lgpd-aipd-suggest",
-                            "title": "Lgpd Aipd Suggest"
+                            "title": "Sugestões de AIPD"
                         },
                         {
                             "type": "group",
@@ -1527,47 +1527,47 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-ecommerce",
-                                    "title": "Lgpd Aipd Template Ecommerce"
+                                    "title": "Template AIPD - E-commerce"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-educacao",
-                                    "title": "Lgpd Aipd Template Educacao"
+                                    "title": "Template AIPD - Educação"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-financeiro",
-                                    "title": "Lgpd Aipd Template Financeiro"
+                                    "title": "Template AIPD - Setor Financeiro"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-juridico",
-                                    "title": "Lgpd Aipd Template Juridico"
+                                    "title": "Template AIPD - Jurídico"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-logistica",
-                                    "title": "Lgpd Aipd Template Logistica"
+                                    "title": "Template AIPD - Logística"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-marketing",
-                                    "title": "Lgpd Aipd Template Marketing"
+                                    "title": "Template AIPD - Marketing"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-rh",
-                                    "title": "Lgpd Aipd Template Rh"
+                                    "title": "Template AIPD - RH"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-saude",
-                                    "title": "Lgpd Aipd Template Saude"
+                                    "title": "Template AIPD - Setor de Saúde"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "lgpd-aipd-template-telecom",
-                                    "title": "Lgpd Aipd Template Telecom"
+                                    "title": "Template AIPD - Telecomunicações"
                                 }
                             ]
                         }
@@ -1576,17 +1576,17 @@
                 {
                     "type": "topic",
                     "topic_id": "lgpd-bases-legais",
-                    "title": "Lgpd Bases Legais"
+                    "title": "Listar Bases Legais"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-categorias-titulares",
-                    "title": "Lgpd Categorias Titulares"
+                    "title": "Listar Categorias de Titulares"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-classificacoes-dados",
-                    "title": "Lgpd Classificacoes Dados"
+                    "title": "Listar Classificações de Dados"
                 },
                 {
                     "type": "topic",
@@ -1596,32 +1596,32 @@
                 {
                     "type": "topic",
                     "topic_id": "lgpd-data-mapping",
-                    "title": "Lgpd Data Mapping"
+                    "title": "Listar Data Mapping LGPD"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-finalidades",
-                    "title": "Lgpd Finalidades"
+                    "title": "Listar Finalidades"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-inventory",
-                    "title": "Lgpd Inventory"
+                    "title": "Listar Inventário LGPD"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-workflow-report",
-                    "title": "Lgpd Workflow Report"
+                    "title": "Relatório Integrado do Fluxo LGPD"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-ripd",
-                    "title": "Lgpd Ripd"
+                    "title": "Listar RIPD"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-ropa",
-                    "title": "Lgpd Ropa"
+                    "title": "Listar ROPA"
                 },
                 {
                     "type": "group",
@@ -1642,12 +1642,12 @@
                 {
                     "type": "topic",
                     "topic_id": "lgpd-tia",
-                    "title": "Lgpd Tia"
+                    "title": "Listar Testes TIA"
                 },
                 {
                     "type": "topic",
                     "topic_id": "lgpd-tipos-dados",
-                    "title": "Lgpd Tipos Dados"
+                    "title": "Listar Tipos de Dados"
                 }
             ]
         },
@@ -1662,22 +1662,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-customers",
-                            "title": "Customers"
+                            "title": "Listar Clientes"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-customer",
-                            "title": "Customer"
+                            "title": "Cadastrar Cliente"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-customer",
-                            "title": "Customer"
+                            "title": "Editar Cliente"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-customer",
-                            "title": "Customer"
+                            "title": "Visualizar Cliente"
                         }
                     ]
                 },
@@ -1688,22 +1688,22 @@
                         {
                             "type": "topic",
                             "topic_id": "list-suppliers",
-                            "title": "Suppliers"
+                            "title": "Listar Fornecedores"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-supplier",
-                            "title": "Supplier"
+                            "title": "Cadastrar Fornecedor"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-supplier",
-                            "title": "Supplier"
+                            "title": "Editar Fornecedor"
                         },
                         {
                             "type": "topic",
                             "topic_id": "view-supplier",
-                            "title": "Supplier"
+                            "title": "Visualizar Fornecedor"
                         }
                     ]
                 }
@@ -1716,12 +1716,12 @@
                 {
                     "type": "topic",
                     "topic_id": "strategic-dashboard",
-                    "title": "Strategic Dashboard"
+                    "title": "Dashboard Planejamento Estratégico"
                 },
                 {
                     "type": "topic",
                     "topic_id": "strategic-indicators-list",
-                    "title": "Strategic Indicators List"
+                    "title": "Listar Indicadores Estratégicos"
                 },
                 {
                     "type": "group",
@@ -1730,17 +1730,17 @@
                         {
                             "type": "topic",
                             "topic_id": "list-strategic-plans",
-                            "title": "Strategic Plans"
+                            "title": "Listar Planos Estratégicos"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-strategic-plan",
-                            "title": "Strategic Plan"
+                            "title": "Cadastrar Plano Estratégico"
                         },
                         {
                             "type": "topic",
                             "topic_id": "update-strategic-plan",
-                            "title": "Strategic Plan"
+                            "title": "Atualizar Plano Estratégico"
                         }
                     ]
                 }
@@ -1762,12 +1762,12 @@
                         {
                             "type": "topic",
                             "topic_id": "list-dashboards",
-                            "title": "Dashboards"
+                            "title": "Listar Dashboards"
                         },
                         {
                             "type": "topic",
                             "topic_id": "create-dashboard",
-                            "title": "Dashboard"
+                            "title": "Criar Dashboard"
                         },
                         {
                             "type": "topic",
@@ -1783,7 +1783,7 @@
                         {
                             "type": "topic",
                             "topic_id": "list-dynamic-reports",
-                            "title": "Dynamic Reports"
+                            "title": "Listar Relatórios Dinâmicos (Locais)"
                         },
                         {
                             "type": "topic",
@@ -1798,14 +1798,14 @@
                         {
                             "type": "topic",
                             "topic_id": "view-dynamic-report",
-                            "title": "Dynamic Report"
+                            "title": "Visualizar Relatório Dinâmico"
                         }
                     ]
                 },
                 {
                     "type": "topic",
                     "topic_id": "list-dynamic-reports-sap",
-                    "title": "Listar — Dynamic Reports Sap"
+                    "title": "Listar Relatórios Dinâmicos SAP (API)"
                 }
             ]
         },
@@ -1820,24 +1820,24 @@
                         {
                             "type": "topic",
                             "topic_id": "admin-booking-dashboard",
-                            "title": "Admin Booking Dashboard"
+                            "title": "Dashboard de Reservas"
                         },
                         {
                             "type": "topic",
                             "topic_id": "rooms-calendar-integration-settings",
-                            "title": "Rooms Calendar Integration Settings"
+                            "title": "Integração calendário (Salas)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "booking-reports",
-                            "title": "Booking Reports"
+                            "title": "Relatórios de Reservas"
                         }
                     ]
                 },
                 {
                     "type": "topic",
                     "topic_id": "room-calendar",
-                    "title": "Room Calendar"
+                    "title": "Calendário de Reservas"
                 },
                 {
                     "type": "group",
@@ -1846,7 +1846,7 @@
                         {
                             "type": "topic",
                             "topic_id": "booking-waitlist",
-                            "title": "Booking Waitlist"
+                            "title": "Lista de Espera"
                         },
                         {
                             "type": "group",
@@ -1855,22 +1855,22 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-bookings",
-                                    "title": "Bookings"
+                                    "title": "Listar Minhas Reservas (Salas)"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-booking",
-                                    "title": "Booking"
+                                    "title": "Criar Reserva de Sala"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-booking",
-                                    "title": "Booking"
+                                    "title": "Editar Reserva de Sala"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "view-booking",
-                                    "title": "Booking"
+                                    "title": "Visualizar Reserva de Sala"
                                 }
                             ]
                         }
@@ -1887,22 +1887,22 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-meeting-rooms",
-                                    "title": "Meeting Rooms"
+                                    "title": "Listar Salas de Reunião"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-meeting-room",
-                                    "title": "Meeting Room"
+                                    "title": "Criar Sala de Reunião"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-meeting-room",
-                                    "title": "Meeting Room"
+                                    "title": "Editar Sala de Reunião"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "view-meeting-room",
-                                    "title": "Meeting Room"
+                                    "title": "Visualizar Sala de Reunião"
                                 }
                             ]
                         },
@@ -1913,22 +1913,22 @@
                                 {
                                     "type": "topic",
                                     "topic_id": "list-meeting-rooms",
-                                    "title": "Meeting Rooms"
+                                    "title": "Listar Salas de Reunião"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "create-meeting-room",
-                                    "title": "Meeting Room"
+                                    "title": "Criar Sala de Reunião"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "update-meeting-room",
-                                    "title": "Meeting Room"
+                                    "title": "Editar Sala de Reunião"
                                 },
                                 {
                                     "type": "topic",
                                     "topic_id": "view-meeting-room",
-                                    "title": "Meeting Room"
+                                    "title": "Visualizar Sala de Reunião"
                                 }
                             ]
                         }
@@ -1941,17 +1941,17 @@
                         {
                             "type": "topic",
                             "topic_id": "rooms-list-request-groups",
-                            "title": "Rooms List Request Groups"
+                            "title": "Listar Equipes/Grupos (Salas)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "rooms-list-service-requests",
-                            "title": "Rooms List Service Requests"
+                            "title": "Listar Solicitações (Salas)"
                         },
                         {
                             "type": "topic",
                             "topic_id": "rooms-list-request-types",
-                            "title": "Rooms List Request Types"
+                            "title": "Listar Tipos de Solicitação (Salas)"
                         }
                     ]
                 }
@@ -1969,27 +1969,27 @@
                 {
                     "type": "topic",
                     "topic_id": "sac-dashboard",
-                    "title": "Sac Dashboard"
+                    "title": "Dashboard SAC"
                 },
                 {
                     "type": "topic",
                     "topic_id": "sac-list-categories",
-                    "title": "Sac List Categories"
+                    "title": "Listar Categorias SAC"
                 },
                 {
                     "type": "topic",
                     "topic_id": "sac-list-tickets",
-                    "title": "Sac List Tickets"
+                    "title": "Listar Chamados SAC"
                 },
                 {
                     "type": "topic",
                     "topic_id": "sac-list-clients",
-                    "title": "Sac List Clients"
+                    "title": "Listar Clientes SAC"
                 },
                 {
                     "type": "topic",
                     "topic_id": "sac-list-sla-rules",
-                    "title": "Sac List Sla Rules"
+                    "title": "Listar SLAs SAC"
                 }
             ]
         },

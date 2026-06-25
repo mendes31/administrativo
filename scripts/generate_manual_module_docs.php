@@ -2,6 +2,9 @@
 /**
  * Gera arquivos HTML do manual (módulos não-SST + upgrade SST esqueleto).
  * Uso: php scripts/generate_manual_module_docs.php
+ *
+ * Após gerar esqueletos, revisar e expandir em português (ver docs/manual/README.md).
+ * Não sobrescrever tópicos já documentados manualmente (ex.: completed-trainings-matrix).
  */
 declare(strict_types=1);
 

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/manual_doc_lib.php';
 require_once __DIR__ . '/manual_aggregate_topic_map.php';
+require_once __DIR__ . '/manual_coverage_lib.php';
 
 $contentRoot = dirname(__DIR__) . '/docs/manual/content';
 $definitionsDir = dirname(__DIR__) . '/docs/manual/page-definitions';
@@ -56,11 +57,13 @@ foreach ($aggregateMap as $slug => $aggregateTopic) {
     $parentLabel = $aggregateLabels[$aggregateTopic] ?? manual_humanize_slug($aggregateTopic);
     $permission = manual_slug_to_permission($slug);
 
+    $pageTitles = manual_page_titles_by_slug();
+
     if (isset($detailed[$slug])) {
         $title = $detailed[$slug]['title'];
         $html = $detailed[$slug]['html'];
     } else {
-        $title = manual_humanize_slug($slug);
+        $title = $pageTitles[$slug] ?? manual_humanize_slug($slug);
         $html = manual_skeleton_doc(
             $slug,
             $title,

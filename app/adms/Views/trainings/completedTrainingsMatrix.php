@@ -2,7 +2,7 @@
 use App\adms\Helpers\FormatHelper;
 
 // Função para determinar o aproveitamento (apenas Aprovado >= 7 ou Reprovado)
-function getPerformanceStatus($grade) {
+function getPerformanceStatus(mixed $grade): array {
     if ($grade === null || $grade === '' || $grade === '-') {
         return ['label' => '', 'class' => ''];
     } elseif ($grade >= 7) {
@@ -254,7 +254,7 @@ thead th {
                     $params = $_GET;
                     $sort = $_GET['sort'] ?? '';
                     $order = $_GET['order'] ?? 'asc';
-                    function sort_link($col, $label, $sort, $order, $params) {
+                    function sort_link(string $col, string $label, string $sort, string $order, array $params): string {
                         $params['sort'] = $col;
                         $params['order'] = ($sort === $col && $order === 'asc') ? 'desc' : 'asc';
                         $icon = '';
@@ -276,7 +276,7 @@ thead th {
                     <th class="aproveitamento-col" style="color: #ffffff !important;">Aproveitamento</th>
                     <th class="tipo-col" style="color: #ffffff !important;">Tipo do Treinamento</th>
                     <th class="observacoes-col"><?= sort_link('observacoes', 'Observações', $sort, $order, $params) ?></th>
-                    <th class="acoes-col" style="color: #ffffff !important; width: 80px;">Ações</th>
+                    <th class="acoes-col" style="color: #ffffff !important; width: 100px;">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -349,10 +349,26 @@ thead th {
                             </td>
                             <td><?= htmlspecialchars($item['observacoes'] ?? '-') ?></td>
                             <td>
-                                <?php if (!empty($item['application_id']) && in_array('EditCompletedTraining', $this->data['buttonPermission'] ?? [])): ?>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="openEditModal(<?= $item['application_id'] ?>)" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                <?php if (!empty($item['application_id'])): ?>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <?php if (in_array('EditCompletedTraining', $this->data['buttonPermission'] ?? [])): ?>
+                                            <button type="button" class="btn btn-primary" onclick="openEditModal(<?= (int)$item['application_id'] ?>)" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if (in_array('DeleteCompletedTraining', $this->data['buttonPermission'] ?? [])): ?>
+                                            <button type="button"
+                                                class="btn btn-danger btn-delete-training"
+                                                data-application-id="<?= (int)$item['application_id'] ?>"
+                                                data-user-name="<?= htmlspecialchars($item['user_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-training-name="<?= htmlspecialchars($item['training_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-training-version="<?= htmlspecialchars($item['training_version'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-is-current-version="<?= (int)($item['is_current_version'] ?? 1) ?>"
+                                                title="Cancelar realização">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -492,6 +508,30 @@ thead th {
                                 <span><?= htmlspecialchars($item['observacoes']) ?></span>
                             </div>
                             <?php endif; ?>
+
+                            <?php if (!empty($item['application_id']) && (
+                                in_array('EditCompletedTraining', $this->data['buttonPermission'] ?? [])
+                                || in_array('DeleteCompletedTraining', $this->data['buttonPermission'] ?? [])
+                            )): ?>
+                            <div class="d-flex gap-2 mt-2">
+                                <?php if (in_array('EditCompletedTraining', $this->data['buttonPermission'] ?? [])): ?>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="openEditModal(<?= (int)$item['application_id'] ?>)">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                <?php endif; ?>
+                                <?php if (in_array('DeleteCompletedTraining', $this->data['buttonPermission'] ?? [])): ?>
+                                    <button type="button"
+                                        class="btn btn-sm btn-danger btn-delete-training"
+                                        data-application-id="<?= (int)$item['application_id'] ?>"
+                                        data-user-name="<?= htmlspecialchars($item['user_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-training-name="<?= htmlspecialchars($item['training_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-training-version="<?= htmlspecialchars($item['training_version'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-is-current-version="<?= (int)($item['is_current_version'] ?? 1) ?>">
+                                        <i class="fas fa-trash"></i> Cancelar
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -511,7 +551,7 @@ thead th {
     $total = $this->data['total'] ?? 0;
     $totalPages = max(1, ceil($total / $perPage));
     $params = $_GET;
-    function pageUrl($n, $params) {
+    function pageUrl(int $n, array $params): string {
         $params['page'] = $n;
         return '?' . http_build_query($params);
     }
@@ -664,7 +704,83 @@ thead th {
     </div>
 </div>
 
+<!-- Modal de Cancelamento -->
+<div class="modal fade" id="deleteTrainingModal" tabindex="-1" aria-labelledby="deleteTrainingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTrainingModalLabel">Cancelar Treinamento Realizado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="deleteTrainingForm">
+                <div class="modal-body">
+                    <input type="hidden" id="delete_application_id" name="application_id">
+
+                    <div class="alert alert-danger" id="delete_version_warning">
+                        <strong>Atenção:</strong> esta ação remove o registro da <strong>Matriz de Realizados</strong>
+                        e devolve o treinamento para o <strong>Status de Treinamentos</strong> como pendente.
+                    </div>
+
+                    <p class="mb-1"><strong>Colaborador:</strong> <span id="delete_user_name"></span></p>
+                    <p class="mb-3"><strong>Treinamento:</strong> <span id="delete_training_name"></span></p>
+
+                    <div class="mb-3">
+                        <label for="delete_justificativa" class="form-label">Justificativa *</label>
+                        <textarea class="form-control" id="delete_justificativa" name="justificativa" rows="3" required placeholder="Informe o motivo do cancelamento"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="delete_password" class="form-label">Senha de Confirmação *</label>
+                        <input type="password" class="form-control" id="delete_password" name="password" required placeholder="Digite sua senha para confirmar o cancelamento">
+                    </div>
+
+                    <div id="delete_error_message" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+function openDeleteModal(applicationId, userName, trainingName, trainingVersion, isCurrentVersion) {
+    document.getElementById('deleteTrainingForm').reset();
+    document.getElementById('delete_error_message').classList.add('d-none');
+    document.getElementById('delete_application_id').value = applicationId;
+    document.getElementById('delete_user_name').textContent = userName || '';
+    document.getElementById('delete_training_name').textContent = trainingName || '';
+
+    const warning = document.getElementById('delete_version_warning');
+    if (String(isCurrentVersion) === '0') {
+        warning.innerHTML = '<strong>Atenção:</strong> este registro é da <strong>versão v' + (trainingVersion || '?') + '</strong>. '
+            + 'Se houver conclusão copiada na versão atual, ela também será cancelada e a pendência será reaberta na <strong>versão vigente</strong>.';
+    } else {
+        warning.innerHTML = '<strong>Atenção:</strong> esta ação remove o registro da <strong>Matriz de Realizados</strong> '
+            + 'e devolve o treinamento para o <strong>Status de Treinamentos</strong> como pendente.';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('deleteTrainingModal'));
+    modal.show();
+}
+
+document.addEventListener('click', function(event) {
+    const button = event.target.closest('.btn-delete-training');
+    if (!button) {
+        return;
+    }
+
+    openDeleteModal(
+        parseInt(button.dataset.applicationId, 10),
+        button.dataset.userName || '',
+        button.dataset.trainingName || '',
+        button.dataset.trainingVersion || '',
+        button.dataset.isCurrentVersion || '1'
+    );
+});
+
 function openEditModal(applicationId) {
     // Limpar formulário
     document.getElementById('editTrainingForm').reset();
@@ -730,6 +846,39 @@ document.getElementById('editTrainingForm').addEventListener('submit', function(
         } else {
             // Mostrar erro
             errorDiv.textContent = data.message || 'Erro ao salvar alterações';
+            errorDiv.classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        errorDiv.textContent = 'Erro ao processar requisição';
+        errorDiv.classList.remove('d-none');
+    });
+});
+
+document.getElementById('deleteTrainingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const errorDiv = document.getElementById('delete_error_message');
+    errorDiv.classList.add('d-none');
+
+    if (!confirm('Tem certeza que deseja cancelar este treinamento realizado?')) {
+        return;
+    }
+
+    fetch('<?= $_ENV['URL_ADM'] ?>completed-trainings-matrix/delete-application', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTrainingModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            errorDiv.textContent = data.message || 'Erro ao cancelar treinamento';
             errorDiv.classList.remove('d-none');
         }
     })

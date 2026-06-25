@@ -114,7 +114,8 @@ function buildManualAggregateTopicMap(): array
 
     $add(['list-trainings', 'create-training', 'update-training', 'view-training'], 'rh-trein-catalogo');
     $add(['training-kpi-dashboard', 'training-compliance-dashboard'], 'rh-trein-dashboards');
-    $add(['matrix-by-user', 'completed-trainings-matrix', 'list-training-status'], 'rh-trein-matrizes');
+    $add(['matrix-by-user', 'completed-trainings-matrix', 'list-training-status', 'apply-training', 'schedule-training', 'training-matrix-manager'], 'rh-trein-matrizes');
+    $add(['new-training-version', 'training-version-audit', 'training-history'], 'rh-trein-catalogo');
     $add([
         'my-evaluations', 'create-evaluation-model-with-questions', 'list-evaluation-models',
         'assign-evaluation', 'list-evaluation-assignments', 'view-evaluation-assignment',

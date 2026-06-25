@@ -408,4 +408,87 @@ class TrainingApplicationsRepository extends DbConnection
 
         return $rows;
     }
+
+    /**
+     * Busca conclusões do colaborador em um treinamento com a mesma data de realização.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findCompletedByUserTrainingAndDate(int $userId, int $trainingId, ?string $dataRealizacao): array
+    {
+        if ($dataRealizacao === null || $dataRealizacao === '') {
+            return [];
+        }
+
+        $sql = 'SELECT *
+                FROM adms_training_applications
+                WHERE adms_user_id = :user_id
+                  AND adms_training_id = :training_id
+                  AND status = \'concluido\'
+                  AND data_realizacao = :data_realizacao
+                ORDER BY id DESC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmt->bindValue(':data_realizacao', $dataRealizacao, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Conta outras aplicações concluídas do mesmo colaborador/treinamento.
+     */
+    public function countOtherCompletedApplications(int $excludeId, int $userId, int $trainingId): int
+    {
+        $sql = 'SELECT COUNT(*) FROM adms_training_applications
+                WHERE adms_user_id = :user_id
+                  AND adms_training_id = :training_id
+                  AND status = \'concluido\'
+                  AND id != :exclude_id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmt->bindValue(':exclude_id', $excludeId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int)($stmt->fetchColumn() ?: 0);
+    }
+
+    /**
+     * Exclui uma aplicação de treinamento com registro de auditoria.
+     */
+    public function delete(int $id): bool
+    {
+        try {
+            $dadosAntes = $this->getById($id);
+            if (!$dadosAntes) {
+                return false;
+            }
+
+            $sql = 'DELETE FROM adms_training_applications WHERE id = :id LIMIT 1';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $result = $stmt->execute();
+
+            if ($result) {
+                \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(
+                    'adms_training_applications',
+                    $id,
+                    $_SESSION['user_id'] ?? 0,
+                    'delete',
+                    $dadosAntes,
+                    []
+                );
+            }
+
+            return $result;
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Aplicação de treinamento não excluída.', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
 } 

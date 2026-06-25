@@ -107,7 +107,7 @@ class CompletedTrainingsMatrix
         $data = [
             'title_head' => 'Matriz de Treinamentos Realizados',
             'menu' => 'completed-trainings-matrix',
-            'buttonPermission' => ['EditCompletedTraining'],
+            'buttonPermission' => ['EditCompletedTraining', 'DeleteCompletedTraining'],
             'filters' => $filters,
             'matrix' => $matrix,
             'summary' => $summary,
@@ -425,6 +425,117 @@ class CompletedTrainingsMatrix
         echo json_encode([
             'success' => true,
             'message' => 'Treinamento atualizado com sucesso!'
+        ]);
+        exit;
+    }
+
+    /**
+     * Cancela uma aplicação concluída e devolve o treinamento ao status pendente.
+     */
+    public function deleteApplication(): void
+    {
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
+            exit;
+        }
+
+        $pagesRepo = new PagesRoutesRepository();
+        $deletePage = $pagesRepo->getPage('DeleteCompletedTraining');
+        if (!$deletePage || !$pagesRepo->checkUserPagePermission($deletePage['id_ap'])) {
+            echo json_encode(['success' => false, 'message' => 'Você não tem permissão para excluir treinamentos realizados']);
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
+            exit;
+        }
+
+        $applicationId = $_POST['application_id'] ?? null;
+        $justificativa = trim($_POST['justificativa'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (!$applicationId || !is_numeric($applicationId)) {
+            echo json_encode(['success' => false, 'message' => 'ID da aplicação não informado']);
+            exit;
+        }
+
+        if ($justificativa === '') {
+            echo json_encode(['success' => false, 'message' => 'Justificativa é obrigatória']);
+            exit;
+        }
+
+        if ($password === '') {
+            echo json_encode(['success' => false, 'message' => 'Senha é obrigatória']);
+            exit;
+        }
+
+        $loginRepo = new LoginRepository();
+        $user = $loginRepo->getUser($_SESSION['user_username'] ?? '');
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'Usuário não encontrado']);
+            exit;
+        }
+
+        if (!password_verify($password, $user['password'])) {
+            echo json_encode(['success' => false, 'message' => 'Senha incorreta']);
+            exit;
+        }
+
+        $applicationsRepo = new TrainingApplicationsRepository();
+        $applicationAtual = $applicationsRepo->getById((int)$applicationId);
+
+        if (!$applicationAtual) {
+            echo json_encode(['success' => false, 'message' => 'Aplicação não encontrada']);
+            exit;
+        }
+
+        if ($applicationAtual['status'] !== 'concluido') {
+            echo json_encode(['success' => false, 'message' => 'Apenas treinamentos concluídos podem ser cancelados']);
+            exit;
+        }
+
+        $cancelResult = $this->trainingUsersRepo->cancelCompletedApplication(
+            $applicationAtual,
+            $applicationsRepo,
+            $this->trainingsRepo
+        );
+
+        if (!$cancelResult['success']) {
+            echo json_encode(['success' => false, 'message' => $cancelResult['message']]);
+            exit;
+        }
+
+        $logAlteracoesRepo = new LogAlteracoesRepository();
+        $sql = 'SELECT id FROM adms_log_alteracoes
+                WHERE tabela = :tabela
+                AND objeto_id = :objeto_id
+                AND usuario_id = :usuario_id
+                ORDER BY id DESC
+                LIMIT 1';
+        $conn = $logAlteracoesRepo->getConnection();
+        $stmt = $conn->prepare($sql);
+        $stmt->bindValue(':tabela', 'adms_training_applications', \PDO::PARAM_STR);
+        $stmt->bindValue(':objeto_id', (int)$applicationId, \PDO::PARAM_INT);
+        $stmt->bindValue(':usuario_id', $_SESSION['user_id'], \PDO::PARAM_INT);
+        $stmt->execute();
+        $ultimoLog = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($ultimoLog && isset($ultimoLog['id'])) {
+            $logJustificativasRepo = new LogJustificativasRepository();
+            $logJustificativasRepo->insert([
+                'log_alteracao_id' => $ultimoLog['id'],
+                'justificativa' => $justificativa,
+                'assinatura' => $_SESSION['user_name'] ?? 'Usuário não identificado',
+                'data_justificativa' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => $cancelResult['message'],
         ]);
         exit;
     }

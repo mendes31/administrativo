@@ -807,6 +807,49 @@ class TrainingsRepository extends DbConnection
     }
 
     /**
+     * Retorna a versão vigente da família de um treinamento.
+     */
+    public function getCurrentVersionByFamilyKey(string $familyKey): ?array
+    {
+        $familyKey = trim($familyKey);
+        if ($familyKey === '') {
+            return null;
+        }
+
+        $sql = 'SELECT *
+                FROM adms_trainings
+                WHERE (training_family_key = :family_key OR codigo = :family_key)
+                  AND is_current_version = 1
+                ORDER BY id DESC
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':family_key', $familyKey, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Retorna a versão vigente da mesma família do treinamento informado.
+     */
+    public function getCurrentVersionForTraining(int $trainingId): ?array
+    {
+        $training = $this->getTraining($trainingId);
+        if (!$training || !is_array($training)) {
+            return null;
+        }
+
+        if ((int)($training['is_current_version'] ?? 0) === 1) {
+            return $training;
+        }
+
+        $familyKey = trim((string)($training['training_family_key'] ?? $training['codigo'] ?? ''));
+
+        return $this->getCurrentVersionByFamilyKey($familyKey);
+    }
+
+    /**
      * Retorna linhas da auditoria de versionamento com filtro por família/código.
      *
      * @param array<string, mixed> $filters

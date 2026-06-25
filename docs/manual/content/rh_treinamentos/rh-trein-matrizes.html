@@ -1,18 +1,31 @@
 <h1>Matrizes de treinamento</h1>
-<p>Matriz por colaborador e matriz de treinamentos realizados — visão de necessidade vs. conclusão.</p>
-<p><strong>Quem acessa:</strong> RH com <em>MatrixByUser</em>, <em>CompletedTrainingsMatrix</em>, <em>ListTrainingStatus</em>.</p>
+<p>Conjunto de telas que relacionam <strong>necessidade</strong> (o que falta fazer) e <strong>conclusão</strong> (o que já foi realizado): matriz por colaborador, matriz de realizados e status de pendências.</p>
+<p><strong>Quem acessa:</strong> RH com <em>MatrixByUser</em>, <em>CompletedTrainingsMatrix</em>, <em>ListTrainingStatus</em> e permissões de ação conforme a operação.</p>
+
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Consulte <strong>Matriz por Colaborador</strong> para ver obrigatórios individuais.</li>
-<li>Use <strong>Matriz de Realizados</strong> para histórico consolidado.</li>
-<li>Acompanhe <strong>Status de Treinamentos</strong> para pendências.</li>
-<li>Aplique conclusões ou importe turmas externas.</li>
-<li>Reexecute sincronização após alterar cargos.</li>
+    <li>Consulte <strong>Matriz por Colaborador</strong> para ver obrigatórios por vínculo individual ou cargo.</li>
+    <li>Use <strong>Matriz de Treinamentos Realizados</strong> para histórico consolidado, correções e cancelamentos.</li>
+    <li>Acompanhe <strong>Status de Treinamentos</strong> para pendências, vencimentos e agendamentos.</li>
+    <li>Aplique conclusões em <strong>Aplicar Treinamento</strong> ou importe turmas externas.</li>
+    <li>Após alterar cargos ou criar nova versão de treinamento, aguarde a sincronização automática da matriz.</li>
 </ol>
+
+<h2>Corrigir ou cancelar um realizado lançado por engano</h2>
+<ol>
+    <li>Abra <strong>Matriz de Treinamentos Realizados</strong> e localize o colaborador/treinamento.</li>
+    <li>Para apenas corrigir dados (data, nota, instrutor): use <strong>Editar</strong> — permissão <em>EditCompletedTraining</em>.</li>
+    <li>Para desfazer o lançamento e devolver ao status pendente: use <strong>Cancelar</strong> — permissão <em>DeleteCompletedTraining</em>.</li>
+    <li>Em ambos os casos, informe justificativa e confirme com senha (auditoria).</li>
+    <li>Confira em <strong>Status de Treinamentos</strong> se a pendência foi reaberta na <strong>versão vigente</strong> do treinamento.</li>
+</ol>
+<p class="help-note">Detalhes das regras de versionamento no cancelamento: tópico <code>completed-trainings-matrix</code>.</p>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Colaborador sem linhas na matriz</dt><dd>Cargo sem necessidade definida.</dd>
-<dt>Realizado não aparece</dt><dd>Aplicação registrada em outro treinamento equivalente.</dd>
-<dt>Status desatualizado</dt><dd>Aguarde job noturno ou force atualização.</dd>
-<dt>Matriz lenta</dt><dd>Filtre departamento ou exporte assíncrono.</dd>
+    <dt>Colaborador sem linhas na matriz</dt><dd>Cargo sem necessidade definida ou treinamento inativo.</dd>
+    <dt>Realizado não aparece</dt><dd>Aplicação em outra versão do mesmo código ou filtros restritivos na tela.</dd>
+    <dt>Status desatualizado</dt><dd>Aguarde atualização automática de status ou revise após sincronização de cargo.</dd>
+    <dt>Cancelou realizado e não ficou pendente</dt><dd>Versão antiga sem efeito na atual, treinamento inativo ou outra conclusão ainda existente.</dd>
+    <dt>Matriz lenta</dt><dd>Filtre por colaborador/código ou exporte para análise offline.</dd>
 </dl>

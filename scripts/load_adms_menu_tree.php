@@ -19,7 +19,7 @@ function loadAdmsMenuTree(): array
         return [];
     }
 
-    $chunk = implode("\n", array_slice($lines, 17, 1409));
+    $chunk = implode("\n", array_slice($lines, 17, 1422));
     eval($chunk);
 
     if (!function_exists('sortAdmsMenuTree')) {

@@ -2317,6 +2317,7 @@ class TrainingUsersRepository extends DbConnection
                     t.nome as training_name,
                     t.codigo as training_code,
                     t.versao as training_version,
+                    t.is_current_version,
                     ta.data_realizacao,
                     ta.data_avaliacao,
                     t.carga_horaria,
@@ -2573,6 +2574,186 @@ class TrainingUsersRepository extends DbConnection
             return $application;
         }
         return null;
+    }
+
+    /**
+     * Cancela uma aplicação concluída respeitando regras de versionamento.
+     *
+     * @return array{success: bool, message: string}
+     */
+    public function cancelCompletedApplication(
+        array $application,
+        TrainingApplicationsRepository $applicationsRepo,
+        TrainingsRepository $trainingsRepo
+    ): array {
+        $applicationId = (int)($application['id'] ?? 0);
+        $userId = (int)($application['adms_user_id'] ?? 0);
+        $trainingId = (int)($application['adms_training_id'] ?? 0);
+        $dataRealizacao = $application['data_realizacao'] ?? null;
+
+        if ($applicationId < 1 || $userId < 1 || $trainingId < 1) {
+            return ['success' => false, 'message' => 'Dados da aplicação inválidos.'];
+        }
+
+        $training = $trainingsRepo->getTraining($trainingId);
+        if (!$training || !is_array($training)) {
+            return ['success' => false, 'message' => 'Treinamento não encontrado.'];
+        }
+
+        try {
+            $this->getConnection()->beginTransaction();
+
+            if (!$applicationsRepo->delete($applicationId)) {
+                throw new \RuntimeException('Erro ao excluir aplicação.');
+            }
+
+            $message = $this->applyCancellationVersionRules(
+                $userId,
+                $trainingId,
+                $dataRealizacao,
+                $training,
+                $applicationsRepo,
+                $trainingsRepo
+            );
+
+            $this->getConnection()->commit();
+
+            return ['success' => true, 'message' => $message];
+        } catch (\Throwable $e) {
+            if ($this->getConnection()->inTransaction()) {
+                $this->getConnection()->rollBack();
+            }
+
+            GenerateLog::generateLog('error', 'Falha ao cancelar treinamento concluído.', [
+                'application_id' => $applicationId,
+                'user_id' => $userId,
+                'training_id' => $trainingId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => 'Erro ao cancelar treinamento: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $training
+     */
+    private function applyCancellationVersionRules(
+        int $userId,
+        int $deletedTrainingId,
+        ?string $dataRealizacao,
+        array $training,
+        TrainingApplicationsRepository $applicationsRepo,
+        TrainingsRepository $trainingsRepo
+    ): string {
+        $isCurrentVersion = (int)($training['is_current_version'] ?? 0) === 1;
+
+        if ($isCurrentVersion) {
+            if ((int)($training['ativo'] ?? 0) === 1
+                && !$this->reopenAsPendingIfNoCompletions($userId, $deletedTrainingId)) {
+                throw new \RuntimeException('Erro ao reabrir pendência na versão vigente.');
+            }
+
+            return 'Treinamento cancelado com sucesso! O registro foi removido da matriz de realizados e voltou ao status pendente.';
+        }
+
+        $familyKey = trim((string)($training['training_family_key'] ?? $training['codigo'] ?? ''));
+        $currentVersion = $trainingsRepo->getCurrentVersionByFamilyKey($familyKey);
+        if (!$currentVersion || (int)$currentVersion['id'] === $deletedTrainingId) {
+            return 'Registro histórico da versão anterior cancelado com sucesso.';
+        }
+
+        $currentTrainingId = (int)$currentVersion['id'];
+        $copiedApps = $applicationsRepo->findCompletedByUserTrainingAndDate($userId, $currentTrainingId, $dataRealizacao);
+
+        if (!empty($copiedApps)) {
+            foreach ($copiedApps as $copiedApp) {
+                if (!$applicationsRepo->delete((int)$copiedApp['id'])) {
+                    throw new \RuntimeException('Erro ao excluir conclusão copiada na versão atual.');
+                }
+            }
+
+            if ((int)($currentVersion['ativo'] ?? 0) === 1
+                && !$this->reopenAsPendingIfNoCompletions($userId, $currentTrainingId)) {
+                throw new \RuntimeException('Erro ao reabrir pendência na versão vigente.');
+            }
+
+            return sprintf(
+                'Registro cancelado na versão v%s e na versão atual v%s. A pendência foi reaberta na versão vigente.',
+                $training['versao'] ?? '?',
+                $currentVersion['versao'] ?? '?'
+            );
+        }
+
+        if ((int)($currentVersion['ativo'] ?? 0) === 1
+            && $this->getLastCompletedTraining($userId, $currentTrainingId) === null) {
+            if (!$this->reopenAsPendingIfNoCompletions($userId, $currentTrainingId)) {
+                throw new \RuntimeException('Erro ao reabrir pendência na versão atual.');
+            }
+
+            return sprintf(
+                'Registro histórico da versão v%s cancelado. A pendência foi reaberta na versão atual v%s.',
+                $training['versao'] ?? '?',
+                $currentVersion['versao'] ?? '?'
+            );
+        }
+
+        return sprintf(
+            'Registro histórico da versão v%s cancelado com sucesso.',
+            $training['versao'] ?? '?'
+        );
+    }
+
+    /**
+     * Reabre o treinamento como pendente após exclusão da última aplicação concluída.
+     */
+    public function reopenAsPendingIfNoCompletions(int $userId, int $trainingId): bool
+    {
+        try {
+            $trainingsRepo = new TrainingsRepository();
+            $training = $trainingsRepo->getTraining($trainingId);
+            if (!$training || !is_array($training) || (int)($training['ativo'] ?? 0) !== 1) {
+                return true;
+            }
+
+            if ($this->getLastCompletedTraining($userId, $trainingId) !== null) {
+                return true;
+            }
+
+            $sqlTipo = 'SELECT tipo_vinculo
+                        FROM adms_training_users
+                        WHERE adms_user_id = :user_id
+                          AND adms_training_id = :training_id
+                        ORDER BY id DESC
+                        LIMIT 1';
+            $stmtTipo = $this->getConnection()->prepare($sqlTipo);
+            $stmtTipo->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmtTipo->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+            $stmtTipo->execute();
+            $tipoVinculo = $stmtTipo->fetchColumn() ?: 'cargo';
+            if (!in_array($tipoVinculo, ['cargo', 'individual'], true)) {
+                $tipoVinculo = 'cargo';
+            }
+
+            $sqlDelete = 'DELETE FROM adms_training_users
+                          WHERE adms_user_id = :user_id
+                            AND adms_training_id = :training_id';
+            $stmtDelete = $this->getConnection()->prepare($sqlDelete);
+            $stmtDelete->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmtDelete->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+            $stmtDelete->execute();
+
+            $this->insertOrUpdate($userId, $trainingId, 'dentro_do_prazo', (string)$tipoVinculo);
+
+            return true;
+        } catch (\Exception $e) {
+            GenerateLog::generateLog('error', 'Falha ao reverter treinamento concluído.', [
+                'user_id' => $userId,
+                'training_id' => $trainingId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function isReciclagemVencida(?string $dataRealizacao, int|string|null $reciclagemPeriodo): bool

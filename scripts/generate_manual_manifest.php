@@ -11,6 +11,7 @@ $contentRoot = dirname(__DIR__) . '/docs/manual/content';
 $manifestPath = dirname(__DIR__) . '/docs/manual/manifest.json';
 $definitionsDir = dirname(__DIR__) . '/docs/manual/page-definitions';
 require_once __DIR__ . '/manual_doc_lib.php';
+require_once __DIR__ . '/manual_coverage_lib.php';
 
 /** id do tópico → título exibido no manual */
 $titleOverrides = [
@@ -136,27 +137,17 @@ $modules = [
     'relatorios' => ['title' => 'Relatórios', 'dirs' => ['relatorios']],
 ];
 
-function topicTitle(string $id, array $overrides): string
+function topicTitle(string $id, array $overrides, array $pageTitles): string
 {
     if (isset($overrides[$id])) {
         return $overrides[$id];
     }
 
-    $actionLabels = [
-        'list-' => 'Listar — ',
-        'create-' => 'Cadastrar — ',
-        'update-' => 'Editar — ',
-        'view-' => 'Visualizar — ',
-    ];
-    foreach ($actionLabels as $prefix => $label) {
-        if (str_starts_with($id, $prefix)) {
-            $rest = substr($id, strlen($prefix));
-
-            return $label . ucwords(str_replace('-', ' ', $rest));
-        }
+    if (isset($pageTitles[$id])) {
+        return $pageTitles[$id];
     }
 
-    return ucwords(str_replace('-', ' ', $id));
+    return manual_legacy_title_from_slug($id);
 }
 
 function sortTopics(array $topics): array
@@ -181,6 +172,7 @@ function sortTopics(array $topics): array
 }
 
 $outputModules = [];
+$pageTitles = manual_page_titles_by_slug();
 
 foreach ($modules as $moduleId => $meta) {
     $topics = [];
@@ -190,7 +182,7 @@ foreach ($modules as $moduleId => $meta) {
             $id = pathinfo($file, PATHINFO_FILENAME);
             $topics[] = [
                 'id' => $id,
-                'title' => topicTitle($id, $titleOverrides),
+                'title' => topicTitle($id, $titleOverrides, $pageTitles),
                 'file' => $file,
             ];
         }
@@ -205,7 +197,7 @@ foreach ($modules as $moduleId => $meta) {
                 $id = pathinfo($basename, PATHINFO_FILENAME);
                 $topics[] = [
                     'id' => $id,
-                    'title' => topicTitle($id, $titleOverrides),
+                    'title' => topicTitle($id, $titleOverrides, $pageTitles),
                     'file' => str_replace('\\', '/', $dir . '/' . $basename),
                 ];
             }

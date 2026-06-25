@@ -1,0 +1,17 @@
+---
+description: Atualizar manual de ajuda (F1) sempre que houver nova funcionalidade ou mudança de UX
+alwaysApply: true
+---
+
+# Manual de ajuda — atualização obrigatória
+
+Ao implementar ou alterar funcionalidades visíveis ao usuário (telas novas, botões, fluxos, permissões, regras de negócio na interface):
+
+1. Atualize o HTML em `docs/manual/content/` (tópico da tela e, se couber, visão geral do módulo).
+2. Revise `docs/manual/manifest.json`, `help-menu.json` e `page-topic-map.json` quando aplicável.
+3. Documente permissões novas no tópico (ex.: `EditCompletedTraining`, `DeleteCompletedTraining`).
+4. Texto em português; inclua fluxo passo a passo e problemas comuns.
+5. Consulte o checklist em `docs/manual/README.md`.
+6. Rode `php scripts/audit_manual_coverage.php --changed` e corrija pendências (use `--fix` para esqueletos; revise em português).
+
+Não considere a entrega completa sem a documentação de ajuda alinhada ao comportamento implementado.

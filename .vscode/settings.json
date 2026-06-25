@@ -19,5 +19,7 @@
     },
     "intelephense.diagnostics.enable": true,
     "intelephense.diagnostics.completedLanguages": [],
-    "css.lint.vendorPrefix": "ignore"
+    "css.lint.vendorPrefix": "ignore",
+    "files.eol": "\n",
+    "files.insertFinalNewline": true
 }

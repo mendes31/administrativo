@@ -1,0 +1,4 @@
+#!/bin/sh
+# Git hook: auditoria do manual só nas alterações do commit.
+php "$(dirname "$0")/pre-commit-manual-audit.php"
+exit $?

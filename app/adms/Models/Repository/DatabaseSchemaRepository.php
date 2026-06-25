@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DatabaseSchemaCacheService;
+use App\adms\Models\Services\DatabaseSchemaDescriptionService;
+use App\adms\Models\Services\DatabaseSchemaModuleResolver;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -13,24 +15,11 @@ use PDO;
  */
 class DatabaseSchemaRepository extends DbConnection
 {
-    /** @var array<string, string> prefixo da tabela → módulo lógico */
-    private const MODULE_PREFIXES = [
-        'adms_' => 'Administração / Sistema',
-        'inv_' => 'Estoque',
-        'crm_' => 'CRM',
-        'sst_' => 'Segurança e Medicina (SST)',
-        'lgpd_' => 'LGPD',
-        'proj_' => 'Gestão de Projetos',
-        'rh_' => 'RH / Recrutamento',
-        'room_' => 'Reserva de Salas',
-        'rooms_' => 'Reserva de Salas',
-        'booking_' => 'Reserva de Salas',
-        'sac_' => 'SAC',
-        'pe_' => 'Planejamento Estratégico',
-        'phinx' => 'Migrações (Phinx)',
-    ];
+    private ?DatabaseSchemaModuleResolver $moduleResolver = null;
 
     private ?DatabaseSchemaCacheService $cache = null;
+
+    private ?DatabaseSchemaDescriptionService $descriptions = null;
 
     public function getDatabaseName(): string
     {
@@ -44,6 +33,24 @@ class DatabaseSchemaRepository extends DbConnection
         }
 
         return $this->cache;
+    }
+
+    public function getDescriptionService(): DatabaseSchemaDescriptionService
+    {
+        if ($this->descriptions === null) {
+            $this->descriptions = new DatabaseSchemaDescriptionService($this->getModuleResolver());
+        }
+
+        return $this->descriptions;
+    }
+
+    public function getModuleResolver(): DatabaseSchemaModuleResolver
+    {
+        if ($this->moduleResolver === null) {
+            $this->moduleResolver = new DatabaseSchemaModuleResolver();
+        }
+
+        return $this->moduleResolver;
     }
 
     public function getCatalogUpdatedAt(): ?string
@@ -151,14 +158,7 @@ class DatabaseSchemaRepository extends DbConnection
 
     public function resolveModule(string $tableName): string
     {
-        $tableName = strtolower($tableName);
-        foreach (self::MODULE_PREFIXES as $prefix => $label) {
-            if (str_starts_with($tableName, $prefix)) {
-                return $label;
-            }
-        }
-
-        return 'Geral';
+        return $this->getModuleResolver()->resolve($tableName);
     }
 
     /**
@@ -195,7 +195,31 @@ class DatabaseSchemaRepository extends DbConnection
             $out[] = $row;
         }
 
-        return $out;
+        return $this->sortTablesByModuleAndName($out);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $tables
+     * @return list<array<string, mixed>>
+     */
+    public function sortTablesByModuleAndName(array $tables): array
+    {
+        usort($tables, static function (array $a, array $b): int {
+            $moduleCmp = strcasecmp(
+                (string) ($a['module'] ?? 'Geral'),
+                (string) ($b['module'] ?? 'Geral')
+            );
+            if ($moduleCmp !== 0) {
+                return $moduleCmp;
+            }
+
+            return strcasecmp(
+                (string) ($a['table_name'] ?? ''),
+                (string) ($b['table_name'] ?? '')
+            );
+        });
+
+        return $tables;
     }
 
     /**
@@ -388,11 +412,90 @@ class DatabaseSchemaRepository extends DbConnection
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+        $columnsByTable = $this->fetchAllColumnsGroupedByTable();
+        $fksByTable = $this->fetchAllForeignKeysGroupedByTable();
+        $descriptions = $this->getDescriptionService();
         $out = [];
         foreach ($rows as $row) {
             $tableName = (string) ($row['table_name'] ?? '');
             $row['module'] = $this->resolveModule($tableName);
-            $out[] = $row;
+            $cols = $this->attachRelationHintsToColumns(
+                $columnsByTable[$tableName] ?? [],
+                $fksByTable[$tableName] ?? []
+            );
+            $out[] = $descriptions->enrichTableRow($row, $cols, $fksByTable[$tableName] ?? []);
+        }
+
+        return $this->sortTablesByModuleAndName($out);
+    }
+
+    /**
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function fetchAllColumnsGroupedByTable(): array
+    {
+        $sql = 'SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY, COLUMN_COMMENT
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = :schema
+                ORDER BY TABLE_NAME ASC, ORDINAL_POSITION ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':schema', $this->getDatabaseName(), PDO::PARAM_STR);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $table = (string) ($row['TABLE_NAME'] ?? '');
+            unset($row['TABLE_NAME']);
+            $grouped[$table][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function fetchAllForeignKeysGroupedByTable(): array
+    {
+        $sql = 'SELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = :schema AND REFERENCED_TABLE_NAME IS NOT NULL
+                ORDER BY TABLE_NAME ASC, CONSTRAINT_NAME ASC, ORDINAL_POSITION ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':schema', $this->getDatabaseName(), PDO::PARAM_STR);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $table = (string) ($row['TABLE_NAME'] ?? '');
+            $grouped[$table][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $columns
+     * @param list<array<string, mixed>> $foreignKeys
+     * @return list<array<string, mixed>>
+     */
+    private function attachRelationHintsToColumns(array $columns, array $foreignKeys): array
+    {
+        $fkByColumn = [];
+        foreach ($foreignKeys as $fk) {
+            $fkByColumn[(string) ($fk['COLUMN_NAME'] ?? '')] = $fk;
+        }
+
+        $out = [];
+        foreach ($columns as $col) {
+            $name = (string) ($col['COLUMN_NAME'] ?? '');
+            $fk = $fkByColumn[$name] ?? null;
+            $out[] = array_merge($col, [
+                'relation_table' => $fk['REFERENCED_TABLE_NAME'] ?? null,
+                'relation_column' => $fk['REFERENCED_COLUMN_NAME'] ?? null,
+            ]);
         }
 
         return $out;
@@ -414,17 +517,21 @@ class DatabaseSchemaRepository extends DbConnection
             $fkByColumn[(string) ($fk['COLUMN_NAME'] ?? '')] = $fk;
         }
 
+        $descriptions = $this->getDescriptionService();
         $columns = [];
         foreach ($this->fetchTableColumnsFromDatabase($tableName) as $col) {
             $name = (string) ($col['COLUMN_NAME'] ?? '');
             $parsed = self::parseMysqlColumnType((string) ($col['COLUMN_TYPE'] ?? ''));
             $fk = $fkByColumn[$name] ?? null;
-            $columns[] = array_merge($col, $parsed, [
+            $merged = array_merge($col, $parsed, [
                 'relation_table' => $fk['REFERENCED_TABLE_NAME'] ?? null,
                 'relation_column' => $fk['REFERENCED_COLUMN_NAME'] ?? null,
                 'constraints_label' => self::formatColumnConstraints($col),
             ]);
+            $columns[] = $descriptions->enrichColumn($merged);
         }
+
+        $summary = $descriptions->enrichTableRow($summary, $columns, $fks);
 
         return [
             'summary' => $summary,
@@ -469,7 +576,7 @@ class DatabaseSchemaRepository extends DbConnection
         }
         $row['module'] = $this->resolveModule($tableName);
 
-        return $row;
+        return $this->getDescriptionService()->enrichTableRow($row);
     }
 
     /**

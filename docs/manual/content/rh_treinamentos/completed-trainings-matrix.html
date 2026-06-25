@@ -1,28 +1,77 @@
-<h1>Completed Trainings Matrix</h1>
-<p>Tela <strong>Completed Trainings Matrix</strong> do módulo Gestão de Treinamentos. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
+<h1>Matriz de Treinamentos Realizados</h1>
+<p>Consulta consolidada de treinamentos já aplicados aos colaboradores: data de realização, avaliação, nota, instrutor, aproveitamento e exportação. Permite <strong>corrigir dados</strong> ou <strong>cancelar lançamentos incorretos</strong>, devolvendo o treinamento ao status pendente quando aplicável.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Matrizes de treinamentos</em> (<code>rh-trein-matrizes</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também <em>Matrizes de treinamentos</em> (<code>rh-trein-matrizes</code>) e <em>Status dos Treinamentos</em> (<code>list-training-status</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>CompletedTrainingsMatrix</em>.</p>
+<p><strong>Quem acessa:</strong></p>
+<ul>
+    <li><em>CompletedTrainingsMatrix</em> — visualizar a matriz, filtrar e exportar.</li>
+    <li><em>EditCompletedTraining</em> — editar registro realizado (ícone azul).</li>
+    <li><em>DeleteCompletedTraining</em> — cancelar realização (ícone vermelho).</li>
+</ul>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Acesse <strong>Completed Trainings Matrix</strong> pelo menu Gestão de Treinamentos.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Acesse <strong>Gestão de Treinamentos → Matriz de Treinamentos Realizados</strong>.</li>
+    <li>Use os filtros (colaborador, treinamento, mês, ano, código, aproveitamento) e clique em <strong>Filtrar</strong>.</li>
+    <li>Revise os cartões de resumo no topo (totais, média de nota, horas).</li>
+    <li>Na coluna <strong>Ações</strong>, use <strong>Editar</strong> para ajustar dados ou <strong>Cancelar</strong> para desfazer um lançamento errado.</li>
+    <li>Exporte para Excel ou PDF, se necessário, mantendo os filtros ativos.</li>
+    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda.</li>
 </ol>
 
+<h2>Editar treinamento realizado</h2>
+<ol>
+    <li>Clique no botão azul <strong>Editar</strong> na linha desejada.</li>
+    <li>Altere data de realização, data de avaliação, nota, instrutor ou observações.</li>
+    <li>Informe a <strong>justificativa</strong> e confirme com sua <strong>senha</strong>.</li>
+    <li>Salve. O registro permanece na matriz de realizados, apenas com os dados corrigidos.</li>
+</ol>
+
+<h2>Cancelar treinamento realizado (lançamento incorreto)</h2>
+<p>Use quando o treinamento foi registrado por engano e deve voltar para <strong>Status de Treinamentos</strong> como pendente.</p>
+<ol>
+    <li>Clique no botão vermelho <strong>Cancelar</strong> na linha desejada.</li>
+    <li>Leia o aviso do modal (especialmente se o registro for de <strong>versão antiga</strong>).</li>
+    <li>Informe a <strong>justificativa</strong> e confirme com sua <strong>senha</strong>.</li>
+    <li>Confirme o cancelamento. O registro some da matriz de realizados.</li>
+</ol>
+
+<h2>Regras de cancelamento e versionamento</h2>
+<dl>
+    <dt>Versão atual do treinamento</dt>
+    <dd>Remove o registro da matriz e reabre a pendência na <strong>versão vigente</strong> (se o treinamento estiver ativo).</dd>
+    <dt>Versão antiga do treinamento</dt>
+    <dd>Remove apenas o histórico daquela versão. <strong>Não</strong> reabre pendência na versão inativa.</dd>
+    <dt>Versão antiga com conclusão copiada na versão atual</dt>
+    <dd>Cancela o registro antigo <strong>e</strong> o correspondente na versão atual (mesma data de realização). Reabre pendência na <strong>versão vigente</strong>, se ativa.</dd>
+    <dt>Versão antiga com retreinamento obrigatório na nova versão</dt>
+    <dd>Remove o histórico antigo. Se o colaborador não tiver conclusão na versão atual, reabre pendência na versão vigente.</dd>
+    <dt>Mais de uma conclusão do mesmo treinamento</dt>
+    <dd>Cancelar uma data específica remove só aquele registro. As demais conclusões permanecem.</dd>
+</dl>
+
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<p class="text-muted small">O que cada filtro e coluna representa.</p>
+<div class="help-field"><strong>Colaborador / Treinamento / Código</strong> Restringem a consulta; não alteram dados.</div>
+<div class="help-field"><strong>Mês / Ano</strong> Filtram pela data de realização.</div>
+<div class="help-field"><strong>Aproveitamento</strong> Aprovado (nota ≥ 7), Reprovado ou vazio.</div>
+<div class="help-field"><strong>Versão</strong> Indica a versão do treinamento no momento do lançamento.</div>
+<div class="help-field"><strong>Exportar Excel / PDF</strong> Gera arquivo com todos os registros do filtro atual (sem paginação da tela).</div>
+<div class="help-field"><strong>Justificativa e senha</strong> Obrigatórias em edição e cancelamento; ficam registradas em log de alterações.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>CompletedTrainingsMatrix</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Não vejo os botões Editar ou Cancelar</dt>
+    <dd>Além de <em>CompletedTrainingsMatrix</em>, é necessário <em>EditCompletedTraining</em> ou <em>DeleteCompletedTraining</em> no nível de acesso.</dd>
+    <dt>Cancelar não faz nada ao clicar</dt>
+    <dd>Recarregue a página (Ctrl+F5). Se persistir, verifique erros no console do navegador.</dd>
+    <dt>Cancelou mas não voltou para Status de Treinamentos</dt>
+    <dd>Pode ser versão antiga sem efeito na vigente, treinamento inativo ou ainda existir outra conclusão do mesmo colaborador/treinamento.</dd>
+    <dt>Cancelou versão antiga e sumiu também na versão atual</dt>
+    <dd>Comportamento esperado quando a conclusão foi copiada na migração <em>sem retreinamento</em>; a pendência é reaberta na versão vigente.</dd>
+    <dt>Erro de senha ou permissão</dt>
+    <dd>Confirme a senha do usuário logado e as permissões no pacote de páginas do RH.</dd>
+    <dt>Realizado não aparece na matriz</dt>
+    <dd>Verifique filtros, código do treinamento ou se o lançamento foi feito em outra versão do mesmo código.</dd>
 </dl>
