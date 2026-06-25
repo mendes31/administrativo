@@ -10,8 +10,9 @@ declare(strict_types=1);
  *   php scripts/audit_manual_coverage.php --fix     # gera esqueletos + regenera manifest/map/menu
  *   php scripts/audit_manual_coverage.php --strict  # exit 1 se houver pendências
  *   php scripts/audit_manual_coverage.php --json    # saída JSON (CI)
- *   php scripts/audit_manual_coverage.php --changed # só alterações git (pre-commit/PR)
- *   php scripts/audit_manual_coverage.php --changed --base=origin/main
+ *   php scripts/audit_manual_coverage.php --changed # alterações git (pre-commit/PR)
+ *   php scripts/audit_manual_coverage.php --changed --staged # só git add (pre-commit)
+ *   php scripts/audit_manual_coverage.php --changed --base=origin/dev-master
  */
 
 require_once __DIR__ . '/manual_coverage_lib.php';
@@ -20,6 +21,7 @@ $fix = in_array('--fix', $argv ?? [], true);
 $strict = in_array('--strict', $argv ?? [], true);
 $json = in_array('--json', $argv ?? [], true);
 $changedOnly = in_array('--changed', $argv ?? [], true);
+$stagedOnly = in_array('--staged', $argv ?? [], true);
 $baseRef = null;
 foreach ($argv ?? [] as $arg) {
     if (str_starts_with($arg, '--base=')) {
@@ -28,8 +30,10 @@ foreach ($argv ?? [] as $arg) {
 }
 
 $changedMeta = null;
+$baseResolved = ['ref' => null, 'requested' => null, 'warning' => null];
 if ($changedOnly) {
-    $changedMeta = manual_run_changed_coverage_audit($baseRef);
+    $baseResolved = manual_git_resolve_base_ref($baseRef);
+    $changedMeta = manual_run_changed_coverage_audit($baseResolved['ref'], $stagedOnly);
     $audit = $changedMeta['audit'];
 } else {
     $audit = manual_run_coverage_audit();
@@ -40,7 +44,8 @@ if ($fix) {
     manual_write_pending_aggregate($audit['missing_aggregate']);
     manual_regenerate_manual_artifacts();
     if ($changedOnly) {
-        $changedMeta = manual_run_changed_coverage_audit($baseRef);
+        $baseResolved = manual_git_resolve_base_ref($baseRef);
+        $changedMeta = manual_run_changed_coverage_audit($baseResolved['ref'], $stagedOnly);
         $audit = $changedMeta['audit'];
     } else {
         $audit = manual_run_coverage_audit();
@@ -61,6 +66,9 @@ if ($json) {
         $payload = [
             'changed_files' => $changedMeta['changed_files'],
             'touch' => $changedMeta['touch'],
+            'base_ref' => $baseResolved['ref'],
+            'base_ref_requested' => $baseResolved['requested'],
+            'base_ref_warning' => $baseResolved['warning'],
             'audit' => $audit,
         ];
     }
@@ -71,8 +79,13 @@ if ($json) {
 echo "=== Auditoria do Manual de Ajuda ===\n";
 if ($changedOnly) {
     $n = count($changedMeta['changed_files'] ?? []);
-    $scope = $baseRef !== null && $baseRef !== '' ? "desde {$baseRef}" : 'no working tree (staged + unstaged)';
+    $scope = $baseResolved['ref'] !== null && $baseResolved['ref'] !== ''
+        ? "desde {$baseResolved['ref']}"
+        : ($stagedOnly ? 'preparados (staged)' : 'no working tree (staged + unstaged)');
     echo "Modo: --changed ({$n} arquivo(s) {$scope})\n";
+    if (!empty($baseResolved['warning'])) {
+        echo 'Aviso: ' . $baseResolved['warning'] . "\n";
+    }
 }
 echo 'Documentados OK: ' . $audit['ok_count'] . "\n";
 echo 'Pendências: ' . $issueCount . "\n\n";

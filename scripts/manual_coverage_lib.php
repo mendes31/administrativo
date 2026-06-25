@@ -534,28 +534,115 @@ function manual_camel_case_to_slug(string $name): string
     return strtolower($name);
 }
 
-/**
- * Arquivos alterados no git (staged + unstaged) ou desde um ref base (ex.: origin/main).
- *
- * @return list<string> caminhos relativos ao repositório, barras /
- */
-function manual_git_list_changed_files(?string $baseRef = null): array
+function manual_git_cmd(string ...$args): array
 {
     $root = dirname(__DIR__);
+
+    return array_merge(['git', '-C', $root, '-c', 'core.safecrlf=false'], $args);
+}
+
+function manual_git_shell_exec(array $cmd): string
+{
+    $descriptors = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+
+    $process = @proc_open($cmd, $descriptors, $pipes, dirname(__DIR__));
+    if (!is_resource($process)) {
+        return '';
+    }
+
+    fclose($pipes[0]);
+    $stdout = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+    stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+    proc_close($process);
+
+    return is_string($stdout) ? $stdout : '';
+}
+
+function manual_git_ref_exists(string $ref): bool
+{
+    $out = manual_git_shell_exec(manual_git_cmd('rev-parse', '--verify', "{$ref}^{commit}"));
+
+    return trim($out) !== '';
+}
+
+/**
+ * Resolve ref de comparação (ex.: origin/main inexistente → origin/dev-master).
+ *
+ * @return array{ref: ?string, requested: ?string, warning: ?string}
+ */
+function manual_git_resolve_base_ref(?string $requested): array
+{
+    if ($requested === null || $requested === '') {
+        return ['ref' => null, 'requested' => null, 'warning' => null];
+    }
+
+    $candidates = [$requested];
+    if ($requested === 'auto') {
+        $candidates = [];
+    } elseif (!str_contains($requested, '/')) {
+        $candidates[] = "origin/{$requested}";
+    }
+
+    $defaultRemote = trim(manual_git_shell_exec(manual_git_cmd('symbolic-ref', 'refs/remotes/origin/HEAD')));
+    if ($defaultRemote !== '') {
+        $candidates[] = str_replace('refs/remotes/', '', $defaultRemote);
+    }
+    foreach (['origin/dev-master', 'origin/main', 'origin/master', 'dev-master', 'main', 'master'] as $fallback) {
+        $candidates[] = $fallback;
+    }
+
+    $seen = [];
+    foreach ($candidates as $candidate) {
+        if ($candidate === '' || isset($seen[$candidate])) {
+            continue;
+        }
+        $seen[$candidate] = true;
+        if (manual_git_ref_exists($candidate)) {
+            $warning = null;
+            if ($requested !== 'auto' && $candidate !== $requested) {
+                $warning = "Ref '{$requested}' não existe; usando '{$candidate}'.";
+            }
+
+            return ['ref' => $candidate, 'requested' => $requested, 'warning' => $warning];
+        }
+    }
+
+    return [
+        'ref' => null,
+        'requested' => $requested,
+        'warning' => "Ref '{$requested}' não encontrado no repositório.",
+    ];
+}
+
+/**
+ * Arquivos alterados no git.
+ *
+ * @param bool $stagedOnly Se true, considera apenas o índice (git add). Ideal para pre-commit.
+ * @return list<string> caminhos relativos ao repositório, barras /
+ */
+function manual_git_list_changed_files(?string $baseRef = null, bool $stagedOnly = false): array
+{
     $commands = [];
 
     if ($baseRef !== null && $baseRef !== '') {
-        $commands[] = ['git', '-C', $root, 'diff', '--name-only', '--diff-filter=ACMRT', "{$baseRef}...HEAD"];
+        $commands[] = manual_git_cmd('diff', '--name-only', '--diff-filter=ACMRT', "{$baseRef}...HEAD");
+    } elseif ($stagedOnly) {
+        $commands[] = manual_git_cmd('diff', '--cached', '--name-only', '--diff-filter=ACMRT');
     } else {
-        $commands[] = ['git', '-C', $root, 'diff', '--cached', '--name-only', '--diff-filter=ACMRT'];
-        $commands[] = ['git', '-C', $root, 'diff', '--name-only', '--diff-filter=ACMRT'];
+        $commands[] = manual_git_cmd('diff', '--cached', '--name-only', '--diff-filter=ACMRT');
+        $commands[] = manual_git_cmd('diff', '--name-only', '--diff-filter=ACMRT');
     }
 
     $files = [];
     foreach ($commands as $cmd) {
-        $escaped = array_map(static fn (string $p): string => escapeshellarg($p), $cmd);
-        $out = shell_exec(implode(' ', $escaped));
-        if (!is_string($out) || trim($out) === '') {
+        $out = manual_git_shell_exec($cmd);
+        if (trim($out) === '') {
             continue;
         }
         foreach (preg_split('/\R/', trim($out)) ?: [] as $line) {
@@ -571,22 +658,20 @@ function manual_git_list_changed_files(?string $baseRef = null): array
 
 function manual_git_diff_text_for_file(string $rel, ?string $baseRef = null): string
 {
-    $root = dirname(__DIR__);
     $rel = str_replace('\\', '/', $rel);
     $commands = [];
 
     if ($baseRef !== null && $baseRef !== '') {
-        $commands[] = ['git', '-C', $root, 'diff', $baseRef . '...HEAD', '--', $rel];
+        $commands[] = manual_git_cmd('diff', $baseRef . '...HEAD', '--', $rel);
     } else {
-        $commands[] = ['git', '-C', $root, 'diff', '--cached', '--', $rel];
-        $commands[] = ['git', '-C', $root, 'diff', '--', $rel];
+        $commands[] = manual_git_cmd('diff', '--cached', '--', $rel);
+        $commands[] = manual_git_cmd('diff', '--', $rel);
     }
 
     $chunks = [];
     foreach ($commands as $cmd) {
-        $escaped = array_map(static fn (string $p): string => escapeshellarg($p), $cmd);
-        $out = shell_exec(implode(' ', $escaped));
-        if (is_string($out) && trim($out) !== '') {
+        $out = manual_git_shell_exec($cmd);
+        if (trim($out) !== '') {
             $chunks[] = $out;
         }
     }
@@ -724,9 +809,9 @@ function manual_filter_audit_by_touch(array $audit, array $signals): array
 /**
  * @return array{audit: array<string, mixed>, changed_files: list<string>, touch: array<string, mixed>}
  */
-function manual_run_changed_coverage_audit(?string $baseRef = null): array
+function manual_run_changed_coverage_audit(?string $baseRef = null, bool $stagedOnly = false): array
 {
-    $changedFiles = manual_git_list_changed_files($baseRef);
+    $changedFiles = manual_git_list_changed_files($baseRef, $stagedOnly);
     $touch = manual_collect_touch_signals_from_changed_files($changedFiles, $baseRef);
     $audit = manual_run_coverage_audit();
     $audit = manual_filter_audit_by_touch($audit, $touch);
@@ -736,4 +821,313 @@ function manual_run_changed_coverage_audit(?string $baseRef = null): array
         'changed_files' => $changedFiles,
         'touch' => $touch,
     ];
+}
+
+/** @return array<string, string> controller => controller_url */
+function manual_controller_to_slug_map(): array
+{
+    static $cache = null;
+    if (is_array($cache)) {
+        return $cache;
+    }
+
+    $map = [];
+    foreach (array_merge(manual_load_pages_from_seeds(), manual_load_pages_from_migrations()) as $page) {
+        $controller = (string) ($page['controller'] ?? '');
+        $slug = (string) ($page['controller_url'] ?? '');
+        if ($controller !== '' && $slug !== '') {
+            $map[$controller] = $slug;
+        }
+    }
+
+    $cache = $map;
+
+    return $map;
+}
+
+function manual_classify_changed_file(string $rel): ?string
+{
+    $rel = str_replace('\\', '/', $rel);
+
+    if (preg_match('#^app/adms/Controllers/.+\.php$#', $rel)) {
+        return 'controller';
+    }
+    if (preg_match('#^app/adms/Views/.+\.php$#', $rel)) {
+        return 'view';
+    }
+    if (preg_match('#^database/migrations/.+register.+page.+\.php$#i', $rel)) {
+        return 'migration';
+    }
+    if ($rel === 'database/seeds/AddAdmsPages.php') {
+        return 'seed';
+    }
+    if (str_starts_with($rel, 'docs/manual/content/') && str_ends_with($rel, '.html')) {
+        return 'manual';
+    }
+    if (str_starts_with($rel, 'docs/manual/')) {
+        return 'manual_meta';
+    }
+
+    return null;
+}
+
+/**
+ * @param array<string, true> $slugs
+ * @return list<array{slug: string, name: string, topic_id: ?string, html_path: ?string, html_rel: ?string, status: string}>
+ */
+function manual_resolve_topics_for_slugs(array $slugs): array
+{
+    $topicMap = manual_load_page_topic_map();
+    $titles = manual_page_titles_by_slug();
+    $root = dirname(__DIR__);
+    $topics = [];
+
+    foreach (array_keys($slugs) as $slug) {
+        $topicId = $topicMap[$slug] ?? null;
+        $htmlPath = $topicId !== null ? manual_topic_html_path($topicId) : null;
+        $htmlRel = $htmlPath !== null ? str_replace('\\', '/', substr($htmlPath, strlen($root) + 1)) : null;
+
+        $status = 'sem_mapa';
+        if ($topicId === null) {
+            $status = 'sem_topic_id';
+        } elseif ($htmlPath === null) {
+            $status = 'html_ausente';
+        } elseif (!is_readable($htmlPath)) {
+            $status = 'html_ausente';
+        } elseif (manual_is_skeleton_content((string) file_get_contents($htmlPath))) {
+            $status = 'esqueleto';
+        } else {
+            $status = 'documentado';
+        }
+
+        $topics[] = [
+            'slug' => $slug,
+            'name' => $titles[$slug] ?? manual_legacy_title_from_slug($slug),
+            'topic_id' => $topicId,
+            'html_path' => $htmlPath,
+            'html_rel' => $htmlRel,
+            'status' => $status,
+        ];
+    }
+
+    usort($topics, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
+
+    return $topics;
+}
+
+/**
+ * Relatório para Cursor/CI: alterações git → tópicos do manual → pendências.
+ *
+ * @return array<string, mixed>
+ */
+function manual_build_change_report(?string $baseRef = null, bool $stagedOnly = false): array
+{
+    $baseResolved = manual_git_resolve_base_ref($baseRef);
+    $effectiveBase = $baseResolved['ref'];
+
+    $changedMeta = manual_run_changed_coverage_audit($effectiveBase, $stagedOnly);
+    $changedFiles = $changedMeta['changed_files'];
+    $touch = $changedMeta['touch'];
+    $audit = $changedMeta['audit'];
+
+    $controllerSlugMap = manual_controller_to_slug_map();
+    $slugs = $touch['slugs'];
+    foreach (array_keys($touch['controllers']) as $controller) {
+        if (isset($controllerSlugMap[$controller])) {
+            $slugs[$controllerSlugMap[$controller]] = true;
+        }
+    }
+
+    $codeChanges = [];
+    $manualChanges = [];
+    $manualMetaChanges = [];
+    $otherChanges = [];
+    foreach ($changedFiles as $rel) {
+        $kind = manual_classify_changed_file($rel);
+        $row = ['path' => $rel, 'kind' => $kind];
+        if ($kind === 'manual') {
+            $manualChanges[] = $row;
+        } elseif ($kind === 'manual_meta') {
+            $manualMetaChanges[] = $row;
+        } elseif ($kind !== null) {
+            $codeChanges[] = $row;
+        } else {
+            $otherChanges[] = $row;
+        }
+    }
+
+    $affectedTopics = manual_resolve_topics_for_slugs($slugs);
+    $needsManualUpdate = array_values(array_filter(
+        $affectedTopics,
+        static fn (array $t): bool => $t['status'] !== 'documentado'
+    ));
+
+    $issueCount = count($audit['missing_map'])
+        + count($audit['missing_aggregate'])
+        + count($audit['new_primary_unmapped'])
+        + count($audit['missing_html'])
+        + count($audit['skeleton'])
+        + count($audit['permission_undocumented']);
+
+    $actions = [];
+    foreach ($needsManualUpdate as $topic) {
+        if ($topic['html_rel'] !== null) {
+            $actions[] = "Revisar ou criar conteúdo em {$topic['html_rel']} ({$topic['name']})";
+        } elseif ($topic['topic_id'] !== null) {
+            $actions[] = "Criar HTML para o tópico {$topic['topic_id']} (slug {$topic['slug']})";
+        } else {
+            $actions[] = "Mapear slug {$topic['slug']} em page-topic-map.json e documentar a tela";
+        }
+    }
+    foreach ($audit['permission_undocumented'] as $row) {
+        $parent = $row['parent_topic'] ?? 'tópico pai';
+        $actions[] = "Documentar permissão {$row['controller']} em docs/manual/content/**/{$parent}.html";
+    }
+    if ($audit['missing_map'] !== []) {
+        $actions[] = 'Rodar: php scripts/generate_manual_page_topic_map.php';
+    }
+    if ($audit['missing_aggregate'] !== [] || $audit['new_primary_unmapped'] !== []) {
+        $actions[] = 'Atualizar scripts/manual_aggregate_topic_map.php';
+    }
+    if ($audit['missing_html'] !== []) {
+        $actions[] = 'Rodar: php scripts/audit_manual_coverage.php --changed --fix (depois revisar em português)';
+    }
+
+    $scope = $effectiveBase !== null && $effectiveBase !== ''
+        ? "desde {$effectiveBase}"
+        : ($stagedOnly ? 'staged (git add)' : 'working tree (staged + unstaged)');
+
+    return [
+        'scope' => $scope,
+        'base_ref' => $effectiveBase,
+        'base_ref_requested' => $baseResolved['requested'],
+        'base_ref_warning' => $baseResolved['warning'],
+        'staged_only' => $stagedOnly,
+        'has_relevant_changes' => $codeChanges !== [] || $manualChanges !== [],
+        'changed_files' => $changedFiles,
+        'code_changes' => $codeChanges,
+        'manual_changes' => $manualChanges,
+        'manual_meta_changes' => $manualMetaChanges,
+        'other_changes' => $otherChanges,
+        'touch' => [
+            'slugs' => array_keys($slugs),
+            'controllers' => array_keys($touch['controllers']),
+            'topic_ids' => array_keys($touch['topic_ids']),
+        ],
+        'affected_topics' => $affectedTopics,
+        'needs_manual_update' => $needsManualUpdate,
+        'audit' => $audit,
+        'issue_count' => $issueCount,
+        'actions' => array_values(array_unique($actions)),
+    ];
+}
+
+/** @param array<string, mixed> $report */
+function manual_format_change_report_markdown(array $report): string
+{
+    $lines = [];
+    $lines[] = '# Relatório — alterações que afetam o manual (F1)';
+    $lines[] = '';
+    $lines[] = 'Escopo: ' . ($report['scope'] ?? '');
+    if (!empty($report['base_ref_warning'])) {
+        $lines[] = 'Aviso: ' . $report['base_ref_warning'];
+    }
+    $lines[] = '';
+
+    if (!($report['has_relevant_changes'] ?? false)) {
+        $lines[] = 'Nenhuma alteração em Controllers, Views, seeds/migrations de páginas ou tópicos HTML do manual.';
+        $other = array_merge($report['other_changes'] ?? [], $report['manual_meta_changes'] ?? []);
+        if ($other !== []) {
+            $lines[] = '';
+            $lines[] = 'Outros arquivos alterados (' . count($other) . '):';
+            foreach (array_slice($other, 0, 15) as $row) {
+                $lines[] = '- ' . $row['path'];
+            }
+            if (count($other) > 15) {
+                $lines[] = '- … e mais ' . (count($other) - 15);
+            }
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    $codeChanges = $report['code_changes'] ?? [];
+    if ($codeChanges !== []) {
+        $lines[] = '## Código alterado (exige revisão do manual)';
+        foreach ($codeChanges as $row) {
+            $lines[] = '- [' . $row['kind'] . '] ' . $row['path'];
+        }
+        $lines[] = '';
+    }
+
+    $manualChanges = $report['manual_changes'] ?? [];
+    if ($manualChanges !== []) {
+        $lines[] = '## Manual já alterado neste diff';
+        foreach ($manualChanges as $row) {
+            $lines[] = '- ' . $row['path'];
+        }
+        $lines[] = '';
+    }
+
+    $topics = $report['affected_topics'] ?? [];
+    if ($topics !== []) {
+        $lines[] = '## Tópicos do manual relacionados';
+        $lines[] = '| Slug | Tela | topic_id | HTML | Status |';
+        $lines[] = '|------|------|----------|------|--------|';
+        foreach ($topics as $t) {
+            $html = $t['html_rel'] ?? '—';
+            $topicId = $t['topic_id'] ?? '—';
+            $lines[] = "| `{$t['slug']}` | {$t['name']} | `{$topicId}` | `{$html}` | {$t['status']} |";
+        }
+        $lines[] = '';
+    }
+
+    $audit = $report['audit'] ?? [];
+    $sections = [
+        'missing_map' => '[MAP] Slug sem page-topic-map.json',
+        'missing_aggregate' => '[AGGREGATE] Fora do mapa agregado',
+        'new_primary_unmapped' => '[NOVO] Tela principal sem mapa',
+        'missing_html' => '[HTML] Tópico sem arquivo',
+        'skeleton' => '[SKELETON] Conteúdo ainda genérico',
+        'permission_undocumented' => '[PERMISSÃO] Não citada no tópico pai',
+    ];
+    $hasAudit = false;
+    foreach ($sections as $key => $title) {
+        $rows = $audit[$key] ?? [];
+        if ($rows === []) {
+            continue;
+        }
+        $hasAudit = true;
+        $lines[] = '## ' . $title;
+        foreach ($rows as $row) {
+            if ($key === 'permission_undocumented') {
+                $parent = $row['parent_topic'] ?? '?';
+                $lines[] = "- `{$row['controller']}` ({$row['name']}) → documentar em `{$parent}`";
+            } elseif ($key === 'skeleton') {
+                $lines[] = "- `{$row['topic_id']}` → `{$row['file']}`";
+            } elseif (isset($row['slug'])) {
+                $name = $row['name'] ?? '';
+                $lines[] = "- `{$row['slug']}` {$name}";
+            }
+        }
+        $lines[] = '';
+    }
+
+    $actions = $report['actions'] ?? [];
+    if ($actions !== []) {
+        $lines[] = '## Ações sugeridas';
+        foreach ($actions as $i => $action) {
+            $lines[] = ($i + 1) . '. ' . $action;
+        }
+        $lines[] = '';
+    }
+
+    $issueCount = (int) ($report['issue_count'] ?? 0);
+    if ($issueCount === 0 && ($report['needs_manual_update'] ?? []) === []) {
+        $lines[] = '**OK:** manual alinhado com as alterações detectadas.';
+    } else {
+        $lines[] = '**Pendências:** ' . $issueCount . ' item(ns) na auditoria; revise os tópicos acima.';
+    }
+
+    return implode("\n", $lines) . "\n";
 }

@@ -1,0 +1,31 @@
+---
+description: Detectar alterações git que exigem atualização do manual de ajuda (F1)
+globs: app/adms/Controllers/**/*.php,app/adms/Views/**/*.php,database/seeds/AddAdmsPages.php,database/migrations/**/*register*page*.php
+alwaysApply: false
+---
+
+# Detectar alterações para o manual
+
+Ao editar Controllers, Views ou cadastro de páginas (seed/migrations), **antes de encerrar a tarefa**:
+
+1. Rode o relatório de alterações:
+   ```bash
+   php scripts/manual_changed_report.php
+   ```
+   - Antes do commit (só staged): `--staged`
+   - Comparando com a branch base: `--base=origin/dev-master` ou `--base=auto`
+   - Saída estruturada para o agente: `--json`
+
+2. Interprete o relatório:
+   - **Código alterado** — arquivos que podem mudar UX, fluxo ou permissões.
+   - **Tópicos relacionados** — tabela `slug → topic_id → HTML` com status (`documentado`, `esqueleto`, `html_ausente`, `sem_topic_id`).
+   - **Ações sugeridas** — lista priorizada do que criar ou revisar em `docs/manual/content/`.
+
+3. Atualize o manual conforme o checklist em `docs/manual/README.md` e as ações do relatório.
+
+4. Valide:
+   ```bash
+   php scripts/audit_manual_coverage.php --changed --strict
+   ```
+
+Não marque a entrega como concluída se o relatório listar tópicos afetados com status diferente de `documentado` sem ter atualizado o HTML correspondente.

@@ -50,7 +50,7 @@ php scripts/audit_manual_coverage.php
 | `--strict` | Exit code 1 se houver pendências (CI/pre-commit) |
 | `--json` | Saída estruturada para integração |
 | `--changed` | Audita só slugs/controllers tocados no git (ignora backlog histórico) |
-| `--base=origin/main` | Com `--changed`, compara o branch com o ref informado |
+| `--base=origin/dev-master` | Com `--changed`, compara o branch com o ref informado (`--base=auto` detecta a branch padrão do remote) |
 
 O que o auditor verifica:
 
@@ -65,8 +65,23 @@ Slugs novos sem mapa agregado são listados em `docs/manual/pending-aggregate-sl
 **Recomendado:** rodar após cada feature e antes de deploy:
 
 ```bash
+php scripts/manual_changed_report.php
 php scripts/audit_manual_coverage.php --changed --strict
 ```
+
+### Cursor (identificar o que atualizar)
+
+O relatório `manual_changed_report.php` traduz o diff git em tópicos do manual:
+
+```bash
+php scripts/manual_changed_report.php              # working tree
+php scripts/manual_changed_report.php --staged     # só git add
+php scripts/manual_changed_report.php --base=origin/dev-master
+php scripts/manual_changed_report.php --base=auto
+php scripts/manual_changed_report.php --json       # saída para o agente
+```
+
+Regras em `.cursor/rules/` (`atualizar-manual-ajuda.mdc`, `manual-detectar-alteracoes.mdc`) orientam o agente a rodar esse relatório ao alterar Controllers/Views.
 
 Para ver o backlog completo do sistema (centenas de telas legadas):
 
@@ -87,7 +102,7 @@ O hook roda `audit_manual_coverage.php --changed --strict` apenas se houver arqu
 ### CI (pull request)
 
 ```yaml
-- run: php scripts/audit_manual_coverage.php --changed --strict --base=origin/main
+- run: php scripts/audit_manual_coverage.php --changed --strict --base=origin/dev-master
 ```
 
 Assim o pipeline só falha por documentação faltando **no que o PR alterou**, não pelo histórico inteiro.
