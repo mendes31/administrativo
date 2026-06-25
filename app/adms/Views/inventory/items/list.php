@@ -129,7 +129,12 @@ $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item')
 							<th class="text-center"><?= (int) $item['id'] ?></th>
 							<td class="text-truncate" title="<?= htmlspecialchars($item['code']) ?>"><?= htmlspecialchars($item['code']) ?></td>
 							<td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars($item['erp_code'] ?? '') ?>"><?= htmlspecialchars($item['erp_code'] ?? '—') ?></td>
-							<td class="text-truncate" title="<?= htmlspecialchars($item['description']) ?>"><?= htmlspecialchars($item['description']) ?></td>
+							<td class="text-truncate" title="<?= htmlspecialchars($item['description']) ?>">
+								<?= htmlspecialchars($item['description']) ?>
+								<?php if (mb_strtoupper(trim((string)($item['category_name'] ?? '')), 'UTF-8') === 'PA - PROJETO'): ?>
+									<span class="badge bg-warning text-dark ms-1">Projeto</span>
+								<?php endif; ?>
+							</td>
 							<td class="d-none d-md-table-cell"><?= htmlspecialchars($item['unit_name'] ?? '—') ?></td>
 							<td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($item['category_name'] ?? '') ?>"><?= htmlspecialchars($item['category_name'] ?? '—') ?></td>
 							<td class="d-none d-lg-table-cell"><?= htmlspecialchars($adminLabel) ?></td>
@@ -178,7 +183,12 @@ $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item')
 							</h5>
 							<span class="text-muted small text-nowrap">ID: <?= (int) $item['id'] ?></span>
 						</div>
-						<div class="small mb-2 text-break"><?= htmlspecialchars($item['description']) ?></div>
+						<div class="small mb-2 text-break">
+							<?= htmlspecialchars($item['description']) ?>
+							<?php if (mb_strtoupper(trim((string)($item['category_name'] ?? '')), 'UTF-8') === 'PA - PROJETO'): ?>
+								<span class="badge bg-warning text-dark ms-1">Projeto</span>
+							<?php endif; ?>
+						</div>
 						<div class="mb-1"><b>Ativo:</b>
 							<span class="badge <?= $item['active'] ? 'bg-success' : 'bg-danger' ?>"><?= $item['active'] ? 'Sim' : 'Não' ?></span>
 						</div>

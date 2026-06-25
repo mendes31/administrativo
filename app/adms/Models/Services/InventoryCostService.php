@@ -107,17 +107,22 @@ class InventoryCostService extends DbConnection
         $batchSize = $scenarioBatch ?? self::normalizeBatchSize((float)($itemRow['standard_batch_size'] ?? 1));
 
         $sqlBom = "SELECT 
+                        b.line_source,
                         b.quantity_per_batch,
                         b.scrap_percent,
+                        b.manual_description,
+                        b.manual_component_type,
+                        b.manual_unit,
+                        b.manual_unit_cost,
                         i.code AS component_code,
                         i.description AS component_description,
                         i.average_cost AS component_cost,
                         c.name AS component_category
                    FROM inv_item_bom b
-                   INNER JOIN inv_items i ON i.id = b.component_item_id
+                   LEFT JOIN inv_items i ON i.id = b.component_item_id
                    LEFT JOIN inv_categories c ON c.id = i.inv_category_id
                    WHERE b.inv_item_id = :item_id
-                   ORDER BY c.name ASC, i.description ASC";
+                   ORDER BY b.line_source ASC, c.name ASC, i.description ASC, b.id ASC";
         $stmtBom = $conn->prepare($sqlBom);
         $stmtBom->bindValue(':item_id', $itemId, PDO::PARAM_INT);
         $stmtBom->execute();
@@ -125,16 +130,24 @@ class InventoryCostService extends DbConnection
 
         $materials = [];
         $materialCost = 0.0;
+        $cvarMpCostBatch = 0.0;
+        $cvarMaeCostBatch = 0.0;
         $materialGroupsMap = [];
         foreach ($bomRows as $row) {
             $line = self::computeMaterialLine($row);
             $materials[] = $line;
-            $materialCost += (float)$line['line_cost'];
+            $lineCostBatch = (float)($line['line_cost_batch'] ?? $line['line_cost'] ?? 0);
+            $materialCost += $lineCostBatch;
             $groupName = (string)($line['group_name'] ?? 'Outros');
             if (!isset($materialGroupsMap[$groupName])) {
                 $materialGroupsMap[$groupName] = 0.0;
             }
-            $materialGroupsMap[$groupName] += (float)$line['line_cost'];
+            $materialGroupsMap[$groupName] += $lineCostBatch;
+            if ($groupName === 'Matéria Prima') {
+                $cvarMpCostBatch += $lineCostBatch;
+            } elseif ($groupName === 'Embalagens') {
+                $cvarMaeCostBatch += $lineCostBatch;
+            }
         }
         $materialGroups = self::buildMaterialGroupsList($materialGroupsMap);
 
@@ -230,6 +243,11 @@ class InventoryCostService extends DbConnection
         $simOperationsBatch = $simOperations * $batchSize;
         $simTotalBatch = $simTotal * $batchSize;
 
+        $cvarMpCost = $cvarMpCostBatch / $batchSize;
+        $cvarMaeCost = $cvarMaeCostBatch / $batchSize;
+        $simCvarMp = $cvarMpCost * $materialFactor * $globalFactor;
+        $simCvarMae = $cvarMaeCost * $materialFactor * $globalFactor;
+
         return [
             'item_id' => $itemId,
             'standard_batch_size' => $batchSize,
@@ -263,6 +281,14 @@ class InventoryCostService extends DbConnection
             'simulated_material_cost_batch' => round($simMaterialBatch, 6),
             'simulated_operations_cost_batch' => round($simOperationsBatch, 6),
             'simulated_total_batch' => round($simTotalBatch, 6),
+            'cvar_mp_cost' => round($cvarMpCost, 6),
+            'cvar_mae_cost' => round($cvarMaeCost, 6),
+            'cvar_mp_cost_batch' => round($cvarMpCostBatch, 6),
+            'cvar_mae_cost_batch' => round($cvarMaeCostBatch, 6),
+            'simulated_cvar_mp_cost' => round($simCvarMp, 6),
+            'simulated_cvar_mae_cost' => round($simCvarMae, 6),
+            'simulated_cvar_mp_cost_batch' => round($simCvarMp * $batchSize, 6),
+            'simulated_cvar_mae_cost_batch' => round($simCvarMae * $batchSize, 6),
             'simulated_route_manual_labor_cost_batch' => round($simRouteManualLabor * $batchSize, 6),
             'simulated_route_sap_labor_cost_batch' => round($simRouteSapLabor * $batchSize, 6),
             'simulated_route_equipment_cost_batch' => round($simRouteEquipment * $batchSize, 6),
@@ -278,24 +304,49 @@ class InventoryCostService extends DbConnection
     {
         $qty = (float)($row['quantity_per_batch'] ?? 0);
         $scrap = (float)($row['scrap_percent'] ?? 0);
-        $cost = (float)($row['component_cost'] ?? 0);
-        $effectiveQty = $qty * (1 + $scrap / 100.0);
-        $lineCost = ($qty > 0 && $cost > 0) ? $effectiveQty * $cost : 0.0;
+        $lineSource = (string)($row['line_source'] ?? 'catalog');
 
-        $category = trim((string)($row['component_category'] ?? ''));
-        $groupName = self::resolveMaterialGroupName($category);
+        if ($lineSource === 'manual') {
+            $cost = max(0.0, (float)($row['manual_unit_cost'] ?? 0));
+            $type = strtoupper(trim((string)($row['manual_component_type'] ?? 'OTHER')));
+            $groupName = self::resolveManualComponentGroupName($type);
+            $description = trim((string)($row['manual_description'] ?? ''));
+            $code = 'MANUAL';
+            $category = $type;
+        } else {
+            $cost = (float)($row['component_cost'] ?? 0);
+            $category = trim((string)($row['component_category'] ?? ''));
+            $groupName = self::resolveMaterialGroupName($category);
+            $code = (string)($row['component_code'] ?? '');
+            $description = (string)($row['component_description'] ?? '');
+        }
+
+        $effectiveQty = $qty * (1 + $scrap / 100.0);
+        $lineCostBatch = ($qty > 0 && $cost > 0) ? $effectiveQty * $cost : 0.0;
 
         return [
-            'component_code' => (string)($row['component_code'] ?? ''),
-            'component_description' => (string)($row['component_description'] ?? ''),
+            'line_source' => $lineSource,
+            'component_code' => $code,
+            'component_description' => $description,
             'component_category' => $category,
             'group_name' => $groupName,
+            'manual_component_type' => $lineSource === 'manual' ? ($row['manual_component_type'] ?? null) : null,
             'quantity' => $qty,
             'scrap_percent' => $scrap,
             'unit_cost' => $cost,
             'effective_qty' => round($effectiveQty, 6),
-            'line_cost' => round($lineCost, 6),
+            'line_cost' => round($lineCostBatch, 6),
+            'line_cost_batch' => round($lineCostBatch, 6),
         ];
+    }
+
+    private static function resolveManualComponentGroupName(string $type): string
+    {
+        return match ($type) {
+            'MP' => 'Matéria Prima',
+            'EMB' => 'Embalagens',
+            default => 'Outros',
+        };
     }
 
     /**

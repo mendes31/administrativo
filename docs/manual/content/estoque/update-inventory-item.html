@@ -1,28 +1,38 @@
 <h1>Editar Item de Estoque</h1>
-<p>Altera um registro existente de <strong>Editar Item de Estoque</strong>. Mudanças em campos de status ou vínculos podem afetar menu, permissões ou integrações.</p>
+<p>Altera um registro existente de <strong>Editar Item de Estoque</strong>, incluindo lista de materiais (BOM), rota e parâmetros de custeio.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Cadastros de estoque</em> (<code>est-cadastros</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Cadastros de estoque</em> (<code>est-cadastros</code>) e <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>UpdateInventoryItem</em>.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Altere apenas os campos necessários; observe campos que afetam permissões ou integrações.</li>
-    <li>Salve as alterações e confira a mensagem de retorno.</li>
-    <li>Teste com um usuário do perfil impactado (logout/login) se mudou permissões ou status.</li>
+    <li>Em <strong>Dados gerais</strong>, revise código, categoria, unidade e estoque mínimo/máximo.</li>
+    <li>Na aba <strong>Lista de materiais</strong>, cadastre componentes do lote (catálogo ou linhas manuais em PA - PROJETO).</li>
+    <li>Na aba <strong>Rota</strong>, informe operações, recursos e mão de obra.</li>
+    <li>Salve e use <strong>Simulação de Custos</strong> para cenários what-if.</li>
 </ol>
 
+<h2>PA - PROJETO (novos produtos)</h2>
+<p>Itens na categoria <strong>PA - PROJETO</strong> servem para simular custos de produtos ainda não lançados no SAP.</p>
+<ul>
+    <li><strong>Linha de catálogo:</strong> componente já cadastrado no estoque (custo médio do item).</li>
+    <li><strong>Linha manual:</strong> descrição livre, tipo MP ou MAE, unidade e <em>custo unitário informado</em> — sem cadastro prévio da matéria-prima.</li>
+    <li>Não sincroniza estrutura com o SAP; não entra no custeio oficial fechado do período.</li>
+</ul>
+
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
+<div class="help-field"><strong>Lista de materiais</strong> Quantidade por lote, perda % e origem (catálogo ou manual).</div>
+<div class="help-field"><strong>CVAR MP / MAE</strong> Na simulação, linhas manuais classificadas como MP ou MAE entram nos totais de custo variável.</div>
+<div class="help-field"><strong>Log de alterações</strong> Alterações na BOM e rota aparecem no contexto do item.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Botão Estrutura SAP não aparece</dt>
+    <dd>Itens PA - PROJETO não sincronizam com o SAP; monte a BOM manualmente.</dd>
+    <dt>Linha manual rejeitada ao salvar</dt>
+    <dd>Linhas manuais só são aceitas na categoria PA - PROJETO. Informe descrição, tipo e custo unitário &gt; 0.</dd>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>UpdateInventoryItem</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão <em>UpdateInventoryItem</em> ausente no seu nível de acesso.</dd>
 </dl>

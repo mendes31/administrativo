@@ -13,7 +13,8 @@ use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvLaborRolesRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Repository\inventory\InvProductionResourcesRepository;
-use App\adms\Models\Services\InventoryCostService;
+use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateInventoryItem
@@ -81,6 +82,8 @@ class UpdateInventoryItem
             $this->data['operations'] = [];
         }
 
+        $this->data['is_project_item'] = InvCostProjectHelper::isProjectItem($this->data['form'] ?? []);
+
         // Custo médio e último custo = materiais + rota (valores do lote; rateio por SKU na simulação)
         $calculatedCost = $this->calculateCostFromBomAndRoute(
             $this->data['bom'] ?? [],
@@ -101,6 +104,11 @@ class UpdateInventoryItem
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
+        if ($itemId > 0) {
+            $returnUrl = $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemId;
+            $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemId, $returnUrl);
+        }
+
         $loadView = new LoadViewService('adms/Views/inventory/items/update', $this->data);
         $loadView->loadView();
 
@@ -118,7 +126,8 @@ class UpdateInventoryItem
         if (!in_array(($form['admin_type'] ?? 'none'), ['none','serial','lot'], true)) { $errors['admin_type'] = 'Tipo de administração inválido.'; }
 
         // Validação simples da ficha técnica (se enviada)
-        $bomLines = $this->buildBomLinesFromForm($form);
+        $isProjectItem = $this->resolveIsProjectItemFromForm($form, $id);
+        $bomLines = $this->buildBomLinesFromForm($form, $isProjectItem, $errors);
         $opLines  = $this->buildOperationLinesFromForm($form);
 
         if ($errors) {
@@ -232,33 +241,97 @@ class UpdateInventoryItem
     }
 
     /**
+     * @param array<string, mixed> $form
+     */
+    private function resolveIsProjectItemFromForm(array $form, int $itemId): bool
+    {
+        if (!empty($form['inv_category_id'])) {
+            $cat = (new InvCategoriesRepository())->getOne((int)$form['inv_category_id']);
+            if (is_array($cat)) {
+                return InvCostProjectHelper::isProjectCategoryName((string)($cat['name'] ?? ''));
+            }
+        }
+
+        if ($itemId > 0) {
+            $item = (new InvItemsRepository())->getOne($itemId);
+            if (is_array($item)) {
+                return InvCostProjectHelper::isProjectItem($item);
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Monta as linhas de BOM a partir do formulário.
      *
-     * @param array $form
+     * @param array<string, mixed> $form
+     * @param list<string> $errors
      * @return array|null null se não houver dados de BOM no formulário.
      */
-    private function buildBomLinesFromForm(array $form): ?array
+    private function buildBomLinesFromForm(array $form, bool $isProjectItem, array &$errors): ?array
     {
-        if (empty($form['bom_component_item_id'])) {
+        $sources = $form['bom_line_source'] ?? [];
+        if ($sources === [] && empty($form['bom_component_item_id'])) {
             return [];
         }
 
-        $components = $form['bom_component_item_id'];
+        $components = $form['bom_component_item_id'] ?? [];
         $quantities = $form['bom_quantity_per_batch'] ?? [];
-        $scraps     = $form['bom_scrap_percent'] ?? [];
+        $scraps = $form['bom_scrap_percent'] ?? [];
+        $manualDescriptions = $form['bom_manual_description'] ?? [];
+        $manualTypes = $form['bom_manual_component_type'] ?? [];
+        $manualUnits = $form['bom_manual_unit'] ?? [];
+        $manualCosts = $form['bom_manual_unit_cost'] ?? [];
 
         $lines = [];
-        foreach ($components as $idx => $componentId) {
-            $componentId = (int)$componentId;
-            if ($componentId <= 0) {
-                continue;
-            }
+        foreach ($sources as $idx => $sourceRaw) {
+            $source = (string)$sourceRaw === 'manual' ? 'manual' : 'catalog';
             $qty = isset($quantities[$idx]) ? (float)$quantities[$idx] : 0;
             if ($qty <= 0) {
                 continue;
             }
             $scrap = isset($scraps[$idx]) ? (float)$scraps[$idx] : 0;
+
+            if ($source === 'manual') {
+                if (!$isProjectItem) {
+                    $errors['bom'] = 'Linhas manuais na lista de materiais são permitidas apenas para itens da categoria PA - PROJETO.';
+                    continue;
+                }
+                $description = trim((string)($manualDescriptions[$idx] ?? ''));
+                $type = strtoupper(trim((string)($manualTypes[$idx] ?? 'MP')));
+                if (!in_array($type, ['MP', 'EMB', 'OTHER'], true)) {
+                    $type = 'MP';
+                }
+                $unit = strtoupper(trim((string)($manualUnits[$idx] ?? 'UN')));
+                $unitCost = isset($manualCosts[$idx]) ? $this->parseFormDecimal($manualCosts[$idx]) : 0.0;
+                if ($description === '') {
+                    $errors['bom'] = 'Informe a descrição de todas as linhas manuais da lista de materiais.';
+                    continue;
+                }
+                if ($unitCost <= 0) {
+                    $errors['bom'] = 'Informe o custo unitário maior que zero nas linhas manuais.';
+                    continue;
+                }
+                $lines[] = [
+                    'line_source' => 'manual',
+                    'component_item_id' => null,
+                    'quantity_per_batch' => $qty,
+                    'scrap_percent' => $scrap,
+                    'manual_description' => $description,
+                    'manual_component_type' => $type,
+                    'manual_unit' => $unit !== '' ? $unit : 'UN',
+                    'manual_unit_cost' => $unitCost,
+                ];
+                continue;
+            }
+
+            $componentId = isset($components[$idx]) ? (int)$components[$idx] : 0;
+            if ($componentId <= 0) {
+                continue;
+            }
             $lines[] = [
+                'line_source' => 'catalog',
                 'component_item_id' => $componentId,
                 'quantity_per_batch' => $qty,
                 'scrap_percent' => $scrap,
@@ -398,14 +471,7 @@ class UpdateInventoryItem
     {
         $materialCost = 0.0;
         foreach ($bom as $row) {
-            $qty   = (float)($row['quantity_per_batch'] ?? 0);
-            $scrap = (float)($row['scrap_percent'] ?? 0);
-            $cost  = (float)($row['component_cost'] ?? 0);
-            if ($qty <= 0 || $cost <= 0) {
-                continue;
-            }
-            $effectiveQty = $qty * (1 + $scrap / 100.0);
-            $materialCost += $effectiveQty * $cost;
+            $materialCost += InvItemBomRepository::computeLineMaterialCost($row);
         }
 
         $operationsCost = 0.0;

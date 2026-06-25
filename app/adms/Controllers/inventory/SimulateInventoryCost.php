@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
@@ -50,6 +51,7 @@ class SimulateInventoryCost
 
         $this->data['selected_item_id'] = $itemId;
         $this->data['selected_item'] = $item;
+        $this->data['is_project_item'] = InvCostProjectHelper::isProjectItem($item);
         $this->data['scenario'] = $scenario;
         $this->data['scenario_batch_size'] = $batchSize;
         $this->data['breakdown'] = InventoryCostService::calculateBreakdown($itemId, $scenario);

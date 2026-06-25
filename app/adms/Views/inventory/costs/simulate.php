@@ -13,6 +13,7 @@ $warehouseScope = (string)($this->data['warehouse_scope'] ?? 'all');
 $selectedWarehouseCodes = $this->data['selected_warehouse_codes'] ?? [];
 $productionAggregation = $this->data['production_aggregation'] ?? null;
 $currentItemProduction = $this->data['current_item_production'] ?? null;
+$isProjectItem = !empty($this->data['is_project_item']);
 $itemId = (int)($this->data['selected_item_id'] ?? 0);
 $batchSize = (float)($scenario['standard_batch_size'] ?? ($breakdown['standard_batch_size'] ?? 1));
 $fmtMoney = static fn(float $v): string => number_format($v, 4, ',', '.');
@@ -75,6 +76,9 @@ $renderCostBreakdown = static function (
 
   <div class="mb-1 hstack gap-2 flex-wrap">
     <h2 class="mt-3 mb-0">Simulação de Custos</h2>
+    <?php if ($isProjectItem): ?>
+      <span class="badge bg-warning text-dark mt-3">PA - PROJETO · what-if</span>
+    <?php endif; ?>
     <ol class="breadcrumb mb-3 mt-3 ms-auto">
       <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>dashboard" class="text-decoration-none">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>list-inventory-items" class="text-decoration-none">Itens</a></li>
@@ -123,6 +127,9 @@ $renderCostBreakdown = static function (
             <div class="col-12 col-lg">
               <div class="fw-semibold fs-6">
                 <?= htmlspecialchars(($selectedItem['code'] ?? '') . ' — ' . ($selectedItem['description'] ?? '')) ?>
+                <?php if ($isProjectItem): ?>
+                  <span class="badge bg-warning text-dark ms-1">PA - PROJETO</span>
+                <?php endif; ?>
               </div>
               <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
                 <?php if (!empty($selectedItem['erp_code'])): ?>
@@ -159,6 +166,9 @@ $renderCostBreakdown = static function (
       <p class="text-muted mb-4">
         Compare o custo base com cenários de ajuste percentual. O tamanho do lote no cabeçalho define o rateio entre
         <strong>SKU (unidade)</strong> e <strong>lote</strong>. Tempos da rota e quantidades da BOM referem-se ao lote completo.
+        <?php if ($isProjectItem): ?>
+          <span class="d-block mt-1"><strong>Projeto:</strong> simulação independente do custeio oficial fechado; linhas manuais na BOM são consideradas no CVAR.</span>
+        <?php endif; ?>
       </p>
 
       <div class="border rounded p-3 p-md-4 bg-light mb-3">
@@ -374,7 +384,31 @@ $renderCostBreakdown = static function (
     $diffBatch = $simBatch - $baseBatch;
     $pctUnit = $baseUnit > 0 ? (($diffUnit / $baseUnit) * 100) : 0;
     $diffClass = $diffUnit >= 0 ? 'text-danger' : 'text-success';
+    $cvarMpUnit = (float)($breakdown['cvar_mp_cost'] ?? 0);
+    $cvarMaeUnit = (float)($breakdown['cvar_mae_cost'] ?? 0);
+    $simCvarMp = (float)($breakdown['simulated_cvar_mp_cost'] ?? 0);
+    $simCvarMae = (float)($breakdown['simulated_cvar_mae_cost'] ?? 0);
   ?>
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card border-light shadow-sm h-100">
+          <div class="card-body py-3">
+            <div class="text-muted text-uppercase small mb-1">CVAR MP (SKU)</div>
+            <div class="fw-semibold">R$ <?= $fmtMoney($cvarMpUnit) ?></div>
+            <div class="small text-muted">Simulado: R$ <?= $fmtMoney($simCvarMp) ?></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card border-light shadow-sm h-100">
+          <div class="card-body py-3">
+            <div class="text-muted text-uppercase small mb-1">CVAR MAE (SKU)</div>
+            <div class="fw-semibold">R$ <?= $fmtMoney($cvarMaeUnit) ?></div>
+            <div class="small text-muted">Simulado: R$ <?= $fmtMoney($simCvarMae) ?></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row g-4 mb-4">
       <div class="col-12 col-md-4">
         <div class="card h-100 border-primary border-light shadow-sm">

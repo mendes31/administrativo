@@ -4,6 +4,7 @@ namespace App\adms\Controllers\inventory;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
@@ -73,6 +74,7 @@ class ViewInventoryItem
         $this->data['operations'] = $opsRepo->getByItem($itemId);
         $this->data['cost_breakdown'] = InventoryCostService::calculateBreakdown($itemId);
         $this->data['has_structure'] = !empty($this->data['bom']) || !empty($this->data['operations']);
+        $this->data['is_project_item'] = InvCostProjectHelper::isProjectItem($item);
 
         // Força a seleção do menu correspondente (override de sessão usado pelo menu.php)
         $_SESSION['menu_override'] = 'ListInventoryItems';

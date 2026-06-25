@@ -1,7 +1,8 @@
+<?php if (!isset($this)) { exit; } ?>
 <?php
-if (!isset($this)) { exit; }
 $item = $this->data['item'] ?? [];
 $itemId = (int)($item['id'] ?? 0);
+$isProjectItem = !empty($this->data['is_project_item']);
 $bom = $this->data['bom'] ?? [];
 $operations = $this->data['operations'] ?? [];
 $breakdown = $this->data['cost_breakdown'] ?? [];
@@ -39,7 +40,7 @@ $truncate = static function (string $text, int $max = 42): string {
     <?php if (!empty($this->data['buttonPermission']) && in_array('UpdateInventoryItem', $this->data['buttonPermission'])): ?>
       <a href="<?= $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemId ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
     <?php endif; ?>
-    <?php if (!empty($item['erp_code'])): ?>
+    <?php if (!empty($item['erp_code']) && empty($this->data['is_project_item'])): ?>
       <form action="" method="POST" class="d-inline">
         <input type="hidden" name="csrf_token" value="<?= \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_sync_inventory_structure') ?>">
         <input type="hidden" name="sync_sap_structure_item_id" value="<?= $itemId ?>">
@@ -80,6 +81,9 @@ $truncate = static function (string $text, int $max = 42): string {
       <div class="rounded border bg-light p-3 mb-4">
         <div class="fw-semibold fs-6 mb-2">
           <?= htmlspecialchars(($item['code'] ?? '') . ' — ' . ($item['description'] ?? '')) ?>
+          <?php if ($isProjectItem): ?>
+            <span class="badge bg-warning text-dark ms-1">PA - PROJETO</span>
+          <?php endif; ?>
         </div>
         <div class="small text-muted d-flex flex-wrap gap-3">
           <span><span class="text-secondary">ERP:</span> <?= htmlspecialchars($item['erp_code'] ?? '—') ?></span>
@@ -183,14 +187,20 @@ $truncate = static function (string $text, int $max = 42): string {
                     <?php foreach ($bom as $idx => $line):
                       $qty = (float)($line['quantity_per_batch'] ?? 0);
                       $scrap = (float)($line['scrap_percent'] ?? 0);
-                      $cost = (float)($line['component_cost'] ?? 0);
-                      $effectiveQty = $qty * (1 + $scrap / 100.0);
-                      $lineCost = ($qty > 0 && $cost > 0) ? $effectiveQty * $cost : 0.0;
+                      $isManual = (string)($line['line_source'] ?? 'catalog') === 'manual';
+                      $cost = \App\adms\Models\Repository\inventory\InvItemBomRepository::resolveLineUnitCost($line);
+                      $lineCost = \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
                       $pos = ($idx + 1) * 10;
+                      $typeLabel = $isManual ? strtoupper((string)($line['manual_component_type'] ?? '')) : '';
                     ?>
                       <tr>
                         <td class="ps-3 text-muted"><?= $pos ?></td>
-                        <td><code class="small"><?= htmlspecialchars($line['component_code'] ?? '') ?></code></td>
+                        <td>
+                          <code class="small"><?= htmlspecialchars($line['component_code'] ?? '') ?></code>
+                          <?php if ($isManual): ?>
+                            <span class="badge bg-warning text-dark ms-1">Manual</span>
+                          <?php endif; ?>
+                        </td>
                         <td class="cell-truncate" title="<?= htmlspecialchars($line['component_description'] ?? '') ?>"><?= htmlspecialchars($truncate((string)($line['component_description'] ?? ''), 50)) ?></td>
                         <td class="text-end"><?= $fmtMoney($qty, 6) ?></td>
                         <td><?= htmlspecialchars($line['unit_name'] ?? '') ?></td>
@@ -219,16 +229,16 @@ $truncate = static function (string $text, int $max = 42): string {
                 <?php foreach ($bom as $idx => $line):
                   $qty = (float)($line['quantity_per_batch'] ?? 0);
                   $scrap = (float)($line['scrap_percent'] ?? 0);
-                  $cost = (float)($line['component_cost'] ?? 0);
-                  $effectiveQty = $qty * (1 + $scrap / 100.0);
-                  $lineCost = ($qty > 0 && $cost > 0) ? $effectiveQty * $cost : 0.0;
+                  $cost = \App\adms\Models\Repository\inventory\InvItemBomRepository::resolveLineUnitCost($line);
+                  $lineCost = \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
+                  $isManual = (string)($line['line_source'] ?? 'catalog') === 'manual';
                   $pos = ($idx + 1) * 10;
                 ?>
                 <div class="card mb-2 shadow-sm inv-structure-mobile-card">
                   <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
                       <code class="small"><?= htmlspecialchars($line['component_code'] ?? '') ?></code>
-                      <span class="text-muted small">Pos. <?= $pos ?></span>
+                      <span class="text-muted small">Pos. <?= $pos ?><?php if ($isManual): ?> · <span class="badge bg-warning text-dark">Manual</span><?php endif; ?></span>
                     </div>
                     <div class="fw-semibold text-break mb-2"><?= htmlspecialchars($line['component_description'] ?? '') ?></div>
                     <div class="row g-2 small">
@@ -494,10 +504,8 @@ $truncate = static function (string $text, int $max = 42): string {
                   <?php endif; ?>
                   <?php foreach ($bom as $idx => $line):
                     $qty = (float)($line['quantity_per_batch'] ?? 0);
-                    $scrap = (float)($line['scrap_percent'] ?? 0);
-                    $cost = (float)($line['component_cost'] ?? 0);
-                    $effectiveQty = $qty * (1 + $scrap / 100.0);
-                    $lineCost = ($qty > 0 && $cost > 0) ? $effectiveQty * $cost : 0.0;
+                    $cost = \App\adms\Models\Repository\inventory\InvItemBomRepository::resolveLineUnitCost($line);
+                    $lineCost = \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
                   ?>
                     <tr>
                       <td class="ps-3"><?= ($idx + 1) * 10 ?></td>
@@ -541,10 +549,8 @@ $truncate = static function (string $text, int $max = 42): string {
               <?php else: ?>
                 <?php foreach ($bom as $idx => $line):
                   $qty = (float)($line['quantity_per_batch'] ?? 0);
-                  $scrap = (float)($line['scrap_percent'] ?? 0);
-                  $cost = (float)($line['component_cost'] ?? 0);
-                  $effectiveQty = $qty * (1 + $scrap / 100.0);
-                  $lineCost = ($qty > 0 && $cost > 0) ? $effectiveQty * $cost : 0.0;
+                  $cost = \App\adms\Models\Repository\inventory\InvItemBomRepository::resolveLineUnitCost($line);
+                  $lineCost = \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
                 ?>
                 <div class="card mb-2 shadow-sm inv-structure-mobile-card">
                   <div class="card-body">
@@ -605,7 +611,9 @@ $truncate = static function (string $text, int $max = 42): string {
         <div class="alert alert-light border mb-0">
           <i class="fa-solid fa-circle-info text-muted me-1"></i>
           Este item ainda não possui <strong>lista de materiais</strong> nem <strong>rota</strong> cadastradas.
-          <?php if (!empty($item['erp_code'])): ?>
+          <?php if ($isProjectItem): ?>
+            Para itens <strong>PA - PROJETO</strong>, monte a lista de materiais manualmente (incluindo linhas manuais) na edição do item.
+          <?php elseif (!empty($item['erp_code'])): ?>
             Use o botão <strong>Estrutura</strong> acima para importar do SAP, ou edite o item nas abas correspondentes.
           <?php else: ?>
             Edite o item para informar a estrutura manualmente ou vincule um código ERP e sincronize pelo SAP.

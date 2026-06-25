@@ -86,7 +86,9 @@ use App\adms\Helpers\CSRFHelper;
 		<div class="card-header hstack gap-2 flex-wrap align-items-center">
 			<span>Editar</span>
 			<span class="ms-auto d-sm-flex flex-row flex-wrap gap-1 align-items-center">
-				<?php if (in_array('ListInventoryItems', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}list-inventory-items' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> "; }
+				<?php
+				include __DIR__ . '/../../partials/button_log_alteracoes.php';
+				if (in_array('ListInventoryItems', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}list-inventory-items' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> "; }
 				if (in_array('ViewInventoryItem', $this->data['buttonPermission']) && !empty($this->data['form']['id'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$this->data['form']['id']}' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Ver</a> "; } ?>
 			</span>
 		</div>
@@ -197,77 +199,13 @@ use App\adms\Helpers\CSRFHelper;
 					</div>
 
 					<div class="tab-pane fade<?= $tabPaneShow('pane-bom') ?>" id="pane-bom" role="tabpanel" aria-labelledby="tab-bom">
-						<div class="table-responsive inv-edit-responsive-table">
-							<table class="table table-sm align-middle" id="bom-table">
-								<thead class="thead-green">
-									<tr>
-										<th style="width: 30%;">Componente</th>
-										<th style="width: 15%;">Quantidade por lote</th>
-										<th style="width: 10%;">Perda (%)</th>
-										<th style="width: 10%;">Unidade</th>
-										<th style="width: 15%;">Custo médio</th>
-										<th style="width: 15%;">Total (Qtd x Custo)</th>
-										<th style="width: 5%;" class="text-end">Ações</th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php
-									$totalMaterialCost = 0.0;
-									foreach (($this->data['bom'] ?? []) as $idx => $line):
-										$qty = (float)($line['quantity_per_batch'] ?? 0);
-										$cost = (float)($line['component_cost'] ?? 0);
-										$rowTotal = $qty * $cost;
-										$totalMaterialCost += $rowTotal;
-										?>
-										<tr>
-											<td data-label="Componente">
-												<select name="bom_component_item_id[]" class="form-select form-select-sm">
-													<option value="">Selecione o componente</option>
-													<?php
-													$selectedComponentId = (string)($line['component_item_id'] ?? '');
-													foreach (($this->data['listBomItems'] ?? []) as $bomItem) {
-														$optVal = (string)$bomItem['id'];
-														$sel = $optVal === $selectedComponentId ? 'selected' : '';
-														$label = $bomItem['code'] . ' - ' . $bomItem['description'];
-														echo "<option value=\"{$bomItem['id']}\" {$sel}>".htmlspecialchars($label)."</option>";
-													}
-													?>
-												</select>
-											</td>
-											<td data-label="Quantidade por lote">
-												<input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($line['quantity_per_batch'] ?? '')) ?>">
-											</td>
-											<td data-label="Perda (%)">
-												<input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($line['scrap_percent'] ?? '0')) ?>">
-											</td>
-											<td data-label="Unidade"><?= htmlspecialchars($line['unit_name'] ?? '') ?></td>
-											<td data-label="Custo médio"><?= number_format($cost, 6, ',', '.') ?></td>
-											<td data-label="Total (Qtd x Custo)"><?= number_format($rowTotal, 6, ',', '.') ?></td>
-											<td data-label="Ações" class="text-end">
-												<button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button>
-											</td>
-										</tr>
-									<?php endforeach; ?>
-								</tbody>
-								<tfoot>
-									<tr>
-										<td colspan="5" class="text-end"><strong>Custo total dos componentes (lote):</strong></td>
-										<td colspan="2"><strong id="bom-grand-total"><?= number_format($totalMaterialCost, 6, ',', '.') ?></strong></td>
-									</tr>
-								</tfoot>
-							</table>
-						</div>
-						<div class="mt-2">
-							<button type="button" class="btn btn-sm btn-outline-primary" onclick="addBomRow()">Adicionar componente</button>
-							<p class="text-muted mt-2 mb-0">
-								<small>
-									Selecione um item de estoque já cadastrado para usar como componente.<br>
-									Caso a matéria-prima ainda não exista, abra a tela de
-									<a href="<?= $_ENV['URL_ADM'] ?>create-inventory-item" target="_blank">Cadastro de Item de Estoque</a>
-									em uma nova aba, cadastre o item e recarregue esta página.
-								</small>
-							</p>
-						</div>
+						<?php
+						$bomLines = $this->data['bom'] ?? [];
+						$listBomItems = $this->data['listBomItems'] ?? [];
+						$listUnits = $this->data['listUnits'] ?? [];
+						$isProjectItem = (bool)($this->data['is_project_item'] ?? false);
+						include __DIR__ . '/../partials/bom_edit_table.php';
+						?>
 					</div>
 
 					<div class="tab-pane fade<?= $tabPaneShow('pane-operations') ?>" id="pane-operations" role="tabpanel" aria-labelledby="tab-operations">
@@ -589,6 +527,7 @@ use App\adms\Helpers\CSRFHelper;
 function removeBomRow(btn) {
     const row = btn.closest('tr');
     if (row) row.remove();
+    recalcBomGrandTotal();
 }
 const productionResources = <?php echo json_encode($this->data['listProductionResources'] ?? [], JSON_UNESCAPED_UNICODE); ?>;
 const laborRoles = <?php echo json_encode($this->data['listLaborRoles'] ?? [], JSON_UNESCAPED_UNICODE); ?>;
@@ -870,37 +809,125 @@ function addLaborRow(opIndex) {
     recalcOpLineTotal(opIndex);
     syncInvRouteTableColumns(getOpCard(opIndex));
 }
-function addBomRow() {
+function addBomCatalogRow() {
     const tbody = document.querySelector('#bom-table tbody');
     if (!tbody) return;
     const tr = document.createElement('tr');
+    tr.className = 'bom-row bom-row-catalog';
     const bomItems = <?php echo json_encode($this->data['listBomItems'] ?? []); ?>;
-    let optionsHtml = '<option value=\"\">Selecione o componente</option>';
+    let optionsHtml = '<option value="">Selecione o componente</option>';
     (bomItems || []).forEach(function (item) {
         const label = (item.code + ' - ' + item.description).replace(/"/g, '&quot;');
-        optionsHtml += '<option value=\"' + item.id + '\">' + label + '</option>';
+        optionsHtml += '<option value="' + item.id + '">' + label + '</option>';
     });
     tr.innerHTML = `
-        <td data-label="Componente">
-            <select name="bom_component_item_id[]" class="form-select form-select-sm">
-                ${optionsHtml}
-            </select>
+        <td data-label="Origem">
+            <input type="hidden" name="bom_line_source[]" value="catalog">
+            <span class="badge bg-secondary">Catálogo</span>
         </td>
-        <td data-label="Quantidade por lote">
-            <input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm" value="0">
+        <td data-label="Componente / descrição">
+            <select name="bom_component_item_id[]" class="form-select form-select-sm bom-catalog-select">${optionsHtml}</select>
+            <input type="hidden" name="bom_manual_description[]" value="">
         </td>
-        <td data-label="Perda (%)">
-            <input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm" value="0">
-        </td>
-        <td data-label="Unidade"><span class="text-muted">Unidade será exibida após salvar</span></td>
-        <td data-label="Custo médio">0,000000</td>
-        <td data-label="Total (Qtd x Custo)">0,000000</td>
-        <td data-label="Ações" class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button>
-        </td>
+        <td data-label="Tipo"><span class="text-muted small">—</span><input type="hidden" name="bom_manual_component_type[]" value=""></td>
+        <td data-label="Qtd / lote"><input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="0"></td>
+        <td data-label="Perda (%)"><input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm bom-scrap" value="0"></td>
+        <td data-label="Unidade"><span class="text-muted small">—</span><input type="hidden" name="bom_manual_unit[]" value=""></td>
+        <td data-label="Custo unitário"><span class="text-muted small">Catálogo</span><input type="hidden" name="bom_manual_unit_cost[]" value=""></td>
+        <td data-label="Total linha" class="bom-line-total">0,000000</td>
+        <td data-label="Ações" class="text-end"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button></td>
     `;
     tbody.appendChild(tr);
+    bindBomRowInputs(tr);
+    recalcBomGrandTotal();
 }
+function addBomManualRow() {
+    if (!<?= !empty($this->data['is_project_item']) ? 'true' : 'false' ?>) {
+        return;
+    }
+    const tbody = document.querySelector('#bom-table tbody');
+    if (!tbody) return;
+    const unitOptions = <?php
+        $unitCodes = [];
+        foreach ($this->data['listUnits'] ?? [] as $u) {
+            $c = strtoupper(trim((string)($u['code'] ?? '')));
+            if ($c !== '') { $unitCodes[] = $c; }
+        }
+        foreach (['UN', 'KG', 'G', 'ML', 'L', 'CX'] as $d) {
+            if (!in_array($d, $unitCodes, true)) { $unitCodes[] = $d; }
+        }
+        sort($unitCodes);
+        echo json_encode($unitCodes);
+    ?>;
+    let unitHtml = '';
+    (unitOptions || []).forEach(function (code) {
+        const sel = code === 'UN' ? ' selected' : '';
+        unitHtml += '<option value="' + code + '"' + sel + '>' + code + '</option>';
+    });
+    const tr = document.createElement('tr');
+    tr.className = 'bom-row bom-row-manual';
+    tr.innerHTML = `
+        <td data-label="Origem">
+            <input type="hidden" name="bom_line_source[]" value="manual">
+            <span class="badge bg-warning text-dark">Manual</span>
+        </td>
+        <td data-label="Componente / descrição">
+            <input type="text" name="bom_manual_description[]" class="form-control form-control-sm bom-manual-desc" maxlength="255" placeholder="Descrição do insumo">
+            <input type="hidden" name="bom_component_item_id[]" value="">
+        </td>
+        <td data-label="Tipo">
+            <select name="bom_manual_component_type[]" class="form-select form-select-sm bom-manual-type">
+                <option value="MP" selected>MP</option>
+                <option value="EMB">MAE</option>
+                <option value="OTHER">Outro</option>
+            </select>
+        </td>
+        <td data-label="Qtd / lote"><input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="0"></td>
+        <td data-label="Perda (%)"><input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm bom-scrap" value="0"></td>
+        <td data-label="Unidade"><select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit">${unitHtml}</select></td>
+        <td data-label="Custo unitário"><input type="number" step="0.000001" min="0" name="bom_manual_unit_cost[]" class="form-control form-control-sm bom-manual-cost" value="0"></td>
+        <td data-label="Total linha" class="bom-line-total">0,000000</td>
+        <td data-label="Ações" class="text-end"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button></td>
+    `;
+    tbody.appendChild(tr);
+    bindBomRowInputs(tr);
+    recalcBomGrandTotal();
+}
+function bindBomRowInputs(row) {
+    if (!row) return;
+    row.querySelectorAll('.bom-qty, .bom-scrap, .bom-manual-cost').forEach(function (el) {
+        el.addEventListener('input', recalcBomGrandTotal);
+    });
+}
+function recalcBomLineTotal(row) {
+    const qty = parseFloat(row.querySelector('.bom-qty')?.value || '0') || 0;
+    const scrap = parseFloat(row.querySelector('.bom-scrap')?.value || '0') || 0;
+    const isManual = row.classList.contains('bom-row-manual');
+    let cost = 0;
+    if (isManual) {
+        cost = parseFloat(row.querySelector('.bom-manual-cost')?.value || '0') || 0;
+    }
+    const effective = qty * (1 + scrap / 100);
+    const total = (qty > 0 && cost > 0) ? effective * cost : 0;
+    const cell = row.querySelector('.bom-line-total');
+    if (cell) {
+        cell.textContent = total.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+    }
+    return total;
+}
+function recalcBomGrandTotal() {
+    let sum = 0;
+    document.querySelectorAll('#bom-table tbody .bom-row').forEach(function (row) {
+        sum += recalcBomLineTotal(row);
+    });
+    const el = document.getElementById('bom-grand-total');
+    if (el) {
+        el.textContent = sum.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+    }
+}
+document.querySelectorAll('#bom-table tbody .bom-row').forEach(bindBomRowInputs);
+recalcBomGrandTotal();
+function addBomRow() { addBomCatalogRow(); }
 function addOperationRow() {
     const list = document.getElementById('operations-list');
     if (!list) return;

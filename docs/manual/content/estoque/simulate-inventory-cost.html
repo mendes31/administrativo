@@ -1,28 +1,29 @@
-<h1>Simulação de Custos PA/PI</h1>
-<p>Tela <strong>Simulação de Custos PA/PI</strong> do módulo Estoque. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
+<h1>Simulação de Custos</h1>
+<p>Compara o <strong>custo base</strong> (BOM + rota) com cenários de ajuste percentual, exibindo CVAR por grupo (MP, MAE, MO, equipamentos) e produção do período para o critério de rateio 1.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Custeio</em> (<code>est-custeio</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral:</strong> <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>SimulateInventoryCost</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>SimulateInventoryCost</em>.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <strong>Simulação de Custos PA/PI</strong> pelo menu Estoque.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Abra um item em <strong>Itens</strong> e clique em <strong>Simular cenários</strong> (ou acesse pela URL do item).</li>
+    <li>Defina o <strong>tamanho do lote</strong> para rateio SKU × lote.</li>
+    <li>Opcional: selecione <strong>período de custeio</strong> e depósitos (TJQP/APQP) para ver qty produzida e % rateio 1.</li>
+    <li>Ajuste % em materiais, rota ou global e clique em <strong>Simular</strong>.</li>
+    <li>Salve cenários ou exporte PDF quando autorizado.</li>
 </ol>
 
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<h2>CVAR MP e CVAR MAE</h2>
+<p>Cards <strong>CVAR MP</strong> e <strong>CVAR MAE</strong> mostram o custo variável de matéria-prima e embalagens por SKU (e valor simulado após ajustes). Linhas manuais da categoria PA - PROJETO entram conforme o tipo informado (MP ou MAE).</p>
+
+<h2>PA - PROJETO</h2>
+<p>Itens na categoria <strong>PA - PROJETO</strong> exibem o badge <em>what-if</em>: a simulação é independente do custeio oficial fechado do período. Use linhas manuais na BOM para MPs/MAEs hipotéticas.</p>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>SimulateInventoryCost</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Rateio 1 zerado no período</dt>
+    <dd>Projetos PA - PROJETO normalmente não têm produção SAP; o rateio oficial não se aplica até o SKU ser promovido.</dd>
+    <dt>CVAR MP/MAE zerados</dt>
+    <dd>Confira a lista de materiais e a classificação das linhas manuais (MP vs MAE).</dd>
 </dl>

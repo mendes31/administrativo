@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
@@ -146,6 +147,11 @@ class InventorySapSyncService
             $item = $itemsRepo->getOne($invItemId);
             if (!is_array($item)) {
                 $result['message'] = 'Item não encontrado para sincronizar estrutura.';
+                return $result;
+            }
+
+            if (InvCostProjectHelper::isProjectItem($item)) {
+                $result['message'] = 'Itens da categoria PA - PROJETO não são sincronizados com o SAP. Edite a lista de materiais manualmente.';
                 return $result;
             }
 

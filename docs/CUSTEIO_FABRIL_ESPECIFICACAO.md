@@ -747,7 +747,7 @@ inv_cost_energy_consumption       -- HVAC anual, comum, por linha
 
 | # | Entrega | Impacto |
 |---|---------|---------|
-| 2.1 | Cadastro período + import DRE (CSV) | Pool despesas |
+| 2.1 | Cadastro período + import DRE (XLSX) | Pool despesas |
 | 2.2 | Pasta 9: distribuição RH | Folha por área |
 | 2.3 | Motor critérios 1–8 | CFIX por SKU |
 | 2.4 | Redistribuições EE e análises | Fidelidade planilha |
@@ -787,19 +787,32 @@ Processo:
 
 ---
 
-## 13. Riscos e decisões em aberto
+## 13. Riscos e decisões
 
-| # | Questão | Opções |
-|---|---------|--------|
-| D1 | ~~Margem: qual fórmula?~~ **Resolvido:** planilha usa **markup** `(preço-custo)/custo`. Sistema: mesmo para reconciliação; margem % como coluna extra na UI |
-| D2 | Eficiência: por SKU ou só por linha? | Planilha permite ambos (Pasta 5) |
-| D3 | Período de custeio: trimestral fixo? | Alinhar ao fechamento contábil |
-| D4 | DRE: import manual CSV ou integração ERP? | Fase 2 começa com CSV |
-| D5 | CFIX para SKU sem produção no período | Planilha inclui na base 1? |
-| D6 | Manter simulação % separada do custeio oficial? | Simulação = what-if; período = oficial |
-| D7 | `power_kw` já no banco — tarifa kWh onde cadastrar? | Período global vs por mês |
-| D8 | ~~Sync de lotes vinculada ao período?~~ **Resolvido:** cadastro **global**; período só filtra em cálculo/simulação |
-| D9 | ~~Quais depósitos na produção?~~ **Resolvido:** sync **TJQP + APQP**; `warehouse_code` em cada lote; filtro na simulação (um, vários ou todos) |
+| # | Questão | Decisão |
+|---|---------|---------|
+| D1 | ~~Margem: qual fórmula?~~ | **Resolvido:** planilha usa **markup** `(preço-custo)/custo`. Sistema: mesmo para reconciliação; margem % como coluna extra na UI |
+| D2 | Eficiência: por SKU ou só por linha? | Planilha permite ambos (Pasta 5) — implementar **SKU com fallback por linha** |
+| D3 | ~~Período de custeio: trimestral fixo?~~ | **Resolvido (2026-06-25):** período **flexível** (`date_from` / `date_to` livres), como na planilha (ex.: Jan–Out/2025, Jan–Fev/2026) |
+| D4 | ~~DRE: import manual ou ERP?~~ | **Resolvido (2026-06-25):** **importação XLSX** (layout Pasta 8 / DRE Balancete); ERP fica para fase futura |
+| D5 | ~~SKU sem produção no período entra no rateio 1?~~ | **Resolvido (2026-06-25):** **configurável** — opção no período (e/ou por SKU) para incluir ou excluir itens com qty = 0 na base do critério 1 |
+| D6 | ~~Simulação % separada do custeio oficial?~~ | **Resolvido (2026-06-25):** **sim** — simulação what-if (ajustes %, estrutura manual) **separada** do fechamento oficial do período (`status = closed`) |
+| D7 | `power_kw` já no banco — tarifa kWh onde cadastrar? | Período global (`inv_cost_periods.kwh_tariff`) |
+| D8 | ~~Sync de lotes vinculada ao período?~~ | **Resolvido:** cadastro **global**; período só filtra em cálculo/simulação |
+| D9 | ~~Quais depósitos na produção?~~ | **Resolvido:** sync **TJQP + APQP**; `warehouse_code` em cada lote; filtro na simulação |
+| D10 | ~~Novos projetos sem MP/MAE cadastrados?~~ | **Resolvido (2026-06-25):** ver seção **16** — categoria PA projeto + linhas manuais na BOM/rota |
+
+### 13.1 D5 — Rateio 1 configurável (detalhe)
+
+Parâmetros sugeridos em `inv_cost_periods` (ou tela do período):
+
+| Modo | Comportamento |
+|------|----------------|
+| `only_produced` (padrão sugerido) | Base do critério 1 = só SKUs com `qty_produced > 0` no filtro ativo |
+| `all_catalog_skus` | Todos os SKUs do catálogo de custeio entram; qty 0 → share 0% mas item permanece na matriz |
+| `custom_include_list` | Lista explícita de SKUs a incluir mesmo sem produção |
+
+Na UI de fechamento: aviso quando SKU tem CFIX rateado mas qty = 0.
 
 ---
 
@@ -830,6 +843,73 @@ Processo:
 | 2309 | Critério rateio 4 |
 | 2320–2417 | Pools CFIX (pessoal + adm.) |
 | 2511–2518 | Resumo preço, CVAR, CFIX, margem |
+
+---
+
+## 16. Novos projetos — simulação com estrutura manual
+
+**Contexto:** para precificar produtos ainda não lançados, MPs e MAEs podem não existir no SAP nem no cadastro local. A simulação deve permitir **montar a estrutura manualmente** e informar **quantidades e custos unitários** sem depender de sync.
+
+### 16.1 Identificação — categoria PA Projeto
+
+Usar categoria de estoque dedicada (ex.: **`PA - PROJETO`** ou **`PROJETO (SIMULAÇÃO)`**):
+
+| Aspecto | Regra |
+|---------|--------|
+| Tipo inferido | PA (produto acabado) |
+| `erp_code` | Opcional; código interno `PROJ-####` até virar SKU SAP |
+| Sync SAP | **Não** sincronizar / não sobrescrever BOM |
+| Produção real | **Excluído** de `inv_cost_production_batches` e rateio 1 oficial |
+| Custeio oficial | **Fora** do fechamento do período até promover a SKU real |
+| Simulação what-if | **Usa** a mesma tela `simulate-inventory-cost` (D6) |
+
+Alternativa complementar: flag `costing_profile` em `inv_items` (`standard` \| `project`) — a categoria já resolve na prática.
+
+### 16.2 BOM e rota com linhas manuais
+
+Hoje `inv_item_bom` exige `component_item_id` (FK obrigatória). Para projetos, estender a ficha técnica:
+
+```
+inv_item_bom (evolução)
+  component_item_id     NULL permitido quando line_source = 'manual'
+  line_source           catalog | manual
+  manual_description    texto livre (ex.: "Bifido HN019 — cotação fornecedor X")
+  manual_component_type MP | EMB | OTHER   → classifica CVAR MP vs MAE
+  manual_unit           KG | UN | ...
+  manual_unit_cost      custo informado na simulação (não grava em average_cost global)
+  scrap_percent         mantém
+```
+
+**Regras de cálculo:**
+
+- Linha `catalog`: comportamento atual (`qty × average_cost × scrap`).
+- Linha `manual`: `qty × manual_unit_cost × scrap`; **não** exige item cadastrado.
+- Rota: permitir operações com tempo + custo/min manual quando recurso/MO não existir.
+
+### 16.3 Fluxo operacional
+
+1. Cadastrar item na categoria **PA - PROJETO**.
+2. Montar BOM (mix de componentes cadastrados + linhas manuais) e rota.
+3. Abrir **Simulação de Custos** → ajustar %, lote, eficiência hipotética, preço alvo.
+4. Salvar cenário em `inv_cost_simulations` (já existe) — **não** altera custo oficial de MPs reais.
+5. Ao aprovar o projeto: criar SKU SAP, recategorizar para PA normal, importar estrutura ou vincular componentes reais.
+
+### 16.4 Impacto no CFIX (Fase 2)
+
+Itens **PA - PROJETO** no modo simulação:
+
+- **Não** entram no pool de rateio oficial do período fechado.
+- Opcional: simular CFIX usando **drivers hipotéticos** (qty, HH, HM informados manualmente) para ver custo pleno estimado antes do lançamento.
+
+### 16.5 Entregas sugeridas (Fase 1b — projetos)
+
+| # | Entrega |
+|---|---------|
+| P.1 | Categoria seed `PA - PROJETO` + filtro na listagem de itens |
+| P.2 | Migration BOM: `line_source`, campos manuais, `component_item_id` nullable |
+| P.3 | UI edição BOM: adicionar linha manual (tipo MP/EMB, custo unitário) |
+| P.4 | `InventoryCostService`: calcular linhas manuais + separar CVAR MP/MAE |
+| P.5 | Badge "Projeto" na simulação; bloquear sync SAP para essa categoria |
 
 ---
 

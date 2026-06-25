@@ -29,6 +29,7 @@ final class AddInventoryBasics extends AbstractSeed
         // Categorias
         $categories = [
             ['name' => 'Geral'],
+            ['name' => 'PA - PROJETO'],
         ];
         foreach ($categories as $cat) {
             $exists = $this->query('SELECT id FROM inv_categories WHERE name = :name', ['name' => $cat['name']])->fetch();
