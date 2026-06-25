@@ -84,6 +84,36 @@ final class AdmsLayoutSessionHelper
         return ['limite' => $limite, 'lock_offset_minutes' => $lockOffset];
     }
 
+    /**
+     * Renova atividade da sessão no banco (ex.: requisições AJAX que não passam pelo layout).
+     */
+    public static function touchSessionActivity(): void
+    {
+        if (!isset($_SESSION['user_id'], $_SESSION['session_id'])) {
+            return;
+        }
+
+        $userId = (int) $_SESSION['user_id'];
+        $sessionId = (string) $_SESSION['session_id'];
+        $now = time();
+
+        try {
+            (new AdmsSessionsRepository())->updateSessionActivity($userId, $sessionId);
+        } catch (\Throwable) {
+            // best-effort — não bloqueia gravação do formulário
+        }
+
+        $_SESSION['last_activity'] = $now;
+
+        $cached = $_SESSION[self::SESSION_CACHE_KEY] ?? null;
+        if (is_array($cached)) {
+            $cached['activity_written_at'] = $now;
+            $cached['validated_at'] = $now;
+            $cached['updated_at'] = date('Y-m-d H:i:s');
+            $_SESSION[self::SESSION_CACHE_KEY] = $cached;
+        }
+    }
+
     public static function clearCache(): void
     {
         unset($_SESSION[self::SESSION_CACHE_KEY]);

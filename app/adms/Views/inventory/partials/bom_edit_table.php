@@ -60,7 +60,7 @@ foreach ($bomLines as $line) {
 <?php if ($isProjectItem): ?>
 <div class="alert alert-info border small py-2 mb-3">
   <i class="fa-solid fa-flask me-1"></i>
-  <strong>PA - PROJETO:</strong> use <em>linhas manuais</em> para MPs e embalagens ainda não cadastradas, informando descrição, tipo (MP/MAE) e custo unitário.
+  <strong>PA - PROJETO:</strong> a mesma lista pode misturar <em>componentes de catálogo</em> (itens já cadastrados) e <em>linhas manuais</em> (MPs/MAEs ainda sem cadastro), com descrição, tipo e custo unitário informados.
   Este item não entra na sincronização SAP nem no custeio oficial fechado.
 </div>
 <?php endif; ?>
@@ -158,7 +158,11 @@ foreach ($bomLines as $line) {
     <i class="fa-solid fa-plus"></i> Adicionar componente
   </button>
   <?php if ($isProjectItem): ?>
-    <button type="button" class="btn btn-sm btn-outline-warning" onclick="addBomManualRow()">
+    <button type="button" class="btn btn-sm btn-outline-warning" id="btn-add-bom-manual" onclick="addBomManualRow()">
+      <i class="fa-solid fa-pen-ruler"></i> Adicionar linha manual
+    </button>
+  <?php else: ?>
+    <button type="button" class="btn btn-sm btn-outline-warning d-none" id="btn-add-bom-manual" onclick="addBomManualRow()">
       <i class="fa-solid fa-pen-ruler"></i> Adicionar linha manual
     </button>
   <?php endif; ?>

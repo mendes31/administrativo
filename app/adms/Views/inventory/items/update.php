@@ -523,10 +523,54 @@ use App\adms\Helpers\CSRFHelper;
 
 </div>
 
+<?php
+use App\adms\Helpers\InvCostProjectHelper;
+$projectCategoryIds = [];
+foreach ($this->data['listCategories'] ?? [] as $catRow) {
+    if (InvCostProjectHelper::isProjectCategoryName((string)($catRow['name'] ?? ''))) {
+        $projectCategoryIds[] = (int)($catRow['id'] ?? 0);
+    }
+}
+?>
+
 <script>
 function removeBomRow(btn) {
     const row = btn.closest('tr');
     if (row) row.remove();
+    recalcBomGrandTotal();
+}
+const projectCategoryIds = <?php echo json_encode(array_values($projectCategoryIds), JSON_UNESCAPED_UNICODE); ?>;
+
+function isProjectCategorySelected() {
+    const sel = document.getElementById('inv_category_id');
+    if (!sel || !sel.value) return false;
+    return projectCategoryIds.includes(parseInt(sel.value, 10));
+}
+
+function syncProjectBomUi() {
+    const btn = document.getElementById('btn-add-bom-manual');
+    if (btn) {
+        btn.classList.toggle('d-none', !isProjectCategorySelected());
+    }
+}
+
+function removeEmptyBomRowsBeforeSubmit() {
+    document.querySelectorAll('#bom-table tbody .bom-row').forEach(function (row) {
+        const isManual = row.classList.contains('bom-row-manual');
+        const qty = parseFloat(row.querySelector('.bom-qty')?.value || '0') || 0;
+        if (isManual) {
+            const desc = (row.querySelector('.bom-manual-desc')?.value || '').trim();
+            const cost = parseFloat(row.querySelector('.bom-manual-cost')?.value || '0') || 0;
+            if (qty <= 0 && desc === '' && cost <= 0) {
+                row.remove();
+            }
+            return;
+        }
+        const compId = parseInt(row.querySelector('.bom-catalog-select')?.value || '0', 10);
+        if (qty <= 0 && compId <= 0) {
+            row.remove();
+        }
+    });
     recalcBomGrandTotal();
 }
 const productionResources = <?php echo json_encode($this->data['listProductionResources'] ?? [], JSON_UNESCAPED_UNICODE); ?>;
@@ -842,7 +886,8 @@ function addBomCatalogRow() {
     recalcBomGrandTotal();
 }
 function addBomManualRow() {
-    if (!<?= !empty($this->data['is_project_item']) ? 'true' : 'false' ?>) {
+    if (!isProjectCategorySelected()) {
+        showFormAlert('Linhas manuais são permitidas apenas para itens da categoria PA - PROJETO.', 'warning');
         return;
     }
     const tbody = document.querySelector('#bom-table tbody');
@@ -1149,6 +1194,15 @@ function activateTabById(paneId) {
     bootstrap.Tab.getOrCreateInstance(tabBtn).show();
 }
 
+async function touchSessionBeforeSave() {
+    if (!window.sessionChecker || typeof window.sessionChecker.extendSession !== 'function') {
+        return;
+    }
+    try {
+        await window.sessionChecker.extendSession({ silent: true });
+    } catch (e) { /* ignore */ }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const activeTab = document.getElementById('active_tab')?.value || 'pane-dados-gerais';
     activateTabById(activeTab);
@@ -1178,9 +1232,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('form-update-inventory-item');
     if (!form) return;
 
+    const categorySelect = document.getElementById('inv_category_id');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', syncProjectBomUi);
+        syncProjectBomUi();
+    }
+
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
         reindexOperationCards();
+        removeEmptyBomRowsBeforeSubmit();
         const activeTabInput = document.getElementById('active_tab');
         if (activeTabInput) activeTabInput.value = getActiveTabPaneId();
 
@@ -1190,6 +1251,8 @@ document.addEventListener('DOMContentLoaded', function () {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando...';
         }
+
+        await touchSessionBeforeSave();
 
         try {
             const response = await fetch(window.location.href, {
@@ -1203,7 +1266,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 const csrfInput = form.querySelector('[name="csrf_token"]');
                 if (csrfInput) csrfInput.value = data.csrf_token;
             }
-            showFormAlert(data.message || (data.success ? 'Salvo com sucesso.' : 'Erro ao salvar.'), data.success ? 'success' : 'danger');
+
+            if (data.session_expired || response.status === 401) {
+                showFormAlert(data.message || 'Sua sessão expirou. Faça login novamente.', 'danger');
+                setTimeout(function () {
+                    window.location.href = <?php echo json_encode($_ENV['URL_ADM'] . 'login'); ?>;
+                }, 2500);
+                return;
+            }
+
+            let alertMessage = data.message;
+            if (!alertMessage && data.errors && typeof data.errors === 'object') {
+                const parts = Object.values(data.errors).filter(function (v) {
+                    return typeof v === 'string' && v.trim() !== '';
+                });
+                if (parts.length) alertMessage = parts.join(' ');
+            }
+            const alertType = data.success ? 'success' : (response.status === 403 ? 'warning' : 'danger');
+            showFormAlert(alertMessage || (data.success ? 'Salvo com sucesso.' : 'Erro ao salvar.'), alertType);
             if (data.success && activeTabInput) {
                 const tabToKeep = data.active_tab || activeTabInput.value;
                 activeTabInput.value = tabToKeep;

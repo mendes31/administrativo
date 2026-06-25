@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\AdmsLayoutSessionHelper;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
@@ -14,6 +15,7 @@ use App\adms\Models\Repository\inventory\InvLaborRolesRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Repository\inventory\InvProductionResourcesRepository;
 use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Models\Services\InventoryCostService;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -23,16 +25,25 @@ class UpdateInventoryItem
 
     public function index(int|string $id): void
     {
-        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
+        // filter_input_array não preserva campos POST em array (bom_*, op_*); usar $_POST.
+        $this->data['form'] = !empty($_POST)
+            ? $_POST
+            : (filter_input_array(INPUT_POST, FILTER_DEFAULT) ?: []);
 
-        if (isset($this->data['form']['csrf_token']) && CSRFHelper::validateCSRFToken('form_update_inventory_item', $this->data['form']['csrf_token'])) {
+        $csrfToken = (string)($this->data['form']['csrf_token'] ?? '');
+        if ($csrfToken !== '' && $this->validateInventoryItemCsrf($csrfToken)) {
+            AdmsLayoutSessionHelper::touchSessionActivity();
             $this->editItem((int)$id);
         } elseif ($this->isAjaxRequest() && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? '')) === 'POST') {
+            $loggedIn = !empty($_SESSION['user_id']);
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Sessão expirada ou token inválido. Recarregue a página.',
+                'message' => $loggedIn
+                    ? 'Token de segurança inválido. Recarregue a página (F5) e tente salvar novamente.'
+                    : 'Sua sessão expirou. Faça login novamente.',
+                'session_expired' => !$loggedIn,
                 'csrf_token' => CSRFHelper::generateCSRFToken('form_update_inventory_item'),
-            ], 403);
+            ], $loggedIn ? 403 : 401);
         } else {
             $repo = new InvItemsRepository();
             $this->data['form'] = $repo->getOne((int)$id);
@@ -134,7 +145,7 @@ class UpdateInventoryItem
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Verifique os campos obrigatórios.',
+                    'message' => $this->formatValidationMessage($errors),
                     'errors' => $errors,
                     'csrf_token' => CSRFHelper::generateCSRFToken('form_update_inventory_item'),
                 ], 422);
@@ -175,14 +186,44 @@ class UpdateInventoryItem
         ]);
 
         if ($updated) {
+            AdmsLayoutSessionHelper::touchSessionActivity();
+
             // Persistir ficha técnica (BOM) e rota
             if ($bomLines !== null) {
                 $bomRepo = new InvItemBomRepository();
-                $bomRepo->replaceForItem($id, $bomLines);
+                if (!$bomRepo->replaceForItem($id, $bomLines)) {
+                    if ($this->isAjaxRequest()) {
+                        $this->jsonResponse([
+                            'success' => false,
+                            'message' => 'Erro ao salvar a lista de materiais. Verifique se a migration de linhas manuais foi aplicada.',
+                            'errors' => ['bom' => 'Falha ao gravar a lista de materiais.'],
+                            'csrf_token' => CSRFHelper::generateCSRFToken('form_update_inventory_item'),
+                        ], 500);
+                        return;
+                    }
+                    $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao salvar a lista de materiais.</div>";
+                    $this->data['form'] = $repo->getOne($id) ?: [];
+                    $this->viewUpdate();
+                    return;
+                }
             }
             if ($opLines !== null) {
                 $opsRepo = new InvItemOperationsRepository();
-                $opsRepo->replaceForItem($id, $opLines);
+                if (!$opsRepo->replaceForItem($id, $opLines)) {
+                    if ($this->isAjaxRequest()) {
+                        $this->jsonResponse([
+                            'success' => false,
+                            'message' => 'Erro ao salvar a rota de produção.',
+                            'errors' => ['operations' => 'Falha ao gravar a rota.'],
+                            'csrf_token' => CSRFHelper::generateCSRFToken('form_update_inventory_item'),
+                        ], 500);
+                        return;
+                    }
+                    $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao salvar a rota de produção.</div>";
+                    $this->data['form'] = $repo->getOne($id) ?: [];
+                    $this->viewUpdate();
+                    return;
+                }
             }
 
             // Recalcular custo padrão com base na ficha técnica e rota
@@ -231,6 +272,19 @@ class UpdateInventoryItem
     }
 
     /**
+     * AJAX na mesma página: não consome o token (permite vários salvamentos).
+     * POST clássico: consome após validação (submissão única).
+     */
+    private function validateInventoryItemCsrf(string $token): bool
+    {
+        return CSRFHelper::validateCSRFToken(
+            'form_update_inventory_item',
+            $token,
+            !$this->isAjaxRequest()
+        );
+    }
+
+    /**
      * @param array<string, mixed> $payload
      */
     private function jsonResponse(array $payload, int $status = 200): void
@@ -271,26 +325,56 @@ class UpdateInventoryItem
      */
     private function buildBomLinesFromForm(array $form, bool $isProjectItem, array &$errors): ?array
     {
-        $sources = $form['bom_line_source'] ?? [];
-        if ($sources === [] && empty($form['bom_component_item_id'])) {
+        $sources = $this->normalizeFormArray($form['bom_line_source'] ?? null);
+        $components = $this->normalizeFormArray($form['bom_component_item_id'] ?? null);
+        $quantities = $this->normalizeFormArray($form['bom_quantity_per_batch'] ?? null);
+        $scraps = $this->normalizeFormArray($form['bom_scrap_percent'] ?? null);
+        $manualDescriptions = $this->normalizeFormArray($form['bom_manual_description'] ?? null);
+        $manualTypes = $this->normalizeFormArray($form['bom_manual_component_type'] ?? null);
+        $manualUnits = $this->normalizeFormArray($form['bom_manual_unit'] ?? null);
+        $manualCosts = $this->normalizeFormArray($form['bom_manual_unit_cost'] ?? null);
+
+        $rowCount = max(
+            count($sources),
+            count($components),
+            count($quantities),
+            count($manualDescriptions),
+            count($manualTypes),
+            count($manualUnits),
+            count($manualCosts),
+            count($scraps)
+        );
+
+        if ($rowCount === 0) {
             return [];
         }
 
-        $components = $form['bom_component_item_id'] ?? [];
-        $quantities = $form['bom_quantity_per_batch'] ?? [];
-        $scraps = $form['bom_scrap_percent'] ?? [];
-        $manualDescriptions = $form['bom_manual_description'] ?? [];
-        $manualTypes = $form['bom_manual_component_type'] ?? [];
-        $manualUnits = $form['bom_manual_unit'] ?? [];
-        $manualCosts = $form['bom_manual_unit_cost'] ?? [];
-
         $lines = [];
-        foreach ($sources as $idx => $sourceRaw) {
-            $source = (string)$sourceRaw === 'manual' ? 'manual' : 'catalog';
-            $qty = isset($quantities[$idx]) ? (float)$quantities[$idx] : 0;
-            if ($qty <= 0) {
+        for ($idx = 0; $idx < $rowCount; $idx++) {
+            $sourceRaw = $sources[$idx] ?? null;
+            $componentId = isset($components[$idx]) ? (int)$components[$idx] : 0;
+            $description = trim((string)($manualDescriptions[$idx] ?? ''));
+            $unitCost = isset($manualCosts[$idx]) ? $this->parseFormDecimal($manualCosts[$idx]) : 0.0;
+            $qty = isset($quantities[$idx]) ? (float)$quantities[$idx] : 0.0;
+
+            $source = (string)$sourceRaw === 'manual' ? 'manual' : ((string)$sourceRaw === 'catalog' ? 'catalog' : null);
+            if ($source === null) {
+                $source = ($description !== '' || ($componentId <= 0 && $unitCost > 0)) ? 'manual' : 'catalog';
+            }
+
+            if ($this->isBomRowEffectivelyEmpty($source, $componentId, $description, $qty, $unitCost)) {
                 continue;
             }
+
+            if ($qty <= 0) {
+                if ($source === 'manual' && ($description !== '' || $unitCost > 0)) {
+                    $errors['bom'] = 'Informe a quantidade por lote maior que zero em todas as linhas da lista de materiais.';
+                } elseif ($source === 'catalog' && $componentId > 0) {
+                    $errors['bom'] = 'Informe a quantidade por lote maior que zero em todas as linhas da lista de materiais.';
+                }
+                continue;
+            }
+
             $scrap = isset($scraps[$idx]) ? (float)$scraps[$idx] : 0;
 
             if ($source === 'manual') {
@@ -298,13 +382,11 @@ class UpdateInventoryItem
                     $errors['bom'] = 'Linhas manuais na lista de materiais são permitidas apenas para itens da categoria PA - PROJETO.';
                     continue;
                 }
-                $description = trim((string)($manualDescriptions[$idx] ?? ''));
                 $type = strtoupper(trim((string)($manualTypes[$idx] ?? 'MP')));
                 if (!in_array($type, ['MP', 'EMB', 'OTHER'], true)) {
                     $type = 'MP';
                 }
                 $unit = strtoupper(trim((string)($manualUnits[$idx] ?? 'UN')));
-                $unitCost = isset($manualCosts[$idx]) ? $this->parseFormDecimal($manualCosts[$idx]) : 0.0;
                 if ($description === '') {
                     $errors['bom'] = 'Informe a descrição de todas as linhas manuais da lista de materiais.';
                     continue;
@@ -326,7 +408,6 @@ class UpdateInventoryItem
                 continue;
             }
 
-            $componentId = isset($components[$idx]) ? (int)$components[$idx] : 0;
             if ($componentId <= 0) {
                 continue;
             }
@@ -339,6 +420,52 @@ class UpdateInventoryItem
         }
 
         return $lines;
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function normalizeFormArray(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return array_values($value);
+    }
+
+    private function isBomRowEffectivelyEmpty(
+        string $source,
+        int $componentId,
+        string $description,
+        float $qty,
+        float $unitCost
+    ): bool {
+        if ($qty > 0) {
+            return false;
+        }
+        if ($source === 'manual') {
+            return $description === '' && $unitCost <= 0;
+        }
+
+        return $componentId <= 0;
+    }
+
+    /**
+     * @param array<string, string> $errors
+     */
+    private function formatValidationMessage(array $errors): string
+    {
+        if (isset($errors['bom']) && is_string($errors['bom']) && $errors['bom'] !== '') {
+            return $errors['bom'];
+        }
+
+        $parts = array_values(array_filter($errors, static fn($msg) => is_string($msg) && $msg !== ''));
+        if ($parts !== []) {
+            return implode(' ', $parts);
+        }
+
+        return 'Verifique os campos obrigatórios.';
     }
 
     /**

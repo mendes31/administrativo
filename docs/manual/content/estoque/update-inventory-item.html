@@ -15,10 +15,11 @@
 </ol>
 
 <h2>PA - PROJETO (novos produtos)</h2>
-<p>Itens na categoria <strong>PA - PROJETO</strong> servem para simular custos de produtos ainda não lançados no SAP.</p>
+<p>Itens na categoria <strong>PA - PROJETO</strong> servem para simular custos de produtos ainda não lançados no SAP. A mesma lista de materiais pode misturar os dois tipos de linha na mesma ficha.</p>
 <ul>
-    <li><strong>Linha de catálogo:</strong> componente já cadastrado no estoque (custo médio do item).</li>
-    <li><strong>Linha manual:</strong> descrição livre, tipo MP ou MAE, unidade e <em>custo unitário informado</em> — sem cadastro prévio da matéria-prima.</li>
+    <li><strong>Linha de catálogo</strong> (<em>Adicionar componente</em>): componente já cadastrado no estoque (custo médio do item).</li>
+    <li><strong>Linha manual</strong> (<em>Adicionar linha manual</em>): descrição livre, tipo MP ou MAE, unidade e <em>custo unitário informado</em> — sem cadastro prévio da matéria-prima.</li>
+    <li>Linhas totalmente vazias (sem quantidade, descrição ou componente) são ignoradas ao salvar.</li>
     <li>Não sincroniza estrutura com o SAP; não entra no custeio oficial fechado do período.</li>
 </ul>
 
@@ -31,6 +32,10 @@
 <dl>
     <dt>Botão Estrutura SAP não aparece</dt>
     <dd>Itens PA - PROJETO não sincronizam com o SAP; monte a BOM manualmente.</dd>
+    <dt>Erro genérico ao salvar na lista de materiais</dt>
+    <dd>Remova linhas em branco ou preencha quantidade, descrição e custo nas linhas manuais. Mensagens específicas aparecem no topo do formulário.</dd>
+    <dt>Mensagem de sessão ou token ao salvar</dt>
+    <dd>Recarregue a página (F5) e salve de novo. O sistema renova a sessão automaticamente a cada salvamento; se a sessão tiver expirado por inatividade prolongada, faça login novamente.</dd>
     <dt>Linha manual rejeitada ao salvar</dt>
     <dd>Linhas manuais só são aceitas na categoria PA - PROJETO. Informe descrição, tipo e custo unitário &gt; 0.</dd>
     <dt>Não vejo o menu desta tela</dt>
