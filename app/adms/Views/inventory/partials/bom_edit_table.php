@@ -128,7 +128,8 @@ foreach ($bomLines as $line) {
           </td>
           <td data-label="Unidade">
             <?php if ($isManual): ?>
-              <select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit"><?= $buildUnitOptions((string)($line['manual_unit'] ?? 'UN')) ?></select>
+              <?php $manualUnitCode = strtoupper(trim((string)($line['manual_unit'] ?? 'UN'))); ?>
+              <select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit" data-prev-unit="<?= htmlspecialchars($manualUnitCode) ?>"><?= $buildUnitOptions($manualUnitCode) ?></select>
             <?php else: ?>
               <span class="bom-catalog-unit text-muted small"><?= htmlspecialchars((string)($line['unit_name'] ?? '')) ?></span>
               <input type="hidden" name="bom_manual_unit[]" value="">
@@ -176,6 +177,7 @@ foreach ($bomLines as $line) {
   <small>
     <?php if ($isProjectItem): ?>
       Linhas de <strong>catálogo</strong> usam itens já cadastrados; linhas <strong>manuais</strong> permitem simular MPs/MAEs hipotéticas com custo informado.
+      Na linha manual, quantidade e <em>custo unitário</em> referem-se à unidade selecionada (ex.: R$/kg); ao trocar a unidade, quantidade e custo são convertidos quando compatíveis (kg↔g, L↔ml).
     <?php else: ?>
       Selecione um item de estoque já cadastrado para usar como componente.
       Para novos projetos, cadastre o PA na categoria <strong>PA - PROJETO</strong>.

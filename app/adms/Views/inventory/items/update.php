@@ -931,7 +931,7 @@ function addBomManualRow() {
         </td>
         <td data-label="Qtd / lote"><input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="0"></td>
         <td data-label="Perda (%)"><input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm bom-scrap" value="0"></td>
-        <td data-label="Unidade"><select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit">${unitHtml}</select></td>
+        <td data-label="Unidade"><select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit" data-prev-unit="UN">${unitHtml}</select></td>
         <td data-label="Custo unitário"><input type="number" step="0.000001" min="0" name="bom_manual_unit_cost[]" class="form-control form-control-sm bom-manual-cost" value="0"></td>
         <td data-label="Total linha" class="bom-line-total">0,000000</td>
         <td data-label="Ações" class="text-end"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button></td>
@@ -954,6 +954,86 @@ function parseBomDecimal(value) {
 
 function formatBomMoney(value) {
     return Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+}
+
+const BOM_UNIT_META = {
+    UN: { family: 'count', toBase: 1 },
+    CX: { family: 'count', toBase: 1 },
+    G: { family: 'mass', toBase: 1 },
+    KG: { family: 'mass', toBase: 1000 },
+    ML: { family: 'volume', toBase: 1 },
+    L: { family: 'volume', toBase: 1000 },
+};
+
+function normalizeBomUnitCode(code) {
+    const u = String(code || '').trim().toUpperCase();
+    return BOM_UNIT_META[u] ? u : 'UN';
+}
+
+function convertBomQuantity(value, fromUnit, toUnit) {
+    const from = BOM_UNIT_META[normalizeBomUnitCode(fromUnit)];
+    const to = BOM_UNIT_META[normalizeBomUnitCode(toUnit)];
+    if (!from || !to || from.family !== to.family) {
+        return value;
+    }
+    return value * (from.toBase / to.toBase);
+}
+
+function convertBomUnitCost(value, fromUnit, toUnit) {
+    const from = BOM_UNIT_META[normalizeBomUnitCode(fromUnit)];
+    const to = BOM_UNIT_META[normalizeBomUnitCode(toUnit)];
+    if (!from || !to || from.family !== to.family) {
+        return value;
+    }
+    return value * (to.toBase / from.toBase);
+}
+
+function formatBomQtyInput(value) {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n) || n <= 0) {
+        return '0';
+    }
+    return parseFloat(n.toFixed(6)).toString();
+}
+
+function initBomManualUnitSelect(select) {
+    if (!select || select.dataset.bomBound) {
+        return;
+    }
+    select.dataset.bomBound = '1';
+    if (!select.dataset.prevUnit) {
+        select.dataset.prevUnit = normalizeBomUnitCode(select.value);
+    }
+    select.addEventListener('change', function () {
+        onBomManualUnitChange(select);
+    });
+}
+
+function onBomManualUnitChange(select) {
+    const row = select ? select.closest('tr') : null;
+    if (!row || !select) {
+        return;
+    }
+    const prevUnit = normalizeBomUnitCode(select.dataset.prevUnit || select.value);
+    const newUnit = normalizeBomUnitCode(select.value);
+    if (prevUnit !== newUnit) {
+        const qtyInput = row.querySelector('.bom-qty');
+        const costInput = row.querySelector('.bom-manual-cost');
+        if (qtyInput) {
+            const qty = parseBomDecimal(qtyInput.value);
+            if (qty > 0) {
+                qtyInput.value = formatBomQtyInput(convertBomQuantity(qty, prevUnit, newUnit));
+            }
+        }
+        if (costInput) {
+            const cost = parseBomDecimal(costInput.value);
+            if (cost > 0) {
+                costInput.value = formatBomQtyInput(convertBomUnitCost(cost, prevUnit, newUnit));
+            }
+        }
+    }
+    select.dataset.prevUnit = newUnit;
+    recalcBomGrandTotal();
 }
 
 function onBomCatalogSelectChange(select) {
@@ -980,6 +1060,10 @@ function bindBomRowInputs(row) {
     if (catalogSelect && !catalogSelect.dataset.bomBound) {
         catalogSelect.dataset.bomBound = '1';
         catalogSelect.addEventListener('change', function () { onBomCatalogSelectChange(catalogSelect); });
+    }
+    const manualUnit = row.querySelector('.bom-manual-unit');
+    if (manualUnit) {
+        initBomManualUnitSelect(manualUnit);
     }
 }
 function recalcBomLineTotal(row) {
