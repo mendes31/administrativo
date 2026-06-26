@@ -163,94 +163,107 @@ $renderCostBreakdown = static function (
         </div>
       <?php endif; ?>
 
-      <p class="text-muted mb-4">
-        Compare o custo base com cenários de ajuste percentual. O tamanho do lote no cabeçalho define o rateio entre
-        <strong>SKU (unidade)</strong> e <strong>lote</strong>. Tempos da rota e quantidades da BOM referem-se ao lote completo.
-        <?php if ($isProjectItem): ?>
-          <span class="d-block mt-1"><strong>Projeto:</strong> simulação independente do custeio oficial fechado; linhas manuais na BOM são consideradas no CVAR.</span>
-        <?php endif; ?>
-      </p>
-
-      <?php
-      $edit_bom = $this->data['edit_bom'] ?? [];
-      $edit_operations = $this->data['edit_operations'] ?? [];
-      $listBomItems = $this->data['listBomItems'] ?? [];
-      $listUnits = $this->data['listUnits'] ?? [];
-      $listOperations = $this->data['listOperations'] ?? [];
-      $structure_customized = !empty($this->data['structure_customized']);
-      include __DIR__ . '/../partials/simulate_structure_edit.php';
-      ?>
-
-      <div class="border rounded p-3 p-md-4 bg-light mb-3">
-        <div class="fw-semibold mb-3">Produção no período (critério rateio 1)</div>
-        <div class="row g-3">
-          <div class="col-12 col-lg-4">
-            <label class="form-label mb-1" for="inv_cost_period_id">Período de custeio</label>
-            <select class="form-select form-select-sm" name="inv_cost_period_id" id="inv_cost_period_id">
-              <option value="">— Sem período —</option>
-              <?php foreach ($costPeriods as $period): ?>
-                <?php
-                  $pid = (int)($period['id'] ?? 0);
-                  $label = ($period['name'] ?? '') . ' (' . date('d/m/Y', strtotime((string)$period['date_from'])) . ' – ' . date('d/m/Y', strtotime((string)$period['date_to'])) . ')';
-                ?>
-                <option value="<?= $pid ?>" <?= $selectedPeriodId === $pid ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="col-12 col-lg-8">
-            <label class="form-label mb-1">Depósitos</label>
-            <div class="d-flex flex-wrap gap-3 align-items-center">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="warehouse_scope" id="warehouse_scope_all" value="all"
-                  <?= $warehouseScope !== 'selected' ? 'checked' : '' ?>>
-                <label class="form-check-label" for="warehouse_scope_all">Todos (TJQP + APQP)</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="warehouse_scope" id="warehouse_scope_selected" value="selected"
-                  <?= $warehouseScope === 'selected' ? 'checked' : '' ?>>
-                <label class="form-check-label" for="warehouse_scope_selected">Selecionar:</label>
-              </div>
-              <?php foreach ($productionWarehouses as $wh): ?>
-                <?php $whCode = (string)($wh['code'] ?? ''); ?>
-                <div class="form-check">
-                  <input class="form-check-input warehouse-code-check" type="checkbox" name="warehouse_codes[]" value="<?= htmlspecialchars($whCode) ?>"
-                    id="wh_<?= htmlspecialchars($whCode) ?>"
-                    <?= in_array($whCode, $selectedWarehouseCodes, true) ? 'checked' : '' ?>>
-                  <label class="form-check-label" for="wh_<?= htmlspecialchars($whCode) ?>"><?= htmlspecialchars($whCode) ?></label>
-                </div>
-              <?php endforeach; ?>
+      <?php if ($itemId > 0 && $canSave): ?>
+        <div class="border rounded p-3 bg-white mb-4" id="sim-save-bar">
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-lg">
+              <label class="form-label mb-1 fw-semibold" for="simulation_title">Nome da simulação</label>
+              <input type="text" class="form-control" name="simulation_title" id="simulation_title" form="form-save-simulation" maxlength="150"
+                placeholder="Ex.: Cenário +10% materiais — <?= date('d/m/Y') ?>">
+            </div>
+            <div class="col-12 col-lg-auto">
+              <button type="submit" class="btn btn-success w-100" form="form-save-simulation" onclick="return copySimStructureToSaveForm()">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Salvar simulação
+              </button>
             </div>
           </div>
         </div>
-        <?php if (is_array($productionAggregation) && is_array($productionAggregation['period'] ?? null)): ?>
-          <?php
-            $periodRow = $productionAggregation['period'];
-            $whLabel = ($productionAggregation['warehouse_codes'] ?? null) === null
-              ? 'Todos'
-              : implode(', ', $productionAggregation['warehouse_codes']);
-          ?>
-          <div class="mt-3 small text-muted">
-            Filtro ativo: <strong><?= htmlspecialchars((string)($periodRow['name'] ?? '')) ?></strong>
-            (<?= date('d/m/Y', strtotime((string)$periodRow['date_from'])) ?> – <?= date('d/m/Y', strtotime((string)$periodRow['date_to'])) ?>)
-            · Depósitos: <?= htmlspecialchars($whLabel) ?>
-            · Total período: <strong><?= number_format((float)($productionAggregation['total_qty'] ?? 0), 2, ',', '.') ?> un.</strong>
-          </div>
-          <?php if (is_array($currentItemProduction)): ?>
-            <div class="alert alert-info py-2 px-3 mt-3 mb-0 small">
-              <strong>Este item:</strong>
-              <?= number_format((float)($currentItemProduction['qty_produced'] ?? 0), 2, ',', '.') ?> un. produzidas
-              · <?= (int)($currentItemProduction['batches_count'] ?? 0) ?> lote(s)
-              · <strong><?= $fmtPct((float)($currentItemProduction['share_criterion_1'] ?? 0)) ?>%</strong> do rateio 1
-            </div>
-          <?php elseif ($selectedPeriodId > 0): ?>
-            <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
-              Nenhuma produção encontrada para este item no período e depósitos selecionados.
-            </div>
-          <?php endif; ?>
-        <?php endif; ?>
-      </div>
+      <?php endif; ?>
 
-      <div class="border rounded p-3 p-md-4 bg-white mb-3">
+      <?php if (is_array($breakdown) && is_array($selectedItem)):
+        include __DIR__ . '/../partials/simulate_breakdown_results.php';
+      endif; ?>
+
+      <p class="text-muted mb-4">
+        Defina os parâmetros gerais, ajuste componentes e operações e clique em <strong>Simular</strong>.
+        O cadastro oficial do item <strong>não é alterado</strong> — use <strong>Salvar simulação</strong> para guardar o cenário.
+        <?php if ($isProjectItem): ?>
+          <span class="d-block mt-1">Itens <strong>PA - PROJETO</strong> permitem linhas manuais e custos editáveis na simulação.</span>
+        <?php endif; ?>
+      </p>
+
+      <div class="border rounded p-3 p-md-4 bg-light mb-3">
+        <div class="fw-semibold mb-3">Parâmetros da simulação</div>
+
+        <div class="mb-3 pb-3 border-bottom">
+          <div class="small text-muted text-uppercase mb-2">Produção no período (critério rateio 1)</div>
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">
+              <label class="form-label mb-1" for="inv_cost_period_id">Período de custeio</label>
+              <select class="form-select form-select-sm" name="inv_cost_period_id" id="inv_cost_period_id">
+                <option value="">— Sem período —</option>
+                <?php foreach ($costPeriods as $period): ?>
+                  <?php
+                    $pid = (int)($period['id'] ?? 0);
+                    $label = ($period['name'] ?? '') . ' (' . date('d/m/Y', strtotime((string)$period['date_from'])) . ' – ' . date('d/m/Y', strtotime((string)$period['date_to'])) . ')';
+                  ?>
+                  <option value="<?= $pid ?>" <?= $selectedPeriodId === $pid ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-12 col-lg-8">
+              <label class="form-label mb-1">Depósitos</label>
+              <div class="d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="warehouse_scope" id="warehouse_scope_all" value="all"
+                    <?= $warehouseScope !== 'selected' ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="warehouse_scope_all">Todos (TJQP + APQP)</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="warehouse_scope" id="warehouse_scope_selected" value="selected"
+                    <?= $warehouseScope === 'selected' ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="warehouse_scope_selected">Selecionar:</label>
+                </div>
+                <?php foreach ($productionWarehouses as $wh): ?>
+                  <?php $whCode = (string)($wh['code'] ?? ''); ?>
+                  <div class="form-check">
+                    <input class="form-check-input warehouse-code-check" type="checkbox" name="warehouse_codes[]" value="<?= htmlspecialchars($whCode) ?>"
+                      id="wh_<?= htmlspecialchars($whCode) ?>"
+                      <?= in_array($whCode, $selectedWarehouseCodes, true) ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="wh_<?= htmlspecialchars($whCode) ?>"><?= htmlspecialchars($whCode) ?></label>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </div>
+          <?php if (is_array($productionAggregation) && is_array($productionAggregation['period'] ?? null)): ?>
+            <?php
+              $periodRow = $productionAggregation['period'];
+              $whLabel = ($productionAggregation['warehouse_codes'] ?? null) === null
+                ? 'Todos'
+                : implode(', ', $productionAggregation['warehouse_codes']);
+            ?>
+            <div class="mt-3 small text-muted">
+              Filtro ativo: <strong><?= htmlspecialchars((string)($periodRow['name'] ?? '')) ?></strong>
+              (<?= date('d/m/Y', strtotime((string)$periodRow['date_from'])) ?> – <?= date('d/m/Y', strtotime((string)$periodRow['date_to'])) ?>)
+              · Depósitos: <?= htmlspecialchars($whLabel) ?>
+              · Total período: <strong><?= number_format((float)($productionAggregation['total_qty'] ?? 0), 2, ',', '.') ?> un.</strong>
+            </div>
+            <?php if (is_array($currentItemProduction)): ?>
+              <div class="alert alert-info py-2 px-3 mt-3 mb-0 small">
+                <strong>Este item:</strong>
+                <?= number_format((float)($currentItemProduction['qty_produced'] ?? 0), 2, ',', '.') ?> un. produzidas
+                · <?= (int)($currentItemProduction['batches_count'] ?? 0) ?> lote(s)
+                · <strong><?= $fmtPct((float)($currentItemProduction['share_criterion_1'] ?? 0)) ?>%</strong> do rateio 1
+              </div>
+            <?php elseif ($selectedPeriodId > 0): ?>
+              <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
+                Nenhuma produção encontrada para este item no período e depósitos selecionados.
+              </div>
+            <?php endif; ?>
+          <?php endif; ?>
+        </div>
+
         <div class="row g-3 align-items-end">
           <div class="col-12 col-sm-6 col-lg-3">
             <label class="form-label mb-1">% Materiais</label>
@@ -274,65 +287,18 @@ $renderCostBreakdown = static function (
           </div>
         </div>
       </div>
-      </form>
 
-      <?php if (is_array($breakdown) && $canSave): ?>
-        <form method="post" action="<?= $_ENV['URL_ADM'] ?>save-inventory-cost-simulation/<?= $itemId ?>" class="border rounded p-3 bg-white mt-3" id="form-save-simulation">
-          <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_save_inventory_cost_simulation') ?>">
-          <input type="hidden" name="material_adjust_pct" value="<?= htmlspecialchars((string)($scenario['material_adjust_pct'] ?? 0)) ?>">
-          <input type="hidden" name="operations_adjust_pct" value="<?= htmlspecialchars((string)($scenario['operations_adjust_pct'] ?? 0)) ?>">
-          <input type="hidden" name="global_adjust_pct" value="<?= htmlspecialchars((string)($scenario['global_adjust_pct'] ?? 0)) ?>">
-          <input type="hidden" name="standard_batch_size" value="<?= htmlspecialchars((string)$batchSize) ?>">
-          <input type="hidden" name="inv_cost_period_id" value="<?= $selectedPeriodId ?>">
-          <input type="hidden" name="warehouse_scope" value="<?= htmlspecialchars($warehouseScope) ?>">
-          <?php foreach ($selectedWarehouseCodes as $whCode): ?>
-            <input type="hidden" name="warehouse_codes[]" value="<?= htmlspecialchars((string)$whCode) ?>">
-          <?php endforeach; ?>
-          <div id="save-simulation-structure-fields"></div>
-          <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-6">
-              <label class="form-label mb-1">Nome da simulação (ao salvar)</label>
-              <input type="text" class="form-control form-control-sm" name="simulation_title" maxlength="150"
-                placeholder="Ex.: Cenário +10% materiais — <?= date('d/m/Y') ?>">
-            </div>
-            <div class="col-12 col-md-auto">
-              <button type="submit" class="btn btn-success btn-sm" onclick="return copySimStructureToSaveForm()">
-                <i class="fa-solid fa-floppy-disk me-1"></i> Salvar simulação
-              </button>
-            </div>
-          </div>
-        </form>
-        <script>
-        function copySimStructureToSaveForm() {
-            const main = document.getElementById('form-simulate-cost');
-            const target = document.getElementById('save-simulation-structure-fields');
-            if (!main || !target) return true;
-            target.innerHTML = '';
-            const skip = new Set(['csrf_token', 'simulation_title']);
-            main.querySelectorAll('input, select, textarea').forEach(function (el) {
-                const name = el.getAttribute('name');
-                if (!name || skip.has(name)) return;
-                if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) return;
-                if (el.tagName === 'SELECT' && el.multiple) {
-                    Array.from(el.selectedOptions).forEach(function (opt) {
-                        const h = document.createElement('input');
-                        h.type = 'hidden';
-                        h.name = name;
-                        h.value = opt.value;
-                        target.appendChild(h);
-                    });
-                    return;
-                }
-                const h = document.createElement('input');
-                h.type = 'hidden';
-                h.name = name;
-                h.value = el.value;
-                target.appendChild(h);
-            });
-            return true;
-        }
-        </script>
-      <?php endif; ?>
+      <?php
+      $edit_bom = $this->data['edit_bom'] ?? [];
+      $edit_operations = $this->data['edit_operations'] ?? [];
+      $listBomItems = $this->data['listBomItems'] ?? [];
+      $listUnits = $this->data['listUnits'] ?? [];
+      $listOperations = $this->data['listOperations'] ?? [];
+      $structure_customized = !empty($this->data['structure_customized']);
+      ?>
+      <?php include __DIR__ . '/../partials/simulate_structure_edit.php'; ?>
+
+      </form>
     </div>
   </div>
 
@@ -416,207 +382,47 @@ $renderCostBreakdown = static function (
     </div>
   <?php endif; ?>
 
-  <?php if (is_array($breakdown) && is_array($selectedItem)):
-    $baseUnit = (float)($breakdown['base_total'] ?? 0);
-    $baseBatch = (float)($breakdown['base_total_batch'] ?? 0);
-    $simUnit = (float)($breakdown['simulated_total'] ?? 0);
-    $simBatch = (float)($breakdown['simulated_total_batch'] ?? 0);
-    $diffUnit = $simUnit - $baseUnit;
-    $diffBatch = $simBatch - $baseBatch;
-    $pctUnit = $baseUnit > 0 ? (($diffUnit / $baseUnit) * 100) : 0;
-    $diffClass = $diffUnit >= 0 ? 'text-danger' : 'text-success';
-    $cvarMpUnit = (float)($breakdown['cvar_mp_cost'] ?? 0);
-    $cvarMaeUnit = (float)($breakdown['cvar_mae_cost'] ?? 0);
-    $simCvarMp = (float)($breakdown['simulated_cvar_mp_cost'] ?? 0);
-    $simCvarMae = (float)($breakdown['simulated_cvar_mae_cost'] ?? 0);
-  ?>
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-light shadow-sm h-100">
-          <div class="card-body py-3">
-            <div class="text-muted text-uppercase small mb-1">CVAR MP (SKU)</div>
-            <div class="fw-semibold">R$ <?= $fmtMoney($cvarMpUnit) ?></div>
-            <div class="small text-muted">Simulado: R$ <?= $fmtMoney($simCvarMp) ?></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-light shadow-sm h-100">
-          <div class="card-body py-3">
-            <div class="text-muted text-uppercase small mb-1">CVAR MAE (SKU)</div>
-            <div class="fw-semibold">R$ <?= $fmtMoney($cvarMaeUnit) ?></div>
-            <div class="small text-muted">Simulado: R$ <?= $fmtMoney($simCvarMae) ?></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="row g-4 mb-4">
-      <div class="col-12 col-md-4">
-        <div class="card h-100 border-primary border-light shadow-sm">
-          <div class="card-body p-4">
-            <h6 class="text-muted text-uppercase small mb-2">Custo base</h6>
-            <div class="small text-muted mb-1">Por SKU (unidade)</div>
-            <div class="fs-3 fw-semibold mb-1">R$ <?= $fmtMoney($baseUnit) ?></div>
-            <div class="small text-muted mb-1">Por lote (<?= $fmtMoney($batchSize) ?> un.)</div>
-            <div class="fs-5 fw-semibold text-secondary mb-3">R$ <?= $fmtMoney($baseBatch) ?></div>
-            <small class="text-muted d-block">
-              <?php $renderCostBreakdown(
-                  $breakdown['material_groups'] ?? [],
-                  (float)($breakdown['route_sap_labor_cost'] ?? 0),
-                  (float)($breakdown['route_equipment_cost'] ?? 0),
-                  (float)($breakdown['route_manual_labor_cost'] ?? 0),
-                  (float)($breakdown['route_sap_labor_cost_batch'] ?? 0),
-                  (float)($breakdown['route_equipment_cost_batch'] ?? 0),
-                  (float)($breakdown['route_manual_labor_cost_batch'] ?? 0),
-                  (float)($breakdown['labor_hours'] ?? 0)
-              ); ?>
-            </small>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="card h-100 border-success border-light shadow-sm">
-          <div class="card-body p-4">
-            <h6 class="text-muted text-uppercase small mb-2">Custo simulado</h6>
-            <div class="small text-muted mb-1">Por SKU (unidade)</div>
-            <div class="fs-3 fw-semibold text-success mb-1">R$ <?= $fmtMoney($simUnit) ?></div>
-            <div class="small text-muted mb-1">Por lote</div>
-            <div class="fs-5 fw-semibold text-success mb-3">R$ <?= $fmtMoney($simBatch) ?></div>
-            <small class="text-muted d-block">
-              <?php $renderCostBreakdown(
-                  $breakdown['simulated_material_groups'] ?? [],
-                  (float)($breakdown['simulated_route_sap_labor_cost'] ?? 0),
-                  (float)($breakdown['simulated_route_equipment_cost'] ?? 0),
-                  (float)($breakdown['simulated_route_manual_labor_cost'] ?? 0),
-                  (float)($breakdown['simulated_route_sap_labor_cost_batch'] ?? 0),
-                  (float)($breakdown['simulated_route_equipment_cost_batch'] ?? 0),
-                  (float)($breakdown['simulated_route_manual_labor_cost_batch'] ?? 0),
-                  (float)($breakdown['labor_hours'] ?? 0)
-              ); ?>
-            </small>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="card h-100 border-light shadow-sm">
-          <div class="card-body p-4">
-            <h6 class="text-muted text-uppercase small mb-2">Variação</h6>
-            <div class="small text-muted mb-1">SKU</div>
-            <div class="fs-3 fw-semibold <?= $diffClass ?> mb-1">R$ <?= $fmtMoney($diffUnit) ?></div>
-            <div class="small text-muted mb-1">Lote</div>
-            <div class="fs-5 fw-semibold <?= $diffClass ?> mb-2">R$ <?= $fmtMoney($diffBatch) ?></div>
-            <small class="<?= $diffClass ?>"><?= $fmtPct($pctUnit) ?>% (SKU) em relação ao base</small>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row g-3 inv-cost-compact-tables">
-      <div class="col-12 col-xl-6">
-        <div class="card border-light shadow h-100">
-          <div class="card-header fw-semibold">Lista de materiais</div>
-          <div class="card-body p-0">
-            <div class="table-wrap">
-              <table class="table table-striped align-middle">
-                <thead class="thead-green">
-                  <tr>
-                    <th class="ps-1 col-w-component">Componente</th>
-                    <th>Grupo</th>
-                    <th class="text-end col-w-qty">Qtd/lote</th>
-                    <th class="text-end col-w-cost">C. comp.</th>
-                    <th class="text-end">C. SKU</th>
-                    <th class="text-end pe-1 col-w-line">C. lote</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (empty($breakdown['materials'])): ?>
-                    <tr><td colspan="6" class="text-center text-muted py-2">Sem componentes na BOM.</td></tr>
-                  <?php else: ?>
-                    <?php foreach ($breakdown['materials'] as $line):
-                      $compCode = trim((string)($line['component_code'] ?? ''));
-                      $compDesc = trim((string)($line['component_description'] ?? ''));
-                      $compFull = trim($compCode . ' ' . $compDesc);
-                    ?>
-                      <tr>
-                        <td class="ps-1" title="<?= htmlspecialchars($compFull) ?>">
-                          <span class="cell-component-name"><?= htmlspecialchars($compDesc !== '' ? $compDesc : $compCode) ?></span>
-                          <?php if ($compCode !== '' && $compDesc !== ''): ?>
-                            <span class="cell-desc-sub"><?= htmlspecialchars($compCode) ?></span>
-                          <?php endif; ?>
-                        </td>
-                        <td class="text-nowrap small text-muted"><?= htmlspecialchars((string)($line['group_name'] ?? 'Outros')) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['effective_qty'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['unit_cost'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['line_cost'] ?? 0)) ?></td>
-                        <td class="text-end pe-1 text-nowrap col-num fw-semibold"><?= $fmtMoney($lineBatch($line, 'line_cost', $batchSize)) ?></td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-xl-6">
-        <div class="card border-light shadow h-100">
-          <div class="card-header fw-semibold">Rota de produção</div>
-          <div class="card-body p-0">
-            <div class="table-wrap">
-              <table class="table table-striped align-middle">
-                <thead class="thead-green">
-                  <tr>
-                    <th class="ps-1 col-w-component">Operação</th>
-                    <th class="text-end col-w-min">Min</th>
-                    <th class="text-end">HH</th>
-                    <th class="text-end">MO SAP<br><span class="small fw-normal">SKU</span></th>
-                    <th class="text-end">Equip.<br><span class="small fw-normal">SKU</span></th>
-                    <th class="text-end">MO cad.<br><span class="small fw-normal">SKU</span></th>
-                    <th class="text-end">C. SKU</th>
-                    <th class="text-end pe-1 col-w-line">C. lote</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (empty($breakdown['operations'])): ?>
-                    <tr><td colspan="8" class="text-center text-muted py-2">Sem operações na rota.</td></tr>
-                  <?php else: ?>
-                    <?php foreach ($breakdown['operations'] as $line):
-                      $opCode = trim((string)($line['operation_code'] ?? ''));
-                      $opName = trim((string)($line['operation_name'] ?? ''));
-                      $notes = trim((string)($line['notes'] ?? ''));
-                      $opTitle = $opName !== '' ? $opName : $opCode;
-                      $resource = '';
-                      if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
-                          $resource = trim($m[1]);
-                      }
-                      $opFull = trim($opTitle . ($resource !== '' ? ' — ' . $resource : ''));
-                    ?>
-                      <tr>
-                        <td class="ps-1" title="<?= htmlspecialchars($opFull) ?>">
-                          <span class="cell-op-title"><?= htmlspecialchars($opTitle) ?></span>
-                          <?php if ($resource !== ''): ?>
-                            <span class="cell-desc-sub"><?= htmlspecialchars($resource) ?></span>
-                          <?php elseif ($notes !== ''): ?>
-                            <span class="cell-desc-sub"><?= htmlspecialchars($notes) ?></span>
-                          <?php endif; ?>
-                        </td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['time_minutes'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtHours((float)($line['labor_hours'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['sap_labor_line_cost'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['equipment_line_cost'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['manual_labor_line_cost'] ?? 0)) ?></td>
-                        <td class="text-end text-nowrap col-num"><?= $fmtMoney((float)($line['line_cost'] ?? 0)) ?></td>
-                        <td class="text-end pe-1 text-nowrap col-num fw-semibold"><?= $fmtMoney($lineBatch($line, 'line_cost', $batchSize)) ?></td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <?php if ($itemId > 0 && $canSave): ?>
+    <form method="post" action="<?= $_ENV['URL_ADM'] ?>save-inventory-cost-simulation/<?= $itemId ?>" class="d-none" id="form-save-simulation" aria-hidden="true">
+      <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_save_inventory_cost_simulation') ?>">
+      <div id="save-simulation-structure-fields"></div>
+    </form>
+    <script>
+    function copySimStructureToSaveForm() {
+        const main = document.getElementById('form-simulate-cost');
+        const target = document.getElementById('save-simulation-structure-fields');
+        if (!main || !target) return true;
+        target.innerHTML = '';
+        const skip = new Set(['csrf_token']);
+        main.querySelectorAll('input, select, textarea').forEach(function (el) {
+            const name = el.getAttribute('name');
+            if (!name || skip.has(name)) return;
+            if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) return;
+            if (el.tagName === 'SELECT' && el.multiple) {
+                Array.from(el.selectedOptions).forEach(function (opt) {
+                    const h = document.createElement('input');
+                    h.type = 'hidden';
+                    h.name = name;
+                    h.value = opt.value;
+                    target.appendChild(h);
+                });
+                return;
+            }
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = name;
+            h.value = el.value;
+            target.appendChild(h);
+        });
+        const titleInput = document.getElementById('simulation_title');
+        if (titleInput && titleInput.value.trim() === '') {
+            alert('Informe um nome para a simulação antes de salvar.');
+            titleInput.focus();
+            return false;
+        }
+        return true;
+    }
+    </script>
   <?php endif; ?>
 
 </div>

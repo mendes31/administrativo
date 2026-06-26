@@ -6,6 +6,7 @@
  * @var list<array<string, mixed>> $listBomItems
  * @var list<array<string, mixed>> $listUnits
  * @var bool $isProjectItem
+ * @var bool $bomSimulationMode
  */
 if (!isset($this)) {
     exit;
@@ -14,6 +15,27 @@ $bomLines = $bomLines ?? [];
 $listBomItems = $listBomItems ?? [];
 $listUnits = $listUnits ?? [];
 $isProjectItem = (bool)($isProjectItem ?? false);
+$bomSimulationMode = (bool)($bomSimulationMode ?? false);
+$allowManualLines = $isProjectItem || $bomSimulationMode;
+$allowCatalogCostEdit = $bomSimulationMode;
+$hideTipoColumn = $bomSimulationMode;
+
+$renderManualTypeField = static function (string $manualType, bool $inline): string {
+    $mp = $manualType === 'MP' ? ' selected' : '';
+    $emb = $manualType === 'EMB' ? ' selected' : '';
+    $other = $manualType === 'OTHER' ? ' selected' : '';
+    $select = '<select name="bom_manual_component_type[]" class="form-select form-select-sm bom-manual-type" style="max-width:8rem">'
+        . '<option value="MP"' . $mp . '>MP</option>'
+        . '<option value="EMB"' . $emb . '>MAE</option>'
+        . '<option value="OTHER"' . $other . '>Outro</option>'
+        . '</select>';
+    if ($inline) {
+        return '<div class="d-flex align-items-center gap-2 mt-2">'
+            . '<span class="small text-muted text-nowrap">Classificação CVAR:</span>' . $select . '</div>';
+    }
+
+    return $select;
+};
 
 $buildComponentOptions = static function (?int $selectedId) use ($listBomItems): string {
     $html = '<option value="">Selecione o componente</option>';
@@ -74,8 +96,33 @@ $totalMaterialCost = 0.0;
 foreach ($bomLines as $line) {
     $totalMaterialCost += \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
 }
+
+$formatBomQty = static function (float $qty): string {
+    if (abs($qty) < 1e-12) {
+        return '0';
+    }
+    $formatted = number_format($qty, 6, '.', '');
+    $trimmed = rtrim(rtrim($formatted, '0'), '.');
+
+    return $trimmed !== '' ? $trimmed : '0';
+};
+
+$resolveCatalogLabel = static function (int $componentId) use ($listBomItems): string {
+    foreach ($listBomItems as $bomItem) {
+        if ((int)($bomItem['id'] ?? 0) === $componentId) {
+            return trim((string)($bomItem['code'] ?? '') . ' — ' . (string)($bomItem['description'] ?? ''));
+        }
+    }
+
+    return '';
+};
 ?>
-<?php if ($isProjectItem): ?>
+<?php if ($bomSimulationMode): ?>
+<div class="alert alert-info border small py-2 mb-3">
+  <i class="fa-solid fa-flask me-1"></i>
+  <strong>Simulação:</strong> edite o <em>custo unitário</em> de qualquer linha, ajuste quantidades e inclua <em>componentes não cadastrados</em> (linha manual) — tudo vale só para este cenário, sem alterar o cadastro do item.
+</div>
+<?php elseif ($isProjectItem): ?>
 <div class="alert alert-info border small py-2 mb-3">
   <i class="fa-solid fa-flask me-1"></i>
   <strong>PA - PROJETO:</strong> a mesma lista pode misturar <em>componentes de catálogo</em> (itens já cadastrados) e <em>linhas manuais</em> (MPs/MAEs ainda sem cadastro), com descrição, tipo e custo unitário informados.
@@ -86,56 +133,65 @@ foreach ($bomLines as $line) {
   <table class="table table-sm align-middle" id="bom-table">
     <thead class="thead-green">
       <tr>
-        <th style="width: 8%;">Origem</th>
-        <th style="width: 28%;">Componente / descrição</th>
+        <th style="width: 7%;">Origem</th>
+        <th style="width: <?= $hideTipoColumn ? '52%' : '28%' ?>;">Componente / descrição</th>
+        <?php if (!$hideTipoColumn): ?>
         <th style="width: 8%;">Tipo</th>
-        <th style="width: 12%;">Qtd / lote</th>
+        <?php endif; ?>
+        <th style="width: <?= $hideTipoColumn ? '8%' : '12%' ?>;">Qtd / lote</th>
         <th style="width: 8%;">Perda %</th>
         <th style="width: 8%;">Un.</th>
         <th style="width: 12%;">Custo un.</th>
         <th style="width: 12%;">Total linha</th>
-        <th style="width: 4%;" class="text-end">Ações</th>
+        <th style="width: <?= $bomSimulationMode ? '8%' : '4%' ?>;" class="text-end">Ações</th>
       </tr>
     </thead>
     <tbody>
-      <?php foreach ($bomLines as $line):
+      <?php foreach ($bomLines as $lineIndex => $line):
         $isManual = (string)($line['line_source'] ?? 'catalog') === 'manual';
         $qty = (float)($line['quantity_per_batch'] ?? 0);
         $rowTotal = \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
         $unitCost = \App\adms\Models\Repository\inventory\InvItemBomRepository::resolveLineUnitCost($line);
         $manualType = strtoupper((string)($line['manual_component_type'] ?? 'MP'));
+        $lineIndexAttr = $bomSimulationMode ? ' data-line-index="' . (int)$lineIndex . '"' : '';
         ?>
-        <tr class="bom-row<?= $isManual ? ' bom-row-manual' : ' bom-row-catalog' ?>">
+        <tr class="bom-row<?= $isManual ? ' bom-row-manual' : ' bom-row-catalog' ?>"<?= $lineIndexAttr ?>>
           <td data-label="Origem">
             <input type="hidden" name="bom_line_source[]" value="<?= $isManual ? 'manual' : 'catalog' ?>">
             <span class="badge <?= $isManual ? 'bg-warning text-dark' : 'bg-secondary' ?>"><?= $isManual ? 'Manual' : 'Catálogo' ?></span>
           </td>
           <td data-label="Componente / descrição">
             <?php if ($isManual): ?>
-              <input type="text" name="bom_manual_description[]" class="form-control form-control-sm bom-manual-desc" maxlength="255"
+              <input type="text" name="bom_manual_description[]" class="form-control<?= $hideTipoColumn ? '' : ' form-control-sm' ?> bom-manual-desc" maxlength="255"
                 value="<?= htmlspecialchars((string)($line['manual_description'] ?? '')) ?>" placeholder="Descrição do insumo">
+              <?php if ($hideTipoColumn): ?>
+                <?= $renderManualTypeField($manualType, true) ?>
+              <?php endif; ?>
               <input type="hidden" name="bom_component_item_id[]" value="">
-            <?php else: ?>
-              <select name="bom_component_item_id[]" class="form-select form-select-sm bom-catalog-select" onchange="onBomCatalogSelectChange(this)">
-                <?= $buildComponentOptions((int)($line['component_item_id'] ?? 0)) ?>
+            <?php else:
+              $componentId = (int)($line['component_item_id'] ?? 0);
+              $catalogLabel = $resolveCatalogLabel($componentId);
+              ?>
+              <select name="bom_component_item_id[]" class="form-select<?= $hideTipoColumn ? ' bom-catalog-select-sim' : ' form-select-sm' ?> bom-catalog-select" title="<?= htmlspecialchars($catalogLabel) ?>">
+                <?= $buildComponentOptions($componentId) ?>
               </select>
               <input type="hidden" name="bom_manual_description[]" value="">
             <?php endif; ?>
           </td>
+          <?php if (!$hideTipoColumn): ?>
           <td data-label="Tipo">
             <?php if ($isManual): ?>
-              <select name="bom_manual_component_type[]" class="form-select form-select-sm bom-manual-type">
-                <option value="MP" <?= $manualType === 'MP' ? 'selected' : '' ?>>MP</option>
-                <option value="EMB" <?= $manualType === 'EMB' ? 'selected' : '' ?>>MAE</option>
-                <option value="OTHER" <?= $manualType === 'OTHER' ? 'selected' : '' ?>>Outro</option>
-              </select>
+              <?= $renderManualTypeField($manualType, false) ?>
             <?php else: ?>
               <span class="text-muted small">—</span>
               <input type="hidden" name="bom_manual_component_type[]" value="">
             <?php endif; ?>
           </td>
-          <td data-label="Qtd / lote">
-            <input type="number" step="0.000001" min="0" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="<?= htmlspecialchars((string)$qty) ?>">
+          <?php elseif (!$isManual): ?>
+            <input type="hidden" name="bom_manual_component_type[]" value="">
+          <?php endif; ?>
+          <td data-label="Qtd / lote"<?= $hideTipoColumn ? ' class="bom-qty-col"' : '' ?>>
+            <input type="text" inputmode="decimal" autocomplete="off" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="<?= htmlspecialchars($formatBomQty($qty)) ?>">
           </td>
           <td data-label="Perda (%)">
             <input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm bom-scrap" value="<?= htmlspecialchars((string)($line['scrap_percent'] ?? '0')) ?>">
@@ -151,23 +207,35 @@ foreach ($bomLines as $line) {
           </td>
           <td data-label="Custo unitário">
             <?php if ($isManual): ?>
+              <input type="hidden" name="bom_catalog_unit_cost[]" value="">
               <input type="number" step="0.000001" min="0" name="bom_manual_unit_cost[]" class="form-control form-control-sm bom-manual-cost" value="<?= htmlspecialchars(number_format($unitCost, 6, '.', '')) ?>">
+            <?php elseif ($allowCatalogCostEdit): ?>
+              <input type="number" step="0.000001" min="0" name="bom_catalog_unit_cost[]" class="form-control form-control-sm bom-catalog-cost-input bom-catalog-unit-cost" value="<?= htmlspecialchars(number_format($unitCost, 6, '.', '')) ?>">
+              <input type="hidden" name="bom_manual_unit_cost[]" value="">
             <?php else: ?>
               <span class="bom-catalog-cost-display"><?= number_format($unitCost, 6, ',', '.') ?></span>
               <input type="hidden" name="bom_manual_unit_cost[]" value="">
+              <input type="hidden" name="bom_catalog_unit_cost[]" value="">
               <input type="hidden" class="bom-catalog-unit-cost" value="<?= htmlspecialchars(number_format($unitCost, 6, '.', '')) ?>">
             <?php endif; ?>
           </td>
           <td data-label="Total linha" class="bom-line-total"><?= number_format($rowTotal, 6, ',', '.') ?></td>
           <td data-label="Ações" class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBomRow(this)">Remover</button>
+            <div class="d-flex gap-1 justify-content-end">
+              <?php if ($bomSimulationMode): ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="simResetBomRow(<?= (int)$lineIndex ?>)" title="Voltar ao cadastro original">
+                  <i class="fa-solid fa-rotate-left"></i>
+                </button>
+              <?php endif; ?>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBomRow(this)">Remover</button>
+            </div>
           </td>
         </tr>
       <?php endforeach; ?>
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="7" class="text-end"><strong>Custo total dos componentes (lote):</strong></td>
+        <td colspan="<?= $hideTipoColumn ? 6 : 7 ?>" class="text-end"><strong>Custo total dos componentes (lote):</strong></td>
         <td colspan="2"><strong id="bom-grand-total"><?= number_format($totalMaterialCost, 6, ',', '.') ?></strong></td>
       </tr>
     </tfoot>
@@ -177,7 +245,7 @@ foreach ($bomLines as $line) {
   <button type="button" class="btn btn-sm btn-outline-primary" onclick="addBomCatalogRow()">
     <i class="fa-solid fa-plus"></i> Adicionar componente
   </button>
-  <?php if ($isProjectItem): ?>
+  <?php if ($allowManualLines): ?>
     <button type="button" class="btn btn-sm btn-outline-warning" id="btn-add-bom-manual" onclick="addBomManualRow()">
       <i class="fa-solid fa-pen-ruler"></i> Adicionar linha manual
     </button>
@@ -189,9 +257,11 @@ foreach ($bomLines as $line) {
 </div>
 <p class="text-muted mt-2 mb-0">
   <small>
-    <?php if ($isProjectItem): ?>
+    <?php if ($bomSimulationMode): ?>
+      Alterações valem <strong>só para esta simulação</strong> — o cadastro oficial do item não é modificado. Use <i class="fa-solid fa-rotate-left"></i> para restaurar uma linha ao estado do cadastro.
+    <?php elseif ($isProjectItem): ?>
       Linhas de <strong>catálogo</strong> usam itens já cadastrados; linhas <strong>manuais</strong> permitem simular MPs/MAEs hipotéticas com custo informado.
-      Na linha manual, quantidade e <em>custo unitário</em> referem-se à unidade selecionada (ex.: R$/kg). Ao trocar a unidade, quantidade e custo permanecem como digitados; apenas o <em>total da linha</em> é recalculado.
+      Na linha manual, quantidade e <em>custo unitário</em> referem-se à unidade selecionada (ex.: R$/kg). O <em>total da linha</em> e o <em>custo total do lote</em> são recalculados automaticamente ao alterar quantidade, perda, custo, unidade ou componente.
     <?php else: ?>
       Selecione um item de estoque já cadastrado para usar como componente.
       Para novos projetos, cadastre o PA na categoria <strong>PA - PROJETO</strong>.

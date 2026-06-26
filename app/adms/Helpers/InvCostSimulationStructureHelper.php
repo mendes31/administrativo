@@ -24,14 +24,14 @@ final class InvCostSimulationStructureHelper
     /**
      * @return list<array<string, mixed>>
      */
-    public function resolveBomLinesForEdit(int $itemId, array $request, bool $isProjectItem): array
+    public function resolveBomLinesForEdit(int $itemId, array $request, bool $isProjectItem, bool $simulationMode = false): array
     {
         if ($this->hasStructureInRequest($request)) {
             if (isset($request['bom_line_source'])) {
-                return $this->parseBomLinesForEdit($request, $isProjectItem);
+                return $this->parseBomLinesForEdit($request, $isProjectItem, $simulationMode);
             }
 
-            return [];
+            return (new InvItemBomRepository())->getByItem($itemId);
         }
 
         return (new InvItemBomRepository())->getByItem($itemId);
@@ -40,14 +40,14 @@ final class InvCostSimulationStructureHelper
     /**
      * @return list<array<string, mixed>>
      */
-    public function resolveOperationLinesForEdit(int $itemId, array $request): array
+    public function resolveOperationLinesForEdit(int $itemId, array $request, float $batchSize = 1.0): array
     {
         if ($this->hasStructureInRequest($request)) {
             if (isset($request['sim_op_operation_id'])) {
-                return $this->parseOperationLinesForEdit($request, $itemId);
+                return $this->parseOperationLinesForEdit($request, $itemId, $batchSize);
             }
 
-            return [];
+            return (new InvItemOperationsRepository())->getByItem($itemId);
         }
 
         return (new InvItemOperationsRepository())->getByItem($itemId);
@@ -153,6 +153,9 @@ final class InvCostSimulationStructureHelper
                 'default_cost_per_hour' => (float)($line['operation_cost_per_hour'] ?? $line['default_cost_per_hour'] ?? 0),
                 'labor_lines' => is_array($line['labor_lines'] ?? null) ? $line['labor_lines'] : [],
                 'resource_lines' => is_array($line['resource_lines'] ?? null) ? $line['resource_lines'] : [],
+                'override_sap_labor_line_cost_batch' => $line['override_sap_labor_line_cost_batch'] ?? null,
+                'override_equipment_line_cost_batch' => $line['override_equipment_line_cost_batch'] ?? null,
+                'override_manual_labor_line_cost_batch' => $line['override_manual_labor_line_cost_batch'] ?? null,
             ];
         }
 
@@ -162,7 +165,7 @@ final class InvCostSimulationStructureHelper
     /**
      * @return list<array<string, mixed>>
      */
-    private function parseBomLinesForEdit(array $request, bool $isProjectItem): array
+    private function parseBomLinesForEdit(array $request, bool $isProjectItem, bool $simulationMode = false): array
     {
         $sources = $this->normalizeArray($request['bom_line_source'] ?? null);
         $components = $this->normalizeArray($request['bom_component_item_id'] ?? null);
@@ -172,6 +175,7 @@ final class InvCostSimulationStructureHelper
         $manualTypes = $this->normalizeArray($request['bom_manual_component_type'] ?? null);
         $manualUnits = $this->normalizeArray($request['bom_manual_unit'] ?? null);
         $manualCosts = $this->normalizeArray($request['bom_manual_unit_cost'] ?? null);
+        $catalogCosts = $this->normalizeArray($request['bom_catalog_unit_cost'] ?? null);
 
         $rowCount = max(
             count($sources),
@@ -181,6 +185,7 @@ final class InvCostSimulationStructureHelper
             count($manualTypes),
             count($manualUnits),
             count($manualCosts),
+            count($catalogCosts),
             count($scraps)
         );
 
@@ -212,7 +217,7 @@ final class InvCostSimulationStructureHelper
             }
 
             if ($source === 'manual') {
-                if (!$isProjectItem) {
+                if (!$isProjectItem && !$simulationMode) {
                     continue;
                 }
                 if ($description === '' || $unitCost <= 0) {
@@ -247,6 +252,10 @@ final class InvCostSimulationStructureHelper
             if (!is_array($item)) {
                 continue;
             }
+            $catalogCost = isset($catalogCosts[$idx]) ? $this->parseDecimal($catalogCosts[$idx]) : 0.0;
+            $resolvedCost = $catalogCost > 0
+                ? $catalogCost
+                : (float)($item['average_cost'] ?? 0);
             $lines[] = [
                 'line_source' => 'catalog',
                 'component_item_id' => $componentId,
@@ -256,7 +265,7 @@ final class InvCostSimulationStructureHelper
                 'component_description' => (string)($item['description'] ?? ''),
                 'component_category' => (string)($item['category_name'] ?? ''),
                 'unit_name' => (string)($item['unit_name'] ?? ''),
-                'component_cost' => (float)($item['average_cost'] ?? 0),
+                'component_cost' => $resolvedCost,
             ];
         }
 
@@ -266,13 +275,18 @@ final class InvCostSimulationStructureHelper
     /**
      * @return list<array<string, mixed>>
      */
-    private function parseOperationLinesForEdit(array $request, int $itemId): array
+    private function parseOperationLinesForEdit(array $request, int $itemId, float $batchSize = 1.0): array
     {
         $operations = $this->normalizeArray($request['sim_op_operation_id'] ?? null);
         $sequences = $this->normalizeArray($request['sim_op_sequence'] ?? null);
         $times = $this->normalizeArray($request['sim_op_time_per_batch_hours'] ?? null);
         $units = $this->normalizeArray($request['sim_op_time_unit'] ?? null);
         $rowIds = $this->normalizeArray($request['sim_op_row_id'] ?? null);
+        $overrideSapSku = $this->normalizeArray($request['sim_op_override_sap_sku'] ?? null);
+        $overrideEquipSku = $this->normalizeArray($request['sim_op_override_equip_sku'] ?? null);
+        $overrideManualSku = $this->normalizeArray($request['sim_op_override_manual_sku'] ?? null);
+
+        $batchSize = $batchSize > 0 ? $batchSize : 1.0;
 
         $existingById = [];
         foreach ((new InvItemOperationsRepository())->getByItem($itemId) as $existing) {
@@ -303,6 +317,7 @@ final class InvCostSimulationStructureHelper
                 $row['time_per_batch_hours'] = $time;
                 $row['time_unit'] = $unit;
                 $row['sequence'] = $seq;
+                $this->applyOperationCostOverrides($row, $idx, $overrideSapSku, $overrideEquipSku, $overrideManualSku, $batchSize);
                 $lines[] = $row;
                 continue;
             }
@@ -312,7 +327,7 @@ final class InvCostSimulationStructureHelper
                 continue;
             }
 
-            $lines[] = [
+            $row = [
                 'id' => 0,
                 'inv_operation_id' => $operationId,
                 'sequence' => $seq,
@@ -329,6 +344,8 @@ final class InvCostSimulationStructureHelper
                 'labor_lines' => [],
                 'resource_lines' => [],
             ];
+            $this->applyOperationCostOverrides($row, $idx, $overrideSapSku, $overrideEquipSku, $overrideManualSku, $batchSize);
+            $lines[] = $row;
         }
 
         usort($lines, static fn(array $a, array $b): int => ((int)($a['sequence'] ?? 0)) <=> ((int)($b['sequence'] ?? 0)));
@@ -378,5 +395,36 @@ final class InvCostSimulationStructureHelper
         }
 
         return $componentId <= 0;
+    }
+
+    /**
+     * @param list<mixed> $overrideSapSku
+     * @param list<mixed> $overrideEquipSku
+     * @param list<mixed> $overrideManualSku
+     */
+    private function applyOperationCostOverrides(
+        array &$row,
+        int $idx,
+        array $overrideSapSku,
+        array $overrideEquipSku,
+        array $overrideManualSku,
+        float $batchSize
+    ): void {
+        $sapSku = (isset($overrideSapSku[$idx]) && trim((string)$overrideSapSku[$idx]) !== '')
+            ? $this->parseDecimal($overrideSapSku[$idx]) : -1.0;
+        $equipSku = (isset($overrideEquipSku[$idx]) && trim((string)$overrideEquipSku[$idx]) !== '')
+            ? $this->parseDecimal($overrideEquipSku[$idx]) : -1.0;
+        $manualSku = (isset($overrideManualSku[$idx]) && trim((string)$overrideManualSku[$idx]) !== '')
+            ? $this->parseDecimal($overrideManualSku[$idx]) : -1.0;
+
+        if ($sapSku >= 0) {
+            $row['override_sap_labor_line_cost_batch'] = round($sapSku * $batchSize, 6);
+        }
+        if ($equipSku >= 0) {
+            $row['override_equipment_line_cost_batch'] = round($equipSku * $batchSize, 6);
+        }
+        if ($manualSku >= 0) {
+            $row['override_manual_labor_line_cost_batch'] = round($manualSku * $batchSize, 6);
+        }
     }
 }

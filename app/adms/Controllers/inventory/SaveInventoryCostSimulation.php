@@ -55,9 +55,10 @@ class SaveInventoryCostSimulation
 
         $structureHelper = new InvCostSimulationStructureHelper();
         $isProjectItem = InvCostProjectHelper::isProjectItem($item);
+        $batchSize = $this->parseBatchSize($form['standard_batch_size'] ?? '1');
         if ($structureHelper->hasStructureInRequest($form)) {
-            $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $form, $isProjectItem);
-            $editOps = $structureHelper->resolveOperationLinesForEdit($itemId, $form);
+            $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $form, $isProjectItem, true);
+            $editOps = $structureHelper->resolveOperationLinesForEdit($itemId, $form, $batchSize);
             $scenario['custom_bom_rows'] = $structureHelper->bomEditLinesToComputeRows($editBom);
             $scenario['custom_operation_rows'] = $structureHelper->operationEditLinesToComputeRows($editOps);
         }

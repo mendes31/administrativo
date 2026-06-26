@@ -78,6 +78,7 @@ class InventoryCostService extends DbConnection
             'route_equipment_cost' => 0.0,
             'route_resources_cost' => 0.0,
             'labor_hours' => 0.0,
+            'machine_hours' => 0.0,
             'base_total' => 0.0,
             'simulated_material_cost' => 0.0,
             'simulated_operations_cost' => 0.0,
@@ -200,6 +201,7 @@ class InventoryCostService extends DbConnection
         $routeSapLaborCost = 0.0;
         $routeEquipmentCost = 0.0;
         $laborHours = 0.0;
+        $machineHours = 0.0;
         foreach ($opRows as $row) {
             if (!$useCustomOps) {
                 $opId = (int)($row['id'] ?? 0);
@@ -216,6 +218,7 @@ class InventoryCostService extends DbConnection
             $routeSapLaborCost += (float)($line['sap_labor_line_cost'] ?? 0);
             $routeEquipmentCost += (float)($line['equipment_line_cost'] ?? 0);
             $laborHours += (float)($line['labor_hours'] ?? 0);
+            $machineHours += (float)($line['machine_hours'] ?? 0);
         }
         $routeLaborCost = $routeManualLaborCost;
         $routeResourcesCost = $routeSapLaborCost + $routeEquipmentCost;
@@ -290,6 +293,7 @@ class InventoryCostService extends DbConnection
             'route_sap_labor_cost_batch' => round($routeSapLaborCostBatch, 6),
             'route_equipment_cost_batch' => round($routeEquipmentCostBatch, 6),
             'labor_hours' => round($laborHours, 6),
+            'machine_hours' => round($machineHours, 6),
             'base_total' => round($baseTotal, 6),
             'simulated_material_cost' => round($simMaterial, 6),
             'simulated_operations_cost' => round($simOperations, 6),
@@ -381,21 +385,29 @@ class InventoryCostService extends DbConnection
         $timeUnit = strtoupper((string)($row['time_unit'] ?? 'MIN'));
         $costHour = (float)($row['default_cost_per_hour'] ?? 0);
         $operatorsQty = max(1, (int)($row['operators_qty'] ?? 1));
-        $laborCostPerMin = (float)($row['labor_cost_per_min'] ?? 0);
-        $machineCostPerMin = (float)($row['machine_cost_per_min'] ?? 0);
-        $energyCostPerMin = (float)($row['energy_cost_per_min'] ?? 0);
+        $rowLaborCostPerMin = (float)($row['labor_cost_per_min'] ?? 0);
+        $rowMachineCostPerMin = (float)($row['machine_cost_per_min'] ?? 0);
+        $rowEnergyCostPerMin = (float)($row['energy_cost_per_min'] ?? 0);
         $laborLines = $row['labor_lines'] ?? [];
         $resourceLines = $row['resource_lines'] ?? [];
 
         $manualLaborPerMin = InvItemOperationsRepository::sumLaborCostPerMinute($laborLines);
+        if ($manualLaborPerMin <= 0 && $rowLaborCostPerMin > 0) {
+            $manualLaborPerMin = $rowLaborCostPerMin;
+        }
         $manualLaborQty = self::sumLaborQty($laborLines);
+        $laborQtyForHours = $manualLaborQty > 0 ? $manualLaborQty : $operatorsQty;
 
         $resourceSplit = self::splitResourceCostsPerMinute($resourceLines, $row);
         $sapLaborPerMin = (float)($resourceSplit['sap_labor'] ?? 0);
         $equipmentPerMin = (float)($resourceSplit['equipment'] ?? 0);
         $machinePerMin = (float)($resourceSplit['machine'] ?? 0);
         $energyPerMin = (float)($resourceSplit['energy'] ?? 0);
+        if ($equipmentPerMin <= 0 && ($rowMachineCostPerMin > 0 || $rowEnergyCostPerMin > 0)) {
+            $equipmentPerMin = $rowMachineCostPerMin + $rowEnergyCostPerMin;
+        }
         $resourcesPerMin = $sapLaborPerMin + $equipmentPerMin;
+        $hasMachineDriver = ($equipmentPerMin + $machinePerMin) > 0 || $resourceLines !== [];
 
         if (!in_array($timeUnit, ['MIN', 'H'], true)) {
             $timeUnit = 'MIN';
@@ -408,6 +420,7 @@ class InventoryCostService extends DbConnection
         $sapLaborLineCost = 0.0;
         $equipmentLineCost = 0.0;
         $laborHours = 0.0;
+        $machineHours = 0.0;
         $costSource = 'none';
         if ($timeMinutes > 0) {
             $costPerMinuteFromRoute = $manualLaborPerMin + $resourcesPerMin;
@@ -416,14 +429,34 @@ class InventoryCostService extends DbConnection
                 $sapLaborLineCost = $timeMinutes * $sapLaborPerMin;
                 $equipmentLineCost = $timeMinutes * $equipmentPerMin;
                 $lineCost = $manualLaborLineCost + $sapLaborLineCost + $equipmentLineCost;
-                $laborHours = $timeHours * max(0, $manualLaborQty);
                 $costSource = 'route';
             } elseif ($costHour > 0) {
                 $lineCost = $timeHours * $costHour;
                 $manualLaborLineCost = $lineCost;
-                $laborHours = $timeHours * max(0, $manualLaborQty);
                 $costSource = 'operation_default';
             }
+            $laborHours = $timeHours * $laborQtyForHours;
+            if ($hasMachineDriver) {
+                $machineHours = $timeHours;
+            }
+        }
+
+        if (array_key_exists('override_sap_labor_line_cost_batch', $row)) {
+            $sapLaborLineCost = max(0.0, (float)$row['override_sap_labor_line_cost_batch']);
+        }
+        if (array_key_exists('override_equipment_line_cost_batch', $row)) {
+            $equipmentLineCost = max(0.0, (float)$row['override_equipment_line_cost_batch']);
+        }
+        if (array_key_exists('override_manual_labor_line_cost_batch', $row)) {
+            $manualLaborLineCost = max(0.0, (float)$row['override_manual_labor_line_cost_batch']);
+        }
+        if (
+            array_key_exists('override_sap_labor_line_cost_batch', $row)
+            || array_key_exists('override_equipment_line_cost_batch', $row)
+            || array_key_exists('override_manual_labor_line_cost_batch', $row)
+        ) {
+            $lineCost = $manualLaborLineCost + $sapLaborLineCost + $equipmentLineCost;
+            $costSource = 'simulation_override';
         }
 
         return [
@@ -432,7 +465,8 @@ class InventoryCostService extends DbConnection
             'notes' => (string)($row['notes'] ?? ''),
             'time_minutes' => round($timeMinutes, 6),
             'labor_hours' => round($laborHours, 6),
-            'labor_qty' => $manualLaborQty,
+            'machine_hours' => round($machineHours, 6),
+            'labor_qty' => $laborQtyForHours,
             'operators_qty' => $operatorsQty,
             'manual_labor_cost_per_min' => round($manualLaborPerMin, 6),
             'sap_labor_cost_per_min' => round($sapLaborPerMin, 6),

@@ -8,17 +8,22 @@
 <h2>Fluxo principal</h2>
 <ol>
     <li>Abra um item em <strong>Itens</strong> e clique em <strong>Simular cenários</strong> (ou acesse pela URL do item).</li>
-    <li>Defina o <strong>tamanho do lote</strong> para rateio SKU × lote.</li>
-    <li>Na seção <strong>Estrutura da simulação (what-if)</strong>, adicione, remova ou altere componentes (catálogo ou linhas manuais em PA - PROJETO) e operações da rota — sem alterar o cadastro oficial do item.</li>
+    <li>Defina o <strong>tamanho do lote</strong> e os <strong>parâmetros da simulação</strong> (período, depósitos e % de ajuste).</li>
+    <li>Após <strong>Simular</strong>, confira os cards: <strong>CVAR materiais</strong> (MP+MAE), <strong>rota</strong>, <strong>HH</strong>, <strong>HM</strong> e a comparação base × simulado.</li>
+    <li>Na lista de materiais (simulação), use o seletor de componente em largura total; em linhas manuais, informe a <strong>classificação CVAR</strong> (MP/MAE) abaixo da descrição.</li>
     <li>Opcional: selecione <strong>período de custeio</strong> e depósitos (TJQP/APQP) para ver qty produzida e % rateio 1.</li>
     <li>Ajuste % em materiais, rota ou global e clique em <strong>Simular</strong>.</li>
-    <li>Salve cenários ou exporte PDF quando autorizado.</li>
+    <li>Informe o <strong>nome da simulação</strong> no topo da tela e clique em <strong>Salvar simulação</strong> quando o cenário estiver pronto.</li>
 </ol>
 
-<h2>Estrutura what-if</h2>
+<h2>HH, HM e custos fixos</h2>
+<p>Após <strong>Simular</strong>, os cards no topo exibem <strong>HH</strong> (homem-hora na rota) e <strong>HM</strong> (horas-máquina em etapas com equipamento). O total simulado ainda considera apenas <em>CVAR</em> (MP, MAE, MO e equipamentos da rota). Os <strong>8 critérios de rateio</strong> e o <strong>CFIX</strong> (folha, energia HVAC, área comum) serão integrados na Fase 2 do custeio fabril.</p>
+
+<h2>Componentes e operações</h2>
 <ul>
-    <li><strong>Lista de materiais:</strong> botões <em>Adicionar componente</em> e <em>Adicionar linha manual</em> (PA - PROJETO); remova linhas com <em>Remover</em>.</li>
-    <li><strong>Rota:</strong> adicione operações novas (custo padrão da operação) ou mantenha linhas do item (com MO/recursos já cadastrados); altere tempo e sequência.</li>
+    <li><strong>Lista de materiais:</strong> edite quantidade por lote, perda %, custo unitário e componente. Linhas do catálogo e manuais podem ser adicionadas ou removidas.</li>
+    <li><strong>Rota:</strong> altere sequência, operação e tempo por lote; adicione operações novas (custo padrão) ou mantenha linhas do item (com MO/recursos cadastrados).</li>
+    <li>Use o botão <i class="fa-solid fa-rotate-left"></i> em cada linha para restaurar o valor do <strong>cadastro original</strong> sem afetar o item oficial.</li>
     <li>Após <strong>Simular</strong>, o badge <em>estrutura ajustada</em> indica que o cenário não usa só a ficha oficial.</li>
 </ul>
 
@@ -26,7 +31,7 @@
 <p>Cards <strong>CVAR MP</strong> e <strong>CVAR MAE</strong> mostram o custo variável de matéria-prima e embalagens por SKU (e valor simulado após ajustes). Linhas manuais da categoria PA - PROJETO entram conforme o tipo informado (MP ou MAE).</p>
 
 <h2>PA - PROJETO</h2>
-<p>Itens na categoria <strong>PA - PROJETO</strong> exibem o badge <em>what-if</em>: a simulação é independente do custeio oficial fechado do período. Use linhas manuais na BOM para MPs/MAEs hipotéticas.</p>
+<p>Itens na categoria <strong>PA - PROJETO</strong> exibem o badge <em>what-if</em>. Na simulação, <strong>qualquer item</strong> pode usar linhas manuais e custos editáveis na estrutura what-if, independentemente da categoria.</p>
 
 <h2>Problemas comuns</h2>
 <dl>

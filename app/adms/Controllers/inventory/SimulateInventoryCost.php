@@ -8,6 +8,8 @@ use App\adms\Helpers\InvCostSimulationStructureHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
+use App\adms\Models\Repository\inventory\InvItemBomRepository;
+use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
@@ -49,8 +51,8 @@ class SimulateInventoryCost
         $structureHelper = new InvCostSimulationStructureHelper();
         $isProjectItem = InvCostProjectHelper::isProjectItem($item);
 
-        $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $requestData, $isProjectItem);
-        $editOperations = $structureHelper->resolveOperationLinesForEdit($itemId, $requestData);
+        $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $requestData, $isProjectItem, true);
+        $editOperations = $structureHelper->resolveOperationLinesForEdit($itemId, $requestData, $batchSize);
 
         $scenario = [
             'material_adjust_pct' => $this->parsePct($this->input('material_adjust_pct', '0')),
@@ -58,8 +60,10 @@ class SimulateInventoryCost
             'global_adjust_pct' => $this->parsePct($this->input('global_adjust_pct', '0')),
             'standard_batch_size' => $batchSize,
         ];
-        if ($structureHelper->hasStructureInRequest($requestData)) {
+        if (isset($requestData['bom_line_source'])) {
             $scenario['custom_bom_rows'] = $structureHelper->bomEditLinesToComputeRows($editBom);
+        }
+        if (isset($requestData['sim_op_operation_id'])) {
             $scenario['custom_operation_rows'] = $structureHelper->operationEditLinesToComputeRows($editOperations);
         }
 
@@ -70,6 +74,8 @@ class SimulateInventoryCost
         $this->data['scenario_batch_size'] = $batchSize;
         $this->data['edit_bom'] = $editBom;
         $this->data['edit_operations'] = $editOperations;
+        $this->data['baseline_bom'] = (new InvItemBomRepository())->getByItem($itemId);
+        $this->data['baseline_operations'] = (new InvItemOperationsRepository())->getByItem($itemId);
         $this->data['structure_customized'] = $structureHelper->hasStructureInRequest($requestData);
         $this->data['listBomItems'] = (new InvItemsRepository())->getAllForSelectWithAdminType();
         $this->data['listUnits'] = (new InvUnitsRepository())->getAllForSelect();
