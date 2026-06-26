@@ -803,8 +803,13 @@
                 },
                 {
                     "id": "list-inventory-cost-periods",
-                    "title": "Listar — Inventory Cost Periods",
+                    "title": "Períodos de Custeio",
                     "file": "estoque/list-inventory-cost-periods.html"
+                },
+                {
+                    "id": "view-inventory-cost-period",
+                    "title": "Detalhe do Período de Custeio",
+                    "file": "estoque/view-inventory-cost-period.html"
                 },
                 {
                     "id": "list-inventory-cost-production-batches",

@@ -43,6 +43,11 @@
             <label class="form-label">Tarifa kWh (opcional)</label>
             <input type="text" class="form-control" name="kwh_tariff" value="<?= htmlspecialchars((string)($form['kwh_tariff'] ?? '')) ?>" placeholder="0,0000">
           </div>
+          <?php
+            $period = [];
+            $isClosed = false;
+            include './app/adms/Views/inventory/costs/partials/period_energy_fields.php';
+          ?>
           <div class="col-12">
             <label class="form-label">Observações</label>
             <textarea class="form-control" name="notes" rows="3"><?= htmlspecialchars((string)($form['notes'] ?? '')) ?></textarea>

@@ -1,0 +1,68 @@
+codigo;descricao;criterio_num;criterio_label;peso_pct;observacao;linha_cf
+13;Salario;2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2322
+23;"Doações, Contribuições e Patrocínios";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2398
+24;Estagiários;2;"2 — Homem-hora (HH)";100;"Estagiários → HH";R2404
+25;"Despesas com Cartório";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2416
+26;"Manutenção e Conservação";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2377
+27;"Despesas de Assessoria/Consultoria";1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2369";R2369
+28;"Despesas Assessoria Jurídica";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2392
+29;"Energia Elétrica";7;"7 — Energia (kWh)";100;"EE: na planilha redistribui 7+3+8; use 7 ou divida valor no CSV";R2363
+30;"Despesas com Copa, Cozinha e Refeitório";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2376
+44;"Despesas com Material de Limpeza e Higiene";1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2373";R2373
+45;"Despesas com Material de Segurança e EPI's";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2387
+46;"Despesas com Brindes";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2394
+47;"Mensalidades, Anuidades e Contribuições";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2406
+48;"Serviços Contábeis";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2400
+49;"Serviços c/ Segurança Medicina do Trabalho";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2407
+59;"Despesas com Autorização de Uso";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2381
+105;Uniformes;1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2395
+817;"GASTOS COM PESSOAL  EM 2025";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2317
+818;Remuneração;2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2319
+819;"Pró-Labore/Honorários da Diretoria";1;"1 — Qty produzida";100;"Pró-labore diretoria → overhead adm (qty)";R2320
+820;Salários;2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2321
+823;"Encargos Sociais";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2324
+824;"Previdência Social";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2325
+825;FGTS;2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2326
+826;Benefícios;2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2327
+828;"Plano de Assistência Médica";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2328
+829;"Plano Odontológico";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2329
+830;"Vale Transporte";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2330
+831;"PAT - Programa de Alimentação ao Trabalhador";2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2331
+834;Ferias;2;"2 — Homem-hora (HH)";100;"Folha: após Pasta 9 a maior parte vai para Produção (HH). Sistema ainda sem Pasta 9 → use crit. 2.";R2323
+836;"DESPESAS GERAIS ADMINISTRATIVAS - Pasta 8 - DRE Balancete";1;"1 — Qty produzida";100;Heurística;R2357
+837;Depreciações;1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2358";R2358
+838;"Gastos com Agua";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2396
+839;"Material de Expediente";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2391
+840;"Bens Não Imobilizáveis";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2402
+841;"Despesas Telefônicas";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2408
+842;Seguros;1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2393
+843;"Despesas Postais";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2410
+844;"Despesas Legais e Judiciais";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2413
+845;"Propaganda e Publicidade";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2390
+850;"Fretes e Carretos";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2385
+852;"Despesas com Infração de Transito";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2415
+854;"Despesas com Informática";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2382
+855;"Cursos e Treinamento de Pessoal";2;"2 — Homem-hora (HH)";100;"Treinamento pessoal → HH";R2389
+857;"Serviços de Comissão";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2380
+858;"Despesas com Viagens";1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2370";R2370
+859;"Despesas com Confraternização";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2388
+860;"Despesas com Veículos";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2399
+861;"Despesas com Aluguéis e Condomínios";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2405
+862;"Impostos e Taxas Diversos";1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2372";R2372
+865;"Despesas com Paisagismo e Ornamentação";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2409
+866;"Despesas com Coleta de Resíduos";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2384
+867;"Registros e Taxas ANVISA";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2411
+869;"Despesas Diversas";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2397
+870;"Material de Consumo";1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2374";R2374
+871;"Servicos de Terceiros";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2375
+872;"Despesas com Análises/Pesquisas";6;"6 — Complexidade × análises";100;"Análises: planilha redistribui para CQ/P&D/DA → crit. 6";R2359
+873;"Despesas com Internet";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2412
+874;"Despesas com Serviços de Vigilância/Segurança";1;"1 — Qty produzida";100;"Coluna E CUSTEIO FABRIL R2371";R2371
+875;"Despesas com Implantação/Manutenção de Sistema";3;"3 — Horas-máquina (HM)";100;"Manutenção sistemas/industrial → HM";R2378
+876;"Despesas com Auxilio Educação";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2403
+877;"Despesas com Manutenção de Máq.e Equip.";3;"3 — Horas-máquina (HM)";100;"Manutenção máq./equip. → HM";R2368
+882;"Despesas com Manutenção de Equipamentos";3;"3 — Horas-máquina (HM)";100;"Manutenção equipamentos → HM";R2379
+884;"Despesas com Viagens - não dedutível";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2386
+885;"Propaganda e Publicidade - Não dedutível";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2401
+886;"Depreciações - Administrativas";3;"3 — Horas-máquina (HM)";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2383
+887;"Despesas com Seguros - Não dedutível";1;"1 — Qty produzida";100;"Adm: rateio na planilha via % total DRE; critério dominante sugerido.";R2417

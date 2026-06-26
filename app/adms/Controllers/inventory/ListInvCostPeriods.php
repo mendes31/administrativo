@@ -32,7 +32,7 @@ class ListInvCostPeriods
         $pageElements = [
             'title_head' => 'Períodos de Custeio',
             'menu' => 'estoque',
-            'buttonPermission' => ['CreateInvCostPeriod', 'ListInvCostProductionBatches', 'SimulateInventoryCost'],
+            'buttonPermission' => ['CreateInvCostPeriod', 'ViewInvCostPeriod', 'UpdateInvCostPeriod', 'DeleteInvCostPeriod', 'ListInvCostProductionBatches', 'SimulateInventoryCost'],
         ];
         $pls = new PageLayoutService();
         $this->data = array_merge($this->data, $pls->configurePageElements($pageElements));

@@ -1,0 +1,43 @@
+<h1>Detalhe do Período de Custeio</h1>
+<p>Tela central do período: parâmetros, importação DRE, vínculo de critérios de rateio e resumo do CFIX rateado.</p>
+
+<p class="help-note"><strong>Visão geral:</strong> <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>ViewInvCostPeriod</em>.</p>
+
+<h2>Redistribuição de energia (conta 29)</h2>
+<ol>
+    <li>Em <strong>Editar período</strong>, informe os kWh de HVAC, área comum e direto (Pasta 7) ou deixe vazio para usar os pesos de referência Tiaraju (47,27% / 51,90% / 0,83%).</li>
+    <li>Marque <strong>Redistribuir energia automaticamente ao importar o DRE</strong> (padrão) para fatiar a conta 29 em <code>29-D</code>, <code>29-C</code> e <code>29-H</code> com critérios 7, 3 e 8.</li>
+    <li>Na tela do período, use <strong>Aplicar redistribuição</strong> se a conta 29 já foi importada sem fatiar.</li>
+    <li>O kWh direto pode ficar em branco: o sistema soma HM × kW do cadastro no período.</li>
+</ol>
+
+<h2>Importar DRE</h2>
+<ol>
+    <li>Clique em <strong>Baixar template</strong> para obter o CSV modelo (<code>codigo;descricao;valor;area</code>), alinhado às linhas de detalhe do DRE (ex.: código 29 — Energia Elétrica).</li>
+    <li>Copie do seu DRE somente as contas de <strong>Despesas gerais administrativas</strong> (e folha, se for ratear MO indireta). Não inclua receitas, CMV nem totais como “Despesas operacionais”.</li>
+    <li>Linhas <strong>sem código na coluna A</strong> passam a ser importadas com prefixo <code>NC-</code> (use a descrição para identificar). O total do resumo deve bater com a soma do Excel.</li>
+    <li><strong>Substituir despesas anteriores</strong> vem marcado por padrão: apaga todas as linhas do período e importa de novo (ideal para corrigir o arquivo inteiro).</li>
+    <li>Com a opção <strong>desmarcada</strong>, cada conta é <strong>atualizada pelo código</strong> (sem duplicar linhas); duplicatas antigas da mesma conta são removidas automaticamente.</li>
+</ol>
+
+<h2>Critérios por conta</h2>
+<p>Para cada despesa importada, escolha o critério (1–8) e o peso (%). Clique em <strong>Salvar critérios</strong>. Despesas sem critério aparecem como <em>Sem critério</em> no resumo.</p>
+
+<h2>Período fechado</h2>
+<p>Status <strong>closed</strong> bloqueia importação e alteração de critérios, preservando o histórico para análises mensais, trimestrais ou anuais.</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Arquivo rejeitado</dt>
+    <dd>Salve como <strong>CSV UTF-8 (ponto e vírgula)</strong>, não .xlsx. Colunas: <code>codigo;descricao;valor</code>.</dd>
+    <dt>Descrições cortadas (ex.: Estagi, Manuten)</dt>
+    <dd>CSV exportado em ANSI/Windows-1252 corrompe acentos. Reexporte em <strong>UTF-8</strong>, marque <strong>Substituir despesas anteriores</strong> e importe de novo.</dd>
+    <dt>Energia não fatiou em 3 linhas</dt>
+    <dd>Confira se <em>auto-split</em> está ativo e se a conta é código <strong>29</strong>. Clique em <strong>Aplicar redistribuição</strong> ou reimporte o DRE.</dd>
+    <dt>Linhas duplicadas após reimportar</dt>
+    <dd>Reimportações antigas acumulavam linhas iguais. Reimporte com <strong>Substituir despesas anteriores</strong> marcado, ou desmarque apenas para atualizar contas existentes sem duplicar. A redistribuição da energia (29-D/C/H) também remove fatias antigas antes de recriar.</dd>
+    <dt>Rateio não reflete a simulação</dt>
+    <dd>CFIX usa rota cadastrada e produção do período; alterações only na simulação não mudam os drivers oficiais até promover ao cadastro.</dd>
+</dl>

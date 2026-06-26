@@ -11,13 +11,14 @@
     <li>Defina o <strong>tamanho do lote</strong> e os <strong>parâmetros da simulação</strong> (período, depósitos e % de ajuste).</li>
     <li>Após <strong>Simular</strong>, confira os cards: <strong>CVAR materiais</strong> (MP+MAE), <strong>rota</strong>, <strong>HH</strong>, <strong>HM</strong> e a comparação base × simulado.</li>
     <li>Na lista de materiais (simulação), use o seletor de componente em largura total; em linhas manuais, informe a <strong>classificação CVAR</strong> (MP/MAE) abaixo da descrição.</li>
-    <li>Opcional: selecione <strong>período de custeio</strong> e depósitos (TJQP/APQP) para ver qty produzida e % rateio 1.</li>
+    <li>Opcional: selecione <strong>período de custeio</strong> e depósitos (TJQP/APQP) para ver produção por <em>data prod.</em>, rateios 1–3 e HH/HM do período.</li>
     <li>Ajuste % em materiais, rota ou global e clique em <strong>Simular</strong>.</li>
     <li>Informe o <strong>nome da simulação</strong> no topo da tela e clique em <strong>Salvar simulação</strong> quando o cenário estiver pronto.</li>
 </ol>
 
 <h2>HH, HM e custos fixos</h2>
-<p>Após <strong>Simular</strong>, os cards no topo exibem <strong>HH</strong> (homem-hora na rota) e <strong>HM</strong> (horas-máquina em etapas com equipamento). O total simulado ainda considera apenas <em>CVAR</em> (MP, MAE, MO e equipamentos da rota). Os <strong>8 critérios de rateio</strong> e o <strong>CFIX</strong> (folha, energia HVAC, área comum) serão integrados na Fase 2 do custeio fabril.</p>
+<p>Após <strong>Simular</strong>, os cards exibem <strong>HH</strong> e <strong>HM</strong> por lote. Com um <strong>período</strong> selecionado, também mostram HH/HM do período (lote simulado × lotes produzidos naquele intervalo, conforme <em>data prod.</em> em Lotes produzidos) e os percentuais de <strong>rateio 2</strong> (HH) e <strong>rateio 3</strong> (HM) calculados com a rota cadastrada de todos os SKUs do período.</p>
+<p>O total simulado considera <em>CVAR</em> (MP, MAE, MO e equipamentos). Com DRE importado no período, os cards exibem também <strong>CFIX</strong>, <strong>custo pleno</strong> (CVAR + CFIX/SKU) e <strong>preço sugerido</strong> quando houver margem alvo no cadastro período/SKU.</p>
 
 <h2>Componentes e operações</h2>
 <ul>

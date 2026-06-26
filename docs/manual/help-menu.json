@@ -694,7 +694,11 @@
                 {
                     "type": "topic",
                     "topic_id": "list-inventory-cost-periods",
-                    "title": "Listar — Inventory Cost Periods"
+                    "title": "Períodos de Custeio"
+                },
+                {
+                    "topic_id": "view-inventory-cost-period",
+                    "title": "Detalhe do Período (DRE e rateio)"
                 },
                 {
                     "type": "group",

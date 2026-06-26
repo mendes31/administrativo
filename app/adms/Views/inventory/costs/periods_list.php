@@ -35,7 +35,7 @@
               <th>Até</th>
               <th>Status</th>
               <th class="text-end">Tarifa kWh</th>
-              <th class="pe-3">Cadastrado</th>
+              <th class="pe-3 text-end">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -43,13 +43,38 @@
               <tr><td colspan="6" class="text-center text-muted py-4">Nenhum período cadastrado.</td></tr>
             <?php else: ?>
               <?php foreach ($this->data['rows'] as $row): ?>
+                <?php $rowId = (int)($row['id'] ?? 0); ?>
                 <tr>
-                  <td class="ps-3 fw-semibold"><?= htmlspecialchars($row['name'] ?? '') ?></td>
+                  <td class="ps-3 fw-semibold">
+                    <a href="<?= $_ENV['URL_ADM'] ?>view-inventory-cost-period/<?= $rowId ?>" class="text-decoration-none">
+                      <?= htmlspecialchars($row['name'] ?? '') ?>
+                    </a>
+                  </td>
                   <td class="text-nowrap"><?= !empty($row['date_from']) ? date('d/m/Y', strtotime((string)$row['date_from'])) : '—' ?></td>
                   <td class="text-nowrap"><?= !empty($row['date_to']) ? date('d/m/Y', strtotime((string)$row['date_to'])) : '—' ?></td>
                   <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($row['status'] ?? 'draft') ?></span></td>
                   <td class="text-end"><?= $row['kwh_tariff'] !== null ? number_format((float)$row['kwh_tariff'], 4, ',', '.') : '—' ?></td>
-                  <td class="pe-3 small text-muted"><?= !empty($row['created_at']) ? date('d/m/Y H:i', strtotime((string)$row['created_at'])) : '—' ?></td>
+                    <td class="pe-3 text-end text-nowrap">
+                    <a href="<?= $_ENV['URL_ADM'] ?>view-inventory-cost-period/<?= $rowId ?>" class="btn btn-sm btn-outline-primary">Abrir</a>
+                    <?php if (in_array('UpdateInvCostPeriod', $this->data['buttonPermission'] ?? [], true)): ?>
+                      <a href="<?= $_ENV['URL_ADM'] ?>update-inventory-cost-period/<?= $rowId ?>" class="btn btn-sm btn-outline-secondary">Editar</a>
+                    <?php endif; ?>
+                    <?php
+                      $isDraft = (string)($row['status'] ?? '') !== 'closed';
+                      $canDelete = in_array('DeleteInvCostPeriod', $this->data['buttonPermission'] ?? [], true)
+                        || in_array('CreateInvCostPeriod', $this->data['buttonPermission'] ?? [], true);
+                    ?>
+                    <?php if ($canDelete && $isDraft): ?>
+                      <form method="post" action="<?= $_ENV['URL_ADM'] ?>delete-inventory-cost-period" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?= \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_delete_inv_cost_period') ?>">
+                        <input type="hidden" name="id" value="<?= $rowId ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('Excluir o período <?= htmlspecialchars((string)($row['name'] ?? ''), ENT_QUOTES) ?>? DRE, critérios e vínculos deste período serão removidos.')">
+                          Excluir
+                        </button>
+                      </form>
+                    <?php endif; ?>
+                  </td>
                 </tr>
               <?php endforeach; ?>
             <?php endif; ?>

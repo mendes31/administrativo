@@ -62,6 +62,10 @@ class CreateInvCostPeriod
             'date_to' => $dateTo,
             'status' => trim((string)($form['status'] ?? 'draft')) ?: 'draft',
             'kwh_tariff' => $form['kwh_tariff'] ?? null,
+            'energy_kwh_hvac' => $form['energy_kwh_hvac'] ?? null,
+            'energy_kwh_production_common' => $form['energy_kwh_production_common'] ?? null,
+            'energy_kwh_direct_cfix' => $form['energy_kwh_direct_cfix'] ?? null,
+            'energy_auto_split' => array_key_exists('energy_auto_split', $form) ? !empty($form['energy_auto_split']) : true,
             'notes' => trim((string)($form['notes'] ?? '')) ?: null,
         ]);
 

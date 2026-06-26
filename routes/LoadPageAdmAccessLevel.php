@@ -129,6 +129,10 @@ class LoadPageAdmAccessLevel
             'RoomBookingSlotHold' => "\\App\\adms\\Controllers\\rooms\\RoomBookingSlotHold",
             // Reserva de salas: modelo CSV + POST de importação por sala (rota técnica; permissão no controller).
             'ImportRoomBookings' => "\\App\\adms\\Controllers\\rooms\\ImportRoomBookings",
+            'ImportInvCostDre' => "\\App\\adms\\Controllers\\inventory\\ImportInvCostDre",
+            'SaveInvCostAllocationRules' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostAllocationRules",
+            'DownloadInvCostDreTemplate' => "\\App\\adms\\Controllers\\inventory\\DownloadInvCostDreTemplate",
+            'DeleteInvCostPeriod' => "\\App\\adms\\Controllers\\inventory\\DeleteInvCostPeriod",
             'SstPacoteExamesAso' => "\\App\\adms\\Controllers\\sst\\SstPacoteExamesAso",
         ];
         if (isset($internalAjaxMap[$this->urlController])) {
@@ -352,6 +356,26 @@ class LoadPageAdmAccessLevel
             // Lista de reservas: utilizadores com fluxo de reserva sem página "ListBookings" explícita.
             if ($ctrl === 'ListBookings' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
                 'ListBookings', 'ViewBooking', 'CreateBooking', 'UpdateBooking', 'CancelBooking',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'ImportInvCostDre' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'ImportInvCostDre', 'ViewInvCostPeriod', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'SaveInvCostAllocationRules' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'SaveInvCostAllocationRules', 'ViewInvCostPeriod', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'DownloadInvCostDreTemplate' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'DownloadInvCostDreTemplate', 'ViewInvCostPeriod', 'ImportInvCostDre', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'DeleteInvCostPeriod' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'DeleteInvCostPeriod', 'CreateInvCostPeriod', 'UpdateInvCostPeriod', 'ListInvCostPeriods',
             ])) {
                 return true;
             }

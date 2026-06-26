@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Helpers\InvCostSimulationStructureHelper;
+use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
 use App\adms\Models\Repository\inventory\InvCostSimulationsRepository;
@@ -13,6 +14,8 @@ use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
+use App\adms\Models\Services\InvCostFixedAllocationEngine;
+use App\adms\Models\Services\InvCostPeriodDriversService;
 use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Models\Services\InventoryCostService;
 use App\adms\Views\Services\LoadViewService;
@@ -95,6 +98,10 @@ class SimulateInventoryCost
 
         $productionAggregation = null;
         $currentItemProduction = null;
+        $periodDrivers = null;
+        $currentItemPeriodDrivers = null;
+        $cfixAllocation = null;
+        $suggestedPrice = null;
         if ($periodId > 0) {
             $aggService = new InvCostProductionAggregationService();
             $productionAggregation = $aggService->aggregateByPeriod($periodId, $warehouseCodes);
@@ -104,9 +111,33 @@ class SimulateInventoryCost
                 $itemId,
                 $erpCode !== '' ? $erpCode : null
             );
+
+            $driversService = new InvCostPeriodDriversService();
+            $periodDrivers = $driversService->aggregateDriversByPeriod($periodId, $warehouseCodes);
+            $currentItemPeriodDrivers = $driversService->findItemInDrivers(
+                $periodDrivers,
+                $itemId,
+                $erpCode !== '' ? $erpCode : null
+            );
+
+            $cfixEngine = new InvCostFixedAllocationEngine();
+            $cfixAllocation = $cfixEngine->allocateForItem($periodId, $itemId, $warehouseCodes);
+
+            $periodItem = (new InvCostPeriodItemsRepository())->getOne($periodId, $itemId);
+            $targetMargin = is_array($periodItem) ? (float)($periodItem['target_margin_pct'] ?? 0) : 0.0;
+            $simUnit = (float)($this->data['breakdown']['simulated_total'] ?? 0);
+            $cfixUnit = (float)($cfixAllocation['cfix_total'] ?? 0);
+            $fullCost = $simUnit + $cfixUnit;
+            if ($targetMargin > 0 && $targetMargin < 100 && $fullCost > 0) {
+                $suggestedPrice = round($fullCost / (1 - ($targetMargin / 100)), 4);
+            }
         }
         $this->data['production_aggregation'] = $productionAggregation;
         $this->data['current_item_production'] = $currentItemProduction;
+        $this->data['period_drivers'] = $periodDrivers;
+        $this->data['current_item_period_drivers'] = $currentItemPeriodDrivers;
+        $this->data['cfix_allocation'] = $cfixAllocation;
+        $this->data['suggested_price'] = $suggestedPrice;
 
         $_SESSION['menu_override'] = 'ListInventoryItems';
 

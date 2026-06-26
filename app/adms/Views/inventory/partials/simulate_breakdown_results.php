@@ -33,6 +33,18 @@ $machineHours = (float)($breakdown['machine_hours'] ?? 0);
 $routeOpsUnit = (float)($breakdown['operations_cost'] ?? 0);
 $simRouteOpsUnit = (float)($breakdown['simulated_operations_cost'] ?? 0);
 
+$currentItemProduction = $currentItemProduction ?? null;
+$currentItemPeriodDrivers = $currentItemPeriodDrivers ?? null;
+$cfixAllocation = $cfixAllocation ?? null;
+$suggestedPrice = $suggestedPrice ?? null;
+$batchesInPeriod = is_array($currentItemProduction) ? (int)($currentItemProduction['batches_count'] ?? 0) : 0;
+$qtyInPeriod = is_array($currentItemProduction) ? (float)($currentItemProduction['qty_produced'] ?? 0) : 0.0;
+$hhPeriodSim = $batchesInPeriod > 0 ? round($laborHours * $batchesInPeriod, 4) : null;
+$hmPeriodSim = $batchesInPeriod > 0 ? round($machineHours * $batchesInPeriod, 4) : null;
+$cfixPeriodTotal = is_array($cfixAllocation) ? (float)($cfixAllocation['cfix_total'] ?? 0) : 0.0;
+$cfixPerSku = ($cfixPeriodTotal > 0 && $qtyInPeriod > 0) ? round($cfixPeriodTotal / $qtyInPeriod, 6) : 0.0;
+$fullCostSim = $simUnit + $cfixPerSku;
+
 $fmtMoney = static fn(float $v): string => number_format($v, 4, ',', '.');
 $fmtPct = static fn(float $v): string => number_format($v, 2, ',', '.');
 $fmtHours = static fn(float $v): string => number_format($v, 4, ',', '.');
@@ -68,7 +80,14 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
         <div class="card-body py-3 px-3">
           <div class="text-muted text-uppercase small mb-1">HH (lote)</div>
           <div class="fs-5 fw-semibold text-info-emphasis mb-0"><?= $fmtHours($laborHours) ?> h</div>
-          <div class="small text-muted mt-1">tempo × qtd MO (ou operadores)</div>
+          <?php if ($hhPeriodSim !== null): ?>
+            <div class="small text-muted mt-1">Período: <strong><?= $fmtHours($hhPeriodSim) ?> h</strong> (<?= $batchesInPeriod ?> lote(s))</div>
+            <?php if (is_array($currentItemPeriodDrivers)): ?>
+              <div class="small text-muted">Rateio 2 (cad.): <?= $fmtPct((float)($currentItemPeriodDrivers['share_criterion_2'] ?? 0)) ?>%</div>
+            <?php endif; ?>
+          <?php else: ?>
+            <div class="small text-muted mt-1">tempo × qtd MO (ou operadores)</div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -77,11 +96,54 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
         <div class="card-body py-3 px-3">
           <div class="text-muted text-uppercase small mb-1">HM (lote)</div>
           <div class="fs-5 fw-semibold mb-0"><?= $fmtHours($machineHours) ?> h</div>
-          <div class="small text-muted mt-1">etapas com equipamento/recurso</div>
+          <?php if ($hmPeriodSim !== null): ?>
+            <div class="small text-muted mt-1">Período: <strong><?= $fmtHours($hmPeriodSim) ?> h</strong> (<?= $batchesInPeriod ?> lote(s))</div>
+            <?php if (is_array($currentItemPeriodDrivers)): ?>
+              <div class="small text-muted">Rateio 3 (cad.): <?= $fmtPct((float)($currentItemPeriodDrivers['share_criterion_3'] ?? 0)) ?>%</div>
+            <?php endif; ?>
+          <?php else: ?>
+            <div class="small text-muted mt-1">etapas com equipamento/recurso</div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
   </div>
+
+  <?php if ($cfixPeriodTotal > 0 || $suggestedPrice !== null): ?>
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+      <div class="card border-0 bg-dark bg-opacity-10 h-100">
+        <div class="card-body py-3 px-3">
+          <div class="text-muted text-uppercase small mb-1">CFIX (período)</div>
+          <div class="fs-5 fw-semibold mb-0">R$ <?= $fmtMoney($cfixPeriodTotal) ?></div>
+          <?php if ($cfixPerSku > 0): ?>
+            <div class="small text-muted mt-1">≈ R$ <?= $fmtMoney($cfixPerSku) ?> / SKU (÷ <?= number_format($qtyInPeriod, 2, ',', '.') ?> un.)</div>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card border-0 bg-secondary bg-opacity-10 h-100">
+        <div class="card-body py-3 px-3">
+          <div class="text-muted text-uppercase small mb-1">Custo pleno (sim. + CFIX/SKU)</div>
+          <div class="fs-5 fw-semibold mb-0">R$ <?= $fmtMoney($fullCostSim) ?></div>
+          <div class="small text-muted mt-1">CVAR sim. R$ <?= $fmtMoney($simUnit) ?> + CFIX rateado</div>
+        </div>
+      </div>
+    </div>
+    <?php if ($suggestedPrice !== null): ?>
+    <div class="col-12 col-md-4">
+      <div class="card border-0 bg-success bg-opacity-10 h-100">
+        <div class="card-body py-3 px-3">
+          <div class="text-muted text-uppercase small mb-1">Preço sugerido</div>
+          <div class="fs-5 fw-semibold text-success mb-0">R$ <?= $fmtMoney((float)$suggestedPrice) ?></div>
+          <div class="small text-muted mt-1">Margem alvo cadastrada no período/SKU</div>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
 
   <div class="row g-3 mb-3">
     <div class="col-12 col-lg-4">
@@ -178,10 +240,13 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
   <details class="border rounded bg-light small">
     <summary class="px-3 py-2 fw-semibold user-select-none" style="cursor:pointer">Como são calculados HH, HM e o que ainda falta</summary>
     <div class="px-3 pb-3 text-muted border-top">
-      <p class="mb-2 mt-2"><strong>HH</strong> = Σ (tempo da operação em h × qtd MO cadastrada; se não houver linhas de MO, usa <em>qtd. operadores</em> da operação).</p>
-      <p class="mb-2"><strong>HM</strong> = Σ tempo em h das etapas que têm equipamento/recurso (máq., energia ou linhas de recurso).</p>
+      <p class="mb-2 mt-2"><strong>HH (lote)</strong> = Σ (tempo da operação em h × qtd MO cadastrada; se não houver linhas de MO, usa <em>qtd. operadores</em> da operação).</p>
+      <p class="mb-2"><strong>HH (período)</strong> = HH do lote simulado × quantidade de lotes produzidos no período (filtro por <em>data prod.</em> em Lotes produzidos).</p>
+      <p class="mb-2"><strong>HM (lote)</strong> = Σ tempo em h das etapas que têm equipamento/recurso (máq., energia ou linhas de recurso).</p>
+      <p class="mb-2"><strong>HM (período)</strong> = HM do lote × lotes produzidos no período. <strong>Rateio 2/3</strong> usa a rota cadastrada de todos os SKUs do período.</p>
       <p class="mb-2"><strong>CVAR materiais</strong> no card = MP + MAE (detalhe por grupo nos cards abaixo).</p>
-      <p class="mb-1"><strong>Ainda fora do total:</strong> CFIX e rateios 1–8 (folha adm., energia HVAC, área comum) — Fase 2 do custeio fabril.</p>
+      <p class="mb-1"><strong>CFIX:</strong> importe o DRE no período, vincule cada conta a um critério (1–8) e o sistema rateia sobre os drivers do período. O valor/SKU divide o CFIX do item pela qty produzida.</p>
+      <p class="mb-1"><strong>Ainda em evolução:</strong> redistribuições Pasta 9, HVAC anual, critérios 4–8 sem cadastro de complexidade no SKU/período.</p>
     </div>
   </details>
 </div>

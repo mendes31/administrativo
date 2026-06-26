@@ -13,6 +13,19 @@ $warehouseScope = (string)($this->data['warehouse_scope'] ?? 'all');
 $selectedWarehouseCodes = $this->data['selected_warehouse_codes'] ?? [];
 $productionAggregation = $this->data['production_aggregation'] ?? null;
 $currentItemProduction = $this->data['current_item_production'] ?? null;
+$periodDrivers = $this->data['period_drivers'] ?? null;
+$currentItemPeriodDrivers = $this->data['current_item_period_drivers'] ?? null;
+$cfixAllocation = $this->data['cfix_allocation'] ?? null;
+$suggestedPrice = $this->data['suggested_price'] ?? null;
+$driversByErp = [];
+if (is_array($periodDrivers)) {
+    foreach ($periodDrivers['items'] ?? [] as $driverRow) {
+        $code = (string)($driverRow['erp_code'] ?? '');
+        if ($code !== '') {
+            $driversByErp[$code] = $driverRow;
+        }
+    }
+}
 $isProjectItem = !empty($this->data['is_project_item']);
 $itemId = (int)($this->data['selected_item_id'] ?? 0);
 $batchSize = (float)($scenario['standard_batch_size'] ?? ($breakdown['standard_batch_size'] ?? 1));
@@ -250,11 +263,32 @@ $renderCostBreakdown = static function (
               · Total período: <strong><?= number_format((float)($productionAggregation['total_qty'] ?? 0), 2, ',', '.') ?> un.</strong>
             </div>
             <?php if (is_array($currentItemProduction)): ?>
+              <?php
+                $batchesInPeriod = (int)($currentItemProduction['batches_count'] ?? 0);
+                $simHhPeriod = is_array($breakdown)
+                  ? round((float)($breakdown['labor_hours'] ?? 0) * $batchesInPeriod, 4)
+                  : null;
+                $simHmPeriod = is_array($breakdown)
+                  ? round((float)($breakdown['machine_hours'] ?? 0) * $batchesInPeriod, 4)
+                  : null;
+              ?>
               <div class="alert alert-info py-2 px-3 mt-3 mb-0 small">
                 <strong>Este item:</strong>
                 <?= number_format((float)($currentItemProduction['qty_produced'] ?? 0), 2, ',', '.') ?> un. produzidas
-                · <?= (int)($currentItemProduction['batches_count'] ?? 0) ?> lote(s)
-                · <strong><?= $fmtPct((float)($currentItemProduction['share_criterion_1'] ?? 0)) ?>%</strong> do rateio 1
+                · <?= $batchesInPeriod ?> lote(s) (data prod. no período)
+                · rateio 1: <strong><?= $fmtPct((float)($currentItemProduction['share_criterion_1'] ?? 0)) ?>%</strong>
+                <?php if ($simHhPeriod !== null && $batchesInPeriod > 0): ?>
+                  · HH período (sim.): <strong><?= $fmtHours($simHhPeriod) ?> h</strong>
+                  <?php if (is_array($currentItemPeriodDrivers)): ?>
+                    · rateio 2 (rota cad.): <strong><?= $fmtPct((float)($currentItemPeriodDrivers['share_criterion_2'] ?? 0)) ?>%</strong>
+                  <?php endif; ?>
+                <?php endif; ?>
+                <?php if ($simHmPeriod !== null && $batchesInPeriod > 0): ?>
+                  · HM período (sim.): <strong><?= $fmtHours($simHmPeriod) ?> h</strong>
+                  <?php if (is_array($currentItemPeriodDrivers)): ?>
+                    · rateio 3 (rota cad.): <strong><?= $fmtPct((float)($currentItemPeriodDrivers['share_criterion_3'] ?? 0)) ?>%</strong>
+                  <?php endif; ?>
+                <?php endif; ?>
               </div>
             <?php elseif ($selectedPeriodId > 0): ?>
               <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
@@ -314,7 +348,11 @@ $renderCostBreakdown = static function (
                 <th>Descrição</th>
                 <th class="text-end">Qtd produzida</th>
                 <th class="text-end">Lotes</th>
-                <th class="text-end pe-3">% rateio 1</th>
+                <th class="text-end">% rateio 1</th>
+                <th class="text-end">HH período</th>
+                <th class="text-end">% rateio 2</th>
+                <th class="text-end">HM período</th>
+                <th class="text-end pe-3">% rateio 3</th>
               </tr>
             </thead>
             <tbody>
@@ -328,7 +366,12 @@ $renderCostBreakdown = static function (
                   <td><?= htmlspecialchars((string)($prodRow['description'] ?? '')) ?></td>
                   <td class="text-end text-nowrap"><?= number_format((float)($prodRow['qty_produced'] ?? 0), 2, ',', '.') ?></td>
                   <td class="text-end"><?= (int)($prodRow['batches_count'] ?? 0) ?></td>
-                  <td class="text-end pe-3"><?= $fmtPct((float)($prodRow['share_criterion_1'] ?? 0)) ?>%</td>
+                  <td class="text-end"><?= $fmtPct((float)($prodRow['share_criterion_1'] ?? 0)) ?>%</td>
+                  <?php $driverRow = $driversByErp[(string)($prodRow['erp_code'] ?? '')] ?? null; ?>
+                  <td class="text-end text-nowrap"><?= is_array($driverRow) ? $fmtHours((float)($driverRow['hh_period'] ?? 0)) : '—' ?></td>
+                  <td class="text-end"><?= is_array($driverRow) ? $fmtPct((float)($driverRow['share_criterion_2'] ?? 0)) . '%' : '—' ?></td>
+                  <td class="text-end text-nowrap"><?= is_array($driverRow) ? $fmtHours((float)($driverRow['hm_period'] ?? 0)) : '—' ?></td>
+                  <td class="text-end pe-3"><?= is_array($driverRow) ? $fmtPct((float)($driverRow['share_criterion_3'] ?? 0)) . '%' : '—' ?></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>
