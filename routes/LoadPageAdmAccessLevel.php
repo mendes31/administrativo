@@ -131,6 +131,9 @@ class LoadPageAdmAccessLevel
             'ImportRoomBookings' => "\\App\\adms\\Controllers\\rooms\\ImportRoomBookings",
             'ImportInvCostDre' => "\\App\\adms\\Controllers\\inventory\\ImportInvCostDre",
             'SaveInvCostAllocationRules' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostAllocationRules",
+            'SaveInvCostPeriodItems' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostPeriodItems",
+            'SaveInvCostPeriodScenarioProduction' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostPeriodScenarioProduction",
+            'ExportInvCostPeriodSkuResults' => "\\App\\adms\\Controllers\\inventory\\ExportInvCostPeriodSkuResults",
             'DownloadInvCostDreTemplate' => "\\App\\adms\\Controllers\\inventory\\DownloadInvCostDreTemplate",
             'DeleteInvCostPeriod' => "\\App\\adms\\Controllers\\inventory\\DeleteInvCostPeriod",
             'SstPacoteExamesAso' => "\\App\\adms\\Controllers\\sst\\SstPacoteExamesAso",
@@ -366,6 +369,21 @@ class LoadPageAdmAccessLevel
             }
             if ($ctrl === 'SaveInvCostAllocationRules' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
                 'SaveInvCostAllocationRules', 'ViewInvCostPeriod', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'SaveInvCostPeriodItems' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'SaveInvCostPeriodItems', 'ViewInvCostPeriod', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'SaveInvCostPeriodScenarioProduction' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'SaveInvCostPeriodScenarioProduction', 'ViewInvCostPeriod', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'ExportInvCostPeriodSkuResults' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'ExportInvCostPeriodSkuResults', 'ViewInvCostPeriod', 'ListInvCostPeriods',
             ])) {
                 return true;
             }

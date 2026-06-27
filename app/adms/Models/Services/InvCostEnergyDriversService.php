@@ -20,17 +20,15 @@ class InvCostEnergyDriversService
 
         $criteria = (new InvCostCriterionDriversService())->aggregateAllCriteria($periodId, $warehouseCodes);
         $tariff = (float)($criteria['period']['kwh_tariff'] ?? 0);
-        $total = 0.0;
+        if ($tariff <= 0) {
+            return 0.0;
+        }
 
+        $total = 0.0;
         foreach ($criteria['items'] ?? [] as $row) {
             $driver7 = (float)($row['driver_7'] ?? 0);
-            if ($driver7 <= 0) {
-                continue;
-            }
-            if ($tariff > 0) {
+            if ($driver7 > 0) {
                 $total += $driver7 / $tariff;
-            } else {
-                $total += $driver7;
             }
         }
 

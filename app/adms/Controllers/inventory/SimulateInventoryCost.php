@@ -56,7 +56,11 @@ class SimulateInventoryCost
         $isProjectItem = InvCostProjectHelper::isProjectItem($item);
 
         $editBom = $structureHelper->resolveBomLinesForEdit($itemId, $requestData, $isProjectItem, true);
-        $editOperations = $structureHelper->resolveOperationLinesForEdit($itemId, $requestData, $batchSize);
+        $editOperations = $structureHelper->resolveOperationLinesForEdit(
+            itemId: $itemId,
+            request: $requestData,
+            batchSize: $batchSize
+        );
 
         $scenario = [
             'material_adjust_pct' => $this->parsePct($this->input('material_adjust_pct', '0')),
@@ -97,6 +101,10 @@ class SimulateInventoryCost
                         (float)($productionEfficiency['min_batch_size'] ?? 0) ?: null
                     );
                 }
+                $tariff = (float)($period['kwh_tariff'] ?? 0);
+                if ($tariff > 0) {
+                    $scenario['kwh_tariff'] = $tariff;
+                }
             }
         }
 
@@ -127,6 +135,7 @@ class SimulateInventoryCost
         $currentItemProduction = null;
         $periodDrivers = null;
         $currentItemPeriodDrivers = null;
+        $currentItemCriterionDrivers = null;
         $cfixAllocation = null;
         $suggestedPrice = null;
         if ($periodId > 0) {
@@ -147,6 +156,13 @@ class SimulateInventoryCost
                 $erpCode !== '' ? $erpCode : null
             );
 
+            $criterionAggregation = (new InvCostCriterionDriversService())->aggregateAllCriteria($periodId, $warehouseCodes);
+            $currentItemCriterionDrivers = (new InvCostCriterionDriversService())->findItemShares(
+                $criterionAggregation,
+                $itemId,
+                $erpCode !== '' ? $erpCode : null
+            );
+
             $cfixEngine = new InvCostFixedAllocationEngine();
             $cfixAllocation = $cfixEngine->allocateForItem($periodId, $itemId, $warehouseCodes);
 
@@ -163,6 +179,7 @@ class SimulateInventoryCost
         $this->data['current_item_production'] = $currentItemProduction;
         $this->data['period_drivers'] = $periodDrivers;
         $this->data['current_item_period_drivers'] = $currentItemPeriodDrivers;
+        $this->data['current_item_criterion_drivers'] = $currentItemCriterionDrivers ?? null;
         $this->data['cfix_allocation'] = $cfixAllocation;
         $this->data['suggested_price'] = $suggestedPrice;
 

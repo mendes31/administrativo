@@ -174,6 +174,44 @@ use App\adms\Helpers\CSRFHelper;
 									title="Tamanho de lote teórico para eficiência de produção e rateio na simulação.">
 							</div>
 
+							<div class="col-12">
+								<hr class="my-1">
+								<p class="small text-muted mb-0">Parâmetros de rateio CFIX (critérios 4, 6 e 8). Alterações aqui refletem na simulação e no período de custeio.</p>
+							</div>
+
+							<div class="col-12 col-md-3">
+								<label for="energy_class" class="form-label">Classe energia (HVAC)</label>
+								<?php $energyClass = mb_strtoupper(trim((string)($this->data['form']['energy_class'] ?? '')), 'UTF-8'); ?>
+								<select name="energy_class" id="energy_class" class="form-select">
+									<option value=""<?= $energyClass === '' ? ' selected' : '' ?>>— automático pela descrição</option>
+									<option value="CM"<?= $energyClass === 'CM' ? ' selected' : '' ?>>CM — Cápsula mole</option>
+									<option value="PROB"<?= $energyClass === 'PROB' ? ' selected' : '' ?>>PROB — Probiótico</option>
+									<option value="OTHER"<?= $energyClass === 'OTHER' ? ' selected' : '' ?>>OTHER — Outros</option>
+								</select>
+							</div>
+
+							<div class="col-12 col-md-3">
+								<label for="complexity_level" class="form-label">Complexidade</label>
+								<?php $complexity = mb_strtolower(trim((string)($this->data['form']['complexity_level'] ?? 'media')), 'UTF-8');
+								if (!in_array($complexity, ['baixa', 'media', 'alta'], true)) { $complexity = 'media'; } ?>
+								<select name="complexity_level" id="complexity_level" class="form-select">
+									<option value="baixa"<?= $complexity === 'baixa' ? ' selected' : '' ?>>Baixa</option>
+									<option value="media"<?= $complexity === 'media' ? ' selected' : '' ?>>Média</option>
+									<option value="alta"<?= $complexity === 'alta' ? ' selected' : '' ?>>Alta</option>
+								</select>
+							</div>
+
+							<div class="col-12 col-md-3">
+								<label for="production_line" class="form-label">Linha de produção</label>
+								<?php $productionLine = mb_strtoupper(trim((string)($this->data['form']['production_line'] ?? '')), 'UTF-8'); ?>
+								<select name="production_line" id="production_line" class="form-select">
+									<option value=""<?= $productionLine === '' ? ' selected' : '' ?>>— não informada</option>
+									<option value="TERCEIRO"<?= $productionLine === 'TERCEIRO' ? ' selected' : '' ?>>TERCEIRO</option>
+									<option value="TIARAJU"<?= $productionLine === 'TIARAJU' ? ' selected' : '' ?>>TIARAJU</option>
+								</select>
+								<div class="form-text">Usada em critérios de rateio CFIX (ex.: HH por linha).</div>
+							</div>
+
 							<div class="col-12 col-md-3">
 								<label for="min_stock" class="form-label">Estoque mínimo</label>
 								<input type="number" step="0.0001" min="0" name="min_stock" id="min_stock" class="form-control" value="<?php echo $this->data['form']['min_stock'] ?? ''; ?>">

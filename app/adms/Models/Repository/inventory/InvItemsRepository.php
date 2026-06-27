@@ -103,8 +103,8 @@ class InvItemsRepository extends DbConnection
 	public function create(array $data): int|bool
 	{
 		try {
-            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, standard_batch_size, active, created_at)
-                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :standard_batch_size, :active, :created_at)';
+            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, standard_batch_size, energy_class, complexity_level, production_line, active, created_at)
+                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :standard_batch_size, :energy_class, :complexity_level, :production_line, :active, :created_at)';
 			$stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':code', $data['code']);
             $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
@@ -117,6 +117,9 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':min_stock', $data['min_stock'] ?? 0);
 			$stmt->bindValue(':max_stock', $data['max_stock'] ?? 0);
 			$stmt->bindValue(':standard_batch_size', max(0.000001, (float)($data['standard_batch_size'] ?? 1)));
+			$stmt->bindValue(':energy_class', $this->nullableString($data['energy_class'] ?? null), $this->nullableString($data['energy_class'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? 'media'));
+			$stmt->bindValue(':production_line', $this->nullableString($data['production_line'] ?? null), $this->nullableString($data['production_line'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
 			$stmt->execute();
@@ -149,7 +152,8 @@ class InvItemsRepository extends DbConnection
 			$oldRow = $this->getItemRowById($id);
             $sql = 'UPDATE inv_items SET code = :code, erp_code = :erp_code, description = :description, inv_unit_id = :inv_unit_id, inv_category_id = :inv_category_id,
 				admin_type = :admin_type, average_cost = :average_cost, last_cost = :last_cost, min_stock = :min_stock, max_stock = :max_stock,
-				standard_batch_size = :standard_batch_size, active = :active, updated_at = :updated_at WHERE id = :id';
+				standard_batch_size = :standard_batch_size, energy_class = :energy_class, complexity_level = :complexity_level,
+                production_line = :production_line, active = :active, updated_at = :updated_at WHERE id = :id';
 			$stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':code', $data['code']);
             $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
@@ -162,6 +166,9 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':min_stock', $data['min_stock'] ?? 0);
 			$stmt->bindValue(':max_stock', $data['max_stock'] ?? 0);
 			$stmt->bindValue(':standard_batch_size', max(0.000001, (float)($data['standard_batch_size'] ?? ($oldRow['standard_batch_size'] ?? 1))));
+			$stmt->bindValue(':energy_class', $this->nullableString($data['energy_class'] ?? null), $this->nullableString($data['energy_class'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? ($oldRow['complexity_level'] ?? 'media')));
+			$stmt->bindValue(':production_line', $this->nullableString($data['production_line'] ?? null), $this->nullableString($data['production_line'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
 			$stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -260,6 +267,24 @@ class InvItemsRepository extends DbConnection
 		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 	}
 
+	/**
+	 * PAs em fase de projeto (simulação de custeio / nova coluna na planilha).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function getProjectItemsForSelect(): array
+	{
+		$sql = "SELECT i.id, i.code, i.description, i.erp_code, c.name AS category_name
+				FROM inv_items i
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE i.active = 1
+				  AND UPPER(TRIM(c.name)) = 'PA - PROJETO'
+				ORDER BY i.description ASC";
+		$stmt = $this->getConnection()->query($sql);
+
+		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+	}
+
 	public function findByErpCode(string $erpCode): ?array
 	{
 		$erpCode = trim($erpCode);
@@ -271,6 +296,72 @@ class InvItemsRepository extends DbConnection
 		$stmt->execute();
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 		return $row !== false ? $row : null;
+	}
+
+	/**
+	 * Carrega metadados de itens por id e/ou erp_code (uma query).
+	 *
+	 * @param list<int> $ids
+	 * @param list<string> $erpCodes
+	 * @return array{by_id: array<int, array<string, mixed>>, by_erp: array<string, array<string, mixed>>}
+	 */
+	public function getDetailedMapForProduction(array $ids, array $erpCodes): array
+	{
+		$byId = [];
+		$byErp = [];
+		$idList = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $v): bool => $v > 0)));
+		$erpList = array_values(array_unique(array_filter(array_map(
+			static fn(string $c): string => trim($c),
+			$erpCodes
+		), static fn(string $c): bool => $c !== '')));
+
+		if ($idList === [] && $erpList === []) {
+			return ['by_id' => $byId, 'by_erp' => $byErp];
+		}
+
+		$conds = [];
+		$params = [];
+		if ($idList !== []) {
+			$ph = [];
+			foreach ($idList as $i => $id) {
+				$key = ':id' . $i;
+				$ph[] = $key;
+				$params[$key] = $id;
+			}
+			$conds[] = 'i.id IN (' . implode(', ', $ph) . ')';
+		}
+		if ($erpList !== []) {
+			$ph = [];
+			foreach ($erpList as $i => $erp) {
+				$key = ':erp' . $i;
+				$ph[] = $key;
+				$params[$key] = $erp;
+			}
+			$conds[] = 'i.erp_code IN (' . implode(', ', $ph) . ')';
+		}
+
+		$sql = 'SELECT i.*, u.name AS unit_name, c.name AS category_name
+				FROM inv_items i
+				LEFT JOIN inv_units u ON u.id = i.inv_unit_id
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE ' . implode(' OR ', $conds);
+		$stmt = $this->getConnection()->prepare($sql);
+		foreach ($params as $key => $value) {
+			$stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+		}
+		$stmt->execute();
+		foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+			$id = (int)($row['id'] ?? 0);
+			if ($id > 0) {
+				$byId[$id] = $row;
+			}
+			$erp = trim((string)($row['erp_code'] ?? ''));
+			if ($erp !== '') {
+				$byErp[mb_strtoupper($erp, 'UTF-8')] = $row;
+			}
+		}
+
+		return ['by_id' => $byId, 'by_erp' => $byErp];
 	}
 
 	public function getIdsByCategoryNameKeywords(array $keywords): array
@@ -313,6 +404,20 @@ class InvItemsRepository extends DbConnection
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		return $row !== false ? $row : null;
+	}
+
+	private function nullableString(mixed $value): ?string
+	{
+		$s = trim((string)($value ?? ''));
+
+		return $s !== '' ? $s : null;
+	}
+
+	private function normalizeComplexityLevel(mixed $value): string
+	{
+		$level = mb_strtolower(trim((string)($value ?? 'media')), 'UTF-8');
+
+		return in_array($level, ['baixa', 'media', 'alta'], true) ? $level : 'media';
 	}
 }
 

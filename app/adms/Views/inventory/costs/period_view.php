@@ -18,6 +18,19 @@ $canImport = in_array('ImportInvCostDre', $this->data['buttonPermission'] ?? [],
   || in_array('ViewInvCostPeriod', $this->data['buttonPermission'] ?? [], true);
 $canSaveRules = in_array('SaveInvCostAllocationRules', $this->data['buttonPermission'] ?? [], true)
   || in_array('ViewInvCostPeriod', $this->data['buttonPermission'] ?? [], true);
+$canSavePeriodItems = in_array('SaveInvCostPeriodItems', $this->data['buttonPermission'] ?? [], true)
+  || in_array('ViewInvCostPeriod', $this->data['buttonPermission'] ?? [], true);
+$productionItems = $this->data['production_items'] ?? [];
+$productionItemsCount = (int)($this->data['production_items_all_count'] ?? count($productionItems));
+$productionItemsFilteredCount = count($productionItems);
+$skuFilter = trim((string)($this->data['sku_filter'] ?? ''));
+$activeTab = (string)($_GET['tab'] ?? 'despesas');
+if (!in_array($activeTab, ['despesas', 'skus', 'resultados'], true)) {
+    $activeTab = 'despesas';
+}
+$tabDespesasActive = $activeTab === 'despesas';
+$tabSkusActive = $activeTab === 'skus';
+$tabResultadosActive = $activeTab === 'resultados';
 $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
 ?>
 <div class="container-fluid px-4 pb-4">
@@ -74,6 +87,41 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
       </div>
     </div>
   </div>
+
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link<?= $tabDespesasActive ? ' active' : '' ?>" id="tab-despesas" data-bs-toggle="tab"
+        data-bs-target="#pane-despesas" type="button" role="tab" aria-controls="pane-despesas"
+        aria-selected="<?= $tabDespesasActive ? 'true' : 'false' ?>">
+        Despesas e critérios de rateio
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link<?= $tabSkusActive ? ' active' : '' ?>" id="tab-skus" data-bs-toggle="tab"
+        data-bs-target="#pane-skus" type="button" role="tab" aria-controls="pane-skus"
+        aria-selected="<?= $tabSkusActive ? 'true' : 'false' ?>">
+        SKUs produzidos no período
+        <?php if ($productionItemsCount > 0): ?>
+          <span class="badge bg-secondary ms-1"><?= $skuFilter !== '' ? $productionItemsFilteredCount . '/' . $productionItemsCount : $productionItemsCount ?></span>
+        <?php endif; ?>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link<?= $tabResultadosActive ? ' active' : '' ?>" id="tab-resultados" data-bs-toggle="tab"
+        data-bs-target="#pane-resultados" type="button" role="tab" aria-controls="pane-resultados"
+        aria-selected="<?= $tabResultadosActive ? 'true' : 'false' ?>">
+        Resultados por SKU
+        <?php
+        $skuResultsCount = (int)($this->data['sku_results_all_count'] ?? 0);
+        if ($skuResultsCount > 0): ?>
+          <span class="badge bg-secondary ms-1"><?= $skuFilter !== '' ? count($this->data['sku_results'] ?? []) . '/' . $skuResultsCount : $skuResultsCount ?></span>
+        <?php endif; ?>
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade<?= $tabDespesasActive ? ' show active' : '' ?>" id="pane-despesas" role="tabpanel" aria-labelledby="tab-despesas" tabindex="0">
 
   <div class="card border-light shadow mb-4">
     <div class="card-header hstack gap-2 flex-wrap">
@@ -169,6 +217,11 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
               <label class="form-check-label" for="replace_previous">Substituir despesas anteriores deste período</label>
               <div class="form-text">Marcado (padrão): apaga tudo e importa de novo. Desmarcado: atualiza cada conta pelo código, sem duplicar linhas.</div>
             </div>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" name="apply_suggested_criteria" value="1" id="apply_suggested_criteria" checked>
+              <label class="form-check-label" for="apply_suggested_criteria">Aplicar mapa de critérios sugeridos</label>
+              <div class="form-text">Vincula critérios 1–8 às contas do CSV (exceto conta 29 pai e linhas que já têm critério).</div>
+            </div>
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-file-import me-1"></i> Importar</button>
@@ -181,10 +234,10 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
   <?php endif; ?>
 
   <div class="card border-light shadow mb-4">
-    <div class="card-header fw-semibold">Despesas e critérios de rateio</div>
+    <div class="card-header fw-semibold">Linhas importadas do DRE</div>
     <div class="card-body p-0">
       <?php if ($expensePools === []): ?>
-        <p class="text-muted p-4 mb-0">Nenhuma despesa importada. Use o formulário acima para carregar o DRE.</p>
+        <p class="text-muted p-4 mb-0">Nenhuma despesa importada. Use a aba <strong>Despesas e critérios de rateio</strong> para carregar o DRE.</p>
       <?php else: ?>
         <form method="post" action="<?= $_ENV['URL_ADM'] ?>view-inventory-cost-period/<?= $periodId ?>">
           <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_save_inv_cost_allocation_rules') ?>">
@@ -267,4 +320,27 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
       </div>
     </div>
   <?php endif; ?>
+
+    </div><!-- /pane-despesas -->
+
+    <div class="tab-pane fade<?= $tabSkusActive ? ' show active' : '' ?>" id="pane-skus" role="tabpanel" aria-labelledby="tab-skus" tabindex="0">
+      <?php
+      $scenarioRows = $this->data['scenario_rows'] ?? [];
+      $projectItems = $this->data['project_items'] ?? [];
+      $canSaveScenario = (bool)($this->data['can_save_scenario'] ?? false);
+      require __DIR__ . '/period_scenario_production.php';
+      $productionItemsAllCount = $productionItemsCount;
+      require __DIR__ . '/period_production_items.php';
+      ?>
+    </div><!-- /pane-skus -->
+
+    <div class="tab-pane fade<?= $tabResultadosActive ? ' show active' : '' ?>" id="pane-resultados" role="tabpanel" aria-labelledby="tab-resultados" tabindex="0">
+      <?php
+      $skuResults = $this->data['sku_results'] ?? [];
+      $skuResultsAllCount = (int)($this->data['sku_results_all_count'] ?? count($skuResults));
+      require __DIR__ . '/period_sku_results.php';
+      ?>
+    </div><!-- /pane-resultados -->
+
+  </div><!-- /tab-content -->
 </div>

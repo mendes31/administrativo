@@ -8,10 +8,16 @@ use App\adms\Models\Repository\inventory\InvCostAllocationRulesRepository;
 use App\adms\Models\Repository\inventory\InvCostDreImportsRepository;
 use App\adms\Models\Repository\inventory\InvCostExpensePoolsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
+use App\adms\Models\Repository\inventory\InvCostPeriodScenarioProductionRepository;
+use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Services\InvCostCriterionDriversService;
 use App\adms\Models\Services\InvCostDreImportService;
 use App\adms\Models\Services\InvCostEnergyDriversService;
 use App\adms\Models\Services\InvCostEnergyRedistributionService;
 use App\adms\Models\Services\InvCostFixedAllocationEngine;
+use App\adms\Models\Services\InvCostPeriodProductionItemsService;
+use App\adms\Models\Services\InvCostPeriodSkuResultsService;
+use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Views\Services\LoadViewService;
 
 class ViewInvCostPeriod
@@ -68,6 +74,44 @@ class ViewInvCostPeriod
             : null;
         $this->data['energy_pending_total'] = $energyTotal;
         $this->data['energy_direct_kwh_computed'] = (new InvCostEnergyDriversService())->sumDirectKwhByPeriod($periodId);
+        $isClosed = (string)($period['status'] ?? '') === 'closed';
+        $skuFilter = trim((string)($_GET['sku_filter'] ?? ''));
+        $activeTab = (string)($_GET['tab'] ?? 'despesas');
+        if (!in_array($activeTab, ['despesas', 'skus', 'resultados'], true)) {
+            $activeTab = 'despesas';
+        }
+
+        $productionAggService = new InvCostProductionAggregationService();
+        $this->data['production_items_all_count'] = $productionAggService->countSkusInPeriod($periodId);
+        $this->data['sku_filter'] = $skuFilter;
+        $this->data['active_tab'] = $activeTab;
+
+        $productionAggregation = null;
+        $criterionAggregation = null;
+        if (in_array($activeTab, ['skus', 'resultados'], true)) {
+            $productionAggregation = $productionAggService->aggregateByPeriod($periodId);
+            $criterionAggregation = (new InvCostCriterionDriversService())->aggregateAllCriteria($periodId);
+        }
+
+        $productionService = new InvCostPeriodProductionItemsService();
+        if ($activeTab === 'skus') {
+            $this->data['production_items'] = $productionService->listForPeriod(
+                $periodId,
+                null,
+                $skuFilter !== '' ? $skuFilter : null,
+                $productionAggregation,
+                $criterionAggregation
+            );
+        } else {
+            $this->data['production_items'] = [];
+        }
+
+        $this->data['scenario_rows'] = !$isClosed && $activeTab === 'skus'
+            ? (new InvCostPeriodScenarioProductionRepository())->getByPeriod($periodId)
+            : [];
+        $this->data['project_items'] = $activeTab === 'skus'
+            ? (new InvItemsRepository())->getProjectItemsForSelect()
+            : [];
 
         $pageElements = [
             'title_head' => 'Período de Custeio',
@@ -78,11 +122,29 @@ class ViewInvCostPeriod
                 'UpdateInvCostPeriod',
                 'ImportInvCostDre',
                 'SaveInvCostAllocationRules',
+                'SaveInvCostPeriodItems',
+                'SaveInvCostPeriodScenarioProduction',
+                'ExportInvCostPeriodSkuResults',
                 'DownloadInvCostDreTemplate',
             ],
         ];
         $pls = new PageLayoutService();
         $this->data = array_merge($this->data, $pls->configurePageElements($pageElements));
+
+        $this->data['can_save_scenario'] = in_array('SaveInvCostPeriodScenarioProduction', $this->data['buttonPermission'] ?? [], true)
+            || in_array('ViewInvCostPeriod', $this->data['buttonPermission'] ?? [], true);
+
+        $this->data['sku_results_all_count'] = $this->data['production_items_all_count'];
+        if ($activeTab === 'resultados') {
+            $this->data['sku_results'] = (new InvCostPeriodSkuResultsService())->listForPeriod(
+                periodId: $periodId,
+                filter: $skuFilter !== '' ? $skuFilter : null,
+                productionAggregation: $productionAggregation,
+                criterionAggregation: $criterionAggregation
+            );
+        } else {
+            $this->data['sku_results'] = [];
+        }
 
         $loadView = new LoadViewService('adms/Views/inventory/costs/period_view', $this->data);
         $loadView->loadView();
@@ -109,7 +171,8 @@ class ViewInvCostPeriod
             $_FILES['dre_file']['tmp_name'],
             (string)($_FILES['dre_file']['name'] ?? 'dre.csv'),
             !empty($_POST['replace_previous']),
-            isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+            isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+            !isset($_POST['apply_suggested_criteria']) || !empty($_POST['apply_suggested_criteria'])
         );
 
         if ($result['success']) {
@@ -205,9 +268,9 @@ class ViewInvCostPeriod
             1 => '1 — Qty produzida',
             2 => '2 — Homem-hora (HH)',
             3 => '3 — Horas-máquina (HM)',
-            4 => '4 — Complexidade',
+            4 => '4 — Complexidade (CQ/P&D/DA)',
             5 => '5 — Nº matérias-primas',
-            6 => '6 — Complexidade × análises',
+            6 => '6 — Complexidade × análises (CQ/P&D/DA)',
             7 => '7 — Energia (kWh)',
             8 => '8 — HVAC (CM/Prob/Outro)',
         ];

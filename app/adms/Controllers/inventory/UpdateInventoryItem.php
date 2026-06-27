@@ -183,6 +183,9 @@ class UpdateInventoryItem
             'min_stock' => (float)($form['min_stock'] ?? 0),
             'max_stock' => (float)($form['max_stock'] ?? 0),
             'standard_batch_size' => max(0.000001, $this->parseFormDecimal($form['standard_batch_size'] ?? '1')),
+            'energy_class' => $this->normalizeEnergyClass($form['energy_class'] ?? null),
+            'complexity_level' => $this->normalizeComplexityLevel($form['complexity_level'] ?? 'media'),
+            'production_line' => $this->normalizeProductionLine($form['production_line'] ?? null),
             'active' => isset($form['active']) ? 1 : 0,
         ]);
 
@@ -585,6 +588,33 @@ class UpdateInventoryItem
         }
 
         return is_numeric($s) ? (float) $s : 0.0;
+    }
+
+    private function normalizeEnergyClass(mixed $value): ?string
+    {
+        $class = mb_strtoupper(trim((string)($value ?? '')), 'UTF-8');
+        if ($class === '') {
+            return null;
+        }
+
+        return in_array($class, ['CM', 'PROB', 'OTHER'], true) ? $class : null;
+    }
+
+    private function normalizeComplexityLevel(mixed $value): string
+    {
+        $level = mb_strtolower(trim((string)($value ?? 'media')), 'UTF-8');
+
+        return in_array($level, ['baixa', 'media', 'alta'], true) ? $level : 'media';
+    }
+
+    private function normalizeProductionLine(mixed $value): ?string
+    {
+        $line = mb_strtoupper(trim((string)($value ?? '')), 'UTF-8');
+        if ($line === '') {
+            return null;
+        }
+
+        return in_array($line, ['TERCEIRO', 'TIARAJU'], true) ? $line : null;
     }
 
     /**

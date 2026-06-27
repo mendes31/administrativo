@@ -5,12 +5,39 @@
 
 <p><strong>Quem acessa:</strong> permissão <em>ViewInvCostPeriod</em>.</p>
 
+<h2>Navegação por abas</h2>
+<p>A tela do período está dividida em três abas:</p>
+<ul>
+    <li><strong>Despesas e critérios de rateio</strong> — importação DRE, redistribuição de energia, critérios por conta e histórico.</li>
+    <li><strong>SKUs produzidos no período</strong> — produção, eficiência, fator de complexidade (critério 4), análises calculadas e rateio 4/6.</li>
+    <li><strong>Resultados por SKU</strong> — dashboard read-only: qtd, eficiência, CVAR sim., energia, CFIX e custo pleno/SKU; exportação CSV para conferência com a planilha Tiaraju.</li>
+</ul>
+
+<h2>Resultados por SKU (Fase E)</h2>
+<ol>
+    <li>Abra a aba <strong>Resultados por SKU</strong> após importar DRE e vincular critérios (CFIX rateado).</li>
+    <li>Confira por linha: qtd, eficiência %, CVAR simulado/SKU, energia/SKU, CFIX do período, CFIX/SKU e <strong>custo pleno/SKU</strong>.</li>
+    <li>Use <strong>Exportar CSV</strong> para comparar com a planilha Tiaraju (UTF-8, ponto e vírgula).</li>
+    <li>SKUs sem cadastro exibem só produção; vincule o código ERP em Estoque → Itens.</li>
+</ol>
+
 <h2>Redistribuição de energia (conta 29)</h2>
 <ol>
     <li>Em <strong>Editar período</strong>, informe os kWh de HVAC, área comum e direto (Pasta 7) ou deixe vazio para usar os pesos de referência Tiaraju (47,27% / 51,90% / 0,83%).</li>
     <li>Marque <strong>Redistribuir energia automaticamente ao importar o DRE</strong> (padrão) para fatiar a conta 29 em <code>29-D</code>, <code>29-C</code> e <code>29-H</code> com critérios 7, 3 e 8.</li>
     <li>Na tela do período, use <strong>Aplicar redistribuição</strong> se a conta 29 já foi importada sem fatiar.</li>
     <li>O kWh direto pode ficar em branco: o sistema soma <strong>HM × kW</strong> por operação (recursos com potência na rota + produção no período + tarifa kWh).</li>
+</ol>
+
+<h2>Parâmetros por SKU (produção do período)</h2>
+<ol>
+    <li>Na aba <strong>SKUs produzidos no período</strong>, use o filtro (<strong>PA</strong>, descrição ou código ERP). A lista é ordenada por <strong>descrição</strong>. O botão <em>Somente PA</em> restringe a produto acabado (categoria ou código 43…).</li>
+    <li><strong>Classe energia</strong>, <strong>complexidade</strong> e <strong>linha</strong> (TERCEIRO ou TIARAJU) vêm do cadastro do item (<em>Editar item</em> em Estoque). Se a classe energia estiver vazia, o sistema sugere pela descrição.</li>
+    <li>Colunas <strong>Lotes</strong> e <strong>Qtd</strong>: a quantidade exibe <em>produzido / planejado</em> (lotes × lote mínimo do cadastro). A eficiência % deriva dessa razão.</li>
+    <li><strong>Análises</strong> = (nº linhas MP + MAE na BOM) × lotes × eficiência (produzido ÷ planejado), como na planilha (linha 2310). SKUs sem BOM cadastrada ficam com driver 6 zerado — complete a ficha técnica para alinhar os % de rateio.</li>
+    <li><strong>Produção simulada</strong> (período em rascunho): inclua lotes fictícios de PA/projeto na aba SKUs — recalcula critérios 1–8 como uma nova coluna na planilha Tiaraju.</li>
+    <li><strong>Compl×Anál</strong> = fator de complexidade × análises; alimenta o <strong>critério 6</strong>. As colunas <strong>% Crit. 4</strong> e <strong>% Crit. 6</strong> exibem a participação percentual nos critérios CQ/P&amp;D/DA (complexidade e complexidade × análises).</li>
+    <li>SKUs sem cadastro em Estoque aparecem em amarelo — vincule o código ERP ao item e complete a BOM (MP/MAE) para calcular análises.</li>
 </ol>
 
 <h2>Importar DRE</h2>
@@ -20,6 +47,7 @@
     <li>Linhas <strong>sem código na coluna A</strong> passam a ser importadas com prefixo <code>NC-</code> (use a descrição para identificar). O total do resumo deve bater com a soma do Excel.</li>
     <li><strong>Substituir despesas anteriores</strong> vem marcado por padrão: apaga todas as linhas do período e importa de novo (ideal para corrigir o arquivo inteiro).</li>
     <li>Com a opção <strong>desmarcada</strong>, cada conta é <strong>atualizada pelo código</strong> (sem duplicar linhas); duplicatas antigas da mesma conta são removidas automaticamente.</li>
+    <li><strong>Aplicar mapa de critérios sugeridos</strong> vem marcado por padrão: após importar, vincula critérios 1–8 conforme <code>docs/dre_criterion_map_suggested.csv</code> (pula conta 29 pai e linhas que já têm critério).</li>
 </ol>
 
 <h2>Critérios por conta</h2>

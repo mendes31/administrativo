@@ -28,6 +28,15 @@
     <li>Após <strong>Simular</strong>, o badge <em>estrutura ajustada</em> indica que o cenário não usa só a ficha oficial.</li>
 </ul>
 
+<h2>CVAR energia (HM × kW × tarifa)</h2>
+<p>Com um <strong>período de custeio</strong> selecionado que tenha <strong>tarifa kWh</strong> cadastrada, a simulação calcula o <strong>CVAR energia</strong> por SKU:</p>
+<ul>
+    <li><strong>kWh/lote</strong> = soma de (tempo da operação em horas × kW dos recursos vinculados na rota).</li>
+    <li><strong>Custo/lote</strong> = kWh × tarifa do período; o card exibe também o valor por SKU (÷ lote simulado).</li>
+    <li>Cadastre a <em>potência (kW)</em> em Estoque → Recursos de produção e vincule os recursos à rota do item.</li>
+    <li>O mesmo cálculo alimenta o <strong>critério 7</strong> (energia direta) no rateio CFIX da conta 29-D.</li>
+</ul>
+
 <h2>CVAR MP e CVAR MAE</h2>
 <p>Cards <strong>CVAR MP</strong> e <strong>CVAR MAE</strong> mostram o custo variável de matéria-prima e embalagens por SKU (e valor simulado após ajustes). Linhas manuais da categoria PA - PROJETO entram conforme o tipo informado (MP ou MAE).</p>
 <p>Com <strong>período de custeio</strong> selecionado, a eficiência agregada (lotes SAP ÷ lote padrão do item) ajusta apenas o <strong>CVAR MP</strong> simulado: <code>MP ÷ eficiência</code>. Confira também em <em>Lotes produzidos</em>.</p>

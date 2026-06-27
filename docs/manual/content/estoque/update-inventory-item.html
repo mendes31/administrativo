@@ -8,7 +8,7 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Em <strong>Dados gerais</strong>, revise código, categoria, unidade e estoque mínimo/máximo.</li>
+    <li>Em <strong>Dados gerais</strong>, revise código, categoria, unidade, estoque mínimo/máximo e parâmetros de <strong>custeio fabril</strong> (lote padrão, classe energia, complexidade, linha).</li>
     <li>Na aba <strong>Lista de materiais</strong>, cadastre componentes do lote (catálogo ou linhas manuais em PA - PROJETO).</li>
     <li>Na aba <strong>Rota</strong>, informe operações, recursos e mão de obra.</li>
     <li>Salve e use <strong>Simulação de Custos</strong> para cenários what-if.</li>
@@ -24,6 +24,10 @@
 </ul>
 
 <h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Lote padrão (mín.)</strong> Quantidade teórica por lote para eficiência de produção e rateio na simulação.</div>
+<div class="help-field"><strong>Classe energia (HVAC)</strong> CM, PROB ou OTHER — critério 8 do rateio CFIX. Deixe em branco para sugestão automática pela descrição.</div>
+<div class="help-field"><strong>Complexidade</strong> Baixa, média ou alta — critério 4 do rateio CFIX.</div>
+<div class="help-field"><strong>Linha de produção</strong> TERCEIRO ou TIARAJU — informada no cadastro do PA e exibida no período de custeio (usada em critérios de rateio CFIX).</div>
 <div class="help-field"><strong>Lista de materiais</strong> Quantidade por lote, perda % e origem (catálogo ou manual).</div>
 <div class="help-field"><strong>CVAR MP / MAE</strong> Na simulação, linhas manuais classificadas como MP ou MAE entram nos totais de custo variável.</div>
 <div class="help-field"><strong>Log de alterações</strong> Alterações na BOM e rota aparecem no contexto do item.</div>

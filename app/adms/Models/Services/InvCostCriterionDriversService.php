@@ -4,25 +4,14 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
-use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
+use App\adms\Models\Repository\inventory\InvItemsRepository;
 
 /**
  * Drivers e percentuais dos 8 critérios de rateio por período/SKU.
  */
 class InvCostCriterionDriversService
 {
-    /** @var array<string, float> */
-    private const COMPLEXITY_WEIGHTS = [
-        'baixa' => 2.0,
-        'low' => 2.0,
-        'media' => 5.0,
-        'média' => 5.0,
-        'medium' => 5.0,
-        'alta' => 8.0,
-        'high' => 8.0,
-    ];
-
     /**
      * @param list<string>|null $warehouseCodes
      * @return array{
@@ -50,15 +39,49 @@ class InvCostCriterionDriversService
 
         foreach ($periodDrivers['items'] ?? [] as $baseRow) {
             $itemId = (int)($baseRow['inv_item_id'] ?? 0);
-            $periodItem = $itemId > 0 ? ($periodItemsMap[$itemId] ?? null) : null;
+            $erpCode = trim((string)($baseRow['erp_code'] ?? ''));
+            if ($itemId <= 0 && $erpCode !== '') {
+                $found = (new InvItemsRepository())->findByErpCode($erpCode);
+                if ($found !== null) {
+                    $itemId = (int)($found['id'] ?? 0);
+                }
+            }
+            $savedPeriodItem = $itemId > 0 ? ($periodItemsMap[$itemId] ?? null) : null;
+            $periodItem = $itemId > 0
+                ? (new InvCostPeriodItemDefaultsService())->mergeWithDefaults($itemId, is_array($savedPeriodItem) ? $savedPeriodItem : null)
+                : null;
 
             $driver1 = (float)($baseRow['qty_produced'] ?? 0);
             $driver2 = (float)($baseRow['hh_period'] ?? 0);
             $driver3 = (float)($baseRow['hm_period'] ?? 0);
-            $driver4 = $this->complexityDriver($periodItem);
-            $driver5 = $itemId > 0 ? (float)$this->countMpComponents($itemId) : 0.0;
-            $driver6 = $driver4 * max(0, (int)($periodItem['analysis_count'] ?? 0));
-            $driver7 = $itemId > 0 ? $this->kwhDriver($itemId, (float)($baseRow['hm_period'] ?? 0), $periodDrivers['period'] ?? null) : 0.0;
+            $driver4 = (new InvCostAnalysisDriverService())->complexityFactor($periodItem);
+            $batchesCount = max(0, (int)($baseRow['batches_count'] ?? 0));
+            $efficiencyRatio = isset($baseRow['efficiency_ratio']) ? (float)$baseRow['efficiency_ratio'] : null;
+            $qtyProduced = (float)($baseRow['qty_produced'] ?? 0);
+            $qtyPlanned = isset($baseRow['qty_theoretical']) ? (float)$baseRow['qty_theoretical'] : null;
+            $efficiencyForAnalysis = (new InvCostAnalysisDriverService())->normalizeEfficiencyRatio(
+                $efficiencyRatio,
+                $qtyProduced > 0 ? $qtyProduced : null,
+                $qtyPlanned
+            );
+            $analysisDriver = new InvCostAnalysisDriverService();
+            $driver6 = $itemId > 0
+                ? $analysisDriver->driver6($itemId, $batchesCount, $periodItem, $efficiencyForAnalysis)
+                : 0.0;
+            $driver5 = $itemId > 0 ? (float)$analysisDriver->countMpLines($itemId) : 0.0;
+            $periodMeta = $periodDrivers['period'] ?? null;
+            $hmPerBatch = 0.0;
+            if ($itemId > 0) {
+                $hmPerBatch = (float)(InventoryCostService::calculateBreakdown($itemId, [])['machine_hours'] ?? 0);
+            }
+            $driver7 = $itemId > 0
+                ? (new InvCostVariableEnergyService())->computePeriodEnergyDriver(
+                    $itemId,
+                    (float)($baseRow['hm_period'] ?? 0),
+                    $hmPerBatch,
+                    (float)(is_array($periodMeta) ? ($periodMeta['kwh_tariff'] ?? 0) : 0)
+                )
+                : 0.0;
             $driver8 = $this->hvacDriver($periodItem);
 
             $totals['driver_1'] += $driver1;
@@ -79,6 +102,10 @@ class InvCostCriterionDriversService
                 'driver_6' => round($driver6, 6),
                 'driver_7' => round($driver7, 6),
                 'driver_8' => round($driver8, 6),
+                'analysis_count_total' => $itemId > 0
+                    ? $analysisDriver->analysisCountTotal($itemId, $batchesCount, $efficiencyForAnalysis)
+                    : 0.0,
+                'complexity_factor' => $driver4,
             ]);
         }
 
@@ -121,16 +148,6 @@ class InvCostCriterionDriversService
     /**
      * @param array<string, mixed>|null $periodItem
      */
-    private function complexityDriver(?array $periodItem): float
-    {
-        $level = mb_strtolower(trim((string)($periodItem['complexity_level'] ?? 'media')), 'UTF-8');
-
-        return self::COMPLEXITY_WEIGHTS[$level] ?? 5.0;
-    }
-
-    /**
-     * @param array<string, mixed>|null $periodItem
-     */
     private function hvacDriver(?array $periodItem): float
     {
         $class = mb_strtoupper(trim((string)($periodItem['energy_class'] ?? '')), 'UTF-8');
@@ -144,75 +161,5 @@ class InvCostCriterionDriversService
             'OTHER', 'OUTRO' => 1.0,
             default => 0.0,
         };
-    }
-
-    private function countMpComponents(int $itemId): int
-    {
-        $breakdown = InventoryCostService::calculateBreakdown($itemId, []);
-        $count = 0;
-        foreach ($breakdown['materials'] ?? [] as $line) {
-            if ((string)($line['group_name'] ?? '') === 'Matéria Prima') {
-                $count++;
-            }
-        }
-
-        return $count;
-    }
-
-    /**
-     * @param array<string, mixed>|null $period
-     */
-    private function kwhDriver(int $itemId, float $hmPeriod, ?array $period): float
-    {
-        if ($hmPeriod <= 0 || $itemId <= 0) {
-            return 0.0;
-        }
-
-        $breakdown = InventoryCostService::calculateBreakdown($itemId, []);
-        $hmPerBatch = (float)($breakdown['machine_hours'] ?? 0);
-        if ($hmPerBatch <= 0) {
-            return 0.0;
-        }
-
-        $operations = (new InvItemOperationsRepository())->getByItem($itemId);
-        $kwhPerBatch = 0.0;
-
-        foreach ($operations as $op) {
-            $rawTime = (float)($op['time_per_batch_hours'] ?? 0);
-            $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
-            $timeMinutes = $timeUnit === 'H' ? $rawTime * 60.0 : $rawTime;
-            $timeHours = $timeMinutes / 60.0;
-            if ($timeHours <= 0) {
-                continue;
-            }
-
-            $resourceLines = is_array($op['resource_lines'] ?? null) ? $op['resource_lines'] : [];
-            $hasMachineDriver = $resourceLines !== []
-                || (float)($op['machine_cost_per_min'] ?? 0) > 0
-                || (float)($op['energy_cost_per_min'] ?? 0) > 0;
-            if (!$hasMachineDriver) {
-                continue;
-            }
-
-            $opKw = 0.0;
-            foreach ($resourceLines as $res) {
-                $qty = max(1, (int)($res['qty'] ?? 1));
-                $opKw += $qty * max(0.0, (float)($res['power_kw'] ?? 0));
-            }
-            if ($opKw <= 0) {
-                continue;
-            }
-
-            $kwhPerBatch += $timeHours * $opKw;
-        }
-
-        if ($kwhPerBatch <= 0) {
-            return 0.0;
-        }
-
-        $kwhPeriod = $kwhPerBatch * ($hmPeriod / $hmPerBatch);
-        $tariff = (float)($period['kwh_tariff'] ?? 0);
-
-        return $tariff > 0 ? round($kwhPeriod * $tariff, 6) : round($kwhPeriod, 6);
     }
 }

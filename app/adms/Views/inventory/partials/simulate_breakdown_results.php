@@ -27,6 +27,9 @@ $cvarMaterialsUnit = $cvarMpUnit + $cvarMaeUnit;
 $simCvarMp = (float)($breakdown['simulated_cvar_mp_cost'] ?? 0);
 $simCvarMae = (float)($breakdown['simulated_cvar_mae_cost'] ?? 0);
 $simCvarMaterials = $simCvarMp + $simCvarMae;
+$simCvarEnergy = (float)($breakdown['simulated_cvar_energy_cost'] ?? 0);
+$cvarEnergyKwh = (float)($breakdown['cvar_energy_kwh_per_unit'] ?? 0);
+$kwhTariff = (float)($breakdown['kwh_tariff'] ?? 0);
 
 $laborHours = (float)($breakdown['labor_hours'] ?? 0);
 $machineHours = (float)($breakdown['machine_hours'] ?? 0);
@@ -35,6 +38,7 @@ $simRouteOpsUnit = (float)($breakdown['simulated_operations_cost'] ?? 0);
 
 $currentItemProduction = $currentItemProduction ?? null;
 $currentItemPeriodDrivers = $currentItemPeriodDrivers ?? null;
+$currentItemCriterionDrivers = $currentItemCriterionDrivers ?? ($this->data['current_item_criterion_drivers'] ?? null);
 $cfixAllocation = $cfixAllocation ?? null;
 $suggestedPrice = $suggestedPrice ?? null;
 $productionEfficiency = $productionEfficiency ?? ($this->data['production_efficiency'] ?? null);
@@ -44,7 +48,7 @@ $hhPeriodSim = $batchesInPeriod > 0 ? round($laborHours * $batchesInPeriod, 4) :
 $hmPeriodSim = $batchesInPeriod > 0 ? round($machineHours * $batchesInPeriod, 4) : null;
 $cfixPeriodTotal = is_array($cfixAllocation) ? (float)($cfixAllocation['cfix_total'] ?? 0) : 0.0;
 $cfixPerSku = ($cfixPeriodTotal > 0 && $qtyInPeriod > 0) ? round($cfixPeriodTotal / $qtyInPeriod, 6) : 0.0;
-$fullCostSim = $simUnit + $cfixPerSku;
+$fullCostSim = $simUnit + $simCvarEnergy + $cfixPerSku;
 
 $fmtMoney = static fn(float $v): string => number_format($v, 4, ',', '.');
 $fmtPct = static fn(float $v): string => number_format($v, 2, ',', '.');
@@ -72,6 +76,24 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
         </div>
       </div>
     </div>
+    <?php if ($kwhTariff > 0): ?>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 bg-success bg-opacity-10 h-100">
+        <div class="card-body py-3 px-3">
+          <div class="text-muted text-uppercase small mb-1">CVAR energia</div>
+          <div class="fs-5 fw-semibold text-success mb-0">R$ <?= $fmtMoney((float)($breakdown['cvar_energy_cost'] ?? 0)) ?></div>
+          <div class="small text-muted mt-1">
+            Simulado: R$ <?= $fmtMoney($simCvarEnergy) ?>
+            · <?= number_format($cvarEnergyKwh, 4, ',', '.') ?> kWh/SKU
+            · tarifa R$ <?= number_format($kwhTariff, 4, ',', '.') ?>
+            <?php if (is_array($currentItemCriterionDrivers) && (float)($currentItemCriterionDrivers['share_criterion_7'] ?? 0) > 0): ?>
+              · Rateio 7: <?= $fmtPct((float)$currentItemCriterionDrivers['share_criterion_7']) ?>%
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
     <div class="col-6 col-lg-3">
       <div class="card border-0 bg-secondary bg-opacity-10 h-100">
         <div class="card-body py-3 px-3">
@@ -133,7 +155,7 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
         <div class="card-body py-3 px-3">
           <div class="text-muted text-uppercase small mb-1">Custo pleno (sim. + CFIX/SKU)</div>
           <div class="fs-5 fw-semibold mb-0">R$ <?= $fmtMoney($fullCostSim) ?></div>
-          <div class="small text-muted mt-1">CVAR sim. R$ <?= $fmtMoney($simUnit) ?> + CFIX rateado</div>
+          <div class="small text-muted mt-1">CVAR sim. R$ <?= $fmtMoney($simUnit) ?><?php if ($simCvarEnergy > 0): ?> + energia R$ <?= $fmtMoney($simCvarEnergy) ?><?php endif; ?> + CFIX rateado</div>
         </div>
       </div>
     </div>
@@ -260,8 +282,9 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
         (<?= number_format((float)($productionEfficiency['qty_produced'] ?? 0), 0, ',', '.') ?> ÷
         <?= number_format((float)($productionEfficiency['qty_theoretical'] ?? 0), 0, ',', '.') ?> un.)</p>
       <?php endif; ?>
+      <p class="mb-2"><strong>CVAR energia</strong> (com tarifa no período): kWh/lote = Σ (tempo em h × kW dos recursos na rota). Custo/lote = kWh × tarifa kWh. Exibido quando um <strong>período de custeio</strong> com tarifa está selecionado. Cadastre <em>potência (kW)</em> nos recursos de produção.</p>
       <p class="mb-1"><strong>CFIX:</strong> importe o DRE no período, vincule cada conta a um critério (1–8) e o sistema rateia sobre os drivers do período. O valor/SKU divide o CFIX do item pela qty produzida.</p>
-      <p class="mb-1"><strong>Ainda em evolução:</strong> redistribuições Pasta 9, HVAC anual, critérios 4–8 sem cadastro de complexidade no SKU/período.</p>
+      <p class="mb-1"><strong>Ainda em evolução:</strong> redistribuições Pasta 9, HVAC anual, precificação multi-SKU (Fase E).</p>
     </div>
   </details>
 </div>

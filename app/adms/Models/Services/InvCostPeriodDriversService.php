@@ -67,6 +67,9 @@ class InvCostPeriodDriversService
                 'description' => (string)($prodRow['description'] ?? ''),
                 'qty_produced' => $qtyProduced,
                 'batches_count' => $batchesCount,
+                'efficiency_ratio' => isset($prodRow['efficiency_ratio']) ? (float)$prodRow['efficiency_ratio'] : null,
+                'efficiency_pct' => isset($prodRow['efficiency_pct']) ? (float)$prodRow['efficiency_pct'] : null,
+                'qty_theoretical' => isset($prodRow['qty_theoretical']) ? (float)$prodRow['qty_theoretical'] : null,
                 'hh_per_batch' => round($hhPerBatch, 6),
                 'hm_per_batch' => round($hmPerBatch, 6),
                 'hh_period' => $hhPeriod,
@@ -74,6 +77,7 @@ class InvCostPeriodDriversService
                 'share_criterion_1' => (float)($prodRow['share_criterion_1'] ?? 0),
                 'share_criterion_2' => 0.0,
                 'share_criterion_3' => 0.0,
+                'is_scenario' => !empty($prodRow['is_scenario']),
             ];
         }
 

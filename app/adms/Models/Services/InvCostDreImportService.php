@@ -44,7 +44,8 @@ class InvCostDreImportService
         string $filePath,
         ?string $originalFilename,
         bool $replacePrevious,
-        ?int $importedBy
+        ?int $importedBy,
+        bool $applySuggestedCriteria = true
     ): array {
         if ($periodId <= 0) {
             return ['success' => false, 'message' => 'Período inválido.'];
@@ -128,6 +129,14 @@ class InvCostDreImportService
         if ($energyNote !== '') {
             $message .= $energyNote;
         }
+
+        if ($applySuggestedCriteria) {
+            $mapResult = (new InvCostDreCriterionMapService())->applySuggestedCriteriaForPeriod($periodId, true);
+            if (($mapResult['applied'] ?? 0) > 0) {
+                $message .= ' ' . ($mapResult['message'] ?? '');
+            }
+        }
+
         $withoutCode = (int) ($parsed['without_code_count'] ?? 0);
         if ($withoutCode > 0) {
             $message .= " {$withoutCode} linha(s) sem código na coluna A foram incluídas com prefixo NC- (confira a descrição).";

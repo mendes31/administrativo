@@ -285,6 +285,10 @@ class InventoryCostService extends DbConnection
             $simTotalBatch = $simTotal * $batchSize;
         }
 
+        $cvarEnergy = self::computeCvarEnergyBlock($itemId, $batchSize, $scenario, $opRows);
+        $cvarEnergyCost = (float)($cvarEnergy['cost_unit'] ?? 0);
+        $simCvarEnergy = $cvarEnergyCost * $operationsFactor * $globalFactor;
+
         return [
             'item_id' => $itemId,
             'standard_batch_size' => $batchSize,
@@ -327,6 +331,14 @@ class InventoryCostService extends DbConnection
             'simulated_cvar_mae_cost' => round($simCvarMae, 6),
             'simulated_cvar_mp_cost_batch' => round($simCvarMp * $batchSize, 6),
             'simulated_cvar_mae_cost_batch' => round($simCvarMae * $batchSize, 6),
+            'cvar_energy_kwh_per_batch' => (float)($cvarEnergy['kwh_per_batch'] ?? 0),
+            'cvar_energy_kwh_per_unit' => (float)($cvarEnergy['kwh_per_unit'] ?? 0),
+            'cvar_energy_cost' => round($cvarEnergyCost, 6),
+            'cvar_energy_cost_batch' => (float)($cvarEnergy['cost_batch'] ?? 0),
+            'simulated_cvar_energy_cost' => round($simCvarEnergy, 6),
+            'simulated_cvar_energy_cost_batch' => round($simCvarEnergy * $batchSize, 6),
+            'kwh_tariff' => (float)($cvarEnergy['kwh_tariff'] ?? 0),
+            'cvar_energy_operations' => $cvarEnergy['operations'] ?? [],
             'production_efficiency_ratio' => $productionEfficiencyRatio,
             'production_efficiency_pct' => $productionEfficiencyRatio !== null
                 ? round($productionEfficiencyRatio * 100, 2)
@@ -640,6 +652,27 @@ class InventoryCostService extends DbConnection
     }
 
     /**
+     * @param list<array<string, mixed>> $opRows
+     * @return array<string, mixed>
+     */
+    private static function computeCvarEnergyBlock(int $itemId, float $batchSize, array $scenario, array $opRows): array
+    {
+        $tariff = (float)($scenario['kwh_tariff'] ?? 0);
+        if ($itemId <= 0 || $tariff <= 0 || $batchSize <= 0) {
+            return [
+                'kwh_per_batch' => 0.0,
+                'kwh_per_unit' => 0.0,
+                'cost_batch' => 0.0,
+                'cost_unit' => 0.0,
+                'kwh_tariff' => 0.0,
+                'operations' => [],
+            ];
+        }
+
+        return (new InvCostVariableEnergyService())->computeCvarEnergy($itemId, $batchSize, $tariff, $opRows);
+    }
+
+    /**
      * @param array<string, mixed> $scenario
      * @return array{material_adjust_pct: float, operations_adjust_pct: float, global_adjust_pct: float}
      */
@@ -661,6 +694,9 @@ class InventoryCostService extends DbConnection
         }
         if (isset($scenario['production_efficiency_ratio']) && (float)$scenario['production_efficiency_ratio'] > 0) {
             $normalized['production_efficiency_ratio'] = round((float)$scenario['production_efficiency_ratio'], 6);
+        }
+        if (isset($scenario['kwh_tariff']) && (float)$scenario['kwh_tariff'] > 0) {
+            $normalized['kwh_tariff'] = round((float)$scenario['kwh_tariff'], 6);
         }
 
         return $normalized;

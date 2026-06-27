@@ -3,10 +3,21 @@
 namespace App\adms\Models\Services;
 
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
+use App\adms\Models\Repository\inventory\InvCostPeriodScenarioProductionRepository;
 use PDO;
 
 class InvCostProductionAggregationService extends DbConnection
 {
+    /**
+     * Contagem rápida de SKUs (sem eficiência/BOM).
+     */
+    public function countSkusInPeriod(int $periodId, ?array $warehouseCodes = null): int
+    {
+        $snapshot = $this->aggregateProductionSnapshot($periodId, $warehouseCodes);
+
+        return count($snapshot['items'] ?? []);
+    }
+
     /**
      * @param list<string>|null $warehouseCodes null ou [] = todos os depósitos
      * @return array{
@@ -33,18 +44,14 @@ class InvCostProductionAggregationService extends DbConnection
             return $empty;
         }
 
-        $periodRepo = new InvCostPeriodsRepository();
-        $period = $periodRepo->getOne($periodId);
-        if ($period === false) {
+        $snapshot = $this->aggregateProductionSnapshot($periodId, $warehouseCodes);
+        if (!is_array($snapshot['period'] ?? null)) {
             return $empty;
         }
 
-        $normalizedWarehouses = $this->normalizeWarehouseCodes($warehouseCodes);
-        $items = $this->fetchAggregatedItems(
-            (string)$period['date_from'],
-            (string)$period['date_to'],
-            $normalizedWarehouses
-        );
+        $items = $snapshot['items'];
+        $period = $snapshot['period'];
+        $normalizedWarehouses = $snapshot['warehouse_codes'];
 
         $totalQty = array_sum(array_map(static fn(array $row): float => (float)($row['qty_produced'] ?? 0), $items));
         $totalBatches = (int)array_sum(array_map(static fn(array $row): int => (int)($row['batches_count'] ?? 0), $items));
@@ -96,6 +103,37 @@ class InvCostProductionAggregationService extends DbConnection
         ];
     }
 
+    /**
+     * @param list<string>|null $warehouseCodes
+     * @return array{period: array<string, mixed>|null, warehouse_codes: list<string>|null, items: list<array<string, mixed>>}
+     */
+    private function aggregateProductionSnapshot(int $periodId, ?array $warehouseCodes = null): array
+    {
+        if ($periodId <= 0) {
+            return ['period' => null, 'warehouse_codes' => null, 'items' => []];
+        }
+
+        $periodRepo = new InvCostPeriodsRepository();
+        $period = $periodRepo->getOne($periodId);
+        if ($period === false) {
+            return ['period' => null, 'warehouse_codes' => null, 'items' => []];
+        }
+
+        $normalizedWarehouses = $this->normalizeWarehouseCodes($warehouseCodes);
+        $items = $this->fetchAggregatedItems(
+            (string)$period['date_from'],
+            (string)$period['date_to'],
+            $normalizedWarehouses
+        );
+        $items = $this->mergeScenarioProduction($periodId, $period, $items);
+
+        return [
+            'period' => $period,
+            'warehouse_codes' => $normalizedWarehouses,
+            'items' => $items,
+        ];
+    }
+
     public function findItemInAggregation(array $aggregation, ?int $invItemId, ?string $erpCode): ?array
     {
         foreach ($aggregation['items'] ?? [] as $item) {
@@ -108,6 +146,69 @@ class InvCostProductionAggregationService extends DbConnection
         }
 
         return null;
+    }
+
+    /**
+     * Inclui lotes fictícios do período (rascunho) — equivalente a nova coluna na planilha.
+     *
+     * @param list<array<string, mixed>> $items
+     * @return list<array<string, mixed>>
+     */
+    private function mergeScenarioProduction(int $periodId, array $period, array $items): array
+    {
+        if ($periodId <= 0 || (string)($period['status'] ?? '') === 'closed') {
+            return $items;
+        }
+
+        $scenarioRows = (new InvCostPeriodScenarioProductionRepository())->getByPeriod($periodId);
+        if ($scenarioRows === []) {
+            return $items;
+        }
+
+        $indexByErp = [];
+        foreach ($items as $idx => $row) {
+            $erp = strtoupper(trim((string)($row['erp_code'] ?? '')));
+            if ($erp !== '') {
+                $indexByErp[$erp] = $idx;
+            }
+        }
+
+        foreach ($scenarioRows as $scenario) {
+            $erp = strtoupper(trim((string)($scenario['erp_code'] ?? '')));
+            if ($erp === '') {
+                continue;
+            }
+            $addQty = (float)($scenario['qty_produced'] ?? 0);
+            $addBatches = (int)($scenario['batches_count'] ?? 0);
+            $itemId = $scenario['inv_item_id'] !== null ? (int)$scenario['inv_item_id'] : null;
+
+            if (isset($indexByErp[$erp])) {
+                $idx = $indexByErp[$erp];
+                $items[$idx]['qty_produced'] = round((float)($items[$idx]['qty_produced'] ?? 0) + $addQty, 6);
+                $items[$idx]['batches_count'] = (int)($items[$idx]['batches_count'] ?? 0) + $addBatches;
+                $items[$idx]['has_scenario'] = true;
+                if ($itemId !== null && $itemId > 0 && empty($items[$idx]['inv_item_id'])) {
+                    $items[$idx]['inv_item_id'] = $itemId;
+                }
+                continue;
+            }
+
+            $items[] = [
+                'erp_code' => (string)$scenario['erp_code'],
+                'description' => trim((string)($scenario['item_description'] ?? $scenario['item_name'] ?? '')),
+                'inv_item_id' => $itemId,
+                'qty_produced' => round($addQty, 6),
+                'batches_count' => $addBatches,
+                'distinct_batch_numbers' => 0,
+                'entries_count' => 0,
+                'is_scenario' => true,
+                'has_scenario' => true,
+                'scenario_id' => (int)($scenario['id'] ?? 0),
+            ];
+            $indexByErp[$erp] = count($items) - 1;
+        }
+
+        return $items;
     }
 
     /**

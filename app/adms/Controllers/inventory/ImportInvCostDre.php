@@ -54,7 +54,8 @@ class ImportInvCostDre
             $_FILES['dre_file']['tmp_name'],
             $originalName,
             $replacePrevious,
-            $userId
+            $userId,
+            !isset($_POST['apply_suggested_criteria']) || !empty($_POST['apply_suggested_criteria'])
         );
 
         if ($result['success']) {
