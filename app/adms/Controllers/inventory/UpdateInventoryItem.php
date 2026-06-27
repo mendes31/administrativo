@@ -182,6 +182,7 @@ class UpdateInventoryItem
             'admin_type' => $form['admin_type'] ?? 'none',
             'min_stock' => (float)($form['min_stock'] ?? 0),
             'max_stock' => (float)($form['max_stock'] ?? 0),
+            'standard_batch_size' => max(0.000001, $this->parseFormDecimal($form['standard_batch_size'] ?? '1')),
             'active' => isset($form['active']) ? 1 : 0,
         ]);
 

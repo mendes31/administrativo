@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCostProductionBatchesRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
+use App\adms\Models\Services\InvCostProductionEfficiencyService;
 use App\adms\Models\Services\InventorySapProductionSyncService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -34,7 +35,9 @@ class ListInvCostProductionBatches
             : 20;
 
         $repo = new InvCostProductionBatchesRepository();
-        $this->data['rows'] = $repo->getAll($page, $perPage, $filters);
+        $this->data['rows'] = (new InvCostProductionEfficiencyService())->enrichBatchRows(
+            $repo->getAll($page, $perPage, $filters)
+        );
         $total = $repo->countAll($filters);
         $this->data['filters'] = $filters;
         $this->data['warehouses'] = (new InvCostProductionWarehousesRepository())->getAllActive();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 
 /**
@@ -163,24 +164,55 @@ class InvCostCriterionDriversService
      */
     private function kwhDriver(int $itemId, float $hmPeriod, ?array $period): float
     {
-        if ($hmPeriod <= 0) {
+        if ($hmPeriod <= 0 || $itemId <= 0) {
             return 0.0;
         }
 
         $breakdown = InventoryCostService::calculateBreakdown($itemId, []);
-        $powerKw = 0.0;
-        foreach ($breakdown['operations'] ?? [] as $op) {
-            foreach ($op['resource_lines'] ?? [] as $res) {
-                $powerKw += max(0.0, (float)($res['power_kw'] ?? 0));
-            }
-        }
-        if ($powerKw <= 0) {
+        $hmPerBatch = (float)($breakdown['machine_hours'] ?? 0);
+        if ($hmPerBatch <= 0) {
             return 0.0;
         }
 
-        $tariff = (float)($period['kwh_tariff'] ?? 0);
-        $kwh = $hmPeriod * $powerKw;
+        $operations = (new InvItemOperationsRepository())->getByItem($itemId);
+        $kwhPerBatch = 0.0;
 
-        return $tariff > 0 ? round($kwh * $tariff, 6) : round($kwh, 6);
+        foreach ($operations as $op) {
+            $rawTime = (float)($op['time_per_batch_hours'] ?? 0);
+            $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
+            $timeMinutes = $timeUnit === 'H' ? $rawTime * 60.0 : $rawTime;
+            $timeHours = $timeMinutes / 60.0;
+            if ($timeHours <= 0) {
+                continue;
+            }
+
+            $resourceLines = is_array($op['resource_lines'] ?? null) ? $op['resource_lines'] : [];
+            $hasMachineDriver = $resourceLines !== []
+                || (float)($op['machine_cost_per_min'] ?? 0) > 0
+                || (float)($op['energy_cost_per_min'] ?? 0) > 0;
+            if (!$hasMachineDriver) {
+                continue;
+            }
+
+            $opKw = 0.0;
+            foreach ($resourceLines as $res) {
+                $qty = max(1, (int)($res['qty'] ?? 1));
+                $opKw += $qty * max(0.0, (float)($res['power_kw'] ?? 0));
+            }
+            if ($opKw <= 0) {
+                continue;
+            }
+
+            $kwhPerBatch += $timeHours * $opKw;
+        }
+
+        if ($kwhPerBatch <= 0) {
+            return 0.0;
+        }
+
+        $kwhPeriod = $kwhPerBatch * ($hmPeriod / $hmPerBatch);
+        $tariff = (float)($period['kwh_tariff'] ?? 0);
+
+        return $tariff > 0 ? round($kwhPeriod * $tariff, 6) : round($kwhPeriod, 6);
     }
 }

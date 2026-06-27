@@ -40,6 +40,7 @@
       <p class="text-muted small mb-3">
         Sincronização global (sem filtro de período). Depósitos: TJQP e APQP. Use os filtros abaixo apenas para consulta.
         Total cadastrado: <strong><?= number_format((int)($this->data['total_rows'] ?? 0), 0, ',', '.') ?></strong> linhas.
+        A coluna <strong>Eficiência</strong> usa o lote padrão do item (<em>Lote padrão (mín.)</em> no cadastro): qty produzida ÷ lote mínimo.
       </p>
 
       <form class="row g-2 mb-3" method="get">
@@ -82,13 +83,15 @@
               <th>Descrição</th>
               <th>Lote</th>
               <th class="text-end">Qtd</th>
+              <th class="text-end">Lote mín.</th>
+              <th class="text-end">Eficiência</th>
               <th>Doc. entrada</th>
               <th>OP</th>
             </tr>
           </thead>
           <tbody>
             <?php if (empty($this->data['rows'])): ?>
-              <tr><td colspan="8" class="text-center text-muted py-4">Nenhum lote encontrado. Execute a sincronização SAP.</td></tr>
+              <tr><td colspan="10" class="text-center text-muted py-4">Nenhum lote encontrado. Execute a sincronização SAP.</td></tr>
             <?php else: ?>
               <?php foreach ($this->data['rows'] as $row): ?>
                 <tr>
@@ -100,6 +103,22 @@
                   <td><?= htmlspecialchars($row['item_description'] ?? '') ?></td>
                   <td class="text-nowrap"><?= htmlspecialchars($row['batch_number'] ?? '') ?></td>
                   <td class="text-end text-nowrap"><?= number_format((float)($row['quantity'] ?? 0), 2, ',', '.') ?></td>
+                  <td class="text-end text-nowrap text-muted">
+                    <?= isset($row['min_batch_size']) && (float)$row['min_batch_size'] > 0
+                      ? number_format((float)$row['min_batch_size'], 2, ',', '.')
+                      : '—' ?>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <?php if (isset($row['efficiency_pct']) && $row['efficiency_pct'] !== null): ?>
+                      <?php
+                      $effPct = (float)$row['efficiency_pct'];
+                      $effClass = $effPct >= 100 ? 'text-success' : ($effPct >= 95 ? 'text-body' : 'text-warning');
+                      ?>
+                      <span class="<?= $effClass ?>"><?= number_format($effPct, 2, ',', '.') ?>%</span>
+                    <?php else: ?>
+                      <span class="text-muted" title="Cadastre o lote padrão no item ou vincule o código ERP">—</span>
+                    <?php endif; ?>
+                  </td>
                   <td class="text-nowrap"><?= htmlspecialchars((string)($row['goods_receipt_doc_num'] ?? '—')) ?></td>
                   <td class="text-nowrap"><?= htmlspecialchars((string)($row['production_order_num'] ?? ($row['base_entry'] ?? '—'))) ?></td>
                 </tr>

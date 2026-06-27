@@ -273,6 +273,18 @@ class InventoryCostService extends DbConnection
         $simCvarMp = $cvarMpCost * $materialFactor * $globalFactor;
         $simCvarMae = $cvarMaeCost * $materialFactor * $globalFactor;
 
+        $productionEfficiencyRatio = self::resolveProductionEfficiencyRatio($scenario);
+        $simCvarMpBeforeEfficiency = $simCvarMp;
+        if ($productionEfficiencyRatio !== null) {
+            $simCvarMp = $simCvarMp / $productionEfficiencyRatio;
+            $mpEfficiencyDelta = $simCvarMp - $simCvarMpBeforeEfficiency;
+            $simMaterial += $mpEfficiencyDelta / max($globalFactor, 0.000001);
+            $simTotal = ($simMaterial + $simOperations) * $globalFactor;
+            $simMaterialGroups = self::applyEfficiencyToMaterialGroups($simMaterialGroups, $productionEfficiencyRatio);
+            $simMaterialBatch = $simMaterial * $batchSize;
+            $simTotalBatch = $simTotal * $batchSize;
+        }
+
         return [
             'item_id' => $itemId,
             'standard_batch_size' => $batchSize,
@@ -315,6 +327,10 @@ class InventoryCostService extends DbConnection
             'simulated_cvar_mae_cost' => round($simCvarMae, 6),
             'simulated_cvar_mp_cost_batch' => round($simCvarMp * $batchSize, 6),
             'simulated_cvar_mae_cost_batch' => round($simCvarMae * $batchSize, 6),
+            'production_efficiency_ratio' => $productionEfficiencyRatio,
+            'production_efficiency_pct' => $productionEfficiencyRatio !== null
+                ? round($productionEfficiencyRatio * 100, 2)
+                : null,
             'simulated_route_manual_labor_cost_batch' => round($simRouteManualLabor * $batchSize, 6),
             'simulated_route_sap_labor_cost_batch' => round($simRouteSapLabor * $batchSize, 6),
             'simulated_route_equipment_cost_batch' => round($simRouteEquipment * $batchSize, 6),
@@ -643,8 +659,42 @@ class InventoryCostService extends DbConnection
         if (array_key_exists('custom_operation_rows', $scenario) && is_array($scenario['custom_operation_rows'])) {
             $normalized['custom_operation_rows'] = $scenario['custom_operation_rows'];
         }
+        if (isset($scenario['production_efficiency_ratio']) && (float)$scenario['production_efficiency_ratio'] > 0) {
+            $normalized['production_efficiency_ratio'] = round((float)$scenario['production_efficiency_ratio'], 6);
+        }
 
         return $normalized;
+    }
+
+    private static function resolveProductionEfficiencyRatio(array $scenario): ?float
+    {
+        $ratio = $scenario['production_efficiency_ratio'] ?? null;
+        if ($ratio === null || $ratio === '') {
+            return null;
+        }
+        $f = (float)$ratio;
+
+        return $f > 0 ? round($f, 6) : null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $groups
+     * @return list<array<string, mixed>>
+     */
+    private static function applyEfficiencyToMaterialGroups(array $groups, float $efficiencyRatio): array
+    {
+        return array_map(static function (array $group) use ($efficiencyRatio): array {
+            if ((string)($group['group_name'] ?? '') !== 'Matéria Prima') {
+                return $group;
+            }
+            foreach (['line_cost', 'line_cost_batch'] as $key) {
+                if (isset($group[$key])) {
+                    $group[$key] = round((float)$group[$key] / $efficiencyRatio, 6);
+                }
+            }
+
+            return $group;
+        }, $groups);
     }
 
     public static function normalizeBatchSize(float $batchSize): float

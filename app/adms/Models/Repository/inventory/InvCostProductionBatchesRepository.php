@@ -16,9 +16,11 @@ class InvCostProductionBatchesRepository extends DbConnection
         $offset = max(0, ($page - 1) * $limit);
         [$whereSql, $params] = $this->buildWhere($filters);
 
-        $sql = 'SELECT b.*, i.code AS item_code
+        $sql = 'SELECT b.*, i.code AS item_code,
+                       COALESCE(i.standard_batch_size, i2.standard_batch_size) AS standard_batch_size
                 FROM inv_cost_production_batches b
                 LEFT JOIN inv_items i ON i.id = b.inv_item_id
+                LEFT JOIN inv_items i2 ON i2.erp_code = b.erp_code AND b.inv_item_id IS NULL
                 ' . $whereSql . '
                 ORDER BY b.production_date DESC, b.id DESC
                 LIMIT :limit OFFSET :offset';

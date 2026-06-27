@@ -17,6 +17,7 @@ use App\adms\Models\Repository\inventory\InvUnitsRepository;
 use App\adms\Models\Services\InvCostFixedAllocationEngine;
 use App\adms\Models\Services\InvCostPeriodDriversService;
 use App\adms\Models\Services\InvCostProductionAggregationService;
+use App\adms\Models\Services\InvCostProductionEfficiencyService;
 use App\adms\Models\Services\InventoryCostService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -70,6 +71,35 @@ class SimulateInventoryCost
             $scenario['custom_operation_rows'] = $structureHelper->operationEditLinesToComputeRows($editOperations);
         }
 
+        $periodId = (int)($this->input('inv_cost_period_id', '0'));
+        $warehouseScope = (string)($this->input('warehouse_scope', 'all'));
+        $warehouseCodes = $this->parseWarehouseCodes($warehouseScope, $requestData['warehouse_codes'] ?? null);
+
+        $productionEfficiency = null;
+        if ($periodId > 0) {
+            $period = (new InvCostPeriodsRepository())->getOne($periodId);
+            if (is_array($period)) {
+                $erpCode = trim((string)($item['erp_code'] ?? ''));
+                $productionEfficiency = (new InvCostProductionEfficiencyService())->aggregateForItemInPeriod(
+                    $itemId,
+                    $erpCode !== '' ? $erpCode : null,
+                    (string)$period['date_from'],
+                    (string)$period['date_to'],
+                    $warehouseCodes,
+                    $periodId
+                );
+                if ($productionEfficiency !== null) {
+                    $scenario['production_efficiency_ratio'] = $productionEfficiency['efficiency_ratio'];
+                    (new InvCostPeriodItemsRepository())->upsertCalculatedEfficiency(
+                        $periodId,
+                        $itemId,
+                        (float)$productionEfficiency['efficiency_ratio'],
+                        (float)($productionEfficiency['min_batch_size'] ?? 0) ?: null
+                    );
+                }
+            }
+        }
+
         $this->data['selected_item_id'] = $itemId;
         $this->data['selected_item'] = $item;
         $this->data['is_project_item'] = $isProjectItem;
@@ -84,11 +114,8 @@ class SimulateInventoryCost
         $this->data['listUnits'] = (new InvUnitsRepository())->getAllForSelect();
         $this->data['listOperations'] = (new InvOperationsRepository())->getAllForSelect();
         $this->data['breakdown'] = InventoryCostService::calculateBreakdown($itemId, $scenario);
+        $this->data['production_efficiency'] = $productionEfficiency;
         $this->data['saved_simulations'] = (new InvCostSimulationsRepository())->getByItem($itemId, 15);
-
-        $periodId = (int)($this->input('inv_cost_period_id', '0'));
-        $warehouseScope = (string)($this->input('warehouse_scope', 'all'));
-        $warehouseCodes = $this->parseWarehouseCodes($warehouseScope, $requestData['warehouse_codes'] ?? null);
 
         $this->data['cost_periods'] = (new InvCostPeriodsRepository())->getForSelect();
         $this->data['production_warehouses'] = (new InvCostProductionWarehousesRepository())->getAllActive();

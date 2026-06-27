@@ -37,6 +37,7 @@ $currentItemProduction = $currentItemProduction ?? null;
 $currentItemPeriodDrivers = $currentItemPeriodDrivers ?? null;
 $cfixAllocation = $cfixAllocation ?? null;
 $suggestedPrice = $suggestedPrice ?? null;
+$productionEfficiency = $productionEfficiency ?? ($this->data['production_efficiency'] ?? null);
 $batchesInPeriod = is_array($currentItemProduction) ? (int)($currentItemProduction['batches_count'] ?? 0) : 0;
 $qtyInPeriod = is_array($currentItemProduction) ? (float)($currentItemProduction['qty_produced'] ?? 0) : 0.0;
 $hhPeriodSim = $batchesInPeriod > 0 ? round($laborHours * $batchesInPeriod, 4) : null;
@@ -54,6 +55,11 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     <span class="fw-semibold fs-6">Resultado da simulação</span>
     <span class="badge bg-light text-dark border">lote <?= $fmtMoney($batchSize) ?> un.</span>
+    <?php if (!empty($breakdown['production_efficiency_pct'])): ?>
+      <span class="badge bg-light text-dark border" title="Eficiência agregada no período (lotes SAP)">
+        Efic. <?= number_format((float)$breakdown['production_efficiency_pct'], 2, ',', '.') ?>%
+      </span>
+    <?php endif; ?>
   </div>
 
   <div class="row g-3 mb-3">
@@ -245,6 +251,15 @@ $renderCostBreakdown = $renderCostBreakdown ?? null;
       <p class="mb-2"><strong>HM (lote)</strong> = Σ tempo em h das etapas que têm equipamento/recurso (máq., energia ou linhas de recurso).</p>
       <p class="mb-2"><strong>HM (período)</strong> = HM do lote × lotes produzidos no período. <strong>Rateio 2/3</strong> usa a rota cadastrada de todos os SKUs do período.</p>
       <p class="mb-2"><strong>CVAR materiais</strong> no card = MP + MAE (detalhe por grupo nos cards abaixo).</p>
+      <?php if (!empty($breakdown['production_efficiency_pct'])): ?>
+      <p class="mb-2"><strong>Eficiência (período)</strong> = Σ qty produzida ÷ (N lotes × lote mínimo).
+        Valor: <strong><?= number_format((float)$breakdown['production_efficiency_pct'], 2, ',', '.') ?>%</strong>
+        — CVAR MP simulado ÷ eficiência (MAE não é ajustada).</p>
+      <?php elseif (is_array($productionEfficiency) && !empty($productionEfficiency['efficiency_pct'])): ?>
+      <p class="mb-2"><strong>Eficiência (período):</strong> <?= number_format((float)$productionEfficiency['efficiency_pct'], 2, ',', '.') ?>%
+        (<?= number_format((float)($productionEfficiency['qty_produced'] ?? 0), 0, ',', '.') ?> ÷
+        <?= number_format((float)($productionEfficiency['qty_theoretical'] ?? 0), 0, ',', '.') ?> un.)</p>
+      <?php endif; ?>
       <p class="mb-1"><strong>CFIX:</strong> importe o DRE no período, vincule cada conta a um critério (1–8) e o sistema rateia sobre os drivers do período. O valor/SKU divide o CFIX do item pela qty produzida.</p>
       <p class="mb-1"><strong>Ainda em evolução:</strong> redistribuições Pasta 9, HVAC anual, critérios 4–8 sem cadastro de complexidade no SKU/período.</p>
     </div>

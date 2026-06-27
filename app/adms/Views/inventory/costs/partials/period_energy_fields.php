@@ -21,7 +21,7 @@ $autoSplitChecked = array_key_exists('energy_auto_split', $form)
   <p class="small text-muted mb-3">
     Informe os kWh do período para ratear a conta <strong>29 — Energia Elétrica</strong> em três fatias (crit. 7 / 3 / 8).
     Se vazio, usa os pesos de referência Tiaraju 2025 (47,27% HVAC · 51,90% área comum · 0,83% direto).
-    O kWh direto pode ficar em branco para calcular a partir do cadastro (HM × kW).
+    O kWh direto pode ficar em branco para calcular a partir do cadastro (<strong>HM × kW</strong> dos recursos na rota do SKU, com tarifa kWh no período).
   </p>
 </div>
 <div class="col-12 col-md-4">

@@ -168,6 +168,13 @@ use App\adms\Helpers\CSRFHelper;
 							</div>
 
 							<div class="col-12 col-md-3">
+								<label for="standard_batch_size" class="form-label">Lote padrão (mín.)</label>
+								<input type="number" step="any" min="0.000001" name="standard_batch_size" id="standard_batch_size" class="form-control"
+									value="<?php echo htmlspecialchars((string)($this->data['form']['standard_batch_size'] ?? '1')); ?>"
+									title="Tamanho de lote teórico para eficiência de produção e rateio na simulação.">
+							</div>
+
+							<div class="col-12 col-md-3">
 								<label for="min_stock" class="form-label">Estoque mínimo</label>
 								<input type="number" step="0.0001" min="0" name="min_stock" id="min_stock" class="form-control" value="<?php echo $this->data['form']['min_stock'] ?? ''; ?>">
 							</div>

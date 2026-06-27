@@ -57,6 +57,31 @@ class InvCostProductionAggregationService extends DbConnection
 
         usort($items, static fn(array $a, array $b): int => ((float)($b['qty_produced'] ?? 0)) <=> ((float)($a['qty_produced'] ?? 0)));
 
+        $efficiencyService = new InvCostProductionEfficiencyService();
+        foreach ($items as &$item) {
+            $itemId = $item['inv_item_id'] !== null ? (int)$item['inv_item_id'] : null;
+            $eff = $efficiencyService->aggregateForItemInPeriod(
+                $itemId,
+                (string)($item['erp_code'] ?? ''),
+                (string)$period['date_from'],
+                (string)$period['date_to'],
+                $normalizedWarehouses,
+                $periodId
+            );
+            if ($eff !== null) {
+                $item['efficiency_ratio'] = $eff['efficiency_ratio'];
+                $item['efficiency_pct'] = $eff['efficiency_pct'];
+                $item['min_batch_size'] = $eff['min_batch_size'];
+                $item['qty_theoretical'] = $eff['qty_theoretical'];
+            } else {
+                $item['efficiency_ratio'] = null;
+                $item['efficiency_pct'] = null;
+                $item['min_batch_size'] = null;
+                $item['qty_theoretical'] = null;
+            }
+        }
+        unset($item);
+
         return [
             'period' => $period,
             'warehouse_codes' => $normalizedWarehouses,
@@ -97,7 +122,8 @@ class InvCostProductionAggregationService extends DbConnection
                     MAX(b.item_description) AS description,
                     MAX(b.inv_item_id) AS inv_item_id,
                     SUM(b.quantity) AS qty_produced,
-                    COUNT(DISTINCT b.batch_number) AS batches_count,
+                    COUNT(*) AS batches_count,
+                    COUNT(DISTINCT b.batch_number) AS distinct_batch_numbers,
                     COUNT(DISTINCT b.goods_receipt_doc_num) AS entries_count
                 FROM inv_cost_production_batches b
                 WHERE b.production_date BETWEEN :date_from AND :date_to

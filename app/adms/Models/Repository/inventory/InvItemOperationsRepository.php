@@ -77,7 +77,8 @@ class InvItemOperationsRepository extends DbConnection
         $placeholders = implode(',', array_fill(0, count($operationIds), '?'));
         $sql = 'SELECT ior.id, ior.inv_item_operation_id, ior.inv_production_resource_id, ior.qty,
                        ior.machine_cost_per_min, ior.energy_cost_per_min,
-                       pr.erp_code AS resource_erp_code, pr.name AS resource_name, pr.resource_type
+                       pr.erp_code AS resource_erp_code, pr.name AS resource_name, pr.resource_type,
+                       pr.power_kw
                 FROM inv_item_operation_resources ior
                 INNER JOIN inv_production_resources pr ON pr.id = ior.inv_production_resource_id
                 WHERE ior.inv_item_operation_id IN (' . $placeholders . ')

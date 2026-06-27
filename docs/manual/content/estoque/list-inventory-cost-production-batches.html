@@ -1,31 +1,34 @@
-<h1>List Inventory Cost Production Batches</h1>
-<p>Lista e filtra registros de <strong>List Inventory Cost Production Batches</strong> no módulo Estoque. Use esta tela para localizar itens, acessar visualização/edição e iniciar novos cadastros.</p>
+<h1>Lotes produzidos</h1>
+<p>Cadastro global de produção sincronizada do SAP (depósitos TJQP e APQP). Cada linha é um lote/entrada; use os filtros por data para conferir um intervalo — o mesmo usado nos períodos de custeio.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Custeio</em> (<code>est-custeio</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral:</strong> <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>ListInventoryCostProductionBatches</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>ListInvCostProductionBatches</em>.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Eficiência por lote</h2>
+<p>A coluna <strong>Eficiência</strong> compara a quantidade produzida com o <strong>lote padrão (mín.)</strong> cadastrado no item:</p>
+<p><code>eficiência = qty do lote ÷ lote padrão</code> (ex.: 1.480 ÷ 1.500 = 98,67%).</p>
+<p>Se aparecer <strong>—</strong>, cadastre o lote padrão em <strong>Estoque → Item → Dados gerais</strong> ou vincule o código ERP do lote ao item.</p>
+
+<h2>Eficiência no período (simulação)</h2>
+<p>Com vários lotes no intervalo do período:</p>
+<p><code>eficiência período = Σ qty ÷ (N lotes × lote padrão)</code></p>
+<p>Esse valor ajusta o <strong>CVAR de matéria-prima</strong> na simulação (÷ eficiência). Embalagens não são ajustadas.</p>
+
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse o menu <strong>Estoque</strong> e abra <strong>List Inventory Cost Production Batches</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
-    <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
-    <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
-    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
+    <li>Execute <strong>Sync completa SAP</strong> ou <strong>Sync incremental</strong>.</li>
+    <li>Confira lote padrão nos itens produzidos.</li>
+    <li>Filtre por datas do período analítico para validar eficiência lote a lote.</li>
+    <li>Na <strong>Simulação de custos</strong>, selecione o período para aplicar a eficiência agregada.</li>
 </ol>
-
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
-<div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
-<div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>ListInventoryCostProductionBatches</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Eficiência sempre —</dt>
+    <dd>Item sem <em>lote padrão</em> ou lote SAP sem vínculo <code>inv_item_id</code>/ERP no cadastro.</dd>
+    <dt>Eficiência &gt; 100%</dt>
+    <dd>Produção acima do lote teórico (overfill). O sistema aceita; revise se o lote padrão está correto.</dd>
+    <dt>Sem lotes no período na simulação</dt>
+    <dd>Confira datas do período, depósitos filtrados e se a sync SAP rodou para o intervalo.</dd>
 </dl>
