@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository\inventory;
 
+use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
@@ -362,6 +363,45 @@ class InvItemsRepository extends DbConnection
 		}
 
 		return ['by_id' => $byId, 'by_erp' => $byErp];
+	}
+
+	/**
+	 * Itens ativos com código ERP elegíveis à sincronização de BOM/rota (BEAS).
+	 *
+	 * @return list<int>
+	 */
+	public function getIdsEligibleForStructureSync(): array
+	{
+		$sql = 'SELECT i.id
+				FROM inv_items i
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE i.active = 1
+				  AND i.erp_code IS NOT NULL
+				  AND TRIM(i.erp_code) <> \'\'
+				  AND (c.name IS NULL OR c.name <> :project_cat)
+				  AND (
+				    c.name LIKE :kw_acab
+				    OR c.name LIKE :kw_intermed
+				    OR i.erp_code LIKE :erp_pa
+				    OR i.erp_code LIKE :erp_pi
+				    OR EXISTS (SELECT 1 FROM inv_item_bom b WHERE b.inv_item_id = i.id)
+				    OR EXISTS (SELECT 1 FROM inv_item_operations o WHERE o.inv_item_id = i.id)
+				  )
+				ORDER BY i.id';
+
+		$stmt = $this->getConnection()->prepare($sql);
+		$stmt->bindValue(':project_cat', InvCostProjectHelper::CATEGORY_NAME);
+		$stmt->bindValue(':kw_acab', '%ACAB%');
+		$stmt->bindValue(':kw_intermed', '%INTERMED%');
+		$stmt->bindValue(':erp_pa', '43%');
+		$stmt->bindValue(':erp_pi', '40%');
+		$stmt->execute();
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+		return array_values(array_filter(array_map(
+			static fn(array $row): int => (int)($row['id'] ?? 0),
+			$rows
+		)));
 	}
 
 	public function getIdsByCategoryNameKeywords(array $keywords): array

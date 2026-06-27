@@ -88,35 +88,39 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
     </div>
   </div>
 
+  <?php
+  $tabBaseUrl = $_ENV['URL_ADM'] . 'view-inventory-cost-period/' . $periodId;
+  $tabQuery = $skuFilter !== '' ? ('&sku_filter=' . rawurlencode($skuFilter)) : '';
+  ?>
   <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link<?= $tabDespesasActive ? ' active' : '' ?>" id="tab-despesas" data-bs-toggle="tab"
-        data-bs-target="#pane-despesas" type="button" role="tab" aria-controls="pane-despesas"
-        aria-selected="<?= $tabDespesasActive ? 'true' : 'false' ?>">
+      <a class="nav-link<?= $tabDespesasActive ? ' active' : '' ?>" id="tab-despesas"
+        href="<?= $tabBaseUrl ?>?tab=despesas<?= $tabQuery ?>" role="tab"
+        aria-controls="pane-despesas" aria-selected="<?= $tabDespesasActive ? 'true' : 'false' ?>">
         Despesas e critérios de rateio
-      </button>
+      </a>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link<?= $tabSkusActive ? ' active' : '' ?>" id="tab-skus" data-bs-toggle="tab"
-        data-bs-target="#pane-skus" type="button" role="tab" aria-controls="pane-skus"
-        aria-selected="<?= $tabSkusActive ? 'true' : 'false' ?>">
+      <a class="nav-link<?= $tabSkusActive ? ' active' : '' ?>" id="tab-skus"
+        href="<?= $tabBaseUrl ?>?tab=skus<?= $tabQuery ?>" role="tab"
+        aria-controls="pane-skus" aria-selected="<?= $tabSkusActive ? 'true' : 'false' ?>">
         SKUs produzidos no período
         <?php if ($productionItemsCount > 0): ?>
           <span class="badge bg-secondary ms-1"><?= $skuFilter !== '' ? $productionItemsFilteredCount . '/' . $productionItemsCount : $productionItemsCount ?></span>
         <?php endif; ?>
-      </button>
+      </a>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link<?= $tabResultadosActive ? ' active' : '' ?>" id="tab-resultados" data-bs-toggle="tab"
-        data-bs-target="#pane-resultados" type="button" role="tab" aria-controls="pane-resultados"
-        aria-selected="<?= $tabResultadosActive ? 'true' : 'false' ?>">
+      <a class="nav-link<?= $tabResultadosActive ? ' active' : '' ?>" id="tab-resultados"
+        href="<?= $tabBaseUrl ?>?tab=resultados<?= $tabQuery ?>" role="tab"
+        aria-controls="pane-resultados" aria-selected="<?= $tabResultadosActive ? 'true' : 'false' ?>">
         Resultados por SKU
         <?php
         $skuResultsCount = (int)($this->data['sku_results_all_count'] ?? 0);
         if ($skuResultsCount > 0): ?>
           <span class="badge bg-secondary ms-1"><?= $skuFilter !== '' ? count($this->data['sku_results'] ?? []) . '/' . $skuResultsCount : $skuResultsCount ?></span>
         <?php endif; ?>
-      </button>
+      </a>
     </li>
   </ul>
 

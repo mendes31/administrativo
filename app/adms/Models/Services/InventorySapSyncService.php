@@ -3,6 +3,7 @@
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Models\Repository\inventory\InvInventorySapSyncRunsRepository;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
@@ -17,22 +18,56 @@ class InventorySapSyncService
     /**
      * Sincroniza itens de estoque com SAP e atualiza custos de comprados.
      *
-     * @return array{success: bool, message: string, synced: int, created: int, updated: int, recalculated: int}
+     * @return array{
+     *   success: bool,
+     *   message: string,
+     *   synced: int,
+     *   created: int,
+     *   updated: int,
+     *   unchanged: int,
+     *   recalculated: int,
+     *   sync_mode: string
+     * }
      */
-    public function syncItemsAndCosts(): array
+    public function syncItemsAndCosts(bool $fullSync = false): array
     {
+        @set_time_limit(0);
+
         $stats = [
             'success' => false,
             'message' => '',
             'synced' => 0,
             'created' => 0,
             'updated' => 0,
+            'unchanged' => 0,
             'recalculated' => 0,
+            'sync_mode' => 'full',
         ];
+
+        $runsRepo = new InvInventorySapSyncRunsRepository();
+        $lastFinishedAt = $runsRepo->getLastSuccessfulFinishedAt('items');
+
+        // Completa = catálogo inteiro em lotes. Sem marcar = incremental (UpdateDate no SAP).
+        $useFullSync = $fullSync;
+        $filterFromDate = null;
+        if (!$useFullSync) {
+            $filterFromDate = $lastFinishedAt !== null
+                ? substr($lastFinishedAt, 0, 10)
+                : date('Y-m-d', strtotime('-7 days'));
+        }
+
+        $stats['sync_mode'] = $useFullSync ? 'full' : 'incremental';
+        $runId = $runsRepo->create([
+            'sync_type' => 'items',
+            'sync_mode' => $stats['sync_mode'],
+            'filter_from_date' => $filterFromDate,
+            'status' => 'running',
+            'started_at' => date('Y-m-d H:i:s'),
+        ]);
 
         try {
             $sap = new SapReportApiService();
-            $rows = $this->extractSapRows($sap->execute($this->getSapItemsQuery()));
+            $rows = $this->fetchSapItemsPaginated($sap, $useFullSync ? null : $filterFromDate);
 
             $itemsRepo = new InvItemsRepository();
             $categoriesRepo = new InvCategoriesRepository();
@@ -43,6 +78,8 @@ class InventorySapSyncService
                 $firstUnit = $unitsRepo->getAll(1, 1);
                 $defaultUnitId = (int)($firstUnit[0]['id'] ?? 0);
             }
+
+            $purchaseCostsChanged = false;
 
             foreach ($rows as $row) {
                 $erpCode = trim((string)($row['ItemCode'] ?? ''));
@@ -83,10 +120,19 @@ class InventorySapSyncService
                         'max_stock' => (float)($existing['max_stock'] ?? 0),
                         'active' => $active,
                     ];
+
+                    if (!$this->itemPayloadDiffersFromExisting($existing, $payload)) {
+                        $stats['unchanged']++;
+                        continue;
+                    }
+
                     if ($itemsRepo->update((int)$existing['id'], $payload)) {
                         $stats['updated']++;
+                        $stats['synced']++;
+                        if ($shouldUpdateCost) {
+                            $purchaseCostsChanged = true;
+                        }
                     }
-                    $stats['synced']++;
                     continue;
                 }
 
@@ -106,24 +152,139 @@ class InventorySapSyncService
                 if (is_int($created) && $created > 0) {
                     $stats['created']++;
                     $stats['synced']++;
+                    if (in_array($itemType, ['MP', 'EMB'], true)) {
+                        $purchaseCostsChanged = true;
+                    }
                 }
             }
 
-            // Recalcular PA e PI após atualização de custos de comprados
-            $recalcIds = $itemsRepo->getIdsByCategoryNameKeywords(['PROD. ACABADO', 'PROD. INTERMED', 'ACABADO', 'INTERMED']);
-            foreach ($recalcIds as $itemId) {
+            if ($purchaseCostsChanged || $useFullSync) {
+                $recalcIds = $itemsRepo->getIdsByCategoryNameKeywords(['PROD. ACABADO', 'PROD. INTERMED', 'ACABADO', 'INTERMED']);
+                foreach ($recalcIds as $itemId) {
+                    if ($itemId <= 0) {
+                        continue;
+                    }
+                    InventoryCostService::recalculateStandardCost($itemId);
+                    $stats['recalculated']++;
+                }
+            }
+
+            $runsRepo->update($runId, [
+                'rows_created' => $stats['created'],
+                'rows_updated' => $stats['updated'],
+                'rows_unchanged' => $stats['unchanged'],
+                'status' => 'completed',
+                'finished_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $stats['success'] = true;
+            $modeLabel = $useFullSync ? 'completa' : 'incremental';
+            $stats['message'] = sprintf(
+                'Sincronização %s concluída. Novos: %d | Alterados: %d | Sem mudança: %d | PA/PI recalculados: %d.',
+                $modeLabel,
+                $stats['created'],
+                $stats['updated'],
+                $stats['unchanged'],
+                $stats['recalculated']
+            );
+            if (!$useFullSync && $filterFromDate !== null) {
+                $stats['message'] .= " (itens SAP com UpdateDate desde {$filterFromDate})";
+            }
+
+            return $stats;
+        } catch (Throwable $e) {
+            $runsRepo->update($runId, [
+                'rows_created' => $stats['created'],
+                'rows_updated' => $stats['updated'],
+                'rows_unchanged' => $stats['unchanged'],
+                'status' => 'failed',
+                'error_log' => $e->getMessage(),
+                'finished_at' => date('Y-m-d H:i:s'),
+            ]);
+            $stats['message'] = 'Falha na sincronização SAP: ' . $this->formatSyncErrorMessage($e->getMessage());
+
+            return $stats;
+        }
+    }
+
+    /**
+     * Sincroniza BOM/rota de todos os itens elegíveis (PA/PI, códigos 43/40 ou com estrutura local).
+     *
+     * @return array{
+     *   success: bool,
+     *   message: string,
+     *   structures_synced: int,
+     *   structures_skipped: int,
+     *   structures_failed: int
+     * }
+     */
+    public function syncAllItemStructures(): array
+    {
+        @set_time_limit(0);
+
+        $stats = [
+            'success' => false,
+            'message' => '',
+            'structures_synced' => 0,
+            'structures_skipped' => 0,
+            'structures_failed' => 0,
+        ];
+
+        $runsRepo = new InvInventorySapSyncRunsRepository();
+        $runId = $runsRepo->create([
+            'sync_type' => 'structures',
+            'sync_mode' => 'full',
+            'status' => 'running',
+            'started_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        try {
+            $ids = (new InvItemsRepository())->getIdsEligibleForStructureSync();
+            foreach ($ids as $itemId) {
                 if ($itemId <= 0) {
                     continue;
                 }
-                InventoryCostService::recalculateStandardCost($itemId);
-                $stats['recalculated']++;
+
+                $result = $this->syncItemStructureById($itemId, false);
+                if (!empty($result['skipped'])) {
+                    $stats['structures_skipped']++;
+                } elseif (!empty($result['success'])) {
+                    $stats['structures_synced']++;
+                } else {
+                    $stats['structures_failed']++;
+                }
+
+                usleep(250000);
             }
 
+            $runsRepo->update($runId, [
+                'rows_updated' => $stats['structures_synced'],
+                'rows_unchanged' => $stats['structures_skipped'],
+                'rows_failed' => $stats['structures_failed'],
+                'status' => 'completed',
+                'finished_at' => date('Y-m-d H:i:s'),
+            ]);
+
             $stats['success'] = true;
-            $stats['message'] = "Sincronização concluída. Itens: {$stats['synced']} (novos: {$stats['created']}, atualizados: {$stats['updated']}) | PA/PI recalculados: {$stats['recalculated']}.";
+            $stats['message'] = sprintf(
+                'Estruturas sincronizadas: %d | Sem BOM/rota no SAP: %d | Falhas: %d.',
+                $stats['structures_synced'],
+                $stats['structures_skipped'],
+                $stats['structures_failed']
+            );
+
             return $stats;
         } catch (Throwable $e) {
-            $stats['message'] = 'Falha na sincronização SAP: ' . $this->formatSyncErrorMessage($e->getMessage());
+            $runsRepo->update($runId, [
+                'rows_updated' => $stats['structures_synced'],
+                'rows_unchanged' => $stats['structures_skipped'],
+                'rows_failed' => $stats['structures_failed'],
+                'status' => 'failed',
+                'error_log' => $e->getMessage(),
+                'finished_at' => date('Y-m-d H:i:s'),
+            ]);
+            $stats['message'] = 'Falha na sincronização de estruturas: ' . $this->formatSyncErrorMessage($e->getMessage());
+
             return $stats;
         }
     }
@@ -131,15 +292,16 @@ class InventorySapSyncService
     /**
      * Sincroniza estrutura completa (lista + rota) de um item específico.
      *
-     * @return array{success: bool, message: string, lines: int, routes: int}
+     * @return array{success: bool, message: string, lines: int, routes: int, skipped: bool}
      */
-    public function syncItemStructureById(int $invItemId): array
+    public function syncItemStructureById(int $invItemId, bool $replaceWhenEmpty = true): array
     {
         $result = [
             'success' => false,
             'message' => '',
             'lines' => 0,
             'routes' => 0,
+            'skipped' => false,
         ];
 
         try {
@@ -293,6 +455,16 @@ class InventorySapSyncService
                 }
             }
 
+            if ($bomLines === [] && $routeLines === []) {
+                if (!$replaceWhenEmpty) {
+                    $result['success'] = true;
+                    $result['skipped'] = true;
+                    $result['message'] = 'Sem estrutura no SAP para este item; cadastro local mantido.';
+
+                    return $result;
+                }
+            }
+
             $bomRepo = new InvItemBomRepository();
             $ok = $bomRepo->replaceForItem($invItemId, $bomLines);
             if (!$ok) {
@@ -353,15 +525,204 @@ class InventorySapSyncService
             return 'A API SAP não conseguiu converter um valor numérico vazio na estrutura do item. Tente sincronizar novamente; se persistir, revise os tempos/quantidades no BEAS para o item.';
         }
 
+        if (
+            str_contains($lower, 'http 500') ||
+            str_contains($lower, 'sem resposta') ||
+            str_contains($lower, 'transfer closed')
+        ) {
+            return 'A API SAP retornou erro interno (HTTP 500), geralmente por consulta pesada ou muitas requisições seguidas. '
+                . 'Use Sincronizar itens sem marcar Completa (incremental). Marque Completa só na 1ª carga e aguarde vários minutos. '
+                . 'Detalhe: ' . $message;
+        }
+
         return $message !== '' ? $message : 'Erro desconhecido ao sincronizar com SAP.';
     }
 
-    private function getSapItemsQuery(): string
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchSapItemsPaginated(SapReportApiService $sap, ?string $updatedSince = null): array
     {
-        $costSelect = $this->sapCostSelectExpression('T0."ItemCode"', 'T0."DfltWH"');
-        $costJoins = $this->sapCostJoinsSql('T0."ItemCode"', 'T0."DfltWH"');
+        if ($updatedSince === null) {
+            return $this->fetchSapItemsFullCatalog($sap);
+        }
 
-        return 'SELECT '
+        return $this->fetchSapItemsIncremental($sap, $updatedSince);
+    }
+
+    /**
+     * Incremental: filtro UpdateDate + paginação OFFSET (poucos registros).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchSapItemsIncremental(SapReportApiService $sap, string $updatedSince): array
+    {
+        $batchSize = 50;
+        $offset = 0;
+        $all = [];
+
+        for ($batch = 0; $batch < 40; $batch++) {
+            $rows = $this->executeSapQueryWithRetry(
+                $sap,
+                $this->getSapItemsQuery($updatedSince, $batchSize, $offset)
+            );
+            if ($rows === []) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $all[] = $row;
+            }
+
+            if (count($rows) < $batchSize) {
+                break;
+            }
+
+            $offset += count($rows);
+            usleep(600000);
+        }
+
+        return $all;
+    }
+
+    /**
+     * Completa: catálogo inteiro em lotes leves (OITM + custo por lote), evita JOIN pesado único.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchSapItemsFullCatalog(SapReportApiService $sap): array
+    {
+        $groupMap = $this->fetchSapItemGroupsMap($sap);
+        usleep(800000);
+        $batchSize = 50;
+        $lastCode = '';
+        $all = [];
+
+        for ($batch = 0; $batch < 150; $batch++) {
+            $oitmRows = $this->fetchOitmKeysetBatchWithCost($sap, $lastCode, $batchSize);
+            if ($oitmRows === []) {
+                break;
+            }
+
+            foreach ($oitmRows as $row) {
+                $code = trim((string)($row['ItemCode'] ?? $row['ITEMCODE'] ?? ''));
+                if ($code === '') {
+                    continue;
+                }
+
+                $grpCod = $row['ItmsGrpCod'] ?? $row['ITMSGRPCOD'] ?? '';
+                $all[] = [
+                    'ItemCode' => $code,
+                    'ItemName' => $row['ItemName'] ?? $row['ITEMNAME'] ?? '',
+                    'InvntryUom' => $row['InvntryUom'] ?? $row['INVNTYUOM'] ?? '',
+                    'validFor' => $row['validFor'] ?? $row['VALIDFOR'] ?? 'Y',
+                    'AvgPrice' => $row['AvgPrice'] ?? $row['AVGPRICE'] ?? 0,
+                    'ItemGroupName' => $groupMap[(string)$grpCod] ?? 'Geral',
+                ];
+            }
+
+            $lastRow = $oitmRows[count($oitmRows) - 1];
+            $lastCode = trim((string)($lastRow['ItemCode'] ?? $lastRow['ITEMCODE'] ?? $lastCode));
+
+            if (count($oitmRows) < $batchSize) {
+                break;
+            }
+
+            usleep(2500000);
+        }
+
+        return $all;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function fetchSapItemGroupsMap(SapReportApiService $sap): array
+    {
+        $map = [];
+        foreach ($this->executeSapQueryWithRetry($sap, 'SELECT "ItmsGrpCod", "ItmsGrpNam" FROM OITB') as $row) {
+            $cod = trim((string)($row['ItmsGrpCod'] ?? $row['ITMSGRPCOD'] ?? ''));
+            $name = trim((string)($row['ItmsGrpNam'] ?? $row['ITMSGRPNAM'] ?? ''));
+            if ($cod !== '') {
+                $map[$cod] = $name !== '' ? $name : 'Geral';
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchOitmKeysetBatchWithCost(SapReportApiService $sap, string $afterItemCode, int $limit): array
+    {
+        $limit = max(1, min(100, $limit));
+        $afterClause = '';
+        if ($afterItemCode !== '') {
+            $afterClause = ' AND T0."ItemCode" > \'' . str_replace("'", "''", $afterItemCode) . '\'';
+        }
+
+        $costJoin = $this->sapOitwJoinSql('T0."ItemCode"', 'T0."DfltWH"');
+        $sql = 'SELECT T0."ItemCode", T0."ItemName", T0."InvntryUom", T0."validFor", T0."ItmsGrpCod", '
+            . 'TO_DECIMAL(COALESCE(W."AvgPrice", T0."AvgPrice"), 19, 4) AS "AvgPrice" '
+            . 'FROM OITM T0 '
+            . $costJoin . ' '
+            . 'WHERE T0."frozenFor" = \'N\'' . $afterClause . ' '
+            . 'ORDER BY T0."ItemCode" '
+            . 'LIMIT ' . $limit;
+
+        return $this->executeSapQueryWithRetry($sap, $sql, 5);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function executeSapQueryWithRetry(SapReportApiService $sap, string $sql, int $maxAttempts = 3): array
+    {
+        $last = null;
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            if ($attempt > 1) {
+                usleep(1000000 * $attempt);
+            }
+
+            try {
+                return $this->extractSapRows($sap->execute($sql));
+            } catch (Throwable $e) {
+                $last = $e;
+                if (!$this->isRetryableSapError($e) || $attempt >= $maxAttempts) {
+                    throw $e;
+                }
+            }
+        }
+
+        if ($last instanceof Throwable) {
+            throw $last;
+        }
+
+        return [];
+    }
+
+    private function isRetryableSapError(Throwable $e): bool
+    {
+        $msg = mb_strtolower($e->getMessage(), 'UTF-8');
+
+        return str_contains($msg, 'http 500')
+            || str_contains($msg, 'sem resposta')
+            || str_contains($msg, 'timed out')
+            || str_contains($msg, 'transfer closed');
+    }
+
+    private function getSapItemsQuery(?string $updatedSince = null, int $limit = 0, int $offset = 0): string
+    {
+        $costSelect = 'TO_DECIMAL(COALESCE(W."AvgPrice", T0."AvgPrice"), 19, 4)';
+        $costJoins = $this->sapOitwJoinSql('T0."ItemCode"', 'T0."DfltWH"');
+        $where = 'WHERE T0."frozenFor" = \'N\'';
+        if ($updatedSince !== null && $updatedSince !== '') {
+            $safeDate = str_replace("'", "''", substr($updatedSince, 0, 10));
+            $where .= ' AND T0."UpdateDate" >= \'' . $safeDate . '\'';
+        }
+
+        $sql = 'SELECT '
             . 'T0."ItemCode", '
             . 'T0."ItemName", '
             . 'T0."InvntryUom", '
@@ -370,10 +731,40 @@ class InventorySapSyncService
             . 'T1."ItmsGrpNam" AS "ItemGroupName" '
             . 'FROM OITM T0 '
             . 'LEFT JOIN OITB T1 ON T1."ItmsGrpCod" = T0."ItmsGrpCod" '
-            . $costJoins
-            . 'WHERE T0."frozenFor" = \'N\'';
+            . $costJoins . ' '
+            . $where
+            . ' ORDER BY T0."ItemCode"';
+
+        if ($limit > 0) {
+            $sql .= ' LIMIT ' . max(1, min(200, $limit));
+            $sql .= ' OFFSET ' . max(0, $offset);
+        }
+
+        return $sql;
     }
 
+    /**
+     * @param array<string, mixed> $existing
+     * @param array<string, mixed> $payload
+     */
+    private function itemPayloadDiffersFromExisting(array $existing, array $payload): bool
+    {
+        $compare = static function (mixed $a, mixed $b): bool {
+            if (is_numeric($a) || is_numeric($b)) {
+                return round((float)$a, 6) !== round((float)$b, 6);
+            }
+
+            return trim((string)$a) !== trim((string)$b);
+        };
+
+        foreach (['description', 'inv_unit_id', 'inv_category_id', 'average_cost', 'last_cost', 'active'] as $field) {
+            if ($compare($existing[$field] ?? null, $payload[$field] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     private function sapWarehouseCaseExpression(string $defaultWhColumn): string
     {
         return 'CASE '

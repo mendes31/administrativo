@@ -19,7 +19,12 @@ class ListInventoryItems
     public function index(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_sap_items'])) {
-            $this->handleSyncRequest();
+            $this->handleItemsSyncRequest();
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_sap_structures'])) {
+            $this->handleStructuresSyncRequest();
             return;
         }
 
@@ -86,7 +91,7 @@ class ListInventoryItems
         $loadView->loadView();
     }
 
-    private function handleSyncRequest(): void
+    private function handleItemsSyncRequest(): void
     {
         $token = (string) ($_POST['csrf_token'] ?? '');
         if (!CSRFHelper::validateCSRFToken('form_sync_inventory_items', $token)) {
@@ -95,12 +100,54 @@ class ListInventoryItems
             return;
         }
 
+        @set_time_limit(0);
+
+        $fullSync = !empty($_POST['sync_sap_items_full']);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         $service = new InventorySapSyncService();
-        $result = $service->syncItemsAndCosts();
+        $result = $service->syncItemsAndCosts($fullSync);
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
         if (!empty($result['success'])) {
             $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>{$result['message']}</div>";
         } else {
             $message = htmlspecialchars((string) ($result['message'] ?? 'Erro desconhecido na sincronização SAP.'), ENT_QUOTES, 'UTF-8');
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>{$message}</div>";
+        }
+
+        header('Location: ' . $_ENV['URL_ADM'] . 'list-inventory-items');
+    }
+
+    private function handleStructuresSyncRequest(): void
+    {
+        $token = (string) ($_POST['csrf_token'] ?? '');
+        if (!CSRFHelper::validateCSRFToken('form_sync_inventory_structures', $token)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Token CSRF inválido para sincronização de estruturas.</div>";
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-inventory-items');
+            return;
+        }
+
+        @set_time_limit(0);
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
+        $service = new InventorySapSyncService();
+        $result = $service->syncAllItemStructures();
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        if (!empty($result['success'])) {
+            $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>{$result['message']}</div>";
+        } else {
+            $message = htmlspecialchars((string) ($result['message'] ?? 'Erro desconhecido na sincronização de estruturas.'), ENT_QUOTES, 'UTF-8');
             $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>{$message}</div>";
         }
 

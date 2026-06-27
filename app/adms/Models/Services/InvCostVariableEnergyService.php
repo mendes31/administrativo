@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 
 /**
@@ -93,7 +94,8 @@ class InvCostVariableEnergyService
         int $itemId,
         float $batchSize,
         float $kwhTariff,
-        ?array $operationRows = null
+        ?array $operationRows = null,
+        ?string $productionLine = null
     ): array {
         $empty = [
             'kwh_per_batch' => 0.0,
@@ -105,6 +107,10 @@ class InvCostVariableEnergyService
         ];
 
         if ($itemId <= 0 || $kwhTariff <= 0 || $batchSize <= 0) {
+            return $empty;
+        }
+
+        if (!InvCostProductionLineHelper::isEligibleForDirectEnergy($productionLine)) {
             return $empty;
         }
 
@@ -132,13 +138,21 @@ class InvCostVariableEnergyService
 
     /**
      * Driver critério 7 (R$) a partir do HM do período.
+     * Apenas linha TIARAJU (produção interna); TERCEIRO fica com driver zero.
+     *
+     * @param array<string, mixed>|null $periodItem
      */
     public function computePeriodEnergyDriver(
         int $itemId,
         float $hmPeriod,
         float $hmPerBatch,
-        float $kwhTariff
+        float $kwhTariff,
+        ?array $periodItem = null
     ): float {
+        if (!InvCostProductionLineHelper::isPeriodItemEligibleForDirectEnergy($periodItem)) {
+            return 0.0;
+        }
+
         if ($itemId <= 0 || $hmPeriod <= 0 || $hmPerBatch <= 0) {
             return 0.0;
         }

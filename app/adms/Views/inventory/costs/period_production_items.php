@@ -82,7 +82,7 @@ $productionLineLabels = ['TERCEIRO' => 'TERCEIRO', 'TIARAJU' => 'TIARAJU'];
               <th class="text-end" title="Fator × análises — critério 6">Compl×Anál</th>
               <th class="text-end" title="Critério 4 — CQ/P&amp;D/DA: participação % pela complexidade (fator 2/5/8)">% Crit. 4</th>
               <th class="text-end" title="Critério 6 — CQ/P&amp;D/DA: participação % por complexidade × nº análises">% Crit. 6</th>
-              <th title="Linha de produção (TERCEIRO ou TIARAJU) — cadastro do item">Linha</th>
+              <th title="Linha de produção: TIARAJU entra no crit. 7 (EE direta); TERCEIRO não">Linha</th>
               <th class="pe-3"></th>
             </tr>
           </thead>

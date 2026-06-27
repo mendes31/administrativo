@@ -32,7 +32,7 @@
 <h2>Parâmetros por SKU (produção do período)</h2>
 <ol>
     <li>Na aba <strong>SKUs produzidos no período</strong>, use o filtro (<strong>PA</strong>, descrição ou código ERP). A lista é ordenada por <strong>descrição</strong>. O botão <em>Somente PA</em> restringe a produto acabado (categoria ou código 43…).</li>
-    <li><strong>Classe energia</strong>, <strong>complexidade</strong> e <strong>linha</strong> (TERCEIRO ou TIARAJU) vêm do cadastro do item (<em>Editar item</em> em Estoque). Se a classe energia estiver vazia, o sistema sugere pela descrição.</li>
+    <li><strong>Classe energia</strong>, <strong>complexidade</strong> e <strong>linha</strong> (TERCEIRO ou TIARAJU) vêm do cadastro do item (<em>Editar item</em> em Estoque). A linha <strong>TIARAJU</strong> inclui o SKU na base do <strong>critério 7</strong> (energia elétrica direta / conta 29-D); <strong>TERCEIRO</strong> fica fora desse rateio. Se a classe energia estiver vazia, o sistema sugere pela descrição.</li>
     <li>Colunas <strong>Lotes</strong> e <strong>Qtd</strong>: a quantidade exibe <em>produzido / planejado</em> (lotes × lote mínimo do cadastro). A eficiência % deriva dessa razão.</li>
     <li><strong>Análises</strong> = (nº linhas MP + MAE na BOM) × lotes × eficiência (produzido ÷ planejado), como na planilha (linha 2310). SKUs sem BOM cadastrada ficam com driver 6 zerado — complete a ficha técnica para alinhar os % de rateio.</li>
     <li><strong>Produção simulada</strong> (período em rascunho): inclua lotes fictícios de PA/projeto na aba SKUs — recalcula critérios 1–8 como uma nova coluna na planilha Tiaraju.</li>

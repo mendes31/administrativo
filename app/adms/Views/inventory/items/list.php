@@ -23,11 +23,24 @@ $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item')
 		<div class="card-header hstack gap-2 flex-wrap align-items-center">
 			<span>Listar</span>
 			<span class="ms-auto d-flex flex-wrap gap-1">
-				<form action="" method="POST" class="d-inline">
+				<form action="" method="POST" class="d-inline" id="form-sync-inventory-items"
+					onsubmit="return confirm('Sincronizar cadastro e custos com o SAP?\n\nPadrão: só itens alterados recentemente (rápido).\nMarque Completa apenas na primeira carga ou para reimportar todo o catálogo (demora vários minutos).');">
 					<input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_sync_inventory_items'); ?>">
 					<input type="hidden" name="sync_sap_items" value="1">
-					<button type="submit" class="btn btn-outline-primary btn-sm">
-						<i class="fa-solid fa-rotate"></i> Sincronizar
+					<button type="submit" class="btn btn-outline-primary btn-sm" id="btn-sync-inventory-items">
+						<i class="fa-solid fa-rotate"></i> Sincronizar itens
+					</button>
+					<label class="btn btn-outline-secondary btn-sm mb-0" title="Importa os ~4.500 itens do SAP em lotes (10–15 min). Deixe desmarcado no uso diário.">
+						<input type="checkbox" name="sync_sap_items_full" value="1" class="form-check-input me-1">
+						Completa
+					</label>
+				</form>
+				<form action="" method="POST" class="d-inline" id="form-sync-inventory-structures"
+					onsubmit="return confirm('Sincronizar BOM e rota (BEAS) para todos os itens elegíveis?\n\nPA/PI, códigos 43…/40… ou itens que já tenham lista/rota local. Pode levar vários minutos.');">
+					<input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_sync_inventory_structures'); ?>">
+					<input type="hidden" name="sync_sap_structures" value="1">
+					<button type="submit" class="btn btn-outline-warning btn-sm" id="btn-sync-inventory-structures">
+						<i class="fa-solid fa-sitemap"></i> Sincronizar estruturas
 					</button>
 				</form>
 				<?php if (in_array('CreateInventoryItem', $this->data['buttonPermission'])) {

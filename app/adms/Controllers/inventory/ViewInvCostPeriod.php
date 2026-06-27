@@ -271,7 +271,7 @@ class ViewInvCostPeriod
             4 => '4 — Complexidade (CQ/P&D/DA)',
             5 => '5 — Nº matérias-primas',
             6 => '6 — Complexidade × análises (CQ/P&D/DA)',
-            7 => '7 — Energia (kWh)',
+            7 => '7 — Energia direta (kWh, linha TIARAJU)',
             8 => '8 — HVAC (CM/Prob/Outro)',
         ];
     }

@@ -97,7 +97,7 @@ class InvCostProductionBatchesRepository extends DbConnection
                     :sap_sync_run_id, :imported_by, :imported_at, :updated_at
                 )';
         $stmt = $this->getConnection()->prepare($sql);
-        $this->bindBatchData($stmt, $data, $now);
+        $this->bindBatchData($stmt, $data, $now, true);
         $stmt->execute();
 
         return (int)$this->getConnection()->lastInsertId();
@@ -133,7 +133,7 @@ class InvCostProductionBatchesRepository extends DbConnection
                 WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $this->bindBatchData($stmt, $data, $now);
+        $this->bindBatchData($stmt, $data, $now, false);
         $stmt->execute();
 
         return $stmt->rowCount() > 0;
@@ -185,7 +185,7 @@ class InvCostProductionBatchesRepository extends DbConnection
     /**
      * @param array<string, mixed> $data
      */
-    private function bindBatchData(\PDOStatement $stmt, array $data, string $now): void
+    private function bindBatchData(\PDOStatement $stmt, array $data, string $now, bool $forInsert): void
     {
         $invItemId = $data['inv_item_id'] ?? null;
         $stmt->bindValue(':inv_item_id', $invItemId !== null ? (int)$invItemId : null, $invItemId !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -209,7 +209,9 @@ class InvCostProductionBatchesRepository extends DbConnection
         $stmt->bindValue(':sap_sync_run_id', $syncRunId !== null ? (int)$syncRunId : null, $syncRunId !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $importedBy = $data['imported_by'] ?? null;
         $stmt->bindValue(':imported_by', $importedBy !== null ? (int)$importedBy : null, $importedBy !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
-        $stmt->bindValue(':imported_at', (string)($data['imported_at'] ?? $now));
+        if ($forInsert) {
+            $stmt->bindValue(':imported_at', (string)($data['imported_at'] ?? $now));
+        }
         $stmt->bindValue(':updated_at', $now);
     }
 }

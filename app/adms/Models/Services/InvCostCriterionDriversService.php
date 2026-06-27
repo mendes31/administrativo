@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 
@@ -74,14 +75,16 @@ class InvCostCriterionDriversService
             if ($itemId > 0) {
                 $hmPerBatch = (float)(InventoryCostService::calculateBreakdown($itemId, [])['machine_hours'] ?? 0);
             }
-            $driver7 = $itemId > 0
-                ? (new InvCostVariableEnergyService())->computePeriodEnergyDriver(
+            $driver7 = 0.0;
+            if ($itemId > 0 && InvCostProductionLineHelper::isPeriodItemEligibleForDirectEnergy($periodItem)) {
+                $driver7 = (new InvCostVariableEnergyService())->computePeriodEnergyDriver(
                     $itemId,
                     (float)($baseRow['hm_period'] ?? 0),
                     $hmPerBatch,
-                    (float)(is_array($periodMeta) ? ($periodMeta['kwh_tariff'] ?? 0) : 0)
-                )
-                : 0.0;
+                    (float)(is_array($periodMeta) ? ($periodMeta['kwh_tariff'] ?? 0) : 0),
+                    $periodItem
+                );
+            }
             $driver8 = $this->hvacDriver($periodItem);
 
             $totals['driver_1'] += $driver1;
@@ -94,6 +97,7 @@ class InvCostCriterionDriversService
             $totals['driver_8'] += $driver8;
 
             $items[] = array_merge($baseRow, [
+                'production_line' => InvCostProductionLineHelper::fromPeriodItem($periodItem),
                 'driver_1' => round($driver1, 6),
                 'driver_2' => round($driver2, 6),
                 'driver_3' => round($driver3, 6),

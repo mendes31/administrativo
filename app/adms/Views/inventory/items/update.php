@@ -209,7 +209,7 @@ use App\adms\Helpers\CSRFHelper;
 									<option value="TERCEIRO"<?= $productionLine === 'TERCEIRO' ? ' selected' : '' ?>>TERCEIRO</option>
 									<option value="TIARAJU"<?= $productionLine === 'TIARAJU' ? ' selected' : '' ?>>TIARAJU</option>
 								</select>
-								<div class="form-text">Usada em critérios de rateio CFIX (ex.: HH por linha).</div>
+								<div class="form-text">TIARAJU: produção interna (entra no critério 7 — energia direta). TERCEIRO: terceirizado (sem EE direta da planta).</div>
 							</div>
 
 							<div class="col-12 col-md-3">

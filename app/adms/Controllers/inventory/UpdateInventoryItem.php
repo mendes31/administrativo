@@ -2,6 +2,8 @@
 
 namespace App\adms\Controllers\inventory;
 
+use App\adms\Helpers\InvCostProductionLineHelper;
+
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
@@ -609,12 +611,7 @@ class UpdateInventoryItem
 
     private function normalizeProductionLine(mixed $value): ?string
     {
-        $line = mb_strtoupper(trim((string)($value ?? '')), 'UTF-8');
-        if ($line === '') {
-            return null;
-        }
-
-        return in_array($line, ['TERCEIRO', 'TIARAJU'], true) ? $line : null;
+        return InvCostProductionLineHelper::normalize($value);
     }
 
     /**

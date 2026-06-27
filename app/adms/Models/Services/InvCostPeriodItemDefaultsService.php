@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 
 /**
@@ -30,7 +31,8 @@ class InvCostPeriodItemDefaultsService
                 : (int)$defaults['analysis_count'],
             'batch_size_adopted' => $savedRow['batch_size_adopted'] ?? $defaults['batch_size_adopted'],
             'batch_size_theoretical' => $defaults['batch_size_theoretical'],
-            'production_line' => $defaults['production_line'],
+            'production_line' => InvCostProductionLineHelper::normalize($savedRow['production_line'] ?? null)
+                ?? $defaults['production_line'],
             'sale_price_net' => $savedRow['sale_price_net'] ?? $defaults['sale_price_net'],
             'target_margin_pct' => $savedRow['target_margin_pct'] ?? $defaults['target_margin_pct'],
             'efficiency_pct' => $savedRow['efficiency_pct'] ?? $defaults['efficiency_pct'],
@@ -82,7 +84,9 @@ class InvCostPeriodItemDefaultsService
             'analysis_count' => 0,
             'batch_size_adopted' => null,
             'batch_size_theoretical' => $batchSize > 0 ? round($batchSize, 4) : null,
-            'production_line' => $this->nonEmptyString($item['production_line'] ?? null),
+            'production_line' => $this->nonEmptyString($item['production_line'] ?? null)
+                ? InvCostProductionLineHelper::normalize($item['production_line'] ?? null)
+                : null,
             'sale_price_net' => null,
             'target_margin_pct' => null,
             'efficiency_pct' => null,

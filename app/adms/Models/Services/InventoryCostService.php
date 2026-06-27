@@ -102,7 +102,7 @@ class InventoryCostService extends DbConnection
         $useCustomBom = is_array($customBomRows);
         $useCustomOps = is_array($customOpRows);
 
-        $stmtItem = $conn->prepare('SELECT standard_batch_size FROM inv_items WHERE id = :item_id LIMIT 1');
+        $stmtItem = $conn->prepare('SELECT standard_batch_size, production_line FROM inv_items WHERE id = :item_id LIMIT 1');
         $stmtItem->bindValue(':item_id', $itemId, PDO::PARAM_INT);
         $stmtItem->execute();
         $itemRow = $stmtItem->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -285,7 +285,13 @@ class InventoryCostService extends DbConnection
             $simTotalBatch = $simTotal * $batchSize;
         }
 
-        $cvarEnergy = self::computeCvarEnergyBlock($itemId, $batchSize, $scenario, $opRows);
+        $cvarEnergy = self::computeCvarEnergyBlock(
+            $itemId,
+            $batchSize,
+            $scenario,
+            $opRows,
+            (string)($itemRow['production_line'] ?? '')
+        );
         $cvarEnergyCost = (float)($cvarEnergy['cost_unit'] ?? 0);
         $simCvarEnergy = $cvarEnergyCost * $operationsFactor * $globalFactor;
 
@@ -655,8 +661,13 @@ class InventoryCostService extends DbConnection
      * @param list<array<string, mixed>> $opRows
      * @return array<string, mixed>
      */
-    private static function computeCvarEnergyBlock(int $itemId, float $batchSize, array $scenario, array $opRows): array
-    {
+    private static function computeCvarEnergyBlock(
+        int $itemId,
+        float $batchSize,
+        array $scenario,
+        array $opRows,
+        ?string $productionLine = null
+    ): array {
         $tariff = (float)($scenario['kwh_tariff'] ?? 0);
         if ($itemId <= 0 || $tariff <= 0 || $batchSize <= 0) {
             return [
@@ -669,7 +680,13 @@ class InventoryCostService extends DbConnection
             ];
         }
 
-        return (new InvCostVariableEnergyService())->computeCvarEnergy($itemId, $batchSize, $tariff, $opRows);
+        return (new InvCostVariableEnergyService())->computeCvarEnergy(
+            $itemId,
+            $batchSize,
+            $tariff,
+            $opRows,
+            $productionLine
+        );
     }
 
     /**
