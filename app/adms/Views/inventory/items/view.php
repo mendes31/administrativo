@@ -88,8 +88,14 @@ $truncate = static function (string $text, int $max = 42): string {
         <div class="small text-muted d-flex flex-wrap gap-3">
           <span><span class="text-secondary">ERP:</span> <?= htmlspecialchars($item['erp_code'] ?? '—') ?></span>
           <span><span class="text-secondary">Unidade:</span> <?= htmlspecialchars($item['unit_name'] ?? '—') ?></span>
-          <span><span class="text-secondary">Categoria:</span> <?= htmlspecialchars($item['category_name'] ?? '—') ?></span>
-          <span><span class="text-secondary">Administração:</span> <?= htmlspecialchars($item['admin_type'] ?? 'none') ?></span>
+          <span><span class="text-secondary">Grupo de Itens:</span> <?= htmlspecialchars($item['category_name'] ?? '—') ?></span>
+          <span><span class="text-secondary">Forma farm.:</span> <?= htmlspecialchars($item['pharma_form_name'] ?? '—') ?></span>
+          <span><span class="text-secondary">Linha:</span> <?= htmlspecialchars($item['production_line'] ?? '—') ?></span>
+          <span><span class="text-secondary">Administração:</span> <?= htmlspecialchars(match ((string)($item['admin_type'] ?? 'none')) {
+            'lot' => 'Lotes',
+            'serial' => 'Números de série',
+            default => 'Nenhum',
+          }) ?></span>
           <span><span class="text-secondary">Ativo:</span> <?= !empty($item['active']) ? 'Sim' : 'Não' ?></span>
         </div>
       </div>
@@ -120,6 +126,23 @@ $truncate = static function (string $text, int $max = 42): string {
           </dl>
         </div>
         <div class="col-12 col-md-4">
+          <h6 class="text-muted text-uppercase small mb-3">Produção / SAP</h6>
+          <dl class="row mb-0 small">
+            <dt class="col-5 text-muted">Forma farm.</dt>
+            <dd class="col-7 fw-semibold mb-2"><?= htmlspecialchars($item['pharma_form_name'] ?? '—') ?></dd>
+            <dt class="col-5 text-muted">Linha produção</dt>
+            <dd class="col-7 fw-semibold mb-2"><?= htmlspecialchars($item['production_line'] ?? '—') ?></dd>
+            <dt class="col-5 text-muted">Lote padrão</dt>
+            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($item['standard_batch_size'] ?? 1), 6) ?></dd>
+            <dt class="col-5 text-muted">Administrar por</dt>
+            <dd class="col-7 fw-semibold mb-0"><?= htmlspecialchars(match ((string)($item['admin_type'] ?? 'none')) {
+              'lot' => 'Lotes',
+              'serial' => 'Números de série',
+              default => 'Nenhum',
+            }) ?></dd>
+          </dl>
+        </div>
+        <div class="col-12 col-md-4">
           <h6 class="text-muted text-uppercase small mb-3">Estoque</h6>
           <dl class="row mb-0 small">
             <dt class="col-5 text-muted">Mínimo</dt>
@@ -131,6 +154,8 @@ $truncate = static function (string $text, int $max = 42): string {
       </div>
     </div>
   </div>
+
+  <?php include __DIR__ . '/../partials/item_sap_sync_view.php'; ?>
 
   <!-- Estrutura BOM + Rota -->
   <?php if ($hasStructure): ?>

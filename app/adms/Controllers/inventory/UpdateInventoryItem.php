@@ -10,6 +10,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\AdmsLayoutSessionHelper;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Repository\inventory\InvPharmaFormsRepository;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
@@ -66,6 +67,7 @@ class UpdateInventoryItem
         $itemsRepo = new InvItemsRepository();
         $this->data['listUnits'] = $unitsRepo->getAllForSelect();
         $this->data['listCategories'] = $categoriesRepo->getAllForSelect();
+        $this->data['listPharmaForms'] = (new InvPharmaFormsRepository())->getAllForSelect();
         // Itens ativos para seleção na ficha técnica (Lista de Materiais)
         $this->data['listBomItems'] = $itemsRepo->getAllForSelectWithAdminType();
 
@@ -188,6 +190,7 @@ class UpdateInventoryItem
             'energy_class' => $this->normalizeEnergyClass($form['energy_class'] ?? null),
             'complexity_level' => $this->normalizeComplexityLevel($form['complexity_level'] ?? 'media'),
             'production_line' => $this->normalizeProductionLine($form['production_line'] ?? null),
+            'inv_pharma_form_id' => !empty($form['inv_pharma_form_id']) ? (int)$form['inv_pharma_form_id'] : null,
             'active' => isset($form['active']) ? 1 : 0,
         ]);
 

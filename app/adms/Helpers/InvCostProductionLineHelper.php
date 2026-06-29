@@ -29,6 +29,26 @@ final class InvCostProductionLineHelper
     }
 
     /**
+     * Converte SAP OITM.U_LinhaProduto (ex.: Própria, Terceiro) para TERCEIRO/TIARAJU.
+     */
+    public static function fromSapLinhaProduto(mixed $value): ?string
+    {
+        $raw = mb_strtolower(trim((string)($value ?? '')), 'UTF-8');
+        if ($raw === '') {
+            return null;
+        }
+
+        if ($raw === 'p' || str_starts_with($raw, 'própri') || str_starts_with($raw, 'propri')) {
+            return self::LINE_TIARAJU;
+        }
+        if ($raw === 't' || str_contains($raw, 'terceir')) {
+            return self::LINE_TERCEIRO;
+        }
+
+        return self::normalize($value);
+    }
+
+    /**
      * Elegível para critério 7 (kWh linha produtiva / CVAR energia direta).
      */
     public static function isEligibleForDirectEnergy(mixed $productionLine): bool

@@ -27,9 +27,11 @@
 <div class="help-field"><strong>Lote padrão (mín.)</strong> Quantidade teórica por lote para eficiência de produção e rateio na simulação.</div>
 <div class="help-field"><strong>Classe energia (HVAC)</strong> CM, PROB ou OTHER — critério 8 do rateio CFIX. Deixe em branco para sugestão automática pela descrição.</div>
 <div class="help-field"><strong>Complexidade</strong> Baixa, média ou alta — critério 4 do rateio CFIX.</div>
-<div class="help-field"><strong>Linha de produção</strong> TERCEIRO ou TIARAJU. <strong>TIARAJU</strong> (produção interna) entra no critério 7 — energia direta (kWh×tarifa) e no CVAR energia. <strong>TERCEIRO</strong> (terceirizado) não recebe EE direta da planta.</div>
+<div class="help-field"><strong>Linha de produção</strong> TERCEIRO ou TIARAJU. <strong>TIARAJU</strong> (produção interna / SAP <em>Própria</em>) entra no critério 7 — energia direta (kWh×tarifa) e no CVAR energia. <strong>TERCEIRO</strong> (terceirizado) não recebe EE direta da planta.</div>
+<div class="help-field"><strong>Forma farmacêutica</strong> Selecione na lista importada do SAP (<code>U_FormaFarma</code>). A sincronização de itens atualiza as opções disponíveis.</div>
 <div class="help-field"><strong>Lista de materiais</strong> Quantidade por lote, perda % e origem (catálogo ou manual).</div>
 <div class="help-field"><strong>CVAR MP / MAE</strong> Na simulação, linhas manuais classificadas como MP ou MAE entram nos totais de custo variável.</div>
+<div class="help-field"><strong>Integração SAP</strong> (somente leitura, itens com código ERP) Exibe versão BEAS, data da última sync, <code>UpdateDate</code> do SAP, hashes de item/BOM/rota e badges de pendência (<em>BOM pendente</em>, <em>Rota pendente</em>). Preenchido automaticamente pela sincronização; não edite manualmente.</div>
 <div class="help-field"><strong>Log de alterações</strong> Alterações na BOM e rota aparecem no contexto do item.</div>
 
 <h2>Problemas comuns</h2>

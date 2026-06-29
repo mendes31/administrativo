@@ -150,7 +150,7 @@ use App\adms\Helpers\CSRFHelper;
 							</div>
 
 							<div class="col-12 col-md-3">
-								<label for="inv_category_id" class="form-label">Categoria</label>
+								<label for="inv_category_id" class="form-label">Grupo de Itens</label>
 								<select name="inv_category_id" id="inv_category_id" class="form-select">
 									<option value="">Selecione</option>
 									<?php foreach (($this->data['listCategories'] ?? []) as $c) { $sel = ((string)($this->data['form']['inv_category_id'] ?? '') === (string)$c['id']) ? 'selected' : ''; echo "<option value='{$c['id']}' $sel>{$c['name']}</option>"; } ?>
@@ -207,9 +207,21 @@ use App\adms\Helpers\CSRFHelper;
 								<select name="production_line" id="production_line" class="form-select">
 									<option value=""<?= $productionLine === '' ? ' selected' : '' ?>>— não informada</option>
 									<option value="TERCEIRO"<?= $productionLine === 'TERCEIRO' ? ' selected' : '' ?>>TERCEIRO</option>
-									<option value="TIARAJU"<?= $productionLine === 'TIARAJU' ? ' selected' : '' ?>>TIARAJU</option>
+									<option value="TIARAJU"<?= $productionLine === 'TIARAJU' ? ' selected' : '' ?>>TIARAJU (Própria)</option>
 								</select>
-								<div class="form-text">TIARAJU: produção interna (entra no critério 7 — energia direta). TERCEIRO: terceirizado (sem EE direta da planta).</div>
+								<div class="form-text">TIARAJU: produção interna (entra no critério 7 — energia direta). TERCEIRO: terceirizado. Na sync SAP, <em>Própria</em> vira TIARAJU.</div>
+							</div>
+
+							<div class="col-12 col-md-3">
+								<label for="inv_pharma_form_id" class="form-label">Forma farmacêutica</label>
+								<select name="inv_pharma_form_id" id="inv_pharma_form_id" class="form-select">
+									<option value="">— selecione —</option>
+									<?php foreach (($this->data['listPharmaForms'] ?? []) as $pf) {
+										$sel = ((string)($this->data['form']['inv_pharma_form_id'] ?? '') === (string)$pf['id']) ? 'selected' : '';
+										echo "<option value='{$pf['id']}' $sel>" . htmlspecialchars((string)$pf['name']) . '</option>';
+									} ?>
+								</select>
+								<div class="form-text">Lista importada do SAP. Sincronize itens para novas opções.</div>
 							</div>
 
 							<div class="col-12 col-md-3">
@@ -240,6 +252,11 @@ use App\adms\Helpers\CSRFHelper;
 									<label class="form-check-label" for="active">Sim</label>
 								</div>
 							</div>
+
+							<?php
+							$item = $this->data['form'] ?? [];
+							include __DIR__ . '/../partials/item_sap_sync_fields.php';
+							?>
 						</div>
 					</div>
 

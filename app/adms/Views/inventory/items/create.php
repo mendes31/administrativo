@@ -57,7 +57,7 @@ use App\adms\Helpers\CSRFHelper;
 				</div>
 
 				<div class="col-12 col-md-3">
-					<label for="inv_category_id" class="form-label">Categoria</label>
+					<label for="inv_category_id" class="form-label">Grupo de Itens</label>
 					<select name="inv_category_id" id="inv_category_id" class="form-select">
 						<option value="">Selecione</option>
 						<?php foreach (($this->data['listCategories'] ?? []) as $c) { $sel = ((string)($this->data['form']['inv_category_id'] ?? '') === (string)$c['id']) ? 'selected' : ''; echo "<option value='{$c['id']}' $sel>{$c['name']}</option>"; } ?>
@@ -91,6 +91,33 @@ use App\adms\Helpers\CSRFHelper;
 				<div class="col-12 col-md-3">
 					<label for="last_cost" class="form-label">Último custo</label>
 					<input type="number" step="0.000001" min="0" name="last_cost" id="last_cost" class="form-control" value="<?php echo $this->data['form']['last_cost'] ?? '0'; ?>">
+				</div>
+
+				<div class="col-12">
+					<hr class="my-1">
+					<p class="small text-muted mb-0">Parâmetros de rateio CFIX e cadastro complementar (também preenchidos na sincronização SAP).</p>
+				</div>
+
+				<div class="col-12 col-md-3">
+					<label for="inv_pharma_form_id" class="form-label">Forma farmacêutica</label>
+					<select name="inv_pharma_form_id" id="inv_pharma_form_id" class="form-select">
+						<option value="">— selecione —</option>
+						<?php foreach (($this->data['listPharmaForms'] ?? []) as $pf) {
+							$sel = ((string)($this->data['form']['inv_pharma_form_id'] ?? '') === (string)$pf['id']) ? 'selected' : '';
+							echo "<option value='{$pf['id']}' $sel>" . htmlspecialchars((string)$pf['name']) . '</option>';
+						} ?>
+					</select>
+					<div class="form-text">Lista importada do SAP (<code>U_FormaFarma</code>). Rode <em>Sincronizar itens</em> para atualizar opções.</div>
+				</div>
+
+				<div class="col-12 col-md-3">
+					<label for="production_line" class="form-label">Linha de produção</label>
+					<?php $productionLine = mb_strtoupper(trim((string)($this->data['form']['production_line'] ?? '')), 'UTF-8'); ?>
+					<select name="production_line" id="production_line" class="form-select">
+						<option value=""<?= $productionLine === '' ? ' selected' : '' ?>>— não informada</option>
+						<option value="TERCEIRO"<?= $productionLine === 'TERCEIRO' ? ' selected' : '' ?>>TERCEIRO</option>
+						<option value="TIARAJU"<?= $productionLine === 'TIARAJU' ? ' selected' : '' ?>>TIARAJU (Própria)</option>
+					</select>
 				</div>
 
 				<div class="col-12 col-md-3">

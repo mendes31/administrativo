@@ -124,6 +124,23 @@ class InvCategoriesRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Grupos (OITB) presentes em itens sincronizados do SAP — para filtro da listagem.
+     *
+     * @return list<array{id: int|string, name: string}>
+     */
+    public function getImportedForSelect(): array
+    {
+        $sql = 'SELECT DISTINCT c.id, c.name
+                FROM inv_categories c
+                INNER JOIN inv_items i ON i.inv_category_id = c.id
+                WHERE i.erp_code IS NOT NULL AND TRIM(i.erp_code) <> \'\'
+                ORDER BY c.name ASC';
+        $stmt = $this->getConnection()->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function findIdByName(string $name): ?int
     {
         $name = trim($name);

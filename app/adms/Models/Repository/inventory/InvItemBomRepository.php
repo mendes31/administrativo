@@ -81,6 +81,75 @@ class InvItemBomRepository extends DbConnection
     }
 
     /**
+     * Verifica se as linhas informadas são equivalentes à BOM já gravada no item.
+     *
+     * @param list<array<string, mixed>> $incomingLines
+     */
+    public function structureLinesMatch(int $invItemId, array $incomingLines): bool
+    {
+        $current = $this->normalizeComparableBomLines($this->getByItem($invItemId));
+        $incoming = $this->normalizeComparableBomLines($incomingLines);
+
+        return json_encode($current, JSON_UNESCAPED_UNICODE) === json_encode($incoming, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $lines
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeComparableBomLines(array $lines): array
+    {
+        $normalized = [];
+        foreach ($lines as $line) {
+            $source = (string)($line['line_source'] ?? 'catalog');
+            if (!in_array($source, ['catalog', 'manual'], true)) {
+                $source = 'catalog';
+            }
+
+            $componentId = isset($line['component_item_id']) ? (int)$line['component_item_id'] : 0;
+            if ($source === 'catalog' && $componentId <= 0) {
+                continue;
+            }
+
+            $entry = [
+                'line_source' => $source,
+                'component_item_id' => $source === 'catalog' ? $componentId : null,
+                'quantity_per_batch' => round((float)($line['quantity_per_batch'] ?? 0), 6),
+                'scrap_percent' => round((float)($line['scrap_percent'] ?? 0), 6),
+            ];
+
+            if ($source === 'manual') {
+                $entry['manual_description'] = (string)($line['manual_description'] ?? '');
+                $entry['manual_component_type'] = (string)($line['manual_component_type'] ?? '');
+                $entry['manual_unit'] = (string)($line['manual_unit'] ?? '');
+                $entry['manual_unit_cost'] = round((float)($line['manual_unit_cost'] ?? 0), 6);
+            }
+
+            $normalized[] = $entry;
+        }
+
+        usort($normalized, static function (array $a, array $b): int {
+            $sourceCmp = strcmp((string)$a['line_source'], (string)$b['line_source']);
+            if ($sourceCmp !== 0) {
+                return $sourceCmp;
+            }
+
+            if (($a['line_source'] ?? '') === 'manual') {
+                return strcmp((string)($a['manual_description'] ?? ''), (string)($b['manual_description'] ?? ''));
+            }
+
+            $idCmp = ((int)($a['component_item_id'] ?? 0)) <=> ((int)($b['component_item_id'] ?? 0));
+            if ($idCmp !== 0) {
+                return $idCmp;
+            }
+
+            return ((float)($a['quantity_per_batch'] ?? 0)) <=> ((float)($b['quantity_per_batch'] ?? 0));
+        });
+
+        return $normalized;
+    }
+
+    /**
      * Substitui completamente a BOM de um item pelas linhas informadas.
      *
      * @param list<array<string, mixed>> $lines

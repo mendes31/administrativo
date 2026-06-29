@@ -185,6 +185,129 @@ class InvItemOperationsRepository extends DbConnection
     }
 
     /**
+     * Verifica se as linhas informadas são equivalentes à rota já gravada no item.
+     *
+     * @param list<array<string, mixed>> $incomingLines
+     */
+    public function structureLinesMatch(int $invItemId, array $incomingLines): bool
+    {
+        $current = $this->normalizeComparableRouteLines($this->getByItem($invItemId));
+        $incoming = $this->normalizeComparableRouteLines($incomingLines);
+
+        return json_encode($current, JSON_UNESCAPED_UNICODE) === json_encode($incoming, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $lines
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeComparableRouteLines(array $lines): array
+    {
+        $normalized = [];
+        foreach ($lines as $line) {
+            $laborLines = is_array($line['labor'] ?? null)
+                ? $line['labor']
+                : (is_array($line['labor_lines'] ?? null) ? $line['labor_lines'] : []);
+            $resourceLines = is_array($line['resources'] ?? null)
+                ? $line['resources']
+                : (is_array($line['resource_lines'] ?? null) ? $line['resource_lines'] : []);
+
+            $laborTotalPerMin = self::sumLaborCostPerMinute($laborLines);
+            $operatorsQty = max(1, (int)($line['operators_qty'] ?? 1));
+            $laborCostPerMin = $laborTotalPerMin > 0
+                ? $laborTotalPerMin
+                : max(0, (float)($line['labor_cost_per_min'] ?? 0));
+
+            $resourceTotals = self::sumResourceCostsPerMinute($resourceLines);
+            $machineCostPerMin = $resourceTotals['machine'] > 0
+                ? $resourceTotals['machine']
+                : max(0, (float)($line['machine_cost_per_min'] ?? 0));
+            $energyCostPerMin = $resourceTotals['energy'] > 0
+                ? $resourceTotals['energy']
+                : max(0, (float)($line['energy_cost_per_min'] ?? 0));
+
+            $timeUnit = strtoupper((string)($line['time_unit'] ?? 'MIN'));
+            if (!in_array($timeUnit, ['MIN', 'H'], true)) {
+                $timeUnit = 'MIN';
+            }
+
+            $normalizedLabor = [];
+            foreach ($laborLines as $laborLine) {
+                $roleId = (int)($laborLine['inv_labor_role_id'] ?? 0);
+                if ($roleId <= 0) {
+                    continue;
+                }
+                $normalizedLabor[] = [
+                    'inv_labor_role_id' => $roleId,
+                    'qty' => max(1, (int)($laborLine['qty'] ?? 1)),
+                    'cost_per_min' => round(max(0, (float)($laborLine['cost_per_min'] ?? 0)), 6),
+                ];
+            }
+            usort($normalizedLabor, static fn(array $a, array $b): int => (
+                ($a['inv_labor_role_id'] <=> $b['inv_labor_role_id'])
+                ?: ($a['qty'] <=> $b['qty'])
+                ?: ((float)$a['cost_per_min'] <=> (float)$b['cost_per_min'])
+            ));
+
+            $normalizedResources = [];
+            foreach ($resourceLines as $resourceLine) {
+                $resourceId = (int)($resourceLine['inv_production_resource_id'] ?? 0);
+                if ($resourceId <= 0) {
+                    continue;
+                }
+                $normalizedResources[] = [
+                    'inv_production_resource_id' => $resourceId,
+                    'qty' => max(1, (int)($resourceLine['qty'] ?? 1)),
+                    'machine_cost_per_min' => round(max(0, (float)($resourceLine['machine_cost_per_min'] ?? 0)), 6),
+                    'energy_cost_per_min' => round(max(0, (float)($resourceLine['energy_cost_per_min'] ?? 0)), 6),
+                ];
+            }
+            usort($normalizedResources, static fn(array $a, array $b): int => (
+                ($a['inv_production_resource_id'] <=> $b['inv_production_resource_id'])
+                ?: ($a['qty'] <=> $b['qty'])
+            ));
+
+            $firstResourceId = null;
+            foreach ($resourceLines as $resourceLine) {
+                $rid = (int)($resourceLine['inv_production_resource_id'] ?? 0);
+                if ($rid > 0) {
+                    $firstResourceId = $rid;
+                    break;
+                }
+            }
+            if ($firstResourceId === null && !empty($line['inv_production_resource_id'])) {
+                $firstResourceId = (int)$line['inv_production_resource_id'];
+            }
+
+            $normalized[] = [
+                'inv_operation_id' => (int)($line['inv_operation_id'] ?? 0),
+                'inv_production_resource_id' => $firstResourceId,
+                'sequence' => (int)($line['sequence'] ?? 1),
+                'time_per_batch_hours' => round((float)($line['time_per_batch_hours'] ?? 0), 6),
+                'time_unit' => $timeUnit,
+                'operators_qty' => $laborTotalPerMin > 0 ? 1 : $operatorsQty,
+                'labor_cost_per_min' => round($laborCostPerMin, 6),
+                'machine_cost_per_min' => round($machineCostPerMin, 6),
+                'energy_cost_per_min' => round($energyCostPerMin, 6),
+                'notes' => isset($line['notes']) ? (string)$line['notes'] : null,
+                'labor' => $normalizedLabor,
+                'resources' => $normalizedResources,
+            ];
+        }
+
+        usort($normalized, static function (array $a, array $b): int {
+            $seqCmp = ((int)($a['sequence'] ?? 0)) <=> ((int)($b['sequence'] ?? 0));
+            if ($seqCmp !== 0) {
+                return $seqCmp;
+            }
+
+            return ((int)($a['inv_operation_id'] ?? 0)) <=> ((int)($b['inv_operation_id'] ?? 0));
+        });
+
+        return $normalized;
+    }
+
+    /**
      * Substitui completamente a rota de um item pelas linhas informadas.
      *
      * @param array $lines Each line may include:

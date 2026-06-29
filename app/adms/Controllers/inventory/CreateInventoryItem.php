@@ -2,10 +2,12 @@
 
 namespace App\adms\Controllers\inventory;
 
+use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Repository\inventory\InvPharmaFormsRepository;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -31,6 +33,7 @@ class CreateInventoryItem
         $categoriesRepo = new InvCategoriesRepository();
         $this->data['listUnits'] = $unitsRepo->getAllForSelect();
         $this->data['listCategories'] = $categoriesRepo->getAllForSelect();
+        $this->data['listPharmaForms'] = (new InvPharmaFormsRepository())->getAllForSelect();
 
         $pageElements = [
             'title_head' => 'Cadastrar Item de Estoque',
@@ -91,6 +94,8 @@ class CreateInventoryItem
             'min_stock' => (float)($form['min_stock'] ?? 0),
             'max_stock' => (float)($form['max_stock'] ?? 0),
             'standard_batch_size' => 1,
+            'production_line' => InvCostProductionLineHelper::normalize($form['production_line'] ?? null),
+            'inv_pharma_form_id' => !empty($form['inv_pharma_form_id']) ? (int)$form['inv_pharma_form_id'] : null,
             'active' => isset($form['active']) ? 1 : 0,
         ]);
 

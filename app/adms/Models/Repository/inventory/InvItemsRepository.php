@@ -14,36 +14,20 @@ class InvItemsRepository extends DbConnection
 	public function getAll(int $page = 1, int $limit = 10, array $filters = []): array
 	{
 		$offset = max(0, ($page - 1) * $limit);
-		$params = [];
-		$wheres = [];
-
-		if (!empty($filters['code'])) {
-			$wheres[] = 'i.code LIKE :code';
-			$params[':code'] = '%' . $filters['code'] . '%';
-		}
-		if (!empty($filters['description'])) {
-			$wheres[] = 'i.description LIKE :description';
-			$params[':description'] = '%' . $filters['description'] . '%';
-		}
-		if (isset($filters['active']) && $filters['active'] !== '') {
-			$wheres[] = 'i.active = :active';
-			$params[':active'] = (int)$filters['active'];
-		}
-		if (!empty($filters['categoria_id'])) {
-			$wheres[] = 'i.inv_category_id = :categoria_id';
-			$params[':categoria_id'] = (int)$filters['categoria_id'];
-		}
-		$whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
+		[$wheres, $params] = $this->buildListFilters($filters, 'i.');
+		$whereSql = $wheres !== [] ? ('WHERE ' . implode(' AND ', $wheres)) : '';
 
         $sql = 'SELECT i.id, i.code, i.erp_code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active,
-				u.name AS unit_name, c.name AS category_name,
+				i.production_line, u.name AS unit_name, c.name AS category_name, pf.name AS pharma_form_name,
 				COALESCE(SUM(b.qty), 0) AS total_qty
 			FROM inv_items i
 			LEFT JOIN inv_units u ON u.id = i.inv_unit_id
 			LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+			LEFT JOIN inv_pharma_forms pf ON pf.id = i.inv_pharma_form_id
 			LEFT JOIN inv_balances b ON b.inv_item_id = i.id
 			' . $whereSql . '
-			GROUP BY i.id, i.code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active, u.name, c.name
+			GROUP BY i.id, i.code, i.erp_code, i.description, i.admin_type, i.average_cost, i.min_stock, i.max_stock, i.active,
+				i.production_line, u.name, c.name, pf.name
 			ORDER BY i.code ASC
 			LIMIT :limit OFFSET :offset';
 
@@ -59,26 +43,9 @@ class InvItemsRepository extends DbConnection
 
 	public function countAll(array $filters = []): int
 	{
-		$params = [];
-		$wheres = [];
-		if (!empty($filters['code'])) {
-			$wheres[] = 'code LIKE :code';
-			$params[':code'] = '%' . $filters['code'] . '%';
-		}
-		if (!empty($filters['description'])) {
-			$wheres[] = 'description LIKE :description';
-			$params[':description'] = '%' . $filters['description'] . '%';
-		}
-		if (isset($filters['active']) && $filters['active'] !== '') {
-			$wheres[] = 'active = :active';
-			$params[':active'] = (int)$filters['active'];
-		}
-		if (!empty($filters['categoria_id'])) {
-			$wheres[] = 'inv_category_id = :categoria_id';
-			$params[':categoria_id'] = (int)$filters['categoria_id'];
-		}
-		$whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
-		$sql = 'SELECT COUNT(*) AS total FROM inv_items ' . $whereSql;
+		[$wheres, $params] = $this->buildListFilters($filters);
+		$whereSql = $wheres !== [] ? ('WHERE ' . implode(' AND ', $wheres)) : '';
+		$sql = 'SELECT COUNT(*) AS total FROM inv_items i ' . $whereSql;
 		$stmt = $this->getConnection()->prepare($sql);
 		foreach ($params as $key => $value) {
 			$stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
@@ -88,12 +55,54 @@ class InvItemsRepository extends DbConnection
 		return (int)($row['total'] ?? 0);
 	}
 
+	/**
+	 * @return array{0: list<string>, 1: array<string, mixed>}
+	 */
+	private function buildListFilters(array $filters, string $prefix = ''): array
+	{
+		$wheres = [];
+		$params = [];
+		$p = $prefix;
+
+		if (!empty($filters['code'])) {
+			$wheres[] = $p . 'code LIKE :code';
+			$params[':code'] = '%' . $filters['code'] . '%';
+		}
+		if (!empty($filters['description'])) {
+			$wheres[] = $p . 'description LIKE :description';
+			$params[':description'] = '%' . $filters['description'] . '%';
+		}
+		if (isset($filters['active']) && $filters['active'] !== '') {
+			$wheres[] = $p . 'active = :active';
+			$params[':active'] = (int)$filters['active'];
+		}
+		if (!empty($filters['categoria_id'])) {
+			$wheres[] = $p . 'inv_category_id = :categoria_id';
+			$params[':categoria_id'] = (int)$filters['categoria_id'];
+		}
+		if (!empty($filters['production_line'])) {
+			if ((string)$filters['production_line'] === '__empty__') {
+				$wheres[] = '(' . $p . 'production_line IS NULL OR TRIM(' . $p . 'production_line) = \'\')';
+			} else {
+				$wheres[] = $p . 'production_line = :production_line';
+				$params[':production_line'] = (string)$filters['production_line'];
+			}
+		}
+		if (!empty($filters['inv_pharma_form_id'])) {
+			$wheres[] = $p . 'inv_pharma_form_id = :inv_pharma_form_id';
+			$params[':inv_pharma_form_id'] = (int)$filters['inv_pharma_form_id'];
+		}
+
+		return [$wheres, $params];
+	}
+
 	public function getOne(int $id): array|bool
 	{
-        $sql = 'SELECT i.*, u.name AS unit_name, c.name AS category_name
+        $sql = 'SELECT i.*, u.name AS unit_name, c.name AS category_name, pf.name AS pharma_form_name
 			FROM inv_items i
 			LEFT JOIN inv_units u ON u.id = i.inv_unit_id
 			LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+			LEFT JOIN inv_pharma_forms pf ON pf.id = i.inv_pharma_form_id
 			WHERE i.id = :id LIMIT 1';
 		$stmt = $this->getConnection()->prepare($sql);
 		$stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -104,8 +113,8 @@ class InvItemsRepository extends DbConnection
 	public function create(array $data): int|bool
 	{
 		try {
-            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, standard_batch_size, energy_class, complexity_level, production_line, active, created_at)
-                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :standard_batch_size, :energy_class, :complexity_level, :production_line, :active, :created_at)';
+            $sql = 'INSERT INTO inv_items (code, erp_code, description, inv_unit_id, inv_category_id, admin_type, average_cost, last_cost, min_stock, max_stock, standard_batch_size, energy_class, complexity_level, production_line, inv_pharma_form_id, sap_update_date, active, created_at)
+                VALUES (:code, :erp_code, :description, :inv_unit_id, :inv_category_id, :admin_type, :average_cost, :last_cost, :min_stock, :max_stock, :standard_batch_size, :energy_class, :complexity_level, :production_line, :inv_pharma_form_id, :sap_update_date, :active, :created_at)';
 			$stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':code', $data['code']);
             $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
@@ -121,6 +130,10 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':energy_class', $this->nullableString($data['energy_class'] ?? null), $this->nullableString($data['energy_class'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? 'media'));
 			$stmt->bindValue(':production_line', $this->nullableString($data['production_line'] ?? null), $this->nullableString($data['production_line'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+			$pharmaFormIdCreate = !empty($data['inv_pharma_form_id']) ? (int)$data['inv_pharma_form_id'] : null;
+			$stmt->bindValue(':inv_pharma_form_id', $pharmaFormIdCreate, $pharmaFormIdCreate !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+			$sapUpdateDate = $this->nullableString($data['sap_update_date'] ?? null);
+			$stmt->bindValue(':sap_update_date', $sapUpdateDate, $sapUpdateDate !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
 			$stmt->execute();
@@ -154,7 +167,7 @@ class InvItemsRepository extends DbConnection
             $sql = 'UPDATE inv_items SET code = :code, erp_code = :erp_code, description = :description, inv_unit_id = :inv_unit_id, inv_category_id = :inv_category_id,
 				admin_type = :admin_type, average_cost = :average_cost, last_cost = :last_cost, min_stock = :min_stock, max_stock = :max_stock,
 				standard_batch_size = :standard_batch_size, energy_class = :energy_class, complexity_level = :complexity_level,
-                production_line = :production_line, active = :active, updated_at = :updated_at WHERE id = :id';
+                production_line = :production_line, inv_pharma_form_id = :inv_pharma_form_id, sap_update_date = :sap_update_date, active = :active, updated_at = :updated_at WHERE id = :id';
 			$stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':code', $data['code']);
             $stmt->bindValue(':erp_code', $data['erp_code'] ?? null, PDO::PARAM_STR);
@@ -170,6 +183,10 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':energy_class', $this->nullableString($data['energy_class'] ?? null), $this->nullableString($data['energy_class'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? ($oldRow['complexity_level'] ?? 'media')));
 			$stmt->bindValue(':production_line', $this->nullableString($data['production_line'] ?? null), $this->nullableString($data['production_line'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+			$pharmaFormIdUpdate = !empty($data['inv_pharma_form_id']) ? (int)$data['inv_pharma_form_id'] : null;
+			$stmt->bindValue(':inv_pharma_form_id', $pharmaFormIdUpdate, $pharmaFormIdUpdate !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+			$sapUpdateDateUpdate = $this->nullableString($data['sap_update_date'] ?? null);
+			$stmt->bindValue(':sap_update_date', $sapUpdateDateUpdate, $sapUpdateDateUpdate !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
 			$stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -286,6 +303,84 @@ class InvItemsRepository extends DbConnection
 		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 	}
 
+	/**
+	 * Snapshot local para diff na sincronização SAP (uma query).
+	 *
+	 * @return array<string, array<string, mixed>> erp_code => dados comparáveis
+	 */
+	public function getSapSyncSnapshot(): array
+	{
+		$sql = 'SELECT i.id, i.erp_code, i.description, i.active, i.inv_unit_id, i.inv_category_id,
+				i.average_cost, i.last_cost, i.production_line, i.inv_pharma_form_id, i.sap_update_date,
+				i.admin_type, i.min_stock, i.max_stock, i.standard_batch_size,
+				i.sap_item_hash, i.sap_beas_version, i.sap_bom_hash, i.sap_route_hash,
+				i.sap_structure_pending, i.sap_route_pending, i.sap_last_synced_at,
+				u.code AS unit_code, c.name AS category_name
+			FROM inv_items i
+			LEFT JOIN inv_units u ON u.id = i.inv_unit_id
+			LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+			WHERE i.erp_code IS NOT NULL AND TRIM(i.erp_code) <> \'\'';
+		$stmt = $this->getConnection()->query($sql);
+		$map = [];
+		foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+			$erp = trim((string)($row['erp_code'] ?? ''));
+			if ($erp === '') {
+				continue;
+			}
+			$map[mb_strtoupper($erp, 'UTF-8')] = $row;
+		}
+
+		return $map;
+	}
+
+	/** Maior código ERP já sincronizado (retomada quando checkpoint ausente). */
+	public function getMaxSyncedErpCode(): ?string
+	{
+		$sql = 'SELECT erp_code FROM inv_items
+			WHERE erp_code IS NOT NULL AND TRIM(erp_code) <> \'\' AND sap_update_date IS NOT NULL
+			ORDER BY CAST(erp_code AS UNSIGNED) DESC, erp_code DESC
+			LIMIT 1';
+		$stmt = $this->getConnection()->query($sql);
+		$value = $stmt->fetchColumn();
+
+		return is_string($value) && trim($value) !== '' ? trim($value) : null;
+	}
+
+	public function countWithSapSyncDate(): int
+	{
+		$stmt = $this->getConnection()->query(
+			'SELECT COUNT(*) FROM inv_items WHERE erp_code IS NOT NULL AND TRIM(erp_code) <> \'\' AND sap_update_date IS NOT NULL'
+		);
+
+		return (int)$stmt->fetchColumn();
+	}
+
+	/**
+	 * PA/PI com forma farmacêutica ou linha de produção ausente.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function getPaPiItemsMissingUdf(): array
+	{
+		$sql = 'SELECT i.*, c.name AS category_name
+			FROM inv_items i
+			INNER JOIN inv_categories c ON c.id = i.inv_category_id
+			WHERE i.erp_code IS NOT NULL AND TRIM(i.erp_code) <> \'\'
+			AND (
+				UPPER(c.name) LIKE \'%ACABADO%\'
+				OR UPPER(c.name) LIKE \'%INTERMED%\'
+				OR (UPPER(c.name) LIKE \'%PROD%\' AND UPPER(c.name) NOT LIKE \'%MP%\')
+			)
+			AND (
+				i.production_line IS NULL OR TRIM(i.production_line) = \'\'
+				OR i.inv_pharma_form_id IS NULL
+			)
+			ORDER BY i.erp_code ASC';
+		$stmt = $this->getConnection()->query($sql);
+
+		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+	}
+
 	public function findByErpCode(string $erpCode): ?array
 	{
 		$erpCode = trim($erpCode);
@@ -297,6 +392,22 @@ class InvItemsRepository extends DbConnection
 		$stmt->execute();
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 		return $row !== false ? $row : null;
+	}
+
+	/**
+	 * Itens com código ERP para purge pós-sync (cadastros manuais sem ERP ficam de fora).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function getSapLinkedItemsForPurge(): array
+	{
+		$sql = 'SELECT i.id, i.erp_code, c.name AS category_name
+				FROM inv_items i
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE i.erp_code IS NOT NULL AND TRIM(i.erp_code) <> \'\'';
+		$stmt = $this->getConnection()->query($sql);
+
+		return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 	}
 
 	/**
@@ -375,8 +486,7 @@ class InvItemsRepository extends DbConnection
 		$sql = 'SELECT i.id
 				FROM inv_items i
 				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
-				WHERE i.active = 1
-				  AND i.erp_code IS NOT NULL
+				WHERE i.erp_code IS NOT NULL
 				  AND TRIM(i.erp_code) <> \'\'
 				  AND (c.name IS NULL OR c.name <> :project_cat)
 				  AND (
@@ -402,6 +512,109 @@ class InvItemsRepository extends DbConnection
 			static fn(array $row): int => (int)($row['id'] ?? 0),
 			$rows
 		)));
+	}
+
+	/**
+	 * Itens com BOM e/ou rota marcados como pendentes (fila em inv_items, sem tabela extra).
+	 *
+	 * @return list<int>
+	 */
+	public function getIdsPendingStructureSync(): array
+	{
+		$sql = 'SELECT i.id
+				FROM inv_items i
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE i.erp_code IS NOT NULL
+				  AND TRIM(i.erp_code) <> \'\'
+				  AND (c.name IS NULL OR c.name <> :project_cat)
+				  AND (i.sap_structure_pending = 1 OR i.sap_route_pending = 1)
+				ORDER BY i.erp_code ASC';
+
+		$stmt = $this->getConnection()->prepare($sql);
+		$stmt->bindValue(':project_cat', InvCostProjectHelper::CATEGORY_NAME);
+		$stmt->execute();
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+		return array_values(array_filter(array_map(
+			static fn(array $row): int => (int)($row['id'] ?? 0),
+			$rows
+		)));
+	}
+
+	public function countPendingStructureSync(): int
+	{
+		$sql = 'SELECT COUNT(*)
+				FROM inv_items i
+				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+				WHERE i.erp_code IS NOT NULL
+				  AND TRIM(i.erp_code) <> \'\'
+				  AND (c.name IS NULL OR c.name <> :project_cat)
+				  AND (i.sap_structure_pending = 1 OR i.sap_route_pending = 1)';
+		$stmt = $this->getConnection()->prepare($sql);
+		$stmt->bindValue(':project_cat', InvCostProjectHelper::CATEGORY_NAME);
+		$stmt->execute();
+
+		return (int)$stmt->fetchColumn();
+	}
+
+	/**
+	 * @param array<string, mixed> $meta
+	 */
+	public function updateSapSyncMetadata(int $id, array $meta): bool
+	{
+		if ($id <= 0 || $meta === []) {
+			return false;
+		}
+
+		$fields = [];
+		$params = [':id' => $id];
+
+		foreach ([
+			'sap_item_hash' => 'sap_item_hash',
+			'sap_beas_version' => 'sap_beas_version',
+			'sap_bom_hash' => 'sap_bom_hash',
+			'sap_route_hash' => 'sap_route_hash',
+			'sap_last_synced_at' => 'sap_last_synced_at',
+		] as $key => $column) {
+			if (!array_key_exists($key, $meta)) {
+				continue;
+			}
+			$value = $this->nullableString($meta[$key]);
+			$fields[] = $column . ' = :' . $column;
+			$params[':' . $column] = $value;
+		}
+
+		if (array_key_exists('sap_structure_pending', $meta)) {
+			$fields[] = 'sap_structure_pending = :sap_structure_pending';
+			$params[':sap_structure_pending'] = !empty($meta['sap_structure_pending']) ? 1 : 0;
+		}
+
+		if (array_key_exists('sap_route_pending', $meta)) {
+			$fields[] = 'sap_route_pending = :sap_route_pending';
+			$params[':sap_route_pending'] = !empty($meta['sap_route_pending']) ? 1 : 0;
+		}
+
+		if ($fields === []) {
+			return false;
+		}
+
+		$sql = 'UPDATE inv_items SET ' . implode(', ', $fields) . ' WHERE id = :id';
+		$stmt = $this->getConnection()->prepare($sql);
+		foreach ($params as $key => $value) {
+			if ($key === ':id') {
+				$stmt->bindValue($key, (int)$value, PDO::PARAM_INT);
+				continue;
+			}
+			if ($value === null) {
+				$stmt->bindValue($key, null, PDO::PARAM_NULL);
+			} elseif (in_array($key, [':sap_structure_pending', ':sap_route_pending'], true)) {
+				$stmt->bindValue($key, (int)$value, PDO::PARAM_INT);
+			} else {
+				$stmt->bindValue($key, (string)$value);
+			}
+		}
+
+		return $stmt->execute();
 	}
 
 	public function getIdsByCategoryNameKeywords(array $keywords): array

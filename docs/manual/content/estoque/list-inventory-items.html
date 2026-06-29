@@ -10,18 +10,21 @@
     <li>Acesse o menu <strong>Estoque</strong> e abra <strong>Listar Itens de Estoque</strong>.</li>
     <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
     <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
-    <li>Use <strong>Sincronizar itens</strong> para importar/atualizar cadastro e custos de comprados do SAP (modo incremental por padrão; marque <em>Completa</em> na primeira carga).</li>
-    <li>Use <strong>Sincronizar estruturas</strong> para atualizar BOM e rota (BEAS) em lote nos PA/PI e códigos 43…/40… elegíveis, sem abrir item a item.</li>
+    <li>Use <strong>Sincronizar SAP</strong> para atualizar itens (por hash) e, em seguida, apenas as estruturas <em>pendentes</em>. Opções avançadas permitem sincronizar só itens ou só estruturas (completo).</li>
     <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
     <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
+<div class="help-field"><strong>Filtros de busca</strong> Código, descrição, grupo de itens (somente grupos SAP importados), linha de produção, forma farmacêutica e status ativo.</div>
 <div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
-<div class="help-field"><strong>Sincronizar itens</strong> Consulta o SAP e grava apenas novos itens ou alterações (descrição, categoria, custo MP/EMB, status). Incremental usa <code>UpdateDate</code> do SAP desde a última sync bem-sucedida. Marque <em>Completa</em> para importar todo o catálogo.</div>
-<div class="help-field"><strong>Sincronizar estruturas</strong> Atualiza lista de materiais e rota no BEAS para todos os itens elegíveis (PA/PI, códigos 43…/40… ou que já tenham BOM/rota local). Itens <em>PA - PROJETO</em> são ignorados. Sem estrutura no SAP, o cadastro local é mantido.</div>
+<div class="help-field"><strong>Cód. ERP / Grupo SAP</strong> Filtros compartilhados por todos os botões de sincronização na barra superior.</div>
+<div class="help-field"><strong>Sincronizar SAP</strong> Botão principal (uso diário): atualiza itens por hash e, em seguida, apenas estruturas <em>pendentes</em>. Retomada automática após falha da API está sempre ativa.</div>
+<div class="help-field"><strong>Avançado</strong> Opções de manutenção: <em>Completa</em> (catálogo inteiro + purge de itens fora dos grupos SAP), <em>Só itens</em> (cadastro sem BOM/rota) e <em>Estruturas (completo)</em> (varredura total de lista de materiais e rota).</div>
+<div class="help-field"><strong>Só itens</strong> (Avançado) Sincroniza apenas o cadastro de itens — útil com <em>Completa</em> marcada para carga inicial sem consultar estruturas. Com <strong>Grupo SAP</strong> (ex.: <code>100</code>) + <em>Completa</em>, varre todos os itens daquele grupo; sem <em>Completa</em>, só itens alterados recentemente (inclui <code>UpdateDate</code> vazio no SAP).</div>
+<div class="help-field"><strong>Colunas Forma farm. e Linha</strong> Exibem os dados importados do SAP nos produtos acabados/intermediários. Itens sem valor no SAP aparecem como <em>—</em>.</div>
+<div class="help-field"><strong>Estruturas (completo)</strong> (Avançado) Reconsulta BOM e rota de <em>todos</em> os itens elegíveis (não só pendentes). Mais lento; use após migração ou quando estruturas parecerem desatualizadas.</div>
 <div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
 
 <h2>Problemas comuns</h2>
@@ -33,9 +36,40 @@
     <dt>F1 abre documentação genérica</dt>
     <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
     <dt>Sincronização demora ou expira</dt>
-    <dd>Itens e estruturas são ações separadas. Use sync incremental no dia a dia; reserve <em>Completa</em> para a carga inicial. Estruturas em lote podem levar vários minutos — não feche a aba.</dd>
+    <dd>Itens e estruturas são ações separadas. Acompanhe o progresso na janela modal; ao concluir, clique em <strong>Atualizar listagem</strong>. Use sync incremental no dia a dia; reserve <em>Completa</em> para a carga inicial.</dd>
     <dt>Incremental não trouxe item novo</dt>
     <dd>Execute uma sincronização <em>Completa</em> uma vez, ou confira se o item foi alterado no SAP (<code>UpdateDate</code>) após a última sync registrada.</dd>
+    <dt>Sincronizar só um item ou um grupo</dt>
+    <dd>Na listagem, preencha <em>Cód. ERP</em> ou escolha <em>Grupo SAP</em> ao lado de <strong>Sincronizar SAP</strong> (ou use <em>Avançado → Sincronizar itens</em>). Para catálogo PA com forma e linha, use grupo <code>400</code>.</dd>
+    <dt>Erro HTTP 500 da API SAP</dt>
+    <dd>Instabilidade momentânea ou consulta pesada. O sistema tenta reconectar automaticamente (até 10 vezes) e reduz o tamanho do lote. Aguarde ou tente de novo em alguns minutos.</dd>
+    <dt>Barra mostra mais verificados que o total ou fica em 99%</dt>
+    <dd>Em retomadas automáticas após instabilidade da API, o sistema inicia uma nova <em>passagem</em> pelo catálogo. O contador exibe <em>Passagem N — X / total</em>; os totais de Novos/Alterados/Sem mudança são acumulados. O percentual só chega a 100% quando a execução termina.</dd>
+    <dt>Barra de progresso não avança</dt>
+    <dd>Aguarde — a primeira consulta ao SAP pode levar 1–2 minutos. Estruturas mostram <em>Consultando SAP — estrutura X/N</em> item a item.</dd>
+    <dt>Segunda sync de estruturas não altera nada</dt>
+    <dd>Comportamento esperado: o sistema consulta o SAP, compara com o local e só grava quando há diferença. Se tudo já estiver igual, verá <em>Sem alteração</em> nos contadores e a mensagem <em>Nenhuma estrutura alterada</em>; a janela fecha automaticamente.</dd>
+    <dt>Como interromper a sincronização</dt>
+    <dd>Na janela de progresso, clique em <strong>Interromper</strong>. Os itens já gravados permanecem no sistema; a operação para no próximo lote.</dd>
+    <dt>Sync falhou com HTTP 500</dt>
+    <dd>A API SAP pode ficar instável. Clique em <strong>Sincronizar SAP</strong> novamente — o sistema retoma automaticamente.</dd>
+    <dt>Lote padrão ou Administrar por diferente do SAP</dt>
+    <dd>A sincronização compara pelo <strong>código ERP</strong> e atualiza lote padrão (<code>MinOrdrQty</code>), administrar por (lote/série), estoque mín./máx. e demais campos. Se o hash SAP já estava gravado mas o cadastro local ficou desatualizado, rode <strong>Sincronizar SAP</strong> novamente (ou sync por código na barra). Itens com API instável podem ser importados via fallback parcial de colunas.</dd>
+    <dd>Campos vazios no SAP (UpdateDate ou UDF nulos) são importados como vazio e a sync continua. Se antes apareciam no log de falhas, rode a sincronização novamente após a correção da query.</dd>
+    <dt>Itens com falha na sincronização</dt>
+    <dd>Se a API não retornar o cadastro completo de um código ERP, o item é ignorado e a sync continua. O modal exibe a lista <strong>Itens com falha</strong> (código e motivo) em área com rolagem, para não aumentar demais o popup. A lista completa fica em <code>logs/sap_sync_failures_{run_id}.log</code> e no campo <code>error_log</code> da tabela <code>inv_inventory_sap_sync_runs</code> (JSON após o prefixo <code>failures:</code>).</dd>
+    <dt>Incremental removeu itens mas não importou novos</dt>
+    <dd>A remoção de itens fora do catálogo só ocorre na sync <em>Completa</em>. Use incremental no dia a dia apenas para itens alterados recentemente no SAP.</dd>
+    <dt>BOM/rota não importou; pendências continuam</dt>
+    <dd>O item pode estar <em>inativo no SAP</em> (<code>validFor=N</code>) ou sem versão BEAS — após a correção recente, rode <strong>Sincronizar SAP</strong> de novo ou o botão <strong>Estrutura</strong> na visualização. Se o SAP não tiver BOM/rota cadastrada, as pendências são encerradas com mensagem explicativa.</dd>
+    <dt>Forma farmacêutica ou linha vazia na listagem</dt>
+    <dd>Confirme se o SAP tem <code>U_FormaFarma</code> e <code>U_LinhaProduto</code> preenchidos para o item. Se estiverem vazios no SAP, a coluna permanece <em>—</em>. Ao preencher no SAP e sincronizar de novo, o sistema atualiza.</dd>
+    <dt>Itens inativos não aparecem</dt>
+    <dd>Confira o filtro <em>Status</em> na listagem (deixe em branco para ver ativos e inativos). Inativos no SAP (<code>validFor = N</code>) são importados com switch desmarcado após sync completa.</dd>
+    <dt>Itens de outros grupos SAP sumiram após sync</dt>
+    <dd>Comportamento esperado na sync <em>Completa</em>: só permanecem itens dos grupos 100, 200, 300, 400, 600, 700 e 1000. Cadastros manuais sem código ERP e itens <em>PA - PROJETO</em> não são removidos.</dd>
+    <dt>Sync informou itens não excluídos por vínculo</dt>
+    <dd>O item ainda aparece em movimentação de estoque ou como componente na BOM de outro PA. Resolva o vínculo ou inative o item manualmente.</dd>
     <dt>Estrutura não apareceu após sincronizar</dt>
     <dd>Confira se o item tem <strong>Código ERP</strong>, categoria PA/PI ou código 43…/40…, e se existe BOM/rota no BEAS para esse código.</dd>
 </dl>
