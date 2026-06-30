@@ -25,8 +25,8 @@
 
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Lote padrão (mín.)</strong> Quantidade teórica por lote para eficiência de produção e rateio na simulação.</div>
-<div class="help-field"><strong>Classe energia (HVAC)</strong> CM, PROB ou OTHER — critério 8 do rateio CFIX. Deixe em branco para sugestão automática pela descrição.</div>
-<div class="help-field"><strong>Complexidade</strong> Baixa, média ou alta — critério 4 do rateio CFIX.</div>
+<div class="help-field"><strong>Classe energia (HVAC)</strong> NA (não aplicável), CM ou PROB — espelha a UDF SAP <em>ClasseHvac</em>. Padrão SAP = NA (fator 0 no crit. 8). Multiplicadores em <em>Estoque → Cadastros Bases → Classes HVAC (crit. 8)</em>.</div>
+<div class="help-field"><strong>Complexidade</strong> NA (não aplicável), BAIXA, MEDIA ou ALTA — espelha a UDF SAP <em>Complexidade</em> (<code>N</code>/<code>B</code>/<code>M</code>/<code>A</code>). Padrão SAP = N (fator 0 nos crit. 4 e 6). Fatores em <em>Estoque → Cadastros Bases → Complexidade (crit. 4/6)</em>.</div>
 <div class="help-field"><strong>Linha de produção</strong> TERCEIRO ou TIARAJU. <strong>TIARAJU</strong> (produção interna / SAP <em>Própria</em>) entra no critério 7 — energia direta (kWh×tarifa) e no CVAR energia. <strong>TERCEIRO</strong> (terceirizado) não recebe EE direta da planta.</div>
 <div class="help-field"><strong>Forma farmacêutica</strong> Selecione na lista importada do SAP (<code>U_FormaFarma</code>). A sincronização de itens atualiza as opções disponíveis.</div>
 <div class="help-field"><strong>Lista de materiais</strong> Quantidade por lote, perda % e origem (catálogo ou manual).</div>

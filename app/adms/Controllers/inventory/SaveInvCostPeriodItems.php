@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
+use App\adms\Models\Services\InvCostPeriodSnapshotService;
 
 class SaveInvCostPeriodItems
 {
@@ -59,6 +60,9 @@ class SaveInvCostPeriodItems
         }
 
         CSRFHelper::validateCSRFToken('form_save_inv_cost_period_items', $token, true);
+        if ($saved > 0) {
+            InvCostPeriodSnapshotService::tryRecalculate($periodId);
+        }
 
         $_SESSION['msg'] = $saved > 0
             ? "<div class='alert alert-success'>Análises do período salvas para {$saved} SKU(s).</div>"

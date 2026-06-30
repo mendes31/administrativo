@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostEnergyClassHelper;
 use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
@@ -154,16 +155,10 @@ class InvCostCriterionDriversService
      */
     private function hvacDriver(?array $periodItem): float
     {
-        $class = mb_strtoupper(trim((string)($periodItem['energy_class'] ?? '')), 'UTF-8');
-        if ($class === '') {
-            return 0.0;
+        if (!is_array($periodItem)) {
+            return InvCostEnergyClassHelper::multiplier(InvCostEnergyClassHelper::CLASS_NA);
         }
 
-        return match ($class) {
-            'CM', 'CAPSULA', 'CAPSULA MOLE' => 1.0,
-            'PROB', 'PROBIOTICO', 'PROBIÓTICO' => 1.0,
-            'OTHER', 'OUTRO' => 1.0,
-            default => 0.0,
-        };
+        return InvCostEnergyClassHelper::hvacDriverWeight($periodItem['energy_class'] ?? null);
     }
 }

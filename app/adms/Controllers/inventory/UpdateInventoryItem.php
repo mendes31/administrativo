@@ -2,6 +2,8 @@
 
 namespace App\adms\Controllers\inventory;
 
+use App\adms\Helpers\InvCostComplexityHelper;
+use App\adms\Helpers\InvCostEnergyClassHelper;
 use App\adms\Helpers\InvCostProductionLineHelper;
 
 use App\adms\Controllers\Services\PageLayoutService;
@@ -107,13 +109,9 @@ class UpdateInventoryItem
         $this->data['form']['average_cost'] = $calculatedCost;
         $this->data['form']['last_cost'] = $calculatedCost;
 
-        // Força a seleção do menu correspondente (override de sessão usado pelo menu.php)
-        $_SESSION['menu_override'] = 'ListInventoryItems';
-
         $pageElements = [
             'title_head' => 'Editar Item de Estoque',
-            // Aponta diretamente para o link de Itens para marcar ativo
-            'menu' => 'ListInventoryItems',
+            'menu' => 'estoque',
             'buttonPermission' => ['ListInventoryItems', 'ViewInventoryItem'],
         ];
         $pageLayoutService = new PageLayoutService();
@@ -126,8 +124,6 @@ class UpdateInventoryItem
 
         $loadView = new LoadViewService('adms/Views/inventory/items/update', $this->data);
         $loadView->loadView();
-
-        unset($_SESSION['menu_override']);
     }
 
     private function editItem(int $id): void
@@ -188,7 +184,7 @@ class UpdateInventoryItem
             'max_stock' => (float)($form['max_stock'] ?? 0),
             'standard_batch_size' => max(0.000001, $this->parseFormDecimal($form['standard_batch_size'] ?? '1')),
             'energy_class' => $this->normalizeEnergyClass($form['energy_class'] ?? null),
-            'complexity_level' => $this->normalizeComplexityLevel($form['complexity_level'] ?? 'media'),
+            'complexity_level' => $this->normalizeComplexityLevel($form['complexity_level'] ?? InvCostComplexityHelper::LEVEL_NA),
             'production_line' => $this->normalizeProductionLine($form['production_line'] ?? null),
             'inv_pharma_form_id' => !empty($form['inv_pharma_form_id']) ? (int)$form['inv_pharma_form_id'] : null,
             'active' => isset($form['active']) ? 1 : 0,
@@ -597,19 +593,12 @@ class UpdateInventoryItem
 
     private function normalizeEnergyClass(mixed $value): ?string
     {
-        $class = mb_strtoupper(trim((string)($value ?? '')), 'UTF-8');
-        if ($class === '') {
-            return null;
-        }
-
-        return in_array($class, ['CM', 'PROB', 'OTHER'], true) ? $class : null;
+        return InvCostEnergyClassHelper::normalize($value);
     }
 
     private function normalizeComplexityLevel(mixed $value): string
     {
-        $level = mb_strtolower(trim((string)($value ?? 'media')), 'UTF-8');
-
-        return in_array($level, ['baixa', 'media', 'alta'], true) ? $level : 'media';
+        return InvCostComplexityHelper::resolveForCosting($value);
     }
 
     private function normalizeProductionLine(mixed $value): ?string

@@ -6,6 +6,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCostAllocationRulesRepository;
 use App\adms\Models\Repository\inventory\InvCostExpensePoolsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
+use App\adms\Models\Services\InvCostPeriodSnapshotService;
 
 class SaveInvCostAllocationRules
 {
@@ -68,6 +69,7 @@ class SaveInvCostAllocationRules
 
         (new InvCostAllocationRulesRepository())->replaceRulesForPeriodPools($rulesByPool);
         CSRFHelper::validateCSRFToken('form_save_inv_cost_allocation_rules', $token, true);
+        InvCostPeriodSnapshotService::tryRecalculate($periodId);
 
         $_SESSION['msg'] = "<div class='alert alert-success'>Critérios de rateio salvos.</div>";
         header('Location: ' . $redirect);

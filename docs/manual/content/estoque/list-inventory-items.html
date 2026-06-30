@@ -49,6 +49,8 @@
     <dd>Aguarde — a primeira consulta ao SAP pode levar 1–2 minutos. Estruturas mostram <em>Consultando SAP — estrutura X/N</em> item a item.</dd>
     <dt>Segunda sync de estruturas não altera nada</dt>
     <dd>Comportamento esperado: o sistema consulta o SAP, compara com o local e só grava quando há diferença. Se tudo já estiver igual, verá <em>Sem alteração</em> nos contadores e a mensagem <em>Nenhuma estrutura alterada</em>; a janela fecha automaticamente.</dd>
+    <dt>Segunda sync de itens ainda mostra centenas de Alterados</dt>
+    <dd>Se o SAP não mudou, o esperado é <em>Sem mudança</em> na maior parte. Muitos <em>Alterados</em> repetidos costumavam ocorrer quando o SAP envia <code>MinOrdrQty = 0</code> (lote padrão) — o sistema grava o mínimo técnico <code>0,000001</code> no banco e a comparação antiga recontava o item a cada execução. Após a correção, rode a sync uma vez; na seguinte, só devem aparecer alterações reais (ex.: preencher <em>Data SAP</em> em itens que ainda não tinham esse campo).</dd>
     <dt>Como interromper a sincronização</dt>
     <dd>Na janela de progresso, clique em <strong>Interromper</strong>. Os itens já gravados permanecem no sistema; a operação para no próximo lote.</dd>
     <dt>Sync falhou com HTTP 500</dt>

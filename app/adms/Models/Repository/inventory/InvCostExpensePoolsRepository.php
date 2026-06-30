@@ -68,6 +68,43 @@ class InvCostExpensePoolsRepository extends DbConnection
         return (float)$stmt->fetchColumn();
     }
 
+    /** Soma contas do DRE sem critério de rateio (1–8) vinculado. */
+    public function sumAmountWithoutCriterion(int $periodId): float
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COALESCE(SUM(p.amount), 0)
+             FROM inv_cost_expense_pools p
+             WHERE p.inv_cost_period_id = :period_id
+               AND p.amount > 0
+               AND NOT EXISTS (
+                   SELECT 1 FROM inv_cost_allocation_rules r
+                   WHERE r.expense_pool_id = p.id
+                     AND r.criterion BETWEEN 1 AND 8
+                     AND r.weight_pct > 0
+               )'
+        );
+        $stmt->bindValue(':period_id', $periodId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (float)$stmt->fetchColumn();
+    }
+
+    /** Soma CFIX já rateado por SKU (snapshot). */
+    public function sumCfixTotalFromSnapshots(int $periodId): float
+    {
+        if ($periodId <= 0) {
+            return 0.0;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COALESCE(SUM(cfix_total), 0) FROM inv_cost_period_sku_snapshots WHERE inv_cost_period_id = :period_id'
+        );
+        $stmt->bindValue(':period_id', $periodId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (float)$stmt->fetchColumn();
+    }
+
     public function deleteByPeriod(int $periodId): void
     {
         $stmt = $this->getConnection()->prepare('DELETE FROM inv_cost_expense_pools WHERE inv_cost_period_id = :period_id');

@@ -12,6 +12,15 @@
     <li><strong>SKUs produzidos no período</strong> — produção, eficiência, fator de complexidade (critério 4), análises calculadas e rateio 4/6.</li>
     <li><strong>Resultados por SKU</strong> — dashboard read-only: qtd, eficiência, CVAR sim., energia, CFIX e custo pleno/SKU; exportação CSV para conferência com a planilha Tiaraju.</li>
 </ul>
+<p>As abas <strong>SKUs</strong> e <strong>Resultados</strong> leem um <strong>snapshot gravado no banco</strong> (<code>inv_cost_period_sku_snapshots</code>), recalculado automaticamente ao editar o período, importar DRE, salvar critérios ou incluir produção simulada. Cada período mantém seus próprios registros — alterar um período não afeta os anteriores. Use <strong>Recalcular SKUs e resultados</strong> após mudar BOM/rota de itens ou sincronizar lotes SAP.</p>
+
+<h2>Snapshot por período</h2>
+<ol>
+    <li>Ao abrir SKUs/Resultados pela primeira vez (com produção no intervalo), o sistema calcula e grava o snapshot.</li>
+    <li>O rodapé da aba mostra quantos SKUs foram gravados e a data/hora do último cálculo.</li>
+    <li>Edição do período, DRE, critérios de rateio ou produção simulada disparam recálculo <em>somente daquele período</em>.</li>
+    <li>Períodos antigos permanecem intactos até você editá-los ou usar o botão de recálculo neles.</li>
+</ol>
 
 <h2>Resultados por SKU (Fase E)</h2>
 <ol>
@@ -34,7 +43,7 @@
     <li>Na aba <strong>SKUs produzidos no período</strong>, use o filtro (<strong>PA</strong>, descrição ou código ERP). A lista é ordenada por <strong>descrição</strong>. O botão <em>Somente PA</em> restringe a produto acabado (categoria ou código 43…).</li>
     <li><strong>Classe energia</strong>, <strong>complexidade</strong> e <strong>linha</strong> (TERCEIRO ou TIARAJU) vêm do cadastro do item (<em>Editar item</em> em Estoque). A linha <strong>TIARAJU</strong> inclui o SKU na base do <strong>critério 7</strong> (energia elétrica direta / conta 29-D); <strong>TERCEIRO</strong> fica fora desse rateio. Se a classe energia estiver vazia, o sistema sugere pela descrição.</li>
     <li>Colunas <strong>Lotes</strong> e <strong>Qtd</strong>: a quantidade exibe <em>produzido / planejado</em> (lotes × lote mínimo do cadastro). A eficiência % deriva dessa razão.</li>
-    <li><strong>Análises</strong> = (nº linhas MP + MAE na BOM) × lotes × eficiência (produzido ÷ planejado), como na planilha (linha 2310). SKUs sem BOM cadastrada ficam com driver 6 zerado — complete a ficha técnica para alinhar os % de rateio.</li>
+    <li><strong>Análises</strong> = (nº linhas MP + MAE na BOM) × lotes produzidos (linha 2310). A <strong>eficiência %</strong> (produzido ÷ planejado) entra no CVAR MP, não neste total. SKUs sem BOM cadastrada ficam com driver 6 zerado — complete a ficha técnica para alinhar os % de rateio.</li>
     <li><strong>Produção simulada</strong> (período em rascunho): inclua lotes fictícios de PA/projeto na aba SKUs — recalcula critérios 1–8 como uma nova coluna na planilha Tiaraju.</li>
     <li><strong>Compl×Anál</strong> = fator de complexidade × análises; alimenta o <strong>critério 6</strong>. As colunas <strong>% Crit. 4</strong> e <strong>% Crit. 6</strong> exibem a participação percentual nos critérios CQ/P&amp;D/DA (complexidade e complexidade × análises).</li>
     <li>SKUs sem cadastro em Estoque aparecem em amarelo — vincule o código ERP ao item e complete a BOM (MP/MAE) para calcular análises.</li>
@@ -50,8 +59,18 @@
     <li><strong>Aplicar mapa de critérios sugeridos</strong> vem marcado por padrão: após importar, vincula critérios 1–8 conforme <code>docs/dre_criterion_map_suggested.csv</code> (pula conta 29 pai e linhas que já têm critério).</li>
 </ol>
 
+<h2>Resumo CFIX</h2>
+<p>O card <strong>Resumo CFIX</strong> compara despesas importadas com o total rateado aos SKUs:</p>
+<ul>
+    <li><strong>Despesas importadas</strong> — soma de todas as linhas do DRE no período.</li>
+    <li><strong>CFIX rateado</strong> — parcela já distribuída aos SKUs (lê do snapshot quando disponível).</li>
+    <li><strong>Sem critério definido</strong> — contas do DRE sem critério 1–8 selecionado (dropdown vazio ou peso zero).</li>
+    <li><strong>Com critério, sem destino</strong> — critério informado, mas nenhum SKU absorveu o valor (driver ou % de participação zerado no período). Ex.: critério 7 sem SKUs TIARAJU com kWh, ou critério 6 com BOM incompleta.</li>
+</ul>
+<p>Ter critério em todas as linhas do DRE <em>não garante</em> rateio 100%: o valor só vai para SKUs que tenham produção e driver compatível no intervalo.</p>
+
 <h2>Critérios por conta</h2>
-<p>Para cada despesa importada, escolha o critério (1–8) e o peso (%). Clique em <strong>Salvar critérios</strong>. Despesas sem critério aparecem como <em>Sem critério</em> no resumo.</p>
+<p>Para cada despesa importada, escolha o critério (1–8) e o peso (%). Clique em <strong>Salvar critérios</strong>. Contas sem critério aparecem em <em>Sem critério definido</em> no resumo.</p>
 
 <h2>Período fechado</h2>
 <p>Status <strong>closed</strong> bloqueia importação e alteração de critérios, preservando o histórico para análises mensais, trimestrais ou anuais.</p>
@@ -68,4 +87,8 @@
     <dd>Reimportações antigas acumulavam linhas iguais. Reimporte com <strong>Substituir despesas anteriores</strong> marcado, ou desmarque apenas para atualizar contas existentes sem duplicar. A redistribuição da energia (29-D/C/H) também remove fatias antigas antes de recriar.</dd>
     <dt>Rateio não reflete a simulação</dt>
     <dd>CFIX usa rota cadastrada e produção do período; alterações only na simulação não mudam os drivers oficiais até promover ao cadastro.</dd>
+    <dt>Resumo mostra valor “Com critério, sem destino”</dt>
+    <dd>O critério está salvo, mas nenhum SKU recebeu rateio (ex.: critério 7 sem linha TIARAJU, critério 6 sem MP/MAE na BOM, ou produção zerada). Revise cadastro, BOM e produção no período; use o script <code>php scripts/diag_inv_cost_unallocated.php &lt;periodo&gt;</code> para listar as contas.</dd>
+    <dt>Abas SKUs/Resultados demoram na primeira abertura</dt>
+    <dd>O snapshot é calculado uma vez e gravado no banco; trocas subsequentes entre abas leem só o snapshot. Use <strong>Recalcular SKUs e resultados</strong> após mudanças relevantes.</dd>
 </dl>

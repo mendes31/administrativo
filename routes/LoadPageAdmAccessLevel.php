@@ -131,6 +131,8 @@ class LoadPageAdmAccessLevel
             'ImportRoomBookings' => "\\App\\adms\\Controllers\\rooms\\ImportRoomBookings",
             'ImportInvCostDre' => "\\App\\adms\\Controllers\\inventory\\ImportInvCostDre",
             'SaveInvCostAllocationRules' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostAllocationRules",
+            'SaveInvEnergyClassFactors' => "\\App\\adms\\Controllers\\inventory\\SaveInvEnergyClassFactors",
+            'SaveInvComplexityLevelFactors' => "\\App\\adms\\Controllers\\inventory\\SaveInvComplexityLevelFactors",
             'SaveInvCostPeriodItems' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostPeriodItems",
             'SaveInvCostPeriodScenarioProduction' => "\\App\\adms\\Controllers\\inventory\\SaveInvCostPeriodScenarioProduction",
             'ExportInvCostPeriodSkuResults' => "\\App\\adms\\Controllers\\inventory\\ExportInvCostPeriodSkuResults",
@@ -369,6 +371,16 @@ class LoadPageAdmAccessLevel
             }
             if ($ctrl === 'SaveInvCostAllocationRules' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
                 'SaveInvCostAllocationRules', 'ViewInvCostPeriod', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'SaveInvEnergyClassFactors' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'SaveInvEnergyClassFactors', 'ListInvEnergyClassFactors', 'ListInvCostPeriods',
+            ])) {
+                return true;
+            }
+            if ($ctrl === 'SaveInvComplexityLevelFactors' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'SaveInvComplexityLevelFactors', 'ListInvComplexityLevelFactors', 'ListInvCostPeriods',
             ])) {
                 return true;
             }

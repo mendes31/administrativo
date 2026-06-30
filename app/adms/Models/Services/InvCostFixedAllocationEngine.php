@@ -28,6 +28,8 @@ class InvCostFixedAllocationEngine
             'total_expense' => 0.0,
             'total_cfix_allocated' => 0.0,
             'by_item' => [],
+            'pools_without_criterion' => 0.0,
+            'unallocated_without_recipient' => 0.0,
             'unallocated_expense' => 0.0,
         ];
 
@@ -54,7 +56,7 @@ class InvCostFixedAllocationEngine
         $byItem = [];
         $totalExpense = 0.0;
         $totalAllocated = 0.0;
-        $unallocated = 0.0;
+        $poolsWithoutCriterion = 0.0;
 
         foreach ($pools as $pool) {
             $amount = (float)($pool['amount'] ?? 0);
@@ -66,15 +68,17 @@ class InvCostFixedAllocationEngine
             }
 
             if ($rules === []) {
-                $unallocated += $amount;
+                $poolsWithoutCriterion += $amount;
                 continue;
             }
 
             $weightSum = array_sum(array_map(static fn(array $r): float => (float)($r['weight_pct'] ?? 0), $rules));
             if ($weightSum <= 0) {
-                $unallocated += $amount;
+                $poolsWithoutCriterion += $amount;
                 continue;
             }
+
+            $poolAllocated = 0.0;
 
             foreach ($rules as $rule) {
                 $criterion = (int)($rule['criterion'] ?? 0);
@@ -109,16 +113,22 @@ class InvCostFixedAllocationEngine
                         'allocated' => $allocated,
                     ];
                     $totalAllocated += $allocated;
+                    $poolAllocated += $allocated;
                 }
             }
         }
+
+        $unallocatedTotal = max(0, $totalExpense - $totalAllocated);
+        $unallocatedWithoutRecipient = max(0, $unallocatedTotal - $poolsWithoutCriterion);
 
         return [
             'period_id' => $periodId,
             'total_expense' => round($totalExpense, 4),
             'total_cfix_allocated' => round($totalAllocated, 4),
             'by_item' => $byItem,
-            'unallocated_expense' => round(max(0, $totalExpense - $totalAllocated), 4),
+            'pools_without_criterion' => round($poolsWithoutCriterion, 4),
+            'unallocated_without_recipient' => round($unallocatedWithoutRecipient, 4),
+            'unallocated_expense' => round($unallocatedTotal, 4),
         ];
     }
 

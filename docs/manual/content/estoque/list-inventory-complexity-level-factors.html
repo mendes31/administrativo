@@ -1,0 +1,33 @@
+<h1>Complexidade — critérios 4 e 6</h1>
+<p>Parametrização dos <strong>fatores de complexidade</strong> usados no rateio CFIX dos critérios 4 (CQ/P&amp;D/DA) e 6 (complexidade × análises). O SAP informa o código da UDF <em>Complexidade</em> (1 caractere) em cada item; os fatores numéricos ficam nesta tela.</p>
+
+<p class="help-note"><strong>Visão geral:</strong> <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>ListInvComplexityLevelFactors</em> (salvar: <em>SaveInvComplexityLevelFactors</em>).</p>
+
+<h2>Códigos SAP × sistema</h2>
+<ul>
+    <li><code>N</code> → <code>NA</code> — Não aplicável (padrão SAP) · fator <strong>0</strong> · SKU fora dos crit. 4 e 6</li>
+    <li><code>B</code> → <code>BAIXA</code> · fator inicial 2</li>
+    <li><code>M</code> → <code>MEDIA</code> · fator inicial 5</li>
+    <li><code>A</code> → <code>ALTA</code> · fator inicial 8 (se cadastrado no SAP)</li>
+</ul>
+
+<h2>Fatores</h2>
+<p>Valores iniciais alinhados à planilha Tiaraju (linha 2307 — fatores 2 / 5 / 8). <code>NA</code> permanece em 0 para itens sem complexidade aplicável ao rateio.</p>
+
+<h2>Fluxo</h2>
+<ol>
+    <li>Menu <strong>Estoque → Cadastros Bases → Complexidade (crit. 4/6)</strong>.</li>
+    <li>Revise descrição, fator e observações de cada linha.</li>
+    <li>Clique em <strong>Salvar fatores</strong>.</li>
+    <li>Recalcule períodos de custeio em rascunho após alterar fatores.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Item com N no SAP ainda entra no crit. 4</dt>
+    <dd>Fator NA deve ser 0. Recalcule o snapshot do período.</dd>
+    <dt>SAP com B mas sistema mostra Média antiga (media)</dt>
+    <dd>Rode sincronização SAP após a UDF Complexidade estar ativa.</dd>
+</dl>

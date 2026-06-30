@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
+use App\adms\Models\Services\InvCostPeriodSnapshotService;
 use App\adms\Views\Services\LoadViewService;
 
 class UpdateInvCostPeriod
@@ -112,6 +113,7 @@ class UpdateInvCostPeriod
         }
 
         if ($repo->update($periodId, $payload)) {
+            InvCostPeriodSnapshotService::tryRecalculate($periodId);
             $_SESSION['msg'] = "<div class='alert alert-success'>Período atualizado.</div>";
             header('Location: ' . $_ENV['URL_ADM'] . 'view-inventory-cost-period/' . $periodId);
             return;

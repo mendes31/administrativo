@@ -183,11 +183,9 @@ class SimulateInventoryCost
         $this->data['cfix_allocation'] = $cfixAllocation;
         $this->data['suggested_price'] = $suggestedPrice;
 
-        $_SESSION['menu_override'] = 'ListInventoryItems';
-
         $pageElements = [
             'title_head' => 'Simulação de Custos',
-            'menu' => 'ListInventoryItems',
+            'menu' => 'estoque',
             'buttonPermission' => [
                 'ListInventoryItems',
                 'ViewInventoryItem',
@@ -202,8 +200,6 @@ class SimulateInventoryCost
 
         $loadView = new LoadViewService('adms/Views/inventory/costs/simulate', $this->data);
         $loadView->loadView();
-
-        unset($_SESSION['menu_override']);
     }
 
     private function parsePct(mixed $value): float

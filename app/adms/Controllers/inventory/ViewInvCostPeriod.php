@@ -10,13 +10,12 @@ use App\adms\Models\Repository\inventory\InvCostExpensePoolsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodScenarioProductionRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
-use App\adms\Models\Services\InvCostCriterionDriversService;
 use App\adms\Models\Services\InvCostDreImportService;
 use App\adms\Models\Services\InvCostEnergyDriversService;
 use App\adms\Models\Services\InvCostEnergyRedistributionService;
 use App\adms\Models\Services\InvCostFixedAllocationEngine;
 use App\adms\Models\Services\InvCostPeriodProductionItemsService;
-use App\adms\Models\Services\InvCostPeriodSkuResultsService;
+use App\adms\Models\Services\InvCostPeriodSnapshotService;
 use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -42,6 +41,10 @@ class ViewInvCostPeriod
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!empty($_POST['recalculate_snapshots'])) {
+                $this->handleRecalculateSnapshotsPost($periodId);
+                return;
+            }
             if (!empty($_FILES['dre_file']['tmp_name'])) {
                 $this->handleImportPost($periodId);
                 return;
@@ -58,22 +61,12 @@ class ViewInvCostPeriod
 
         $poolsRepo = new InvCostExpensePoolsRepository();
         $importsRepo = new InvCostDreImportsRepository();
-        $engine = new InvCostFixedAllocationEngine();
+        $snapshotService = new InvCostPeriodSnapshotService();
 
         $this->data['period'] = $period;
-        $this->data['expense_pools'] = $poolsRepo->getByPeriodWithRules($periodId);
         $this->data['total_expense'] = $poolsRepo->sumAmountByPeriod($periodId);
-        $this->data['dre_imports'] = $importsRepo->getByPeriod($periodId);
-        $this->data['allocation_summary'] = $engine->allocateByPeriod($periodId, null);
         $this->data['criterion_labels'] = $this->criterionLabels();
 
-        $energyService = new InvCostEnergyRedistributionService();
-        $energyTotal = $poolsRepo->sumEnergyAccountsForSplit($periodId);
-        $this->data['energy_split_preview'] = $energyTotal > 0
-            ? $energyService->previewSplit($energyTotal, $period, $periodId)
-            : null;
-        $this->data['energy_pending_total'] = $energyTotal;
-        $this->data['energy_direct_kwh_computed'] = (new InvCostEnergyDriversService())->sumDirectKwhByPeriod($periodId);
         $isClosed = (string)($period['status'] ?? '') === 'closed';
         $skuFilter = trim((string)($_GET['sku_filter'] ?? ''));
         $activeTab = (string)($_GET['tab'] ?? 'despesas');
@@ -81,16 +74,64 @@ class ViewInvCostPeriod
             $activeTab = 'despesas';
         }
 
-        $productionAggService = new InvCostProductionAggregationService();
-        $this->data['production_items_all_count'] = $productionAggService->countSkusInPeriod($periodId);
         $this->data['sku_filter'] = $skuFilter;
         $this->data['active_tab'] = $activeTab;
+        $this->data['snapshot_computed_at'] = $period['snapshot_computed_at'] ?? null;
+        $this->data['snapshot_row_count'] = (int)($period['snapshot_row_count'] ?? 0);
 
-        $productionAggregation = null;
-        $criterionAggregation = null;
+        if ($activeTab === 'despesas') {
+            $this->data['expense_pools'] = $poolsRepo->getByPeriodWithRules($periodId);
+            $this->data['dre_imports'] = $importsRepo->getByPeriod($periodId);
+            $cachedSummary = $snapshotService->getAllocationSummaryFromSnapshot($periodId, (float)$this->data['total_expense']);
+            if ($cachedSummary !== null) {
+                $this->data['allocation_summary'] = $cachedSummary;
+            } else {
+                $this->data['allocation_summary'] = (new InvCostFixedAllocationEngine())->allocateByPeriod($periodId, null);
+            }
+
+            $energyService = new InvCostEnergyRedistributionService();
+            $energyTotal = $poolsRepo->sumEnergyAccountsForSplit($periodId);
+            $this->data['energy_split_preview'] = $energyTotal > 0
+                ? $energyService->previewSplit($energyTotal, $period, $periodId)
+                : null;
+            $this->data['energy_pending_total'] = $energyTotal;
+            $this->data['energy_direct_kwh_computed'] = (new InvCostEnergyDriversService())->sumDirectKwhByPeriod($periodId);
+        } else {
+            $this->data['expense_pools'] = [];
+            $this->data['dre_imports'] = [];
+            $cachedSummary = $snapshotService->getAllocationSummaryFromSnapshot($periodId, (float)$this->data['total_expense']);
+            $this->data['allocation_summary'] = $cachedSummary ?? [
+                'total_expense' => (float)$this->data['total_expense'],
+                'total_cfix_allocated' => 0.0,
+                'pools_without_criterion' => 0.0,
+                'unallocated_without_recipient' => 0.0,
+                'unallocated_expense' => (float)$this->data['total_expense'],
+            ];
+            $this->data['energy_split_preview'] = null;
+            $this->data['energy_pending_total'] = 0.0;
+            $this->data['energy_direct_kwh_computed'] = 0.0;
+        }
+
+        if ($this->data['snapshot_row_count'] > 0) {
+            $this->data['production_items_all_count'] = $this->data['snapshot_row_count'];
+        } else {
+            $this->data['production_items_all_count'] = (new InvCostProductionAggregationService())->countSkusInPeriod($periodId);
+        }
+
         if (in_array($activeTab, ['skus', 'resultados'], true)) {
-            $productionAggregation = $productionAggService->aggregateByPeriod($periodId);
-            $criterionAggregation = (new InvCostCriterionDriversService())->aggregateAllCriteria($periodId);
+            if (!$snapshotService->hasSnapshot($periodId) && $this->data['production_items_all_count'] > 0) {
+                $recalc = $snapshotService->recalculate($periodId);
+                if (!empty($recalc['success'])) {
+                    $period = $repo->getOne($periodId) ?: $period;
+                    $this->data['snapshot_computed_at'] = $period['snapshot_computed_at'] ?? null;
+                    $this->data['snapshot_row_count'] = (int)($period['snapshot_row_count'] ?? 0);
+                    $this->data['production_items_all_count'] = $this->data['snapshot_row_count'];
+                    $cachedSummary = $snapshotService->getAllocationSummaryFromSnapshot($periodId, (float)$this->data['total_expense']);
+                    if ($cachedSummary !== null) {
+                        $this->data['allocation_summary'] = $cachedSummary;
+                    }
+                }
+            }
         }
 
         $productionService = new InvCostPeriodProductionItemsService();
@@ -98,9 +139,7 @@ class ViewInvCostPeriod
             $this->data['production_items'] = $productionService->listForPeriod(
                 $periodId,
                 null,
-                $skuFilter !== '' ? $skuFilter : null,
-                $productionAggregation,
-                $criterionAggregation
+                $skuFilter !== '' ? $skuFilter : null
             );
         } else {
             $this->data['production_items'] = [];
@@ -136,18 +175,47 @@ class ViewInvCostPeriod
 
         $this->data['sku_results_all_count'] = $this->data['production_items_all_count'];
         if ($activeTab === 'resultados') {
-            $this->data['sku_results'] = (new InvCostPeriodSkuResultsService())->listForPeriod(
-                periodId: $periodId,
-                filter: $skuFilter !== '' ? $skuFilter : null,
-                productionAggregation: $productionAggregation,
-                criterionAggregation: $criterionAggregation
+            $this->data['sku_results'] = $snapshotService->listForPeriod(
+                $periodId,
+                $skuFilter !== '' ? $skuFilter : null
             );
         } else {
             $this->data['sku_results'] = [];
         }
 
+        $this->data['can_recalculate_snapshots'] = true;
+
         $loadView = new LoadViewService('adms/Views/inventory/costs/period_view', $this->data);
         $loadView->loadView();
+    }
+
+    private function handleRecalculateSnapshotsPost(int $periodId): void
+    {
+        $tab = in_array((string)($_POST['return_tab'] ?? ''), ['skus', 'resultados'], true)
+            ? (string)$_POST['return_tab']
+            : 'skus';
+        $redirect = $_ENV['URL_ADM'] . 'view-inventory-cost-period/' . $periodId . '?tab=' . $tab;
+        $skuFilter = trim((string)($_POST['sku_filter'] ?? ''));
+        if ($skuFilter !== '') {
+            $redirect .= '&sku_filter=' . rawurlencode($skuFilter);
+        }
+
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (!CSRFHelper::validateCSRFToken('form_recalculate_inv_cost_snapshots', $token, false)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger'>Sessão expirada ou token inválido. Recarregue a página e tente novamente.</div>";
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $result = (new InvCostPeriodSnapshotService())->recalculate($periodId);
+        if (!empty($result['success'])) {
+            CSRFHelper::validateCSRFToken('form_recalculate_inv_cost_snapshots', $token, true);
+        }
+
+        $class = !empty($result['success']) ? 'success' : 'danger';
+        $_SESSION['msg'] = "<div class='alert alert-{$class}'>" . htmlspecialchars((string)($result['message'] ?? '')) . '</div>';
+        header('Location: ' . $redirect);
+        exit;
     }
 
     private function handleImportPost(int $periodId): void
@@ -225,6 +293,7 @@ class ViewInvCostPeriod
 
         (new InvCostAllocationRulesRepository())->replaceRulesForPeriodPools($rulesByPool);
         CSRFHelper::validateCSRFToken('form_save_inv_cost_allocation_rules', $token, true);
+        InvCostPeriodSnapshotService::tryRecalculate($periodId);
 
         $_SESSION['msg'] = "<div class='alert alert-success'>Critérios de rateio salvos.</div>";
         header('Location: ' . $redirect);
@@ -251,6 +320,7 @@ class ViewInvCostPeriod
         $result = (new InvCostEnergyRedistributionService())->applyForPeriod($periodId);
         if ($result['success']) {
             CSRFHelper::validateCSRFToken('form_apply_inv_cost_energy_split', $token, true);
+            InvCostPeriodSnapshotService::tryRecalculate($periodId);
         }
 
         $class = $result['success'] ? 'success' : 'danger';

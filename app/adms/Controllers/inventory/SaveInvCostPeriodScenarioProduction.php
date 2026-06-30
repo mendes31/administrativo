@@ -6,6 +6,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodScenarioProductionRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
+use App\adms\Models\Services\InvCostPeriodSnapshotService;
 
 class SaveInvCostPeriodScenarioProduction
 {
@@ -38,6 +39,7 @@ class SaveInvCostPeriodScenarioProduction
                 $periodId
             );
             CSRFHelper::validateCSRFToken('form_save_inv_cost_scenario_production', $token, true);
+            InvCostPeriodSnapshotService::tryRecalculate($periodId);
             $_SESSION['msg'] = $deleted
                 ? "<div class='alert alert-success'>Produção simulada removida.</div>"
                 : "<div class='alert alert-warning'>Registro não encontrado.</div>";
@@ -80,6 +82,7 @@ class SaveInvCostPeriodScenarioProduction
         ]);
 
         CSRFHelper::validateCSRFToken('form_save_inv_cost_scenario_production', $token, true);
+        InvCostPeriodSnapshotService::tryRecalculate($periodId);
         $_SESSION['msg'] = "<div class='alert alert-success'>Produção simulada incluída no rateio do período (rascunho).</div>";
         header('Location: ' . $redirect);
         exit;

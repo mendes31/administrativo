@@ -1,5 +1,7 @@
 <?php if (!isset($this)) { exit; } ?>
 <?php
+use App\adms\Helpers\InvCostComplexityHelper;
+
 $periodId = (int)($periodId ?? 0);
 $productionItems = $productionItems ?? [];
 $skuFilter = trim((string)($skuFilter ?? ''));
@@ -18,8 +20,7 @@ $fmtQtyRatio = static function (?float $produced, ?float $planned) use ($fmtQty)
 };
 $fmtDec = static fn(?float $v, int $dec = 1): string => $v === null || $v <= 0 ? '—' : number_format($v, $dec, ',', '.');
 $fmtPct = static fn(?float $v): string => $v === null || $v <= 0 ? '—' : number_format($v, 2, ',', '.') . '%';
-$energyLabels = ['CM' => 'CM', 'PROB' => 'PROB', 'OTHER' => 'OTHER'];
-$complexityLabels = ['baixa' => 'Baixa', 'media' => 'Média', 'alta' => 'Alta'];
+$energyLabels = ['NA' => 'Não aplicável', 'CM' => 'CM', 'PROB' => 'PROB', 'OTHER' => 'OTHER'];
 $productionLineLabels = ['TERCEIRO' => 'TERCEIRO', 'TIARAJU' => 'TIARAJU'];
 ?>
 <div class="card border-light shadow mb-4">
@@ -27,7 +28,8 @@ $productionLineLabels = ['TERCEIRO' => 'TERCEIRO', 'TIARAJU' => 'TIARAJU'];
     <p class="small text-muted mb-3">
       Resultados da produção no intervalo do período (lotes SAP). Classe energia, complexidade e linha vêm do
       <strong>cadastro do item</strong> — use o link <em>Editar item</em> para ajustar.
-      <strong>Análises</strong> (critério 6) = (MP + MAE na BOM) × lotes × eficiência do período.
+      <strong>Análises</strong> (critério 6) = (MP + MAE na BOM) × lotes do período.
+      <strong>Efic. %</strong> ajusta o CVAR MP na simulação, não o número de análises.
       <strong>Fator compl.</strong> alimenta o critério 4 (complexidade); <strong>Compl×Anál</strong> alimenta o critério 6 (complexidade × análises).
       As colunas <strong>% Crit. 4</strong> e <strong>% Crit. 6</strong> mostram a participação percentual no rateio CQ/P&D/DA.
     </p>
@@ -93,10 +95,7 @@ $productionLineLabels = ['TERCEIRO' => 'TERCEIRO', 'TIARAJU' => 'TIARAJU'];
               $energyClass = trim((string)($row['energy_class'] ?? ''));
               $suggested = trim((string)($row['suggested_energy_class'] ?? ''));
               $fromItem = !empty($row['energy_class_from_item']);
-              $complexity = trim((string)($row['complexity_level'] ?? 'media'));
-              if ($complexity === '' || !isset($complexityLabels[$complexity])) {
-                  $complexity = 'media';
-              }
+              $complexityCode = InvCostComplexityHelper::resolveForCosting($row['complexity_level'] ?? null);
               ?>
               <tr class="<?= $linked ? '' : 'table-warning' ?><?= !empty($row['is_scenario']) ? ' table-info' : '' ?>">
                 <td class="ps-3 font-monospace small">
@@ -126,7 +125,7 @@ $productionLineLabels = ['TERCEIRO' => 'TERCEIRO', 'TIARAJU' => 'TIARAJU'];
                     —
                   <?php endif; ?>
                 </td>
-                <td class="small"><?= htmlspecialchars($complexityLabels[$complexity] ?? ucfirst($complexity)) ?></td>
+                <td class="small"><?= htmlspecialchars(InvCostComplexityHelper::label($complexityCode)) ?></td>
                 <td class="text-end"><?= $fmtDec(isset($row['complexity_factor']) ? (float)$row['complexity_factor'] : null, 0) ?></td>
                 <td class="text-end"><?= $fmtDec(isset($row['analysis_count_total']) ? (float)$row['analysis_count_total'] : null, 1) ?></td>
                 <td class="text-end"><?= $fmtDec(isset($row['driver_6']) ? (float)$row['driver_6'] : null, 1) ?></td>

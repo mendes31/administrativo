@@ -807,6 +807,16 @@
                     "file": "estoque/list-inventory-cost-periods.html"
                 },
                 {
+                    "id": "list-inventory-energy-class-factors",
+                    "title": "Classes HVAC (critério 8)",
+                    "file": "estoque/list-inventory-energy-class-factors.html"
+                },
+                {
+                    "id": "list-inventory-complexity-level-factors",
+                    "title": "Complexidade (critérios 4 e 6)",
+                    "file": "estoque/list-inventory-complexity-level-factors.html"
+                },
+                {
                     "id": "view-inventory-cost-period",
                     "title": "Detalhe do Período de Custeio",
                     "file": "estoque/view-inventory-cost-period.html"

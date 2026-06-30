@@ -152,4 +152,28 @@ class InvCostPeriodsRepository extends DbConnection
 
         return $stmt->execute([':id' => $id]) && $stmt->rowCount() > 0;
     }
+
+    public function updateSnapshotMeta(int $periodId, string $computedAt, int $rowCount, ?string $inputsHash = null): bool
+    {
+        if ($periodId <= 0) {
+            return false;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE inv_cost_periods
+             SET snapshot_computed_at = :computed_at,
+                 snapshot_row_count = :row_count,
+                 snapshot_inputs_hash = :inputs_hash,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        );
+        $now = date('Y-m-d H:i:s');
+        $stmt->bindValue(':computed_at', $computedAt);
+        $stmt->bindValue(':row_count', max(0, $rowCount), PDO::PARAM_INT);
+        $stmt->bindValue(':inputs_hash', $inputsHash !== null && $inputsHash !== '' ? $inputsHash : null, $inputsHash ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':updated_at', $now);
+        $stmt->bindValue(':id', $periodId, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
 }

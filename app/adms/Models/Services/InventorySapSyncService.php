@@ -2,6 +2,8 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostComplexityHelper;
+use App\adms\Helpers\InvCostEnergyClassHelper;
 use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Models\Repository\inventory\InvInventorySapSyncRunsRepository;
@@ -664,7 +666,6 @@ class InventorySapSyncService
     }
 
     /**
-     * @param array<string, mixed> $stats
      * @param array<string, mixed> $finalizeData
      */
     public function finalizeTrackedSync(bool $success, string $message, array $finalizeData = []): void
@@ -1614,6 +1615,8 @@ class InventorySapSyncService
                     'ItemGroupName' => $groupMap[(string)$grpCod] ?? 'Geral',
                     'U_FormaFarma' => $row['U_FormaFarma'] ?? $row['U_FORMAFARMA'] ?? '',
                     'U_LinhaProduto' => $row['U_LinhaProduto'] ?? $row['U_LINHAPRODUTO'] ?? '',
+                    'U_ClasseHvac' => $this->sapRowString($row, 'U_ClasseHvac'),
+                    'U_Complexidade' => $this->sapRowString($row, 'U_Complexidade'),
                 ];
             }
 
@@ -1707,6 +1710,8 @@ class InventorySapSyncService
             . $this->sapOitmUpdateDateSelectExpression($alias) . ', '
             . 'COALESCE(' . $alias . '."U_FormaFarma", \'\') AS "U_FormaFarma", '
             . 'COALESCE(' . $alias . '."U_LinhaProduto", \'\') AS "U_LinhaProduto", '
+            . 'COALESCE(' . $alias . '."U_ClasseHvac", \'\') AS "U_ClasseHvac", '
+            . 'COALESCE(' . $alias . '."U_Complexidade", \'\') AS "U_Complexidade", '
             . 'COALESCE(' . $alias . '."U_beas_ver", \'\') AS "U_beas_ver", '
             . $alias . '."MinOrdrQty", '
             . $alias . '."MinLevel", '
@@ -1725,6 +1730,18 @@ class InventorySapSyncService
     {
         return 'COALESCE(' . $alias . '."' . $column . '", \'\') AS "' . $column . '"';
     }
+
+    /** @var list<string> Chaves SAP para classe HVAC no row normalizado. */
+    private const SAP_OITM_CLASSE_HVAC_KEYS = [
+        'U_ClasseHvac', 'U_CLASSEHVAC', 'U_ClasseHVAC', 'U_CLASSEHVAC',
+        'U_ClasseEnergia', 'U_CLASSEENERGIA',
+    ];
+
+    /** @var list<string> Chaves SAP para complexidade no row normalizado. */
+    private const SAP_OITM_COMPLEXIDADE_KEYS = [
+        'U_Complexidade', 'U_COMPLEXIDADE',
+        'U_ComplexidadeItem', 'U_COMPLEXIDADEITEM',
+    ];
 
     /**
      * NULL, string vazia, espaços e literal "null" → valor padrão (geralmente '').
@@ -1762,6 +1779,51 @@ class InventorySapSyncService
 
     /**
      * @param array<string, mixed> $row
+     * @param list<string> $keys
+     */
+    private function sapRowHasAnyKey(array $row, array $keys): bool
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $row) || array_key_exists(strtoupper($key), $row)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string> $keys
+     */
+    private function sapRowFirstString(array $row, array $keys, string $default = ''): string
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $row) || array_key_exists(strtoupper($key), $row)) {
+                return $this->sapEmptyAsString($row[$key] ?? $row[strtoupper($key)] ?? null, $default);
+            }
+        }
+
+        return $default;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string> $keys
+     */
+    private function sapRowFirstNullable(array $row, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $row) || array_key_exists(strtoupper($key), $row)) {
+                return $this->sapEmptyAsNull($row[$key] ?? $row[strtoupper($key)] ?? null);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $row
      */
     private function sapRowNumericOrNull(array $row, string $field): ?float
     {
@@ -1777,6 +1839,19 @@ class InventorySapSyncService
         }
 
         return round($this->toFloat($value), 6);
+    }
+
+    /**
+     * Mesma regra do InvItemsRepository::update/create (max 0.000001).
+     * Evita loop quando SAP MinOrdrQty = 0 e o banco já tem 0.000001.
+     */
+    private function resolveStandardBatchSizeFromSap(?float $minOrderQty, ?float $existingFallback = null): float
+    {
+        if ($minOrderQty === null) {
+            return max(0.000001, (float)($existingFallback ?? 1));
+        }
+
+        return max(0.000001, $minOrderQty);
     }
 
     /**
@@ -1801,6 +1876,8 @@ class InventorySapSyncService
             $this->sapOitmUpdateDateSelectExpression($alias) . ', '
                 . 'COALESCE(' . $alias . '."U_FormaFarma", \'\') AS "U_FormaFarma", '
                 . 'COALESCE(' . $alias . '."U_LinhaProduto", \'\') AS "U_LinhaProduto", '
+                . 'COALESCE(' . $alias . '."U_ClasseHvac", \'\') AS "U_ClasseHvac", '
+                . 'COALESCE(' . $alias . '."U_Complexidade", \'\') AS "U_Complexidade", '
                 . 'COALESCE(' . $alias . '."U_beas_ver", \'\') AS "U_beas_ver"',
         ];
     }
@@ -1914,6 +1991,8 @@ class InventorySapSyncService
             . 'COALESCE(T0."validFor", \'Y\') AS "validFor", '
             . 'COALESCE(T0."U_FormaFarma", \'\') AS "U_FormaFarma", '
             . 'COALESCE(T0."U_LinhaProduto", \'\') AS "U_LinhaProduto", '
+            . 'COALESCE(T0."U_ClasseHvac", \'\') AS "U_ClasseHvac", '
+            . 'COALESCE(T0."U_Complexidade", \'\') AS "U_Complexidade", '
             . 'T1."ItmsGrpNam" AS "ItemGroupName" '
             . 'FROM OITM T0 '
             . 'LEFT JOIN OITB T1 ON T1."ItmsGrpCod" = T0."ItmsGrpCod" '
@@ -2361,16 +2440,30 @@ class InventorySapSyncService
         $sapCost = $this->extractSapCost($row);
         $active = strtoupper((string)($row['validFor'] ?? 'Y')) === 'Y' ? 1 : 0;
         $sapUpdateDate = $this->normalizeSapUpdateDate($row['UpdateDate'] ?? $row['UPDATEDATE'] ?? null);
-        $pharmaFormId = $isPaPi
-            ? $this->resolvePharmaFormId($pharmaFormsRepo, $row['U_FormaFarma'] ?? $row['U_FORMAFARMA'] ?? null)
-            : null;
-        $productionLine = $isPaPi
-            ? InvCostProductionLineHelper::fromSapLinhaProduto($row['U_LinhaProduto'] ?? $row['U_LINHAPRODUTO'] ?? null)
-            : null;
 
         if ($existing === null) {
             $existing = $itemsRepo->findByErpCode($erpCode);
         }
+
+        $pharmaFormId = $isPaPi
+            ? $this->resolvePharmaFormIdForItemSync(
+                $pharmaFormsRepo,
+                $row['U_FormaFarma'] ?? $row['U_FORMAFARMA'] ?? null,
+                $existing
+            )
+            : null;
+        $productionLine = $isPaPi
+            ? $this->resolveProductionLineForItemSync(
+                $row['U_LinhaProduto'] ?? $row['U_LINHAPRODUTO'] ?? null,
+                $existing
+            )
+            : null;
+        $energyClass = $isPaPi
+            ? $this->resolveEnergyClassForItemSync($row, $existing)
+            : null;
+        $complexityLevel = $isPaPi
+            ? $this->resolveComplexityLevelForItemSync($row, $existing)
+            : null;
 
         $minLevel = $this->extractSapNumericField($row, 'MinLevel');
         $maxLevel = $this->extractSapNumericField($row, 'MaxLevel');
@@ -2389,6 +2482,8 @@ class InventorySapSyncService
                     $isPaPi,
                     $pharmaFormId,
                     $productionLine,
+                    $energyClass,
+                    $complexityLevel,
                     $active,
                     $sapUpdateDate,
                     (int)$unitId,
@@ -2408,6 +2503,7 @@ class InventorySapSyncService
 
         if ($existing !== null) {
             $shouldUpdateCost = in_array($itemType, ['MP', 'EMB'], true);
+            $resolvedCost = $this->resolveSapItemCostForSync($row, $existing, $shouldUpdateCost);
             $payload = [
                 'code' => (string)($existing['code'] ?? $erpCode),
                 'erp_code' => $erpCode,
@@ -2415,13 +2511,18 @@ class InventorySapSyncService
                 'inv_unit_id' => (int)$unitId,
                 'inv_category_id' => (int)$categoryId,
                 'admin_type' => $adminType,
-                'average_cost' => $shouldUpdateCost ? $sapCost : (float)($existing['average_cost'] ?? 0),
-                'last_cost' => $shouldUpdateCost ? $sapCost : (float)($existing['last_cost'] ?? 0),
+                'average_cost' => $resolvedCost,
+                'last_cost' => $resolvedCost,
                 'min_stock' => $minLevel ?? (float)($existing['min_stock'] ?? 0),
                 'max_stock' => $maxLevel ?? (float)($existing['max_stock'] ?? 0),
-                'standard_batch_size' => $minOrderQty ?? (float)($existing['standard_batch_size'] ?? 1),
+                'standard_batch_size' => $this->resolveStandardBatchSizeFromSap(
+                    $minOrderQty,
+                    (float)($existing['standard_batch_size'] ?? 1)
+                ),
                 'production_line' => $isPaPi ? $productionLine : ($existing['production_line'] ?? null),
                 'inv_pharma_form_id' => $isPaPi ? $pharmaFormId : ($existing['inv_pharma_form_id'] ?? null),
+                'energy_class' => $isPaPi ? $energyClass : ($existing['energy_class'] ?? null),
+                'complexity_level' => $isPaPi ? $complexityLevel : ($existing['complexity_level'] ?? null),
                 'sap_update_date' => $sapUpdateDate,
                 'active' => $active,
             ];
@@ -2455,9 +2556,11 @@ class InventorySapSyncService
             'last_cost' => $sapCost,
             'min_stock' => $minLevel ?? 0,
             'max_stock' => $maxLevel ?? 0,
-            'standard_batch_size' => max(0.000001, $minOrderQty ?? 1),
+            'standard_batch_size' => $this->resolveStandardBatchSizeFromSap($minOrderQty),
             'production_line' => $productionLine,
             'inv_pharma_form_id' => $pharmaFormId,
+            'energy_class' => $energyClass,
+            'complexity_level' => $complexityLevel,
             'sap_update_date' => $sapUpdateDate,
             'active' => $active,
         ]);
@@ -2492,6 +2595,8 @@ class InventorySapSyncService
             'ItemGroupName' => $groupMap[$grpCod] ?? 'Geral',
             'U_FormaFarma' => $this->sapRowString($row, 'U_FormaFarma'),
             'U_LinhaProduto' => $this->sapRowString($row, 'U_LinhaProduto'),
+            'U_ClasseHvac' => $this->sapRowString($row, 'U_ClasseHvac'),
+            'U_Complexidade' => $this->sapRowString($row, 'U_Complexidade'),
             'U_beas_ver' => $this->sapRowString($row, 'U_beas_ver'),
             'MinOrdrQty' => $this->sapRowNumericOrNull($row, 'MinOrdrQty'),
             'MinLevel' => $this->sapRowNumericOrNull($row, 'MinLevel'),
@@ -2552,7 +2657,7 @@ class InventorySapSyncService
 
         if (in_array($itemType, ['MP', 'EMB'], true)) {
             $sapCost = $this->extractSapCost($row);
-            if (round((float)($local['average_cost'] ?? 0), 6) !== round($sapCost, 6)) {
+            if ($sapCost > 0 && round((float)($local['average_cost'] ?? 0), 6) !== round($sapCost, 6)) {
                 return true;
             }
         }
@@ -2568,8 +2673,11 @@ class InventorySapSyncService
         if ($maxLevel !== null && round((float)($local['max_stock'] ?? 0), 6) !== $maxLevel) {
             return true;
         }
-        if ($minOrderQty !== null && round((float)($local['standard_batch_size'] ?? 1), 6) !== $minOrderQty) {
-            return true;
+        if ($minOrderQty !== null) {
+            $expectedBatch = $this->resolveStandardBatchSizeFromSap($minOrderQty);
+            if (round((float)($local['standard_batch_size'] ?? 1), 6) !== round($expectedBatch, 6)) {
+                return true;
+            }
         }
         if ((string)($local['admin_type'] ?? 'none') !== $sapAdminType) {
             return true;
@@ -2580,17 +2688,41 @@ class InventorySapSyncService
                 $pharmaFormsRepo,
                 $this->sapRowString($row, 'U_FormaFarma')
             );
-            $localPharmaId = !empty($local['inv_pharma_form_id']) ? (int)$local['inv_pharma_form_id'] : null;
-            if ($sapPharmaId !== $localPharmaId) {
-                return true;
+            if ($sapPharmaId !== null) {
+                $localPharmaId = !empty($local['inv_pharma_form_id']) ? (int)$local['inv_pharma_form_id'] : null;
+                if ($sapPharmaId !== $localPharmaId) {
+                    return true;
+                }
             }
 
             $sapLine = InvCostProductionLineHelper::fromSapLinhaProduto(
                 $this->sapEmptyAsNull($row['U_LinhaProduto'] ?? $row['U_LINHAPRODUTO'] ?? null)
             );
-            $localLine = InvCostProductionLineHelper::normalize($local['production_line'] ?? null);
-            if ($sapLine !== $localLine) {
-                return true;
+            if ($sapLine !== null) {
+                $localLine = InvCostProductionLineHelper::normalize($local['production_line'] ?? null);
+                if ($sapLine !== $localLine) {
+                    return true;
+                }
+            }
+
+            if ($this->sapRowHasAnyKey($row, self::SAP_OITM_CLASSE_HVAC_KEYS)) {
+                $sapEnergy = InvCostEnergyClassHelper::fromSap(
+                    $this->sapRowFirstNullable($row, self::SAP_OITM_CLASSE_HVAC_KEYS)
+                );
+                $localEnergy = InvCostEnergyClassHelper::resolveForCosting($local['energy_class'] ?? null);
+                if ($sapEnergy !== $localEnergy) {
+                    return true;
+                }
+            }
+
+            if ($this->sapRowHasAnyKey($row, self::SAP_OITM_COMPLEXIDADE_KEYS)) {
+                $sapComplexity = InvCostComplexityHelper::fromSap(
+                    $this->sapRowFirstNullable($row, self::SAP_OITM_COMPLEXIDADE_KEYS)
+                );
+                $localComplexity = InvCostComplexityHelper::resolveForCosting($local['complexity_level'] ?? null);
+                if ($sapComplexity !== $localComplexity) {
+                    return true;
+                }
             }
         } elseif ($this->itemTypeNeedsUdfFields($row)) {
             if (empty($local['inv_pharma_form_id'])
@@ -2936,10 +3068,34 @@ class InventorySapSyncService
             return trim((string)$a) !== trim((string)$b);
         };
 
-        foreach (['description', 'inv_unit_id', 'inv_category_id', 'average_cost', 'last_cost', 'active', 'production_line', 'inv_pharma_form_id', 'sap_update_date', 'admin_type', 'min_stock', 'max_stock', 'standard_batch_size'] as $field) {
+        $compareDate = static function (mixed $a, mixed $b): bool {
+            $norm = static function (mixed $value): string {
+                if ($value === null || $value === false) {
+                    return '';
+                }
+                $text = trim((string)$value);
+                if ($text === '' || strcasecmp($text, 'null') === 0) {
+                    return '';
+                }
+                if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $text, $matches) === 1) {
+                    return $matches[1];
+                }
+                $ts = strtotime($text);
+
+                return $ts !== false ? date('Y-m-d', $ts) : $text;
+            };
+
+            return $norm($a) !== $norm($b);
+        };
+
+        foreach (['description', 'inv_unit_id', 'inv_category_id', 'average_cost', 'last_cost', 'active', 'production_line', 'inv_pharma_form_id', 'energy_class', 'complexity_level', 'admin_type', 'min_stock', 'max_stock', 'standard_batch_size'] as $field) {
             if ($compare($existing[$field] ?? null, $payload[$field] ?? null)) {
                 return true;
             }
+        }
+
+        if ($compareDate($existing['sap_update_date'] ?? null, $payload['sap_update_date'] ?? null)) {
+            return true;
         }
 
         return false;
@@ -3055,6 +3211,100 @@ class InventorySapSyncService
         }
 
         return $repo->findOrCreateByName($name);
+    }
+
+    /**
+     * @param array<string, mixed>|null $existing
+     */
+    private function resolvePharmaFormIdForItemSync(
+        InvPharmaFormsRepository $repo,
+        mixed $rawCode,
+        ?array $existing
+    ): ?int {
+        $fromSap = $this->resolvePharmaFormId($repo, $rawCode);
+        if ($fromSap !== null) {
+            return $fromSap;
+        }
+
+        $existingId = (int)($existing['inv_pharma_form_id'] ?? 0);
+
+        return $existingId > 0 ? $existingId : null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $existing
+     */
+    private function resolveProductionLineForItemSync(mixed $rawSapLine, ?array $existing): ?string
+    {
+        $fromSap = InvCostProductionLineHelper::fromSapLinhaProduto($rawSapLine);
+        if ($fromSap !== null) {
+            return $fromSap;
+        }
+
+        return InvCostProductionLineHelper::normalize($existing['production_line'] ?? null);
+    }
+
+    /**
+     * Classe HVAC (crit. 8): SAP NA/CM/PROB; vazio → NA (fator 0).
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, mixed>|null $existing
+     */
+    private function resolveEnergyClassForItemSync(array $row, ?array $existing): string
+    {
+        if ($this->sapRowHasAnyKey($row, self::SAP_OITM_CLASSE_HVAC_KEYS)) {
+            return InvCostEnergyClassHelper::fromSap(
+                $this->sapRowFirstNullable($row, self::SAP_OITM_CLASSE_HVAC_KEYS)
+            );
+        }
+
+        $existingClass = InvCostEnergyClassHelper::normalize($existing['energy_class'] ?? null);
+        if ($existingClass !== null) {
+            return $existingClass;
+        }
+
+        return InvCostEnergyClassHelper::CLASS_NA;
+    }
+
+    /**
+     * Complexidade (crit. 4/6): SAP N/B/M/A; vazio → NA (fator 0).
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, mixed>|null $existing
+     */
+    private function resolveComplexityLevelForItemSync(array $row, ?array $existing): string
+    {
+        if ($this->sapRowHasAnyKey($row, self::SAP_OITM_COMPLEXIDADE_KEYS)) {
+            return InvCostComplexityHelper::fromSap(
+                $this->sapRowFirstNullable($row, self::SAP_OITM_COMPLEXIDADE_KEYS)
+            );
+        }
+
+        $existingLevel = InvCostComplexityHelper::normalize($existing['complexity_level'] ?? null);
+        if ($existingLevel !== null) {
+            return $existingLevel;
+        }
+
+        return InvCostComplexityHelper::LEVEL_NA;
+    }
+
+    /**
+     * OITM.AvgPrice costuma vir 0 no catálogo; não zerar custo local já preenchido.
+     *
+     * @param array<string, mixed>|null $existing
+     */
+    private function resolveSapItemCostForSync(array $row, ?array $existing, bool $shouldUpdateCost): float
+    {
+        if (!$shouldUpdateCost) {
+            return (float)($existing['average_cost'] ?? 0);
+        }
+
+        $sapCost = $this->extractSapCost($row);
+        if ($sapCost > 0) {
+            return $sapCost;
+        }
+
+        return (float)($existing['average_cost'] ?? 0);
     }
 
     /**
@@ -3533,6 +3783,8 @@ class InventorySapSyncService
             'AvgPrice' => round((float)($row['AvgPrice'] ?? 0), 6),
             'U_FormaFarma' => $this->sapEmptyAsString($row['U_FormaFarma'] ?? null),
             'U_LinhaProduto' => $this->sapEmptyAsString($row['U_LinhaProduto'] ?? null),
+            'U_ClasseHvac' => $this->sapEmptyAsString($row['U_ClasseHvac'] ?? null),
+            'U_Complexidade' => $this->sapEmptyAsString($row['U_Complexidade'] ?? null),
             'U_beas_ver' => $this->sapEmptyAsString($row['U_beas_ver'] ?? null),
             'MinOrdrQty' => round((float)($this->sapRowNumericOrNull($row, 'MinOrdrQty') ?? 0), 6),
             'MinLevel' => round((float)($this->sapRowNumericOrNull($row, 'MinLevel') ?? 0), 6),
@@ -3638,6 +3890,8 @@ class InventorySapSyncService
         bool $isPaPi,
         ?int $pharmaFormId,
         ?string $productionLine,
+        ?string $energyClass,
+        ?string $complexityLevel,
         int $active,
         ?string $sapUpdateDate,
         int $unitId,
@@ -3659,9 +3913,14 @@ class InventorySapSyncService
             'last_cost' => (float)($existing['last_cost'] ?? 0),
             'min_stock' => $minLevel ?? (float)($existing['min_stock'] ?? 0),
             'max_stock' => $maxLevel ?? (float)($existing['max_stock'] ?? 0),
-            'standard_batch_size' => $minOrderQty ?? (float)($existing['standard_batch_size'] ?? 1),
+            'standard_batch_size' => $this->resolveStandardBatchSizeFromSap(
+                $minOrderQty,
+                (float)($existing['standard_batch_size'] ?? 1)
+            ),
             'production_line' => $isPaPi ? $productionLine : ($existing['production_line'] ?? null),
             'inv_pharma_form_id' => $isPaPi ? $pharmaFormId : ($existing['inv_pharma_form_id'] ?? null),
+            'energy_class' => $isPaPi ? $energyClass : ($existing['energy_class'] ?? null),
+            'complexity_level' => $isPaPi ? $complexityLevel : ($existing['complexity_level'] ?? null),
             'sap_update_date' => $sapUpdateDate,
             'active' => $active,
         ];
@@ -3685,6 +3944,7 @@ class InventorySapSyncService
     /**
      * @param array<string, mixed> $row
      * @param array<string, mixed>|null $existing
+     * @param non-empty-string $itemHash
      */
     private function persistItemSapMetadata(
         InvItemsRepository $itemsRepo,

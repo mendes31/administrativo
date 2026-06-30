@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository\inventory;
 
+use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -58,7 +59,7 @@ class InvCostPeriodItemsRepository extends DbConnection
             'efficiency_pct' => $this->nullableDecimal($data['efficiency_pct'] ?? null),
             'production_line' => $this->nullableString($data['production_line'] ?? null),
             'energy_class' => $this->nullableString($data['energy_class'] ?? null),
-            'complexity_level' => $this->nullableString($data['complexity_level'] ?? null) ?? 'media',
+            'complexity_level' => InvCostComplexityHelper::resolveForCosting($data['complexity_level'] ?? null),
             'analysis_count' => max(0, (int)($data['analysis_count'] ?? 0)),
             'sale_price_net' => $this->nullableDecimal($data['sale_price_net'] ?? null),
             'target_margin_pct' => $this->nullableDecimal($data['target_margin_pct'] ?? null),

@@ -4,21 +4,29 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostComplexityHelper;
+
 /**
  * Drivers CQ/P&D/DA — critérios 4 e 6 (Pasta 10 / linhas 2307–2312).
  *
- * Critério 4: fator de complexidade (2 / 5 / 8).
+ * Critério 4: fator de complexidade (parametrizável — inv_complexity_level_factors).
  * Critério 6: fator × número de análises totais.
- * Nº análises = (nº linhas MP + nº linhas MAE/EMB na BOM) × lotes × eficiência do período.
- * Eficiência = qty produzida ÷ (lotes × lote mín.) — equivalente à linha 1088 × lotes da planilha.
+ * Nº análises (linha 2310) = (nº linhas MP + nº linhas MAE/EMB na BOM) × lotes produzidos.
+ * A eficiência do período (produzido ÷ planejado) ajusta apenas o CVAR MP (linha 8), não o critério 6.
  */
 class InvCostAnalysisDriverService
 {
     /** @var array<int, list<array<string, mixed>>> */
     private static array $materialLinesCache = [];
 
-    /** @var array<string, float> */
+    public static function clearMaterialLinesCache(): void
+    {
+        self::$materialLinesCache = [];
+    }
+
+    /** @deprecated Use inv_complexity_level_factors via InvCostComplexityHelper. */
     public const COMPLEXITY_WEIGHTS = [
+        'na' => 0.0,
         'baixa' => 2.0,
         'low' => 2.0,
         'media' => 5.0,
@@ -33,9 +41,7 @@ class InvCostAnalysisDriverService
      */
     public function complexityFactor(?array $periodItem): float
     {
-        $level = mb_strtolower(trim((string)($periodItem['complexity_level'] ?? 'media')), 'UTF-8');
-
-        return self::COMPLEXITY_WEIGHTS[$level] ?? 5.0;
+        return InvCostComplexityHelper::complexityDriverWeight($periodItem['complexity_level'] ?? null);
     }
 
     public function countMpLines(int $itemId): int
@@ -51,7 +57,7 @@ class InvCostAnalysisDriverService
     /**
      * Número de análises totais no período (linha 2310).
      *
-     * @param float|null $efficiencyRatio Produzido ÷ planejado (1,0 se omitido)
+     * @param float|null $efficiencyRatio Ignorado — mantido por compatibilidade de assinatura.
      */
     public function analysisCountTotal(int $itemId, int $batchesCount, ?float $efficiencyRatio = null): float
     {
@@ -64,9 +70,7 @@ class InvCostAnalysisDriverService
             return 0.0;
         }
 
-        $efficiency = $this->normalizeEfficiencyRatio($efficiencyRatio, null, null);
-
-        return round($lineCount * $batchesCount * $efficiency, 4);
+        return round($lineCount * $batchesCount, 4);
     }
 
     /**

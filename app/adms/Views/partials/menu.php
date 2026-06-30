@@ -374,17 +374,34 @@ $menus = [
             [
                 'label' => 'Itens',
                 'url' => $_ENV['URL_ADM'] . 'list-inventory-items',
-                'permission' => 'ListInventoryItems'
+                'permission' => 'ListInventoryItems',
+                'any_of' => ['ListInventoryItems', 'ViewInventoryItem', 'UpdateInventoryItem', 'CreateInventoryItem', 'SimulateInventoryCost'],
+                'related_routes' => [
+                    'list-inventory-items', 'view-inventory-item', 'update-inventory-item', 'create-inventory-item',
+                    'delete-inventory-item', 'simulate-inventory-cost', 'save-inventory-cost-simulation',
+                    'export-inventory-cost-simulation-pdf',
+                ],
             ],
             [
                 'label' => 'Lotes Produzidos',
                 'url' => $_ENV['URL_ADM'] . 'list-inventory-cost-production-batches',
-                'any_of' => ['ListInvCostProductionBatches', 'SimulateInventoryCost', 'ListInventoryItems'],
+                'permission' => 'ListInvCostProductionBatches',
+                'related_routes' => ['list-inventory-cost-production-batches'],
             ],
             [
                 'label' => 'Períodos de Custeio',
                 'url' => $_ENV['URL_ADM'] . 'list-inventory-cost-periods',
-                'any_of' => ['ListInvCostPeriods', 'SimulateInventoryCost', 'ListInventoryItems'],
+                'permission' => 'ListInvCostPeriods',
+                'any_of' => [
+                    'ListInvCostPeriods', 'ViewInvCostPeriod', 'UpdateInvCostPeriod', 'CreateInvCostPeriod',
+                    'ImportInvCostDre', 'SaveInvCostAllocationRules', 'SaveInvCostPeriodItems',
+                ],
+                'related_routes' => [
+                    'list-inventory-cost-periods', 'view-inventory-cost-period', 'update-inventory-cost-period',
+                    'create-inventory-cost-period', 'delete-inventory-cost-period', 'import-inventory-cost-dre',
+                    'save-inventory-cost-allocation-rules', 'save-inventory-cost-scenario-production',
+                    'download-inventory-cost-dre-template', 'export-inventory-cost-period-sku-results',
+                ],
             ],
             [
                 'label' => 'Cadastros Bases',
@@ -393,37 +410,62 @@ $menus = [
                     [
                         'label' => 'Unidades de Medida',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-units',
-                        'permission' => 'ListInventoryUnits'
+                        'permission' => 'ListInventoryUnits',
+                        'related_routes' => ['list-inventory-units', 'create-inventory-unit', 'update-inventory-unit', 'delete-inventory-unit'],
                     ],
                     [
                         'label' => 'Categorias de Item',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-categories',
-                        'permission' => 'ListInventoryCategories'
+                        'permission' => 'ListInventoryCategories',
+                        'related_routes' => ['list-inventory-categories', 'create-inventory-category', 'update-inventory-category', 'delete-inventory-category'],
                     ],
                     [
                         'label' => 'Estoques',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-stocks',
-                        'permission' => 'ListInventoryStocks'
+                        'permission' => 'ListInventoryStocks',
+                        'related_routes' => ['list-inventory-stocks', 'create-inventory-stock', 'update-inventory-stock', 'delete-inventory-stock'],
                     ],
                     [
                         'label' => 'Posições Internas',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-positions',
-                        'permission' => 'ListInventoryPositions'
+                        'permission' => 'ListInventoryPositions',
+                        'related_routes' => ['list-inventory-positions', 'create-inventory-position', 'update-inventory-position', 'delete-inventory-position'],
                     ],
                     [
                         'label' => 'Operações de Produção',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-operations',
-                        'permission' => 'ListInventoryOperations'
+                        'permission' => 'ListInventoryOperations',
+                        'related_routes' => ['list-inventory-operations', 'create-inventory-operation', 'update-inventory-operation', 'delete-inventory-operation'],
                     ],
                     [
                         'label' => 'Recursos de Produção',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-production-resources',
-                        'permission' => 'ListInventoryProductionResources'
+                        'permission' => 'ListInventoryProductionResources',
+                        'related_routes' => [
+                            'list-inventory-production-resources', 'create-inventory-production-resource',
+                            'update-inventory-production-resource', 'delete-inventory-production-resource',
+                        ],
                     ],
                     [
                         'label' => 'Papéis de MO',
                         'url' => $_ENV['URL_ADM'] . 'list-inventory-labor-roles',
-                        'permission' => 'ListInventoryLaborRoles'
+                        'permission' => 'ListInventoryLaborRoles',
+                        'related_routes' => [
+                            'list-inventory-labor-roles', 'create-inventory-labor-role',
+                            'update-inventory-labor-role', 'delete-inventory-labor-role',
+                        ],
+                    ],
+                    [
+                        'label' => 'Classes HVAC (crit. 8)',
+                        'url' => $_ENV['URL_ADM'] . 'list-inventory-energy-class-factors',
+                        'permission' => 'ListInvEnergyClassFactors',
+                        'related_routes' => ['list-inventory-energy-class-factors', 'save-inventory-energy-class-factors'],
+                    ],
+                    [
+                        'label' => 'Complexidade (crit. 4/6)',
+                        'url' => $_ENV['URL_ADM'] . 'list-inventory-complexity-level-factors',
+                        'permission' => 'ListInvComplexityLevelFactors',
+                        'related_routes' => ['list-inventory-complexity-level-factors', 'save-inventory-complexity-level-factors'],
                     ],
                 ]
             ],
@@ -433,22 +475,26 @@ $menus = [
                     [
                         'label' => 'Ajuste',
                         'url' => $_ENV['URL_ADM'] . 'create-inventory-adjust',
-                        'permission' => 'CreateInventoryAdjust'
+                        'permission' => 'CreateInventoryAdjust',
+                        'related_routes' => ['create-inventory-adjust'],
                     ],
                     [
                         'label' => 'Entrada',
                         'url' => $_ENV['URL_ADM'] . 'create-inventory-entry',
-                        'permission' => 'CreateInventoryEntry'
+                        'permission' => 'CreateInventoryEntry',
+                        'related_routes' => ['create-inventory-entry'],
                     ],
                     [
                         'label' => 'Saída',
                         'url' => $_ENV['URL_ADM'] . 'create-inventory-exit',
-                        'permission' => 'CreateInventoryExit'
+                        'permission' => 'CreateInventoryExit',
+                        'related_routes' => ['create-inventory-exit'],
                     ],
                     [
                         'label' => 'Transferência',
                         'url' => $_ENV['URL_ADM'] . 'create-inventory-transfer',
-                        'permission' => 'CreateInventoryTransfer'
+                        'permission' => 'CreateInventoryTransfer',
+                        'related_routes' => ['create-inventory-transfer'],
                     ],
                     
                 ]
@@ -459,12 +505,14 @@ $menus = [
                     [
                         'label' => 'Saldos de Estoque',
                         'url' => $_ENV['URL_ADM'] . 'report-inventory-balance',
-                        'permission' => 'ReportInventoryBalance'
+                        'permission' => 'ReportInventoryBalance',
+                        'related_routes' => ['report-inventory-balance', 'export-inventory-balance-csv'],
                     ],
                     [
                         'label' => 'Histórico de Movimentações',
                         'url' => $_ENV['URL_ADM'] . 'report-inventory-history',
-                        'permission' => 'ReportInventoryHistory'
+                        'permission' => 'ReportInventoryHistory',
+                        'related_routes' => ['report-inventory-history', 'export-inventory-history-csv'],
                     ],
                 ]
             ],
@@ -1513,7 +1561,7 @@ if (!function_exists('admsMenuSessionOverrideApplies')) {
         }
         $token = (string) $menuAtivo;
 
-        return $token === $override || $token === 'relatorios';
+        return $token === $override || $token === 'relatorios' || $token === 'estoque';
     }
 }
 
@@ -1552,6 +1600,146 @@ if (!function_exists('menuEntryMatchesAtivo')) {
         }
         if (!empty($item['any_of']) && is_array($item['any_of']) && in_array($token, $item['any_of'], true)) {
             return true;
+        }
+
+        return false;
+    }
+}
+
+/** Contexto da URL atual (sem base do admin). */
+if (!function_exists('admsMenuPathContext')) {
+    /**
+     * @return array{currentFirstSeg: string, currentPathNoBase: string, currentBaseName: string, basePath: string}
+     */
+    function admsMenuPathContext(): array
+    {
+        static $ctx = null;
+        if (is_array($ctx)) {
+            return $ctx;
+        }
+
+        $currentUrlPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $currentSegments = explode('/', trim((string)$currentUrlPath, '/'));
+        $basePath = trim((string)(parse_url($_ENV['URL_ADM'] ?? '', PHP_URL_PATH) ?? ''), '/');
+        if ($basePath !== '' && $currentSegments !== [] && ($currentSegments[0] ?? '') === $basePath) {
+            array_shift($currentSegments);
+        }
+
+        $ctx = [
+            'currentFirstSeg' => (string)($currentSegments[0] ?? ''),
+            'currentPathNoBase' => implode('/', $currentSegments),
+            'currentBaseName' => basename((string)$currentUrlPath),
+            'basePath' => $basePath,
+        ];
+
+        return $ctx;
+    }
+}
+
+/** Slugs de rota associados a um item (URL do menu + related_routes). */
+if (!function_exists('admsMenuItemRouteSlugs')) {
+    /**
+     * @param array<string, mixed> $item
+     * @return list<string>
+     */
+    function admsMenuItemRouteSlugs(array $item): array
+    {
+        $slugs = [];
+        if (!empty($item['related_routes']) && is_array($item['related_routes'])) {
+            foreach ($item['related_routes'] as $route) {
+                $slug = trim((string)$route);
+                if ($slug !== '') {
+                    $slugs[] = $slug;
+                }
+            }
+        }
+
+        if (isset($item['url'])) {
+            $path = parse_url((string)$item['url'], PHP_URL_PATH);
+            $parts = explode('/', trim((string)$path, '/'));
+            $basePath = admsMenuPathContext()['basePath'];
+            if ($basePath !== '' && $parts !== [] && ($parts[0] ?? '') === $basePath) {
+                array_shift($parts);
+            }
+            if (($parts[0] ?? '') !== '') {
+                $slugs[] = (string)$parts[0];
+            }
+        }
+
+        return array_values(array_unique($slugs));
+    }
+}
+
+/** Item folha ativo: prioriza URL/rota; permission só com rota compatível. */
+if (!function_exists('admsMenuItemMatchesCurrentRequest')) {
+    /**
+     * @param array<string, mixed> $item
+     */
+    function admsMenuItemMatchesCurrentRequest(array $item, string|bool|null $menuAtivo): bool
+    {
+        if (!isset($item['url'])) {
+            return false;
+        }
+
+        $ctx = admsMenuPathContext();
+        $slugs = admsMenuItemRouteSlugs($item);
+
+        if ($ctx['currentFirstSeg'] !== '' && in_array($ctx['currentFirstSeg'], $slugs, true)) {
+            return true;
+        }
+
+        $path = parse_url((string)$item['url'], PHP_URL_PATH);
+        $parts = explode('/', trim((string)$path, '/'));
+        if ($ctx['basePath'] !== '' && $parts !== [] && ($parts[0] ?? '') === $ctx['basePath']) {
+            array_shift($parts);
+        }
+        $menuPathNoBase = implode('/', $parts);
+        if (
+            $menuPathNoBase !== ''
+            && rtrim($ctx['currentPathNoBase'], '/') === rtrim($menuPathNoBase, '/')
+        ) {
+            return true;
+        }
+
+        $override = $_SESSION['menu_override'] ?? null;
+        if (
+            is_string($override) && $override !== ''
+            && admsMenuSessionOverrideApplies($menuAtivo)
+            && menuEntryMatchesAtivo($item, $override)
+            && ($ctx['currentFirstSeg'] === '' || in_array($ctx['currentFirstSeg'], $slugs, true))
+        ) {
+            return true;
+        }
+
+        if (!menuEntryMatchesAtivo($item, $menuAtivo)) {
+            return false;
+        }
+
+        return $ctx['currentFirstSeg'] === '' || in_array($ctx['currentFirstSeg'], $slugs, true);
+    }
+}
+
+/** Algum item folha permitido na árvore corresponde à rota/controller atuais. */
+if (!function_exists('admsMenuSubtreeIsActive')) {
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @param array<int, string> $menuPermission
+     */
+    function admsMenuSubtreeIsActive(array $items, array $menuPermission, string|bool|null $menuAtivo): bool
+    {
+        foreach ($items as $item) {
+            if (!menuEntryAllowed($item, $menuPermission)) {
+                continue;
+            }
+            if (!empty($item['submenu']) && is_array($item['submenu'])) {
+                if (admsMenuSubtreeIsActive($item['submenu'], $menuPermission, $menuAtivo)) {
+                    return true;
+                }
+                continue;
+            }
+            if (isset($item['url']) && admsMenuItemMatchesCurrentRequest($item, $menuAtivo)) {
+                return true;
+            }
         }
 
         return false;
@@ -1703,170 +1891,8 @@ if (!function_exists('countPermittedSubmenus')) {
                                 if (count($permittedSubmenus) > 0) {
                                     // Gera um id único para cada submenu
                                     $submenuId = 'collapse' . md5(($menu['label'] ?? 'submenu') . $nivel . $index);
-                                    $submenuActive = false;
-                                    
-                                    // Verifica se algum submenu está ativo
-                                    // Captura URL atual para permitir abertura mesmo sem depender de $menuAtivo
-                                    $currentUrlPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-                                    $currentSegments = explode('/', trim((string)$currentUrlPath, '/'));
-                                    $basePath = trim((string)(parse_url($_ENV['URL_ADM'] ?? '', PHP_URL_PATH) ?? ''), '/');
-                                    if (!empty($basePath) && !empty($currentSegments) && $currentSegments[0] === $basePath) {
-                                        array_shift($currentSegments);
-                                    }
-                                    $currentFirstSeg = $currentSegments[0] ?? '';
-                                    $currentBaseName = basename((string)$currentUrlPath);
-                                    $currentPathNoBase = implode('/', $currentSegments);
-                                    foreach ($menu['submenu'] as $submenu) {
-                                        if (menuEntryAllowed($submenu, $menuPermission)) {
-                                            // Determinar primeiro segmento do caminho da URL (ex.: password-policy/1 -> password-policy)
-                                            $firstSegment = '';
-                                            if (isset($submenu['url'])) {
-                                                $path = parse_url($submenu['url'], PHP_URL_PATH);
-                                                $parts = explode('/', trim((string)$path, '/'));
-                                                if (!empty($basePath) && !empty($parts) && $parts[0] === $basePath) {
-                                                    array_shift($parts);
-                                                }
-                                                $firstSegment = $parts[0] ?? '';
-                                                $submenuPathNoBase = implode('/', $parts);
-                                            }
-                                            // Prioriza override explícito (somente na seção correspondente)
-                                            $override = $_SESSION['menu_override'] ?? null;
-                                            if (
-                                                admsMenuSessionOverrideApplies($menuAtivo)
-                                                && $override
-                                                && (
-                                                    $override === ($submenu['permission'] ?? null)
-                                                    || (!empty($submenu['any_of']) && is_array($submenu['any_of']) && in_array($override, $submenu['any_of'], true))
-                                                    || $override === basename($submenu['url'] ?? '')
-                                                )
-                                            ) {
-                                                $submenuActive = true;
-                                                break;
-                                            }
-                                            // Match por controller/permission informado pelo controller
-                                            $submenuSlug = '';
-                                            if (isset($submenu['url'])) {
-                                                $sbPathForSlug = parse_url($submenu['url'], PHP_URL_PATH);
-                                                $submenuSlug = is_string($sbPathForSlug) && $sbPathForSlug !== ''
-                                                    ? basename($sbPathForSlug)
-                                                    : '';
-                                            }
-                                            $menuAtivoMatchesSubmenuUrl = (
-                                                $submenuSlug !== ''
-                                                && $menuAtivo == $submenuSlug
-                                                && rtrim($currentPathNoBase, '/') === rtrim($submenuPathNoBase ?? '', '/')
-                                            );
-                                            if ((isset($menu['id']) && $menuAtivo == $menu['id'])
-                                                || $menuAtivoMatchesSubmenuUrl
-                                                || ($firstSegment !== '' && $menuAtivo == $firstSegment && rtrim($currentPathNoBase, '/') === rtrim($submenuPathNoBase ?? '', '/'))
-                                                || menuEntryMatchesAtivo($submenu, $menuAtivo)) {
-                                                $submenuActive = true;
-                                                break;
-                                            }
-                                            // Match por URL atual (EVITAR basename numérico para não colidir com password-policy/{id})
-                                            $submenuBaseName = '';
-                                            if (isset($submenu['url'])) {
-                                                $sbPath = parse_url($submenu['url'], PHP_URL_PATH);
-                                                $submenuBaseName = is_string($sbPath) && $sbPath !== '' ? basename($sbPath) : '';
-                                            }
-                                            $isNumericBaseCurrent = ctype_digit($currentBaseName ?? '');
-                                            $useBaseNameMatch = (!$isNumericBaseCurrent) && ($currentBaseName !== '') && ($submenuBaseName !== '') && ($currentBaseName === $submenuBaseName);
-                                            if ($useBaseNameMatch
-                                                || ($currentFirstSeg !== '' && $currentFirstSeg === ($firstSegment ?? ''))
-                                                || (($currentPathNoBase !== '' && !empty($submenuPathNoBase)) && rtrim($currentPathNoBase, '/') === rtrim($submenuPathNoBase, '/')))
-                                            {
-                                                $submenuActive = true;
-                                                break;
-                                            }
-                                        }
-                                        // Verifica submenus aninhados
-                                        if (isset($submenu['submenu'])) {
-                                            foreach ($submenu['submenu'] as $nestedSubmenu) {
-                                                if (menuEntryAllowed($nestedSubmenu, $menuPermission)) {
-                                                    $nestedFirst = '';
-                                                    if (isset($nestedSubmenu['url'])) {
-                                                        $npath = parse_url($nestedSubmenu['url'], PHP_URL_PATH);
-                                                        $nparts = explode('/', trim((string)$npath, '/'));
-                                                        if (!empty($basePath) && !empty($nparts) && $nparts[0] === $basePath) {
-                                                            array_shift($nparts);
-                                                        }
-                                                        $nestedFirst = $nparts[0] ?? '';
-                                                        $nestedPathNoBase = implode('/', $nparts);
-                                                    }
-                                                    // Match por controller/permission
-                                                    $nestedSlug = '';
-                                                    if (isset($nestedSubmenu['url'])) {
-                                                        $nSlugPath = parse_url($nestedSubmenu['url'], PHP_URL_PATH);
-                                                        $nestedSlug = is_string($nSlugPath) && $nSlugPath !== ''
-                                                            ? basename($nSlugPath)
-                                                            : '';
-                                                    }
-                                                    $menuAtivoMatchesNested = (
-                                                        $nestedSlug !== ''
-                                                        && $menuAtivo == $nestedSlug
-                                                        && rtrim($currentPathNoBase, '/') === rtrim($nestedPathNoBase ?? '', '/')
-                                                    );
-                                                    if ($menuAtivoMatchesNested
-                                                        || ($nestedFirst !== '' && $menuAtivo == $nestedFirst && rtrim($currentPathNoBase, '/') === rtrim($nestedPathNoBase ?? '', '/'))
-                                                        || menuEntryMatchesAtivo($nestedSubmenu, $menuAtivo)) {
-                                                        $submenuActive = true;
-                                                        break 2;
-                                                    }
-                                                    // Match por URL atual (evita basename numérico)
-                                                    $nestedBaseName = '';
-                                                    if (isset($nestedSubmenu['url'])) {
-                                                        $nbPath = parse_url($nestedSubmenu['url'], PHP_URL_PATH);
-                                                        $nestedBaseName = is_string($nbPath) && $nbPath !== '' ? basename($nbPath) : '';
-                                                    }
-                                                    $useNestedBase = (!ctype_digit($currentBaseName ?? '')) && ($currentBaseName !== '') && ($nestedBaseName !== '') && ($currentBaseName === $nestedBaseName);
-                                                    if ($useNestedBase
-                                                        || ($currentFirstSeg !== '' && $currentFirstSeg === ($nestedFirst ?? ''))
-                                                        || (($currentPathNoBase !== '' && !empty($nestedPathNoBase)) && rtrim($currentPathNoBase, '/') === rtrim($nestedPathNoBase, '/')))
-                                                    {
-                                                        $submenuActive = true;
-                                                        break 2;
-                                                    }
-                                                }
-                                                // Suporte a terceiro nível (ex.: LGPD -> AIPD -> Templates AIPD -> Template X)
-                                                if (isset($nestedSubmenu['submenu']) && is_array($nestedSubmenu['submenu'])) {
-                                                    foreach ($nestedSubmenu['submenu'] as $deepSubmenu) {
-                                                        if (menuEntryAllowed($deepSubmenu, $menuPermission)) {
-                                                            $deepFirst = '';
-                                                            if (isset($deepSubmenu['url'])) {
-                                                                $dpath = parse_url($deepSubmenu['url'], PHP_URL_PATH);
-                                                                $dparts = explode('/', trim((string)$dpath, '/'));
-                                                                if (!empty($basePath) && !empty($dparts) && $dparts[0] === $basePath) {
-                                                                    array_shift($dparts);
-                                                                }
-                                                                $deepFirst = $dparts[0] ?? '';
-                                                                $deepPathNoBase = implode('/', $dparts);
-                                                            }
-                                                            if ((isset($deepSubmenu['url']) && $menuAtivo == basename($deepSubmenu['url']))
-                                                                || ($deepFirst !== '' && $menuAtivo == $deepFirst)
-                                                                || menuEntryMatchesAtivo($deepSubmenu, $menuAtivo)) {
-                                                                $submenuActive = true;
-                                                                break 3;
-                                                            }
-                                                            $deepBaseName = '';
-                                                            if (isset($deepSubmenu['url'])) {
-                                                                $dbPath = parse_url($deepSubmenu['url'], PHP_URL_PATH);
-                                                                $deepBaseName = is_string($dbPath) && $dbPath !== '' ? basename($dbPath) : '';
-                                                            }
-                                                            $useDeepBase = (!ctype_digit($currentBaseName ?? '')) && ($currentBaseName !== '') && ($deepBaseName !== '') && ($currentBaseName === $deepBaseName);
-                                                            if ($useDeepBase
-                                                                || ($currentFirstSeg !== '' && $currentFirstSeg === ($deepFirst ?? ''))
-                                                                || (($currentPathNoBase !== '' && !empty($deepPathNoBase)) && rtrim($currentPathNoBase, '/') === rtrim($deepPathNoBase, '/')))
-                                                            {
-                                                                $submenuActive = true;
-                                                                break 3;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
+                                    $submenuActive = admsMenuSubtreeIsActive($menu['submenu'], $menuPermission, $menuAtivo);
+
                                     $isOpen = $submenuActive ? 'show' : '';
                                     $parentLinkClass = 'nav-link' . ($submenuActive ? ' active' : ' collapsed');
                                     echo '<a class="' . $parentLinkClass . '" href="#" data-bs-toggle="collapse" data-bs-target="#' . $submenuId . '" aria-expanded="' . ($isOpen ? 'true' : 'false') . '" aria-controls="' . $submenuId . '">';
@@ -1885,57 +1911,7 @@ if (!function_exists('countPermittedSubmenus')) {
                             } else {
                                 // Para menus sem submenu, verifica se tem permissão própria
                                 if ($hasPermitted) {
-                                    $active = '';
-                                    $path = parse_url($menu['url'], PHP_URL_PATH);
-                                    $pathStr = is_string($path) ? $path : '';
-                                    $menuSlugBase = $pathStr !== '' ? basename($pathStr) : '';
-                                    // Matches com base no controller (menuAtivo) — slug do path, não basename() na URL completa
-                                    $baseNameMatch = ($menuAtivo === $menuSlugBase);
-                                    $firstSegmentMatch = false;
-                                    $parts = explode('/', trim($pathStr, '/'));
-                                    $basePath = trim((string)(parse_url($_ENV['URL_ADM'] ?? '', PHP_URL_PATH) ?? ''), '/');
-                                    if (!empty($basePath) && !empty($parts) && $parts[0] === $basePath) {
-                                        array_shift($parts);
-                                    }
-                                    $menuFirstSeg = $parts[0] ?? '';
-                                    $menuPathNoBase = implode('/', $parts);
-                                    if ($menuFirstSeg !== '' && $menuAtivo == $menuFirstSeg) {
-                                        $firstSegmentMatch = true;
-                                    }
-                                    $permissionMatch = menuEntryMatchesAtivo($menu, $menuAtivo);
-
-                                    // Matches com base na URL atual
-                                    $currentUrlPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-                                    $currentSegments = explode('/', trim((string)$currentUrlPath, '/'));
-                                    if (!empty($basePath) && !empty($currentSegments) && $currentSegments[0] === $basePath) {
-                                        array_shift($currentSegments);
-                                    }
-                                    $currentFirstSeg = $currentSegments[0] ?? '';
-                                    $currentBaseName = basename((string)$currentUrlPath);
-                                    $currentPathNoBase = implode('/', $currentSegments);
-                                    // Evita false positive quando basename atual é numérico
-                                    $urlBaseNameMatch = (!ctype_digit($currentBaseName ?? '')) && ($currentBaseName === $menuSlugBase);
-                                    $urlFirstSegMatch = ($currentFirstSeg !== '' && $currentFirstSeg === $menuFirstSeg);
-                                    $urlFullMatch = ($currentPathNoBase !== '' && $menuPathNoBase !== '' && rtrim($currentPathNoBase, '/') === rtrim($menuPathNoBase, '/'));
-
-                                    $urlMatch = ($urlFullMatch || $urlBaseNameMatch || $urlFirstSegMatch);
-                                    $menuCoarseMatch = ($baseNameMatch || $firstSegmentMatch || $permissionMatch);
-
-                                    // Política: priorizar match mais específico (URL completa), 
-                                    // depois basename/segmento, e por fim permission/controller.
-                                    if ($urlFullMatch) {
-                                        $active = 'active';
-                                    } elseif ($urlBaseNameMatch || $urlFirstSegMatch) {
-                                        $active = 'active';
-                                    } elseif (
-                                        $menuCoarseMatch
-                                        && (
-                                            ($menuPathNoBase !== '' && rtrim($currentPathNoBase, '/') === rtrim($menuPathNoBase, '/'))
-                                            || ($menuSlugBase !== '' && $currentBaseName === $menuSlugBase)
-                                        )
-                                    ) {
-                                        $active = 'active';
-                                    }
+                                    $active = admsMenuItemMatchesCurrentRequest($menu, $menuAtivo) ? 'active' : '';
                                     $linkTarget = '';
                                     if (!empty($menu['target'])) {
                                         $linkTarget = ' target="' . htmlspecialchars((string) $menu['target'], ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer"';
@@ -1956,6 +1932,7 @@ if (!function_exists('countPermittedSubmenus')) {
                         !$menuAtivo
                         || $menuAtivo === $sessionMenuOverride
                         || $menuAtivo === 'relatorios'
+                        || $menuAtivo === 'estoque'
                     )
                 ) {
                     $menuAtivo = $sessionMenuOverride;

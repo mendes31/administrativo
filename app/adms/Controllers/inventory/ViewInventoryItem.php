@@ -76,13 +76,9 @@ class ViewInventoryItem
         $this->data['has_structure'] = !empty($this->data['bom']) || !empty($this->data['operations']);
         $this->data['is_project_item'] = InvCostProjectHelper::isProjectItem($item);
 
-        // Força a seleção do menu correspondente (override de sessão usado pelo menu.php)
-        $_SESSION['menu_override'] = 'ListInventoryItems';
-
         $pageElements = [
             'title_head' => 'Visualizar Item de Estoque',
-            // Aponta diretamente para o link de Itens para marcar ativo
-            'menu' => 'ListInventoryItems',
+            'menu' => 'estoque',
             'buttonPermission' => ['ListInventoryItems', 'UpdateInventoryItem', 'SimulateInventoryCost'],
         ];
         $pageLayoutService = new PageLayoutService();
@@ -96,9 +92,6 @@ class ViewInventoryItem
 
         $loadView = new LoadViewService('adms/Views/inventory/items/view', $this->data);
         $loadView->loadView();
-
-        // Limpa override após exibir
-        unset($_SESSION['menu_override']);
     }
 
     private function handleSyncStructureRequest(int $itemId): void

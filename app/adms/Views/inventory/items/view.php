@@ -74,91 +74,26 @@ $truncate = static function (string $text, int $max = 42): string {
 
   <!-- Dados gerais -->
   <div class="card mb-4 border-light shadow">
-    <div class="card-header py-3">
+    <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
       <span class="fw-semibold">Dados do item</span>
+      <?php if ($isProjectItem): ?>
+        <span class="badge bg-warning text-dark">PA - PROJETO</span>
+      <?php endif; ?>
     </div>
     <div class="card-body p-4">
-      <div class="rounded border bg-light p-3 mb-4">
-        <div class="fw-semibold fs-6 mb-2">
-          <?= htmlspecialchars(($item['code'] ?? '') . ' — ' . ($item['description'] ?? '')) ?>
-          <?php if ($isProjectItem): ?>
-            <span class="badge bg-warning text-dark ms-1">PA - PROJETO</span>
-          <?php endif; ?>
-        </div>
-        <div class="small text-muted d-flex flex-wrap gap-3">
-          <span><span class="text-secondary">ERP:</span> <?= htmlspecialchars($item['erp_code'] ?? '—') ?></span>
-          <span><span class="text-secondary">Unidade:</span> <?= htmlspecialchars($item['unit_name'] ?? '—') ?></span>
-          <span><span class="text-secondary">Grupo de Itens:</span> <?= htmlspecialchars($item['category_name'] ?? '—') ?></span>
-          <span><span class="text-secondary">Forma farm.:</span> <?= htmlspecialchars($item['pharma_form_name'] ?? '—') ?></span>
-          <span><span class="text-secondary">Linha:</span> <?= htmlspecialchars($item['production_line'] ?? '—') ?></span>
-          <span><span class="text-secondary">Administração:</span> <?= htmlspecialchars(match ((string)($item['admin_type'] ?? 'none')) {
-            'lot' => 'Lotes',
-            'serial' => 'Números de série',
-            default => 'Nenhum',
-          }) ?></span>
-          <span><span class="text-secondary">Ativo:</span> <?= !empty($item['active']) ? 'Sim' : 'Não' ?></span>
-        </div>
-      </div>
-
-      <div class="row g-4">
-        <div class="col-12 col-md-4">
-          <h6 class="text-muted text-uppercase small mb-3">Identificação</h6>
-          <dl class="row mb-0 small">
-            <dt class="col-5 text-muted">Código</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= htmlspecialchars($item['code'] ?? '') ?></dd>
-            <dt class="col-5 text-muted">Código ERP</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= htmlspecialchars($item['erp_code'] ?? '—') ?></dd>
-            <dt class="col-5 text-muted">Unidade</dt>
-            <dd class="col-7 fw-semibold mb-0"><?= htmlspecialchars($item['unit_name'] ?? '—') ?></dd>
-          </dl>
-        </div>
-        <div class="col-12 col-md-4">
-          <h6 class="text-muted text-uppercase small mb-3">Custos</h6>
-          <dl class="row mb-0 small">
-            <dt class="col-5 text-muted">Custo médio</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($this->data['header_average_cost'] ?? ($item['average_cost'] ?? 0))) ?> <span class="text-muted fw-normal">/ lote</span></dd>
-            <dt class="col-5 text-muted">Último custo</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($item['last_cost'] ?? 0)) ?></dd>
-            <?php if ($hasStructure): ?>
-              <dt class="col-5 text-muted">Custo estrutura</dt>
-              <dd class="col-7 fw-semibold text-primary mb-0"><?= $fmtMoney($structureTotal) ?></dd>
-            <?php endif; ?>
-          </dl>
-        </div>
-        <div class="col-12 col-md-4">
-          <h6 class="text-muted text-uppercase small mb-3">Produção / SAP</h6>
-          <dl class="row mb-0 small">
-            <dt class="col-5 text-muted">Forma farm.</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= htmlspecialchars($item['pharma_form_name'] ?? '—') ?></dd>
-            <dt class="col-5 text-muted">Linha produção</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= htmlspecialchars($item['production_line'] ?? '—') ?></dd>
-            <dt class="col-5 text-muted">Lote padrão</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($item['standard_batch_size'] ?? 1), 6) ?></dd>
-            <dt class="col-5 text-muted">Administrar por</dt>
-            <dd class="col-7 fw-semibold mb-0"><?= htmlspecialchars(match ((string)($item['admin_type'] ?? 'none')) {
-              'lot' => 'Lotes',
-              'serial' => 'Números de série',
-              default => 'Nenhum',
-            }) ?></dd>
-          </dl>
-        </div>
-        <div class="col-12 col-md-4">
-          <h6 class="text-muted text-uppercase small mb-3">Estoque</h6>
-          <dl class="row mb-0 small">
-            <dt class="col-5 text-muted">Mínimo</dt>
-            <dd class="col-7 fw-semibold mb-2"><?= $fmtMoney((float)($item['min_stock'] ?? 0)) ?></dd>
-            <dt class="col-5 text-muted">Máximo</dt>
-            <dd class="col-7 fw-semibold mb-0"><?= $fmtMoney((float)($item['max_stock'] ?? 0)) ?></dd>
-          </dl>
-        </div>
-      </div>
+      <?php
+      $headerAverageCost = $this->data['header_average_cost'] ?? null;
+      include __DIR__ . '/../partials/item_form_fields_readonly.php';
+      ?>
     </div>
   </div>
 
-  <?php include __DIR__ . '/../partials/item_sap_sync_view.php'; ?>
-
-  <!-- Estrutura BOM + Rota -->
   <?php if ($hasStructure): ?>
+  <div class="alert alert-light border small mb-4 py-2">
+    <strong>Custo da estrutura (BOM + rota):</strong> R$ <?= $fmtMoney($structureTotal) ?>
+    <span class="text-muted ms-2">(materiais R$ <?= $fmtMoney($materialCost) ?> · rota R$ <?= $fmtMoney($operationsCost) ?>)</span>
+  </div>
+
     <div class="card mb-4 border-light shadow">
       <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span class="fw-semibold">

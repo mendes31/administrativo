@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 
@@ -20,10 +21,16 @@ class InvCostPeriodProductionItemsService
         ?array $warehouseCodes = null,
         ?string $filter = null,
         ?array $productionAggregation = null,
-        ?array $criterionAggregation = null
+        ?array $criterionAggregation = null,
+        bool $bypassSnapshot = false
     ): array {
         if ($periodId <= 0) {
             return [];
+        }
+
+        $snapshotService = new InvCostPeriodSnapshotService();
+        if (!$bypassSnapshot && $snapshotService->hasSnapshot($periodId)) {
+            return $snapshotService->listForPeriod($periodId, $filter);
         }
 
         $aggregation = $productionAggregation
@@ -108,7 +115,7 @@ class InvCostPeriodProductionItemsService
             ? $defaultsService->mergeWithDefaults($itemId, $saved, $itemMeta)
             : [
                 'energy_class' => '',
-                'complexity_level' => 'media',
+                'complexity_level' => InvCostComplexityHelper::LEVEL_NA,
                 'analysis_count' => 0,
                 'batch_size_adopted' => null,
                 'batch_size_theoretical' => null,

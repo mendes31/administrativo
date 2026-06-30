@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository\inventory;
 
+use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
@@ -128,7 +129,7 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':max_stock', $data['max_stock'] ?? 0);
 			$stmt->bindValue(':standard_batch_size', max(0.000001, (float)($data['standard_batch_size'] ?? 1)));
 			$stmt->bindValue(':energy_class', $this->nullableString($data['energy_class'] ?? null), $this->nullableString($data['energy_class'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? 'media'));
+			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? InvCostComplexityHelper::LEVEL_NA));
 			$stmt->bindValue(':production_line', $this->nullableString($data['production_line'] ?? null), $this->nullableString($data['production_line'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$pharmaFormIdCreate = !empty($data['inv_pharma_form_id']) ? (int)$data['inv_pharma_form_id'] : null;
 			$stmt->bindValue(':inv_pharma_form_id', $pharmaFormIdCreate, $pharmaFormIdCreate !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -181,7 +182,7 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':max_stock', $data['max_stock'] ?? 0);
 			$stmt->bindValue(':standard_batch_size', max(0.000001, (float)($data['standard_batch_size'] ?? ($oldRow['standard_batch_size'] ?? 1))));
 			$stmt->bindValue(':energy_class', $this->nullableString($data['energy_class'] ?? null), $this->nullableString($data['energy_class'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? ($oldRow['complexity_level'] ?? 'media')));
+			$stmt->bindValue(':complexity_level', $this->normalizeComplexityLevel($data['complexity_level'] ?? ($oldRow['complexity_level'] ?? InvCostComplexityHelper::LEVEL_NA)));
 			$stmt->bindValue(':production_line', $this->nullableString($data['production_line'] ?? null), $this->nullableString($data['production_line'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$pharmaFormIdUpdate = !empty($data['inv_pharma_form_id']) ? (int)$data['inv_pharma_form_id'] : null;
 			$stmt->bindValue(':inv_pharma_form_id', $pharmaFormIdUpdate, $pharmaFormIdUpdate !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -668,9 +669,7 @@ class InvItemsRepository extends DbConnection
 
 	private function normalizeComplexityLevel(mixed $value): string
 	{
-		$level = mb_strtolower(trim((string)($value ?? 'media')), 'UTF-8');
-
-		return in_array($level, ['baixa', 'media', 'alta'], true) ? $level : 'media';
+		return InvCostComplexityHelper::resolveForCosting($value);
 	}
 }
 

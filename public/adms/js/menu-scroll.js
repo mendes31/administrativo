@@ -133,9 +133,12 @@
         trigger.setAttribute('aria-expanded', 'false');
     }
 
-    function isNestedModuleGroup(collapseEl) {
-        var container = getSiblingContainer(collapseEl);
-        return Boolean(container && container.id && container.id.indexOf('nav-collapse') === 0);
+    function isSidenavAccordionCollapse(collapseEl) {
+        if (!collapseEl || !collapseEl.classList.contains('collapse')) {
+            return false;
+        }
+
+        return Boolean(getSiblingContainer(collapseEl));
     }
 
     function setupSiblingAccordion() {
@@ -162,7 +165,7 @@
             }
 
             var targetCollapse = document.querySelector(targetSel);
-            if (!targetCollapse || !isNestedModuleGroup(targetCollapse)) {
+            if (!targetCollapse || !isSidenavAccordionCollapse(targetCollapse)) {
                 return;
             }
 

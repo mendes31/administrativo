@@ -8,6 +8,7 @@ use App\adms\Models\Repository\inventory\InvCostDreImportsRepository;
 use App\adms\Models\Repository\inventory\InvCostExpensePoolsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Services\InvCostEnergyRedistributionService;
+use App\adms\Models\Services\InvCostPeriodSnapshotService;
 
 class InvCostDreImportService
 {
@@ -145,6 +146,8 @@ class InvCostDreImportService
         if ($skippedAmount > 0) {
             $message .= " {$skippedAmount} linha(s) ignorada(s) por valor zerado ou inválido.";
         }
+
+        InvCostPeriodSnapshotService::tryRecalculate($periodId);
 
         return [
             'success' => true,

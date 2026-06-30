@@ -152,6 +152,8 @@
     "list-informativos": "list-informativos",
     "list-inventory-categories": "list-inventory-categories",
     "list-inventory-cost-periods": "list-inventory-cost-periods",
+    "list-inventory-energy-class-factors": "list-inventory-energy-class-factors",
+    "list-inventory-complexity-level-factors": "list-inventory-complexity-level-factors",
     "view-inventory-cost-period": "view-inventory-cost-period",
     "list-inventory-cost-production-batches": "list-inventory-cost-production-batches",
     "list-inventory-items": "list-inventory-items",

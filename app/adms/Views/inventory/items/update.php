@@ -1,6 +1,7 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\InvCostComplexityHelper;
 
 ?>
 <style>
@@ -183,22 +184,25 @@ use App\adms\Helpers\CSRFHelper;
 								<label for="energy_class" class="form-label">Classe energia (HVAC)</label>
 								<?php $energyClass = mb_strtoupper(trim((string)($this->data['form']['energy_class'] ?? '')), 'UTF-8'); ?>
 								<select name="energy_class" id="energy_class" class="form-select">
-									<option value=""<?= $energyClass === '' ? ' selected' : '' ?>>— automático pela descrição</option>
+									<option value=""<?= $energyClass === '' ? ' selected' : '' ?>>— (sync SAP: NA se vazio)</option>
+									<option value="NA"<?= $energyClass === 'NA' ? ' selected' : '' ?>>NA — Não aplicável</option>
 									<option value="CM"<?= $energyClass === 'CM' ? ' selected' : '' ?>>CM — Cápsula mole</option>
 									<option value="PROB"<?= $energyClass === 'PROB' ? ' selected' : '' ?>>PROB — Probiótico</option>
-									<option value="OTHER"<?= $energyClass === 'OTHER' ? ' selected' : '' ?>>OTHER — Outros</option>
+									<option value="OTHER"<?= $energyClass === 'OTHER' ? ' selected' : '' ?>>OTHER — Outros (legado)</option>
 								</select>
 							</div>
 
 							<div class="col-12 col-md-3">
 								<label for="complexity_level" class="form-label">Complexidade</label>
-								<?php $complexity = mb_strtolower(trim((string)($this->data['form']['complexity_level'] ?? 'media')), 'UTF-8');
-								if (!in_array($complexity, ['baixa', 'media', 'alta'], true)) { $complexity = 'media'; } ?>
+								<?php $complexity = InvCostComplexityHelper::resolveForCosting($this->data['form']['complexity_level'] ?? null); ?>
 								<select name="complexity_level" id="complexity_level" class="form-select">
-									<option value="baixa"<?= $complexity === 'baixa' ? ' selected' : '' ?>>Baixa</option>
-									<option value="media"<?= $complexity === 'media' ? ' selected' : '' ?>>Média</option>
-									<option value="alta"<?= $complexity === 'alta' ? ' selected' : '' ?>>Alta</option>
+									<option value=""<?= ($this->data['form']['complexity_level'] ?? '') === '' ? ' selected' : '' ?>>— (sync SAP: NA se vazio)</option>
+									<option value="NA"<?= $complexity === 'NA' ? ' selected' : '' ?>>NA — Não aplicável</option>
+									<option value="BAIXA"<?= $complexity === 'BAIXA' ? ' selected' : '' ?>>BAIXA — Baixa</option>
+									<option value="MEDIA"<?= $complexity === 'MEDIA' ? ' selected' : '' ?>>MEDIA — Média</option>
+									<option value="ALTA"<?= $complexity === 'ALTA' ? ' selected' : '' ?>>ALTA — Alta</option>
 								</select>
+								<div class="form-text">Fatores parametrizáveis em <em>Cadastros Bases → Complexidade (crit. 4/6)</em>.</div>
 							</div>
 
 							<div class="col-12 col-md-3">

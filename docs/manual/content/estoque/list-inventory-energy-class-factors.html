@@ -1,0 +1,33 @@
+<h1>Classes HVAC — critério 8</h1>
+<p>Parametrização dos <strong>multiplicadores</strong> usados no rateio CFIX do critério 8 (energia HVAC / fatia 29-H). O SAP informa o código da UDF <em>ClasseHvac</em> em cada item; os fatores numéricos ficam nesta tela.</p>
+
+<p class="help-note"><strong>Visão geral:</strong> <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>ListInvEnergyClassFactors</em> (salvar: <em>SaveInvEnergyClassFactors</em>).</p>
+
+<h2>Códigos SAP × sistema</h2>
+<ul>
+    <li><code>NA</code> — Não aplicável (padrão SAP) · multiplicador <strong>0</strong> · SKU não entra no rateio HVAC</li>
+    <li><code>CM</code> — cápsula mole · fator inicial 1,2</li>
+    <li><code>PROB</code> — probiótico · fator inicial 1,2</li>
+    <li><code>OTHER</code> — legado planilha (OUTRO); não vem do SAP · fator 1,0</li>
+</ul>
+
+<h2>Multiplicadores</h2>
+<p>Valores iniciais alinhados à planilha Tiaraju 202605 (linha 1232 — fator correção secagem) para CM/PROB. <code>NA</code> permanece em 0 para itens sem climatização aplicável ao rateio.</p>
+
+<h2>Fluxo</h2>
+<ol>
+    <li>Menu <strong>Estoque → Cadastros Bases → Classes HVAC (crit. 8)</strong>.</li>
+    <li>Revise descrição, multiplicador e observações de cada linha.</li>
+    <li>Clique em <strong>Salvar multiplicadores</strong>.</li>
+    <li>Recalcule períodos de custeio em rascunho após alterar fatores.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Item com NA ainda aparece no crit. 8</dt>
+    <dd>Multiplicador NA deve ser 0. Recalcule o snapshot do período.</dd>
+    <dt>SAP com NA mas sistema mostra OTHER</dt>
+    <dd>Rode sincronização SAP após a UDF ClasseHvac estar ativa; versões antigas mapeavam vazio para OTHER.</dd>
+</dl>

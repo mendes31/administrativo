@@ -657,6 +657,16 @@
                             "type": "topic",
                             "topic_id": "list-inventory-units",
                             "title": "Listar Unidades de Medida"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-energy-class-factors",
+                            "title": "Classes HVAC (critério 8)"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-inventory-complexity-level-factors",
+                            "title": "Complexidade (crit. 4/6)"
                         }
                     ]
                 },

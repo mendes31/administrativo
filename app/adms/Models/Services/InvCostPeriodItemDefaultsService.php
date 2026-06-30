@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostComplexityHelper;
+use App\adms\Helpers\InvCostEnergyClassHelper;
 use App\adms\Helpers\InvCostProductionLineHelper;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 
@@ -46,7 +48,7 @@ class InvCostPeriodItemDefaultsService
     {
         $empty = [
             'energy_class' => '',
-            'complexity_level' => 'media',
+            'complexity_level' => InvCostComplexityHelper::LEVEL_NA,
             'analysis_count' => 0,
             'batch_size_adopted' => null,
             'batch_size_theoretical' => null,
@@ -71,12 +73,8 @@ class InvCostPeriodItemDefaultsService
         $desc = mb_strtoupper(trim((string)($item['description'] ?? '')), 'UTF-8');
         $category = mb_strtoupper(trim((string)($item['category_name'] ?? '')), 'UTF-8');
         $batchSize = (float)($item['standard_batch_size'] ?? 0);
-        $energyClass = $this->nonEmptyString($item['energy_class'] ?? null)
-            ?? $this->suggestEnergyClass($desc, $category);
-        $complexity = $this->nonEmptyString($item['complexity_level'] ?? null) ?? 'media';
-        if (!in_array($complexity, ['baixa', 'media', 'alta'], true)) {
-            $complexity = 'media';
-        }
+        $energyClass = InvCostEnergyClassHelper::resolveForCosting($item['energy_class'] ?? null);
+        $complexity = InvCostComplexityHelper::resolveForCosting($item['complexity_level'] ?? null);
 
         return [
             'energy_class' => $energyClass,

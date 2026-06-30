@@ -22,6 +22,9 @@ $canSavePeriodItems = in_array('SaveInvCostPeriodItems', $this->data['buttonPerm
   || in_array('ViewInvCostPeriod', $this->data['buttonPermission'] ?? [], true);
 $productionItems = $this->data['production_items'] ?? [];
 $productionItemsCount = (int)($this->data['production_items_all_count'] ?? count($productionItems));
+$snapshotComputedAt = $this->data['snapshot_computed_at'] ?? null;
+$snapshotRowCount = (int)($this->data['snapshot_row_count'] ?? 0);
+$canRecalculateSnapshots = (bool)($this->data['can_recalculate_snapshots'] ?? false);
 $productionItemsFilteredCount = count($productionItems);
 $skuFilter = trim((string)($this->data['sku_filter'] ?? ''));
 $activeTab = (string)($_GET['tab'] ?? 'despesas');
@@ -82,7 +85,22 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
         <div class="card-body">
           <div class="d-flex justify-content-between mb-2"><span class="text-muted">Despesas importadas</span><strong>R$ <?= $fmtMoney($totalExpense) ?></strong></div>
           <div class="d-flex justify-content-between mb-2"><span class="text-muted">CFIX rateado</span><strong>R$ <?= $fmtMoney((float)($allocationSummary['total_cfix_allocated'] ?? 0)) ?></strong></div>
-          <div class="d-flex justify-content-between"><span class="text-muted">Sem critério</span><span class="text-warning">R$ <?= $fmtMoney((float)($allocationSummary['unallocated_expense'] ?? 0)) ?></span></div>
+          <?php
+            $poolsWithoutCrit = (float)($allocationSummary['pools_without_criterion'] ?? 0);
+            $unallocatedNoRecipient = (float)($allocationSummary['unallocated_without_recipient'] ?? 0);
+            $unallocatedTotal = (float)($allocationSummary['unallocated_expense'] ?? 0);
+          ?>
+          <?php if ($poolsWithoutCrit > 0.005): ?>
+          <div class="d-flex justify-content-between mb-2"><span class="text-muted" title="Contas do DRE sem critério 1–8 selecionado">Sem critério definido</span><span class="text-warning">R$ <?= $fmtMoney($poolsWithoutCrit) ?></span></div>
+          <?php endif; ?>
+          <?php if ($unallocatedNoRecipient > 0.005): ?>
+          <div class="d-flex justify-content-between mb-2"><span class="text-muted" title="Critério informado, mas nenhum SKU no período recebeu rateio (driver ou % zerado)">Com critério, sem destino</span><span class="text-warning">R$ <?= $fmtMoney($unallocatedNoRecipient) ?></span></div>
+          <?php endif; ?>
+          <?php if ($unallocatedTotal > 0.005 && $poolsWithoutCrit <= 0.005 && $unallocatedNoRecipient <= 0.005): ?>
+          <div class="d-flex justify-content-between"><span class="text-muted">Não rateado</span><span class="text-warning">R$ <?= $fmtMoney($unallocatedTotal) ?></span></div>
+          <?php elseif ($unallocatedTotal <= 0.005): ?>
+          <div class="d-flex justify-content-between"><span class="text-muted">Pendente de rateio</span><span class="text-success">R$ 0,00</span></div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -123,6 +141,29 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
       </a>
     </li>
   </ul>
+
+  <?php if (in_array($activeTab, ['skus', 'resultados'], true)): ?>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+      <?php if (!empty($snapshotComputedAt)): ?>
+        <span>Snapshot: <strong><?= (int)$snapshotRowCount ?> SKU(s)</strong> · calculado em <?= date('d/m/Y H:i', strtotime((string)$snapshotComputedAt)) ?></span>
+      <?php else: ?>
+        <span>Snapshot ainda não calculado para este período.</span>
+      <?php endif; ?>
+      <?php if ($canRecalculateSnapshots): ?>
+        <form method="post" action="<?= $_ENV['URL_ADM'] ?>view-inventory-cost-period/<?= $periodId ?>" class="ms-auto">
+          <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_recalculate_inv_cost_snapshots') ?>">
+          <input type="hidden" name="recalculate_snapshots" value="1">
+          <input type="hidden" name="return_tab" value="<?= htmlspecialchars($activeTab) ?>">
+          <?php if ($skuFilter !== ''): ?>
+            <input type="hidden" name="sku_filter" value="<?= htmlspecialchars($skuFilter) ?>">
+          <?php endif; ?>
+          <button type="submit" class="btn btn-sm btn-outline-primary">
+            <i class="fa-solid fa-rotate me-1"></i> Recalcular SKUs e resultados
+          </button>
+        </form>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 
   <div class="tab-content">
     <div class="tab-pane fade<?= $tabDespesasActive ? ' show active' : '' ?>" id="pane-despesas" role="tabpanel" aria-labelledby="tab-despesas" tabindex="0">
