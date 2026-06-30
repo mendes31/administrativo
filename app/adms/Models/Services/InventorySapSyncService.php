@@ -1842,16 +1842,22 @@ class InventorySapSyncService
     }
 
     /**
-     * Mesma regra do InvItemsRepository::update/create (max 0.000001).
-     * Evita loop quando SAP MinOrdrQty = 0 e o banco já tem 0.000001.
+     * Lote padrão a partir do SAP MinOrdrQty.
+     * Quando o SAP não informa ou envia zero, grava 1.000000 (evita CVAR/SKU inflado).
      */
     private function resolveStandardBatchSizeFromSap(?float $minOrderQty, ?float $existingFallback = null): float
     {
         if ($minOrderQty === null) {
-            return max(0.000001, (float)($existingFallback ?? 1));
+            $fallback = (float)($existingFallback ?? 1);
+
+            return $fallback > 0 ? $fallback : 1.0;
         }
 
-        return max(0.000001, $minOrderQty);
+        if ($minOrderQty <= 0) {
+            return 1.0;
+        }
+
+        return $minOrderQty;
     }
 
     /**

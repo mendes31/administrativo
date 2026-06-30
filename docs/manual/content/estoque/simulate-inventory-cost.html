@@ -31,10 +31,10 @@
 <h2>CVAR energia (HM × kW × tarifa)</h2>
 <p>Com um <strong>período de custeio</strong> selecionado que tenha <strong>tarifa kWh</strong> cadastrada, a simulação calcula o <strong>CVAR energia</strong> por SKU:</p>
 <ul>
-    <li><strong>kWh/lote</strong> = soma de (tempo da operação em horas × kW dos recursos vinculados na rota).</li>
+    <li><strong>kWh/lote</strong> = soma de (tempo da operação em horas × kW dos equipamentos na rota). Sem <em>potência (kW)</em>, usa-se o custo EE/min do equipamento ÷ tarifa kWh do período.</li>
     <li><strong>Custo/lote</strong> = kWh × tarifa do período; o card exibe também o valor por SKU (÷ lote simulado).</li>
-    <li>Cadastre a <em>potência (kW)</em> em Estoque → Recursos de produção e vincule os recursos à rota do item.</li>
-    <li>O mesmo cálculo alimenta o <strong>critério 7</strong> (energia direta) no rateio CFIX da conta 29-D.</li>
+    <li>Cadastre <em>potência (kW)</em> ou <em>custo EE/min</em> em Estoque → Recursos de produção e vincule equipamentos (não MO) à rota do item.</li>
+    <li>No rateio CFIX (conta 29-D), SKUs <strong>TIARAJU</strong> sem kWh na rota recebem driver proporcional ao <strong>HM</strong> do período.</li>
 </ul>
 
 <h2>CVAR MP e CVAR MAE</h2>

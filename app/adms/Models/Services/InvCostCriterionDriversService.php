@@ -114,6 +114,9 @@ class InvCostCriterionDriversService
             ]);
         }
 
+        $kwhTariff = (float)(is_array($periodDrivers['period'] ?? null) ? ($periodDrivers['period']['kwh_tariff'] ?? 0) : 0);
+        $this->applyCriterion7HmFallback($items, $totals, $kwhTariff);
+
         foreach ($items as &$item) {
             for ($k = 1; $k <= 8; $k++) {
                 $total = $totals['driver_' . $k];
@@ -148,6 +151,59 @@ class InvCostCriterionDriversService
         }
 
         return null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     * @param array<string, float> $totals
+     */
+    private function applyCriterion7HmFallback(array &$items, array &$totals, float $kwhTariff): void
+    {
+        $energyService = new InvCostVariableEnergyService();
+        $routeKwhPeriod = 0.0;
+        $routeHmPeriod = 0.0;
+
+        foreach ($items as $item) {
+            if (InvCostProductionLineHelper::normalize($item['production_line'] ?? null) !== InvCostProductionLineHelper::LINE_TIARAJU) {
+                continue;
+            }
+
+            $driver7 = (float)($item['driver_7'] ?? 0);
+            $hmPeriod = (float)($item['hm_period'] ?? 0);
+            if ($driver7 <= 0 || $hmPeriod <= 0) {
+                continue;
+            }
+
+            $routeKwhPeriod += $kwhTariff > 0 ? ($driver7 / $kwhTariff) : $driver7;
+            $routeHmPeriod += $hmPeriod;
+        }
+
+        $kwhPerHm = $routeHmPeriod > 0.0
+            ? ($routeKwhPeriod / $routeHmPeriod)
+            : 1.0;
+
+        foreach ($items as &$item) {
+            if (InvCostProductionLineHelper::normalize($item['production_line'] ?? null) !== InvCostProductionLineHelper::LINE_TIARAJU) {
+                continue;
+            }
+            if ((float)($item['driver_7'] ?? 0) > 0) {
+                continue;
+            }
+
+            $hmPeriod = (float)($item['hm_period'] ?? 0);
+            if ($hmPeriod <= 0) {
+                continue;
+            }
+
+            $driver7 = $energyService->computeHmFallbackDriver($hmPeriod, $kwhPerHm, $kwhTariff);
+            if ($driver7 <= 0) {
+                continue;
+            }
+
+            $item['driver_7'] = $driver7;
+            $totals['driver_7'] += $driver7;
+        }
+        unset($item);
     }
 
     /**

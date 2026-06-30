@@ -35,7 +35,7 @@
     <li>Em <strong>Editar período</strong>, informe os kWh de HVAC, área comum e direto (Pasta 7) ou deixe vazio para usar os pesos de referência Tiaraju (47,27% / 51,90% / 0,83%).</li>
     <li>Marque <strong>Redistribuir energia automaticamente ao importar o DRE</strong> (padrão) para fatiar a conta 29 em <code>29-D</code>, <code>29-C</code> e <code>29-H</code> com critérios 7, 3 e 8.</li>
     <li>Na tela do período, use <strong>Aplicar redistribuição</strong> se a conta 29 já foi importada sem fatiar.</li>
-    <li>O kWh direto pode ficar em branco: o sistema soma <strong>HM × kW</strong> por operação (recursos com potência na rota + produção no período + tarifa kWh).</li>
+    <li>O kWh direto pode ficar em branco: o sistema estima o consumo por SKU na linha <strong>TIARAJU</strong> com base na rota (tempo × <strong>kW</strong> do recurso, ou custo EE/min ÷ tarifa kWh quando não houver potência cadastrada) e HM do período. SKUs sem kW/custo EE na rota usam <strong>HM produtivo</strong> como base proporcional (1 kWh/HM ou a razão observada nos demais SKUs TIARAJU).</li>
 </ol>
 
 <h2>Parâmetros por SKU (produção do período)</h2>
@@ -65,7 +65,7 @@
     <li><strong>Despesas importadas</strong> — soma de todas as linhas do DRE no período.</li>
     <li><strong>CFIX rateado</strong> — parcela já distribuída aos SKUs (lê do snapshot quando disponível).</li>
     <li><strong>Sem critério definido</strong> — contas do DRE sem critério 1–8 selecionado (dropdown vazio ou peso zero).</li>
-    <li><strong>Com critério, sem destino</strong> — critério informado, mas nenhum SKU absorveu o valor (driver ou % de participação zerado no período). Ex.: critério 7 sem SKUs TIARAJU com kWh, ou critério 6 com BOM incompleta.</li>
+    <li><strong>Com critério, sem destino</strong> — critério informado, mas nenhum SKU absorveu o valor (driver ou % de participação zerado no período). Ex.: critério 7 sem SKUs TIARAJU com HM/kWh no período, ou critério 6 com BOM incompleta.</li>
 </ul>
 <p>Ter critério em todas as linhas do DRE <em>não garante</em> rateio 100%: o valor só vai para SKUs que tenham produção e driver compatível no intervalo.</p>
 
@@ -88,7 +88,7 @@
     <dt>Rateio não reflete a simulação</dt>
     <dd>CFIX usa rota cadastrada e produção do período; alterações only na simulação não mudam os drivers oficiais até promover ao cadastro.</dd>
     <dt>Resumo mostra valor “Com critério, sem destino”</dt>
-    <dd>O critério está salvo, mas nenhum SKU recebeu rateio (ex.: critério 7 sem linha TIARAJU, critério 6 sem MP/MAE na BOM, ou produção zerada). Revise cadastro, BOM e produção no período; use o script <code>php scripts/diag_inv_cost_unallocated.php &lt;periodo&gt;</code> para listar as contas.</dd>
+    <dd>O critério está salvo, mas nenhum SKU recebeu rateio (ex.: critério 7 sem linha TIARAJU ou HM zerado no período, critério 6 sem MP/MAE na BOM, ou produção zerada). Revise cadastro, BOM, rota (potência kW ou custo EE/min) e produção; use <code>php scripts/diag_crit7_driver.php &lt;periodo&gt;</code> ou <code>php scripts/diag_inv_cost_unallocated.php &lt;periodo&gt;</code>.</dd>
     <dt>Abas SKUs/Resultados demoram na primeira abertura</dt>
     <dd>O snapshot é calculado uma vez e gravado no banco; trocas subsequentes entre abas leem só o snapshot. Use <strong>Recalcular SKUs e resultados</strong> após mudanças relevantes.</dd>
 </dl>

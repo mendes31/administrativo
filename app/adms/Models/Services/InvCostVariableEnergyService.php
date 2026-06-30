@@ -19,7 +19,7 @@ class InvCostVariableEnergyService
      *   operations: list<array{operation_code: string, operation_name: string, time_hours: float, power_kw: float, kwh: float}>
      * }
      */
-    public function computeKwhFromOperationRows(array $operationRows): array
+    public function computeKwhFromOperationRows(array $operationRows, float $kwhTariff = 0.0): array
     {
         $kwhPerBatch = 0.0;
         $details = [];
@@ -33,30 +33,28 @@ class InvCostVariableEnergyService
                 continue;
             }
 
-            $resourceLines = is_array($op['resource_lines'] ?? null) ? $op['resource_lines'] : [];
-            $hasMachineDriver = $resourceLines !== []
-                || (float)($op['machine_cost_per_min'] ?? 0) > 0
-                || (float)($op['energy_cost_per_min'] ?? 0) > 0;
-            if (!$hasMachineDriver) {
+            $opKw = $this->resolveOperationPowerKw($op);
+            $energyEcpm = $this->resolveOperationEnergyEcpmPerMin($op);
+            if ($opKw <= 0 && $energyEcpm <= 0) {
                 continue;
             }
 
-            $opKw = 0.0;
-            foreach ($resourceLines as $res) {
-                $qty = max(1, (int)($res['qty'] ?? 1));
-                $opKw += $qty * max(0.0, (float)($res['power_kw'] ?? 0));
-            }
-            if ($opKw <= 0) {
+            if ($opKw > 0) {
+                $opKwh = $timeHours * $opKw;
+                $effectiveKw = $opKw;
+            } elseif ($kwhTariff > 0) {
+                $opKwh = ($timeMinutes * $energyEcpm) / $kwhTariff;
+                $effectiveKw = $timeHours > 0 ? $opKwh / $timeHours : 0.0;
+            } else {
                 continue;
             }
 
-            $opKwh = $timeHours * $opKw;
             $kwhPerBatch += $opKwh;
             $details[] = [
                 'operation_code' => (string)($op['operation_code'] ?? ''),
                 'operation_name' => (string)($op['operation_name'] ?? ''),
                 'time_hours' => round($timeHours, 6),
-                'power_kw' => round($opKw, 6),
+                'power_kw' => round($effectiveKw, 6),
                 'kwh' => round($opKwh, 6),
             ];
         }
@@ -67,7 +65,7 @@ class InvCostVariableEnergyService
         ];
     }
 
-    public function computeKwhPerBatchForItem(int $itemId): float
+    public function computeKwhPerBatchForItem(int $itemId, float $kwhTariff = 0.0): float
     {
         if ($itemId <= 0) {
             return 0.0;
@@ -76,7 +74,7 @@ class InvCostVariableEnergyService
         $opsRepo = new InvItemOperationsRepository();
         $operations = $opsRepo->getByItem($itemId);
 
-        return $this->computeKwhFromOperationRows($operations)['kwh_per_batch'];
+        return $this->computeKwhFromOperationRows($operations, $kwhTariff)['kwh_per_batch'];
     }
 
     /**
@@ -118,7 +116,7 @@ class InvCostVariableEnergyService
             $operationRows = (new InvItemOperationsRepository())->getByItem($itemId);
         }
 
-        $kwhData = $this->computeKwhFromOperationRows($operationRows);
+        $kwhData = $this->computeKwhFromOperationRows($operationRows, $kwhTariff);
         $kwhBatch = (float)($kwhData['kwh_per_batch'] ?? 0);
         if ($kwhBatch <= 0) {
             return $empty;
@@ -137,7 +135,7 @@ class InvCostVariableEnergyService
     }
 
     /**
-     * Driver critério 7 (R$) a partir do HM do período.
+     * Driver critério 7 (R$ ou kWh) a partir da rota (kW / custo EE) e HM do período.
      * Apenas linha TIARAJU (produção interna); TERCEIRO fica com driver zero.
      *
      * @param array<string, mixed>|null $periodItem
@@ -157,15 +155,102 @@ class InvCostVariableEnergyService
             return 0.0;
         }
 
-        $kwhBatch = $this->computeKwhPerBatchForItem($itemId);
+        $kwhBatch = $this->computeKwhPerBatchForItem($itemId, $kwhTariff);
         if ($kwhBatch <= 0) {
             return 0.0;
         }
 
         $kwhPeriod = $kwhBatch * ($hmPeriod / $hmPerBatch);
 
+        return $this->driverFromKwh($kwhPeriod, $kwhTariff);
+    }
+
+    /**
+     * Fallback crit. 7: HM produtivo × kWh/HM observado na rota (ou 1 kWh/HM).
+     */
+    public function computeHmFallbackDriver(float $hmPeriod, float $kwhPerHm, float $kwhTariff): float
+    {
+        if ($hmPeriod <= 0 || $kwhPerHm <= 0) {
+            return 0.0;
+        }
+
+        return $this->driverFromKwh($hmPeriod * $kwhPerHm, $kwhTariff);
+    }
+
+    public function driverFromKwh(float $kwh, float $kwhTariff): float
+    {
+        if ($kwh <= 0) {
+            return 0.0;
+        }
+
         return $kwhTariff > 0
-            ? round($kwhPeriod * $kwhTariff, 6)
-            : round($kwhPeriod, 6);
+            ? round($kwh * $kwhTariff, 6)
+            : round($kwh, 6);
+    }
+
+    /**
+     * @param array<string, mixed> $op
+     */
+    private function resolveOperationPowerKw(array $op): float
+    {
+        $resourceLines = is_array($op['resource_lines'] ?? null) ? $op['resource_lines'] : [];
+        $opKw = 0.0;
+
+        foreach ($resourceLines as $res) {
+            if ($this->isLaborResource($res)) {
+                continue;
+            }
+            $qty = max(1, (int)($res['qty'] ?? 1));
+            $opKw += $qty * max(0.0, (float)($res['power_kw'] ?? 0));
+        }
+
+        return $opKw;
+    }
+
+    /**
+     * Custo EE/min de equipamentos (exclui MO SAP).
+     *
+     * @param array<string, mixed> $op
+     */
+    private function resolveOperationEnergyEcpmPerMin(array $op): float
+    {
+        $resourceLines = is_array($op['resource_lines'] ?? null) ? $op['resource_lines'] : [];
+        $energy = 0.0;
+        $hasEquipment = false;
+
+        foreach ($resourceLines as $res) {
+            if ($this->isLaborResource($res)) {
+                continue;
+            }
+            $hasEquipment = true;
+            $qty = max(0, (int)($res['qty'] ?? 0));
+            if ($qty <= 0) {
+                continue;
+            }
+            $energy += $qty * max(0.0, (float)($res['energy_cost_per_min'] ?? 0));
+        }
+
+        if (!$hasEquipment) {
+            return max(0.0, (float)($op['energy_cost_per_min'] ?? 0));
+        }
+
+        if ($energy > 0) {
+            return $energy;
+        }
+
+        $headerEnergy = max(0.0, (float)($op['energy_cost_per_min'] ?? 0));
+        if ($headerEnergy > 0) {
+            return $headerEnergy;
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * @param array<string, mixed> $res
+     */
+    private function isLaborResource(array $res): bool
+    {
+        return strtoupper((string)($res['resource_type'] ?? 'MACHINE')) === 'LABOR';
     }
 }
