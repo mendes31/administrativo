@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostBatchAdoptedHelper;
 use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
@@ -119,13 +120,14 @@ class InvCostPeriodProductionItemsService
                 'analysis_count' => 0,
                 'batch_size_adopted' => null,
                 'batch_size_theoretical' => null,
+                'qty_avg_per_round' => null,
                 'production_line' => null,
                 'sale_price_net' => null,
                 'target_margin_pct' => null,
                 'efficiency_pct' => null,
             ];
 
-        $standardBatch = is_array($itemMeta) ? (float)($itemMeta['standard_batch_size'] ?? 0) : 0.0;
+        $standardBatchRaw = is_array($itemMeta) ? ($itemMeta['standard_batch_size'] ?? null) : null;
         $itemEnergyClass = is_array($itemMeta) ? trim((string)($itemMeta['energy_class'] ?? '')) : '';
         $categoryName = is_array($itemMeta) ? trim((string)($itemMeta['category_name'] ?? '')) : '';
         $qtyProduced = (float)($prod['qty_produced'] ?? $prod['total_qty'] ?? 0);
@@ -133,30 +135,40 @@ class InvCostPeriodProductionItemsService
         $efficiencyRatio = isset($prod['efficiency_ratio']) ? (float)$prod['efficiency_ratio'] : null;
         $qtyTheoretical = isset($prod['qty_theoretical']) ? (float)$prod['qty_theoretical'] : null;
 
+        $physicalBatches = InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
+            max(0, (int)($prod['batches_count'] ?? 0))
+        );
+        $batchContext = InvCostBatchAdoptedHelper::resolveProductionContext(
+            $itemId > 0 ? $effective : null,
+            $qtyProduced,
+            $physicalBatches,
+            $standardBatchRaw
+        );
+
+        $adoptedBatch = (float)$batchContext['batch_size_adopted'];
+        $batchesProduced = (float)$batchContext['batches_produced'];
+        $qtyPlanned = (float)($batchContext['qty_planned'] ?? 0);
+        $qtyPlanned = $qtyPlanned > 0 ? $qtyPlanned : null;
+
         if ($efficiencyPct === null && $saved !== null && isset($saved['efficiency_pct']) && $saved['efficiency_pct'] !== null && $saved['efficiency_pct'] !== '') {
             $efficiencyPct = (float)$saved['efficiency_pct'];
         }
-
-        $batchesCount = max(0, (int)($prod['batches_count'] ?? 0));
-        $qtyPlanned = $qtyTheoretical;
-        if (($qtyPlanned === null || $qtyPlanned <= 0) && $batchesCount > 0 && $standardBatch > 0) {
-            $qtyPlanned = round($batchesCount * $standardBatch, 4);
-        }
-        $efficiencyForAnalysis = $analysisDriver->normalizeEfficiencyRatio(
-            $efficiencyRatio,
-            $qtyProduced > 0 ? $qtyProduced : null,
-            $qtyPlanned
-        );
-        if ($efficiencyRatio === null && $efficiencyForAnalysis > 0) {
-            $efficiencyRatio = $efficiencyForAnalysis;
+        if ($efficiencyRatio === null) {
+            $efficiencyRatio = (float)$batchContext['efficiency_ratio'];
         }
         if ($efficiencyPct === null && $efficiencyRatio !== null && $efficiencyRatio > 0) {
             $efficiencyPct = round($efficiencyRatio * 100, 2);
         }
 
+        $efficiencyForAnalysis = $analysisDriver->normalizeEfficiencyRatio(
+            $efficiencyRatio,
+            $qtyProduced > 0 ? $qtyProduced : null,
+            $qtyPlanned
+        );
+
         $periodItemForDriver = $itemId > 0 ? $effective : null;
         $analysisMetrics = $itemId > 0
-            ? $analysisDriver->metricsForItem($itemId, $batchesCount, $periodItemForDriver, $efficiencyForAnalysis)
+            ? $analysisDriver->metricsForItem($itemId, $batchesProduced, $periodItemForDriver, $efficiencyForAnalysis)
             : [
                 'complexity_factor' => 0.0,
                 'mp_lines' => 0,
@@ -183,9 +195,12 @@ class InvCostPeriodProductionItemsService
             'total_qty' => $qtyProduced > 0 ? round($qtyProduced, 4) : null,
             'efficiency_ratio' => $efficiencyRatio,
             'efficiency_pct' => $efficiencyPct,
-            'qty_theoretical' => $qtyTheoretical,
-            'qty_planned' => $qtyPlanned !== null && $qtyPlanned > 0 ? round((float)$qtyPlanned, 4) : null,
-            'standard_batch_size' => $standardBatch > 0 ? round($standardBatch, 4) : null,
+            'qty_theoretical' => $qtyPlanned,
+            'qty_planned' => $qtyPlanned,
+            'qty_avg_per_round' => $batchContext['qty_avg_per_round'],
+            'batch_size_adopted' => $adoptedBatch,
+            'batches_produced' => $batchesProduced,
+            'standard_batch_size' => InvCostBatchAdoptedHelper::catalogBatchForDisplay($standardBatchRaw),
             'is_scenario' => !empty($prod['is_scenario']),
             'has_scenario' => !empty($prod['has_scenario']),
             'linked' => $itemId > 0,

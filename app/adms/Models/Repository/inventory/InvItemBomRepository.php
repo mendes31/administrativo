@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Repository\inventory;
 
+use App\adms\Helpers\InvItemBomExplosionHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
@@ -28,10 +29,12 @@ class InvItemBomRepository extends DbConnection
                        b.manual_unit_cost,
                        i.code AS component_code,
                        i.description AS component_description,
+                       c.name AS component_category,
                        u.name AS unit_name,
                        i.average_cost AS component_cost
                 FROM inv_item_bom b
                 LEFT JOIN inv_items i ON i.id = b.component_item_id
+                LEFT JOIN inv_categories c ON c.id = i.inv_category_id
                 LEFT JOIN inv_units u ON u.id = i.inv_unit_id
                 WHERE b.inv_item_id = :inv_item_id
                 ORDER BY b.id ASC';
@@ -46,6 +49,78 @@ class InvItemBomRepository extends DbConnection
         unset($row);
 
         return $rows;
+    }
+
+    /**
+     * BOM para exibição com MPs/MAEs dos PIs explodidas e identificadas.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getDisplayRowsByItem(int $invItemId): array
+    {
+        $rows = InvItemBomExplosionHelper::buildDisplayRows($this->getByItem($invItemId));
+
+        return $this->refreshDisplayRowCatalogCosts($rows);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function refreshDisplayRowCatalogCosts(array $rows): array
+    {
+        $itemsRepo = new InvItemsRepository();
+        foreach ($rows as &$row) {
+            $componentId = (int)($row['component_item_id'] ?? 0);
+            if ($componentId <= 0 || (string)($row['line_source'] ?? 'catalog') === 'manual') {
+                continue;
+            }
+            $item = $itemsRepo->getOne($componentId);
+            if (!is_array($item)) {
+                continue;
+            }
+            $row['component_cost'] = (float)($item['average_cost'] ?? 0);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * BOM com campos para custeio (MP/MAE/PI + custo médio).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getCostingRowsByItem(int $invItemId): array
+    {
+        if ($invItemId <= 0) {
+            return [];
+        }
+
+        $sql = 'SELECT b.line_source,
+                       b.component_item_id,
+                       b.quantity_per_batch,
+                       b.scrap_percent,
+                       b.manual_description,
+                       b.manual_component_type,
+                       b.manual_unit,
+                       b.manual_unit_cost,
+                       i.code AS component_code,
+                       i.description AS component_description,
+                       u.name AS unit_name,
+                       i.average_cost AS component_cost,
+                       c.name AS component_category
+                FROM inv_item_bom b
+                LEFT JOIN inv_items i ON i.id = b.component_item_id
+                LEFT JOIN inv_units u ON u.id = i.inv_unit_id
+                LEFT JOIN inv_categories c ON c.id = i.inv_category_id
+                WHERE b.inv_item_id = :inv_item_id
+                ORDER BY b.line_source ASC, c.name ASC, i.description ASC, b.id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**

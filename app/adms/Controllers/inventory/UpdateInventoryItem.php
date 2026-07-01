@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Helpers\InvCostEnergyClassHelper;
 use App\adms\Helpers\InvCostProductionLineHelper;
+use App\adms\Helpers\InvItemBomExplosionHelper;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
@@ -16,9 +17,11 @@ use App\adms\Models\Repository\inventory\InvPharmaFormsRepository;
 use App\adms\Models\Repository\inventory\InvUnitsRepository;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
+use App\adms\Models\Repository\inventory\InvItemRouteConsolidatedRepository;
 use App\adms\Models\Repository\inventory\InvLaborRolesRepository;
 use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Repository\inventory\InvProductionResourcesRepository;
+use App\adms\Models\Services\InvRouteConsolidationService;
 use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Models\Services\InventoryCostService;
 use App\adms\Models\Services\LogResumoService;
@@ -89,22 +92,30 @@ class UpdateInventoryItem
 
         // Carregar ficha técnica (BOM) e rota do item
         $itemId = (int)($this->data['form']['id'] ?? 0);
+        $bomRepo = new InvItemBomRepository();
         if ($itemId > 0) {
-            $bomRepo = new InvItemBomRepository();
             $opsRepo = new InvItemOperationsRepository();
+            $consolidatedRepo = new InvItemRouteConsolidatedRepository();
             $this->data['bom'] = $bomRepo->getByItem($itemId);
+            $this->data['bom_display'] = $bomRepo->getDisplayRowsByItem($itemId);
             $this->data['operations'] = $opsRepo->getByItem($itemId);
+            $this->data['consolidatedOperations'] = $consolidatedRepo->getByItem($itemId);
         } else {
             $this->data['bom'] = [];
+            $this->data['bom_display'] = [];
             $this->data['operations'] = [];
+            $this->data['consolidatedOperations'] = [];
         }
 
         $this->data['is_project_item'] = InvCostProjectHelper::isProjectItem($this->data['form'] ?? []);
 
         // Custo médio e último custo = materiais + rota (valores do lote; rateio por SKU na simulação)
+        $bomForCost = $itemId > 0
+            ? InvItemBomExplosionHelper::explodeIntermediateProducts($bomRepo->getCostingRowsByItem($itemId))
+            : [];
         $calculatedCost = $this->calculateCostFromBomAndRoute(
-            $this->data['bom'] ?? [],
-            $this->data['operations'] ?? []
+            $bomForCost,
+            (new InvItemOperationsRepository())->getByItemForCosting($itemId > 0 ? $itemId : 0)
         );
         $this->data['form']['average_cost'] = $calculatedCost;
         $this->data['form']['last_cost'] = $calculatedCost;
@@ -140,6 +151,8 @@ class UpdateInventoryItem
         $isProjectItem = $this->resolveIsProjectItemFromForm($form, $id);
         $bomLines = $this->buildBomLinesFromForm($form, $isProjectItem, $errors);
         $opLines  = $this->buildOperationLinesFromForm($form);
+        $consolidatedLines = $this->buildConsolidatedOperationLinesFromForm($form);
+        $regenerateConsolidated = !empty($form['regenerate_consolidated_route']);
 
         if ($errors) {
             if ($this->isAjaxRequest()) {
@@ -231,12 +244,41 @@ class UpdateInventoryItem
                 }
             }
 
+            $consolidatedRepo = new InvItemRouteConsolidatedRepository();
+            if ($regenerateConsolidated) {
+                $sapRoute = (new InvItemOperationsRepository())->getByItem($id);
+                $consolidationService = new InvRouteConsolidationService();
+                $paLines = $sapRoute !== [] ? $consolidationService->buildFromSapRoute($sapRoute) : [];
+                $itemRow = $repo->getOne($id);
+                $consolidatedLines = is_array($itemRow)
+                    && !InvItemBomExplosionHelper::isIntermediateCategory((string)($itemRow['category_name'] ?? ''))
+                    ? InvRoutePiExplosionHelper::mergePiRoutesIntoPa($id, $paLines)
+                    : $paLines;
+            }
+            if ($consolidatedLines !== null) {
+                if (!$consolidatedRepo->replaceForItem($id, $consolidatedLines)) {
+                    if ($this->isAjaxRequest()) {
+                        $this->jsonResponse([
+                            'success' => false,
+                            'message' => 'Erro ao salvar a rota consolidada.',
+                            'errors' => ['consolidated_route' => 'Falha ao gravar rota consolidada.'],
+                            'csrf_token' => CSRFHelper::generateCSRFToken('form_update_inventory_item'),
+                        ], 500);
+                        return;
+                    }
+                    $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Erro ao salvar a rota consolidada.</div>";
+                    $this->data['form'] = $repo->getOne($id) ?: [];
+                    $this->viewUpdate();
+                    return;
+                }
+            }
+
             // Recalcular custo padrão com base na ficha técnica e rota
             InventoryCostService::recalculateStandardCost($id);
 
             if ($this->isAjaxRequest()) {
                 $tab = trim((string)($form['active_tab'] ?? 'pane-dados-gerais'));
-                $allowedTabs = ['pane-dados-gerais', 'pane-bom', 'pane-operations'];
+                $allowedTabs = ['pane-dados-gerais', 'pane-bom', 'pane-operations', 'pane-route-consolidated'];
                 if (!in_array($tab, $allowedTabs, true)) {
                     $tab = 'pane-dados-gerais';
                 }
@@ -499,6 +541,10 @@ class UpdateInventoryItem
         $laborRolesByOp = $form['op_labor_role_id'] ?? [];
         $laborQtyByOp = $form['op_labor_qty'] ?? [];
         $laborCostByOp = $form['op_labor_cost_per_min'] ?? [];
+        $sapPosIds = $form['op_sap_pos_id'] ?? [];
+        $sapMasterPosIds = $form['op_sap_master_pos_id'] ?? [];
+        $sapSortIds = $form['op_sap_sort_id'] ?? [];
+        $sapPosTexts = $form['op_sap_pos_text'] ?? [];
 
         $lines = [];
         foreach ($operations as $idx => $operationId) {
@@ -557,6 +603,16 @@ class UpdateInventoryItem
             $lines[] = [
                 'inv_operation_id' => $operationId,
                 'sequence' => $seq,
+                'sap_pos_id' => isset($sapPosIds[$idx]) && (int)$sapPosIds[$idx] > 0
+                    ? (int)$sapPosIds[$idx]
+                    : $seq,
+                'sap_master_pos_id' => isset($sapMasterPosIds[$idx]) ? max(0, (int)$sapMasterPosIds[$idx]) : 0,
+                'sap_sort_id' => isset($sapSortIds[$idx]) && (int)$sapSortIds[$idx] > 0
+                    ? (int)$sapSortIds[$idx]
+                    : null,
+                'sap_pos_text' => isset($sapPosTexts[$idx]) && (int)$sapPosTexts[$idx] > 0
+                    ? (int)$sapPosTexts[$idx]
+                    : null,
                 'time_per_batch_hours' => $time,
                 'time_unit' => $unit,
                 'operators_qty' => 1,
@@ -570,6 +626,128 @@ class UpdateInventoryItem
         }
 
         return $lines;
+    }
+
+    /**
+     * @param array<string, mixed> $form
+     * @return array|null null se não houver dados de rota consolidada no formulário.
+     */
+    private function buildConsolidatedOperationLinesFromForm(array $form): ?array
+    {
+        if (!array_key_exists('cons_op_operation_id', $form)) {
+            return null;
+        }
+        if (empty($form['cons_op_operation_id'])) {
+            return [];
+        }
+
+        require_once __DIR__ . '/../../Views/inventory/partials/operation_metrics.php';
+
+        $operations = $form['cons_op_operation_id'];
+        $sequences = $form['cons_op_sequence'] ?? [];
+        $times = $form['cons_op_time_per_batch_hours'] ?? [];
+        $units = $form['cons_op_time_unit'] ?? [];
+        $notes = $form['cons_op_notes'] ?? [];
+        $groupPosIds = $form['cons_op_sap_group_pos_id'] ?? [];
+        $groupPosTexts = $form['cons_op_sap_group_pos_text'] ?? [];
+        $resourceIdsByOp = $form['cons_op_resource_id'] ?? [];
+        $resourceQtyByOp = $form['cons_op_resource_qty'] ?? [];
+        $resourceMachineByOp = $form['cons_op_resource_machine_cost'] ?? [];
+        $resourceEnergyByOp = $form['cons_op_resource_energy_cost'] ?? [];
+        $laborRolesByOp = $form['cons_op_labor_role_id'] ?? [];
+        $laborQtyByOp = $form['cons_op_labor_qty'] ?? [];
+        $laborCostByOp = $form['cons_op_labor_cost_per_min'] ?? [];
+        $laborLineTimeByOp = $form['cons_op_labor_line_time_min'] ?? [];
+        $resourceLineTimeByOp = $form['cons_op_resource_line_time_min'] ?? [];
+
+        $lines = [];
+        foreach ($operations as $idx => $operationId) {
+            $operationId = (int)$operationId;
+            if ($operationId <= 0) {
+                continue;
+            }
+
+            $unit = isset($units[$idx]) ? strtoupper((string)$units[$idx]) : 'MIN';
+            if (!in_array($unit, ['MIN', 'H'], true)) {
+                $unit = 'MIN';
+            }
+            $rawOpTime = isset($times[$idx]) ? $this->parseFormDecimal($times[$idx]) : 0;
+            $opTimeMinutes = $unit === 'H' ? $rawOpTime * 60.0 : $rawOpTime;
+
+            $resources = [];
+            $resIds = is_array($resourceIdsByOp[$idx] ?? null) ? array_values($resourceIdsByOp[$idx]) : [];
+            $resQtys = is_array($resourceQtyByOp[$idx] ?? null) ? array_values($resourceQtyByOp[$idx]) : [];
+            $resMachines = is_array($resourceMachineByOp[$idx] ?? null) ? array_values($resourceMachineByOp[$idx]) : [];
+            $resEnergies = is_array($resourceEnergyByOp[$idx] ?? null) ? array_values($resourceEnergyByOp[$idx]) : [];
+            $resLineTimes = is_array($resourceLineTimeByOp[$idx] ?? null) ? array_values($resourceLineTimeByOp[$idx]) : [];
+            foreach ($resIds as $rIdx => $resId) {
+                $resId = (int)$resId;
+                if ($resId <= 0) {
+                    continue;
+                }
+                $resources[] = [
+                    'inv_production_resource_id' => $resId,
+                    'qty' => max(1, (int)($resQtys[$rIdx] ?? 1)),
+                    'line_time_minutes' => $this->parseConsolidatedLineTimeMinutes($resLineTimes[$rIdx] ?? null, $opTimeMinutes),
+                    'machine_cost_per_min' => max(0, $this->parseFormDecimal($resMachines[$rIdx] ?? 0)),
+                    'energy_cost_per_min' => max(0, $this->parseFormDecimal($resEnergies[$rIdx] ?? 0)),
+                ];
+            }
+
+            $labor = [];
+            $roleIds = is_array($laborRolesByOp[$idx] ?? null) ? array_values($laborRolesByOp[$idx]) : [];
+            $qtys = is_array($laborQtyByOp[$idx] ?? null) ? array_values($laborQtyByOp[$idx]) : [];
+            $costs = is_array($laborCostByOp[$idx] ?? null) ? array_values($laborCostByOp[$idx]) : [];
+            $laborLineTimes = is_array($laborLineTimeByOp[$idx] ?? null) ? array_values($laborLineTimeByOp[$idx]) : [];
+            foreach ($roleIds as $lIdx => $roleId) {
+                $roleId = (int)$roleId;
+                if ($roleId <= 0) {
+                    continue;
+                }
+                $labor[] = [
+                    'inv_labor_role_id' => $roleId,
+                    'qty' => max(1, (int)($qtys[$lIdx] ?? 1)),
+                    'line_time_minutes' => $this->parseConsolidatedLineTimeMinutes($laborLineTimes[$lIdx] ?? null, $opTimeMinutes),
+                    'cost_per_min' => max(0, $this->parseFormDecimal($costs[$lIdx] ?? 0)),
+                ];
+            }
+
+            $labor = invNormalizeLaborLinesForDrivers($labor);
+            $resources = invNormalizeMachineResourceLinesForDrivers($resources);
+
+            $groupPos = isset($groupPosIds[$idx]) ? (int)$groupPosIds[$idx] : 0;
+            $groupPosText = isset($groupPosTexts[$idx]) ? (int)$groupPosTexts[$idx] : 0;
+
+            $lines[] = [
+                'inv_operation_id' => $operationId,
+                'sequence' => isset($sequences[$idx]) ? (int)$sequences[$idx] : ($idx + 1),
+                'sap_group_pos_id' => $groupPos > 0 ? $groupPos : null,
+                'sap_group_pos_text' => $groupPosText > 0 ? $groupPosText : null,
+                'time_per_batch_hours' => $rawOpTime,
+                'time_unit' => $unit,
+                'notes' => isset($notes[$idx]) ? trim((string)$notes[$idx]) : null,
+                'resources' => $resources,
+                'labor' => $labor,
+            ];
+        }
+
+        return $lines;
+    }
+
+    private function parseConsolidatedLineTimeMinutes(mixed $value, float $operationTimeMinutes): ?float
+    {
+        if ($value === null || trim((string)$value) === '') {
+            return null;
+        }
+        $parsed = $this->parseFormDecimal($value);
+        if ($parsed <= 0) {
+            return null;
+        }
+        if ($operationTimeMinutes > 0) {
+            return min($parsed, $operationTimeMinutes);
+        }
+
+        return $parsed;
     }
 
     private function parseFormDecimal(mixed $value): float

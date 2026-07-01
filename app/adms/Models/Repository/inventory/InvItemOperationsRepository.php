@@ -4,6 +4,7 @@ namespace App\adms\Models\Repository\inventory;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\InvRouteConsolidationService;
 use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
@@ -15,10 +16,20 @@ class InvItemOperationsRepository extends DbConnection
      */
     public function getByItem(int $invItemId): array
     {
+        $sapCols = $this->hasSapPosColumns()
+            ? 'io.sap_pos_id, io.sap_master_pos_id,'
+            : '';
+        $sapMetaCols = $this->hasSapSortPosTextColumns()
+            ? 'io.sap_sort_id, io.sap_pos_text,'
+            : '';
+        $orderBy = $this->hasSapSortPosTextColumns()
+            ? 'COALESCE(NULLIF(io.sap_sort_id, 0), io.sequence) ASC, io.id ASC'
+            : 'io.sequence ASC, op.name ASC';
         $sql = 'SELECT io.id,
                        io.inv_operation_id,
                        io.inv_production_resource_id,
                        io.sequence,
+                       ' . $sapCols . $sapMetaCols . '
                        io.time_per_batch_hours,
                        io.time_unit,
                        io.operators_qty,
@@ -36,7 +47,7 @@ class InvItemOperationsRepository extends DbConnection
                 INNER JOIN inv_operations op ON op.id = io.inv_operation_id
                 LEFT JOIN inv_production_resources pr ON pr.id = io.inv_production_resource_id
                 WHERE io.inv_item_id = :inv_item_id
-                ORDER BY io.sequence ASC, op.name ASC';
+                ORDER BY ' . $orderBy;
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':inv_item_id', $invItemId, PDO::PARAM_INT);
         $stmt->execute();
@@ -57,6 +68,21 @@ class InvItemOperationsRepository extends DbConnection
         unset($row);
 
         return $rows;
+    }
+
+    /**
+     * Rota usada no custeio: consolidada quando existir; senão rota SAP/local.
+     */
+    public function getByItemForCosting(int $invItemId): array
+    {
+        $consolidatedRepo = new InvItemRouteConsolidatedRepository();
+        if ($consolidatedRepo->hasForItem($invItemId)) {
+            return InvRouteConsolidationService::toCostingOperationRows(
+                $consolidatedRepo->getByItem($invItemId)
+            );
+        }
+
+        return $this->getByItem($invItemId);
     }
 
     /**
@@ -131,6 +157,51 @@ class InvItemOperationsRepository extends DbConnection
         $cached = (bool) $stmt->fetch(PDO::FETCH_NUM);
 
         return $cached;
+    }
+
+    private function hasSapPosColumns(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+        if (!$this->hasTable('inv_item_operations')) {
+            $cached = false;
+
+            return false;
+        }
+        $stmt = $this->getConnection()->query(
+            "SHOW COLUMNS FROM inv_item_operations LIKE 'sap_pos_id'"
+        );
+        $cached = (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $cached;
+    }
+
+    public function hasSapSortPosTextColumns(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+        if (!$this->hasSapPosColumns()) {
+            $cached = false;
+
+            return false;
+        }
+        $stmt = $this->getConnection()->query(
+            "SHOW COLUMNS FROM inv_item_operations LIKE 'sap_sort_id'"
+        );
+        $cached = (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $cached;
+    }
+
+    private function hasTable(string $table): bool
+    {
+        $stmt = $this->getConnection()->query("SHOW TABLES LIKE " . $this->getConnection()->quote($table));
+
+        return (bool)$stmt->fetch(PDO::FETCH_NUM);
     }
 
     /**
@@ -283,6 +354,10 @@ class InvItemOperationsRepository extends DbConnection
                 'inv_operation_id' => (int)($line['inv_operation_id'] ?? 0),
                 'inv_production_resource_id' => $firstResourceId,
                 'sequence' => (int)($line['sequence'] ?? 1),
+                'sap_pos_id' => isset($line['sap_pos_id']) ? (int)$line['sap_pos_id'] : null,
+                'sap_master_pos_id' => isset($line['sap_master_pos_id']) ? (int)$line['sap_master_pos_id'] : null,
+                'sap_sort_id' => isset($line['sap_sort_id']) ? (int)$line['sap_sort_id'] : null,
+                'sap_pos_text' => isset($line['sap_pos_text']) ? (int)$line['sap_pos_text'] : null,
                 'time_per_batch_hours' => round((float)($line['time_per_batch_hours'] ?? 0), 6),
                 'time_unit' => $timeUnit,
                 'operators_qty' => $laborTotalPerMin > 0 ? 1 : $operatorsQty,
@@ -296,6 +371,11 @@ class InvItemOperationsRepository extends DbConnection
         }
 
         usort($normalized, static function (array $a, array $b): int {
+            $sortA = (int)($a['sap_sort_id'] ?? 0);
+            $sortB = (int)($b['sap_sort_id'] ?? 0);
+            if ($sortA > 0 && $sortB > 0 && $sortA !== $sortB) {
+                return $sortA <=> $sortB;
+            }
             $seqCmp = ((int)($a['sequence'] ?? 0)) <=> ((int)($b['sequence'] ?? 0));
             if ($seqCmp !== 0) {
                 return $seqCmp;
@@ -346,11 +426,19 @@ class InvItemOperationsRepository extends DbConnection
             $stmtDelete->execute();
 
             if ($lines) {
+                $sapCols = $this->hasSapPosColumns();
+                $sapMetaCols = $this->hasSapSortPosTextColumns();
                 $sql = 'INSERT INTO inv_item_operations (
                             inv_item_id,
                             inv_operation_id,
                             inv_production_resource_id,
-                            sequence,
+                            sequence,'
+                    . ($sapCols ? '
+                            sap_pos_id,
+                            sap_master_pos_id,' : '')
+                    . ($sapMetaCols ? '
+                            sap_sort_id,
+                            sap_pos_text,' : '') . '
                             time_per_batch_hours,
                             time_unit,
                             operators_qty,
@@ -363,7 +451,13 @@ class InvItemOperationsRepository extends DbConnection
                             :inv_item_id,
                             :inv_operation_id,
                             :inv_production_resource_id,
-                            :sequence,
+                            :sequence,'
+                    . ($sapCols ? '
+                            :sap_pos_id,
+                            :sap_master_pos_id,' : '')
+                    . ($sapMetaCols ? '
+                            :sap_sort_id,
+                            :sap_pos_text,' : '') . '
                             :time_per_batch_hours,
                             :time_unit,
                             :operators_qty,
@@ -419,6 +513,20 @@ class InvItemOperationsRepository extends DbConnection
                     $stmtInsert->bindValue(':inv_operation_id', (int) $line['inv_operation_id'], PDO::PARAM_INT);
                     $stmtInsert->bindValue(':inv_production_resource_id', $firstResourceId, $firstResourceId ? PDO::PARAM_INT : PDO::PARAM_NULL);
                     $stmtInsert->bindValue(':sequence', (int) ($line['sequence'] ?? 1), PDO::PARAM_INT);
+                    if ($sapCols) {
+                        $sapPosId = isset($line['sap_pos_id']) && (int)$line['sap_pos_id'] > 0
+                            ? (int)$line['sap_pos_id']
+                            : (int)($line['sequence'] ?? 0);
+                        $masterPosId = isset($line['sap_master_pos_id']) ? (int)$line['sap_master_pos_id'] : 0;
+                        $stmtInsert->bindValue(':sap_pos_id', $sapPosId > 0 ? $sapPosId : null, $sapPosId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                        $stmtInsert->bindValue(':sap_master_pos_id', $masterPosId > 0 ? $masterPosId : null, $masterPosId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    }
+                    if ($sapMetaCols) {
+                        $sortId = isset($line['sap_sort_id']) ? (int)$line['sap_sort_id'] : 0;
+                        $posText = isset($line['sap_pos_text']) ? (int)$line['sap_pos_text'] : 0;
+                        $stmtInsert->bindValue(':sap_sort_id', $sortId > 0 ? $sortId : null, $sortId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                        $stmtInsert->bindValue(':sap_pos_text', $posText > 0 ? $posText : null, $posText > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    }
                     $stmtInsert->bindValue(':time_per_batch_hours', (float) ($line['time_per_batch_hours'] ?? 0));
                     $timeUnit = strtoupper((string) ($line['time_unit'] ?? 'MIN'));
                     if (!in_array($timeUnit, ['MIN', 'H'], true)) {

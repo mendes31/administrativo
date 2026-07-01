@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostBatchAdoptedHelper;
+use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
+
 /**
  * Drivers de rateio por período (HH, HM) com base na produção (production_date).
  */
@@ -39,39 +42,67 @@ class InvCostPeriodDriversService
             return $empty;
         }
 
+        $periodItemsMap = (new InvCostPeriodItemsRepository())->getMapByPeriod($periodId);
+        $defaultsService = new InvCostPeriodItemDefaultsService();
         $breakdownCache = [];
         $items = [];
 
         foreach ($production['items'] ?? [] as $prodRow) {
             $itemId = (int)($prodRow['inv_item_id'] ?? 0);
-            $batchesCount = max(0, (int)($prodRow['batches_count'] ?? 0));
             $qtyProduced = (float)($prodRow['qty_produced'] ?? 0);
+            $physicalBatches = InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
+                (int)($prodRow['batches_count'] ?? 0)
+            );
+            $catalogBatch = $prodRow['catalog_standard_batch_size'] ?? null;
+
+            $periodItem = $itemId > 0
+                ? $defaultsService->mergeWithDefaults($itemId, $periodItemsMap[$itemId] ?? null)
+                : null;
+            $batchCtx = InvCostBatchAdoptedHelper::resolveProductionContext(
+                $periodItem,
+                $qtyProduced,
+                $physicalBatches,
+                $catalogBatch
+            );
+            $adoptedBatch = (float)$batchCtx['batch_size_adopted'];
+            $batchesProduced = (float)$batchCtx['batches_produced'];
 
             $hhPerBatch = 0.0;
             $hmPerBatch = 0.0;
+            $hmRateioPerBatch = 0.0;
 
-            if ($itemId > 0 && $batchesCount > 0) {
-                if (!isset($breakdownCache[$itemId])) {
-                    $breakdownCache[$itemId] = InventoryCostService::calculateBreakdown($itemId, []);
+            if ($itemId > 0 && $batchesProduced > 0 && $adoptedBatch > 0) {
+                $effRatio = (float)$batchCtx['efficiency_ratio'];
+                $cacheKey = $itemId . ':' . round($adoptedBatch, 4) . ':' . round($effRatio, 4);
+                if (!isset($breakdownCache[$cacheKey])) {
+                    $scenario = ['standard_batch_size' => $adoptedBatch];
+                    if ($effRatio > 0) {
+                        $scenario['production_efficiency_ratio'] = $effRatio;
+                    }
+                    $breakdownCache[$cacheKey] = InventoryCostService::calculateBreakdown($itemId, $scenario);
                 }
-                $hhPerBatch = (float)($breakdownCache[$itemId]['labor_hours'] ?? 0);
-                $hmPerBatch = (float)($breakdownCache[$itemId]['machine_hours'] ?? 0);
+                $hhPerBatch = (float)($breakdownCache[$cacheKey]['rateio_labor_hours'] ?? 0);
+                $hmPerBatch = (float)($breakdownCache[$cacheKey]['machine_hours'] ?? 0);
+                $hmRateioPerBatch = (float)($breakdownCache[$cacheKey]['rateio_machine_hours'] ?? 0);
             }
 
-            $hhPeriod = round($hhPerBatch * $batchesCount, 6);
-            $hmPeriod = round($hmPerBatch * $batchesCount, 6);
+            $hhPeriod = round($hhPerBatch * $batchesProduced, 6);
+            $hmPeriod = round($hmPerBatch * $batchesProduced, 6);
 
             $items[] = [
                 'inv_item_id' => $itemId > 0 ? $itemId : null,
                 'erp_code' => (string)($prodRow['erp_code'] ?? ''),
                 'description' => (string)($prodRow['description'] ?? ''),
                 'qty_produced' => $qtyProduced,
-                'batches_count' => $batchesCount,
-                'efficiency_ratio' => isset($prodRow['efficiency_ratio']) ? (float)$prodRow['efficiency_ratio'] : null,
-                'efficiency_pct' => isset($prodRow['efficiency_pct']) ? (float)$prodRow['efficiency_pct'] : null,
-                'qty_theoretical' => isset($prodRow['qty_theoretical']) ? (float)$prodRow['qty_theoretical'] : null,
+                'batches_count' => (int)($prodRow['batches_count'] ?? 0),
+                'batches_produced' => $batchesProduced,
+                'batch_size_adopted' => $adoptedBatch,
+                'efficiency_ratio' => (float)$batchCtx['efficiency_ratio'],
+                'efficiency_pct' => (float)$batchCtx['efficiency_pct'],
+                'qty_theoretical' => (float)$batchCtx['qty_theoretical'],
                 'hh_per_batch' => round($hhPerBatch, 6),
                 'hm_per_batch' => round($hmPerBatch, 6),
+                'hm_rateio_per_batch' => round($hmRateioPerBatch ?? 0.0, 6),
                 'hh_period' => $hhPeriod,
                 'hm_period' => $hmPeriod,
                 'share_criterion_1' => (float)($prodRow['share_criterion_1'] ?? 0),

@@ -16,6 +16,8 @@ use App\adms\Models\Services\InvCostEnergyRedistributionService;
 use App\adms\Models\Services\InvCostFixedAllocationEngine;
 use App\adms\Models\Services\InvCostPeriodProductionItemsService;
 use App\adms\Models\Services\InvCostPeriodSnapshotService;
+use App\adms\Models\Repository\inventory\InvCostRhDistributionImportsRepository;
+use App\adms\Models\Services\InvCostRhDistributionService;
 use App\adms\Models\Services\InvCostProductionAggregationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -57,6 +59,18 @@ class ViewInvCostPeriod
                 $this->handleApplyEnergySplitPost($periodId);
                 return;
             }
+            if (!empty($_FILES['rh_file']['tmp_name'])) {
+                $this->handleRhImportPost($periodId);
+                return;
+            }
+            if (isset($_POST['rh_lines']) && is_array($_POST['rh_lines'])) {
+                $this->handleRhSavePost($periodId);
+                return;
+            }
+            if (array_key_exists('rh_simulation_increase_pct', $_POST)) {
+                $this->handleRhSimulationPost($periodId);
+                return;
+            }
         }
 
         $poolsRepo = new InvCostExpensePoolsRepository();
@@ -70,7 +84,7 @@ class ViewInvCostPeriod
         $isClosed = (string)($period['status'] ?? '') === 'closed';
         $skuFilter = trim((string)($_GET['sku_filter'] ?? ''));
         $activeTab = (string)($_GET['tab'] ?? 'despesas');
-        if (!in_array($activeTab, ['despesas', 'skus', 'resultados'], true)) {
+        if (!in_array($activeTab, ['despesas', 'rh', 'skus', 'resultados'], true)) {
             $activeTab = 'despesas';
         }
 
@@ -110,6 +124,27 @@ class ViewInvCostPeriod
             $this->data['energy_split_preview'] = null;
             $this->data['energy_pending_total'] = 0.0;
             $this->data['energy_direct_kwh_computed'] = 0.0;
+        }
+
+        $rhService = new InvCostRhDistributionService();
+        if ($activeTab === 'rh') {
+            $this->data['rh_lines'] = $rhService->getLinesForPeriod($periodId);
+            $this->data['rh_imports'] = (new InvCostRhDistributionImportsRepository())->getByPeriod($periodId);
+            $this->data['rh_preview'] = $rhService->buildPreview($periodId, 0.0);
+            $this->data['rh_simulation_preview'] = null;
+            $simPct = (float)($period['rh_simulation_increase_pct'] ?? 0);
+            if ($simPct > 0) {
+                $this->data['rh_simulation_preview'] = (new InvCostFixedAllocationEngine())->allocateByPeriod(
+                    $periodId,
+                    null,
+                    ['rh_simulation' => true]
+                );
+            }
+        } else {
+            $this->data['rh_lines'] = [];
+            $this->data['rh_imports'] = [];
+            $this->data['rh_preview'] = null;
+            $this->data['rh_simulation_preview'] = null;
         }
 
         if ($this->data['snapshot_row_count'] > 0) {
@@ -165,6 +200,9 @@ class ViewInvCostPeriod
                 'SaveInvCostPeriodScenarioProduction',
                 'ExportInvCostPeriodSkuResults',
                 'DownloadInvCostDreTemplate',
+                'ImportInvCostRhDistribution',
+                'SaveInvCostRhDistribution',
+                'DownloadInvCostRhDistributionTemplate',
             ],
         ];
         $pls = new PageLayoutService();
@@ -324,6 +362,102 @@ class ViewInvCostPeriod
         }
 
         $class = $result['success'] ? 'success' : 'danger';
+        $_SESSION['msg'] = "<div class='alert alert-{$class}'>" . htmlspecialchars($result['message']) . '</div>';
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    private function rhRedirect(int $periodId): string
+    {
+        return $_ENV['URL_ADM'] . 'view-inventory-cost-period/' . $periodId . '?tab=rh';
+    }
+
+    private function handleRhImportPost(int $periodId): void
+    {
+        $redirect = $this->rhRedirect($periodId);
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (!CSRFHelper::validateCSRFToken('form_import_inv_cost_rh', $token, false)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger'>Sessão expirada ou token inválido.</div>";
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        if (empty($_FILES['rh_file']['tmp_name']) || !is_uploaded_file($_FILES['rh_file']['tmp_name'])) {
+            $_SESSION['msg'] = "<div class='alert alert-danger'>Selecione um arquivo CSV.</div>";
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $result = (new InvCostRhDistributionService())->importCsvForPeriod(
+            $periodId,
+            $_FILES['rh_file']['tmp_name'],
+            (string)($_FILES['rh_file']['name'] ?? 'rh.csv'),
+            !empty($_POST['replace_previous_rh']),
+            isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+        );
+
+        if ($result['success']) {
+            CSRFHelper::validateCSRFToken('form_import_inv_cost_rh', $token, true);
+            InvCostPeriodSnapshotService::tryRecalculate($periodId);
+        }
+
+        $class = $result['success'] ? 'success' : 'danger';
+        $_SESSION['msg'] = "<div class='alert alert-{$class}'>" . htmlspecialchars($result['message']) . '</div>';
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    private function handleRhSavePost(int $periodId): void
+    {
+        $redirect = $this->rhRedirect($periodId);
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (!CSRFHelper::validateCSRFToken('form_save_inv_cost_rh', $token, false)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger'>Sessão expirada ou token inválido.</div>";
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $result = (new InvCostRhDistributionService())->saveManualForPeriod(
+            $periodId,
+            is_array($_POST['rh_lines'] ?? null) ? $_POST['rh_lines'] : []
+        );
+
+        if ($result['success']) {
+            CSRFHelper::validateCSRFToken('form_save_inv_cost_rh', $token, true);
+            InvCostPeriodSnapshotService::tryRecalculate($periodId);
+        }
+
+        $class = $result['success'] ? 'success' : 'danger';
+        $_SESSION['msg'] = "<div class='alert alert-{$class}'>" . htmlspecialchars($result['message']) . '</div>';
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    private function handleRhSimulationPost(int $periodId): void
+    {
+        $redirect = $this->rhRedirect($periodId);
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (!CSRFHelper::validateCSRFToken('form_rh_simulation_inv_cost', $token, false)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger'>Sessão expirada ou token inválido.</div>";
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $raw = trim((string)($_POST['rh_simulation_increase_pct'] ?? ''));
+        $pct = null;
+        if ($raw !== '') {
+            $raw = str_replace(',', '.', $raw);
+            if (is_numeric($raw)) {
+                $pct = max(0.0, (float)$raw);
+            }
+        }
+
+        $result = (new InvCostRhDistributionService())->saveSimulationIncreasePct($periodId, $pct);
+        if ($result['success']) {
+            CSRFHelper::validateCSRFToken('form_rh_simulation_inv_cost', $token, true);
+        }
+
+        $class = $result['success'] ? 'success' : 'info';
         $_SESSION['msg'] = "<div class='alert alert-{$class}'>" . htmlspecialchars($result['message']) . '</div>';
         header('Location: ' . $redirect);
         exit;

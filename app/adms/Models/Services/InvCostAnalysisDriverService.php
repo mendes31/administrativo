@@ -59,7 +59,7 @@ class InvCostAnalysisDriverService
      *
      * @param float|null $efficiencyRatio Ignorado — mantido por compatibilidade de assinatura.
      */
-    public function analysisCountTotal(int $itemId, int $batchesCount, ?float $efficiencyRatio = null): float
+    public function analysisCountTotal(int $itemId, float $batchesCount, ?float $efficiencyRatio = null): float
     {
         if ($itemId <= 0 || $batchesCount <= 0) {
             return 0.0;
@@ -128,7 +128,7 @@ class InvCostAnalysisDriverService
     /**
      * Número de análises totais no período (linha 2310) — versão legada por qty.
      */
-    public function analysisCountTotalByQty(int $itemId, int $batchesCount): float
+    public function analysisCountTotalByQty(int $itemId, float $batchesCount): float
     {
         if ($itemId <= 0 || $batchesCount <= 0) {
             return 0.0;
@@ -151,7 +151,7 @@ class InvCostAnalysisDriverService
      *
      * @param array<string, mixed>|null $periodItem
      */
-    public function driver6(int $itemId, int $batchesCount, ?array $periodItem, ?float $efficiencyRatio = null): float
+    public function driver6(int $itemId, float $batchesCount, ?array $periodItem, ?float $efficiencyRatio = null): float
     {
         $factor = $this->complexityFactor($periodItem);
         $analyses = $this->analysisCountTotal($itemId, $batchesCount, $efficiencyRatio);
@@ -174,7 +174,7 @@ class InvCostAnalysisDriverService
      */
     public function metricsForItem(
         int $itemId,
-        int $batchesCount,
+        float $batchesCount,
         ?array $periodItem,
         ?float $efficiencyRatio = null
     ): array {

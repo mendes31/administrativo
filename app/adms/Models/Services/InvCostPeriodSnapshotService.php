@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostBatchAdoptedHelper;
 use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Models\Repository\inventory\InvCostExpensePoolsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodSkuSnapshotsRepository;
@@ -114,12 +115,21 @@ class InvCostPeriodSnapshotService
             $cvarSimUnit = null;
             $cvarEnergyUnit = null;
             $cvarMpUnit = null;
+            $cvarMaeUnit = null;
+            $cvarPeriodTotal = null;
             $cfixTotal = 0.0;
             $cfixUnit = null;
+            $cfixPeriodTotal = null;
             $fullCostUnit = null;
+            $fullCostPeriodTotal = null;
+            $salePriceNet = isset($row['sale_price_net']) && $row['sale_price_net'] !== null && $row['sale_price_net'] !== ''
+                ? (float)$row['sale_price_net']
+                : null;
+            $markupPct = null;
+            $costingBatchSize = $this->resolveCostingBatchSize($row);
 
             if ($itemId > 0) {
-                $scenario = [];
+                $scenario = ['standard_batch_size' => $costingBatchSize];
                 if ($effRatio !== null && $effRatio > 0) {
                     $scenario['production_efficiency_ratio'] = $effRatio;
                 }
@@ -128,24 +138,45 @@ class InvCostPeriodSnapshotService
                 }
 
                 $breakdown = InventoryCostService::calculateBreakdown($itemId, $scenario);
-                $cvarSimUnit = (float)($breakdown['simulated_total'] ?? 0);
-                $cvarEnergyUnit = (float)($breakdown['simulated_cvar_energy_cost'] ?? 0);
                 $cvarMpUnit = (float)($breakdown['simulated_cvar_mp_cost'] ?? 0);
+                $cvarMaeUnit = (float)($breakdown['simulated_cvar_mae_cost'] ?? 0);
+                $cvarEnergyUnit = (float)($breakdown['simulated_cvar_energy_cost'] ?? 0);
+                $cvarSimUnit = round($cvarMpUnit + $cvarMaeUnit + $cvarEnergyUnit, 6);
+
+                if ($qty > 0) {
+                    $cvarPeriodTotal = round($cvarSimUnit * $qty, 4);
+                }
 
                 $cfixTotal = (float)($byItemCfix[$itemId]['cfix_total'] ?? 0);
+                $cfixPeriodTotal = $cfixTotal > 0 ? round($cfixTotal, 4) : 0.0;
                 $cfixUnit = ($cfixTotal > 0 && $qty > 0)
                     ? round($cfixTotal / $qty, 6)
                     : ($cfixTotal > 0 ? null : 0.0);
-                $fullCostUnit = round($cvarSimUnit + $cvarEnergyUnit + (float)($cfixUnit ?? 0), 6);
+                $fullCostUnit = round($cvarSimUnit + (float)($cfixUnit ?? 0), 6);
+
+                if ($qty > 0) {
+                    $fullCostPeriodTotal = round($fullCostUnit * $qty, 4);
+                }
+
+                if ($salePriceNet !== null && $salePriceNet > 0 && $fullCostUnit !== null && $fullCostUnit > 0) {
+                    $markupPct = round((($salePriceNet - $fullCostUnit) / $fullCostUnit) * 100, 4);
+                }
             }
 
             $snapshotRows[] = array_merge($row, [
                 'cvar_sim_unit' => $cvarSimUnit,
                 'cvar_mp_unit' => $cvarMpUnit,
+                'cvar_mae_unit' => $cvarMaeUnit,
                 'cvar_energy_unit' => $cvarEnergyUnit,
+                'costing_batch_size' => $costingBatchSize,
+                'cvar_batch' => $cvarPeriodTotal,
                 'cfix_total' => round($cfixTotal, 4),
                 'cfix_unit' => $cfixUnit,
+                'cfix_batch' => $cfixPeriodTotal,
                 'full_cost_unit' => $fullCostUnit,
+                'full_cost_batch' => $fullCostPeriodTotal,
+                'sale_price_net' => $salePriceNet,
+                'markup_pct' => $markupPct,
                 'computed_at' => $computedAt,
             ]);
         }
@@ -227,6 +258,59 @@ class InvCostPeriodSnapshotService
     private function mapRecordToView(array $record): array
     {
         $itemId = (int)($record['inv_item_id'] ?? 0);
+        $batchSize = $this->toNullableFloat($record['standard_batch_size'] ?? null);
+        $qty = $this->toNullableFloat($record['total_qty'] ?? null);
+        $costingBatchSize = $this->toNullableFloat($record['costing_batch_size'] ?? null)
+            ?? $this->resolveCostingBatchSize($record);
+
+        $cvarMp = $this->toNullableFloat($record['cvar_mp_unit'] ?? null);
+        $cvarMae = $this->toNullableFloat($record['cvar_mae_unit'] ?? null);
+        $cvarSim = $this->toNullableFloat($record['cvar_sim_unit'] ?? null);
+        $cvarEnergy = $this->toNullableFloat($record['cvar_energy_unit'] ?? null);
+        $cvarPeriodTotal = $this->toNullableFloat($record['cvar_batch'] ?? null);
+        $cfixUnit = $this->toNullableFloat($record['cfix_unit'] ?? null);
+        $cfixPeriodTotal = $this->toNullableFloat($record['cfix_batch'] ?? null);
+        $fullUnit = $this->toNullableFloat($record['full_cost_unit'] ?? null);
+        $fullPeriodTotal = $this->toNullableFloat($record['full_cost_batch'] ?? null);
+        $salePrice = $this->toNullableFloat($record['sale_price_net'] ?? null);
+        $markup = $this->toNullableFloat($record['markup_pct'] ?? null);
+
+        if ($cvarSim === null && $cvarMp !== null) {
+            $cvarSim = round($cvarMp + (float)($cvarMae ?? 0) + (float)($cvarEnergy ?? 0), 6);
+        }
+
+        if ($qty !== null && $qty > 0) {
+            if ($cvarPeriodTotal === null && $cvarSim !== null) {
+                $cvarPeriodTotal = round($cvarSim * $qty, 4);
+            }
+            if ($cfixPeriodTotal === null && $cfixUnit !== null) {
+                $cfixPeriodTotal = round($cfixUnit * $qty, 4);
+            }
+            if ($fullPeriodTotal === null && $fullUnit !== null) {
+                $fullPeriodTotal = round($fullUnit * $qty, 4);
+            }
+        }
+
+        if ($markup === null && $salePrice !== null && $salePrice > 0 && $fullUnit !== null && $fullUnit > 0) {
+            $markup = round((($salePrice - $fullUnit) / $fullUnit) * 100, 4);
+        }
+
+        $adoptedBatch = $this->toNullableFloat($record['batch_size_adopted'] ?? null);
+        $avgPerRound = $this->toNullableFloat($record['qty_avg_per_round'] ?? null);
+        $batchesProduced = $this->toNullableFloat($record['batches_produced'] ?? null);
+        if ($adoptedBatch === null && $qty !== null && $qty > 0) {
+            $ctx = InvCostBatchAdoptedHelper::resolveProductionContext(
+                ['batch_size_theoretical' => InvCostBatchAdoptedHelper::theoreticalFixedFromCatalog($batchSize)],
+                $qty,
+                InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
+                    (int)($record['batches_count'] ?? 0)
+                ),
+                $batchSize
+            );
+            $adoptedBatch = (float)$ctx['batch_size_adopted'];
+            $avgPerRound = $this->toNullableFloat($ctx['qty_avg_per_round'] ?? null);
+            $batchesProduced = (float)$ctx['batches_produced'];
+        }
 
         return [
             'inv_item_id' => $itemId > 0 ? $itemId : null,
@@ -242,7 +326,11 @@ class InvCostPeriodSnapshotService
             'qty_planned' => $this->toNullableFloat($record['qty_planned'] ?? null),
             'efficiency_ratio' => $this->toNullableFloat($record['efficiency_ratio'] ?? null),
             'efficiency_pct' => $this->toNullableFloat($record['efficiency_pct'] ?? null),
-            'standard_batch_size' => $this->toNullableFloat($record['standard_batch_size'] ?? null),
+            'standard_batch_size' => InvCostBatchAdoptedHelper::catalogBatchForDisplay($batchSize),
+            'batch_size_adopted' => $adoptedBatch,
+            'qty_avg_per_round' => $avgPerRound,
+            'batches_produced' => $batchesProduced,
+            'costing_batch_size' => $costingBatchSize,
             'energy_class' => (string)($record['energy_class'] ?? ''),
             'complexity_level' => InvCostComplexityHelper::resolveForCosting($record['complexity_level'] ?? null),
             'complexity_factor' => $this->toNullableFloat($record['complexity_factor'] ?? null),
@@ -257,12 +345,21 @@ class InvCostPeriodSnapshotService
             'share_criterion_6' => $this->toNullableFloat($record['share_criterion_6'] ?? null),
             'energy_class_from_item' => !empty($record['energy_class_from_item']),
             'suggested_energy_class' => (string)($record['suggested_energy_class'] ?? ''),
-            'cvar_sim_unit' => $this->toNullableFloat($record['cvar_sim_unit'] ?? null),
-            'cvar_mp_unit' => $this->toNullableFloat($record['cvar_mp_unit'] ?? null),
-            'cvar_energy_unit' => $this->toNullableFloat($record['cvar_energy_unit'] ?? null),
+            'cvar_sim_unit' => $cvarSim,
+            'cvar_mp_unit' => $cvarMp,
+            'cvar_mae_unit' => $cvarMae,
+            'cvar_energy_unit' => $cvarEnergy,
+            'cvar_period_total' => $cvarPeriodTotal,
+            'cvar_batch' => $cvarPeriodTotal,
             'cfix_total' => $this->toNullableFloat($record['cfix_total'] ?? null),
-            'cfix_unit' => $this->toNullableFloat($record['cfix_unit'] ?? null),
-            'full_cost_unit' => $this->toNullableFloat($record['full_cost_unit'] ?? null),
+            'cfix_unit' => $cfixUnit,
+            'cfix_period_total' => $cfixPeriodTotal,
+            'cfix_batch' => $cfixPeriodTotal,
+            'full_cost_unit' => $fullUnit,
+            'full_cost_period_total' => $fullPeriodTotal,
+            'full_cost_batch' => $fullPeriodTotal,
+            'sale_price_net' => $salePrice,
+            'markup_pct' => $markup,
             'snapshot_computed_at' => $record['computed_at'] ?? null,
         ];
     }
@@ -311,5 +408,15 @@ class InvCostPeriodSnapshotService
         }
 
         return is_numeric($value) ? (float)$value : null;
+    }
+
+    /**
+     * Divisor do CVAR/un. na BOM (unidade comercial = 1).
+     *
+     * @param array<string, mixed> $row
+     */
+    private function resolveCostingBatchSize(array $row): float
+    {
+        return 1.0;
     }
 }

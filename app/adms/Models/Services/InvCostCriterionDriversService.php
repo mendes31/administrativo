@@ -57,7 +57,7 @@ class InvCostCriterionDriversService
             $driver2 = (float)($baseRow['hh_period'] ?? 0);
             $driver3 = (float)($baseRow['hm_period'] ?? 0);
             $driver4 = (new InvCostAnalysisDriverService())->complexityFactor($periodItem);
-            $batchesCount = max(0, (int)($baseRow['batches_count'] ?? 0));
+            $batchesCount = (float)($baseRow['batches_produced'] ?? $baseRow['batches_count'] ?? 0);
             $efficiencyRatio = isset($baseRow['efficiency_ratio']) ? (float)$baseRow['efficiency_ratio'] : null;
             $qtyProduced = (float)($baseRow['qty_produced'] ?? 0);
             $qtyPlanned = isset($baseRow['qty_theoretical']) ? (float)$baseRow['qty_theoretical'] : null;
@@ -74,14 +74,27 @@ class InvCostCriterionDriversService
             $periodMeta = $periodDrivers['period'] ?? null;
             $hmPerBatch = 0.0;
             if ($itemId > 0) {
-                $hmPerBatch = (float)(InventoryCostService::calculateBreakdown($itemId, [])['machine_hours'] ?? 0);
+                $adoptedBatch = (float)($baseRow['batch_size_adopted'] ?? 0);
+                $effRatio = isset($baseRow['efficiency_ratio']) ? (float)$baseRow['efficiency_ratio'] : null;
+                $bdScenario = [];
+                if ($adoptedBatch > 0) {
+                    $bdScenario['standard_batch_size'] = $adoptedBatch;
+                }
+                if ($effRatio !== null && $effRatio > 0) {
+                    $bdScenario['production_efficiency_ratio'] = $effRatio;
+                }
+                $hmPerBatch = (float)(InventoryCostService::calculateBreakdown($itemId, $bdScenario)['rateio_machine_hours'] ?? 0);
             }
             $driver7 = 0.0;
             if ($itemId > 0 && InvCostProductionLineHelper::isPeriodItemEligibleForDirectEnergy($periodItem)) {
+                $hmForEnergy = (float)($baseRow['hm_rateio_per_batch'] ?? 0);
+                if ($hmForEnergy <= 0) {
+                    $hmForEnergy = $hmPerBatch;
+                }
                 $driver7 = (new InvCostVariableEnergyService())->computePeriodEnergyDriver(
                     $itemId,
                     (float)($baseRow['hm_period'] ?? 0),
-                    $hmPerBatch,
+                    $hmForEnergy,
                     (float)(is_array($periodMeta) ? ($periodMeta['kwh_tariff'] ?? 0) : 0),
                     $periodItem
                 );

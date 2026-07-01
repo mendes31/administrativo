@@ -9,6 +9,7 @@ use App\adms\Helpers\InvCostProjectHelper;
 use App\adms\Models\Repository\inventory\InvInventorySapSyncRunsRepository;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
+use App\adms\Models\Repository\inventory\InvItemRouteConsolidatedRepository;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Repository\inventory\InvPharmaFormsRepository;
@@ -1289,13 +1290,18 @@ class InventorySapSyncService
                 && $storedRouteHash !== ''
                 && hash_equals($storedBomHash, $bomHash)
                 && hash_equals($storedRouteHash, $routeHash)
+                && !$this->needsSapRouteMetadataRefresh($invItemId)
             ) {
+                $this->refreshSapBomComponentCostsFromRows($itemsRepo, $materialSapRows);
                 $this->persistStructureSapMetadata($itemsRepo, $invItemId, $bomHash, $routeHash);
                 $result['success'] = true;
                 $result['unchanged'] = true;
                 $result['lines'] = count($materialSapRows);
                 $result['routes'] = count($routeSapRows);
+                $consolidated = $this->ensureConsolidatedRouteAfterStructure($invItemId);
+                $result['consolidated'] = $consolidated['lines'];
                 $result['message'] = 'Estrutura idêntica ao cadastro local (hash); nenhuma gravação necessária.';
+                $this->applyConsolidatedRouteSyncResult($result, $consolidated, $invItemId);
 
                 return $result;
             }
@@ -1401,6 +1407,11 @@ class InventorySapSyncService
                     if ($sequence <= 0) {
                         $sequence = count($routeLines) + 1;
                     }
+                    $sortId = max(0, (int)$this->toFloat($row['sort_id'] ?? $row['SortId'] ?? $row['SORT_ID'] ?? 0));
+                    $posText = max(0, (int)$this->toFloat($row['pos_text'] ?? $row['POS_TEXT'] ?? 0));
+                    if ($posText <= 0) {
+                        $posText = $sequence;
+                    }
 
                     $tempo = $this->resolveRouteTimeMinutes($row);
                     $resource = trim((string)($row['recurso'] ?? $row['RECURSO'] ?? ''));
@@ -1417,6 +1428,10 @@ class InventorySapSyncService
                     $routeLines[] = [
                         'inv_operation_id' => (int)($operation['id'] ?? 0),
                         'sequence' => $sequence,
+                        'sap_pos_id' => $sequence,
+                        'sap_master_pos_id' => max(0, (int)$this->toFloat($row['master_pos_id'] ?? $row['MASTER_POS_ID'] ?? 0)),
+                        'sap_sort_id' => $sortId > 0 ? $sortId : null,
+                        'sap_pos_text' => $posText > 0 ? $posText : null,
                         'time_per_batch_hours' => max(0, $tempo),
                         'time_unit' => 'MIN',
                         'operators_qty' => 1,
@@ -1443,19 +1458,32 @@ class InventorySapSyncService
                     : ($inactive
                         ? 'Sem BOM/rota no SAP para este item inativo (validFor=N) ou versão BEAS não encontrada.'
                         : 'Sem BOM/rota no SAP para este item na versão BEAS atual.');
+                if ($hasLocal) {
+                    $consolidated = $this->ensureConsolidatedRouteAfterStructure($invItemId);
+                    $result['consolidated'] = $consolidated['lines'];
+                    $this->applyConsolidatedRouteSyncResult($result, $consolidated, $invItemId);
+                }
 
                 return $result;
             }
 
             $bomRepo = new InvItemBomRepository();
             $opsRepo = new InvItemOperationsRepository();
-            if ($bomRepo->structureLinesMatch($invItemId, $bomLines) && $opsRepo->structureLinesMatch($invItemId, $routeLines)) {
+            $metadataRefresh = $this->needsSapRouteMetadataRefresh($invItemId);
+            if (
+                !$metadataRefresh
+                && $bomRepo->structureLinesMatch($invItemId, $bomLines)
+                && $opsRepo->structureLinesMatch($invItemId, $routeLines)
+            ) {
                 $this->persistStructureSapMetadata($itemsRepo, $invItemId, $bomHash, $routeHash);
                 $result['success'] = true;
                 $result['unchanged'] = true;
                 $result['lines'] = count($bomLines);
                 $result['routes'] = count($routeLines);
                 $result['message'] = 'Estrutura idêntica ao cadastro local; nenhuma gravação necessária.';
+                $consolidated = $this->ensureConsolidatedRouteAfterStructure($invItemId);
+                $result['consolidated'] = $consolidated['lines'];
+                $this->applyConsolidatedRouteSyncResult($result, $consolidated, $invItemId);
 
                 return $result;
             }
@@ -1465,18 +1493,24 @@ class InventorySapSyncService
                 $result['message'] = 'Falha ao gravar lista de materiais no banco local.';
                 return $result;
             }
+            require_once __DIR__ . '/../../Views/inventory/partials/sap_pos_display.php';
+            usort($routeLines, 'invSapCompareRouteLines');
             $okRoute = $opsRepo->replaceForItem($invItemId, $routeLines);
             if (!$okRoute) {
                 $result['message'] = 'Falha ao gravar rota no banco local.';
                 return $result;
             }
 
+            $consolidated = $this->ensureConsolidatedRouteAfterStructure($invItemId, true);
+            $result['consolidated'] = $consolidated['lines'];
+
+            $this->refreshSapBomComponentCostsFromRows($itemsRepo, $materialSapRows);
             InventoryCostService::recalculateStandardCost($invItemId);
             $this->persistStructureSapMetadata($itemsRepo, $invItemId, $bomHash, $routeHash);
             $result['success'] = true;
             $result['lines'] = count($bomLines);
             $result['routes'] = count($routeLines);
-            $result['message'] = "Estrutura sincronizada com sucesso. Componentes: {$result['lines']} | Operações: {$result['routes']}.";
+            $result['message'] = "Estrutura sincronizada com sucesso. Componentes: {$result['lines']} | Operações: {$result['routes']} | Rota consolidada: {$result['consolidated']} grupos.";
             return $result;
         } catch (Throwable $e) {
             $result['message'] = 'Falha na sincronização da estrutura SAP: ' . $this->formatSyncErrorMessage($e->getMessage());
@@ -1706,7 +1740,7 @@ class InventorySapSyncService
             . $this->sapCoalesceStringSelectExpression($alias, 'InvntryUom') . ', '
             . 'COALESCE(' . $alias . '."validFor", \'Y\') AS "validFor", '
             . $alias . '."ItmsGrpCod", '
-            . $alias . '."AvgPrice", '
+            . $this->sapResolvedAvgPriceSelectExpression($alias) . ', '
             . $this->sapOitmUpdateDateSelectExpression($alias) . ', '
             . 'COALESCE(' . $alias . '."U_FormaFarma", \'\') AS "U_FormaFarma", '
             . 'COALESCE(' . $alias . '."U_LinhaProduto", \'\') AS "U_LinhaProduto", '
@@ -1873,7 +1907,7 @@ class InventorySapSyncService
                 . $this->sapCoalesceStringSelectExpression($alias, 'InvntryUom') . ', '
                 . 'COALESCE(' . $alias . '."validFor", \'Y\') AS "validFor", '
                 . $alias . '."ItmsGrpCod", '
-                . $alias . '."AvgPrice", '
+                . $this->sapResolvedAvgPriceSelectExpression($alias) . ', '
                 . $alias . '."MinOrdrQty", '
                 . $alias . '."MinLevel", '
                 . $alias . '."MaxLevel", '
@@ -1902,7 +1936,7 @@ class InventorySapSyncService
             return null;
         }
 
-        $where = 'FROM OITM T0 WHERE T0."ItemCode" = \'' . $safeCode . '\''
+        $where = $this->sapOitmCatalogFromSql('T0') . ' WHERE T0."ItemCode" = \'' . $safeCode . '\''
             . $this->sapAllowedGroupsWhereSql('T0');
 
         try {
@@ -1993,14 +2027,14 @@ class InventorySapSyncService
             . 'T0."ItemCode", '
             . 'COALESCE(T0."ItemName", \'\') AS "ItemName", '
             . 'COALESCE(T0."InvntryUom", \'\') AS "InvntryUom", '
-            . 'T0."AvgPrice", '
+            . $this->sapResolvedAvgPriceSelectExpression('T0') . ', '
             . 'COALESCE(T0."validFor", \'Y\') AS "validFor", '
             . 'COALESCE(T0."U_FormaFarma", \'\') AS "U_FormaFarma", '
             . 'COALESCE(T0."U_LinhaProduto", \'\') AS "U_LinhaProduto", '
             . 'COALESCE(T0."U_ClasseHvac", \'\') AS "U_ClasseHvac", '
             . 'COALESCE(T0."U_Complexidade", \'\') AS "U_Complexidade", '
             . 'T1."ItmsGrpNam" AS "ItemGroupName" '
-            . 'FROM OITM T0 '
+            . $this->sapOitmCatalogFromSql('T0') . ' '
             . 'LEFT JOIN OITB T1 ON T1."ItmsGrpCod" = T0."ItmsGrpCod" '
             . $where
             . ' ORDER BY T0."ItemCode"';
@@ -2382,7 +2416,7 @@ class InventorySapSyncService
         }
 
         $sql = 'SELECT ' . $this->sapOitmCatalogSelectColumns('T0') . ' '
-            . 'FROM OITM T0 '
+            . $this->sapOitmCatalogFromSql('T0') . ' '
             . 'WHERE T0."ItemCode" = \'' . $safeCode . '\''
             . $this->sapAllowedGroupsWhereSql('T0')
             . ' LIMIT 1';
@@ -2817,7 +2851,8 @@ class InventorySapSyncService
         }
 
         $sql = 'SELECT ' . $this->sapOitmCatalogSelectColumns('T0') . ' '
-            . 'FROM OITM T0 WHERE T0."ItemCode" = \'' . $safeCode . '\''
+            . $this->sapOitmCatalogFromSql('T0') . ' '
+            . 'WHERE T0."ItemCode" = \'' . $safeCode . '\''
             . $this->sapAllowedGroupsWhereSql('T0')
             . ' LIMIT 1';
 
@@ -3046,7 +3081,7 @@ class InventorySapSyncService
         }
 
         $sql = 'SELECT ' . $this->sapOitmCatalogSelectColumns('T0') . ' '
-            . 'FROM OITM T0 '
+            . $this->sapOitmCatalogFromSql('T0') . ' '
             . 'WHERE 1=1' . $this->sapAllowedGroupsWhereSql('T0') . $groupFilter . $dateFilter . $afterClause . ' '
             . 'ORDER BY T0."ItemCode" '
             . 'LIMIT ' . $limit;
@@ -3427,10 +3462,37 @@ class InventorySapSyncService
             . 'AND W."WhsCode" = ' . $warehouseCase . ' ';
     }
 
+    /** Depósito padrão do componente (T2), não do item pai (I) — custo OITW fica por item/depósito. */
+    private function sapBomComponentDefaultWhColumn(): string
+    {
+        return 'T2."DfltWH"';
+    }
+
+    private function sapBomComponentCostJoinsSql(bool $includeLastCost = false): string
+    {
+        $itemCode = 'S."ART1_ID"';
+        $whColumn = $this->sapBomComponentDefaultWhColumn();
+
+        return $includeLastCost
+            ? $this->sapCostJoinsSql($itemCode, $whColumn)
+            : $this->sapOitwJoinSql($itemCode, $whColumn);
+    }
+
     private function sapCostJoinsSql(string $itemCodeColumn, string $defaultWhColumn): string
     {
         return $this->sapOitwJoinSql($itemCodeColumn, $defaultWhColumn) . ' '
             . $this->sapLastCostJoinSql($itemCodeColumn);
+    }
+
+    private function sapResolvedAvgPriceSelectExpression(string $oitmAlias = 'T0', string $oitwAlias = 'W'): string
+    {
+        return 'TO_DECIMAL(COALESCE(NULLIF(' . $oitwAlias . '."AvgPrice", 0), NULLIF(' . $oitmAlias . '."AvgPrice", 0), 0), 19, 4) AS "AvgPrice"';
+    }
+
+    private function sapOitmCatalogFromSql(string $alias = 'T0'): string
+    {
+        return 'FROM OITM ' . $alias . ' '
+            . $this->sapOitwJoinSql($alias . '."ItemCode"', $alias . '."DfltWH"');
     }
 
     /**
@@ -3457,7 +3519,18 @@ class InventorySapSyncService
     private function fetchStructureRowsFromSap(SapReportApiService $sap, string $parentErpCode): array
     {
         $materialRows = $this->executeSapQueryWithRetry($sap, $this->getSapMaterialsQueryByParentErpCode($parentErpCode), 5);
-        $routeRows = $this->executeSapQueryWithRetry($sap, $this->getSapRouteQueryByParentErpCode($parentErpCode), 5);
+        if ($materialRows === []) {
+            $materialRows = $this->executeSapQueryWithRetry(
+                $sap,
+                $this->getSapMaterialsDirectQueryByParentErpCode($parentErpCode),
+                3
+            );
+        }
+
+        $routeRows = $this->fetchSapRouteRowsWithFallback($sap, $parentErpCode);
+        if ($routeRows === []) {
+            $routeRows = $this->fetchSapRouteDirectWithFallback($sap, $parentErpCode);
+        }
 
         $rows = [];
         foreach ($materialRows as $row) {
@@ -3489,11 +3562,15 @@ class InventorySapSyncService
     {
         $safeCode = str_replace("'", "''", trim($parentErpCode));
         if ($includeLastCost) {
-            $costSelect = $this->sapCostSelectExpression('S."ART1_ID"', 'I."DfltWH"', 'T2."AvgPrice"');
-            $costJoins = $this->sapCostJoinsSql('S."ART1_ID"', 'I."DfltWH"');
+            $costSelect = $this->sapCostSelectExpression(
+                'S."ART1_ID"',
+                $this->sapBomComponentDefaultWhColumn(),
+                'T2."AvgPrice"'
+            );
+            $costJoins = $this->sapBomComponentCostJoinsSql(true);
         } else {
             $costSelect = 'TO_DECIMAL(COALESCE(NULLIF(W."AvgPrice", 0), NULLIF(T2."AvgPrice", 0), 0), 19, 4)';
-            $costJoins = $this->sapOitwJoinSql('S."ART1_ID"', 'I."DfltWH"');
+            $costJoins = $this->sapBomComponentCostJoinsSql(false);
         }
 
         return 'SELECT '
@@ -3518,12 +3595,93 @@ class InventorySapSyncService
             . ' WHERE UPPER(S."DESCRIPTION") NOT LIKE \'%GERADOR DE LOTE%\'';
     }
 
-    private function getSapRouteQueryByParentErpCode(string $parentErpCode): string
+    /**
+     * Fallback quando BEAS_ITEM_VERSION não vincula StlItemCode (ex.: alguns PIs 605xxxxx).
+     */
+    private function getSapMaterialsDirectQueryByParentErpCode(string $parentErpCode): string
     {
         $safeCode = str_replace("'", "''", trim($parentErpCode));
+        $costSelect = 'TO_DECIMAL(COALESCE(NULLIF(W."AvgPrice", 0), NULLIF(T2."AvgPrice", 0), 0), 19, 4)';
+        $costJoins = $this->sapBomComponentCostJoinsSql(false);
+
+        return 'SELECT '
+            . 'S."POS_ID" AS "pos_id", '
+            . 'S."ART1_ID" AS "codigo", '
+            . 'S."DESCRIPTION" AS "descricao", '
+            . 'S."INPUT_QTY" AS "quantidade", '
+            . 'S."MENGE_VERBRAUCH" AS "menge_verbrauch", '
+            . 'S."INPUT_UNIT" AS "unidade_medida", '
+            . 'T2."ItemName" AS "component_item_name", '
+            . 'T2."InvntryUom" AS "component_uom", '
+            . $costSelect . ' AS "component_avg_price", '
+            . 'T3."ItmsGrpNam" AS "component_group_name" '
+            . 'FROM BEAS_STL S '
+            . 'INNER JOIN OITM I ON I."ItemCode" = S."ItemCode" '
+            . 'LEFT JOIN OITM T2 ON T2."ItemCode" = S."ART1_ID" '
+            . 'LEFT JOIN OITB T3 ON T3."ItmsGrpCod" = T2."ItmsGrpCod" '
+            . $costJoins
+            . "WHERE S.\"ItemCode\" = '{$safeCode}' "
+            . ' AND UPPER(S."DESCRIPTION") NOT LIKE \'%GERADOR DE LOTE%\'';
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchSapRouteDirectWithFallback(SapReportApiService $sap, string $parentErpCode): array
+    {
+        try {
+            return $this->executeSapQueryWithRetry(
+                $sap,
+                $this->getSapRouteDirectQueryByParentErpCode($parentErpCode, true),
+                3
+            );
+        } catch (Throwable $first) {
+            if (!$this->isRetryableSapError($first) && !$this->isSapInvalidColumnError($first)) {
+                throw $first;
+            }
+
+            return $this->executeSapQueryWithRetry(
+                $sap,
+                $this->getSapRouteDirectQueryByParentErpCode($parentErpCode, false),
+                2
+            );
+        }
+    }
+
+    private function getSapRouteDirectQueryByParentErpCode(string $parentErpCode, bool $includeMasterPosId = true): string
+    {
+        $safeCode = str_replace("'", "''", trim($parentErpCode));
+        $masterSelect = $includeMasterPosId
+            ? 'CAST(COALESCE(A."MASTER_POS_ID", 0) AS INTEGER) AS "master_pos_id", '
+            : 'CAST(0 AS INTEGER) AS "master_pos_id", ';
 
         return 'SELECT '
             . 'A."POS_ID" AS "pos_id", '
+            . 'CAST(COALESCE(A."POS_TEXT", A."POS_ID", 0) AS INTEGER) AS "pos_text", '
+            . 'CAST(COALESCE(A."SortId", 0) AS INTEGER) AS "sort_id", '
+            . $masterSelect
+            . 'A."AG_ID" AS "codigo", '
+            . 'A."BEZ" AS "descricao", '
+            . 'A."APLATZ_ID" AS "recurso", '
+            . 'A."THAPLATZ" AS "tempo_th", '
+            . 'A."TNAPLATZ" AS "tempo_tn", '
+            . 'A."TEAPLATZ" AS "tempo_te" '
+            . 'FROM BEAS_APL A '
+            . "WHERE A.\"ItemCode\" = '{$safeCode}'";
+    }
+
+    private function getSapRouteQueryByParentErpCode(string $parentErpCode, bool $includeMasterPosId = true): string
+    {
+        $safeCode = str_replace("'", "''", trim($parentErpCode));
+        $masterSelect = $includeMasterPosId
+            ? 'CAST(COALESCE(A."MASTER_POS_ID", 0) AS INTEGER) AS "master_pos_id", '
+            : 'CAST(0 AS INTEGER) AS "master_pos_id", ';
+
+        return 'SELECT '
+            . 'A."POS_ID" AS "pos_id", '
+            . 'CAST(COALESCE(A."POS_TEXT", A."POS_ID", 0) AS INTEGER) AS "pos_text", '
+            . 'CAST(COALESCE(A."SortId", 0) AS INTEGER) AS "sort_id", '
+            . $masterSelect
             . 'A."AG_ID" AS "codigo", '
             . 'A."BEZ" AS "descricao", '
             . 'A."APLATZ_ID" AS "recurso", '
@@ -3535,6 +3693,51 @@ class InventorySapSyncService
             . 'INNER JOIN OITM I ON V."ItemCode" = I."ItemCode" '
             . $this->sapBeasVersionMatchSql('I')
             . "AND I.\"ItemCode\" = '{$safeCode}'";
+    }
+
+    /**
+     * Rota BEAS: tenta com MASTER_POS_ID; em HTTP 500 repete sem a coluna (API/versão antiga).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchSapRouteRowsWithFallback(SapReportApiService $sap, string $parentErpCode): array
+    {
+        try {
+            return $this->executeSapQueryWithRetry(
+                $sap,
+                $this->getSapRouteQueryByParentErpCode($parentErpCode, true),
+                5
+            );
+        } catch (Throwable $first) {
+            if (!$this->isRetryableSapError($first) && !$this->isSapInvalidColumnError($first)) {
+                throw $first;
+            }
+
+            usleep(800000);
+
+            try {
+                return $this->executeSapQueryWithRetry(
+                    $sap,
+                    $this->getSapRouteQueryByParentErpCode($parentErpCode, false),
+                    3
+                );
+            } catch (Throwable $second) {
+                if ($this->isRetryableSapError($second)) {
+                    throw $second;
+                }
+                throw $first;
+            }
+        }
+    }
+
+    private function isSapInvalidColumnError(Throwable $e): bool
+    {
+        $msg = mb_strtolower($e->getMessage(), 'UTF-8');
+
+        return str_contains($msg, 'invalid column')
+            || str_contains($msg, 'unknown column')
+            || str_contains($msg, 'column name')
+            || str_contains($msg, 'master_pos_id');
     }
 
     /**
@@ -3586,6 +3789,19 @@ class InventorySapSyncService
 
             $posA = (int)preg_replace('/\D+/', '', (string)($a['pos_id'] ?? $a['POS_ID'] ?? '0'));
             $posB = (int)preg_replace('/\D+/', '', (string)($b['pos_id'] ?? $b['POS_ID'] ?? '0'));
+            if ($tipoA === 'ROTA' && $tipoB === 'ROTA') {
+                $sortA = (int)($a['sort_id'] ?? $a['SortId'] ?? $a['SORT_ID'] ?? 0);
+                $sortB = (int)($b['sort_id'] ?? $b['SortId'] ?? $b['SORT_ID'] ?? 0);
+                if ($sortA > 0 && $sortB > 0 && $sortA !== $sortB) {
+                    return $sortA <=> $sortB;
+                }
+                if ($sortA > 0 && $sortB <= 0) {
+                    return -1;
+                }
+                if ($sortB > 0 && $sortA <= 0) {
+                    return 1;
+                }
+            }
 
             return $posA <=> $posB;
         });
@@ -3742,6 +3958,33 @@ class InventorySapSyncService
         ]);
     }
 
+    /**
+     * Atualiza custo médio dos componentes a partir das linhas SAP (mesmo quando a BOM não mudou).
+     *
+     * @param list<array<string, mixed>> $materialSapRows
+     */
+    private function refreshSapBomComponentCostsFromRows(InvItemsRepository $itemsRepo, array $materialSapRows): void
+    {
+        foreach ($materialSapRows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $erpCode = trim((string)($row['codigo'] ?? $row['CODIGO'] ?? ''));
+            if ($erpCode === '') {
+                continue;
+            }
+            $sapCost = $this->extractComponentCostFromRow($row);
+            if ($sapCost <= 0) {
+                continue;
+            }
+            $component = $itemsRepo->findByErpCode($erpCode);
+            if ($component === null) {
+                continue;
+            }
+            $this->updateItemCostFromSap($itemsRepo, $component, $sapCost);
+        }
+    }
+
     private function normalizeCategoryName(string $sapGroupName): string
     {
         $name = trim($sapGroupName);
@@ -3840,6 +4083,9 @@ class InventorySapSyncService
         foreach ($rows as $row) {
             $lines[] = [
                 'pos_id' => trim((string)($row['pos_id'] ?? $row['POS_ID'] ?? '')),
+                'pos_text' => trim((string)($row['pos_text'] ?? $row['POS_TEXT'] ?? '')),
+                'sort_id' => trim((string)($row['sort_id'] ?? $row['SortId'] ?? $row['SORT_ID'] ?? '')),
+                'master_pos_id' => trim((string)($row['master_pos_id'] ?? $row['MASTER_POS_ID'] ?? '')),
                 'codigo' => trim((string)($row['codigo'] ?? $row['AG_ID'] ?? '')),
                 'descricao' => trim((string)($row['descricao'] ?? $row['BEZ'] ?? '')),
                 'recurso' => trim((string)($row['recurso'] ?? $row['APLATZ_ID'] ?? '')),
@@ -3850,6 +4096,18 @@ class InventorySapSyncService
         }
 
         usort($lines, static function (array $a, array $b): int {
+            $sortA = (int)($a['sort_id'] ?? 0);
+            $sortB = (int)($b['sort_id'] ?? 0);
+            if ($sortA > 0 && $sortB > 0 && $sortA !== $sortB) {
+                return $sortA <=> $sortB;
+            }
+            if ($sortA > 0 && $sortB <= 0) {
+                return -1;
+            }
+            if ($sortB > 0 && $sortA <= 0) {
+                return 1;
+            }
+
             $pos = strcmp((string)$a['pos_id'], (string)$b['pos_id']);
             if ($pos !== 0) {
                 return $pos;
@@ -3858,7 +4116,65 @@ class InventorySapSyncService
             return strcmp((string)$a['codigo'], (string)$b['codigo']);
         });
 
-        return $this->encodeHashPayload($lines);
+        return $this->encodeHashPayload(['v' => 2, 'lines' => $lines]);
+    }
+
+    /**
+     * Força nova gravação quando colunas SortId/POS_TEXT existem mas ainda não foram populadas.
+     */
+    private function needsSapRouteMetadataRefresh(int $invItemId): bool
+    {
+        $opsRepo = new InvItemOperationsRepository();
+        if (!$opsRepo->hasSapSortPosTextColumns()) {
+            return false;
+        }
+
+        $localOps = $opsRepo->getByItem($invItemId);
+        foreach ($localOps as $line) {
+            if ((int)($line['sap_pos_id'] ?? 0) <= 0) {
+                continue;
+            }
+            if (empty($line['sap_sort_id']) || empty($line['sap_pos_text'])) {
+                return true;
+            }
+        }
+
+        $consRepo = new InvItemRouteConsolidatedRepository();
+        if (!$consRepo->hasSapGroupPosTextColumn() || !$consRepo->hasForItem($invItemId)) {
+            return false;
+        }
+
+        foreach ($consRepo->getByItem($invItemId) as $line) {
+            if ((int)($line['sap_group_pos_id'] ?? 0) > 0 && empty($line['sap_group_pos_text'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{created: bool, lines: int}
+     */
+    private function ensureConsolidatedRouteAfterStructure(int $invItemId, bool $forceRegenerate = false): array
+    {
+        return (new InvRouteConsolidationService())->ensureForItem($invItemId, $forceRegenerate);
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     * @param array{created: bool, lines: int} $consolidated
+     */
+    private function applyConsolidatedRouteSyncResult(array &$result, array $consolidated, int $invItemId): void
+    {
+        if (empty($consolidated['created'])) {
+            return;
+        }
+
+        InventoryCostService::recalculateStandardCost($invItemId);
+        $groups = (int)($consolidated['lines'] ?? 0);
+        $result['message'] = trim((string)($result['message'] ?? ''))
+            . " Rota consolidada gerada automaticamente ({$groups} grupos).";
     }
 
     /**
@@ -3930,6 +4246,12 @@ class InventorySapSyncService
             'sap_update_date' => $sapUpdateDate,
             'active' => $active,
         ];
+
+        $sapCost = $this->extractSapCost($row);
+        if ($sapCost > 0 && (float)($payload['average_cost'] ?? 0) <= 0) {
+            $payload['average_cost'] = $sapCost;
+            $payload['last_cost'] = $sapCost;
+        }
 
         $changed = false;
         if ($this->itemPayloadDiffersFromExisting($existing, $payload)) {

@@ -176,4 +176,26 @@ class InvCostPeriodsRepository extends DbConnection
 
         return $stmt->execute();
     }
+
+    public function updateRhSimulationIncreasePct(int $periodId, ?float $pct): bool
+    {
+        if ($periodId <= 0) {
+            return false;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE inv_cost_periods
+             SET rh_simulation_increase_pct = :pct, updated_at = :updated_at
+             WHERE id = :id'
+        );
+        $stmt->bindValue(':id', $periodId, PDO::PARAM_INT);
+        if ($pct === null || $pct <= 0) {
+            $stmt->bindValue(':pct', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':pct', round($pct, 4));
+        }
+        $stmt->bindValue(':updated_at', date('Y-m-d H:i:s'));
+
+        return $stmt->execute();
+    }
 }

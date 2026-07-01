@@ -24,37 +24,82 @@ class InvCostVariableEnergyService
         $kwhPerBatch = 0.0;
         $details = [];
 
+        require_once __DIR__ . '/../../Views/inventory/partials/operation_metrics.php';
+
         foreach ($operationRows as $op) {
             $rawTime = (float)($op['time_per_batch_hours'] ?? 0);
             $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
             $timeMinutes = $timeUnit === 'H' ? $rawTime * 60.0 : $rawTime;
-            $timeHours = $timeMinutes / 60.0;
-            if ($timeHours <= 0) {
+            if ($timeMinutes <= 0) {
                 continue;
             }
 
-            $opKw = $this->resolveOperationPowerKw($op);
-            $energyEcpm = $this->resolveOperationEnergyEcpmPerMin($op);
-            if ($opKw <= 0 && $energyEcpm <= 0) {
-                continue;
+            $resourceLines = is_array($op['resource_lines'] ?? null) ? $op['resource_lines'] : [];
+            $opKwh = 0.0;
+            $opKwTotal = 0.0;
+            $opHoursTotal = 0.0;
+
+            if ($resourceLines !== []) {
+                foreach ($resourceLines as $res) {
+                    if ($this->isLaborResource($res)) {
+                        continue;
+                    }
+                    $resId = (int)($res['inv_production_resource_id'] ?? 0);
+                    if ($resId <= 0) {
+                        continue;
+                    }
+                    $qty = max(1, (int)($res['qty'] ?? 1));
+                    $lineMin = invResolveLineTimeMinutes(
+                        isset($res['line_time_minutes']) && $res['line_time_minutes'] !== null && $res['line_time_minutes'] !== ''
+                            ? (float)$res['line_time_minutes']
+                            : null,
+                        $timeMinutes
+                    );
+                    $lineHours = $lineMin / 60.0;
+                    if ($lineHours <= 0) {
+                        continue;
+                    }
+                    $resKw = $qty * max(0.0, (float)($res['power_kw'] ?? 0));
+                    $energyEcpm = $qty * max(0.0, (float)($res['energy_cost_per_min'] ?? 0));
+                    if ($resKw > 0) {
+                        $opKwh += $lineHours * $resKw;
+                        $opKwTotal += $resKw;
+                        $opHoursTotal += $lineHours;
+                    } elseif ($kwhTariff > 0 && $energyEcpm > 0) {
+                        $lineKwh = ($lineMin * $energyEcpm) / $kwhTariff;
+                        $opKwh += $lineKwh;
+                        $opKwTotal += $lineHours > 0 ? $lineKwh / $lineHours : 0.0;
+                        $opHoursTotal += $lineHours;
+                    }
+                }
             }
 
-            if ($opKw > 0) {
-                $opKwh = $timeHours * $opKw;
-                $effectiveKw = $opKw;
-            } elseif ($kwhTariff > 0) {
-                $opKwh = ($timeMinutes * $energyEcpm) / $kwhTariff;
-                $effectiveKw = $timeHours > 0 ? $opKwh / $timeHours : 0.0;
-            } else {
-                continue;
+            if ($opKwh <= 0) {
+                $timeHours = $timeMinutes / 60.0;
+                $opKw = $this->resolveOperationPowerKw($op);
+                $energyEcpm = $this->resolveOperationEnergyEcpmPerMin($op);
+                if ($opKw <= 0 && $energyEcpm <= 0) {
+                    continue;
+                }
+                if ($opKw > 0) {
+                    $opKwh = $timeHours * $opKw;
+                    $opKwTotal = $opKw;
+                    $opHoursTotal = $timeHours;
+                } elseif ($kwhTariff > 0) {
+                    $opKwh = ($timeMinutes * $energyEcpm) / $kwhTariff;
+                    $opKwTotal = $timeHours > 0 ? $opKwh / $timeHours : 0.0;
+                    $opHoursTotal = $timeHours;
+                } else {
+                    continue;
+                }
             }
 
             $kwhPerBatch += $opKwh;
             $details[] = [
                 'operation_code' => (string)($op['operation_code'] ?? ''),
                 'operation_name' => (string)($op['operation_name'] ?? ''),
-                'time_hours' => round($timeHours, 6),
-                'power_kw' => round($effectiveKw, 6),
+                'time_hours' => round($opHoursTotal > 0 ? $opHoursTotal : ($timeMinutes / 60.0), 6),
+                'power_kw' => round($opKwTotal, 6),
                 'kwh' => round($opKwh, 6),
             ];
         }
@@ -72,7 +117,7 @@ class InvCostVariableEnergyService
         }
 
         $opsRepo = new InvItemOperationsRepository();
-        $operations = $opsRepo->getByItem($itemId);
+        $operations = $opsRepo->getByItemForCosting($itemId);
 
         return $this->computeKwhFromOperationRows($operations, $kwhTariff)['kwh_per_batch'];
     }
@@ -113,7 +158,7 @@ class InvCostVariableEnergyService
         }
 
         if ($operationRows === null) {
-            $operationRows = (new InvItemOperationsRepository())->getByItem($itemId);
+            $operationRows = (new InvItemOperationsRepository())->getByItemForCosting($itemId);
         }
 
         $kwhData = $this->computeKwhFromOperationRows($operationRows, $kwhTariff);

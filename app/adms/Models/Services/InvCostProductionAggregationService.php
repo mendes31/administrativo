@@ -2,6 +2,8 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostBatchAdoptedHelper;
+use App\adms\Models\Repository\inventory\InvCostPeriodItemsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodsRepository;
 use App\adms\Models\Repository\inventory\InvCostPeriodScenarioProductionRepository;
 use PDO;
@@ -64,28 +66,37 @@ class InvCostProductionAggregationService extends DbConnection
 
         usort($items, static fn(array $a, array $b): int => ((float)($b['qty_produced'] ?? 0)) <=> ((float)($a['qty_produced'] ?? 0)));
 
-        $efficiencyService = new InvCostProductionEfficiencyService();
+        $periodItemsMap = (new InvCostPeriodItemsRepository())->getMapByPeriod($periodId);
+        $defaultsService = new InvCostPeriodItemDefaultsService();
+
         foreach ($items as &$item) {
-            $itemId = $item['inv_item_id'] !== null ? (int)$item['inv_item_id'] : null;
-            $eff = $efficiencyService->aggregateForItemInPeriod(
-                $itemId,
-                (string)($item['erp_code'] ?? ''),
-                (string)$period['date_from'],
-                (string)$period['date_to'],
-                $normalizedWarehouses,
-                $periodId
+            $itemId = $item['inv_item_id'] !== null ? (int)$item['inv_item_id'] : 0;
+            $qty = (float)($item['qty_produced'] ?? 0);
+            $physicalBatches = InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
+                (int)($item['batches_count'] ?? 0)
             );
-            if ($eff !== null) {
-                $item['efficiency_ratio'] = $eff['efficiency_ratio'];
-                $item['efficiency_pct'] = $eff['efficiency_pct'];
-                $item['min_batch_size'] = $eff['min_batch_size'];
-                $item['qty_theoretical'] = $eff['qty_theoretical'];
-            } else {
-                $item['efficiency_ratio'] = null;
-                $item['efficiency_pct'] = null;
-                $item['min_batch_size'] = null;
-                $item['qty_theoretical'] = null;
+            $catalogBatch = $item['catalog_standard_batch_size'] ?? null;
+
+            $periodItem = null;
+            if ($itemId > 0) {
+                $saved = $periodItemsMap[$itemId] ?? null;
+                $periodItem = $defaultsService->mergeWithDefaults($itemId, is_array($saved) ? $saved : null);
             }
+
+            $ctx = InvCostBatchAdoptedHelper::resolveProductionContext(
+                $periodItem,
+                $qty,
+                $physicalBatches,
+                $catalogBatch
+            );
+            $item['efficiency_ratio'] = $ctx['efficiency_ratio'];
+            $item['efficiency_pct'] = $ctx['efficiency_pct'];
+            $item['min_batch_size'] = $ctx['batch_size_adopted'];
+            $item['qty_planned'] = $ctx['qty_planned'];
+            $item['qty_theoretical'] = $ctx['qty_planned'];
+            $item['qty_avg_per_round'] = $ctx['qty_avg_per_round'];
+            $item['batch_size_adopted'] = $ctx['batch_size_adopted'];
+            $item['batches_produced'] = $ctx['batches_produced'];
         }
         unset($item);
 
@@ -222,11 +233,13 @@ class InvCostProductionAggregationService extends DbConnection
                     b.erp_code,
                     MAX(b.item_description) AS description,
                     MAX(b.inv_item_id) AS inv_item_id,
+                    MAX(i.standard_batch_size) AS catalog_standard_batch_size,
                     SUM(b.quantity) AS qty_produced,
                     COUNT(*) AS batches_count,
                     COUNT(DISTINCT b.batch_number) AS distinct_batch_numbers,
                     COUNT(DISTINCT b.goods_receipt_doc_num) AS entries_count
                 FROM inv_cost_production_batches b
+                LEFT JOIN inv_items i ON i.id = b.inv_item_id
                 WHERE b.production_date BETWEEN :date_from AND :date_to
                 {$warehouseSql}
                 GROUP BY b.erp_code
@@ -245,7 +258,10 @@ class InvCostProductionAggregationService extends DbConnection
             $row['qty_produced'] = round((float)($row['qty_produced'] ?? 0), 6);
             $row['batches_count'] = (int)($row['batches_count'] ?? 0);
             $row['entries_count'] = (int)($row['entries_count'] ?? 0);
+            $row['distinct_batch_numbers'] = (int)($row['distinct_batch_numbers'] ?? 0);
             $row['inv_item_id'] = $row['inv_item_id'] !== null ? (int)$row['inv_item_id'] : null;
+            $catalogBatch = $row['catalog_standard_batch_size'] ?? null;
+            $row['catalog_standard_batch_size'] = is_numeric($catalogBatch) ? (float)$catalogBatch : null;
 
             return $row;
         }, $rows);

@@ -221,6 +221,7 @@ $truncate = static function (string $text, int $max = 42): string {
           <div class="tab-pane fade" id="view-pane-route" role="tabpanel">
             <?php
             require_once __DIR__ . '/../partials/operation_metrics.php';
+            require_once __DIR__ . '/../partials/sap_pos_display.php';
             include __DIR__ . '/../partials/inv_route_resource_type_labels.php';
             include __DIR__ . '/../partials/inv_route_operations_style.php';
             ?>
@@ -232,7 +233,9 @@ $truncate = static function (string $text, int $max = 42): string {
                   <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllViewRouteSubs(true)"><i class="fa-solid fa-angles-down me-1"></i> Expandir subníveis</button>
                   <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllViewRouteSubs(false)"><i class="fa-solid fa-angles-up me-1"></i> Recolher subníveis</button>
                 </div>
-                <?php foreach ($operations as $opIdx => $op):
+                <?php
+                $sapPosTextMap = invBuildSapPosTextMap($operations);
+                foreach ($operations as $opIdx => $op):
                   $metrics = invOperationMetrics($op);
                   $resourceLines = $op['resource_lines'] ?? [];
                   $laborLines = $op['labor_lines'] ?? [];
@@ -241,6 +244,18 @@ $truncate = static function (string $text, int $max = 42): string {
                   if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
                       $sapResource = trim($m[1]);
                   }
+                  $sapPos = (int)($op['sap_pos_id'] ?? 0);
+                  if ($sapPos <= 0) {
+                      $sapPos = (int)($op['sequence'] ?? 0);
+                  }
+                  $sapPosDisplay = (int)($op['sap_pos_text'] ?? 0);
+                  if ($sapPosDisplay <= 0) {
+                      $sapPosDisplay = invSapResolvePosText($sapPos, $sapPosTextMap);
+                  }
+                  $sapMaster = (int)($op['sap_master_pos_id'] ?? 0);
+                  $sapMasterDisplay = $sapMaster > 0
+                      ? invSapResolvePosText($sapMaster, $sapPosTextMap)
+                      : 0;
                   $timeValue = (float)($op['time_per_batch_hours'] ?? 0);
                   $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
                   if (!in_array($timeUnit, ['MIN', 'H'], true)) {
@@ -254,7 +269,13 @@ $truncate = static function (string $text, int $max = 42): string {
                   <div class="card-header bg-success-subtle py-2 px-3">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                       <div>
-                        <span class="badge bg-secondary me-2">Pos. <?= (int)($op['sequence'] ?? 0) ?></span>
+                        <span class="badge bg-secondary me-2" title="POS_TEXT SAP<?= $sapPos > 0 ? ' (POS_ID ' . $sapPos . ')' : '' ?>">Pos. <?= $sapPosDisplay > 0 ? $sapPosDisplay : (int)($op['sequence'] ?? 0) ?></span>
+                        <?php if ($sapPos > 0 && $sapPosDisplay > 0 && $sapPosDisplay !== $sapPos): ?>
+                          <span class="badge bg-dark me-1" title="POS_ID interno SAP">ID <?= $sapPos ?></span>
+                        <?php endif; ?>
+                        <?php if ($sapMasterDisplay > 0): ?>
+                          <span class="badge bg-info text-dark me-1" title="MASTER_POS_ID <?= $sapMaster ?>">MESTRE <?= $sapMasterDisplay ?></span>
+                        <?php endif; ?>
                         <strong><?= htmlspecialchars($op['operation_name'] ?? '—') ?></strong>
                         <?php if (!empty($op['operation_code'])): ?>
                           <code class="small ms-1 inv-op-code-display"><?= htmlspecialchars($op['operation_code']) ?></code>
@@ -391,17 +412,26 @@ $truncate = static function (string $text, int $max = 42): string {
             <div class="d-block d-md-none list-mobile">
               <?php if (empty($operations)): ?>
                 <p class="text-center text-muted py-3 mb-0 small">Nenhuma operação na rota.</p>
-              <?php else: ?>
-                <?php foreach ($operations as $opIdx => $op):
+              <?php else:
+                $sapPosTextMapMobileRoute = invBuildSapPosTextMap($operations);
+                foreach ($operations as $opIdx => $op):
                   $metrics = invOperationMetrics($op);
                   $resourceLines = $op['resource_lines'] ?? [];
                   $laborLines = $op['labor_lines'] ?? [];
+                  $sapPosMob = (int)($op['sap_pos_id'] ?? 0);
+                  if ($sapPosMob <= 0) {
+                      $sapPosMob = (int)($op['sequence'] ?? 0);
+                  }
+                  $sapPosDisplayMob = (int)($op['sap_pos_text'] ?? 0);
+                  if ($sapPosDisplayMob <= 0) {
+                      $sapPosDisplayMob = invSapResolvePosText($sapPosMob, $sapPosTextMapMobileRoute);
+                  }
                 ?>
                 <div class="card mb-2 shadow-sm inv-structure-mobile-card">
                   <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
                       <span class="fw-semibold"><?= htmlspecialchars($op['operation_name'] ?? '') ?></span>
-                      <span class="text-muted small">Pos. <?= (int)($op['sequence'] ?? 0) ?></span>
+                      <span class="text-muted small">Pos. <?= $sapPosDisplayMob > 0 ? $sapPosDisplayMob : (int)($op['sequence'] ?? 0) ?></span>
                     </div>
                     <div class="row g-2 small mb-2">
                       <div class="col-6"><span class="row-label">Σ R$/min</span><br><?= $fmtMoney($metrics['cost_per_min'], 4) ?></div>
@@ -450,7 +480,7 @@ $truncate = static function (string $text, int $max = 42): string {
               <table class="table align-middle mb-0">
                 <thead class="thead-green">
                   <tr>
-                    <th class="ps-3" style="width:8%">Pos.</th>
+                    <th class="ps-3" style="width:8%">POS / Mestre</th>
                     <th style="width:12%">Tipo</th>
                     <th style="width:14%">Código / Recurso</th>
                     <th>Descrição / atividade</th>
@@ -476,10 +506,24 @@ $truncate = static function (string $text, int $max = 42): string {
                       <td class="text-end pe-3 fw-semibold"><?= $fmtMoney($lineCost, 6) ?></td>
                     </tr>
                   <?php endforeach; ?>
-                  <?php foreach ($operations as $op):
+                  <?php
+                  $sapPosTextMapMobile = invBuildSapPosTextMap($operations);
+                  foreach ($operations as $op):
                     $metrics = invOperationMetrics($op);
                     $timeMinutes = $metrics['time_minutes'];
                     $rowTotal = $metrics['line_cost'];
+                    $sapPos = (int)($op['sap_pos_id'] ?? 0);
+                    if ($sapPos <= 0) {
+                        $sapPos = (int)($op['sequence'] ?? 0);
+                    }
+                    $sapPosDisplay = (int)($op['sap_pos_text'] ?? 0);
+                    if ($sapPosDisplay <= 0) {
+                        $sapPosDisplay = invSapResolvePosText($sapPos, $sapPosTextMapMobile);
+                    }
+                    $sapMaster = (int)($op['sap_master_pos_id'] ?? 0);
+                    $sapMasterDisplay = $sapMaster > 0
+                        ? invSapResolvePosText($sapMaster, $sapPosTextMapMobile)
+                        : 0;
                     $notes = (string)($op['notes'] ?? '');
                     $resource = '';
                     if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
@@ -491,7 +535,12 @@ $truncate = static function (string $text, int $max = 42): string {
                     }
                   ?>
                     <tr>
-                      <td class="ps-3"><?= (int)($op['sequence'] ?? 0) ?></td>
+                      <td class="ps-3">
+                        <?= $sapPosDisplay > 0 ? $sapPosDisplay : (int)($op['sequence'] ?? 0) ?>
+                        <?php if ($sapMasterDisplay > 0): ?>
+                          <br><span class="badge bg-info text-dark" style="font-size:0.65rem" title="MASTER_POS_ID <?= $sapMaster ?>">M<?= $sapMasterDisplay ?></span>
+                        <?php endif; ?>
+                      </td>
                       <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-gear"></i> Operação</span></td>
                       <td><code class="small"><?= htmlspecialchars($resource !== '' ? $resource : ($op['operation_code'] ?? '')) ?></code></td>
                       <td class="cell-truncate" title="<?= htmlspecialchars($op['operation_name'] ?? '') ?>"><?= htmlspecialchars($truncate((string)($op['operation_name'] ?? ''), 36)) ?></td>
@@ -527,7 +576,9 @@ $truncate = static function (string $text, int $max = 42): string {
                   </div>
                 </div>
                 <?php endforeach; ?>
-                <?php foreach ($operations as $op):
+                <?php
+                $sapPosTextMapStructMob = invBuildSapPosTextMap($operations);
+                foreach ($operations as $op):
                   $timeValue = (float)($op['time_per_batch_hours'] ?? 0);
                   $timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
                   $timeMinutes = ($timeUnit === 'H') ? $timeValue * 60.0 : $timeValue;
@@ -543,12 +594,20 @@ $truncate = static function (string $text, int $max = 42): string {
                   if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
                       $resource = trim($m[1]);
                   }
+                  $sapPosStructMob = (int)($op['sap_pos_id'] ?? 0);
+                  if ($sapPosStructMob <= 0) {
+                      $sapPosStructMob = (int)($op['sequence'] ?? 0);
+                  }
+                  $sapPosDisplayStructMob = (int)($op['sap_pos_text'] ?? 0);
+                  if ($sapPosDisplayStructMob <= 0) {
+                      $sapPosDisplayStructMob = invSapResolvePosText($sapPosStructMob, $sapPosTextMapStructMob);
+                  }
                 ?>
                 <div class="card mb-2 shadow-sm inv-structure-mobile-card">
                   <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
                       <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-gear"></i> Operação</span>
-                      <span class="text-muted small">Pos. <?= (int)($op['sequence'] ?? 0) ?></span>
+                      <span class="text-muted small">Pos. <?= $sapPosDisplayStructMob > 0 ? $sapPosDisplayStructMob : (int)($op['sequence'] ?? 0) ?></span>
                     </div>
                     <code class="small d-block mb-1"><?= htmlspecialchars($resource !== '' ? $resource : ($op['operation_code'] ?? '')) ?></code>
                     <div class="text-break mb-2"><?= htmlspecialchars($op['operation_name'] ?? '') ?></div>

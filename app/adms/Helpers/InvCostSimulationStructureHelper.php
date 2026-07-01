@@ -47,10 +47,10 @@ final class InvCostSimulationStructureHelper
                 return $this->parseOperationLinesForEdit($request, $itemId, $batchSize);
             }
 
-            return (new InvItemOperationsRepository())->getByItem($itemId);
+            return (new InvItemOperationsRepository())->getByItemForCosting($itemId);
         }
 
-        return (new InvItemOperationsRepository())->getByItem($itemId);
+        return (new InvItemOperationsRepository())->getByItemForCosting($itemId);
     }
 
     /**

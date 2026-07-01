@@ -83,6 +83,48 @@ class InvLaborRolesRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Localiza papel por código ERP/SAP ou nome (ex.: AUXILIAR_PRODUCAO → AUXILIAR).
+     */
+    public function findByCodeOrName(string $codeOrName): ?array
+    {
+        $needle = mb_strtoupper(trim($codeOrName), 'UTF-8');
+        if ($needle === '') {
+            return null;
+        }
+
+        $aliases = [
+            'AUXILIAR_PRODUCAO' => 'AUXILIAR',
+            'AUXILIAR PRODUCAO' => 'AUXILIAR',
+            'CARTONAGEM_MANUAL' => 'AUXILIAR',
+            'CARTONAGEM_MAN' => 'AUXILIAR',
+        ];
+        if (isset($aliases[$needle])) {
+            $needle = $aliases[$needle];
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM inv_labor_roles
+             WHERE active = 1
+               AND (
+                    UPPER(code) = :exact
+                    OR UPPER(name) = :exact
+                    OR UPPER(code) LIKE :like
+                    OR UPPER(name) LIKE :like
+               )
+             ORDER BY CASE WHEN UPPER(code) = :exact2 THEN 0 WHEN UPPER(name) = :exact3 THEN 1 ELSE 2 END
+             LIMIT 1'
+        );
+        $stmt->bindValue(':exact', $needle);
+        $stmt->bindValue(':exact2', $needle);
+        $stmt->bindValue(':exact3', $needle);
+        $stmt->bindValue(':like', '%' . $needle . '%');
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
     public function create(array $data): int|bool
     {
         try {

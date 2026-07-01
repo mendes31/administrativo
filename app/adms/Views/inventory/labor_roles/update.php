@@ -8,7 +8,11 @@
       <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_update_inventory_labor_role') ?>">
       <div class="col-md-3"><label class="form-label">Código</label><input name="code" class="form-control" value="<?= htmlspecialchars($this->data['form']['code'] ?? '') ?>"></div>
       <div class="col-md-5"><label class="form-label">Nome *</label><input name="name" class="form-control" value="<?= htmlspecialchars($this->data['form']['name'] ?? '') ?>" required></div>
-      <div class="col-md-4"><label class="form-label">R$/min padrão</label><input type="number" step="0.000001" min="0" name="default_cost_per_min" class="form-control" value="<?= htmlspecialchars((string)($this->data['form']['default_cost_per_min'] ?? '0')) ?>"></div>
+      <div class="col-md-4">
+        <label class="form-label">R$/min padrão</label>
+        <input type="number" step="0.000001" min="0" name="default_cost_per_min" class="form-control" value="<?= htmlspecialchars((string)($this->data['form']['default_cost_per_min'] ?? '0')) ?>">
+        <div class="form-text">Referência para uso futuro na rota consolidada. O custeio oficial de MO vem do rateio CFIX (crit. 2 HH) no período.</div>
+      </div>
       <div class="col-md-6">
         <label class="form-label">Cargo RH (opcional)</label>
         <select name="adms_position_id" class="form-select"><option value="">—</option>

@@ -94,7 +94,19 @@ $buildUnitOptions = static function (?string $selected) use ($listUnits): string
 
 $totalMaterialCost = 0.0;
 foreach ($bomLines as $line) {
+    $rowKind = (string)($line['bom_row_kind'] ?? 'catalog');
+    if ($rowKind === 'pi_reference' || !($line['include_in_total'] ?? true)) {
+        continue;
+    }
     $totalMaterialCost += \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
+}
+
+$hasPiExplosion = false;
+foreach ($bomLines as $line) {
+    if (in_array((string)($line['bom_row_kind'] ?? ''), ['pi_exploded', 'pi_reference'], true)) {
+        $hasPiExplosion = true;
+        break;
+    }
 }
 
 $formatBomQty = static function (float $qty): string {
@@ -128,6 +140,11 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
   <strong>PA - PROJETO:</strong> a mesma lista pode misturar <em>componentes de catálogo</em> (itens já cadastrados) e <em>linhas manuais</em> (MPs/MAEs ainda sem cadastro), com descrição, tipo e custo unitário informados.
   Este item não entra na sincronização SAP nem no custeio oficial fechado.
 </div>
+<?php elseif ($hasPiExplosion): ?>
+<div class="alert alert-info border small py-2 mb-3">
+  <i class="fa-solid fa-sitemap me-1"></i>
+  <strong>Produto intermediário (PI):</strong> o PI permanece na estrutura SAP (linha de referência). As MPs e embalagens do PI aparecem abaixo com badge <em>via PI</em> e entram no <strong>CVAR</strong> e no total do lote. O custeio não usa o custo médio zerado do PI.
+</div>
 <?php endif; ?>
 <div class="table-responsive inv-edit-responsive-table">
   <table class="table table-sm align-middle" id="bom-table">
@@ -148,20 +165,56 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
     </thead>
     <tbody>
       <?php foreach ($bomLines as $lineIndex => $line):
-        $isManual = (string)($line['line_source'] ?? 'catalog') === 'manual';
+        $rowKind = (string)($line['bom_row_kind'] ?? 'catalog');
+        $isPiExploded = $rowKind === 'pi_exploded';
+        $isPiReference = $rowKind === 'pi_reference';
+        $isReadOnlyPi = $isPiExploded || $isPiReference;
+        $isManual = !$isReadOnlyPi && (string)($line['line_source'] ?? 'catalog') === 'manual';
         $qty = (float)($line['quantity_per_batch'] ?? 0);
-        $rowTotal = \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
+        $rowTotal = $isPiReference
+            ? 0.0
+            : \App\adms\Models\Repository\inventory\InvItemBomRepository::computeLineMaterialCost($line);
         $unitCost = \App\adms\Models\Repository\inventory\InvItemBomRepository::resolveLineUnitCost($line);
         $manualType = strtoupper((string)($line['manual_component_type'] ?? 'MP'));
         $lineIndexAttr = $bomSimulationMode ? ' data-line-index="' . (int)$lineIndex . '"' : '';
+        $piCode = (string)($line['from_pi_code'] ?? $line['component_code'] ?? '');
+        $piDesc = (string)($line['from_pi_description'] ?? $line['component_description'] ?? '');
         ?>
-        <tr class="bom-row<?= $isManual ? ' bom-row-manual' : ' bom-row-catalog' ?>"<?= $lineIndexAttr ?>>
+        <tr class="bom-row<?= $isManual ? ' bom-row-manual' : ($isReadOnlyPi ? ' bom-row-pi' : ' bom-row-catalog') ?><?= $isPiExploded ? ' bom-row-pi-exploded' : '' ?><?= $isPiReference ? ' bom-row-pi-reference table-secondary' : '' ?>"<?= $lineIndexAttr ?>>
           <td data-label="Origem">
+            <?php if ($isPiExploded): ?>
+              <span class="badge bg-info text-dark" title="<?= htmlspecialchars($piDesc) ?>">via PI</span>
+            <?php elseif ($isPiReference): ?>
+              <span class="badge bg-primary">PI</span>
+            <?php else: ?>
             <input type="hidden" name="bom_line_source[]" value="<?= $isManual ? 'manual' : 'catalog' ?>">
             <span class="badge <?= $isManual ? 'bg-warning text-dark' : 'bg-secondary' ?>"><?= $isManual ? 'Manual' : 'Catálogo' ?></span>
+            <?php endif; ?>
           </td>
           <td data-label="Componente / descrição">
-            <?php if ($isManual): ?>
+            <?php if ($isPiExploded): ?>
+              <div class="small">
+                <strong><?= htmlspecialchars(trim((string)($line['component_code'] ?? '') . ' — ' . (string)($line['component_description'] ?? ''))) ?></strong>
+                <div class="text-muted">Origem: PI <?= htmlspecialchars($piCode) ?></div>
+              </div>
+            <?php elseif ($isPiReference): ?>
+              <div class="small">
+                <strong><?= htmlspecialchars(trim((string)($line['component_code'] ?? '') . ' — ' . (string)($line['component_description'] ?? ''))) ?></strong>
+                <div class="text-muted">
+                  PI aninhado<?= !empty($line['from_pi_code']) ? ' (componente do PI ' . htmlspecialchars((string)$line['from_pi_code']) . ')' : '' ?>
+                  — referência SAP; MPs abaixo entram no CVAR
+                </div>
+              </div>
+              <input type="hidden" name="bom_line_source[]" value="catalog">
+              <input type="hidden" name="bom_component_item_id[]" value="<?= (int)($line['component_item_id'] ?? 0) ?>">
+              <input type="hidden" name="bom_quantity_per_batch[]" value="<?= htmlspecialchars($formatBomQty($qty)) ?>">
+              <input type="hidden" name="bom_scrap_percent[]" value="<?= htmlspecialchars((string)($line['scrap_percent'] ?? '0')) ?>">
+              <input type="hidden" name="bom_manual_description[]" value="">
+              <input type="hidden" name="bom_manual_component_type[]" value="">
+              <input type="hidden" name="bom_manual_unit[]" value="">
+              <input type="hidden" name="bom_manual_unit_cost[]" value="">
+              <input type="hidden" name="bom_catalog_unit_cost[]" value="">
+            <?php elseif ($isManual): ?>
               <input type="text" name="bom_manual_description[]" class="form-control<?= $hideTipoColumn ? '' : ' form-control-sm' ?> bom-manual-desc" maxlength="255"
                 value="<?= htmlspecialchars((string)($line['manual_description'] ?? '')) ?>" placeholder="Descrição do insumo">
               <?php if ($hideTipoColumn): ?>
@@ -180,7 +233,9 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
           </td>
           <?php if (!$hideTipoColumn): ?>
           <td data-label="Tipo">
-            <?php if ($isManual): ?>
+            <?php if ($isPiExploded || $isPiReference): ?>
+              <span class="text-muted small"><?= htmlspecialchars((string)($line['component_category'] ?? 'MP')) ?></span>
+            <?php elseif ($isManual): ?>
               <?= $renderManualTypeField($manualType, false) ?>
             <?php else: ?>
               <span class="text-muted small">—</span>
@@ -191,13 +246,23 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
             <input type="hidden" name="bom_manual_component_type[]" value="">
           <?php endif; ?>
           <td data-label="Qtd / lote"<?= $hideTipoColumn ? ' class="bom-qty-col"' : '' ?>>
+            <?php if ($isReadOnlyPi): ?>
+              <span class="form-control-plaintext form-control-sm"><?= htmlspecialchars($formatBomQty($qty)) ?></span>
+            <?php else: ?>
             <input type="text" inputmode="decimal" autocomplete="off" name="bom_quantity_per_batch[]" class="form-control form-control-sm bom-qty" value="<?= htmlspecialchars($formatBomQty($qty)) ?>">
+            <?php endif; ?>
           </td>
           <td data-label="Perda (%)">
+            <?php if ($isReadOnlyPi): ?>
+              <span class="form-control-plaintext form-control-sm"><?= htmlspecialchars((string)($line['scrap_percent'] ?? '0')) ?></span>
+            <?php else: ?>
             <input type="number" step="0.0001" min="0" name="bom_scrap_percent[]" class="form-control form-control-sm bom-scrap" value="<?= htmlspecialchars((string)($line['scrap_percent'] ?? '0')) ?>">
+            <?php endif; ?>
           </td>
           <td data-label="Unidade">
-            <?php if ($isManual): ?>
+            <?php if ($isPiExploded || $isPiReference): ?>
+              <span class="text-muted small"><?= htmlspecialchars((string)($line['unit_name'] ?? '')) ?></span>
+            <?php elseif ($isManual): ?>
               <?php $manualUnitCode = strtoupper(trim((string)($line['manual_unit'] ?? 'UN'))); ?>
               <select name="bom_manual_unit[]" class="form-select form-select-sm bom-manual-unit" data-prev-unit="<?= htmlspecialchars($manualUnitCode) ?>"><?= $buildUnitOptions($manualUnitCode) ?></select>
             <?php else: ?>
@@ -206,7 +271,9 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
             <?php endif; ?>
           </td>
           <td data-label="Custo unitário">
-            <?php if ($isManual): ?>
+            <?php if ($isReadOnlyPi): ?>
+              <span class="bom-catalog-cost-display"><?php if ($unitCost > 0): ?><?= number_format($unitCost, 6, ',', '.') ?><?php else: ?><span class="text-muted" title="Custo médio zerado no cadastro — sincronize o item ou a estrutura SAP">—</span><?php endif; ?></span>
+            <?php elseif ($isManual): ?>
               <input type="hidden" name="bom_catalog_unit_cost[]" value="">
               <input type="number" step="0.000001" min="0" name="bom_manual_unit_cost[]" class="form-control form-control-sm bom-manual-cost" value="<?= htmlspecialchars(number_format($unitCost, 6, '.', '')) ?>">
             <?php elseif ($allowCatalogCostEdit): ?>
@@ -221,6 +288,9 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
           </td>
           <td data-label="Total linha" class="bom-line-total"><?= number_format($rowTotal, 6, ',', '.') ?></td>
           <td data-label="Ações" class="text-end">
+            <?php if ($isReadOnlyPi): ?>
+              <span class="text-muted small">—</span>
+            <?php else: ?>
             <div class="d-flex gap-1 justify-content-end">
               <?php if ($bomSimulationMode): ?>
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="simResetBomRow(<?= (int)$lineIndex ?>)" title="Voltar ao cadastro original">
@@ -229,6 +299,7 @@ $resolveCatalogLabel = static function (int $componentId) use ($listBomItems): s
               <?php endif; ?>
               <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBomRow(this)">Remover</button>
             </div>
+            <?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>

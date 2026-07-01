@@ -1,5 +1,5 @@
 <h1>Simulação de Custos</h1>
-<p>Compara o <strong>custo base</strong> (BOM + rota) com cenários de ajuste percentual, exibindo CVAR por grupo (MP, MAE, MO, equipamentos) e produção do período para o critério de rateio 1.</p>
+<p>Compara <strong>CVAR</strong> (MP, MAE, energia) com cenários de ajuste percentual. <strong>MO e equipamentos</strong> entram pelo <strong>rateio CFIX</strong> (crit. 2 HH / crit. 3 HM) — não é necessário R$/min por papel ou recurso na rota.</p>
 
 <p class="help-note"><strong>Visão geral:</strong> <em>Custeio e produção</em> (<code>est-custeio</code>).</p>
 
@@ -9,7 +9,7 @@
 <ol>
     <li>Abra um item em <strong>Itens</strong> e clique em <strong>Simular cenários</strong> (ou acesse pela URL do item).</li>
     <li>Defina o <strong>tamanho do lote</strong> e os <strong>parâmetros da simulação</strong> (período, depósitos e % de ajuste).</li>
-    <li>Após <strong>Simular</strong>, confira os cards: <strong>CVAR materiais</strong> (MP+MAE), <strong>rota</strong>, <strong>HH</strong>, <strong>HM</strong> e a comparação base × simulado.</li>
+    <li>Após <strong>Simular</strong>, confira os cards: <strong>CVAR materiais</strong>, <strong>energia</strong>, <strong>MO/equip. (rateio)</strong>, <strong>HH</strong>, <strong>HM</strong> e custo pleno com período.</li>
     <li>Na lista de materiais (simulação), use o seletor de componente em largura total; em linhas manuais, informe a <strong>classificação CVAR</strong> (MP/MAE) abaixo da descrição.</li>
     <li>Opcional: selecione <strong>período de custeio</strong> e depósitos (TJQP/APQP) para ver produção por <em>data prod.</em>, rateios 1–3 e HH/HM do período.</li>
     <li>Ajuste % em materiais, rota ou global e clique em <strong>Simular</strong>.</li>
@@ -17,13 +17,14 @@
 </ol>
 
 <h2>HH, HM e custos fixos</h2>
-<p>Após <strong>Simular</strong>, os cards exibem <strong>HH</strong> e <strong>HM</strong> por lote. Com um <strong>período</strong> selecionado, também mostram HH/HM do período (lote simulado × lotes produzidos naquele intervalo, conforme <em>data prod.</em> em Lotes produzidos) e os percentuais de <strong>rateio 2</strong> (HH) e <strong>rateio 3</strong> (HM) calculados com a rota cadastrada de todos os SKUs do período.</p>
-<p>O total simulado considera <em>CVAR</em> (MP, MAE, MO e equipamentos). Com DRE importado no período, os cards exibem também <strong>CFIX</strong>, <strong>custo pleno</strong> (CVAR + CFIX/SKU) e <strong>preço sugerido</strong> quando houver margem alvo no cadastro período/SKU.</p>
+<p>Após <strong>Simular</strong>, os cards exibem <strong>HH rateio</strong> e <strong>HM rateio</strong> por lote (critérios 2 e 3 do CFIX). O cálculo segue a planilha Tiaraju: soma do <strong>tempo de etapa por lote</strong> (sem multiplicar quantidade de MO); o HH aplica a <strong>eficiência de produção</strong> do período. A aba <strong>Rota consolidada</strong> ainda mostra HH/HM “rota” (tempo × MO) apenas como referência.</p>
+<p>Com um <strong>período</strong> selecionado, também mostram HH/HM do período (lote × lotes produzidos, conforme <em>data prod.</em>) e os percentuais de <strong>rateio 2</strong> e <strong>rateio 3</strong> de todos os SKUs do período.</p>
+<p>O total simulado é <strong>CVAR</strong> (MP + MAE + energia). Com DRE importado no período, os cards exibem <strong>CFIX</strong> (inclui MO e máquinas rateados), <strong>custo pleno</strong> (CVAR + CFIX/SKU) e <strong>preço sugerido</strong> quando houver margem alvo.</p>
 
 <h2>Componentes e operações</h2>
 <ul>
     <li><strong>Lista de materiais:</strong> edite quantidade por lote, perda %, custo unitário e componente. Linhas do catálogo e manuais podem ser adicionadas ou removidas.</li>
-    <li><strong>Rota:</strong> altere sequência, operação e tempo por lote; adicione operações novas (custo padrão) ou mantenha linhas do item (com MO/recursos cadastrados).</li>
+    <li><strong>Rota:</strong> tempo por lote na consolidada; papéis MO e equipamentos para referência de custo. O <strong>rateio CFIX</strong> usa tempo de etapa (HH × eficiência, HM = Σ tempos).</li>
     <li>Use o botão <i class="fa-solid fa-rotate-left"></i> em cada linha para restaurar o valor do <strong>cadastro original</strong> sem afetar o item oficial.</li>
     <li>Após <strong>Simular</strong>, o badge <em>estrutura ajustada</em> indica que o cenário não usa só a ficha oficial.</li>
 </ul>

@@ -64,7 +64,8 @@ $renderCostBreakdown = static function (
     float $routeSapLaborBatch,
     float $routeEquipmentBatch,
     float $routeManualLaborBatch,
-    float $laborHours
+    float $laborHours,
+    bool $routeCostViaRateio = true
 ) use ($fmtMoney, $fmtHours, $batchSize): void {
     if ($materialGroups !== []) {
         foreach ($materialGroups as $group) {
@@ -75,6 +76,14 @@ $renderCostBreakdown = static function (
         }
     } else {
         echo 'Materiais: R$ 0,0000<br>';
+    }
+    if ($routeCostViaRateio) {
+        echo 'MO / equipamentos: via rateio CFIX (crit. 2 HH / crit. 3 HM)';
+        if ($laborHours > 0) {
+            echo ' <span class="text-secondary">(' . $fmtHours($laborHours) . ' HH/lote)</span>';
+        }
+        echo '<br>';
+        return;
     }
     echo 'MO SAP: SKU R$ ' . $fmtMoney($routeSapLaborCost) . ' · Lote R$ ' . $fmtMoney($routeSapLaborBatch) . '<br>';
     echo 'Equipamentos: SKU R$ ' . $fmtMoney($routeEquipmentCost) . ' · Lote R$ ' . $fmtMoney($routeEquipmentBatch) . '<br>';
@@ -266,10 +275,10 @@ $renderCostBreakdown = static function (
               <?php
                 $batchesInPeriod = (int)($currentItemProduction['batches_count'] ?? 0);
                 $simHhPeriod = is_array($breakdown)
-                  ? round((float)($breakdown['labor_hours'] ?? 0) * $batchesInPeriod, 4)
+                  ? round((float)($breakdown['rateio_labor_hours'] ?? $breakdown['labor_hours'] ?? 0) * $batchesInPeriod, 4)
                   : null;
                 $simHmPeriod = is_array($breakdown)
-                  ? round((float)($breakdown['machine_hours'] ?? 0) * $batchesInPeriod, 4)
+                  ? round((float)($breakdown['rateio_machine_hours'] ?? $breakdown['machine_hours'] ?? 0) * $batchesInPeriod, 4)
                   : null;
               ?>
               <div class="alert alert-info py-2 px-3 mt-3 mb-0 small">

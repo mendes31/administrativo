@@ -71,6 +71,7 @@ class ViewInventoryItem
         $bomRepo = new InvItemBomRepository();
         $opsRepo = new InvItemOperationsRepository();
         $this->data['bom'] = $bomRepo->getByItem($itemId);
+        $this->data['bom_display'] = $bomRepo->getDisplayRowsByItem($itemId);
         $this->data['operations'] = $opsRepo->getByItem($itemId);
         $this->data['cost_breakdown'] = InventoryCostService::calculateBreakdown($itemId);
         $this->data['has_structure'] = !empty($this->data['bom']) || !empty($this->data['operations']);

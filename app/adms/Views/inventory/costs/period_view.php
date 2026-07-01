@@ -28,10 +28,11 @@ $canRecalculateSnapshots = (bool)($this->data['can_recalculate_snapshots'] ?? fa
 $productionItemsFilteredCount = count($productionItems);
 $skuFilter = trim((string)($this->data['sku_filter'] ?? ''));
 $activeTab = (string)($_GET['tab'] ?? 'despesas');
-if (!in_array($activeTab, ['despesas', 'skus', 'resultados'], true)) {
+if (!in_array($activeTab, ['despesas', 'rh', 'skus', 'resultados'], true)) {
     $activeTab = 'despesas';
 }
 $tabDespesasActive = $activeTab === 'despesas';
+$tabRhActive = $activeTab === 'rh';
 $tabSkusActive = $activeTab === 'skus';
 $tabResultadosActive = $activeTab === 'resultados';
 $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
@@ -116,6 +117,13 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
         href="<?= $tabBaseUrl ?>?tab=despesas<?= $tabQuery ?>" role="tab"
         aria-controls="pane-despesas" aria-selected="<?= $tabDespesasActive ? 'true' : 'false' ?>">
         Despesas e critérios de rateio
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link<?= $tabRhActive ? ' active' : '' ?>" id="tab-rh"
+        href="<?= $tabBaseUrl ?>?tab=rh<?= $tabQuery ?>" role="tab"
+        aria-controls="pane-rh" aria-selected="<?= $tabRhActive ? 'true' : 'false' ?>">
+        Distribuição RH
       </a>
     </li>
     <li class="nav-item" role="presentation">
@@ -279,7 +287,7 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
   <?php endif; ?>
 
   <div class="card border-light shadow mb-4">
-    <div class="card-header fw-semibold">Linhas importadas do DRE</div>
+    <div class="card-header fw-semibold">Linhas importadas do DRE <span class="text-muted fw-normal small">— ordenado por descrição</span></div>
     <div class="card-body p-0">
       <?php if ($expensePools === []): ?>
         <p class="text-muted p-4 mb-0">Nenhuma despesa importada. Use a aba <strong>Despesas e critérios de rateio</strong> para carregar o DRE.</p>
@@ -367,6 +375,10 @@ $fmtMoney = static fn(float $v): string => number_format($v, 2, ',', '.');
   <?php endif; ?>
 
     </div><!-- /pane-despesas -->
+
+    <div class="tab-pane fade<?= $tabRhActive ? ' show active' : '' ?>" id="pane-rh" role="tabpanel" aria-labelledby="tab-rh" tabindex="0">
+      <?php require __DIR__ . '/period_rh_distribution.php'; ?>
+    </div><!-- /pane-rh -->
 
     <div class="tab-pane fade<?= $tabSkusActive ? ' show active' : '' ?>" id="pane-skus" role="tabpanel" aria-labelledby="tab-skus" tabindex="0">
       <?php

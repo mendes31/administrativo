@@ -84,14 +84,28 @@ use App\adms\Helpers\InvCostComplexityHelper;
 	</div>
 
 	<div class="card mb-4 border-light shadow">
-		<div class="card-header hstack gap-2 flex-wrap align-items-center">
-			<span>Editar</span>
-			<span class="ms-auto d-sm-flex flex-row flex-wrap gap-1 align-items-center">
+		<?php
+		$invItemCode = trim((string)($this->data['form']['erp_code'] ?? $this->data['form']['code'] ?? ''));
+		$invItemDesc = trim((string)($this->data['form']['description'] ?? ''));
+		$invItemLabel = $invItemCode !== ''
+			? $invItemCode . ($invItemDesc !== '' ? ' — ' . $invItemDesc : '')
+			: ($invItemDesc !== '' ? $invItemDesc : 'Item');
+		?>
+		<div class="card-header">
+			<div class="d-flex flex-wrap align-items-center gap-2">
+				<div class="flex-grow-1 min-w-0">
+					<div class="text-muted small mb-1">Editar item</div>
+					<div class="fw-semibold text-truncate" title="<?= htmlspecialchars($invItemLabel) ?>">
+						<?= htmlspecialchars($invItemLabel) ?>
+					</div>
+				</div>
+				<div class="d-flex flex-wrap gap-1 align-items-center">
 				<?php
 				include __DIR__ . '/../../partials/button_log_alteracoes.php';
 				if (in_array('ListInventoryItems', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}list-inventory-items' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> "; }
 				if (in_array('ViewInventoryItem', $this->data['buttonPermission']) && !empty($this->data['form']['id'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$this->data['form']['id']}' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Ver</a> "; } ?>
-			</span>
+				</div>
+			</div>
 		</div>
 
 		<div class="card-body">
@@ -103,7 +117,7 @@ use App\adms\Helpers\InvCostComplexityHelper;
 				<input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_inventory_item'); ?>">
 				<?php
 				$activeTabPane = (string)($_POST['active_tab'] ?? $_GET['tab'] ?? 'pane-dados-gerais');
-				$allowedUpdateTabs = ['pane-dados-gerais', 'pane-bom', 'pane-operations'];
+				$allowedUpdateTabs = ['pane-dados-gerais', 'pane-bom', 'pane-operations', 'pane-route-consolidated'];
 				if (!in_array($activeTabPane, $allowedUpdateTabs, true)) {
 					$activeTabPane = 'pane-dados-gerais';
 				}
@@ -120,7 +134,10 @@ use App\adms\Helpers\InvCostComplexityHelper;
 						<button class="nav-link<?= $tabIsActive('pane-bom') ?>" id="tab-bom" data-bs-toggle="tab" data-bs-target="#pane-bom" type="button" role="tab">Lista de materiais</button>
 					</li>
 					<li class="nav-item" role="presentation">
-						<button class="nav-link<?= $tabIsActive('pane-operations') ?>" id="tab-operations" data-bs-toggle="tab" data-bs-target="#pane-operations" type="button" role="tab">Rota</button>
+						<button class="nav-link<?= $tabIsActive('pane-operations') ?>" id="tab-operations" data-bs-toggle="tab" data-bs-target="#pane-operations" type="button" role="tab">Rota SAP</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button class="nav-link<?= $tabIsActive('pane-route-consolidated') ?>" id="tab-route-consolidated" data-bs-toggle="tab" data-bs-target="#pane-route-consolidated" type="button" role="tab">Rota Consolidada</button>
 					</li>
 				</ul>
 
@@ -266,7 +283,7 @@ use App\adms\Helpers\InvCostComplexityHelper;
 
 					<div class="tab-pane fade<?= $tabPaneShow('pane-bom') ?>" id="pane-bom" role="tabpanel" aria-labelledby="tab-bom">
 						<?php
-						$bomLines = $this->data['bom'] ?? [];
+						$bomLines = $this->data['bom_display'] ?? $this->data['bom'] ?? [];
 						$listBomItems = $this->data['listBomItems'] ?? [];
 						$listUnits = $this->data['listUnits'] ?? [];
 						$isProjectItem = (bool)($this->data['is_project_item'] ?? false);
@@ -286,20 +303,18 @@ use App\adms\Helpers\InvCostComplexityHelper;
 						}
 						$canManageResources = in_array('ListInventoryProductionResources', $this->data['buttonPermission'] ?? [], true);
 						require_once __DIR__ . '/../partials/operation_metrics.php';
+						require_once __DIR__ . '/../partials/sap_pos_display.php';
 						include __DIR__ . '/../partials/inv_route_operations_style.php';
 						?>
 						<div class="alert alert-light border small mb-3 py-2">
-							<strong>Recursos</strong> são cadastrados em
+							<strong>Espelho SAP</strong> — uma linha por recurso, ordenada por <code>SortId</code>. Posição exibida: <code>POS_TEXT</code> (vínculo mestre: <code>POS_TEXT</code> do <code>POS_ID</code> referenciado).
+							Use a aba <strong>Rota Consolidada</strong> para custeio.
+							<strong>Recursos</strong> em
 							<?php if ($canManageResources): ?>
-								<a href="<?= $_ENV['URL_ADM'] ?>list-inventory-production-resources" target="_blank">Estoque → Cadastros Bases → Recursos de Produção</a>
+								<a href="<?= $_ENV['URL_ADM'] ?>list-inventory-production-resources" target="_blank">Recursos de Produção</a>
 							<?php else: ?>
 								<em>Recursos de Produção</em>
-							<?php endif; ?>
-							(máquinas, energia etc.). Cada operação pode usar <strong>vários recursos</strong>.
-							<strong>Cálculo:</strong> Subtotal/lote = Tempo × Qtd × custo/min · <strong>Custo linha</strong> = Tempo × Σ custos/min (valores do lote).
-							Rateio por SKU (unidade) na <a href="<?= $_ENV['URL_ADM'] ?>simulate-inventory-cost/<?= (int)($this->data['form']['id'] ?? 0) ?>">simulação de custos</a>.
-							<strong>MO SAP</strong> = recursos tipo LABOR ·
-							<strong>Equipamentos</strong> = Máq. + En. · <strong>MO cadastrada</strong> = papéis em Mão de obra.
+							<?php endif; ?>.
 						</div>
 						<div class="d-flex flex-wrap gap-2 mb-2">
 							<button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllRouteSubs(true)"><i class="fa-solid fa-angles-down me-1"></i> Expandir subníveis</button>
@@ -308,6 +323,7 @@ use App\adms\Helpers\InvCostComplexityHelper;
 						<div id="operations-list" class="inv-route-edit">
 									<?php
 									$totalOperationsCost = 0.0;
+									$sapPosTextMap = invBuildSapPosTextMap($this->data['operations'] ?? []);
 									foreach (($this->data['operations'] ?? []) as $lineSeq => $op):
 										$timeValue = (float)($op['time_per_batch_hours'] ?? 0);
 										$timeUnit = strtoupper((string)($op['time_unit'] ?? 'MIN'));
@@ -376,14 +392,27 @@ use App\adms\Helpers\InvCostComplexityHelper;
 										if (preg_match('/Recurso SAP:\s*(.+)$/i', $notes, $m)) {
 											$sapResource = trim($m[1]);
 										}
+										$sapPos = (int)($op['sap_pos_id'] ?? 0);
+										if ($sapPos <= 0) {
+											$sapPos = (int)($op['sequence'] ?? 0);
+										}
+										$sapPosDisplay = (int)($op['sap_pos_text'] ?? 0);
+										if ($sapPosDisplay <= 0) {
+											$sapPosDisplay = invSapResolvePosText($sapPos, $sapPosTextMap);
+										}
+										$sapMaster = (int)($op['sap_master_pos_id'] ?? 0);
+										$sapMasterDisplay = $sapMaster > 0
+											? invSapResolvePosText($sapMaster, $sapPosTextMap)
+											: 0;
+										$sapSortId = (int)($op['sap_sort_id'] ?? 0);
+										$posBadgeLabel = $sapPosDisplay > 0 ? $sapPosDisplay : (int)($op['sequence'] ?? ($lineSeq + 1));
 										?>
 										<div class="inv-route-op inv-route-op-card card mb-3 border shadow-sm" data-op-index="<?= (int)$lineSeq ?>">
 											<div class="card-header bg-success-subtle py-2 px-3">
 												<div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
 													<div class="flex-grow-1">
-														<span class="badge bg-secondary me-2">Pos.
-															<input type="number" class="inv-seq-badge-input" name="op_sequence[]" value="<?= (int)($op['sequence'] ?? ($lineSeq + 1)) ?>" min="1" step="1" aria-label="Posição">
-														</span>
+														<span class="badge bg-secondary me-2" title="POS_TEXT SAP<?= $sapPos > 0 ? ' (POS_ID ' . $sapPos . ')' : '' ?>">Pos. <?= $posBadgeLabel ?></span>
+														<input type="hidden" name="op_sequence[]" value="<?= (int)($op['sequence'] ?? ($lineSeq + 1)) ?>">
 														<select name="op_operation_id[]" class="form-select form-select-sm inv-op-select-inline op-operation-select" onchange="onOperationChange(this)">
 															<option value="">Selecione a operação</option>
 															<?php foreach (($this->data['listOperations'] ?? []) as $operation) {
@@ -397,6 +426,12 @@ use App\adms\Helpers\InvCostComplexityHelper;
 														<?php else: ?>
 															<code class="small ms-1 inv-op-code-display op-operation-code d-none"></code>
 														<?php endif; ?>
+														<?php if ($sapPos > 0 && $sapPosDisplay > 0 && $sapPosDisplay !== $sapPos): ?>
+															<span class="badge bg-dark ms-1" title="POS_ID interno SAP">ID <?= $sapPos ?></span>
+														<?php endif; ?>
+														<?php if ($sapMasterDisplay > 0): ?>
+															<span class="badge bg-info text-dark ms-1" title="POS_TEXT do mestre (MASTER_POS_ID <?= $sapMaster ?>)">MESTRE <?= $sapMasterDisplay ?></span>
+														<?php endif; ?>
 														<button type="button" class="btn btn-link btn-sm text-danger inv-op-remove-btn ms-1" onclick="removeOperationRow(this)" title="Remover operação"><i class="fa-regular fa-trash-can"></i></button>
 													</div>
 													<div class="text-end small">
@@ -409,7 +444,13 @@ use App\adms\Helpers\InvCostComplexityHelper;
 												</div>
 												<?php
 												$timeUnitLabel = $timeUnit === 'H' ? 'Horas' : 'Minutos';
-												$laborHH = ($timeMinutes / 60.0) * array_sum(array_map(static fn(array $l): int => max(1, (int)($l['qty'] ?? 1)), $laborLines));
+												$driverHours = invOperationDriverHours(
+													invNormalizeLaborLinesForDrivers($laborLines),
+													invNormalizeMachineResourceLinesForDrivers($resourceLines),
+													$timeMinutes,
+													$operatorsQty
+												);
+												$laborHH = (float)($driverHours['labor_hours'] ?? 0);
 												?>
 												<div class="d-flex flex-wrap gap-3 mt-2 small text-muted">
 													<span>Tempo/lote: <input type="number" step="0.0001" min="0" name="op_time_per_batch_hours[]" class="inv-metric-inline op-time-input" value="<?= htmlspecialchars((string)($op['time_per_batch_hours'] ?? '0')) ?>" oninput="recalcOpLineTotal(<?= (int)$lineSeq ?>)" aria-label="Tempo por lote"> <select name="op_time_unit[]" class="inv-metric-inline-select op-time-unit" onchange="recalcOpLineTotal(<?= (int)$lineSeq ?>)" aria-label="Unidade de tempo">
@@ -429,6 +470,10 @@ use App\adms\Helpers\InvCostComplexityHelper;
 														<span class="text-muted">SAP: <code><?= htmlspecialchars($sapResource) ?></code></span>
 													<?php endif; ?>
 												</div>
+												<input type="hidden" name="op_sap_pos_id[]" value="<?= $sapPos > 0 ? $sapPos : '' ?>">
+												<input type="hidden" name="op_sap_pos_text[]" value="<?= $sapPosDisplay > 0 ? $sapPosDisplay : '' ?>">
+												<input type="hidden" name="op_sap_sort_id[]" value="<?= $sapSortId > 0 ? $sapSortId : '' ?>">
+												<input type="hidden" name="op_sap_master_pos_id[]" value="<?= $sapMaster > 0 ? $sapMaster : '' ?>">
 												<input type="hidden" name="op_machine_cost_per_min[]" class="op-machine-cost" value="<?= htmlspecialchars((string)($metrics['machine_per_min'] ?? 0)) ?>">
 												<input type="hidden" name="op_energy_cost_per_min[]" class="op-energy-cost" value="<?= htmlspecialchars((string)($metrics['energy_per_min'] ?? 0)) ?>">
 												<div class="mt-2 small">
@@ -578,6 +623,17 @@ use App\adms\Helpers\InvCostComplexityHelper;
 							<button type="button" class="btn btn-sm btn-outline-primary" onclick="addOperationRow()">Adicionar operação</button>
 						</div>
 					</div>
+
+					<div class="tab-pane fade<?= $tabPaneShow('pane-route-consolidated') ?>" id="pane-route-consolidated" role="tabpanel" aria-labelledby="tab-route-consolidated">
+						<?php
+						$consolidatedOperations = $this->data['consolidatedOperations'] ?? [];
+						$listOperations = $this->data['listOperations'] ?? [];
+						$listProductionResources = $this->data['listProductionResources'] ?? [];
+						$listLaborRoles = $this->data['listLaborRoles'] ?? [];
+						$consolidatedBatchSize = (float)($this->data['form']['standard_batch_size'] ?? 1);
+						include __DIR__ . '/../partials/consolidated_route_edit.php';
+						?>
+					</div>
 				</div>
 
 				<div class="col-12 mt-3">
@@ -666,7 +722,8 @@ function recalcAllOperations() {
 }
 
 function getOpTimeMinutes(card) {
-    const timeVal = parseFloat(card.querySelector('.op-time-input')?.value || '0');
+    const raw = String(card.querySelector('.op-time-input')?.value || '0').replace(',', '.');
+    const timeVal = parseFloat(raw) || 0;
     const unit = (card.querySelector('.op-time-unit')?.value || 'MIN').toUpperCase();
     return unit === 'H' ? timeVal * 60.0 : timeVal;
 }
@@ -681,7 +738,8 @@ function recalcOpLineTotal(opIndex) {
     let sumEquipment = 0;
     let sumMachineHidden = 0;
     let sumEnergyHidden = 0;
-    card.querySelectorAll('.op-resource-tbody tr').forEach(function (row) {
+    const resourceBody = card.querySelector('.op-resource-tbody[data-op-index="' + opIndex + '"]');
+    (resourceBody ? resourceBody.querySelectorAll('tr') : []).forEach(function (row) {
         const qty = parseFloat(row.querySelector('.op-resource-qty')?.value || '0');
         const machine = parseFloat(row.querySelector('.op-resource-machine')?.value || '0');
         const energy = parseFloat(row.querySelector('.op-resource-energy')?.value || '0');
@@ -706,8 +764,9 @@ function recalcOpLineTotal(opIndex) {
 
     let sumManualLabor = 0;
     let sumLaborHH = 0;
-    card.querySelectorAll('.op-labor-tbody tr').forEach(function (row) {
-        const qty = parseFloat(row.querySelector('.op-labor-qty')?.value || '0');
+    const laborBody = card.querySelector('.op-labor-tbody[data-op-index="' + opIndex + '"]');
+    (laborBody ? laborBody.querySelectorAll('tr') : []).forEach(function (row) {
+        const qty = Math.max(1, parseInt(String(row.querySelector('.op-labor-qty')?.value || '1').replace(',', '.'), 10) || 1);
         const cost = parseFloat(row.querySelector('.op-labor-cost')?.value || '0');
         const hh = timeMin > 0 && qty > 0 ? (timeMin / 60.0) * qty : 0;
         const subtotalMin = qty > 0 && cost > 0 ? qty * cost : 0;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvCostBatchAdoptedHelper;
 use App\adms\Helpers\InvCostComplexityHelper;
 use App\adms\Helpers\InvCostEnergyClassHelper;
 use App\adms\Helpers\InvCostProductionLineHelper;
@@ -32,7 +33,10 @@ class InvCostPeriodItemDefaultsService
                 ? max(0, (int)$savedRow['analysis_count'])
                 : (int)$defaults['analysis_count'],
             'batch_size_adopted' => $savedRow['batch_size_adopted'] ?? $defaults['batch_size_adopted'],
-            'batch_size_theoretical' => $defaults['batch_size_theoretical'],
+            'batch_size_theoretical' => self::nullableSavedFixedBatch($savedRow['batch_size_theoretical'] ?? null)
+                ?? $defaults['batch_size_theoretical'],
+            'qty_avg_per_round' => self::nullableSavedDecimal($savedRow['qty_avg_per_round'] ?? null)
+                ?? $defaults['qty_avg_per_round'],
             'production_line' => InvCostProductionLineHelper::normalize($savedRow['production_line'] ?? null)
                 ?? $defaults['production_line'],
             'sale_price_net' => $savedRow['sale_price_net'] ?? $defaults['sale_price_net'],
@@ -52,6 +56,7 @@ class InvCostPeriodItemDefaultsService
             'analysis_count' => 0,
             'batch_size_adopted' => null,
             'batch_size_theoretical' => null,
+            'qty_avg_per_round' => null,
             'production_line' => null,
             'sale_price_net' => null,
             'target_margin_pct' => null,
@@ -81,7 +86,8 @@ class InvCostPeriodItemDefaultsService
             'complexity_level' => $complexity,
             'analysis_count' => 0,
             'batch_size_adopted' => null,
-            'batch_size_theoretical' => $batchSize > 0 ? round($batchSize, 4) : null,
+            'batch_size_theoretical' => InvCostBatchAdoptedHelper::theoreticalFixedFromCatalog($batchSize),
+            'qty_avg_per_round' => null,
             'production_line' => $this->nonEmptyString($item['production_line'] ?? null)
                 ? InvCostProductionLineHelper::normalize($item['production_line'] ?? null)
                 : null,
@@ -113,5 +119,34 @@ class InvCostPeriodItemDefaultsService
         $s = trim((string)($value ?? ''));
 
         return $s !== '' ? $s : null;
+    }
+
+    private static function nullableSavedDecimal(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $f = (float)$value;
+
+        return $f > 0 ? round($f, 4) : null;
+    }
+
+    /** Lote teórico salvo no período: só valores &gt; 1 (0/1 = placeholder, ignora). */
+    private static function nullableSavedFixedBatch(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return InvCostBatchAdoptedHelper::theoreticalFixedFromCatalog((float)$value);
     }
 }

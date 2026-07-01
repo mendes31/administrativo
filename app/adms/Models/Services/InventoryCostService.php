@@ -2,6 +2,8 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InvItemBomExplosionHelper;
+
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use PDO;
 
@@ -79,6 +81,8 @@ class InventoryCostService extends DbConnection
             'route_resources_cost' => 0.0,
             'labor_hours' => 0.0,
             'machine_hours' => 0.0,
+            'rateio_labor_hours' => 0.0,
+            'rateio_machine_hours' => 0.0,
             'base_total' => 0.0,
             'simulated_material_cost' => 0.0,
             'simulated_operations_cost' => 0.0,
@@ -88,6 +92,8 @@ class InventoryCostService extends DbConnection
             'simulated_route_equipment_cost' => 0.0,
             'simulated_route_resources_cost' => 0.0,
             'simulated_total' => 0.0,
+            'simulated_cvar_total' => 0.0,
+            'route_cost_via_rateio' => true,
             'scenario' => self::normalizeScenario($scenario),
         ];
 
@@ -116,6 +122,7 @@ class InventoryCostService extends DbConnection
         } else {
             $sqlBom = "SELECT 
                         b.line_source,
+                        b.component_item_id,
                         b.quantity_per_batch,
                         b.scrap_percent,
                         b.manual_description,
@@ -135,6 +142,7 @@ class InventoryCostService extends DbConnection
             $stmtBom->bindValue(':item_id', $itemId, PDO::PARAM_INT);
             $stmtBom->execute();
             $bomRows = $stmtBom->fetchAll(PDO::FETCH_ASSOC);
+            $bomRows = InvItemBomExplosionHelper::explodeIntermediateProducts($bomRows);
         }
 
         $materials = [];
@@ -163,33 +171,22 @@ class InventoryCostService extends DbConnection
         if ($useCustomOps) {
             $opRows = $customOpRows;
         } else {
-            $sqlOps = "SELECT 
-                        io.id,
-                        io.time_per_batch_hours,
-                        io.time_unit,
-                        io.operators_qty,
-                        io.labor_cost_per_min,
-                        io.machine_cost_per_min,
-                        io.energy_cost_per_min,
-                        io.notes,
-                        op.code AS operation_code,
-                        op.name AS operation_name,
-                        op.default_cost_per_hour
-                   FROM inv_item_operations io
-                   INNER JOIN inv_operations op ON op.id = io.inv_operation_id
-                   WHERE io.inv_item_id = :item_id
-                   ORDER BY io.sequence ASC, op.name ASC";
-            $stmtOps = $conn->prepare($sqlOps);
-            $stmtOps->bindValue(':item_id', $itemId, PDO::PARAM_INT);
-            $stmtOps->execute();
-            $opRows = $stmtOps->fetchAll(PDO::FETCH_ASSOC);
+            $opsRepo = new InvItemOperationsRepository();
+            $opRows = $opsRepo->getByItemForCosting($itemId);
+            foreach ($opRows as &$opRow) {
+                $opRow['default_cost_per_hour'] = $opRow['operation_cost_per_hour'] ?? $opRow['default_cost_per_hour'] ?? 0;
+            }
+            unset($opRow);
         }
 
         $opsRepo = new InvItemOperationsRepository();
         if (!$useCustomOps) {
-            $opIds = array_map(static fn(array $r): int => (int)($r['id'] ?? 0), $opRows);
-            $laborByOp = $opsRepo->getLaborLinesByOperationIds($opIds);
-            $resourceByOp = $opsRepo->getResourceLinesByOperationIds($opIds);
+            $opIds = array_values(array_filter(array_map(
+                static fn(array $r): int => (int)($r['id'] ?? 0),
+                $opRows
+            )));
+            $laborByOp = $opIds !== [] ? $opsRepo->getLaborLinesByOperationIds($opIds) : [];
+            $resourceByOp = $opIds !== [] ? $opsRepo->getResourceLinesByOperationIds($opIds) : [];
         } else {
             $laborByOp = [];
             $resourceByOp = [];
@@ -202,15 +199,21 @@ class InventoryCostService extends DbConnection
         $routeEquipmentCost = 0.0;
         $laborHours = 0.0;
         $machineHours = 0.0;
+        $enrichedOpRows = [];
         foreach ($opRows as $row) {
             if (!$useCustomOps) {
                 $opId = (int)($row['id'] ?? 0);
-                $row['labor_lines'] = $laborByOp[$opId] ?? [];
-                $row['resource_lines'] = $resourceByOp[$opId] ?? [];
+                $row['labor_lines'] = !empty($row['labor_lines'])
+                    ? $row['labor_lines']
+                    : ($laborByOp[$opId] ?? []);
+                $row['resource_lines'] = !empty($row['resource_lines'])
+                    ? $row['resource_lines']
+                    : ($resourceByOp[$opId] ?? []);
             } else {
                 $row['labor_lines'] = is_array($row['labor_lines'] ?? null) ? $row['labor_lines'] : [];
                 $row['resource_lines'] = is_array($row['resource_lines'] ?? null) ? $row['resource_lines'] : [];
             }
+            $enrichedOpRows[] = $row;
             $line = self::computeOperationLine($row);
             $operations[] = $line;
             $operationsCost += (float)$line['line_cost'];
@@ -220,6 +223,15 @@ class InventoryCostService extends DbConnection
             $laborHours += (float)($line['labor_hours'] ?? 0);
             $machineHours += (float)($line['machine_hours'] ?? 0);
         }
+        require_once __DIR__ . '/../../Views/inventory/partials/operation_metrics.php';
+        $productionEfficiencyRatio = self::resolveProductionEfficiencyRatio($scenario);
+        $rateioDrivers = invAggregateRouteRateioDrivers(
+            $enrichedOpRows,
+            $batchSize,
+            $productionEfficiencyRatio
+        );
+        $rateioLaborHours = (float)($rateioDrivers['rateio_labor_hours'] ?? 0);
+        $rateioMachineHours = (float)($rateioDrivers['rateio_machine_hours'] ?? 0);
         $routeLaborCost = $routeManualLaborCost;
         $routeResourcesCost = $routeSapLaborCost + $routeEquipmentCost;
 
@@ -273,13 +285,17 @@ class InventoryCostService extends DbConnection
         $simCvarMp = $cvarMpCost * $materialFactor * $globalFactor;
         $simCvarMae = $cvarMaeCost * $materialFactor * $globalFactor;
 
-        $productionEfficiencyRatio = self::resolveProductionEfficiencyRatio($scenario);
         $simCvarMpBeforeEfficiency = $simCvarMp;
+        $routeCostViaRateio = ($scenario['route_cost_via_rateio'] ?? true) !== false;
         if ($productionEfficiencyRatio !== null) {
             $simCvarMp = $simCvarMp / $productionEfficiencyRatio;
             $mpEfficiencyDelta = $simCvarMp - $simCvarMpBeforeEfficiency;
             $simMaterial += $mpEfficiencyDelta / max($globalFactor, 0.000001);
-            $simTotal = ($simMaterial + $simOperations) * $globalFactor;
+            if ($routeCostViaRateio) {
+                $simTotal = round($simCvarMp + $simCvarMae, 6);
+            } else {
+                $simTotal = ($simMaterial + $simOperations) * $globalFactor;
+            }
             $simMaterialGroups = self::applyEfficiencyToMaterialGroups($simMaterialGroups, $productionEfficiencyRatio);
             $simMaterialBatch = $simMaterial * $batchSize;
             $simTotalBatch = $simTotal * $batchSize;
@@ -294,6 +310,15 @@ class InventoryCostService extends DbConnection
         );
         $cvarEnergyCost = (float)($cvarEnergy['cost_unit'] ?? 0);
         $simCvarEnergy = $cvarEnergyCost * $operationsFactor * $globalFactor;
+
+        $simulatedCvarTotal = round($simCvarMp + $simCvarMae + $simCvarEnergy, 6);
+        if ($routeCostViaRateio) {
+            $baseCvarUnit = round($cvarMpCost + $cvarMaeCost + $cvarEnergyCost, 6);
+            $baseTotal = $baseCvarUnit;
+            $baseTotalBatch = round($baseCvarUnit * $batchSize, 6);
+            $simTotal = $simulatedCvarTotal;
+            $simTotalBatch = round($simulatedCvarTotal * $batchSize, 6);
+        }
 
         return [
             'item_id' => $itemId,
@@ -316,6 +341,8 @@ class InventoryCostService extends DbConnection
             'route_equipment_cost_batch' => round($routeEquipmentCostBatch, 6),
             'labor_hours' => round($laborHours, 6),
             'machine_hours' => round($machineHours, 6),
+            'rateio_labor_hours' => round($rateioLaborHours, 6),
+            'rateio_machine_hours' => round($rateioMachineHours, 6),
             'base_total' => round($baseTotal, 6),
             'simulated_material_cost' => round($simMaterial, 6),
             'simulated_operations_cost' => round($simOperations, 6),
@@ -326,6 +353,8 @@ class InventoryCostService extends DbConnection
             'simulated_route_equipment_cost' => round($simRouteEquipment, 6),
             'simulated_route_resources_cost' => round($simRouteResources, 6),
             'simulated_total' => round($simTotal, 6),
+            'simulated_cvar_total' => $simulatedCvarTotal,
+            'route_cost_via_rateio' => $routeCostViaRateio,
             'simulated_material_cost_batch' => round($simMaterialBatch, 6),
             'simulated_operations_cost_batch' => round($simOperationsBatch, 6),
             'simulated_total_batch' => round($simTotalBatch, 6),
@@ -425,6 +454,8 @@ class InventoryCostService extends DbConnection
         $laborLines = $row['labor_lines'] ?? [];
         $resourceLines = $row['resource_lines'] ?? [];
 
+        require_once __DIR__ . '/../../Views/inventory/partials/operation_metrics.php';
+
         $manualLaborPerMin = InvItemOperationsRepository::sumLaborCostPerMinute($laborLines);
         if ($manualLaborPerMin <= 0 && $rowLaborCostPerMin > 0) {
             $manualLaborPerMin = $rowLaborCostPerMin;
@@ -441,13 +472,18 @@ class InventoryCostService extends DbConnection
             $equipmentPerMin = $rowMachineCostPerMin + $rowEnergyCostPerMin;
         }
         $resourcesPerMin = $sapLaborPerMin + $equipmentPerMin;
-        $hasMachineDriver = ($equipmentPerMin + $machinePerMin) > 0 || $resourceLines !== [];
+        $hasMachineDriver = ($equipmentPerMin + $machinePerMin) > 0
+            || invFilterMachineResourceLines($resourceLines) !== [];
 
         if (!in_array($timeUnit, ['MIN', 'H'], true)) {
             $timeUnit = 'MIN';
         }
         $timeMinutes = $timeUnit === 'H' ? $rawTime * 60.0 : $rawTime;
         $timeHours = $timeMinutes / 60.0;
+
+        $driverHours = invOperationDriverHours($laborLines, $resourceLines, $timeMinutes, $laborQtyForHours);
+        $laborHoursFromLines = (float) ($driverHours['labor_hours'] ?? 0);
+        $machineHoursFromLines = (float) ($driverHours['machine_hours'] ?? 0);
 
         $lineCost = 0.0;
         $manualLaborLineCost = 0.0;
@@ -469,9 +505,9 @@ class InventoryCostService extends DbConnection
                 $manualLaborLineCost = $lineCost;
                 $costSource = 'operation_default';
             }
-            $laborHours = $timeHours * $laborQtyForHours;
-            if ($hasMachineDriver) {
-                $machineHours = $timeHours;
+            $laborHours = $laborHoursFromLines;
+            if ($hasMachineDriver || $machineHoursFromLines > 0) {
+                $machineHours = $machineHoursFromLines;
             }
         }
 
@@ -715,6 +751,7 @@ class InventoryCostService extends DbConnection
         if (isset($scenario['kwh_tariff']) && (float)$scenario['kwh_tariff'] > 0) {
             $normalized['kwh_tariff'] = round((float)$scenario['kwh_tariff'], 6);
         }
+        $normalized['route_cost_via_rateio'] = ($scenario['route_cost_via_rateio'] ?? true) !== false;
 
         return $normalized;
     }

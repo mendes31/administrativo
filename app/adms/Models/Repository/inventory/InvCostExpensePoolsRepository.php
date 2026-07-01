@@ -22,7 +22,7 @@ class InvCostExpensePoolsRepository extends DbConnection
                 FROM inv_cost_expense_pools p
                 LEFT JOIN inv_cost_allocation_rules r ON r.expense_pool_id = p.id
                 WHERE p.inv_cost_period_id = :period_id
-                ORDER BY p.account_code ASC, p.id ASC, r.id ASC';
+                ORDER BY p.description ASC, p.account_code ASC, p.id ASC, r.id ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':period_id', $periodId, PDO::PARAM_INT);
         $stmt->execute();

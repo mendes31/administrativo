@@ -50,21 +50,27 @@ class InvCostPeriodSkuSnapshotsRepository extends DbConnection
             inv_cost_period_id, inv_item_id, erp_code, item_description, category_name,
             linked, is_scenario, has_scenario, is_produto_acabado,
             batches_count, total_qty, qty_planned, efficiency_ratio, efficiency_pct, standard_batch_size,
+            batch_size_adopted, qty_avg_per_round, batches_produced,
             energy_class, complexity_level, complexity_factor, production_line,
             mp_lines, mae_lines, analysis_lines_per_batch, analysis_count_total,
             driver_4, driver_6, share_criterion_4, share_criterion_6,
             energy_class_from_item, suggested_energy_class,
-            cvar_sim_unit, cvar_mp_unit, cvar_energy_unit, cfix_total, cfix_unit, full_cost_unit,
+            cvar_sim_unit, cvar_mp_unit, cvar_mae_unit, cvar_energy_unit, cvar_batch,
+            cfix_total, cfix_unit, cfix_batch, full_cost_unit, full_cost_batch,
+            sale_price_net, markup_pct,
             computed_at
         ) VALUES (
             :inv_cost_period_id, :inv_item_id, :erp_code, :item_description, :category_name,
             :linked, :is_scenario, :has_scenario, :is_produto_acabado,
             :batches_count, :total_qty, :qty_planned, :efficiency_ratio, :efficiency_pct, :standard_batch_size,
+            :batch_size_adopted, :qty_avg_per_round, :batches_produced,
             :energy_class, :complexity_level, :complexity_factor, :production_line,
             :mp_lines, :mae_lines, :analysis_lines_per_batch, :analysis_count_total,
             :driver_4, :driver_6, :share_criterion_4, :share_criterion_6,
             :energy_class_from_item, :suggested_energy_class,
-            :cvar_sim_unit, :cvar_mp_unit, :cvar_energy_unit, :cfix_total, :cfix_unit, :full_cost_unit,
+            :cvar_sim_unit, :cvar_mp_unit, :cvar_mae_unit, :cvar_energy_unit, :cvar_batch,
+            :cfix_total, :cfix_unit, :cfix_batch, :full_cost_unit, :full_cost_batch,
+            :sale_price_net, :markup_pct,
             :computed_at
         )';
 
@@ -130,6 +136,9 @@ class InvCostPeriodSkuSnapshotsRepository extends DbConnection
         $bindNullable($stmt, ':efficiency_ratio', $row['efficiency_ratio'] ?? null);
         $bindNullable($stmt, ':efficiency_pct', $row['efficiency_pct'] ?? null);
         $bindNullable($stmt, ':standard_batch_size', $row['standard_batch_size'] ?? null);
+        $bindNullable($stmt, ':batch_size_adopted', $row['batch_size_adopted'] ?? null);
+        $bindNullable($stmt, ':qty_avg_per_round', $row['qty_avg_per_round'] ?? null);
+        $bindNullable($stmt, ':batches_produced', $row['batches_produced'] ?? null);
         $bindNullable($stmt, ':energy_class', $row['energy_class'] ?? null);
         $bindNullable($stmt, ':complexity_level', $row['complexity_level'] ?? null);
         $bindNullable($stmt, ':complexity_factor', $row['complexity_factor'] ?? null);
@@ -146,10 +155,16 @@ class InvCostPeriodSkuSnapshotsRepository extends DbConnection
         $bindNullable($stmt, ':suggested_energy_class', $row['suggested_energy_class'] ?? null);
         $bindNullable($stmt, ':cvar_sim_unit', $row['cvar_sim_unit'] ?? null);
         $bindNullable($stmt, ':cvar_mp_unit', $row['cvar_mp_unit'] ?? null);
+        $bindNullable($stmt, ':cvar_mae_unit', $row['cvar_mae_unit'] ?? null);
         $bindNullable($stmt, ':cvar_energy_unit', $row['cvar_energy_unit'] ?? null);
+        $bindNullable($stmt, ':cvar_batch', $row['cvar_batch'] ?? null);
         $bindNullable($stmt, ':cfix_total', $row['cfix_total'] ?? null);
         $bindNullable($stmt, ':cfix_unit', $row['cfix_unit'] ?? null);
+        $bindNullable($stmt, ':cfix_batch', $row['cfix_batch'] ?? null);
         $bindNullable($stmt, ':full_cost_unit', $row['full_cost_unit'] ?? null);
+        $bindNullable($stmt, ':full_cost_batch', $row['full_cost_batch'] ?? null);
+        $bindNullable($stmt, ':sale_price_net', $row['sale_price_net'] ?? null);
+        $bindNullable($stmt, ':markup_pct', $row['markup_pct'] ?? null);
         $bindNullable($stmt, ':computed_at', $row['computed_at'] ?? null);
     }
 }

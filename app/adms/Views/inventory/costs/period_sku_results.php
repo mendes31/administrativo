@@ -1,5 +1,7 @@
 <?php if (!isset($this)) { exit; } ?>
 <?php
+use App\adms\Helpers\InvCostBatchAdoptedHelper;
+
 $periodId = (int)($periodId ?? 0);
 $skuResults = $skuResults ?? [];
 $skuFilter = trim((string)($skuFilter ?? ''));
@@ -8,18 +10,20 @@ $period = $period ?? [];
 $fmtQty = static fn(?float $v): string => $v === null ? '—' : number_format($v, 0, ',', '.');
 $fmtPct = static fn(?float $v): string => $v === null ? '—' : number_format($v, 2, ',', '.') . '%';
 $fmtMoney = static fn(mixed $v): string => $v === null || $v === '' || !is_numeric($v) ? '—' : number_format((float)$v, 4, ',', '.');
+$fmtMoney2 = static fn(mixed $v): string => $v === null || $v === '' || !is_numeric($v) ? '—' : number_format((float)$v, 2, ',', '.');
 $hasTariff = (float)($period['kwh_tariff'] ?? 0) > 0;
 ?>
 <div class="card border-light shadow mb-4">
   <div class="card-body">
     <p class="small text-muted mb-3">
-      Consolidação por SKU: produção, eficiência, <strong>CVAR simulado</strong> (cadastro BOM/rota + eficiência MP),
-      <strong>CFIX rateado</strong> no período, <strong>energia</strong> (HM×kW×tarifa) e <strong>custo pleno/SKU</strong>.
-      SKUs sem vínculo no cadastro exibem apenas produção.
+      <em>Lote adotado</em> (Pasta 4): F24 = lote padrão (mín.) do <strong>cadastro do item</strong> quando &gt; 1
+      (0 ou 1 = placeholder SAP, trata como não fixado); senão F25 = produzido ÷ <strong>nº de lotes</strong>
+      (entradas na aba Lotes produzidos, mesma coluna <em>Lotes</em>); F26 = <code>SE(F24=0;F25;F24)</code>.
+      <strong>CVAR/un.</strong> usa divisor 1 na BOM (unidade comercial). <strong>CFIX</strong> usa HH/HM com o lote adotado.
     </p>
     <?php if (!$hasTariff): ?>
       <div class="alert alert-warning py-2 small mb-3">
-        Tarifa kWh não informada no período — coluna <em>CVAR energia</em> ficará zerada.
+        Tarifa kWh não informada no período — coluna <em>Energia/un.</em> ficará zerada.
         <a href="<?= $_ENV['URL_ADM'] ?>update-inventory-cost-period/<?= $periodId ?>">Editar período</a>
       </div>
     <?php endif; ?>
@@ -60,16 +64,29 @@ $hasTariff = (float)($period['kwh_tariff'] ?? 0) > 0;
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
-              <th class="ps-3">SKU</th>
-              <th>Descrição</th>
-              <th class="text-end">Qtd</th>
-              <th class="text-end">Lotes</th>
-              <th class="text-end">Efic. %</th>
-              <th class="text-end">CVAR sim./SKU</th>
-              <th class="text-end">Energia/SKU</th>
-              <th class="text-end">CFIX período</th>
-              <th class="text-end">CFIX/SKU</th>
-              <th class="text-end pe-3">Custo pleno/SKU</th>
+              <th class="ps-3" rowspan="2">SKU</th>
+              <th rowspan="2">Descrição</th>
+              <th class="text-end" rowspan="2">Qtd</th>
+              <th class="text-end" rowspan="2" title="Lote padrão SAP (MinOrdrQty) — exibido só quando &gt; 1">Lote SAP</th>
+              <th class="text-end" rowspan="2" title="Lote adotado para custo/un. (Pasta 4)">Lote adotado</th>
+              <th class="text-end" rowspan="2">Efic. %</th>
+              <th class="text-center border-start" colspan="5">CVAR</th>
+              <th class="text-center border-start" colspan="2">CFIX</th>
+              <th class="text-center border-start" colspan="2">Custo pleno</th>
+              <th class="text-center border-start" colspan="2">Pasta 11</th>
+            </tr>
+            <tr>
+              <th class="text-end border-start small" title="Matéria-prima por unidade comercial (lote adotado)">MP/un.</th>
+              <th class="text-end small" title="Embalagem por unidade comercial">MAE/un.</th>
+              <th class="text-end small" title="CVAR/un. = MP + MAE + energia — linha verde planilha">CVAR/un.</th>
+              <th class="text-end small" title="Energia direta /un.">EE/un.</th>
+              <th class="text-end border-start small" title="CVAR/un. × qtd produzida">CVAR período</th>
+              <th class="text-end border-start small" title="CFIX rateado no período para o SKU">Total período</th>
+              <th class="text-end small" title="CFIX total ÷ qtd produzida — linha 10 planilha">/un.</th>
+              <th class="text-end border-start small" title="CVAR/un. + CFIX/un.">/un.</th>
+              <th class="text-end small" title="Custo pleno/un. × qtd">Total período</th>
+              <th class="text-end border-start small" title="Preço líquido (cadastro por período)">Preço líq.</th>
+              <th class="text-end pe-3 small" title="(preço − custo) ÷ custo — convenção planilha linha 14">Markup %</th>
             </tr>
           </thead>
           <tbody>
@@ -78,13 +95,20 @@ $hasTariff = (float)($period['kwh_tariff'] ?? 0) > 0;
                 <td class="ps-3 font-monospace small"><?= htmlspecialchars((string)($row['erp_code'] ?? '—')) ?></td>
                 <td class="small"><?= htmlspecialchars((string)($row['item_description'] ?? '')) ?></td>
                 <td class="text-end"><?= $fmtQty(isset($row['total_qty']) ? (float)$row['total_qty'] : null) ?></td>
-                <td class="text-end"><?= (int)($row['batches_count'] ?? 0) ?></td>
+                <td class="text-end"><?= $fmtQty(InvCostBatchAdoptedHelper::catalogBatchForDisplay($row['standard_batch_size'] ?? null)) ?></td>
+                <td class="text-end"><?= $fmtQty(isset($row['batch_size_adopted']) ? (float)$row['batch_size_adopted'] : null) ?></td>
                 <td class="text-end"><?= $fmtPct(isset($row['efficiency_pct']) ? (float)$row['efficiency_pct'] : null) ?></td>
-                <td class="text-end"><?= $fmtMoney($row['cvar_sim_unit'] ?? null) ?></td>
-                <td class="text-end"><?= $fmtMoney($row['cvar_energy_unit'] ?? null) ?></td>
-                <td class="text-end"><?= $fmtMoney($row['cfix_total'] ?? null) ?></td>
-                <td class="text-end"><?= $fmtMoney($row['cfix_unit'] ?? null) ?></td>
-                <td class="text-end pe-3 fw-semibold"><?= $fmtMoney($row['full_cost_unit'] ?? null) ?></td>
+                <td class="text-end border-start"><?= $fmtMoney2($row['cvar_mp_unit'] ?? null) ?></td>
+                <td class="text-end"><?= $fmtMoney2($row['cvar_mae_unit'] ?? null) ?></td>
+                <td class="text-end fw-semibold text-success"><?= $fmtMoney2($row['cvar_sim_unit'] ?? null) ?></td>
+                <td class="text-end"><?= $fmtMoney2($row['cvar_energy_unit'] ?? null) ?></td>
+                <td class="text-end border-start fw-semibold text-success"><?= $fmtMoney2($row['cvar_period_total'] ?? $row['cvar_batch'] ?? null) ?></td>
+                <td class="text-end border-start"><?= $fmtMoney2($row['cfix_total'] ?? null) ?></td>
+                <td class="text-end"><?= $fmtMoney2($row['cfix_unit'] ?? null) ?></td>
+                <td class="text-end border-start"><?= $fmtMoney2($row['full_cost_unit'] ?? null) ?></td>
+                <td class="text-end fw-semibold"><?= $fmtMoney2($row['full_cost_period_total'] ?? $row['full_cost_batch'] ?? null) ?></td>
+                <td class="text-end border-start"><?= $fmtMoney2($row['sale_price_net'] ?? null) ?></td>
+                <td class="text-end pe-3"><?= $fmtPct(isset($row['markup_pct']) ? (float)$row['markup_pct'] : null) ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>

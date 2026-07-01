@@ -171,9 +171,9 @@ LEFT JOIN OITM T2 ON T2."ItemCode" = S."ART1_ID"
 LEFT JOIN OITB T3 ON T3."ItmsGrpCod" = T2."ItmsGrpCod"
 LEFT JOIN OITW W ON W."ItemCode" = S."ART1_ID"
   AND W."WhsCode" = CASE
-    WHEN I."DfltWH" = 'TJQP' THEN 'TJQR'
-    WHEN I."DfltWH" = 'APQP' THEN 'APQR'
-    ELSE I."DfltWH"
+    WHEN T2."DfltWH" = 'TJQP' THEN 'TJQR'
+    WHEN T2."DfltWH" = 'APQP' THEN 'APQR'
+    ELSE T2."DfltWH"
   END
 LEFT JOIN (
   SELECT X."ItemCode", X."LastCost"
@@ -194,6 +194,7 @@ WHERE UPPER(S."DESCRIPTION") NOT LIKE '%GERADOR DE LOTE%'
 ```sql
 SELECT
   A."POS_ID" AS "pos_id",
+  CAST(COALESCE(A."MASTER_POS_ID", 0) AS INTEGER) AS "master_pos_id",
   A."AG_ID" AS "codigo",
   A."BEZ" AS "descricao",
   A."APLATZ_ID" AS "recurso",

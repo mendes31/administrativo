@@ -116,7 +116,7 @@ class SimulateInventoryCost
         $this->data['edit_bom'] = $editBom;
         $this->data['edit_operations'] = $editOperations;
         $this->data['baseline_bom'] = (new InvItemBomRepository())->getByItem($itemId);
-        $this->data['baseline_operations'] = (new InvItemOperationsRepository())->getByItem($itemId);
+        $this->data['baseline_operations'] = (new InvItemOperationsRepository())->getByItemForCosting($itemId);
         $this->data['structure_customized'] = $structureHelper->hasStructureInRequest($requestData);
         $this->data['listBomItems'] = (new InvItemsRepository())->getAllForSelectWithAdminType();
         $this->data['listUnits'] = (new InvUnitsRepository())->getAllForSelect();
