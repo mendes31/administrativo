@@ -137,10 +137,8 @@ class InvItemsRepository extends DbConnection
 			$stmt->bindValue(':sap_update_date', $sapUpdateDate, $sapUpdateDate !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 			$stmt->bindValue(':active', isset($data['active']) ? (int)$data['active'] : 1, PDO::PARAM_INT);
 			$stmt->bindValue(':created_at', date('Y-m-d H:i:s'));
-			$ok = $stmt->execute();
-			$rowCount = $stmt->rowCount();
+			$stmt->execute();
 			$newId = (int) $this->getConnection()->lastInsertId();
-			$this->writeSapInsertRepositoryAudit((string)($data['erp_code'] ?? $data['code'] ?? ''), $ok, $rowCount, $newId, null, $data);
 			if ($newId > 0) {
 				$row = $this->getItemRowById($newId);
 				if (is_array($row)) {
@@ -158,41 +156,9 @@ class InvItemsRepository extends DbConnection
 
 			return $newId;
 		} catch (Exception $e) {
-			$this->writeSapInsertRepositoryAudit((string)($data['erp_code'] ?? $data['code'] ?? ''), false, 0, 0, $e->getMessage(), $data);
 			GenerateLog::generateLog('error', 'Falha ao criar item de estoque', ['error' => $e->getMessage(), 'code' => $data['code'] ?? '']);
 			return false;
 		}
-	}
-
-	/**
-	 * Log técnico de INSERT no repository. Ajuda a identificar INSERT silencioso, lastInsertId=0,
-	 * rowCount=0 ou exceções capturadas.
-	 *
-	 * @param array<string, mixed> $payload
-	 */
-	private function writeSapInsertRepositoryAudit(string $erpCode, bool $ok, int $rowCount, int $newId, ?string $error, array $payload): void
-	{
-		$logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-		if (!is_dir($logDir)) {
-			@mkdir($logDir, 0775, true);
-		}
-
-		$lines = [];
-		$lines[] = '[' . date('Y-m-d H:i:s') . '] REPOSITORY INSERT inv_items | ' . $erpCode;
-		$lines[] = '  execute_ok: ' . ($ok ? 'SIM' : 'NÃO');
-		$lines[] = '  row_count: ' . $rowCount;
-		$lines[] = '  last_insert_id: ' . $newId;
-		if ($error !== null && $error !== '') {
-			$lines[] = '  error: ' . $error;
-		}
-		$lines[] = '  payload: ' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-		$lines[] = '';
-
-		@file_put_contents(
-			$logDir . DIRECTORY_SEPARATOR . 'sap_sync_repository_insert_audit.log',
-			implode(PHP_EOL, $lines) . PHP_EOL,
-			FILE_APPEND | LOCK_EX
-		);
 	}
 
 	public function update(int $id, array $data): bool
@@ -345,9 +311,9 @@ class InvItemsRepository extends DbConnection
 	 */
 	public function getSapSyncSnapshot(): array
 	{
-		$sql = 'SELECT i.id, i.code, i.erp_code, i.description, i.active, i.inv_unit_id, i.inv_category_id,
+		$sql = 'SELECT i.id, i.erp_code, i.description, i.active, i.inv_unit_id, i.inv_category_id,
 				i.average_cost, i.last_cost, i.production_line, i.inv_pharma_form_id, i.sap_update_date,
-				i.energy_class, i.complexity_level, i.admin_type, i.min_stock, i.max_stock, i.standard_batch_size,
+				i.admin_type, i.min_stock, i.max_stock, i.standard_batch_size,
 				i.sap_item_hash, i.sap_beas_version, i.sap_bom_hash, i.sap_route_hash,
 				i.sap_structure_pending, i.sap_route_pending, i.sap_last_synced_at,
 				u.code AS unit_code, c.name AS category_name
@@ -516,9 +482,8 @@ class InvItemsRepository extends DbConnection
 	 *
 	 * @return list<int>
 	 */
-	public function getIdsEligibleForStructureSync(?string $filterGroupPrefix = null): array
+	public function getIdsEligibleForStructureSync(): array
 	{
-		$filterGroupPrefix = trim((string)($filterGroupPrefix ?? ''));
 		$sql = 'SELECT i.id
 				FROM inv_items i
 				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
@@ -532,9 +497,8 @@ class InvItemsRepository extends DbConnection
 				    OR i.erp_code LIKE :erp_pi
 				    OR EXISTS (SELECT 1 FROM inv_item_bom b WHERE b.inv_item_id = i.id)
 				    OR EXISTS (SELECT 1 FROM inv_item_operations o WHERE o.inv_item_id = i.id)
-				  )'
-				. ($filterGroupPrefix !== '' ? ' AND c.name LIKE :filter_group_prefix ' : '') .
-				' ORDER BY i.id';
+				  )
+				ORDER BY i.id';
 
 		$stmt = $this->getConnection()->prepare($sql);
 		$stmt->bindValue(':project_cat', InvCostProjectHelper::CATEGORY_NAME);
@@ -542,9 +506,6 @@ class InvItemsRepository extends DbConnection
 		$stmt->bindValue(':kw_intermed', '%INTERMED%');
 		$stmt->bindValue(':erp_pa', '43%');
 		$stmt->bindValue(':erp_pi', '40%');
-		if ($filterGroupPrefix !== '') {
-			$stmt->bindValue(':filter_group_prefix', $filterGroupPrefix . '%');
-		}
 		$stmt->execute();
 		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -559,24 +520,19 @@ class InvItemsRepository extends DbConnection
 	 *
 	 * @return list<int>
 	 */
-	public function getIdsPendingStructureSync(?string $filterGroupPrefix = null): array
+	public function getIdsPendingStructureSync(): array
 	{
-		$filterGroupPrefix = trim((string)($filterGroupPrefix ?? ''));
 		$sql = 'SELECT i.id
 				FROM inv_items i
 				LEFT JOIN inv_categories c ON c.id = i.inv_category_id
 				WHERE i.erp_code IS NOT NULL
 				  AND TRIM(i.erp_code) <> \'\'
 				  AND (c.name IS NULL OR c.name <> :project_cat)
-				  AND (i.sap_structure_pending = 1 OR i.sap_route_pending = 1)'
-				. ($filterGroupPrefix !== '' ? ' AND c.name LIKE :filter_group_prefix ' : '') .
-				' ORDER BY i.erp_code ASC';
+				  AND (i.sap_structure_pending = 1 OR i.sap_route_pending = 1)
+				ORDER BY i.erp_code ASC';
 
 		$stmt = $this->getConnection()->prepare($sql);
 		$stmt->bindValue(':project_cat', InvCostProjectHelper::CATEGORY_NAME);
-		if ($filterGroupPrefix !== '') {
-			$stmt->bindValue(':filter_group_prefix', $filterGroupPrefix . '%');
-		}
 		$stmt->execute();
 		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -617,7 +573,6 @@ class InvItemsRepository extends DbConnection
 		foreach ([
 			'sap_item_hash' => 'sap_item_hash',
 			'sap_beas_version' => 'sap_beas_version',
-			'sap_update_date' => 'sap_update_date',
 			'sap_bom_hash' => 'sap_bom_hash',
 			'sap_route_hash' => 'sap_route_hash',
 			'sap_last_synced_at' => 'sap_last_synced_at',
@@ -659,34 +614,6 @@ class InvItemsRepository extends DbConnection
 				$stmt->bindValue($key, (string)$value);
 			}
 		}
-
-		return $stmt->execute();
-	}
-
-
-	/**
-	 * Atualiza somente o UpdateDate do SAP para itens antigos já conferidos.
-	 * Não altera updated_at, não recalcula custos, não mexe em BOM/rota e não passa pelo update completo do item.
-	 */
-	public function updateSapUpdateDateOnly(int $id, ?string $sapUpdateDate): bool
-	{
-		if ($id <= 0) {
-			return false;
-		}
-
-		$value = $this->nullableString($sapUpdateDate);
-		if ($value === null) {
-			return false;
-		}
-
-		$sql = 'UPDATE inv_items
-				SET sap_update_date = :sap_update_date
-				WHERE id = :id
-				  AND (sap_update_date IS NULL OR sap_update_date <> :sap_update_date_check)';
-		$stmt = $this->getConnection()->prepare($sql);
-		$stmt->bindValue(':sap_update_date', $value, PDO::PARAM_STR);
-		$stmt->bindValue(':sap_update_date_check', $value, PDO::PARAM_STR);
-		$stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
 		return $stmt->execute();
 	}

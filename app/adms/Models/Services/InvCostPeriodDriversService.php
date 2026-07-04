@@ -50,29 +50,26 @@ class InvCostPeriodDriversService
         foreach ($production['items'] ?? [] as $prodRow) {
             $itemId = (int)($prodRow['inv_item_id'] ?? 0);
             $qtyProduced = (float)($prodRow['qty_produced'] ?? 0);
-            $physicalBatches = InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
-                (int)($prodRow['batches_count'] ?? 0)
-            );
             $catalogBatch = $prodRow['catalog_standard_batch_size'] ?? null;
 
             $periodItem = $itemId > 0
                 ? $defaultsService->mergeWithDefaults($itemId, $periodItemsMap[$itemId] ?? null)
                 : null;
-            $batchCtx = InvCostBatchAdoptedHelper::resolveProductionContext(
+            $metrics = InvCostBatchAdoptedHelper::resolveProductionMetrics(
                 $periodItem,
                 $qtyProduced,
-                $physicalBatches,
+                (int)($prodRow['batches_count'] ?? 0),
                 $catalogBatch
             );
-            $adoptedBatch = (float)$batchCtx['batch_size_adopted'];
-            $batchesProduced = (float)$batchCtx['batches_produced'];
+            $adoptedBatch = (float)$metrics['batch_size_adopted'];
+            $batchesProduced = (float)$metrics['batches_produced'];
 
             $hhPerBatch = 0.0;
             $hmPerBatch = 0.0;
             $hmRateioPerBatch = 0.0;
 
             if ($itemId > 0 && $batchesProduced > 0 && $adoptedBatch > 0) {
-                $effRatio = (float)$batchCtx['efficiency_ratio'];
+                $effRatio = (float)$metrics['efficiency_ratio'];
                 $cacheKey = $itemId . ':' . round($adoptedBatch, 4) . ':' . round($effRatio, 4);
                 if (!isset($breakdownCache[$cacheKey])) {
                     $scenario = ['standard_batch_size' => $adoptedBatch];
@@ -97,9 +94,10 @@ class InvCostPeriodDriversService
                 'batches_count' => (int)($prodRow['batches_count'] ?? 0),
                 'batches_produced' => $batchesProduced,
                 'batch_size_adopted' => $adoptedBatch,
-                'efficiency_ratio' => (float)$batchCtx['efficiency_ratio'],
-                'efficiency_pct' => (float)$batchCtx['efficiency_pct'],
-                'qty_theoretical' => (float)$batchCtx['qty_theoretical'],
+                'efficiency_ratio' => (float)$metrics['efficiency_ratio'],
+                'efficiency_pct' => (float)$metrics['efficiency_pct'],
+                'qty_theoretical' => (float)($metrics['qty_planned'] ?? 0),
+                'qty_planned' => $metrics['qty_planned'],
                 'hh_per_batch' => round($hhPerBatch, 6),
                 'hm_per_batch' => round($hmPerBatch, 6),
                 'hm_rateio_per_batch' => round($hmRateioPerBatch ?? 0.0, 6),

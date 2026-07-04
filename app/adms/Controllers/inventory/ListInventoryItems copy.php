@@ -317,18 +317,10 @@ class ListInventoryItems
 
         @set_time_limit(0);
 
+        $fullSync = !empty($_POST['sync_sap_items_full']);
         $filterCode = trim((string)($_POST['sync_sap_item_code'] ?? ''));
         $filterGroup = trim((string)($_POST['sync_sap_group_prefix'] ?? ''));
         $autoContinue = !isset($_POST['sync_sap_items_continue']) || !empty($_POST['sync_sap_items_continue']);
-
-        /*
-         * Botão "Sincronizar SAP" da listagem:
-         * - sem código: força sincronização completa do escopo selecionado;
-         * - com grupo: sincroniza todos os itens do grupo informado;
-         * - com código ERP: sincroniza apenas o item informado.
-         */
-        $fullSync = true;
-
         if ($filterCode !== '') {
             $fullSync = false;
             $filterGroup = '';

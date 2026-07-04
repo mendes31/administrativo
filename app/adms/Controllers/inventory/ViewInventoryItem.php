@@ -41,35 +41,43 @@ class ViewInventoryItem
             return;
         }
 
-        if (isset($_POST['sync_sap_structure_item_id'])) {
-            $this->handleSyncStructureRequest($itemId);
+        if (isset($_POST['sync_sap_structure_item_id']) || isset($_POST['sync_sap_unified_item_id'])) {
+            $this->handleSyncUnifiedRequest($itemId);
             return;
         }
 
         $this->data['item'] = $item;
+
         $balancesRepo = new InvBalancesRepository();
-        $balances = $balancesRepo->getBalancesByItem((int)$id);
+        $balances = $balancesRepo->getBalancesByItem($itemId);
         $this->data['balances'] = $balances;
-        // Calcula custo médio ponderado geral para exibir no cabeçalho
-        $totalQty = 0.0; $totalVal = 0.0;
+
+        $totalQty = 0.0;
+        $totalVal = 0.0;
+
         foreach ($balances as $b) {
             $q = (float)($b['qty'] ?? 0);
             $ac = (float)($b['average_cost'] ?? 0);
             $totalQty += $q;
             $totalVal += $q * $ac;
         }
-        $this->data['header_average_cost'] = $totalQty > 0 ? ($totalVal / $totalQty) : (float)($item['average_cost'] ?? 0);
 
-        // Último custo: obter da última entrada registrada
+        $this->data['header_average_cost'] = $totalQty > 0
+            ? ($totalVal / $totalQty)
+            : (float)($item['average_cost'] ?? 0);
+
         $movRepo = new InvMovementsRepository();
-        $lastCost = $movRepo->getLastEntryUnitCost((int)$id);
+        $lastCost = $movRepo->getLastEntryUnitCost($itemId);
+
         if ($lastCost !== null) {
             $item['last_cost'] = $lastCost;
         }
+
         $this->data['item'] = $item;
 
         $bomRepo = new InvItemBomRepository();
         $opsRepo = new InvItemOperationsRepository();
+
         $this->data['bom'] = $bomRepo->getByItem($itemId);
         $this->data['bom_display'] = $bomRepo->getDisplayRowsByItem($itemId);
         $this->data['operations'] = $opsRepo->getByItem($itemId);
@@ -82,10 +90,10 @@ class ViewInventoryItem
             'menu' => 'estoque',
             'buttonPermission' => ['ListInventoryItems', 'UpdateInventoryItem', 'SimulateInventoryCost'],
         ];
+
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
-        $itemId = (int) $id;
         if ($itemId > 0) {
             $returnUrl = $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId;
             $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemId, $returnUrl);
@@ -95,35 +103,57 @@ class ViewInventoryItem
         $loadView->loadView();
     }
 
-    private function handleSyncStructureRequest(int $itemId): void
+    private function handleSyncUnifiedRequest(int $itemId): void
     {
         $redirect = $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId;
         $token = (string)($_POST['csrf_token'] ?? '');
-        if (!CSRFHelper::validateCSRFToken('form_sync_inventory_structure', $token)) {
-            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Token CSRF inválido para sincronização da estrutura.</div>";
+
+        $csrfForm = isset($_POST['sync_sap_unified_item_id'])
+            ? 'form_sync_inventory_unified'
+            : 'form_sync_inventory_structure';
+
+        // Não consumir o token aqui. Evita erro de CSRF em reenvios/retornos após sincronização.
+        if (!CSRFHelper::validateCSRFToken($csrfForm, $token, false)) {
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Token CSRF inválido para sincronização SAP.</div>";
             header('Location: ' . $redirect);
             return;
         }
 
-        $postedId = (int)($_POST['sync_sap_structure_item_id'] ?? 0);
+        $postedId = (int)($_POST['sync_sap_unified_item_id'] ?? $_POST['sync_sap_structure_item_id'] ?? 0);
+
         if ($postedId <= 0 || $postedId !== $itemId) {
-            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Item inválido para sincronização da estrutura.</div>";
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Item inválido para sincronização SAP.</div>";
+            header('Location: ' . $redirect);
+            return;
+        }
+
+        $item = (new InvItemsRepository())->getOne($itemId);
+
+        if (!$item) {
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Item não encontrado para sincronização SAP.</div>";
+            header('Location: ' . $redirect);
+            return;
+        }
+
+        $erpCode = trim((string)($item['erp_code'] ?? ''));
+
+        if ($erpCode === '') {
+            $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>Item sem código ERP para sincronizar com o SAP.</div>";
             header('Location: ' . $redirect);
             return;
         }
 
         $service = new InventorySapSyncService();
-        $result = $service->syncItemStructureById($itemId);
+        $result = $service->syncItemUnifiedByErpCode($erpCode);
+
         if (!empty($result['success'])) {
-            $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>{$result['message']}</div>";
+            $message = htmlspecialchars((string)($result['message'] ?? 'Sincronização SAP concluída.'), ENT_QUOTES, 'UTF-8');
+            $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>{$message}</div>";
         } else {
-            $message = htmlspecialchars((string)($result['message'] ?? 'Erro desconhecido na sincronização de estrutura SAP.'), ENT_QUOTES, 'UTF-8');
+            $message = htmlspecialchars((string)($result['message'] ?? 'Erro desconhecido na sincronização SAP.'), ENT_QUOTES, 'UTF-8');
             $_SESSION['msg'] = "<div class='alert alert-danger' role='alert'>{$message}</div>";
         }
 
         header('Location: ' . $redirect);
     }
 }
-
-
-

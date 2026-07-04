@@ -35,7 +35,7 @@ $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item')
 				<form action="" method="POST" class="d-inline" id="form-sync-inventory-all"
 					data-sync-title="Sincronizando com o SAP"
 					data-sync-type="all"
-					onsubmit="return confirm('Sincronizar itens (incremental) e estruturas pendentes com o SAP?\n\nPode levar vários minutos. Uma barra de progresso será exibida.');">
+					onsubmit="return confirm('Sincronizar itens (incremental) e estruturas pendentes com o SAP?\n\nCom código ERP informado, sincroniza catálogo + BOM/rota + PIs dependentes do item.\n\nPode levar vários minutos. Uma barra de progresso será exibida.');">
 					<input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_sync_inventory_all'); ?>">
 					<input type="hidden" name="sync_sap_all" value="1">
 					<button type="submit" class="btn btn-primary btn-sm" id="btn-sync-inventory-all">

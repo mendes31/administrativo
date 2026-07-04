@@ -72,9 +72,6 @@ class InvCostProductionAggregationService extends DbConnection
         foreach ($items as &$item) {
             $itemId = $item['inv_item_id'] !== null ? (int)$item['inv_item_id'] : 0;
             $qty = (float)($item['qty_produced'] ?? 0);
-            $physicalBatches = InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
-                (int)($item['batches_count'] ?? 0)
-            );
             $catalogBatch = $item['catalog_standard_batch_size'] ?? null;
 
             $periodItem = null;
@@ -83,20 +80,20 @@ class InvCostProductionAggregationService extends DbConnection
                 $periodItem = $defaultsService->mergeWithDefaults($itemId, is_array($saved) ? $saved : null);
             }
 
-            $ctx = InvCostBatchAdoptedHelper::resolveProductionContext(
+            $metrics = InvCostBatchAdoptedHelper::resolveProductionMetrics(
                 $periodItem,
                 $qty,
-                $physicalBatches,
+                (int)($item['batches_count'] ?? 0),
                 $catalogBatch
             );
-            $item['efficiency_ratio'] = $ctx['efficiency_ratio'];
-            $item['efficiency_pct'] = $ctx['efficiency_pct'];
-            $item['min_batch_size'] = $ctx['batch_size_adopted'];
-            $item['qty_planned'] = $ctx['qty_planned'];
-            $item['qty_theoretical'] = $ctx['qty_planned'];
-            $item['qty_avg_per_round'] = $ctx['qty_avg_per_round'];
-            $item['batch_size_adopted'] = $ctx['batch_size_adopted'];
-            $item['batches_produced'] = $ctx['batches_produced'];
+            $item['efficiency_ratio'] = $metrics['efficiency_ratio'];
+            $item['efficiency_pct'] = $metrics['efficiency_pct'];
+            $item['min_batch_size'] = $metrics['batch_size_adopted'];
+            $item['qty_planned'] = $metrics['qty_planned'];
+            $item['qty_theoretical'] = $metrics['qty_planned'];
+            $item['qty_avg_per_round'] = $metrics['qty_avg_per_round'];
+            $item['batch_size_adopted'] = $metrics['batch_size_adopted'];
+            $item['batches_produced'] = $metrics['batches_produced'];
         }
         unset($item);
 

@@ -9,12 +9,14 @@
 <ol>
     <li>Na listagem, clique em <strong>Visualizar</strong> no registro desejado.</li>
     <li>Revise ID, datas de cadastro/edição e observações.</li>
+    <li>Com código ERP, use <strong>Sincronizar SAP</strong> no cabeçalho para atualizar catálogo, lista de materiais, rota e PIs dependentes (fecho SAP).</li>
     <li>Use os botões do cabeçalho para ir à listagem, editar ou consultar log de alterações.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
 <div class="help-field"><strong>Dados exibidos</strong> Mesmos campos da aba <em>Dados gerais</em> do editar: identificação, lote padrão, classe HVAC, complexidade, linha, forma farmacêutica, estoque, custos e ativo.</div>
+<div class="help-field"><strong>Sincronizar SAP</strong> Atualiza catálogo do item, BOM, rota e estruturas dos PIs referenciados (ordem bottom-up). A lista de materiais exibida inclui MPs explodidas dos produtos intermediários.</div>
 <div class="help-field"><strong>Sincronização SAP</strong> Versão BEAS, última sync, <code>UpdateDate</code>, hashes e pendências de BOM/rota (itens com código ERP).</div>
 
 <h2>Problemas comuns</h2>
@@ -23,6 +25,8 @@
     <dd>Permissão <em>ViewInventoryItem</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
+    <dt>Lista de materiais só mostra embalagens</dt>
+    <dd>Clique em <strong>Sincronizar SAP</strong>. O sistema regrava a BOM quando o hash SAP coincide mas o cadastro local divergiu (ex.: PI ausente). Confira se os PIs do fecho também existem no SAP.</dd>
     <dt>F1 abre documentação genérica</dt>
     <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
 </dl>

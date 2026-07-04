@@ -47,7 +47,9 @@ class ExportInvCostPeriodSkuResults
         fputcsv($out, [
             'sku',
             'descricao',
-            'qtd',
+            'lotes',
+            'qtd_produzida',
+            'qtd_planejada',
             'lote_padrao_sap',
             'lote_adotado',
             'eficiencia_pct',
@@ -68,9 +70,11 @@ class ExportInvCostPeriodSkuResults
             fputcsv($out, [
                 (string)($row['erp_code'] ?? ''),
                 (string)($row['item_description'] ?? ''),
+                (int)($row['batches_count'] ?? 0),
                 $row['total_qty'] ?? '',
+                $row['qty_planned'] ?? '',
                 $row['standard_batch_size'] ?? '',
-                $row['costing_batch_size'] ?? '',
+                $row['batch_size_adopted'] ?? '',
                 $row['efficiency_pct'] ?? '',
                 $row['cvar_mp_unit'] ?? '',
                 $row['cvar_mae_unit'] ?? '',

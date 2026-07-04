@@ -298,19 +298,6 @@ class InvCostPeriodSnapshotService
         $adoptedBatch = $this->toNullableFloat($record['batch_size_adopted'] ?? null);
         $avgPerRound = $this->toNullableFloat($record['qty_avg_per_round'] ?? null);
         $batchesProduced = $this->toNullableFloat($record['batches_produced'] ?? null);
-        if ($adoptedBatch === null && $qty !== null && $qty > 0) {
-            $ctx = InvCostBatchAdoptedHelper::resolveProductionContext(
-                ['batch_size_theoretical' => InvCostBatchAdoptedHelper::theoreticalFixedFromCatalog($batchSize)],
-                $qty,
-                InvCostBatchAdoptedHelper::resolvePhysicalBatchesCount(
-                    (int)($record['batches_count'] ?? 0)
-                ),
-                $batchSize
-            );
-            $adoptedBatch = (float)$ctx['batch_size_adopted'];
-            $avgPerRound = $this->toNullableFloat($ctx['qty_avg_per_round'] ?? null);
-            $batchesProduced = (float)$ctx['batches_produced'];
-        }
 
         return [
             'inv_item_id' => $itemId > 0 ? $itemId : null,

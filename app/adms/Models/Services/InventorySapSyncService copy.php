@@ -59,12 +59,6 @@ class InventorySapSyncService
     /** @var list<array{erp_code: string, phase: string, reason: string, at: string}> */
     private array $syncFailureEntries = [];
 
-    /** @var list<string> Últimos campos cadastrais que realmente exigiram UPDATE em inv_items. */
-    private array $lastItemChangedFields = [];
-
-    /** Indica que, na última comparação, somente o UpdateDate SAP divergiu. */
-    private bool $lastItemOnlySapUpdateDateChanged = false;
-
     /** null = ainda não testado; false = API não aceita UDF no SELECT. */
     private ?bool $sapUnifiedSelectSupported = null;
 
@@ -130,19 +124,6 @@ class InventorySapSyncService
             'examined' => 0,
             'partial' => false,
             'failed' => 0,
-            'item_field_updates' => [],
-            // Quantidade de itens em que somente o UpdateDate SAP divergiu.
-            // UpdateDate é gatilho de análise, não prova de alteração relevante.
-            'sap_update_date_only' => 0,
-            'ignored_update_date_equal' => 0,
-            'compared_detail' => 0,
-            // Total estimado pelo SAP para a barra de progresso. Pode ser maior que
-            // o total efetivamente analisado quando a consulta de contagem considera
-            // registros que a consulta principal descarta por regra/filtro.
-            'sap_estimated_total' => 0,
-            'ignored_before_analysis' => 0,
-            'ignored_before_analysis_details' => [],
-            'sap_actual_index_total' => 0,
         ];
 
         $runsRepo = new InvInventorySapSyncRunsRepository();
@@ -376,33 +357,6 @@ class InventorySapSyncService
                 $stats['removed'],
                 $stats['recalculated']
             );
-
-            $estimatedTotal = (int)($stats['sap_estimated_total'] ?? 0);
-            if ($estimatedTotal <= 0 && $this->trackedProgressTotal > 0) {
-                $estimatedTotal = (int)$this->trackedProgressTotal;
-                $stats['sap_estimated_total'] = $estimatedTotal;
-            }
-            $ignoredBeforeAnalysis = max(0, $estimatedTotal - (int)($stats['examined'] ?? 0));
-            $stats['ignored_before_analysis'] = $ignoredBeforeAnalysis;
-
-            $fieldSummary = $this->formatItemFieldUpdateSummary($stats['item_field_updates'] ?? [], true);
-            if ($fieldSummary !== '') {
-                $stats['message'] .= ' Atualizações executadas por campo: ' . $fieldSummary . '.';
-            }
-            $stats['message'] .= ' Ignorados por UpdateDate igual: ' . (int)($stats['ignored_update_date_equal'] ?? 0) . '.';
-            $stats['message'] .= ' Comparados em detalhe: ' . (int)($stats['compared_detail'] ?? 0) . '.';
-            if ((int)($stats['sap_estimated_total'] ?? 0) > 0) {
-                $stats['message'] .= ' Total bruto/estimado SAP: ' . (int)$stats['sap_estimated_total'] . '.';
-                $stats['message'] .= ' Ignorados antes da análise: ' . (int)($stats['ignored_before_analysis'] ?? 0) . '.';
-                if (!empty($stats['ignored_before_analysis_details']) && is_array($stats['ignored_before_analysis_details'])) {
-                    $stats['message'] .= ' Consulte logs/sap_sync_ignored_before_analysis.log para detalhes.';
-                }
-            }
-            if ((int)($stats['sap_update_date_only'] ?? 0) > 0) {
-                $stats['message'] .= ' UpdateDate SAP preenchido/ajustado sem alterar cadastro: ' . (int)$stats['sap_update_date_only'] . '.';
-            }
-            $this->appendItemFieldUpdateSummaryLog($stats, $modeLabel);
-
             if ($stats['remove_skipped'] > 0) {
                 $stats['message'] .= sprintf(
                     ' %d item(ns) fora do catálogo não puderam ser excluídos (vínculos em movimentação ou BOM de outro item).',
@@ -540,14 +494,6 @@ class InventorySapSyncService
             'unchanged' => 0,
             'failed' => 0,
             'partial' => false,
-            'item_field_updates' => [],
-            'sap_update_date_only' => 0,
-            'ignored_update_date_equal' => 0,
-            'compared_detail' => 0,
-            'sap_estimated_total' => 0,
-            'ignored_before_analysis' => 0,
-            'ignored_before_analysis_details' => [],
-            'sap_actual_index_total' => 0,
         ];
 
         try {
@@ -618,11 +564,6 @@ class InventorySapSyncService
                 }
             }
 
-            $this->appendItemFieldUpdateSummaryLog(
-                $aggregate,
-                $isScopedItem ? ('item ' . $filterItemCode) : ($filterGroupPrefix !== '' ? ('grupo ' . $filterGroupPrefix) : ($fullSync ? 'completa' : 'por diff'))
-            );
-
             $this->finalizeTrackedSync(
                 $aggregate['success'],
                 $aggregate['message'],
@@ -689,15 +630,8 @@ class InventorySapSyncService
      */
     private function mergeSyncStats(array &$target, array $chunk): void
     {
-        foreach (['examined', 'created', 'updated', 'unchanged', 'failed', 'sap_update_date_only', 'ignored_update_date_equal', 'compared_detail', 'sap_estimated_total', 'ignored_before_analysis', 'sap_actual_index_total'] as $key) {
+        foreach (['examined', 'created', 'updated', 'unchanged', 'failed'] as $key) {
             $target[$key] = (int)($target[$key] ?? 0) + (int)($chunk[$key] ?? 0);
-        }
-        foreach (($chunk['item_field_updates'] ?? []) as $field => $count) {
-            $field = trim((string)$field);
-            if ($field === '') {
-                continue;
-            }
-            $target['item_field_updates'][$field] = (int)($target['item_field_updates'][$field] ?? 0) + (int)$count;
         }
         if (!empty($chunk['partial'])) {
             $target['partial'] = true;
@@ -1357,13 +1291,7 @@ class InventorySapSyncService
         $result['catalog'] = $catalogResult;
 
         $sap = new SapReportApiService();
-        $closureWarning = '';
-        try {
-            $closure = $this->collectStructureDependencyClosure($erpCode, $sap);
-        } catch (Throwable $e) {
-            $closure = [$erpCode];
-            $closureWarning = ' | aviso: Falha ao montar fecho de dependências: ' . $this->formatSyncErrorMessage($e->getMessage());
-        }
+        $closure = $this->collectStructureDependencyClosure($erpCode, $sap);
         $result['closure'] = $closure;
         $closureTotal = count($closure);
 
@@ -1432,7 +1360,7 @@ class InventorySapSyncService
             (int)($structures['unchanged'] ?? 0),
             (int)($structures['skipped'] ?? 0),
             (int)($structures['failed'] ?? 0),
-            ($closure !== [] ? (' | fecho: ' . implode(' → ', $closure)) : '') . $closureWarning
+            $closure !== [] ? (' | fecho: ' . implode(' → ', $closure)) : ''
         );
 
         return $result;
@@ -1944,7 +1872,7 @@ class InventorySapSyncService
             }
 
             foreach ($oitmRows as $row) {
-                $code = $this->sapRowItemCode($row);
+                $code = trim((string)($row['ItemCode'] ?? $row['ITEMCODE'] ?? ''));
                 if ($code === '') {
                     continue;
                 }
@@ -1965,7 +1893,7 @@ class InventorySapSyncService
             }
 
             $lastRow = $oitmRows[count($oitmRows) - 1];
-            $lastCode = $this->sapRowItemCode($lastRow, $lastCode);
+            $lastCode = trim((string)($lastRow['ItemCode'] ?? $lastRow['ITEMCODE'] ?? $lastCode));
 
             if (count($oitmRows) < $batchSize) {
                 break;
@@ -2045,7 +1973,7 @@ class InventorySapSyncService
      */
     private function sapOitmCatalogSelectColumns(string $alias = 'T0'): string
     {
-        return 'TO_NVARCHAR(' . $alias . '."ItemCode") AS "ItemCode", '
+        return $alias . '."ItemCode", '
             . $this->sapCoalesceStringSelectExpression($alias, 'ItemName') . ', '
             . $this->sapCoalesceStringSelectExpression($alias, 'InvntryUom') . ', '
             . 'COALESCE(' . $alias . '."validFor", \'Y\') AS "validFor", '
@@ -2068,34 +1996,6 @@ class InventorySapSyncService
     private function sapOitmUpdateDateSelectExpression(string $alias = 'T0'): string
     {
         return 'COALESCE(TO_NVARCHAR(' . $alias . '."UpdateDate"), \'\') AS "UpdateDate"';
-    }
-
-    /**
-     * Normaliza o código do item retornado pelo SAP preservando zeros à esquerda.
-     * Código de item é identificador textual, nunca valor numérico.
-     *
-     * Regra segura:
-     * - se for apenas dígitos e tiver 7 posições, completa para 8 com zero à esquerda;
-     * - códigos alfanuméricos ou com 8+ posições não são alterados.
-     */
-    private function normalizeSapItemCode(mixed $value): string
-    {
-        $code = trim((string)$value);
-        if ($code !== '' && ctype_digit($code) && strlen($code) === 7) {
-            return str_pad($code, 8, '0', STR_PAD_LEFT);
-        }
-
-        return $code;
-    }
-
-    /**
-     * Extrai e normaliza o ItemCode de uma linha SAP, aceitando variações de caixa.
-     *
-     * @param array<string,mixed> $row
-     */
-    private function sapRowItemCode(array $row, mixed $fallback = ''): string
-    {
-        return $this->normalizeSapItemCode($row['ItemCode'] ?? $row['ITEMCODE'] ?? $fallback);
     }
 
     private function sapCoalesceStringSelectExpression(string $alias, string $column): string
@@ -2147,47 +2047,6 @@ class InventorySapSyncService
         $value = $row[$field] ?? $row[strtoupper($field)] ?? null;
 
         return $this->sapEmptyAsString($value, $default);
-    }
-
-    /**
-     * Log técnico para diagnosticar quando ItemName vem vazio/igual ao ItemCode.
-     * Mantido leve e seguro: grava apenas linhas problemáticas.
-     *
-     * @param array<string, mixed> $row
-     */
-    private function appendSapItemDescriptionDebug(string $stage, string $erpCode, array $row, ?string $sql = null): void
-    {
-        $code = $this->sapRowItemCode($row, $erpCode);
-        $itemName = $this->sapRowString($row, 'ItemName');
-
-        // Evita logar todos os itens: registra apenas casos úteis para diagnóstico.
-        if ($itemName !== '' && $code !== '' && $itemName !== $code) {
-            return;
-        }
-
-        $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-        if (!is_dir($logDir)) {
-            @mkdir($logDir, 0775, true);
-        }
-
-        $keys = implode(',', array_keys($row));
-        $payload = json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($payload === false) {
-            $payload = '[json_error]';
-        }
-        if (strlen($payload) > 3000) {
-            $payload = substr($payload, 0, 3000) . '...';
-        }
-
-        $text = '[' . date('Y-m-d H:i:s') . '] ' . $stage . ' | code=' . $code . ' | erp=' . $erpCode . PHP_EOL
-            . '  ItemName=' . var_export($itemName, true) . PHP_EOL
-            . '  keys=' . $keys . PHP_EOL;
-        if ($sql !== null && $sql !== '') {
-            $text .= '  sql=' . $sql . PHP_EOL;
-        }
-        $text .= '  row=' . $payload . PHP_EOL . PHP_EOL;
-
-        @file_put_contents($logDir . DIRECTORY_SEPARATOR . 'sap_sync_item_description_debug.log', $text, FILE_APPEND | LOCK_EX);
     }
 
     /**
@@ -2281,7 +2140,7 @@ class InventorySapSyncService
     private function sapOitmCatalogFallbackSelectGroups(string $alias = 'T0'): array
     {
         return [
-            'TO_NVARCHAR(' . $alias . '."ItemCode") AS "ItemCode", '
+            $alias . '."ItemCode", '
                 . $this->sapCoalesceStringSelectExpression($alias, 'ItemName') . ', '
                 . $this->sapCoalesceStringSelectExpression($alias, 'InvntryUom') . ', '
                 . 'COALESCE(' . $alias . '."validFor", \'Y\') AS "validFor", '
@@ -2341,7 +2200,7 @@ class InventorySapSyncService
             }
         }
 
-        $erp = $this->sapRowItemCode($merged, $itemCode);
+        $erp = trim((string)($merged['ItemCode'] ?? $merged['ITEMCODE'] ?? $itemCode));
         if ($erp === '') {
             return null;
         }
@@ -2371,7 +2230,7 @@ class InventorySapSyncService
             $groupFilter = ' AND T0."ItmsGrpCod" IN (' . implode(', ', $quoted) . ')';
         }
 
-        $sql = 'SELECT TO_NVARCHAR(T0."ItemCode") AS "ItemCode" FROM OITM T0 '
+        $sql = 'SELECT T0."ItemCode" FROM OITM T0 '
             . 'WHERE 1=1' . $this->sapAllowedGroupsWhereSql('T0') . $groupFilter . $afterClause . ' '
             . 'ORDER BY T0."ItemCode" '
             . 'LIMIT 1';
@@ -2382,7 +2241,7 @@ class InventorySapSyncService
             return null;
         }
 
-        $code = $this->sapRowItemCode($rows[0] ?? []);
+        $code = trim((string)($rows[0]['ItemCode'] ?? $rows[0]['ITEMCODE'] ?? ''));
 
         return $code !== '' ? $code : null;
     }
@@ -2403,7 +2262,7 @@ class InventorySapSyncService
         }
 
         $sql = 'SELECT '
-            . 'TO_NVARCHAR(T0."ItemCode") AS "ItemCode", '
+            . 'T0."ItemCode", '
             . 'COALESCE(T0."ItemName", \'\') AS "ItemName", '
             . 'COALESCE(T0."InvntryUom", \'\') AS "InvntryUom", '
             . $this->sapResolvedAvgPriceSelectExpression('T0') . ', '
@@ -2450,9 +2309,7 @@ class InventorySapSyncService
         ?array $restrictGroupCodes = null
     ): bool {
         $purchaseCostsChanged = false;
-        // Consulta de índice leve (ItemCode + UpdateDate). Lote maior e pausa menor
-        // sem alterar a lógica segura de retentativas quando a API SAP oscilar.
-        $batchSize = 100;
+        $batchSize = 50;
         $batchFailures = 0;
         $maxBatchFailures = 5;
         $stuckAtCode = '';
@@ -2466,13 +2323,12 @@ class InventorySapSyncService
                 $estimated = $this->estimateSapCatalogCount($sap, $restrictGroupCodes);
                 if ($estimated > 0) {
                     $this->trackedProgressTotal = $estimated;
-                    $stats['sap_estimated_total'] = $estimated;
                     $this->publishSyncProgress($stats, 'Consultando catálogo SAP…', $estimated);
                 }
             }
 
             try {
-                $oitmRows = $this->fetchOitmIndexKeysetBatch($sap, $lastCode, $batchSize, $restrictGroupCodes, $incrementalSince);
+                $oitmRows = $this->fetchOitmRichKeysetBatch($sap, $lastCode, $batchSize, $restrictGroupCodes, $incrementalSince);
             } catch (Throwable $e) {
                 if ($lastCode !== '' && $lastCode === $stuckAtCode) {
                     $stuckFailures++;
@@ -2607,7 +2463,7 @@ class InventorySapSyncService
             }
 
             $lastRow = $oitmRows[count($oitmRows) - 1];
-            $lastCode = $this->sapRowItemCode($lastRow, $lastCode);
+            $lastCode = trim((string)($lastRow['ItemCode'] ?? $lastRow['ITEMCODE'] ?? $lastCode));
 
             if ($this->activeSyncRunId > 0) {
                 $this->publishSyncProgress(
@@ -2621,301 +2477,10 @@ class InventorySapSyncService
                 break;
             }
 
-            usleep(250000);
-        }
-
-        $this->diagnoseIgnoredBeforeAnalysisItems($sap, $restrictGroupCodes, $allowedErpCodes, $stats);
-
-        // Correção definitiva da divergência: se a consulta diagnóstica encontrou
-        // códigos SAP que não foram percorridos pela paginação principal, não deixamos
-        // esses itens apenas no log. Eles são processados de forma segura no fim do lote.
-        // Isso evita que itens válidos do SAP fiquem fora da sincronização por falha de paginação/keyset.
-        if (!empty($stats['ignored_before_analysis_details']) && is_array($stats['ignored_before_analysis_details'])) {
-            if ($this->processIgnoredBeforeAnalysisItems(
-                $sap,
-                $groupMap,
-                $itemsRepo,
-                $categoriesRepo,
-                $unitsRepo,
-                $pharmaFormsRepo,
-                $defaultUnitId,
-                $localSnapshot,
-                $stats,
-                $allowedErpCodes,
-                $useFullSync
-            )) {
-                $purchaseCostsChanged = true;
-            }
+            usleep(800000);
         }
 
         return $purchaseCostsChanged;
-    }
-
-    /**
-     * Processa códigos retornados pelo diagnóstico e ausentes na paginação principal.
-     *
-     * @param array<string, string> $groupMap
-     * @param array<string, array<string, mixed>> $localSnapshot
-     * @param array<string, mixed> $stats
-     * @param array<string, true> $allowedErpCodes
-     */
-    private function processIgnoredBeforeAnalysisItems(
-        SapReportApiService $sap,
-        array $groupMap,
-        InvItemsRepository $itemsRepo,
-        InvCategoriesRepository $categoriesRepo,
-        InvUnitsRepository $unitsRepo,
-        InvPharmaFormsRepository $pharmaFormsRepo,
-        int $defaultUnitId,
-        array &$localSnapshot,
-        array &$stats,
-        array &$allowedErpCodes,
-        bool $useFullSync
-    ): bool {
-        $details = $stats['ignored_before_analysis_details'] ?? [];
-        if (!is_array($details) || $details === []) {
-            return false;
-        }
-
-        $detailByCode = [];
-        foreach ($details as $detail) {
-            if (!is_array($detail)) {
-                continue;
-            }
-            $code = trim((string)($detail['code'] ?? ''));
-            if ($code === '' || $code === '-') {
-                continue;
-            }
-            if (isset($allowedErpCodes[$code])) {
-                continue;
-            }
-            $detailByCode[$code] = $detail;
-        }
-
-        if ($detailByCode === []) {
-            $stats['ignored_before_analysis_details'] = [];
-            $stats['ignored_before_analysis'] = 0;
-            return false;
-        }
-
-        $changed = false;
-        $recovered = 0;
-        $remainingDetails = [];
-
-        foreach ($detailByCode as $code => $detail) {
-            $this->throwIfSyncCancelled();
-
-            try {
-                $row = $this->fetchSapItemCompleteRow($sap, $code, $groupMap);
-                if ($row === null) {
-                    $remainingDetails[] = [
-                        'code' => $code,
-                        'group' => (string)($detail['group'] ?? ''),
-                        'update_date' => (string)($detail['update_date'] ?? ''),
-                        'reason' => 'Não foi possível recuperar o cadastro completo do SAP para processar o item ausente na paginação principal.',
-                    ];
-                    $stats['failed'] = (int)($stats['failed'] ?? 0) + 1;
-                    $this->recordSyncFailure($code, 'Item ausente na paginação principal e sem cadastro completo no SAP.', 'items');
-                    continue;
-                }
-
-                // Garante que os itens recuperados pelo diagnóstico entrem no mesmo fluxo dos demais.
-                // Algumas respostas da API podem retornar aliases/caixa diferentes; sem isso o item era
-                // contado como examinado, mas não era classificado como novo/alterado/sem alteração.
-                if ($this->sapRowItemCode($row) === '') {
-                    $row['ItemCode'] = $code;
-                }
-                if (trim((string)($row['UpdateDate'] ?? $row['UPDATEDATE'] ?? '')) === '' && trim((string)($detail['update_date'] ?? '')) !== '') {
-                    $row['UpdateDate'] = trim((string)$detail['update_date']);
-                }
-                if (trim((string)($row['ItmsGrpCod'] ?? $row['ITMSGRPCOD'] ?? '')) === '' && trim((string)($detail['group'] ?? '')) !== '') {
-                    $row['ItmsGrpCod'] = trim((string)$detail['group']);
-                    if (empty($row['ItemGroupName']) && isset($groupMap[(string)$row['ItmsGrpCod']])) {
-                        $row['ItemGroupName'] = $groupMap[(string)$row['ItmsGrpCod']];
-                    }
-                }
-
-                $erpCode = $this->sapRowItemCode($row, $code);
-                if ($erpCode === '') {
-                    $remainingDetails[] = [
-                        'code' => $code,
-                        'group' => (string)($detail['group'] ?? ''),
-                        'update_date' => (string)($detail['update_date'] ?? ''),
-                        'reason' => 'Cadastro completo recuperado do SAP, mas sem ItemCode válido.',
-                    ];
-                    $stats['failed'] = (int)($stats['failed'] ?? 0) + 1;
-                    continue;
-                }
-
-                $stats['examined'] = (int)($stats['examined'] ?? 0) + 1;
-                $allowedErpCodes[$erpCode] = true;
-                $localKey = mb_strtoupper($erpCode, 'UTF-8');
-                $local = $localSnapshot[$localKey] ?? null;
-
-                $sapDate = $this->normalizeSapUpdateDate($row['UpdateDate'] ?? $row['UPDATEDATE'] ?? null);
-                $localDate = $this->normalizeSapUpdateDate(is_array($local) ? ($local['sap_update_date'] ?? null) : null);
-                $localAlreadyVerified = is_array($local)
-                    && (
-                        trim((string)($local['sap_last_synced_at'] ?? '')) !== ''
-                        || trim((string)($local['sap_item_hash'] ?? '')) !== ''
-                    );
-                $sapUpdateDateIsKnown = $sapDate !== null;
-                $datesAreEqual = $sapDate === $localDate;
-
-                if ($local !== null && $datesAreEqual && ($sapUpdateDateIsKnown || $localAlreadyVerified)) {
-                    $stats['unchanged'] = (int)($stats['unchanged'] ?? 0) + 1;
-                    $stats['ignored_update_date_equal'] = (int)($stats['ignored_update_date_equal'] ?? 0) + 1;
-                    $recovered++;
-                    continue;
-                }
-
-                $stats['compared_detail'] = (int)($stats['compared_detail'] ?? 0) + 1;
-                if ($this->processSapItemRow(
-                    $row,
-                    $itemsRepo,
-                    $categoriesRepo,
-                    $unitsRepo,
-                    $pharmaFormsRepo,
-                    $defaultUnitId,
-                    $stats,
-                    $allowedErpCodes,
-                    is_array($local) ? $local : null
-                )) {
-                    $changed = true;
-                }
-
-                // Atualiza snapshot em memória quando o item recuperado foi criado/atualizado, para evitar
-                // falsa remoção na etapa final da mesma execução.
-                $fresh = $itemsRepo->findByErpCode($erpCode);
-                if (is_array($fresh)) {
-                    $localSnapshot[$localKey] = $fresh;
-                }
-
-                $recovered++;
-            } catch (Throwable $e) {
-                $remainingDetails[] = [
-                    'code' => $code,
-                    'group' => (string)($detail['group'] ?? ''),
-                    'update_date' => (string)($detail['update_date'] ?? ''),
-                    'reason' => 'Falha ao processar item recuperado do diagnóstico: ' . $e->getMessage(),
-                ];
-                $stats['failed'] = (int)($stats['failed'] ?? 0) + 1;
-                $this->recordSyncFailure($code, 'Falha ao processar item recuperado do diagnóstico: ' . $e->getMessage(), 'items');
-            }
-        }
-
-        $stats['recovered_before_analysis'] = (int)($stats['recovered_before_analysis'] ?? 0) + $recovered;
-        $stats['ignored_before_analysis_details'] = $remainingDetails;
-        $stats['ignored_before_analysis'] = count($remainingDetails);
-
-        return $changed;
-    }
-
-    /**
-     * Quando o COUNT do SAP for maior que a quantidade realmente percorrida pela paginação,
-     * registra quais códigos ficaram fora da análise principal. Isso não altera cadastro;
-     * é apenas diagnóstico para explicar divergência entre "recebidos/estimados" e "analisados".
-     *
-     * @param list<string>|null $restrictGroupCodes
-     * @param array<string, true> $allowedErpCodes
-     * @param array<string, mixed> $stats
-     */
-    private function diagnoseIgnoredBeforeAnalysisItems(
-        SapReportApiService $sap,
-        ?array $restrictGroupCodes,
-        array $allowedErpCodes,
-        array &$stats
-    ): void {
-        $estimated = (int)($stats['sap_estimated_total'] ?? 0);
-        $examined = (int)($stats['examined'] ?? 0);
-        if ($estimated <= 0 || $estimated <= $examined) {
-            $stats['ignored_before_analysis'] = 0;
-            $stats['ignored_before_analysis_details'] = [];
-            return;
-        }
-
-        $stats['ignored_before_analysis'] = $estimated - $examined;
-        $details = [];
-
-        try {
-            $sapCodes = $this->fetchSapCatalogCodesForDiagnostics($sap, $restrictGroupCodes, max(10000, $estimated + 50));
-            $stats['sap_actual_index_total'] = count($sapCodes);
-
-            foreach ($sapCodes as $code => $meta) {
-                if (isset($allowedErpCodes[$code])) {
-                    continue;
-                }
-                $details[] = [
-                    'code' => $code,
-                    'group' => (string)($meta['group'] ?? ''),
-                    'update_date' => (string)($meta['update_date'] ?? ''),
-                    'reason' => 'Retornado pela consulta diagnóstica do SAP, mas não foi percorrido/analisado na paginação principal.',
-                ];
-                if (count($details) >= 100) {
-                    break;
-                }
-            }
-
-            if ($details === []) {
-                $details[] = [
-                    'code' => '-',
-                    'group' => '',
-                    'update_date' => '',
-                    'reason' => 'COUNT do SAP maior que a paginação principal, mas a consulta diagnóstica não encontrou códigos diferentes. Possível diferença de contagem/cache/retorno da API.',
-                ];
-            }
-        } catch (Throwable $e) {
-            $details[] = [
-                'code' => '-',
-                'group' => '',
-                'update_date' => '',
-                'reason' => 'Não foi possível detalhar os ignorados antes da análise: ' . $e->getMessage(),
-            ];
-        }
-
-        $stats['ignored_before_analysis_details'] = $details;
-    }
-
-    /**
-     * @param list<string>|null $restrictGroupCodes
-     * @return array<string, array{group:string, update_date:string}>
-     */
-    private function fetchSapCatalogCodesForDiagnostics(
-        SapReportApiService $sap,
-        ?array $restrictGroupCodes,
-        int $limit
-    ): array {
-        $limit = max(1, min(20000, $limit));
-        $groupFilter = '';
-        if ($restrictGroupCodes !== null && $restrictGroupCodes !== []) {
-            $quoted = array_map(
-                static fn(string $code): string => "'" . str_replace("'", "''", $code) . "'",
-                $restrictGroupCodes
-            );
-            $groupFilter = ' AND T0."ItmsGrpCod" IN (' . implode(', ', $quoted) . ')';
-        }
-
-        $sql = 'SELECT TO_NVARCHAR(T0."ItemCode") AS "ItemCode", T0."ItmsGrpCod", '
-            . $this->sapOitmUpdateDateSelectExpression('T0') . ' '
-            . 'FROM OITM T0 '
-            . 'WHERE 1=1' . $this->sapAllowedGroupsWhereSql('T0') . $groupFilter . ' '
-            . 'ORDER BY T0."ItemCode" '
-            . 'LIMIT ' . $limit;
-
-        $rows = $this->executeSapQueryWithRetry($sap, $sql, 2);
-        $codes = [];
-        foreach ($rows as $row) {
-            $code = $this->sapRowItemCode($row);
-            if ($code === '') {
-                continue;
-            }
-            $codes[$code] = [
-                'group' => trim((string)($row['ItmsGrpCod'] ?? $row['ITMSGRPCOD'] ?? '')),
-                'update_date' => (string)($this->normalizeSapUpdateDate($row['UpdateDate'] ?? $row['UPDATEDATE'] ?? null) ?? ''),
-            ];
-        }
-
-        return $codes;
     }
 
     private function resolveSyncResumeAfterCode(
@@ -3017,49 +2582,27 @@ class InventorySapSyncService
 
         foreach ($oitmRows as $lightRow) {
             $stats['examined']++;
-            $erpCode = $this->sapRowItemCode($lightRow);
+            $erpCode = trim((string)($lightRow['ItemCode'] ?? $lightRow['ITEMCODE'] ?? ''));
             if ($erpCode !== '') {
                 $allowedErpCodes[$erpCode] = true;
             }
-            if ($erpCode === '') {
-                continue;
-            }
 
             $local = $localSnapshot[mb_strtoupper($erpCode, 'UTF-8')] ?? null;
-            $sapDateFromIndex = $this->normalizeSapUpdateDate($lightRow['UpdateDate'] ?? $lightRow['UPDATEDATE'] ?? null);
-            $localDate = $this->normalizeSapUpdateDate(is_array($local) ? ($local['sap_update_date'] ?? null) : null);
+            $complete = $this->normalizeOitmCatalogRow($lightRow, $groupMap);
 
-            // Otimização conservadora: se o UpdateDate SAP é igual ao local, o item não precisa
-            // de comparação detalhada. Para itens antigos cujo SAP retorna UpdateDate NULL, só pulamos
-            // quando eles já foram verificados pelo menos uma vez (sap_last_synced_at ou hash local).
-            // Assim evitamos o ciclo infinito: NULL x NULL -> compara sempre -> não salva cadastro.
-            $localAlreadyVerified = is_array($local)
-                && (
-                    trim((string)($local['sap_last_synced_at'] ?? '')) !== ''
-                    || trim((string)($local['sap_item_hash'] ?? '')) !== ''
-                );
-            $sapUpdateDateIsKnown = $sapDateFromIndex !== null;
-            $datesAreEqual = $sapDateFromIndex === $localDate;
-
-            if (!$forceSync && $local !== null && $datesAreEqual && ($sapUpdateDateIsKnown || $localAlreadyVerified)) {
-                $stats['unchanged']++;
-                $stats['ignored_update_date_equal'] = (int)($stats['ignored_update_date_equal'] ?? 0) + 1;
-                continue;
-            }
-
-            $stats['compared_detail'] = (int)($stats['compared_detail'] ?? 0) + 1;
-
-            // A consulta de lote traz apenas índice (ItemCode + UpdateDate + grupo). Só os
-            // candidatos precisam do cadastro completo para comparação segura.
-            $complete = $this->fetchSapItemCompleteRow($sap, $erpCode, $groupMap, $lightRow);
-            if ($complete === null) {
-                $stats['failed'] = (int)($stats['failed'] ?? 0) + 1;
-                $this->recordSyncFailure(
-                    $erpCode,
-                    'A API SAP não retornou o cadastro completo do item candidato.',
-                    'items'
-                );
-                continue;
+            if (!$forceSync && !$useFullSync && $local !== null) {
+                $rowHash = $this->computeItemHashFromSapRow($complete);
+                $storedHash = (string)($local['sap_item_hash'] ?? '');
+                $differs = $this->sapRowDiffersFromLocalItem($complete, $local, $pharmaFormsRepo);
+                if (!$differs && ($storedHash === '' || hash_equals($storedHash, $rowHash))) {
+                    $stats['unchanged']++;
+                    if ($storedHash === '') {
+                        $categoryName = $this->normalizeCategoryName((string)($complete['ItemGroupName'] ?? 'Geral'));
+                        $isPaPi = in_array($this->inferItemTypeFromCategory($categoryName), ['PA', 'PI'], true);
+                        $this->persistItemSapMetadata($itemsRepo, (int)$local['id'], $complete, $local, $rowHash, $isPaPi);
+                    }
+                    continue;
+                }
             }
 
             if ($this->processSapItemRow(
@@ -3123,7 +2666,6 @@ class InventorySapSyncService
         }
 
         if (is_array($rows[0] ?? null)) {
-            $this->appendSapItemDescriptionDebug('fetchSapItemLightByCode', $itemCode, $rows[0], $sql);
             return $rows[0];
         }
 
@@ -3146,20 +2688,17 @@ class InventorySapSyncService
         array &$allowedErpCodes,
         ?array $existing = null
     ): bool {
-        $erpCode = $this->sapRowItemCode($row);
+        $erpCode = trim((string)($row['ItemCode'] ?? ''));
         if ($erpCode !== '') {
             $allowedErpCodes[$erpCode] = true;
         }
 
-        $description = $this->sapRowString($row, 'ItemName');
+        $description = trim((string)($row['ItemName'] ?? ''));
         if ($erpCode === '') {
             return false;
         }
         if ($description === '') {
-            $this->appendSapItemDescriptionDebug('processSapItemRow_itemname_vazio_usando_fallback_codigo', $erpCode, $row, null);
             $description = $erpCode;
-        } elseif ($description === $erpCode) {
-            $this->appendSapItemDescriptionDebug('processSapItemRow_itemname_igual_itemcode', $erpCode, $row, null);
         }
 
         $categoryName = $this->normalizeCategoryName((string)($row['ItemGroupName'] ?? 'Geral'));
@@ -3244,7 +2783,7 @@ class InventorySapSyncService
             $shouldUpdateCost = in_array($itemType, ['MP', 'EMB'], true);
             $resolvedCost = $this->resolveSapItemCostForSync($row, $existing, $shouldUpdateCost);
             $payload = [
-                'code' => $this->resolveLocalItemCode($existing['code'] ?? null, $erpCode),
+                'code' => (string)($existing['code'] ?? $erpCode),
                 'erp_code' => $erpCode,
                 'description' => $description,
                 'inv_unit_id' => (int)$unitId,
@@ -3267,7 +2806,6 @@ class InventorySapSyncService
             ];
 
             if (!$this->itemPayloadDiffersFromExisting($existing, $payload)) {
-                $this->backfillSapUpdateDateOnly($itemsRepo, (int)$existing['id'], $existing, $sapUpdateDate, $stats);
                 $this->persistItemSapMetadata($itemsRepo, (int)$existing['id'], $row, $existing, $itemHash, $isPaPi);
                 $stats['unchanged']++;
 
@@ -3275,7 +2813,6 @@ class InventorySapSyncService
             }
 
             if ($itemsRepo->update((int)$existing['id'], $payload)) {
-                $this->incrementItemFieldUpdateStats($stats, $this->lastItemChangedFields);
                 $this->persistItemSapMetadata($itemsRepo, (int)$existing['id'], $row, $existing, $itemHash, $isPaPi);
                 $stats['updated']++;
                 $stats['synced']++;
@@ -3286,7 +2823,7 @@ class InventorySapSyncService
             return false;
         }
 
-        $createPayload = [
+        $created = $itemsRepo->create([
             'code' => $erpCode,
             'erp_code' => $erpCode,
             'description' => $description,
@@ -3304,15 +2841,8 @@ class InventorySapSyncService
             'complexity_level' => $complexityLevel,
             'sap_update_date' => $sapUpdateDate,
             'active' => $active,
-        ];
-
-        $created = $itemsRepo->create($createPayload);
-        $createdId = is_int($created) ? $created : null;
-        $createdRow = $createdId !== null && $createdId > 0 ? $itemsRepo->findByErpCode($erpCode) : null;
-        $existsAfterCreate = is_array($createdRow) && (int)($createdRow['id'] ?? 0) > 0;
-        $this->logSapNewItemCreateAudit($erpCode, $createPayload, $created, $existsAfterCreate, $createdId);
-
-        if (is_int($created) && $created > 0 && $existsAfterCreate) {
+        ]);
+        if (is_int($created) && $created > 0) {
             $this->persistItemSapMetadata($itemsRepo, $created, $row, null, $itemHash, $isPaPi);
             $stats['created']++;
             $stats['synced']++;
@@ -3320,42 +2850,7 @@ class InventorySapSyncService
             return in_array($itemType, ['MP', 'EMB'], true);
         }
 
-        $stats['failed'] = (int)($stats['failed'] ?? 0) + 1;
-        $this->recordSyncFailure($erpCode, 'Falha ao criar item novo no banco ou insert não persistido. Consulte logs/sap_sync_new_item_create_audit.log.', 'items');
-
         return false;
-    }
-
-    /**
-     * Log técnico para auditoria de criação de itens novos vindos do SAP.
-     * Mantido sempre ativo para identificar inserts silenciosos, remoções logo após criação
-     * ou retorno inconsistente do repository.
-     *
-     * @param array<string, mixed> $payload
-     */
-    private function logSapNewItemCreateAudit(string $erpCode, array $payload, mixed $created, bool $existsAfterCreate, ?int $createdId = null, string $note = ''): void
-    {
-        $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-        if (!is_dir($logDir)) {
-            @mkdir($logDir, 0775, true);
-        }
-
-        $lines = [];
-        $lines[] = '[' . date('Y-m-d H:i:s') . '] SAP NOVO ITEM | ' . $erpCode;
-        $lines[] = '  retorno_create: ' . var_export($created, true);
-        $lines[] = '  created_id: ' . (string)($createdId ?? '');
-        $lines[] = '  existe_apos_create: ' . ($existsAfterCreate ? 'SIM' : 'NÃO');
-        if ($note !== '') {
-            $lines[] = '  observacao: ' . $note;
-        }
-        $lines[] = '  payload: ' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $lines[] = '';
-
-        @file_put_contents(
-            $logDir . DIRECTORY_SEPARATOR . 'sap_sync_new_item_create_audit.log',
-            implode(PHP_EOL, $lines) . PHP_EOL,
-            FILE_APPEND | LOCK_EX
-        );
     }
 
     /**
@@ -3405,7 +2900,7 @@ class InventorySapSyncService
         }
 
         $localErp = mb_strtoupper(trim((string)($local['erp_code'] ?? '')), 'UTF-8');
-        $sapErp = mb_strtoupper($this->sapRowItemCode($row), 'UTF-8');
+        $sapErp = mb_strtoupper(trim((string)($row['ItemCode'] ?? '')), 'UTF-8');
         if ($localErp !== '' && $sapErp !== '' && $localErp !== $sapErp) {
             return true;
         }
@@ -3420,7 +2915,7 @@ class InventorySapSyncService
             return true;
         }
 
-        if ($this->sapEmptyAsString($local['description'] ?? null) !== $this->sapRowString($row, 'ItemName')) {
+        if ($this->sapEmptyAsString($local['description'] ?? null) !== $this->sapEmptyAsString($row['ItemName'] ?? null)) {
             return true;
         }
 
@@ -3547,37 +3042,13 @@ class InventorySapSyncService
 
         if ($lightRow !== null) {
             $normalizedLight = $this->normalizeOitmCatalogRow($lightRow, $groupMap);
-            $lightDescription = $this->sapRowString($normalizedLight, 'ItemName');
-
-            // ATENÇÃO: a paginação principal usa índice leve (ItemCode + UpdateDate + grupo).
-            // Esse row NÃO possui ItemName. Se retornarmos aqui, a descrição cai no fallback
-            // do código do item (ex.: 01000001), causando cadastro com descrição errada.
-            // Portanto, só aceitamos o lightRow como cadastro completo quando ele realmente
-            // trouxe ItemName; caso contrário, seguimos para a consulta completa do item.
-            if (!$this->itemTypeNeedsUdfFields($normalizedLight) && $lightDescription !== '') {
+            if (!$this->itemTypeNeedsUdfFields($normalizedLight)) {
                 return $normalizedLight;
-            }
-
-            if ($lightDescription === '') {
-                $this->appendSapItemDescriptionDebug(
-                    'light_row_sem_itemname_forcando_consulta_completa',
-                    $itemCode,
-                    $lightRow,
-                    null
-                );
             }
         }
 
         $unified = $this->tryFetchSapItemRowUnifiedSelect($sap, $itemCode, $groupMap);
         if ($unified !== null) {
-            if ($lightRow !== null) {
-                $idxDate = $this->normalizeSapUpdateDate($lightRow['UpdateDate'] ?? $lightRow['UPDATEDATE'] ?? null);
-                $uniDate = $this->normalizeSapUpdateDate($unified['UpdateDate'] ?? $unified['UPDATEDATE'] ?? null);
-                if ($idxDate !== null && $uniDate === null) {
-                    $unified['UpdateDate'] = $idxDate;
-                }
-            }
-
             return $unified;
         }
 
@@ -3634,7 +3105,6 @@ class InventorySapSyncService
         }
 
         $this->sapUnifiedSelectSupported = true;
-        $this->appendSapItemDescriptionDebug('tryFetchSapItemRowUnifiedSelect', $itemCode, $rows[0], $sql);
 
         return $this->normalizeOitmCatalogRow($rows[0], $groupMap);
     }
@@ -3687,7 +3157,7 @@ class InventorySapSyncService
         if (!isset($this->sapUdfFormaByItem[$key])) {
             $forma = self::SAP_UDF_EMPTY;
             foreach ($this->sapPharmaFormCodes() as $formaCode) {
-                $sql = 'SELECT TO_NVARCHAR("ItemCode") AS "ItemCode" FROM OITM WHERE "ItemCode" = \'' . $safeCode
+                $sql = 'SELECT "ItemCode" FROM OITM WHERE "ItemCode" = \'' . $safeCode
                     . '\' AND "U_FormaFarma" = \'' . str_replace("'", "''", $formaCode) . '\'';
                 try {
                     $rows = $this->executeSapQueryWithRetry($sap, $sql, 2);
@@ -3706,7 +3176,7 @@ class InventorySapSyncService
         if (!isset($this->sapUdfLinhaByItem[$key])) {
             $linha = self::SAP_UDF_EMPTY;
             foreach (['P', 'T'] as $linhaCode) {
-                $sql = 'SELECT TO_NVARCHAR("ItemCode") AS "ItemCode" FROM OITM WHERE "ItemCode" = \'' . $safeCode
+                $sql = 'SELECT "ItemCode" FROM OITM WHERE "ItemCode" = \'' . $safeCode
                     . '\' AND "U_LinhaProduto" = \'' . $linhaCode . '\'';
                 try {
                     $rows = $this->executeSapQueryWithRetry($sap, $sql, 2);
@@ -3784,50 +3254,6 @@ class InventorySapSyncService
      * @param list<string>|null $restrictGroupCodes
      * @return list<array<string, mixed>>
      */
-    /**
-     * Índice leve para pré-análise: evita consultar campos pesados do cadastro
-     * quando o UpdateDate do SAP não mudou.
-     *
-     * @param list<string>|null $restrictGroupCodes
-     * @return list<array<string, mixed>>
-     */
-    private function fetchOitmIndexKeysetBatch(
-        SapReportApiService $sap,
-        string $afterItemCode,
-        int $limit,
-        ?array $restrictGroupCodes = null,
-        ?string $incrementalSinceDate = null
-    ): array {
-        $limit = max(1, min(200, $limit));
-        $afterClause = '';
-        if ($afterItemCode !== '') {
-            $afterClause = ' AND T0."ItemCode" > \'' . str_replace("'", "''", $afterItemCode) . '\'';
-        }
-
-        $groupFilter = '';
-        if ($restrictGroupCodes !== null && $restrictGroupCodes !== []) {
-            $quoted = array_map(
-                static fn(string $code): string => "'" . str_replace("'", "''", $code) . "'",
-                $restrictGroupCodes
-            );
-            $groupFilter = ' AND T0."ItmsGrpCod" IN (' . implode(', ', $quoted) . ')';
-        }
-
-        $dateFilter = '';
-        if ($incrementalSinceDate !== null && $incrementalSinceDate !== '') {
-            $dateFilter = $this->sapIncrementalUpdateDateFilterSql('T0', $incrementalSinceDate);
-        }
-
-        $sql = 'SELECT TO_NVARCHAR(T0."ItemCode") AS "ItemCode", T0."ItmsGrpCod", '
-            . $this->sapOitmUpdateDateSelectExpression('T0') . ' '
-            . 'FROM OITM T0 '
-            . 'WHERE 1=1' . $this->sapAllowedGroupsWhereSql('T0') . $groupFilter . $dateFilter . $afterClause . ' '
-            . 'ORDER BY T0."ItemCode" '
-            . 'LIMIT ' . $limit;
-
-        return $this->executeSapQueryWithRetry($sap, $sql, 3);
-    }
-
     private function fetchOitmLightKeysetBatch(
         SapReportApiService $sap,
         string $afterItemCode,
@@ -3849,7 +3275,7 @@ class InventorySapSyncService
             $groupFilter = ' AND T0."ItmsGrpCod" IN (' . implode(', ', $quoted) . ')';
         }
 
-        $sql = 'SELECT TO_NVARCHAR(T0."ItemCode") AS "ItemCode", T0."ItemName", T0."InvntryUom", T0."validFor", T0."ItmsGrpCod", '
+        $sql = 'SELECT T0."ItemCode", T0."ItemName", T0."InvntryUom", T0."validFor", T0."ItmsGrpCod", '
             . 'T0."AvgPrice", ' . $this->sapOitmUpdateDateSelectExpression('T0') . ' '
             . 'FROM OITM T0 '
             . 'WHERE 1=1' . $this->sapAllowedGroupsWhereSql('T0') . $groupFilter . $afterClause . ' '
@@ -3908,343 +3334,50 @@ class InventorySapSyncService
     }
 
     /**
-     * @param array<string, mixed> $stats
-     * @param list<string> $fields
-     */
-    private function incrementItemFieldUpdateStats(array &$stats, array $fields): void
-    {
-        if (!isset($stats['item_field_updates']) || !is_array($stats['item_field_updates'])) {
-            $stats['item_field_updates'] = [];
-        }
-
-        foreach (array_values(array_unique($fields)) as $field) {
-            $field = trim((string)$field);
-            if ($field === '') {
-                continue;
-            }
-            $stats['item_field_updates'][$field] = (int)($stats['item_field_updates'][$field] ?? 0) + 1;
-        }
-    }
-
-    /**
-     * @param array<string, int|numeric-string> $fieldUpdates
-     */
-    private function formatItemFieldUpdateSummary(array $fieldUpdates, bool $includeNone = false): string
-    {
-        if ($fieldUpdates === []) {
-            return $includeNone ? 'nenhuma' : '';
-        }
-
-        $labels = [
-            'description' => 'Descrição',
-            'inv_unit_id' => 'Unidade',
-            'inv_category_id' => 'Grupo',
-            'average_cost' => 'Custo médio',
-            'last_cost' => 'Último custo',
-            'active' => 'Ativo',
-            'production_line' => 'Linha',
-            'inv_pharma_form_id' => 'Forma farmacêutica',
-            'energy_class' => 'Classe energia',
-            'complexity_level' => 'Complexidade',
-            'admin_type' => 'Administrar por',
-            'min_stock' => 'Estoque mínimo',
-            'max_stock' => 'Estoque máximo',
-            'standard_batch_size' => 'Lote padrão',
-            'sap_update_date' => 'UpdateDate SAP',
-        ];
-
-        arsort($fieldUpdates);
-        $parts = [];
-        foreach ($fieldUpdates as $field => $count) {
-            $count = (int)$count;
-            if ($count <= 0) {
-                continue;
-            }
-            $parts[] = ($labels[(string)$field] ?? (string)$field) . ': ' . $count;
-        }
-
-        return implode(' | ', $parts);
-    }
-
-    /**
-     * Grava um resumo curto e permanente dos campos que efetivamente geraram UPDATE.
-     * Ajuda a auditar rapidamente a causa de "Alterados" sem precisar ler o log campo a campo.
-     *
-     * @param array<string, mixed> $stats
-     */
-    private function appendItemFieldUpdateSummaryLog(array $stats, string $scopeLabel): void
-    {
-        $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-        if (!is_dir($logDir)) {
-            @mkdir($logDir, 0775, true);
-        }
-
-        $fieldUpdates = is_array($stats['item_field_updates'] ?? null) ? $stats['item_field_updates'] : [];
-        $summary = $this->formatItemFieldUpdateSummary($fieldUpdates, true);
-
-        $lines = [];
-        $lines[] = '[' . date('Y-m-d H:i:s') . '] RESUMO SINCRONIZAÇÃO ITENS | ' . trim($scopeLabel);
-        $lines[] = '  Itens analisados: ' . (int)($stats['examined'] ?? 0);
-        $estimatedTotal = (int)($stats['sap_estimated_total'] ?? 0);
-        $lines[] = '  Itens recebidos/estimados do SAP: ' . $estimatedTotal;
-        $actualIndexTotal = (int)($stats['sap_actual_index_total'] ?? 0);
-        if ($actualIndexTotal > 0) {
-            $lines[] = '  Itens retornados pela consulta diagnóstica SAP: ' . $actualIndexTotal;
-        }
-        $lines[] = '  Ignorados antes da análise: ' . (int)($stats['ignored_before_analysis'] ?? max(0, $estimatedTotal - (int)($stats['examined'] ?? 0)));
-        $lines[] = '  Recuperados da diferença SAP/paginação: ' . (int)($stats['recovered_before_analysis'] ?? 0);
-        if (!empty($stats['ignored_before_analysis_details']) && is_array($stats['ignored_before_analysis_details'])) {
-            $lines[] = '  Detalhe dos ignorados antes da análise: logs/sap_sync_ignored_before_analysis.log';
-        }
-        $lines[] = '  Novos: ' . (int)($stats['created'] ?? 0);
-        $lines[] = '  Alterados: ' . (int)($stats['updated'] ?? 0);
-        $lines[] = '  Sem alteração: ' . (int)($stats['unchanged'] ?? 0);
-        $lines[] = '  Ignorados por UpdateDate igual: ' . (int)($stats['ignored_update_date_equal'] ?? 0);
-        $lines[] = '  Comparados em detalhe: ' . (int)($stats['compared_detail'] ?? 0);
-        $lines[] = '  Somente UpdateDate SAP preenchido/ajustado: ' . (int)($stats['sap_update_date_only'] ?? 0);
-        $lines[] = '  Falhas: ' . (int)($stats['failed'] ?? 0);
-        $classified = (int)($stats['created'] ?? 0)
-            + (int)($stats['updated'] ?? 0)
-            + (int)($stats['unchanged'] ?? 0)
-            + (int)($stats['failed'] ?? 0);
-        $pendingClassification = max(0, (int)($stats['examined'] ?? 0) - $classified);
-        $lines[] = '  Classificados (novos+alterados+sem alteração+falhas): ' . $classified;
-        $lines[] = '  Pendentes sem classificação: ' . $pendingClassification;
-        $lines[] = '  Campos alterados: ' . $summary;
-
-        if ($fieldUpdates !== []) {
-            arsort($fieldUpdates);
-            foreach ($fieldUpdates as $field => $count) {
-                $count = (int)$count;
-                if ($count <= 0) {
-                    continue;
-                }
-                $lines[] = '    - ' . (string)$field . ': ' . $count;
-            }
-        }
-
-        $lines[] = '';
-        $summaryText = implode(PHP_EOL, $lines) . PHP_EOL;
-
-        if (!empty($stats['ignored_before_analysis_details']) && is_array($stats['ignored_before_analysis_details'])) {
-            $detailLines = [];
-            $detailLines[] = '[' . date('Y-m-d H:i:s') . '] ITENS IGNORADOS ANTES DA ANÁLISE | ' . trim($scopeLabel);
-            $detailLines[] = '  Estimados SAP: ' . (int)($stats['sap_estimated_total'] ?? 0);
-            $detailLines[] = '  Analisados: ' . (int)($stats['examined'] ?? 0);
-            $detailLines[] = '  Ignorados antes da análise: ' . (int)($stats['ignored_before_analysis'] ?? 0);
-            foreach ($stats['ignored_before_analysis_details'] as $detail) {
-                if (!is_array($detail)) {
-                    continue;
-                }
-                $detailLines[] = sprintf(
-                    '  - Código: %s | Grupo SAP: %s | UpdateDate: %s | Motivo: %s',
-                    (string)($detail['code'] ?? '-'),
-                    (string)($detail['group'] ?? ''),
-                    (string)($detail['update_date'] ?? ''),
-                    (string)($detail['reason'] ?? '')
-                );
-            }
-            $detailLines[] = '';
-            @file_put_contents(
-                $logDir . DIRECTORY_SEPARATOR . 'sap_sync_ignored_before_analysis.log',
-                implode(PHP_EOL, $detailLines) . PHP_EOL,
-                FILE_APPEND | LOCK_EX
-            );
-        }
-
-        @file_put_contents(
-            $logDir . DIRECTORY_SEPARATOR . 'sap_sync_item_field_summary.log',
-            $summaryText,
-            FILE_APPEND | LOCK_EX
-        );
-
-        // Também registra um resumo no log de debug principal.
-        // Assim, mesmo quando todos os itens forem ignorados por UpdateDate
-        // e não houver comparação detalhada, ainda haverá evidência da execução.
-        @file_put_contents(
-            $logDir . DIRECTORY_SEPARATOR . 'sap_sync_item_diff_debug.log',
-            $summaryText,
-            FILE_APPEND | LOCK_EX
-        );
-
-        @file_put_contents(
-            $logDir . DIRECTORY_SEPARATOR . 'sap_sync_run_summary.log',
-            $summaryText,
-            FILE_APPEND | LOCK_EX
-        );
-    }
-
-    /**
      * @param array<string, mixed> $existing
      * @param array<string, mixed> $payload
      */
     private function itemPayloadDiffersFromExisting(array $existing, array $payload): bool
     {
-        $debugErp = trim((string)($payload['erp_code'] ?? $existing['erp_code'] ?? $payload['code'] ?? $existing['code'] ?? ''));
-        $this->lastItemChangedFields = [];
-        $this->lastItemOnlySapUpdateDateChanged = false;
-        $debugEnabled = true;
-        $debugLines = [];
-        $changedFields = [];
-
-        /**
-         * Campos que são identificadores/texto e nunca podem ser normalizados como número.
-         * Ex.: ItemCode 41000072 deve continuar 41000072, nunca 41000072.000000.
-         */
-        $textFields = [
-            'code' => true,
-            'erp_code' => true,
-            'description' => true,
-            'admin_type' => true,
-            'production_line' => true,
-            'energy_class' => true,
-            'complexity_level' => true,
-            'sap_update_date' => true,
-        ];
-
-        $normalizeText = static function (mixed $value): string {
-            if ($value === null || $value === false) {
-                return '';
+        $compare = static function (mixed $a, mixed $b): bool {
+            if (is_numeric($a) || is_numeric($b)) {
+                return round((float)$a, 6) !== round((float)$b, 6);
             }
 
-            return trim((string)$value);
+            return trim((string)$a) !== trim((string)$b);
         };
 
-        $normalizeNumber = static function (mixed $value): string {
-            if ($value === null || $value === false || trim((string)$value) === '') {
-                return '';
-            }
-            if (is_bool($value)) {
-                return $value ? '1' : '0';
-            }
-            if (is_numeric($value)) {
-                return number_format((float)$value, 6, '.', '');
-            }
+        $compareDate = static function (mixed $a, mixed $b): bool {
+            $norm = static function (mixed $value): string {
+                if ($value === null || $value === false) {
+                    return '';
+                }
+                $text = trim((string)$value);
+                if ($text === '' || strcasecmp($text, 'null') === 0) {
+                    return '';
+                }
+                if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $text, $matches) === 1) {
+                    return $matches[1];
+                }
+                $ts = strtotime($text);
 
-            return trim((string)$value);
+                return $ts !== false ? date('Y-m-d', $ts) : $text;
+            };
+
+            return $norm($a) !== $norm($b);
         };
 
-        $normalizeDate = static function (mixed $value): string {
-            if ($value === null || $value === false) {
-                return '';
-            }
-            $text = trim((string)$value);
-            if ($text === '' || strcasecmp($text, 'null') === 0) {
-                return '';
-            }
-            if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $text, $matches) === 1) {
-                return $matches[1];
-            }
-            $ts = strtotime($text);
-
-            return $ts !== false ? date('Y-m-d', $ts) : $text;
-        };
-
-        $normalizeClassification = static function (mixed $value) use ($normalizeText): string {
-            $normalized = mb_strtoupper($normalizeText($value), 'UTF-8');
-
-            // Para o custeio, NULL/vazio e NA representam a mesma situação: não aplicável.
-            // Isso evita falso positivo em itens sem classe/complexidade no SAP.
-            if (in_array($normalized, ['NA', 'N/A', 'NÃO APLICÁVEL', 'NA — NÃO APLICÁVEL'], true)) {
-                return '';
-            }
-
-            return $normalized;
-        };
-
-        $normalizeForField = static function (string $field, mixed $value) use ($textFields, $normalizeText, $normalizeNumber, $normalizeDate, $normalizeClassification): string {
-            if ($field === 'sap_update_date') {
-                return $normalizeDate($value);
-            }
-            if (in_array($field, ['energy_class', 'complexity_level'], true)) {
-                return $normalizeClassification($value);
-            }
-            if (isset($textFields[$field])) {
-                return $normalizeText($value);
-            }
-
-            return $normalizeNumber($value);
-        };
-
-        if ($debugEnabled) {
-            $debugLines[] = '[' . date('Y-m-d H:i:s') . '] itemPayloadDiffersFromExisting | ' . $debugErp;
-        }
-
-        $fields = [
-            'code',
-            'erp_code',
-            'description',
-            'inv_unit_id',
-            'inv_category_id',
-            'average_cost',
-            'last_cost',
-            'active',
-            'production_line',
-            'inv_pharma_form_id',
-            'energy_class',
-            'complexity_level',
-            'admin_type',
-            'min_stock',
-            'max_stock',
-            'standard_batch_size',
-            'sap_update_date',
-        ];
-
-        $dateChangedOnly = false;
-
-        foreach ($fields as $field) {
-            $local = $existing[$field] ?? null;
-            $sap = $payload[$field] ?? null;
-            $localNorm = $normalizeForField($field, $local);
-            $sapNorm = $normalizeForField($field, $sap);
-            $changed = $localNorm !== $sapNorm;
-
-            if ($debugEnabled) {
-                $debugLines[] = sprintf(
-                    '  - %s | local=%s | sap=%s | local_norm=%s | sap_norm=%s | %s',
-                    $field,
-                    var_export($local, true),
-                    var_export($sap, true),
-                    $localNorm,
-                    $sapNorm,
-                    $changed ? 'ALTEROU' : 'IGUAL'
-                );
-            }
-
-            // code e erp_code são protegidos e não devem forçar alteração cadastral.
-            // sap_update_date é somente gatilho de análise; sozinho não deve gerar UPDATE.
-            if ($changed && $field === 'sap_update_date') {
-                $dateChangedOnly = true;
-                continue;
-            }
-
-            if ($changed && !in_array($field, ['code', 'erp_code'], true)) {
-                $changedFields[] = $field;
+        foreach (['description', 'inv_unit_id', 'inv_category_id', 'average_cost', 'last_cost', 'active', 'production_line', 'inv_pharma_form_id', 'energy_class', 'complexity_level', 'admin_type', 'min_stock', 'max_stock', 'standard_batch_size'] as $field) {
+            if ($compare($existing[$field] ?? null, $payload[$field] ?? null)) {
+                return true;
             }
         }
 
-        $this->lastItemChangedFields = $changedFields;
-        $this->lastItemOnlySapUpdateDateChanged = $dateChangedOnly && $changedFields === [];
-
-        if ($debugEnabled) {
-            $shouldSave = $changedFields !== [];
-            $debugLines[] = '  => changed_fields=' . ($changedFields === [] ? 'NONE' : implode(', ', $changedFields));
-            $debugLines[] = '  => only_sap_update_date_changed=' . ($this->lastItemOnlySapUpdateDateChanged ? 'YES' : 'NO');
-            $debugLines[] = '  => decision_save=' . ($shouldSave ? 'YES' : 'NO');
-            $debugLines[] = '  => decision_counter=' . ($shouldSave ? 'updated++' : 'unchanged++');
-            $debugLines[] = '';
-            $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-            if (!is_dir($logDir)) {
-                @mkdir($logDir, 0775, true);
-            }
-            @file_put_contents(
-                $logDir . DIRECTORY_SEPARATOR . 'sap_sync_item_diff_debug.log',
-                implode(PHP_EOL, $debugLines) . PHP_EOL,
-                FILE_APPEND | LOCK_EX
-            );
+        if ($compareDate($existing['sap_update_date'] ?? null, $payload['sap_update_date'] ?? null)) {
+            return true;
         }
 
-        return $changedFields !== [];
+        return false;
     }
 
     private function sapAllowedGroupsWhereSql(string $tableAlias = 'T0'): string
@@ -4470,7 +3603,7 @@ class InventorySapSyncService
                 $afterClause = ' AND T0."ItemCode" > \'' . str_replace("'", "''", $lastCode) . '\'';
             }
 
-            $sql = 'SELECT TO_NVARCHAR(T0."ItemCode") AS "ItemCode" FROM OITM T0 '
+            $sql = 'SELECT T0."ItemCode" FROM OITM T0 '
                 . 'WHERE 1=1' . $this->sapAllowedGroupsWhereSql('T0') . $afterClause . ' '
                 . 'ORDER BY T0."ItemCode" '
                 . 'LIMIT ' . $batchSize;
@@ -4481,60 +3614,19 @@ class InventorySapSyncService
             }
 
             foreach ($rows as $row) {
-                $code = $this->sapRowItemCode($row);
+                $code = trim((string)($row['ItemCode'] ?? $row['ITEMCODE'] ?? ''));
                 if ($code !== '') {
                     $codes[$code] = true;
                 }
             }
 
             $lastRow = $rows[count($rows) - 1];
-            $lastCode = $this->sapRowItemCode($lastRow, $lastCode);
+            $lastCode = trim((string)($lastRow['ItemCode'] ?? $lastRow['ITEMCODE'] ?? $lastCode));
             if (count($rows) < $batchSize) {
                 break;
             }
 
             usleep(500000);
-        }
-
-        // Auditoria/segurança: a paginação keyset pode deixar lacunas em alguns cenários do SAP/API.
-        // Antes de purgar itens locais, mesclamos a lista permitida com a consulta diagnóstica
-        // (mesma base usada para detectar itens recuperados antes da análise).
-        // Sem isso, itens recém-criados que aparecem apenas na consulta diagnóstica podiam ser
-        // inseridos e excluídos logo em seguida pela limpeza, gerando Novos=8 e Removidos=8.
-        try {
-            $diagnosticCodes = $this->fetchSapCatalogCodesForDiagnostics($sap, null, max(20000, count($codes) + 200));
-            $addedByDiagnostic = 0;
-            foreach ($diagnosticCodes as $code => $meta) {
-                if ($code === '') {
-                    continue;
-                }
-                if (!isset($codes[$code])) {
-                    $addedByDiagnostic++;
-                }
-                $codes[$code] = true;
-            }
-
-            if ($addedByDiagnostic > 0) {
-                $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-                if (!is_dir($logDir)) {
-                    @mkdir($logDir, 0775, true);
-                }
-                @file_put_contents(
-                    $logDir . DIRECTORY_SEPARATOR . 'sap_sync_purge_allowed_set_audit.log',
-                    '[' . date('Y-m-d H:i:s') . '] Lista permitida para purge recebeu ' . $addedByDiagnostic . ' código(s) adicionais pela consulta diagnóstica. Total permitido: ' . count($codes) . PHP_EOL,
-                    FILE_APPEND | LOCK_EX
-                );
-            }
-        } catch (Throwable $e) {
-            $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-            if (!is_dir($logDir)) {
-                @mkdir($logDir, 0775, true);
-            }
-            @file_put_contents(
-                $logDir . DIRECTORY_SEPARATOR . 'sap_sync_purge_allowed_set_audit.log',
-                '[' . date('Y-m-d H:i:s') . '] Falha ao complementar lista permitida para purge: ' . $e->getMessage() . PHP_EOL,
-                FILE_APPEND | LOCK_EX
-            );
         }
 
         return $codes;
@@ -4565,27 +3657,12 @@ class InventorySapSyncService
                 continue;
             }
 
-            $logDir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'logs';
-            if (!is_dir($logDir)) {
-                @mkdir($logDir, 0775, true);
-            }
-
             if ($itemsRepo->delete((int)$item['id'])) {
                 $removed++;
-                @file_put_contents(
-                    $logDir . DIRECTORY_SEPARATOR . 'sap_sync_purge_audit.log',
-                    '[' . date('Y-m-d H:i:s') . '] REMOVIDO | id=' . (int)$item['id'] . ' | erp_code=' . $erpCode . ' | motivo=não encontrado na lista permitida SAP do purge' . PHP_EOL,
-                    FILE_APPEND | LOCK_EX
-                );
                 continue;
             }
 
             $skipped++;
-            @file_put_contents(
-                $logDir . DIRECTORY_SEPARATOR . 'sap_sync_purge_audit.log',
-                '[' . date('Y-m-d H:i:s') . '] NÃO REMOVIDO | id=' . (int)$item['id'] . ' | erp_code=' . $erpCode . ' | motivo=delete retornou false' . PHP_EOL,
-                FILE_APPEND | LOCK_EX
-            );
         }
 
         return ['removed' => $removed, 'skipped' => $skipped];
@@ -4679,7 +3756,14 @@ class InventorySapSyncService
      */
     private function fetchStructureRowsFromSap(SapReportApiService $sap, string $parentErpCode): array
     {
-        $materialRows = $this->fetchSapMaterialRowsWithFallback($sap, $parentErpCode);
+        $materialRows = $this->executeSapQueryWithRetry($sap, $this->getSapMaterialsQueryByParentErpCode($parentErpCode), 5);
+        if ($materialRows === []) {
+            $materialRows = $this->executeSapQueryWithRetry(
+                $sap,
+                $this->getSapMaterialsDirectQueryByParentErpCode($parentErpCode),
+                3
+            );
+        }
 
         $routeRows = $this->fetchSapRouteRowsWithFallback($sap, $parentErpCode);
         if ($routeRows === []) {
@@ -4710,125 +3794,6 @@ class InventorySapSyncService
         return ' AND V."Version" = COALESCE(NULLIF(TRIM(' . $itemAlias . '."U_beas_ver"), \'\'), ('
             . 'SELECT MAX(VX."Version") FROM BEAS_ITEM_VERSION VX WHERE VX."ItemCode" = ' . $itemAlias . '."ItemCode"'
             . ')) ';
-    }
-
-    /**
-     * Busca BOM em camadas, começando pela consulta completa atual e caindo para consultas mínimas.
-     *
-     * A consulta mínima usa apenas BEAS_STL e evita joins/custos/grupos. Isso reduz HTTP 500
-     * em itens com estrutura pesada ou inconsistência em dados relacionados. O PHP complementa
-     * dados de cadastro/custo quando o componente já existe localmente.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function fetchSapMaterialRowsWithFallback(SapReportApiService $sap, string $parentErpCode): array
-    {
-        $attempts = [
-            ['BOM por versão completa', $this->getSapMaterialsQueryByParentErpCode($parentErpCode), 5],
-            ['BOM direta completa', $this->getSapMaterialsDirectQueryByParentErpCode($parentErpCode), 3],
-            ['BOM por versão mínima', $this->getSapMaterialsMinimalQueryByParentErpCode($parentErpCode), 3],
-            ['BOM direta mínima', $this->getSapMaterialsDirectMinimalQueryByParentErpCode($parentErpCode), 3],
-        ];
-
-        $errors = [];
-        foreach ($attempts as [$label, $sql, $maxAttempts]) {
-            try {
-                $rows = $this->executeSapQueryWithRetry($sap, (string)$sql, (int)$maxAttempts);
-                if ($rows !== []) {
-                    return $this->normalizeMinimalMaterialRows($rows);
-                }
-            } catch (Throwable $e) {
-                $errors[] = $label . ': ' . $e->getMessage();
-                continue;
-            }
-        }
-
-        if ($errors !== []) {
-            throw new \RuntimeException(
-                'Falha ao buscar BOM do item ' . trim($parentErpCode) . '. Tentativas: ' . implode(' | ', $errors)
-            );
-        }
-
-        return [];
-    }
-
-    /**
-     * @param list<array<string, mixed>> $rows
-     * @return list<array<string, mixed>>
-     */
-    private function normalizeMinimalMaterialRows(array $rows): array
-    {
-        $normalized = [];
-        foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-
-            $code = trim((string)($row['codigo'] ?? $row['CODIGO'] ?? ''));
-            if ($code === '') {
-                continue;
-            }
-
-            if (!isset($row['component_item_name']) && !isset($row['COMPONENT_ITEM_NAME'])) {
-                $row['component_item_name'] = trim((string)($row['descricao'] ?? $row['DESCRICAO'] ?? $code));
-            }
-            if (!isset($row['component_uom']) && !isset($row['COMPONENT_UOM'])) {
-                $row['component_uom'] = trim((string)($row['unidade_medida'] ?? $row['UNIDADE_MEDIDA'] ?? ''));
-            }
-            if (!isset($row['component_avg_price']) && !isset($row['COMPONENT_AVG_PRICE'])) {
-                $row['component_avg_price'] = 0;
-            }
-            if (!isset($row['component_group_name']) && !isset($row['COMPONENT_GROUP_NAME'])) {
-                $row['component_group_name'] = '';
-            }
-
-            $normalized[] = $row;
-        }
-
-        return $normalized;
-    }
-
-    private function getSapMaterialsMinimalQueryByParentErpCode(string $parentErpCode): string
-    {
-        $safeCode = str_replace("'", "''", trim($parentErpCode));
-
-        return 'SELECT '
-            . 'S."POS_ID" AS "pos_id", '
-            . 'S."ART1_ID" AS "codigo", '
-            . 'COALESCE(S."DESCRIPTION", S."ART1_ID") AS "descricao", '
-            . 'S."INPUT_QTY" AS "quantidade", '
-            . 'S."MENGE_VERBRAUCH" AS "menge_verbrauch", '
-            . 'S."INPUT_UNIT" AS "unidade_medida", '
-            . 'COALESCE(S."DESCRIPTION", S."ART1_ID") AS "component_item_name", '
-            . 'S."INPUT_UNIT" AS "component_uom", '
-            . '0 AS "component_avg_price", '
-            . '\'\' AS "component_group_name" '
-            . 'FROM BEAS_STL S '
-            . 'INNER JOIN BEAS_ITEM_VERSION V ON S."ItemCode" = V."StlItemCode" '
-            . 'INNER JOIN OITM I ON V."ItemCode" = I."ItemCode" '
-            . $this->sapBeasVersionMatchSql('I')
-            . "AND I.\"ItemCode\" = '{$safeCode}' "
-            . 'WHERE UPPER(COALESCE(S."DESCRIPTION", \'\')) NOT LIKE \'%GERADOR DE LOTE%\'';
-    }
-
-    private function getSapMaterialsDirectMinimalQueryByParentErpCode(string $parentErpCode): string
-    {
-        $safeCode = str_replace("'", "''", trim($parentErpCode));
-
-        return 'SELECT '
-            . 'S."POS_ID" AS "pos_id", '
-            . 'S."ART1_ID" AS "codigo", '
-            . 'COALESCE(S."DESCRIPTION", S."ART1_ID") AS "descricao", '
-            . 'S."INPUT_QTY" AS "quantidade", '
-            . 'S."MENGE_VERBRAUCH" AS "menge_verbrauch", '
-            . 'S."INPUT_UNIT" AS "unidade_medida", '
-            . 'COALESCE(S."DESCRIPTION", S."ART1_ID") AS "component_item_name", '
-            . 'S."INPUT_UNIT" AS "component_uom", '
-            . '0 AS "component_avg_price", '
-            . '\'\' AS "component_group_name" '
-            . 'FROM BEAS_STL S '
-            . "WHERE S.\"ItemCode\" = '{$safeCode}' "
-            . 'AND UPPER(COALESCE(S."DESCRIPTION", \'\')) NOT LIKE \'%GERADOR DE LOTE%\'';
     }
 
     private function getSapMaterialsQueryByParentErpCode(string $parentErpCode, bool $includeLastCost = false): string
@@ -5298,7 +4263,7 @@ class InventorySapSyncService
     private function computeItemHashFromSapRow(array $row): string
     {
         $payload = [
-            'ItemName' => $this->sapRowString($row, 'ItemName'),
+            'ItemName' => $this->sapEmptyAsString($row['ItemName'] ?? null),
             'InvntryUom' => strtoupper($this->sapEmptyAsString($row['InvntryUom'] ?? null)),
             'validFor' => strtoupper($this->sapEmptyAsString($row['validFor'] ?? null, 'Y')),
             'ItmsGrpCod' => $this->sapEmptyAsString($row['ItmsGrpCod'] ?? null),
@@ -5498,9 +4463,9 @@ class InventorySapSyncService
         array &$stats
     ): bool {
         $payload = [
-            'code' => $this->resolveLocalItemCode($existing['code'] ?? null, (string)($existing['erp_code'] ?? $row['ItemCode'] ?? '')),
-            'erp_code' => $this->resolveLocalItemCode($existing['erp_code'] ?? null, (string)($row['ItemCode'] ?? '')),
-            'description' => ($this->sapRowString($row, 'ItemName') !== '' ? $this->sapRowString($row, 'ItemName') : trim((string)($existing['description'] ?? ''))),
+            'code' => (string)($existing['code'] ?? $row['ItemCode'] ?? ''),
+            'erp_code' => (string)($existing['erp_code'] ?? $row['ItemCode'] ?? ''),
+            'description' => trim((string)($row['ItemName'] ?? $existing['description'] ?? '')),
             'inv_unit_id' => $unitId,
             'inv_category_id' => $categoryId,
             'admin_type' => $adminType,
@@ -5530,12 +4495,10 @@ class InventorySapSyncService
         if ($this->itemPayloadDiffersFromExisting($existing, $payload)) {
             $changed = $itemsRepo->update((int)$existing['id'], $payload);
             if ($changed) {
-                $this->incrementItemFieldUpdateStats($stats, $this->lastItemChangedFields);
                 $stats['updated']++;
                 $stats['synced']++;
             }
         } else {
-            $this->backfillSapUpdateDateOnly($itemsRepo, (int)$existing['id'], $existing, $sapUpdateDate, $stats);
             $stats['unchanged']++;
         }
 
@@ -5549,38 +4512,6 @@ class InventorySapSyncService
      * @param array<string, mixed>|null $existing
      * @param non-empty-string $itemHash
      */
-    /**
-     * Preenche apenas o sap_update_date de itens antigos quando os campos relevantes
-     * já estão iguais. Isso evita comparar o mesmo item em detalhe em toda sincronização.
-     *
-     * Observação: se o SAP realmente retornar UpdateDate vazio/NULL, não há data para preencher;
-     * nesse caso o persistItemSapMetadata() grava sap_last_synced_at/hash e o item passa a ser
-     * tratado como verificado nas próximas execuções.
-     *
-     * @param array<string, mixed>|null $existing
-     * @param array<string, mixed> $stats
-     */
-    private function backfillSapUpdateDateOnly(
-        InvItemsRepository $itemsRepo,
-        int $itemId,
-        ?array $existing,
-        ?string $sapUpdateDate,
-        array &$stats
-    ): void {
-        if ($itemId <= 0 || $sapUpdateDate === null || $sapUpdateDate === '') {
-            return;
-        }
-
-        $localUpdateDate = $this->normalizeSapUpdateDate(is_array($existing) ? ($existing['sap_update_date'] ?? null) : null);
-        if ($localUpdateDate === $sapUpdateDate) {
-            return;
-        }
-
-        if ($itemsRepo->updateSapUpdateDateOnly($itemId, $sapUpdateDate)) {
-            $stats['sap_update_date_only'] = (int)($stats['sap_update_date_only'] ?? 0) + 1;
-        }
-    }
-
     private function persistItemSapMetadata(
         InvItemsRepository $itemsRepo,
         int $itemId,
@@ -5594,7 +4525,6 @@ class InventorySapSyncService
         $itemsRepo->updateSapSyncMetadata($itemId, [
             'sap_item_hash' => $itemHash,
             'sap_beas_version' => $beasVer !== '' ? $beasVer : null,
-            'sap_update_date' => $this->normalizeSapUpdateDate($row['UpdateDate'] ?? $row['UPDATEDATE'] ?? null),
             'sap_structure_pending' => $queueStructure,
             'sap_route_pending' => $queueStructure,
             'sap_last_synced_at' => date('Y-m-d H:i:s'),
@@ -5661,7 +4591,7 @@ class InventorySapSyncService
             return true;
         }
 
-        $erp = $this->sapRowItemCode($row);
+        $erp = trim((string)($row['ItemCode'] ?? ''));
 
         return str_starts_with($erp, '43') || str_starts_with($erp, '40');
     }
@@ -5691,27 +4621,6 @@ class InventorySapSyncService
         }
 
         return 'none';
-    }
-
-
-    /**
-     * Mantém o código local estável.
-     *
-     * Regra de segurança: nunca retorna vazio quando existir código ERP/SAP.
-     */
-    private function resolveLocalItemCode(mixed $currentCode, mixed $erpCode): string
-    {
-        $current = trim((string)($currentCode ?? ''));
-        if ($current !== '') {
-            return $current;
-        }
-
-        $erp = trim((string)($erpCode ?? ''));
-        if ($erp !== '') {
-            return $erp;
-        }
-
-        return '';
     }
 
     /**

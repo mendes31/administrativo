@@ -10,7 +10,7 @@
     <li>Acesse o menu <strong>Estoque</strong> e abra <strong>Listar Itens de Estoque</strong>.</li>
     <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
     <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
-    <li>Use <strong>Sincronizar SAP</strong> para atualizar itens (por hash) e, em seguida, apenas as estruturas <em>pendentes</em>. Opções avançadas permitem sincronizar só itens ou só estruturas (completo).</li>
+    <li>Use <strong>Sincronizar SAP</strong> para atualizar itens (por hash) e, em seguida, estruturas <em>pendentes</em>. Com <em>Cód. ERP</em> preenchido, sincroniza catálogo + BOM/rota + PIs dependentes do item. Opções avançadas permitem sincronizar só itens ou só estruturas (completo).</li>
     <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
     <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
 </ol>
@@ -20,7 +20,7 @@
 <div class="help-field"><strong>Filtros de busca</strong> Código, descrição, grupo de itens (somente grupos SAP importados), linha de produção, forma farmacêutica e status ativo.</div>
 <div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
 <div class="help-field"><strong>Cód. ERP / Grupo SAP</strong> Filtros compartilhados por todos os botões de sincronização na barra superior.</div>
-<div class="help-field"><strong>Sincronizar SAP</strong> Botão principal (uso diário): atualiza itens por hash e, em seguida, apenas estruturas <em>pendentes</em>. Retomada automática após falha da API está sempre ativa.</div>
+<div class="help-field"><strong>Sincronizar SAP</strong> Botão principal (uso diário): atualiza itens por hash e, em seguida, estruturas <em>pendentes</em>. Com <em>Cód. ERP</em> informado na barra, executa sync unificado (catálogo + BOM/rota + PIs do fecho SAP). Retomada automática após falha da API está sempre ativa.</div>
 <div class="help-field"><strong>Avançado</strong> Opções de manutenção: <em>Completa</em> (catálogo inteiro + purge de itens fora dos grupos SAP), <em>Só itens</em> (cadastro sem BOM/rota) e <em>Estruturas (completo)</em> (varredura total de lista de materiais e rota).</div>
 <div class="help-field"><strong>Só itens</strong> (Avançado) Sincroniza apenas o cadastro de itens — útil com <em>Completa</em> marcada para carga inicial sem consultar estruturas. Com <strong>Grupo SAP</strong> (ex.: <code>100</code>) + <em>Completa</em>, varre todos os itens daquele grupo; sem <em>Completa</em>, só itens alterados recentemente (inclui <code>UpdateDate</code> vazio no SAP).</div>
 <div class="help-field"><strong>Colunas Forma farm. e Linha</strong> Exibem os dados importados do SAP nos produtos acabados/intermediários. Itens sem valor no SAP aparecem como <em>—</em>.</div>
@@ -63,7 +63,9 @@
     <dt>Incremental removeu itens mas não importou novos</dt>
     <dd>A remoção de itens fora do catálogo só ocorre na sync <em>Completa</em>. Use incremental no dia a dia apenas para itens alterados recentemente no SAP.</dd>
     <dt>BOM/rota não importou; pendências continuam</dt>
-    <dd>O item pode estar <em>inativo no SAP</em> (<code>validFor=N</code>) ou sem versão BEAS — após a correção recente, rode <strong>Sincronizar SAP</strong> de novo ou o botão <strong>Estrutura</strong> na visualização. Se o SAP não tiver BOM/rota cadastrada, as pendências são encerradas com mensagem explicativa.</dd>
+    <dd>O item pode estar <em>inativo no SAP</em> (<code>validFor=N</code>) ou sem versão BEAS — rode <strong>Sincronizar SAP</strong> de novo ou <strong>Sincronizar SAP</strong> na visualização do item (inclui PIs dependentes). Se o SAP não tiver BOM/rota cadastrada, as pendências são encerradas com mensagem explicativa.</dd>
+    <dt>BOM do PA sem MPs (só embalagem) após sync</dt>
+    <dd>O sistema compara hash SAP <em>e</em> o conteúdo gravado localmente. Use sync por código ERP ou o botão <strong>Sincronizar SAP</strong> na ficha do item para regravar a lista quando houver divergência (ex.: PI faltando no PA).</dd>
     <dt>Forma farmacêutica ou linha vazia na listagem</dt>
     <dd>Confirme se o SAP tem <code>U_FormaFarma</code> e <code>U_LinhaProduto</code> preenchidos para o item. Se estiverem vazios no SAP, a coluna permanece <em>—</em>. Ao preencher no SAP e sincronizar de novo, o sistema atualiza.</dd>
     <dt>Itens inativos não aparecem</dt>

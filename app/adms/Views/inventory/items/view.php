@@ -3,7 +3,7 @@
 $item = $this->data['item'] ?? [];
 $itemId = (int)($item['id'] ?? 0);
 $isProjectItem = !empty($this->data['is_project_item']);
-$bom = $this->data['bom'] ?? [];
+$bom = $this->data['bom_display'] ?? $this->data['bom'] ?? [];
 $operations = $this->data['operations'] ?? [];
 $breakdown = $this->data['cost_breakdown'] ?? [];
 $hasStructure = !empty($this->data['has_structure']);
@@ -42,10 +42,10 @@ $truncate = static function (string $text, int $max = 42): string {
     <?php endif; ?>
     <?php if (!empty($item['erp_code']) && empty($this->data['is_project_item'])): ?>
       <form action="" method="POST" class="d-inline">
-        <input type="hidden" name="csrf_token" value="<?= \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_sync_inventory_structure') ?>">
-        <input type="hidden" name="sync_sap_structure_item_id" value="<?= $itemId ?>">
-        <button type="submit" class="btn btn-outline-secondary btn-sm" title="Sincronizar lista de materiais e rota no SAP">
-          <i class="fa-solid fa-sitemap"></i> Estrutura
+        <input type="hidden" name="csrf_token" value="<?= \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_sync_inventory_unified') ?>">
+        <input type="hidden" name="sync_sap_unified_item_id" value="<?= $itemId ?>">
+        <button type="submit" class="btn btn-outline-primary btn-sm" title="Sincroniza catálogo, BOM, rota e PIs dependentes com o SAP">
+          <i class="fa-solid fa-rotate"></i> Sincronizar SAP
         </button>
       </form>
     <?php endif; ?>

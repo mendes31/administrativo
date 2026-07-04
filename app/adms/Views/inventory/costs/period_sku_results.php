@@ -8,6 +8,16 @@ $skuFilter = trim((string)($skuFilter ?? ''));
 $skuResultsAllCount = (int)($skuResultsAllCount ?? count($skuResults));
 $period = $period ?? [];
 $fmtQty = static fn(?float $v): string => $v === null ? '—' : number_format($v, 0, ',', '.');
+$fmtQtyRatio = static function (?float $produced, ?float $planned) use ($fmtQty): string {
+    if ($produced === null || $produced <= 0) {
+        return '—';
+    }
+    if ($planned === null || $planned <= 0) {
+        return $fmtQty($produced);
+    }
+
+    return $fmtQty($produced) . ' / ' . $fmtQty($planned);
+};
 $fmtPct = static fn(?float $v): string => $v === null ? '—' : number_format($v, 2, ',', '.') . '%';
 $fmtMoney = static fn(mixed $v): string => $v === null || $v === '' || !is_numeric($v) ? '—' : number_format((float)$v, 4, ',', '.');
 $fmtMoney2 = static fn(mixed $v): string => $v === null || $v === '' || !is_numeric($v) ? '—' : number_format((float)$v, 2, ',', '.');
@@ -19,6 +29,8 @@ $hasTariff = (float)($period['kwh_tariff'] ?? 0) > 0;
       <em>Lote adotado</em> (Pasta 4): F24 = lote padrão (mín.) do <strong>cadastro do item</strong> quando &gt; 1
       (0 ou 1 = placeholder SAP, trata como não fixado); senão F25 = produzido ÷ <strong>nº de lotes</strong>
       (entradas na aba Lotes produzidos, mesma coluna <em>Lotes</em>); F26 = <code>SE(F24=0;F25;F24)</code>.
+      As colunas <strong>Lotes</strong>, <strong>Qtd</strong> e <strong>Efic. %</strong> são as mesmas da aba
+      <em>SKUs produzidos no período</em> (gravadas no snapshot — recalcule após alterar produção ou lote mínimo).
       <strong>CVAR/un.</strong> usa divisor 1 na BOM (unidade comercial). <strong>CFIX</strong> usa HH/HM com o lote adotado.
     </p>
     <?php if (!$hasTariff): ?>
@@ -66,7 +78,8 @@ $hasTariff = (float)($period['kwh_tariff'] ?? 0) > 0;
             <tr>
               <th class="ps-3" rowspan="2">SKU</th>
               <th rowspan="2">Descrição</th>
-              <th class="text-end" rowspan="2">Qtd</th>
+              <th class="text-end" rowspan="2">Lotes</th>
+              <th class="text-end" rowspan="2" title="Produzido / planejado (lotes × lote mín. do cadastro)">Qtd</th>
               <th class="text-end" rowspan="2" title="Lote padrão SAP (MinOrdrQty) — exibido só quando &gt; 1">Lote SAP</th>
               <th class="text-end" rowspan="2" title="Lote adotado para custo/un. (Pasta 4)">Lote adotado</th>
               <th class="text-end" rowspan="2">Efic. %</th>
@@ -94,7 +107,11 @@ $hasTariff = (float)($period['kwh_tariff'] ?? 0) > 0;
               <tr class="<?= !empty($row['linked']) ? '' : 'table-warning' ?>">
                 <td class="ps-3 font-monospace small"><?= htmlspecialchars((string)($row['erp_code'] ?? '—')) ?></td>
                 <td class="small"><?= htmlspecialchars((string)($row['item_description'] ?? '')) ?></td>
-                <td class="text-end"><?= $fmtQty(isset($row['total_qty']) ? (float)$row['total_qty'] : null) ?></td>
+                <td class="text-end"><?= (int)($row['batches_count'] ?? 0) ?></td>
+                <td class="text-end"><?= $fmtQtyRatio(
+                    isset($row['total_qty']) ? (float)$row['total_qty'] : null,
+                    isset($row['qty_planned']) ? (float)$row['qty_planned'] : null
+                ) ?></td>
                 <td class="text-end"><?= $fmtQty(InvCostBatchAdoptedHelper::catalogBatchForDisplay($row['standard_batch_size'] ?? null)) ?></td>
                 <td class="text-end"><?= $fmtQty(isset($row['batch_size_adopted']) ? (float)$row['batch_size_adopted'] : null) ?></td>
                 <td class="text-end"><?= $fmtPct(isset($row['efficiency_pct']) ? (float)$row['efficiency_pct'] : null) ?></td>

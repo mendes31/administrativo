@@ -202,4 +202,52 @@ final class InvCostBatchAdoptedHelper
 
         return $f > 0 ? $f : null;
     }
+
+    /**
+     * Métricas de produção por SKU/período — fonte única para abas SKUs, Resultados e drivers.
+     *
+     * @param array<string, mixed>|null $periodItem Cadastro do período mesclado com defaults
+     * @return array{
+     *   total_qty: ?float,
+     *   qty_planned: ?float,
+     *   batch_size_adopted: float,
+     *   standard_batch_size: ?float,
+     *   efficiency_ratio: float,
+     *   efficiency_pct: float,
+     *   batches_produced: float,
+     *   qty_avg_per_round: ?float,
+     *   batch_size_theoretical_fixed: ?float
+     * }
+     */
+    public static function resolveProductionMetrics(
+        ?array $periodItem,
+        float $qtyProduced,
+        int $rawBatchesCount,
+        mixed $catalogStandardBatchSize = null
+    ): array {
+        $physicalBatches = self::resolvePhysicalBatchesCount(max(0, $rawBatchesCount));
+        $ctx = self::resolveProductionContext(
+            $periodItem,
+            $qtyProduced,
+            $physicalBatches,
+            $catalogStandardBatchSize
+        );
+
+        $qtyPlanned = (float)($ctx['qty_planned'] ?? 0);
+        $qtyPlanned = $qtyPlanned > 0 ? round($qtyPlanned, 4) : null;
+
+        return [
+            'total_qty' => $qtyProduced > 0 ? round($qtyProduced, 4) : null,
+            'qty_planned' => $qtyPlanned,
+            'batch_size_adopted' => (float)$ctx['batch_size_adopted'],
+            'standard_batch_size' => self::catalogBatchForDisplay($catalogStandardBatchSize),
+            'efficiency_ratio' => (float)$ctx['efficiency_ratio'],
+            'efficiency_pct' => (float)$ctx['efficiency_pct'],
+            'batches_produced' => (float)$ctx['batches_produced'],
+            'qty_avg_per_round' => $ctx['qty_avg_per_round'] !== null
+                ? (float)$ctx['qty_avg_per_round']
+                : null,
+            'batch_size_theoretical_fixed' => $ctx['batch_size_theoretical_fixed'],
+        ];
+    }
 }
