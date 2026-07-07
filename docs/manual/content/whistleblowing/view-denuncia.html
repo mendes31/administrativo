@@ -1,0 +1,18 @@
+<h1>Visualizar Denúncia</h1>
+<p>Detalhe da denúncia: relato descriptografado, mensagens, anexos, linha do tempo de status e auditoria de acesso interno.</p>
+<p><strong>Quem acessa:</strong> <em>WhistleblowingViewReport</em>. Resposta: <em>WhistleblowingReplyReport</em>. Gestão: <em>WhistleblowingUpdateStatus</em>.</p>
+<h2>Fluxo passo a passo</h2>
+<ol>
+<li>Na listagem, abra a denúncia pelo protocolo.</li>
+<li>Leia o relato e envolvidos informados pelo denunciante.</li>
+<li>Em <strong>Responder</strong>, envie mensagem visível ao denunciante ou marque <strong>Nota interna</strong> (só comitê).</li>
+<li>Em <strong>Gestão</strong>, atualize status, risco, responsável e observação na linha do tempo.</li>
+<li>Baixe anexos pelo ícone de download (registrado na auditoria).</li>
+</ol>
+<h2>Status do fluxo</h2>
+<p>Recebida → Em triagem → Em análise → Comitê → Investigação → Providências → Encerrada.</p>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Denunciante não vê a resposta</dt><dd>Confirme que não marcou nota interna; o denunciante consulta por protocolo + senha.</dd>
+<dt>Conteúdo ilegível</dt><dd>Verifique <code>WHISTLEBLOWING_ENCRYPTION_KEY</code> no .env (mesma chave desde o registro).</dd>
+</dl>

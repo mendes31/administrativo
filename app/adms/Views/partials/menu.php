@@ -2,6 +2,7 @@
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
 // deploy-sync: 2026-06-22 — menu completo (SST equipamentos + treinamentos)
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
+use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
 static $admsMenuPasswordPolicyId = null;
 if ($admsMenuPasswordPolicyId === null) {
@@ -1032,6 +1033,50 @@ $menus = [
                 'icon' => 'fas fa-stopwatch'
             ],
         ]
+    ],
+    [
+        'id' => 'whistleblowing',
+        'icon' => 'fas fa-shield-alt',
+        'label' => 'Canal de Denúncias',
+        'submenu' => [
+            [
+                'label' => 'Dashboard',
+                'url' => $_ENV['URL_ADM'] . 'denuncias-dashboard',
+                'permission' => 'WhistleblowingDashboard',
+                'icon' => 'fas fa-chart-pie',
+            ],
+            [
+                'label' => 'Denúncias',
+                'url' => $_ENV['URL_ADM'] . 'denuncias',
+                'permission' => 'WhistleblowingListReports',
+                'icon' => 'fas fa-list',
+            ],
+            [
+                'label' => 'Comitês',
+                'url' => $_ENV['URL_ADM'] . 'list-whistleblowing-committees',
+                'permission' => 'WhistleblowingListCommittees',
+                'icon' => 'fas fa-users-cog',
+            ],
+            [
+                'label' => 'Canal público',
+                'url' => WhistleblowingPublicUrlHelper::baseUrl(),
+                'target' => '_blank',
+                'icon' => 'fas fa-external-link-alt',
+                'any_of' => [
+                    'WhistleblowingDashboard',
+                    'WhistleblowingListReports',
+                    'WhistleblowingViewReport',
+                    'WhistleblowingListCommittees',
+                    'WhistleblowingConfig',
+                ],
+            ],
+            [
+                'label' => 'Configuração',
+                'url' => $_ENV['URL_ADM'] . 'whistleblowing-config',
+                'permission' => 'WhistleblowingConfig',
+                'icon' => 'fas fa-cog',
+            ],
+        ],
     ],
     [
         'id' => 'sst',

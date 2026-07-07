@@ -591,6 +591,16 @@ class PageLayoutService
             'SacReplyTicket',
             'SacTransferTicket',
             'SacRateTicket',
+            // Canal de Denúncias
+            'WhistleblowingDashboard',
+            'WhistleblowingListReports',
+            'WhistleblowingViewReport',
+            'WhistleblowingReplyReport',
+            'WhistleblowingUpdateStatus',
+            'WhistleblowingListCommittees',
+            'WhistleblowingCreateCommittee',
+            'WhistleblowingUpdateCommittee',
+            'WhistleblowingConfig',
             // SST — Segurança e Medicina do Trabalho
             'SstCreateAcidente',
             'SstCreateAfastamento',

@@ -205,6 +205,15 @@ class LoadPageAdmAccessLevel
             $this->urlController = 'ServeFile';
         }
 
+        // URI pública na raiz: /canaldenuncia (gateway fora de /administrativo/)
+        if (!$this->page && preg_match('#/canaldenuncia(?:/|\\?|$)#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
+            $this->page = $accessLevelPage->getPageByControllerUrl('canaldenuncia')
+                ?: $accessLevelPage->getPage('CanalDenuncia');
+            if ($this->page) {
+                $this->urlController = 'CanalDenuncia';
+            }
+        }
+
         // 1) Página não encontrada no cadastro de rotas/páginas
         if (!$this->page) {
             GenerateLog::generateLog("error", "Página/rota não encontrada em pages_routes.", [
@@ -495,7 +504,7 @@ class LoadPageAdmAccessLevel
             'performance', 'permission', 'policies', 'portal', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
             'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline', 'gamification',
-            'trainings', 'users', 'workShifts',
+            'trainings', 'users', 'workShifts', 'whistleblowing',
         ];
 
         foreach ($knownOnDisk as $canonical) {

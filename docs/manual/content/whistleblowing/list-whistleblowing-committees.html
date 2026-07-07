@@ -1,0 +1,10 @@
+<h1>Comitês de Denúncias</h1>
+<p>Configure comitês (Ética, Compliance, Segurança etc.), membros e classificações atendidas. Novas denúncias são encaminhadas automaticamente ao comitê correspondente.</p>
+<p><strong>Quem acessa:</strong> <em>WhistleblowingListCommittees</em>, <em>WhistleblowingCreateCommittee</em>, <em>WhistleblowingUpdateCommittee</em>.</p>
+<h2>Fluxo</h2>
+<ol>
+<li>Liste os comitês em <code>list-whistleblowing-committees</code>.</li>
+<li>Cadastre ou edite: nome, membros e classificações.</li>
+<li>O primeiro membro pode ser atribuído como responsável automático na denúncia.</li>
+</ol>
+<p><strong>Retenção LGPD:</strong> agende o cron <code>whistleblowing-retention-cron?token=CRON_WHISTLEBLOWING_TOKEN</code> para arquivar (5 anos) e excluir (10 anos).</p>

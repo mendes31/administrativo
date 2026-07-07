@@ -2008,6 +2008,47 @@
             ]
         },
         {
+            "id": "whistleblowing",
+            "title": "Canal de Denúncias",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "whistleblowing-visao-geral",
+                    "title": "Canal de Denúncias — visão geral"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "canal-denuncia",
+                    "title": "Canal público (anônimo)"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-denuncias",
+                    "title": "Listar Denúncias"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "view-denuncia",
+                    "title": "Visualizar Denúncia"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "denuncias-dashboard",
+                    "title": "Dashboard"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-whistleblowing-committees",
+                    "title": "Comitês"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "whistleblowing-config",
+                    "title": "Configuração"
+                }
+            ]
+        },
+        {
             "id": "sst",
             "title": "Segurança e Medicina",
             "children": [

@@ -39,11 +39,12 @@ class PageController
     public function __construct()
     {
 
-        // Verificar se tem valor na variável url enviada pelo .htaccess
-        if (!empty(filter_input(INPUT_GET, 'url', FILTER_DEFAULT))) {
+        // Preferir $_GET (gateway público /canaldenuncia define url antes do require).
+        $urlInput = $_GET['url'] ?? filter_input(INPUT_GET, 'url', FILTER_DEFAULT);
+        if (!empty($urlInput)) {
 
             // Recebe o valor da variável url
-            $this->url = filter_input(INPUT_GET, 'url', FILTER_DEFAULT);
+            $this->url = (string) $urlInput;
 
 
 

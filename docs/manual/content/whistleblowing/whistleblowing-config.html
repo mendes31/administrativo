@@ -1,0 +1,15 @@
+<h1>Configuração — Canal de Denúncias</h1>
+<p>Define token do cron de retenção LGPD e chave de criptografia dos relatos, sem depender do arquivo <code>.env</code>.</p>
+<p><strong>Quem acessa:</strong> <em>WhistleblowingConfig</em>.</p>
+<h2>Fluxo</h2>
+<ol>
+<li>Acesse <code>whistleblowing-config</code> no menu Canal de Denúncias.</li>
+<li>Guarde o <strong>token do cron</strong> e configure o agendador com a URL exibida.</li>
+<li>Defina a <strong>chave de criptografia</strong> antes de receber denúncias em produção.</li>
+</ol>
+<p>Prioridade: valores no banco substituem variáveis <code>WHISTLEBLOWING_ENCRYPTION_KEY</code> e <code>CRON_WHISTLEBLOWING_TOKEN</code> do <code>.env</code>.</p>
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Relatos ilegíveis após trocar a chave</dt><dd>A chave anterior era usada na criptografia; não rotacione sem plano de migração.</dd>
+<dt>Cron retorna 403</dt><dd>Token não configurado ou divergente entre agendador e sistema.</dd>
+</dl>

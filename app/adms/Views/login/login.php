@@ -1,6 +1,7 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
 // Mantemos a leitura de msg/error apenas para exibir alertas, 
 // sem mais alterar o estado do botão.
@@ -190,6 +191,11 @@ use App\adms\Helpers\CSRFHelper;
         </div>
 
         <div class="login-app-footer">
+            <div class="small mb-2">
+                <a href="<?php echo htmlspecialchars(WhistleblowingPublicUrlHelper::baseUrl(), ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none" target="_blank" rel="noopener">
+                    <i class="fas fa-shield-alt me-1"></i>Canal de Denúncias (anônimo)
+                </a>
+            </div>
             <div class="small">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>new-user" class="text-decoration-none">Cadastrar</a>
             </div>

@@ -2144,6 +2144,47 @@
                     "file": "relatorios/view-dynamic-report.html"
                 }
             ]
+        },
+        {
+            "id": "whistleblowing",
+            "title": "Canal de Denúncias",
+            "topics": [
+                {
+                    "id": "whistleblowing-visao-geral",
+                    "title": "Canal de Denúncias — visão geral",
+                    "file": "whistleblowing/whistleblowing-visao-geral.html"
+                },
+                {
+                    "id": "canal-denuncia",
+                    "title": "Canal de Denúncias (público)",
+                    "file": "whistleblowing/canal-denuncia.html"
+                },
+                {
+                    "id": "list-denuncias",
+                    "title": "Listar Denúncias",
+                    "file": "whistleblowing/list-denuncias.html"
+                },
+                {
+                    "id": "view-denuncia",
+                    "title": "Visualizar Denúncia",
+                    "file": "whistleblowing/view-denuncia.html"
+                },
+                {
+                    "id": "denuncias-dashboard",
+                    "title": "Dashboard Denúncias",
+                    "file": "whistleblowing/denuncias-dashboard.html"
+                },
+                {
+                    "id": "list-whistleblowing-committees",
+                    "title": "Comitês de Denúncias",
+                    "file": "whistleblowing/list-whistleblowing-committees.html"
+                },
+                {
+                    "id": "whistleblowing-config",
+                    "title": "Configuração Canal de Denúncias",
+                    "file": "whistleblowing/whistleblowing-config.html"
+                }
+            ]
         }
     ]
 }
