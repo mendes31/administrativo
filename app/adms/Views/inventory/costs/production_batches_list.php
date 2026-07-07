@@ -22,23 +22,59 @@
         <form method="post" class="d-inline">
           <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_sync_production_batches') ?>">
           <input type="hidden" name="sync_sap_production_batches" value="1">
-          <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Sincronizar todos os lotes (TJQP e APQP) com o SAP?')">
-            <i class="fa-solid fa-rotate"></i> Sync completa SAP
+          <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Sincronizar lotes produzidos (TJQP e APQP) com o SAP?')">
+            <i class="fa-solid fa-rotate"></i> Sincronizar SAP
           </button>
         </form>
-        <form method="post" class="d-inline">
-          <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_sync_production_batches') ?>">
-          <input type="hidden" name="sync_sap_production_batches" value="1">
-          <input type="hidden" name="sync_incremental" value="1">
-          <button type="submit" class="btn btn-sm btn-outline-primary">
-            <i class="fa-solid fa-forward"></i> Sync incremental
-          </button>
-        </form>
+        <details class="d-inline">
+          <summary class="btn btn-sm btn-link text-muted py-0 px-1 text-decoration-none" style="list-style:none;cursor:pointer;">Avançado</summary>
+          <form method="post" class="d-inline ms-1">
+            <input type="hidden" name="csrf_token" value="<?= CSRFHelper::generateCSRFToken('form_sync_production_batches') ?>">
+            <input type="hidden" name="sync_sap_production_batches" value="1">
+            <input type="hidden" name="sync_force_full" value="1">
+            <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Forçar sincronização completa? Pode demorar mais e reprocessar todo o histórico.')">
+              <i class="fa-solid fa-arrows-rotate"></i> Forçar completa
+            </button>
+          </form>
+        </details>
       </span>
     </div>
     <div class="card-body">
+      <?php
+      $syncStatus = $this->data['production_sync_status'] ?? [];
+      $lastModeLabel = (($syncStatus['last_sync_mode'] ?? '') === 'incremental') ? 'Incremental' : 'Completa';
+      $nextModeLabel = (($syncStatus['next_mode'] ?? 'full') === 'incremental') ? 'incremental' : 'completa';
+      ?>
+      <?php if (!empty($syncStatus['has_completed_sync'])): ?>
+        <div class="alert alert-light border small py-2 mb-3 mb-md-3">
+          <i class="fa-solid fa-clock-rotate-left text-muted me-1"></i>
+          <strong>Última sync:</strong>
+          <?= !empty($syncStatus['last_finished_at'])
+            ? date('d/m/Y H:i', strtotime((string)$syncStatus['last_finished_at']))
+            : '—' ?>
+          — <?= htmlspecialchars($lastModeLabel, ENT_QUOTES, 'UTF-8') ?>
+          <?php if (!empty($syncStatus['last_filter_from_date'])): ?>
+            (filtro SAP desde <?= date('d/m/Y', strtotime((string)$syncStatus['last_filter_from_date'])) ?>)
+          <?php endif; ?>
+          · Inseridos: <strong><?= number_format((int)($syncStatus['rows_inserted'] ?? 0), 0, ',', '.') ?></strong>
+          · Atualizados: <strong><?= number_format((int)($syncStatus['rows_updated'] ?? 0), 0, ',', '.') ?></strong>
+          <br>
+          <span class="text-muted">Próximo <strong>Sincronizar SAP</strong>: <?= htmlspecialchars($nextModeLabel, ENT_QUOTES, 'UTF-8') ?>
+            <?php if (!empty($syncStatus['next_filter_from_date'])): ?>
+              desde <?= date('d/m/Y', strtotime((string)$syncStatus['next_filter_from_date'])) ?>
+              <span class="text-muted">(última sync − 7 dias)</span>
+            <?php endif; ?>
+          </span>
+        </div>
+      <?php else: ?>
+        <div class="alert alert-warning border-0 small py-2 mb-3">
+          Nenhuma sincronização SAP concluída ainda. O próximo clique em <strong>Sincronizar SAP</strong> fará carga <strong>completa</strong>.
+        </div>
+      <?php endif; ?>
+
       <p class="text-muted small mb-3">
-        Sincronização global (sem filtro de período). Depósitos: TJQP e APQP. Use os filtros abaixo apenas para consulta.
+        Sincronização global (sem filtro de período). Depósitos: TJQP e APQP. O botão <strong>Sincronizar SAP</strong> faz carga completa na primeira vez;
+        depois, atualiza incrementalmente a partir da última sync concluída (com margem de 7 dias). Use os filtros abaixo apenas para consulta.
         Total cadastrado: <strong><?= number_format((int)($this->data['total_rows'] ?? 0), 0, ',', '.') ?></strong> linhas.
         A coluna <strong>Eficiência</strong> usa o lote padrão do item (<em>Lote padrão (mín.)</em> no cadastro): qty produzida ÷ lote mínimo.
       </p>

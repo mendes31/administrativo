@@ -23,6 +23,7 @@ use App\adms\Models\Repository\inventory\InvOperationsRepository;
 use App\adms\Models\Repository\inventory\InvProductionResourcesRepository;
 use App\adms\Models\Services\InvRouteConsolidationService;
 use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Helpers\InvInventoryItemListNavHelper;
 use App\adms\Models\Services\InventoryCostService;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
@@ -33,6 +34,8 @@ class UpdateInventoryItem
 
     public function index(int|string $id): void
     {
+        InvInventoryItemListNavHelper::captureFromRequest();
+
         // filter_input_array não preserva campos POST em array (bom_*, op_*); usar $_POST.
         $this->data['form'] = !empty($_POST)
             ? $_POST
@@ -129,12 +132,23 @@ class UpdateInventoryItem
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
         if ($itemId > 0) {
-            $returnUrl = $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemId;
+            $this->data['item_list_nav'] = InvInventoryItemListNavHelper::resolveForItem($itemId);
+            $returnUrl = $this->updateItemUrl($itemId);
             $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemId, $returnUrl);
         }
 
         $loadView = new LoadViewService('adms/Views/inventory/items/update', $this->data);
         $loadView->loadView();
+    }
+
+    private function updateItemUrl(int $itemId): string
+    {
+        $nav = InvInventoryItemListNavHelper::resolveForItem($itemId);
+
+        return InvInventoryItemListNavHelper::appendQueryToUrl(
+            $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemId,
+            (string)($nav['list_nav_query'] ?? '')
+        );
     }
 
     private function editItem(int $id): void

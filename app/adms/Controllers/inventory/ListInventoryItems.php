@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\inventory\InvCategoriesRepository;
+use App\adms\Helpers\InvInventoryItemListNavHelper;
 use App\adms\Models\Repository\inventory\InvInventorySapSyncRunsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
 use App\adms\Models\Repository\inventory\InvPharmaFormsRepository;
@@ -106,6 +107,13 @@ class ListInventoryItems
         $this->data['pagination'] = $pagination;
         $this->data['per_page'] = $this->limitResult;
         $this->data['filtros'] = $filtros;
+        $_SESSION['filtros_list_inventory_items']['list_page'] = $page;
+        InvInventoryItemListNavHelper::storeListContext($page, $this->limitResult, $filtros);
+        $this->data['list_nav_query'] = InvInventoryItemListNavHelper::buildQueryFromListView(
+            $pagination,
+            $this->limitResult,
+            $filtros
+        );
 
         $pageElements = [
             'title_head' => 'Itens de Estoque',

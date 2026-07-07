@@ -42,6 +42,7 @@ class ListInvCostProductionBatches
         $this->data['filters'] = $filters;
         $this->data['warehouses'] = (new InvCostProductionWarehousesRepository())->getAllActive();
         $this->data['total_rows'] = $total;
+        $this->data['production_sync_status'] = (new InventorySapProductionSyncService())->getSyncStatusSummary();
 
         $pagination = PaginationService::generatePagination(
             $total,
@@ -74,9 +75,9 @@ class ListInvCostProductionBatches
             return;
         }
 
-        $incremental = !empty($_POST['sync_incremental']);
+        $forceFull = !empty($_POST['sync_force_full']);
         $service = new InventorySapProductionSyncService();
-        $result = $service->syncFull(null, $incremental);
+        $result = $service->syncSap(null, $forceFull);
 
         if (!empty($result['success'])) {
             $_SESSION['msg'] = "<div class='alert alert-success' role='alert'>" . htmlspecialchars($result['message'], ENT_QUOTES, 'UTF-8') . '</div>';

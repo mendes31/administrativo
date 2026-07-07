@@ -38,6 +38,9 @@ function removeBomRow(btn) {
     const row = btn.closest('tr');
     if (row) row.remove();
     recalcBomGrandTotal();
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function isProjectCategorySelected() {
@@ -153,6 +156,9 @@ function addBomCatalogRow() {
     tbody.appendChild(tr);
     bindBomRowInputs(tr);
     recalcBomGrandTotal();
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function addBomManualRow() {
@@ -213,6 +219,9 @@ function addBomManualRow() {
     tbody.appendChild(tr);
     bindBomRowInputs(tr);
     recalcBomGrandTotal();
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function parseBomDecimal(value) {

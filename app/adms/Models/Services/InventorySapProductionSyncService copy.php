@@ -6,96 +6,13 @@ use App\adms\Models\Repository\inventory\InvCostProductionBatchesRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionSyncRunsRepository;
 use App\adms\Models\Repository\inventory\InvCostProductionWarehousesRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
-use DateTimeImmutable;
 use Throwable;
 
 class InventorySapProductionSyncService
 {
-    private const INCREMENTAL_SAFETY_DAYS = 7;
-
     /**
-     * Sincronização SAP com decisão automática de modo.
-     *
-     * Sem sync concluída anterior → completa.
-     * Com sync concluída → incremental desde a última concluída menos a janela de segurança.
-     *
      * @param list<string>|null $warehouseCodes
-     * @return array{success: bool, message: string, inserted: int, updated: int, skipped: int, unchanged: int, sync_run_id: int}
-     */
-    public function syncSap(?array $warehouseCodes = null, bool $forceFull = false): array
-    {
-        if ($forceFull) {
-            return $this->syncFull($warehouseCodes, false);
-        }
-
-        $lastRun = (new InvCostProductionSyncRunsRepository())->getLastSuccessful();
-        if ($lastRun === false) {
-            return $this->syncFull($warehouseCodes, false);
-        }
-
-        return $this->syncFull($warehouseCodes, true);
-    }
-
-    /**
-     * Resumo da última sync concluída e do próximo modo previsto (para a tela de lotes).
-     *
-     * @return array{
-     *     has_completed_sync: bool,
-     *     last_run_id: int|null,
-     *     last_finished_at: string|null,
-     *     last_sync_mode: string|null,
-     *     last_filter_from_date: string|null,
-     *     rows_inserted: int,
-     *     rows_updated: int,
-     *     next_mode: string,
-     *     next_filter_from_date: string|null
-     * }
-     */
-    public function getSyncStatusSummary(): array
-    {
-        $defaults = [
-            'has_completed_sync' => false,
-            'last_run_id' => null,
-            'last_finished_at' => null,
-            'last_sync_mode' => null,
-            'last_filter_from_date' => null,
-            'rows_inserted' => 0,
-            'rows_updated' => 0,
-            'next_mode' => 'full',
-            'next_filter_from_date' => null,
-        ];
-
-        $lastRun = (new InvCostProductionSyncRunsRepository())->getLastSuccessful();
-        if ($lastRun === false) {
-            return $defaults;
-        }
-
-        $nextFilterFromDate = $this->resolveIncrementalFromLastSync($lastRun);
-
-        return [
-            'has_completed_sync' => true,
-            'last_run_id' => (int)$lastRun['id'],
-            'last_finished_at' => trim((string)($lastRun['finished_at'] ?? $lastRun['started_at'] ?? '')) ?: null,
-            'last_sync_mode' => (string)($lastRun['sync_mode'] ?? 'full'),
-            'last_filter_from_date' => !empty($lastRun['filter_from_date']) ? (string)$lastRun['filter_from_date'] : null,
-            'rows_inserted' => (int)($lastRun['rows_inserted'] ?? 0),
-            'rows_updated' => (int)($lastRun['rows_updated'] ?? 0),
-            'next_mode' => $nextFilterFromDate !== null ? 'incremental' : 'full',
-            'next_filter_from_date' => $nextFilterFromDate,
-        ];
-    }
-
-    /**
-     * Sincroniza lotes produzidos de PA.
-     *
-     * Racional mantido:
-     * - produção sincronizada somente para PA/códigos 4;
-     * - PI não entra aqui, pois o custo do PA explode a estrutura do PI;
-     * - incremental usa a última sync concluída com janela de segurança;
-     * - registro existente só é atualizado quando algum campo relevante mudou.
-     *
-     * @param list<string>|null $warehouseCodes
-     * @return array{success: bool, message: string, inserted: int, updated: int, skipped: int, unchanged: int, sync_run_id: int}
+     * @return array{success: bool, message: string, inserted: int, updated: int, skipped: int, sync_run_id: int}
      */
     public function syncFull(?array $warehouseCodes = null, bool $incremental = false): array
     {
@@ -105,7 +22,6 @@ class InventorySapProductionSyncService
             'inserted' => 0,
             'updated' => 0,
             'skipped' => 0,
-            'unchanged' => 0,
             'sync_run_id' => 0,
         ];
 
@@ -118,19 +34,9 @@ class InventorySapProductionSyncService
 
         $runsRepo = new InvCostProductionSyncRunsRepository();
         $batchesRepo = new InvCostProductionBatchesRepository();
-
-        $lastCompletedRun = null;
         $filterFromDate = null;
         if ($incremental) {
-            $lastCompletedRun = $runsRepo->getLastSuccessful();
-            if ($lastCompletedRun === false) {
-                $incremental = false;
-            } else {
-                $filterFromDate = $this->resolveIncrementalFromLastSync($lastCompletedRun);
-                if ($filterFromDate === null) {
-                    $incremental = false;
-                }
-            }
+            $filterFromDate = $batchesRepo->getMaxProductionDate();
         }
 
         $runId = $runsRepo->create([
@@ -175,16 +81,10 @@ class InventorySapProductionSyncService
                 );
 
                 if ($existing !== null) {
-                    if (!$this->productionBatchDiffers($existing, $mapped)) {
-                        $stats['unchanged']++;
-                        continue;
-                    }
-
                     if ($batchesRepo->update((int)$existing['id'], $mapped)) {
                         $stats['updated']++;
                     } else {
-                        // Se o banco não alterou nenhuma linha, conta como sem alteração para evitar falso erro.
-                        $stats['unchanged']++;
+                        $stats['skipped']++;
                     }
                     continue;
                 }
@@ -199,33 +99,25 @@ class InventorySapProductionSyncService
             $runsRepo->update($runId, [
                 'rows_inserted' => $stats['inserted'],
                 'rows_updated' => $stats['updated'],
-                'rows_skipped' => $stats['skipped'] + $stats['unchanged'],
+                'rows_skipped' => $stats['skipped'],
                 'status' => 'completed',
                 'finished_at' => date('Y-m-d H:i:s'),
             ]);
 
             $stats['success'] = true;
             $stats['message'] = sprintf(
-                'Sincronização concluída. Inseridos: %d | Atualizados: %d | Sem alteração: %d | Ignorados: %d | Depósitos: %s%s.',
+                'Sincronização concluída. Inseridos: %d | Atualizados: %d | Ignorados: %d | Depósitos: %s%s.',
                 $stats['inserted'],
                 $stats['updated'],
-                $stats['unchanged'],
                 $stats['skipped'],
                 implode(', ', $codes),
-                $incremental && $filterFromDate
-                    ? sprintf(
-                        ' (incremental desde %s; última sync %s menos %d dia(s))',
-                        $filterFromDate,
-                        $this->formatSyncRunAnchor($lastCompletedRun),
-                        self::INCREMENTAL_SAFETY_DAYS
-                    )
-                    : ($incremental === false && $lastCompletedRun !== null ? ' (completa — sem data base para incremental)' : '')
+                $incremental && $filterFromDate ? " (incremental desde {$filterFromDate})" : ''
             );
         } catch (Throwable $e) {
             $runsRepo->update($runId, [
                 'rows_inserted' => $stats['inserted'],
                 'rows_updated' => $stats['updated'],
-                'rows_skipped' => $stats['skipped'] + $stats['unchanged'],
+                'rows_skipped' => $stats['skipped'],
                 'status' => 'failed',
                 'error_log' => $e->getMessage(),
                 'finished_at' => date('Y-m-d H:i:s'),
@@ -255,7 +147,7 @@ SELECT
     T0."InDate" AS production_date,
     T1."DocDate" AS doc_date,
     T3."Remark" AS series_remark,
-    TO_NVARCHAR(T0."ItemCode") AS erp_code,
+    T0."ItemCode" AS erp_code,
     T2."ItemName" AS item_description,
     T1."Quantity" AS quantity,
     T0."DistNumber" AS batch_number,
@@ -268,13 +160,12 @@ SELECT
 FROM "OBTN" T0
 INNER JOIN "IBT1" T1 ON T0."ItemCode" = T1."ItemCode" AND T0."DistNumber" = T1."BatchNum"
 INNER JOIN "OITM" T2 ON T0."ItemCode" = T2."ItemCode"
-LEFT JOIN "NNM1" T3 ON T2."Series" = T3."Series"
+INNER JOIN "NNM1" T3 ON T2."Series" = T3."Series"
 LEFT JOIN "OWHS" W ON T1."WhsCode" = W."WhsCode"
-WHERE TO_NVARCHAR(T1."ItemCode") LIKE '4%'
+WHERE T1."ItemCode" LIKE '4%'
   AND T1."WhsCode" IN ({$inList})
   AND T1."BaseType" = 59
   {$sinceClause}
-ORDER BY T0."InDate", T1."BaseEntry", T0."ItemCode", T0."DistNumber"
 SQL;
     }
 
@@ -286,7 +177,7 @@ SQL;
     {
         $erpCode = trim((string)($row['erp_code'] ?? $row['ERP_CODE'] ?? $row['ItemCode'] ?? ''));
         $batchNumber = trim((string)($row['batch_number'] ?? $row['BATCH_NUMBER'] ?? $row['DistNumber'] ?? ''));
-        $warehouseCode = strtoupper(trim((string)($row['warehouse_code'] ?? $row['WAREHOUSE_CODE'] ?? $row['WhsCode'] ?? '')));
+        $warehouseCode = trim((string)($row['warehouse_code'] ?? $row['WAREHOUSE_CODE'] ?? $row['WhsCode'] ?? ''));
         $productionDate = $this->normalizeDate($row['production_date'] ?? $row['PRODUCTION_DATE'] ?? $row['InDate'] ?? null);
 
         if ($erpCode === '' || $batchNumber === '' || $warehouseCode === '' || $productionDate === null) {
@@ -315,91 +206,6 @@ SQL;
             'warehouse_name' => trim((string)($row['warehouse_name'] ?? $row['WAREHOUSE_NAME'] ?? $row['WhsName'] ?? '')) ?: null,
             'quantity' => $quantity,
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $lastRun
-     */
-    private function resolveIncrementalFromLastSync(array $lastRun): ?string
-    {
-        $anchor = trim((string)($lastRun['finished_at'] ?? $lastRun['started_at'] ?? ''));
-        if ($anchor === '') {
-            return null;
-        }
-
-        try {
-            return (new DateTimeImmutable($anchor))
-                ->modify('-' . self::INCREMENTAL_SAFETY_DAYS . ' days')
-                ->format('Y-m-d');
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    /**
-     * @param array<string, mixed>|null $lastRun
-     */
-    private function formatSyncRunAnchor(?array $lastRun): string
-    {
-        if ($lastRun === null) {
-            return '—';
-        }
-
-        $anchor = trim((string)($lastRun['finished_at'] ?? $lastRun['started_at'] ?? ''));
-
-        return $anchor !== '' ? substr($anchor, 0, 10) : '—';
-    }
-
-    /**
-     * @param array<string, mixed> $existing
-     * @param array<string, mixed> $incoming
-     */
-    private function productionBatchDiffers(array $existing, array $incoming): bool
-    {
-        $fields = [
-            'inv_item_id' => 'int',
-            'erp_code' => 'string',
-            'item_description' => 'string_null',
-            'series_remark' => 'string_null',
-            'production_date' => 'date',
-            'doc_date' => 'date_null',
-            'goods_receipt_doc_num' => 'int_null',
-            'production_order_num' => 'int_null',
-            'base_type' => 'int_null',
-            'base_entry' => 'int_null',
-            'batch_number' => 'string',
-            'mnf_date' => 'date_null',
-            'exp_date' => 'date_null',
-            'warehouse_code' => 'string',
-            'warehouse_name' => 'string_null',
-            'quantity' => 'float',
-            'source' => 'string',
-        ];
-
-        foreach ($fields as $field => $type) {
-            $old = $this->normalizeForCompare($existing[$field] ?? null, $type);
-            $new = $this->normalizeForCompare($incoming[$field] ?? null, $type);
-            if ($old !== $new) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function normalizeForCompare(mixed $value, string $type): mixed
-    {
-        if (str_ends_with($type, '_null') && ($value === null || $value === '')) {
-            return null;
-        }
-
-        return match ($type) {
-            'int', 'int_null' => $value === null || $value === '' ? null : (int)$value,
-            'float' => round((float)($value ?? 0), 6),
-            'date', 'date_null' => $this->normalizeDate($value),
-            'string', 'string_null' => trim((string)($value ?? '')),
-            default => $value,
-        };
     }
 
     /**

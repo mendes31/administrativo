@@ -15,9 +15,18 @@
 <p><code>eficiência período = Σ qty ÷ (N lotes × lote padrão)</code></p>
 <p>Esse valor ajusta o <strong>CVAR de matéria-prima</strong> na simulação (÷ eficiência). Embalagens não são ajustadas.</p>
 
+<h2>Sincronização SAP</h2>
+<p>Use o botão principal <strong>Sincronizar SAP</strong>. O sistema consulta o histórico de execuções (<code>inv_cost_production_sync_runs</code>):</p>
+<ul>
+    <li><strong>Primeira vez</strong> (nenhuma sync concluída): carga <em>completa</em> de todos os lotes nos depósitos configurados.</li>
+    <li><strong>Demais execuções</strong>: sync <em>incremental</em> desde a data da última sync concluída menos 7 dias (margem para lançamentos retroativos no SAP).</li>
+</ul>
+<p>Em <strong>Avançado → Forçar completa</strong>, reconstrua todo o histórico (auditoria ou correção). Pode demorar mais que o fluxo normal.</p>
+<p>No topo da lista, um resumo mostra a <strong>última sync concluída</strong> (data, modo, filtro usado e totais) e o que o próximo clique em <strong>Sincronizar SAP</strong> fará.</p>
+
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Execute <strong>Sync completa SAP</strong> ou <strong>Sync incremental</strong>.</li>
+    <li>Clique em <strong>Sincronizar SAP</strong> (ou <em>Forçar completa</em> apenas quando necessário).</li>
     <li>Confira lote padrão nos itens produzidos.</li>
     <li>Filtre por datas do período analítico para validar eficiência lote a lote.</li>
     <li>Na <strong>Simulação de custos</strong>, selecione o período para aplicar a eficiência agregada.</li>
@@ -31,4 +40,6 @@
     <dd>Produção acima do lote teórico (overfill). O sistema aceita; revise se o lote padrão está correto.</dd>
     <dt>Sem lotes no período na simulação</dt>
     <dd>Confira datas do período, depósitos filtrados e se a sync SAP rodou para o intervalo.</dd>
+    <dt>Preciso reimportar tudo</dt>
+    <dd>Use <strong>Avançado → Forçar completa</strong>. O botão principal só faz carga completa quando ainda não existe sync concluída.</dd>
 </dl>

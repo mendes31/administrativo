@@ -13,6 +13,7 @@
     <li>Na aba <strong>Rota SAP</strong>, revise o espelho importado (uma linha por recurso; <code>POS_ID</code> e <code>MASTER_POS_ID</code>).</li>
     <li>Na aba <strong>Rota Consolidada</strong>, revise os grupos gerados automaticamente na sincronização SAP (ou use <strong>Gerar a partir da rota SAP</strong> para forçar nova geração), informe tempos por lote em horas (FORMPROD) e use <strong>+ Recurso</strong> / <strong>+ Papel</strong> para vincular equipamentos e MO (várias linhas por operação).</li>
     <li>Salve e use <strong>Simulação de Custos</strong> para cenários what-if.</li>
+    <li>Use as setas <strong>◀ ▶</strong>, <strong>Listar</strong> ou <strong>Ver</strong> para navegar; se houver alterações não salvas, o sistema pede confirmação antes de descartar (inclui ao fechar a aba do navegador).</li>
 </ol>
 
 <h2>PA - PROJETO (novos produtos)</h2>
@@ -25,6 +26,7 @@
 </ul>
 
 <h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Navegação na edição</strong> Setas, <strong>Listar</strong> e <strong>Ver</strong> avisam quando há mudanças não salvas. Após <strong>Salvar</strong> com sucesso, a navegação segue sem aviso.</div>
 <div class="help-field"><strong>Lote padrão (mín.)</strong> Quantidade teórica por lote para eficiência de produção e rateio na simulação.</div>
 <div class="help-field"><strong>Classe energia (HVAC)</strong> NA (não aplicável), CM ou PROB — espelha a UDF SAP <em>ClasseHvac</em>. Padrão SAP = NA (fator 0 no crit. 8). Multiplicadores em <em>Estoque → Cadastros Bases → Classes HVAC (crit. 8)</em>.</div>
 <div class="help-field"><strong>Complexidade</strong> NA (não aplicável), BAIXA, MEDIA ou ALTA — espelha a UDF SAP <em>Complexidade</em> (<code>N</code>/<code>B</code>/<code>M</code>/<code>A</code>). Padrão SAP = N (fator 0 nos crit. 4 e 6). Fatores em <em>Estoque → Cadastros Bases → Complexidade (crit. 4/6)</em>.</div>

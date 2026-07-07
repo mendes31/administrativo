@@ -1,8 +1,16 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\InvInventoryItemListNavHelper;
 
 $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item');
+$listNavQuery = (string)($this->data['list_nav_query'] ?? '');
+$inventoryItemNavUrl = static function (int $itemId, string $route) use ($listNavQuery): string {
+    return InvInventoryItemListNavHelper::appendQueryToUrl(
+        ($_ENV['URL_ADM'] ?? '') . $route . '/' . $itemId,
+        $listNavQuery
+    );
+};
 
 ?>
 
@@ -209,10 +217,10 @@ $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item')
 								<div class="btn-group btn-group-sm" role="group">
 									<?php
 									if (in_array('ViewInventoryItem', $this->data['buttonPermission'])) {
-										echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$item['id']}' class='btn btn-info btn-sm' title='Visualizar'><i class='fa-regular fa-eye'></i></a>";
+										echo "<a href='" . htmlspecialchars($inventoryItemNavUrl((int)$item['id'], 'view-inventory-item')) . "' class='btn btn-info btn-sm' title='Visualizar'><i class='fa-regular fa-eye'></i></a>";
 									}
 									if (in_array('UpdateInventoryItem', $this->data['buttonPermission'])) {
-										echo "<a href='{$_ENV['URL_ADM']}update-inventory-item/{$item['id']}' class='btn btn-warning btn-sm' title='Editar'><i class='fa-regular fa-pen-to-square'></i></a>";
+										echo "<a href='" . htmlspecialchars($inventoryItemNavUrl((int)$item['id'], 'update-inventory-item')) . "' class='btn btn-warning btn-sm' title='Editar'><i class='fa-regular fa-pen-to-square'></i></a>";
 									}
 									if (in_array('DeleteInventoryItem', $this->data['buttonPermission'])) {
 									?>
@@ -266,10 +274,10 @@ $csrf_token_delete = CSRFHelper::generateCSRFToken('form_delete_inventory_item')
 							<div class="mt-2 d-flex flex-wrap gap-1">
 								<?php
 								if (in_array('ViewInventoryItem', $this->data['buttonPermission'])) {
-									echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$item['id']}' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Visualizar</a> ";
+									echo "<a href='" . htmlspecialchars($inventoryItemNavUrl((int)$item['id'], 'view-inventory-item')) . "' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Visualizar</a> ";
 								}
 								if (in_array('UpdateInventoryItem', $this->data['buttonPermission'])) {
-									echo "<a href='{$_ENV['URL_ADM']}update-inventory-item/{$item['id']}' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
+									echo "<a href='" . htmlspecialchars($inventoryItemNavUrl((int)$item['id'], 'update-inventory-item')) . "' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
 								}
 								if (in_array('DeleteInventoryItem', $this->data['buttonPermission'])) {
 								?>

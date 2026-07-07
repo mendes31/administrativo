@@ -97,6 +97,76 @@ class InvItemsRepository extends DbConnection
 		return [$wheres, $params];
 	}
 
+	/**
+	 * Item anterior/próximo na mesma ordem da listagem (code ASC, id ASC) com filtros aplicados.
+	 *
+	 * @param array<string, mixed> $filters
+	 * @return array{
+	 *   prev: ?array{id: int, code: string, description: string},
+	 *   next: ?array{id: int, code: string, description: string}
+	 * }
+	 */
+	public function findListNeighbors(int $currentId, array $filters = []): array
+	{
+		$result = ['prev' => null, 'next' => null];
+		if ($currentId <= 0) {
+			return $result;
+		}
+
+		$current = $this->getOne($currentId);
+		if (!is_array($current)) {
+			return $result;
+		}
+
+		$curCode = trim((string)($current['code'] ?? ''));
+		[$wheres, $params] = $this->buildListFilters($filters, 'i.');
+		$baseWhere = $wheres !== [] ? implode(' AND ', $wheres) : '1=1';
+
+		$nextSql = 'SELECT i.id, i.code, i.description
+			FROM inv_items i
+			WHERE ' . $baseWhere . ' AND (i.code > :cur_code OR (i.code = :cur_code AND i.id > :cur_id))
+			ORDER BY i.code ASC, i.id ASC
+			LIMIT 1';
+		$stmt = $this->getConnection()->prepare($nextSql);
+		foreach ($params as $key => $value) {
+			$stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+		}
+		$stmt->bindValue(':cur_code', $curCode, PDO::PARAM_STR);
+		$stmt->bindValue(':cur_id', $currentId, PDO::PARAM_INT);
+		$stmt->execute();
+		$next = $stmt->fetch(PDO::FETCH_ASSOC);
+		if (is_array($next)) {
+			$result['next'] = [
+				'id' => (int)($next['id'] ?? 0),
+				'code' => trim((string)($next['code'] ?? '')),
+				'description' => trim((string)($next['description'] ?? '')),
+			];
+		}
+
+		$prevSql = 'SELECT i.id, i.code, i.description
+			FROM inv_items i
+			WHERE ' . $baseWhere . ' AND (i.code < :cur_code OR (i.code = :cur_code AND i.id < :cur_id))
+			ORDER BY i.code DESC, i.id DESC
+			LIMIT 1';
+		$stmt = $this->getConnection()->prepare($prevSql);
+		foreach ($params as $key => $value) {
+			$stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+		}
+		$stmt->bindValue(':cur_code', $curCode, PDO::PARAM_STR);
+		$stmt->bindValue(':cur_id', $currentId, PDO::PARAM_INT);
+		$stmt->execute();
+		$prev = $stmt->fetch(PDO::FETCH_ASSOC);
+		if (is_array($prev)) {
+			$result['prev'] = [
+				'id' => (int)($prev['id'] ?? 0),
+				'code' => trim((string)($prev['code'] ?? '')),
+				'description' => trim((string)($prev['description'] ?? '')),
+			];
+		}
+
+		return $result;
+	}
+
 	public function getOne(int $id): array|bool
 	{
         $sql = 'SELECT i.*, u.name AS unit_name, c.name AS category_name, pf.name AS pharma_form_name

@@ -77,7 +77,7 @@ use App\adms\Helpers\InvCostComplexityHelper;
 				<a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
 			</li>
 			<li class="breadcrumb-item">
-				<a href="<?php echo $_ENV['URL_ADM']; ?>list-inventory-items" class="text-decoration-none">Itens</a>
+				<a href="<?php echo htmlspecialchars((string)($this->data['item_list_nav']['list_return_url'] ?? $_ENV['URL_ADM'] . 'list-inventory-items')); ?>" class="text-decoration-none">Itens</a>
 			</li>
 			<li class="breadcrumb-item">Editar</li>
 		</ol>
@@ -102,8 +102,12 @@ use App\adms\Helpers\InvCostComplexityHelper;
 				<div class="d-flex flex-wrap gap-1 align-items-center">
 				<?php
 				include __DIR__ . '/../../partials/button_log_alteracoes.php';
-				if (in_array('ListInventoryItems', $this->data['buttonPermission'])) { echo "<a href='{$_ENV['URL_ADM']}list-inventory-items' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list'></i> Listar</a> "; }
-				if (in_array('ViewInventoryItem', $this->data['buttonPermission']) && !empty($this->data['form']['id'])) { echo "<a href='{$_ENV['URL_ADM']}view-inventory-item/{$this->data['form']['id']}' class='btn btn-primary btn-sm me-1 mb-1'><i class='fa-regular fa-eye'></i> Ver</a> "; } ?>
+				$itemListNav = $this->data['item_list_nav'] ?? [];
+				$navMode = 'edit';
+				$itemId = (int)($this->data['form']['id'] ?? 0);
+				$buttonPermission = $this->data['buttonPermission'] ?? [];
+				include __DIR__ . '/../partials/item_list_nav.php';
+				?>
 				</div>
 			</div>
 		</div>
@@ -698,6 +702,9 @@ function removeOperationRow(btn) {
     if (!card) return;
     card.remove();
     recalcGrandTotal();
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function removeResourceRow(btn, opIndex) {
@@ -708,6 +715,9 @@ function removeResourceRow(btn, opIndex) {
     row.remove();
     updateSublevelBadge(opIndex, 'resource');
     recalcOpLineTotal(opIndex);
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function formatBrNumber(value, decimals) {
@@ -855,6 +865,9 @@ function removeLaborRow(btn, opIndex) {
     row.remove();
     updateSublevelBadge(opIndex, 'labor');
     recalcOpLineTotal(opIndex);
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function onLaborRoleChange(select) {
@@ -926,6 +939,9 @@ function addResourceRow(opIndex) {
     updateSublevelBadge(opIndex, 'resource');
     recalcOpLineTotal(opIndex);
     syncInvRouteTableColumns(getOpCard(opIndex));
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function buildOperationOptionsHtml() {
@@ -955,6 +971,9 @@ function addLaborRow(opIndex) {
     updateSublevelBadge(opIndex, 'labor');
     recalcOpLineTotal(opIndex);
     syncInvRouteTableColumns(getOpCard(opIndex));
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 function addOperationRow() {
     const list = document.getElementById('operations-list');
@@ -1058,6 +1077,9 @@ function addOperationRow() {
     list.appendChild(card);
     recalcGrandTotal();
     syncInvRouteTableColumns(card);
+    if (typeof window.invItemMarkDirty === 'function') {
+        window.invItemMarkDirty();
+    }
 }
 
 function updateSublevelBadge(opIndex, type) {
@@ -1268,6 +1290,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const alertType = data.success ? 'success' : (response.status === 403 ? 'warning' : 'danger');
             showFormAlert(alertMessage || (data.success ? 'Salvo com sucesso.' : 'Erro ao salvar.'), alertType);
             if (data.success && activeTabInput) {
+                if (typeof window.invItemClearDirty === 'function') {
+                    window.invItemClearDirty();
+                }
                 const tabToKeep = data.active_tab || activeTabInput.value;
                 activeTabInput.value = tabToKeep;
                 activateTabById(tabToKeep);
@@ -1288,6 +1313,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+<?php include __DIR__ . '/../partials/item_edit_leave_guard.php'; ?>
 
 
 

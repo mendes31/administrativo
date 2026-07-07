@@ -12,6 +12,8 @@ $canSimulate = !empty($this->data['buttonPermission']) && in_array('SimulateInve
 $materialCost = (float)($breakdown['material_cost_batch'] ?? $breakdown['material_cost'] ?? 0);
 $operationsCost = (float)($breakdown['operations_cost_batch'] ?? $breakdown['operations_cost'] ?? 0);
 $structureTotal = (float)($breakdown['base_total_batch'] ?? $breakdown['base_total'] ?? 0);
+$itemListNav = $this->data['item_list_nav'] ?? [];
+$listReturnUrl = (string)($itemListNav['list_return_url'] ?? ($_ENV['URL_ADM'] ?? '') . 'list-inventory-items');
 require_once __DIR__ . '/../partials/operation_metrics.php';
 $truncate = static function (string $text, int $max = 42): string {
     $text = trim($text);
@@ -28,18 +30,17 @@ $truncate = static function (string $text, int $max = 42): string {
     <h2 class="mt-3 mb-0">Visualizar item</h2>
     <ol class="breadcrumb mb-3 mt-3 ms-auto">
       <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>dashboard" class="text-decoration-none">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM'] ?>list-inventory-items" class="text-decoration-none">Itens</a></li>
+      <li class="breadcrumb-item"><a href="<?= htmlspecialchars($listReturnUrl) ?>" class="text-decoration-none">Itens</a></li>
       <li class="breadcrumb-item active">Visualizar</li>
     </ol>
   </div>
 
-  <div class="d-flex flex-wrap gap-2 justify-content-end mb-3">
-    <?php if (!empty($this->data['buttonPermission']) && in_array('ListInventoryItems', $this->data['buttonPermission'])): ?>
-      <a href="<?= $_ENV['URL_ADM'] ?>list-inventory-items" class="btn btn-info btn-sm"><i class="fa-solid fa-list"></i> Listar</a>
-    <?php endif; ?>
-    <?php if (!empty($this->data['buttonPermission']) && in_array('UpdateInventoryItem', $this->data['buttonPermission'])): ?>
-      <a href="<?= $_ENV['URL_ADM'] . 'update-inventory-item/' . $itemId ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
-    <?php endif; ?>
+  <div class="d-flex flex-wrap gap-2 justify-content-end mb-3 align-items-center">
+    <?php
+    $navMode = 'view';
+    $buttonPermission = $this->data['buttonPermission'] ?? [];
+    include __DIR__ . '/../partials/item_list_nav.php';
+    ?>
     <?php if (!empty($item['erp_code']) && empty($this->data['is_project_item'])): ?>
       <form action="" method="POST" class="d-inline">
         <input type="hidden" name="csrf_token" value="<?= \App\adms\Helpers\CSRFHelper::generateCSRFToken('form_sync_inventory_unified') ?>">

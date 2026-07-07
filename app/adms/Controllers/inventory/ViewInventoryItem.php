@@ -5,6 +5,7 @@ namespace App\adms\Controllers\inventory;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\InvCostProjectHelper;
+use App\adms\Helpers\InvInventoryItemListNavHelper;
 use App\adms\Models\Repository\inventory\InvItemBomRepository;
 use App\adms\Models\Repository\inventory\InvItemOperationsRepository;
 use App\adms\Models\Repository\inventory\InvItemsRepository;
@@ -21,6 +22,8 @@ class ViewInventoryItem
 
     public function index(int|string $id): void
     {
+        InvInventoryItemListNavHelper::captureFromRequest();
+
         $itemId = (int)$id;
         $repo = new InvItemsRepository();
         $item = $repo->getOne($itemId);
@@ -37,7 +40,7 @@ class ViewInventoryItem
         ) {
             InventoryCostService::recalculateStandardCost($itemId);
             $_SESSION['success'] = 'Custo padrão recalculado com base na lista de materiais e na rota.';
-            header('Location: ' . $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId);
+            header('Location: ' . $this->viewItemUrl($itemId));
             return;
         }
 
@@ -94,8 +97,10 @@ class ViewInventoryItem
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
 
+        $this->data['item_list_nav'] = InvInventoryItemListNavHelper::resolveForItem($itemId);
+
         if ($itemId > 0) {
-            $returnUrl = $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId;
+            $returnUrl = $this->viewItemUrl($itemId);
             $this->data['log_resumo'] = LogResumoService::getResumoInventoryItemContext($itemId, $returnUrl);
         }
 
@@ -105,7 +110,7 @@ class ViewInventoryItem
 
     private function handleSyncUnifiedRequest(int $itemId): void
     {
-        $redirect = $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId;
+        $redirect = $this->viewItemUrl($itemId);
         $token = (string)($_POST['csrf_token'] ?? '');
 
         $csrfForm = isset($_POST['sync_sap_unified_item_id'])
@@ -155,5 +160,15 @@ class ViewInventoryItem
         }
 
         header('Location: ' . $redirect);
+    }
+
+    private function viewItemUrl(int $itemId): string
+    {
+        $nav = InvInventoryItemListNavHelper::resolveForItem($itemId);
+
+        return InvInventoryItemListNavHelper::appendQueryToUrl(
+            $_ENV['URL_ADM'] . 'view-inventory-item/' . $itemId,
+            (string)($nav['list_nav_query'] ?? '')
+        );
     }
 }
