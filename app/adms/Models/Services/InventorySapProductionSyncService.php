@@ -37,7 +37,7 @@ class InventorySapProductionSyncService
     }
 
     /**
-     * Resumo da última sync concluída e do próximo modo previsto (para a tela de lotes).
+     * Resumo da última sync concluída (para a tela de lotes).
      *
      * @return array{
      *     has_completed_sync: bool,
@@ -46,9 +46,7 @@ class InventorySapProductionSyncService
      *     last_sync_mode: string|null,
      *     last_filter_from_date: string|null,
      *     rows_inserted: int,
-     *     rows_updated: int,
-     *     next_mode: string,
-     *     next_filter_from_date: string|null
+     *     rows_updated: int
      * }
      */
     public function getSyncStatusSummary(): array
@@ -61,16 +59,12 @@ class InventorySapProductionSyncService
             'last_filter_from_date' => null,
             'rows_inserted' => 0,
             'rows_updated' => 0,
-            'next_mode' => 'full',
-            'next_filter_from_date' => null,
         ];
 
         $lastRun = (new InvCostProductionSyncRunsRepository())->getLastSuccessful();
         if ($lastRun === false) {
             return $defaults;
         }
-
-        $nextFilterFromDate = $this->resolveIncrementalFromLastSync($lastRun);
 
         return [
             'has_completed_sync' => true,
@@ -80,8 +74,6 @@ class InventorySapProductionSyncService
             'last_filter_from_date' => !empty($lastRun['filter_from_date']) ? (string)$lastRun['filter_from_date'] : null,
             'rows_inserted' => (int)($lastRun['rows_inserted'] ?? 0),
             'rows_updated' => (int)($lastRun['rows_updated'] ?? 0),
-            'next_mode' => $nextFilterFromDate !== null ? 'incremental' : 'full',
-            'next_filter_from_date' => $nextFilterFromDate,
         ];
     }
 
@@ -205,22 +197,7 @@ class InventorySapProductionSyncService
             ]);
 
             $stats['success'] = true;
-            $stats['message'] = sprintf(
-                'Sincronização concluída. Inseridos: %d | Atualizados: %d | Sem alteração: %d | Ignorados: %d | Depósitos: %s%s.',
-                $stats['inserted'],
-                $stats['updated'],
-                $stats['unchanged'],
-                $stats['skipped'],
-                implode(', ', $codes),
-                $incremental && $filterFromDate
-                    ? sprintf(
-                        ' (incremental desde %s; última sync %s menos %d dia(s))',
-                        $filterFromDate,
-                        $this->formatSyncRunAnchor($lastCompletedRun),
-                        self::INCREMENTAL_SAFETY_DAYS
-                    )
-                    : ($incremental === false && $lastCompletedRun !== null ? ' (completa — sem data base para incremental)' : '')
-            );
+            $stats['message'] = 'Sincronização concluída com sucesso.';
         } catch (Throwable $e) {
             $runsRepo->update($runId, [
                 'rows_inserted' => $stats['inserted'],
@@ -334,20 +311,6 @@ SQL;
         } catch (Throwable) {
             return null;
         }
-    }
-
-    /**
-     * @param array<string, mixed>|null $lastRun
-     */
-    private function formatSyncRunAnchor(?array $lastRun): string
-    {
-        if ($lastRun === null) {
-            return '—';
-        }
-
-        $anchor = trim((string)($lastRun['finished_at'] ?? $lastRun['started_at'] ?? ''));
-
-        return $anchor !== '' ? substr($anchor, 0, 10) : '—';
     }
 
     /**
