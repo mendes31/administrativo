@@ -190,6 +190,7 @@ use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
         </div>
 
+        <!--
         <div class="login-app-footer">
             <div class="small mb-2">
                 <a href="<?php echo htmlspecialchars(WhistleblowingPublicUrlHelper::baseUrl(), ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none" target="_blank" rel="noopener">
@@ -200,7 +201,7 @@ use App\adms\Helpers\WhistleblowingPublicUrlHelper;
                 <a href="<?php echo $_ENV['URL_ADM']; ?>new-user" class="text-decoration-none">Cadastrar</a>
             </div>
         </div>
-
+        -->
     </div>
 </div>
 
