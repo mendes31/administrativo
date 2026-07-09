@@ -34,11 +34,28 @@ final class WhistleblowingRetentionCron
             exit;
         }
 
-        $result = (new WhistleblowingRetentionService())->run();
+        $configRepo = new WhistleblowingConfigRepository();
+        if (!$configRepo->isCronEnabled()) {
+            http_response_code(503);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Cron desativado na configuração do canal.\n";
+            exit;
+        }
+
+        try {
+            $result = (new WhistleblowingRetentionService())->run('cron');
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'ERROR ' . $e->getMessage() . "\n";
+            exit;
+        }
 
         header('Content-Type: text/plain; charset=utf-8');
         echo 'OK archived=' . (int) ($result['archived'] ?? 0)
-            . ' deleted=' . (int) ($result['deleted'] ?? 0) . "\n";
+            . ' deleted=' . (int) ($result['deleted'] ?? 0)
+            . ' attachments=' . (int) ($result['attachments_deleted'] ?? 0)
+            . ' ms=' . (int) ($result['duration_ms'] ?? 0) . "\n";
         exit;
     }
 }

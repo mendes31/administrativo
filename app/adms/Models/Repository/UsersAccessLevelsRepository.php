@@ -53,6 +53,57 @@ class UsersAccessLevelsRepository extends DbConnection
         return $result ? array_column($result, 'adms_access_level_id') : false;
     }
 
+    public function getAccessLevelIdByName(string $name): ?int
+    {
+        if ($name === '') {
+            return null;
+        }
+        $stmt = $this->getConnection()->prepare('SELECT id FROM adms_access_levels WHERE name = :name LIMIT 1');
+        $stmt->bindValue(':name', $name);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+
+        return $id !== false ? (int) $id : null;
+    }
+
+    /**
+     * Concede nível secundário se o usuário ainda não o possui.
+     */
+    public function grantAccessLevelToUser(int $userId, int $accessLevelId): bool
+    {
+        if ($userId <= 0 || $accessLevelId <= 0) {
+            return false;
+        }
+        if ($this->findUsersAccessLevelRow($userId, $accessLevelId) !== null) {
+            return true;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'INSERT INTO adms_users_access_levels (adms_user_id, adms_access_level_id, created_at)
+             VALUES (:uid, :lid, :now)'
+        );
+
+        return $stmt->execute([
+            ':uid' => $userId,
+            ':lid' => $accessLevelId,
+            ':now' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function revokeAccessLevelFromUser(int $userId, int $accessLevelId): bool
+    {
+        if ($userId <= 0 || $accessLevelId <= 0) {
+            return false;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'DELETE FROM adms_users_access_levels
+             WHERE adms_user_id = :uid AND adms_access_level_id = :lid LIMIT 1'
+        );
+
+        return $stmt->execute([':uid' => $userId, ':lid' => $accessLevelId]);
+    }
+
     /**
      * Linha completa em adms_users_access_levels (por PK).
      *

@@ -1,21 +1,26 @@
 <h1>Listar Denúncias</h1>
 <p>Listagem interna de denúncias recebidas pelo canal público, com filtros por protocolo, status, classificação, risco e responsável.</p>
-<p><strong>Quem acessa:</strong> <em>WhistleblowingListReports</em>. Visualização: <em>WhistleblowingViewReport</em>.</p>
+<p><strong>Quem acessa:</strong> nível <em>Operador</em> (comitês do usuário) ou <em>Administrador</em> (todas). Permissão <em>WhistleblowingListReports</em>.</p>
+
+<h2>Escopo por comitê</h2>
+<p>Operadores veem apenas denúncias vinculadas aos comitês em que são membros. Administradores veem todas.</p>
+
 <h2>Fluxo passo a passo</h2>
 <ol>
-<li>Acesse o menu <strong>Canal de Denúncias → Denúncias</strong> (<code>/administrativo/denuncias</code>).</li>
-<li>Use os filtros para localizar denúncias críticas ou pendentes.</li>
+<li>Acesse <strong>Canal de Denúncias → Denúncias</strong> (<code>denuncias</code>).</li>
+<li>Filtre por status, classificação, risco ou protocolo.</li>
 <li>Clique em <strong>Visualizar</strong> para abrir o detalhe.</li>
-<li>Use <strong>Abrir canal público</strong> para testar o formulário externo.</li>
 </ol>
+
 <h2>Permissões relacionadas</h2>
 <ul>
 <li><em>WhistleblowingViewReport</em> — ver relato e mensagens.</li>
 <li><em>WhistleblowingReplyReport</em> — responder ao denunciante ou nota interna.</li>
 <li><em>WhistleblowingUpdateStatus</em> — alterar status, risco e responsável.</li>
 </ul>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Lista vazia</dt><dd>Nenhuma denúncia registrada ainda ou filtros muito restritivos.</dd>
-<dt>Sem botão Visualizar</dt><dd>Conceder permissão WhistleblowingViewReport ao nível de acesso.</dd>
+<dt>Lista vazia (operador)</dt><dd>Denúncia pode estar em comitê diferente; verifique classificação e membros.</dd>
+<dt>Sem botão Visualizar</dt><dd>Conceder permissão ou nível Operador/Administrador.</dd>
 </dl>

@@ -37,7 +37,27 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                         <div class="col-md-3"><strong>Comitê:</strong> <?php echo htmlspecialchars((string)($report['committee_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="col-md-3"><strong>Responsável:</strong> <?php echo htmlspecialchars((string)($report['assigned_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="col-md-3"><strong>Registrada:</strong> <?php echo date('d/m/Y H:i', strtotime((string)($report['created_at'] ?? 'now'))); ?></div>
+                        <div class="col-md-3">
+                            <strong>Denunciante:</strong>
+                            <?php if (!empty($report['is_reporter_identified'])): ?>
+                                <span class="badge bg-info">Identificação voluntária</span>
+                            <?php else: ?>
+                                <span class="text-muted">Anônimo</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
+                    <?php if (!empty($report['is_reporter_identified'])): ?>
+                    <div class="alert alert-info py-2 small mb-3">
+                        <strong>Contato voluntário:</strong>
+                        <?php echo htmlspecialchars((string)($report['reporter_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php if (!empty($report['reporter_email'])): ?>
+                            — <?php echo htmlspecialchars((string)$report['reporter_email'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($report['reporter_phone'])): ?>
+                            — <?php echo htmlspecialchars((string)$report['reporter_phone'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                     <div class="mb-3">
                         <h6 class="fw-semibold">Descrição</h6>
                         <div class="border rounded p-3 bg-light"><?php echo nl2br(htmlspecialchars((string)($report['description'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></div>
@@ -143,15 +163,47 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
 
             <?php if (!empty($this->data['attachments'])): ?>
             <div class="card border-light shadow mb-3">
-                <div class="card-header">Anexos</div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Anexos</span>
+                    <span class="badge bg-light text-dark border small fw-normal">Download somente via módulo</span>
+                </div>
                 <ul class="list-group list-group-flush">
                     <?php foreach ($this->data['attachments'] as $att): ?>
-                        <li class="list-group-item d-flex justify-content-between align-items-center small">
-                            <span><?php echo htmlspecialchars((string)($att['original_name'] ?? 'arquivo'), ENT_QUOTES, 'UTF-8'); ?></span>
-                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-denuncia/download-attachment/<?php echo (int)$att['id']; ?>" class="btn btn-outline-secondary btn-sm py-0"><i class="fas fa-download"></i></a>
+                        <?php
+                        $storedName = strtolower((string) ($att['stored_name'] ?? ''));
+                        $isEncrypted = str_ends_with($storedName, '.enc');
+                        $sizeBytes = (int) ($att['size_bytes'] ?? 0);
+                        $sizeLabel = $sizeBytes >= 1048576
+                            ? round($sizeBytes / 1048576, 1) . ' MB'
+                            : ($sizeBytes >= 1024 ? round($sizeBytes / 1024, 1) . ' KB' : $sizeBytes . ' B');
+                        ?>
+                        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 small">
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($att['original_name'] ?? 'arquivo'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div class="text-muted">
+                                    <?php if ($isEncrypted): ?>
+                                        <span class="badge bg-success">Cifrado em disco</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark">Legado (sem cifra)</span>
+                                    <?php endif; ?>
+                                    <span class="ms-1"><?php echo htmlspecialchars($sizeLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php if (!empty($att['created_at'])): ?>
+                                        — <?php echo date('d/m/Y H:i', strtotime((string) $att['created_at'])); ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-denuncia/download-attachment/<?php echo (int)$att['id']; ?>"
+                               class="btn btn-outline-secondary btn-sm py-0 flex-shrink-0"
+                               title="Download autorizado — o sistema descriptografa automaticamente se o arquivo estiver cifrado">
+                                <i class="fas fa-download"></i>
+                            </a>
                         </li>
                     <?php endforeach; ?>
                 </ul>
+                <div class="card-footer small text-muted">
+                    Arquivos cifrados usam extensão <code>.enc</code> no servidor e não podem ser abertos por URL direta.
+                    Cada download é registrado em <strong>Auditoria de acesso</strong>.
+                </div>
             </div>
             <?php endif; ?>
 
@@ -171,7 +223,17 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
             </div>
 
             <div class="card border-light shadow">
-                <div class="card-header">Auditoria de acesso</div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Auditoria de acesso</span>
+                    <?php if (in_array('WhistleblowingExportAccessLog', $this->data['buttonPermission'] ?? [])): ?>
+                    <div class="btn-group btn-group-sm">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>whistleblowing-export-access-log/<?php echo (int)($report['id'] ?? 0); ?>?format=excel"
+                           class="btn btn-outline-secondary btn-sm">Excel</a>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>whistleblowing-export-access-log/<?php echo (int)($report['id'] ?? 0); ?>?format=pdf"
+                           class="btn btn-outline-secondary btn-sm">PDF</a>
+                    </div>
+                    <?php endif; ?>
+                </div>
                 <ul class="list-group list-group-flush small">
                     <?php foreach ($this->data['access_log'] ?? [] as $al): ?>
                         <li class="list-group-item">

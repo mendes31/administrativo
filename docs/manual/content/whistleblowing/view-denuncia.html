@@ -1,18 +1,28 @@
 <h1>Visualizar Denúncia</h1>
-<p>Detalhe da denúncia: relato descriptografado, mensagens, anexos, linha do tempo de status e auditoria de acesso interno.</p>
-<p><strong>Quem acessa:</strong> <em>WhistleblowingViewReport</em>. Resposta: <em>WhistleblowingReplyReport</em>. Gestão: <em>WhistleblowingUpdateStatus</em>.</p>
+<p>Detalhe da denúncia: relato descriptografado, mensagens, anexos, linha do tempo e auditoria de acesso interno.</p>
+<p><strong>Quem acessa:</strong> <em>WhistleblowingViewReport</em> (com escopo de comitê para operadores).</p>
+
 <h2>Fluxo passo a passo</h2>
 <ol>
-<li>Na listagem, abra a denúncia pelo protocolo.</li>
-<li>Leia o relato e envolvidos informados pelo denunciante.</li>
-<li>Em <strong>Responder</strong>, envie mensagem visível ao denunciante ou marque <strong>Nota interna</strong> (só comitê).</li>
-<li>Em <strong>Gestão</strong>, atualize status, risco, responsável e observação na linha do tempo.</li>
-<li>Baixe anexos pelo ícone de download (registrado na auditoria).</li>
+<li>Abra a denúncia pela listagem.</li>
+<li>Leia relato e envolvidos.</li>
+<li><strong>Responder</strong> — mensagem ao denunciante ou <strong>Nota interna</strong> (só comitê).</li>
+<li><strong>Gestão</strong> — status, risco, responsável.</li>
+<li><strong>Anexos</strong> — clique no ícone de download; arquivo descriptografado com extensão correta; ação registrada na auditoria.</li>
 </ol>
+
+<h2>Anexos</h2>
+<ul>
+<li><strong>Cifrado em disco</strong> — arquivo <code>.enc</code> no servidor; download somente via módulo.</li>
+<li><strong>Legado (sem cifra)</strong> — uploads anteriores à cifra em disco.</li>
+</ul>
+
 <h2>Status do fluxo</h2>
 <p>Recebida → Em triagem → Em análise → Comitê → Investigação → Providências → Encerrada.</p>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Denunciante não vê a resposta</dt><dd>Confirme que não marcou nota interna; o denunciante consulta por protocolo + senha.</dd>
-<dt>Conteúdo ilegível</dt><dd>Verifique <code>WHISTLEBLOWING_ENCRYPTION_KEY</code> no .env (mesma chave desde o registro).</dd>
+<dt>Denunciante não vê a resposta</dt><dd>Não marque nota interna.</dd>
+<dt>Download falha</dt><dd>Execute <strong>Rotação de chave</strong> em Configuração (chave legada marcada) se houve troca de chave.</dd>
+<dt>Arquivo sem extensão</dt><dd>O sistema infere extensão pelo tipo MIME ou nome em disco; atualize a página.</dd>
 </dl>

@@ -1,10 +1,21 @@
 <h1>Comitês de Denúncias</h1>
-<p>Configure comitês (Ética, Compliance, Segurança etc.), membros e classificações atendidas. Novas denúncias são encaminhadas automaticamente ao comitê correspondente.</p>
-<p><strong>Quem acessa:</strong> <em>WhistleblowingListCommittees</em>, <em>WhistleblowingCreateCommittee</em>, <em>WhistleblowingUpdateCommittee</em>.</p>
+<p>Comitês (Ética, Compliance, Segurança etc.), membros e classificações. Denúncias são encaminhadas ao comitê da classificação.</p>
+<p><strong>Quem acessa:</strong> nível <em>Administrador</em> ou permissões de comitê (<em>WhistleblowingListCommittees</em>, <em>Create</em>, <em>Update</em>).</p>
+
 <h2>Fluxo</h2>
 <ol>
-<li>Liste os comitês em <code>list-whistleblowing-committees</code>.</li>
-<li>Cadastre ou edite: nome, membros e classificações.</li>
-<li>O primeiro membro pode ser atribuído como responsável automático na denúncia.</li>
+<li>Liste em <code>list-whistleblowing-committees</code>.</li>
+<li>Cadastre/edite: nome, membros ativos e classificações.</li>
+<li>Ao salvar membros → nível <strong>Operador</strong> automático (menu do canal).</li>
+<li>Operador vê só denúncias dos seus comitês; administrador vê todas.</li>
+<li>Atribua nível <strong>Administrador</strong> manualmente para Configuração e Governança.</li>
 </ol>
-<p><strong>Retenção LGPD:</strong> agende o cron <code>whistleblowing-retention-cron?token=CRON_WHISTLEBLOWING_TOKEN</code> para arquivar (5 anos) e excluir (10 anos).</p>
+
+<h2>Retenção LGPD</h2>
+<p>Automática no login (Configuração). Cron HTTP é opcional em servidor Linux.</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Membro não vê o menu</dt><dd>Salvar como membro de comitê ativo.</dd>
+<dt>Membro vê menu mas lista vazia</dt><dd>Denúncia em outro comitê/classificação.</dd>
+</dl>

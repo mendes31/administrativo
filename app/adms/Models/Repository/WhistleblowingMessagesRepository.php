@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\WhistleblowingAttachmentFilenameHelper;
 use App\adms\Models\Services\WhistleblowingEncryptionService;
 use PDO;
 
@@ -126,7 +127,7 @@ class WhistleblowingMessagesRepository extends DbConnection
             try {
                 $row['original_name'] = $this->encryption->decrypt((string) ($row['original_name_encrypted'] ?? ''));
             } catch (\Throwable) {
-                $row['original_name'] = 'arquivo';
+                $row['original_name'] = WhistleblowingAttachmentFilenameHelper::resolve($row);
             }
             unset($row['original_name_encrypted']);
         }
@@ -149,10 +150,117 @@ class WhistleblowingMessagesRepository extends DbConnection
         try {
             $row['original_name'] = $this->encryption->decrypt((string) ($row['original_name_encrypted'] ?? ''));
         } catch (\Throwable) {
-            $row['original_name'] = 'arquivo';
+            $row['original_name'] = WhistleblowingAttachmentFilenameHelper::resolve($row);
         }
         unset($row['original_name_encrypted']);
 
         return $row;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listRawAttachments(): array
+    {
+        try {
+            $stmt = $this->getConnection()->query(
+                'SELECT id, report_id, stored_name, original_name_encrypted, mime_type, size_bytes
+                 FROM adms_whistleblowing_attachments ORDER BY id ASC'
+            );
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listRawMessages(): array
+    {
+        try {
+            $stmt = $this->getConnection()->query(
+                'SELECT id, message_encrypted FROM adms_whistleblowing_messages ORDER BY id ASC'
+            );
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    public function updateMessageEncrypted(int $id, string $encrypted): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_whistleblowing_messages SET message_encrypted = :enc WHERE id = :id'
+        );
+
+        return $stmt->execute([':enc' => $encrypted, ':id' => $id]);
+    }
+
+    public function updateAttachmentAfterRotation(int $id, string $storedName, string $originalNameEncrypted, int $sizeBytes): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_whistleblowing_attachments
+             SET stored_name = :stored_name,
+                 original_name_encrypted = :original_name_encrypted,
+                 size_bytes = :size_bytes
+             WHERE id = :id'
+        );
+
+        return $stmt->execute([
+            ':stored_name' => $storedName,
+            ':original_name_encrypted' => $originalNameEncrypted,
+            ':size_bytes' => $sizeBytes,
+            ':id' => $id,
+        ]);
+    }
+
+    /**
+     * @return array{reports: int, messages: int, attachments: int, legacy_files: int}
+     */
+    public function getRotationCounts(): array
+    {
+        $stats = $this->getAttachmentStorageStats();
+        $messages = 0;
+        $reports = 0;
+        try {
+            $messages = (int) $this->getConnection()->query('SELECT COUNT(*) FROM adms_whistleblowing_messages')->fetchColumn();
+            $reports = (int) $this->getConnection()->query('SELECT COUNT(*) FROM adms_whistleblowing_reports')->fetchColumn();
+        } catch (\Throwable) {
+        }
+
+        return [
+            'reports' => $reports,
+            'messages' => $messages,
+            'attachments' => $stats['total'],
+            'legacy_files' => $stats['legacy'],
+        ];
+    }
+
+    /**
+     * Contadores para auditoria visual de armazenamento de anexos.
+     *
+     * @return array{total: int, encrypted: int, legacy: int}
+     */
+    public function getAttachmentStorageStats(): array
+    {
+        try {
+            $sql = "SELECT
+                        COUNT(*) AS total,
+                        SUM(CASE WHEN stored_name LIKE '%.enc' THEN 1 ELSE 0 END) AS encrypted,
+                        SUM(CASE WHEN stored_name NOT LIKE '%.enc' THEN 1 ELSE 0 END) AS legacy
+                    FROM adms_whistleblowing_attachments";
+            $row = $this->getConnection()->query($sql)->fetch(\PDO::FETCH_ASSOC);
+
+            return [
+                'total' => (int) ($row['total'] ?? 0),
+                'encrypted' => (int) ($row['encrypted'] ?? 0),
+                'legacy' => (int) ($row['legacy'] ?? 0),
+            ];
+        } catch (\Throwable) {
+            return ['total' => 0, 'encrypted' => 0, 'legacy' => 0];
+        }
     }
 }

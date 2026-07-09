@@ -3,10 +3,17 @@
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-chart-pie me-2"></i>Dashboard — Canal de Denúncias</h2>
-        <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
+        <div class="ms-auto hstack gap-2">
+            <?php if (in_array('WhistleblowingExportDashboard', $this->data['buttonPermission'] ?? [])): ?>
+            <a href="<?php echo $_ENV['URL_ADM']; ?>whistleblowing-export-dashboard" class="btn btn-sm btn-outline-success">
+                <i class="fas fa-file-excel me-1"></i>Exportar Excel
+            </a>
+            <?php endif; ?>
+            <ol class="breadcrumb mb-3 mobile-hide-breadcrumb">
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
             <li class="breadcrumb-item">Canal de Denúncias</li>
         </ol>
+        </div>
     </div>
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -36,6 +43,17 @@
                 </div>
             </div>
         </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3"><i class="fas fa-clock text-danger fa-2x"></i></div>
+                    <div><h6 class="text-muted mb-1">SLA 1ª resposta (72h)</h6><h3 class="mb-0 fw-bold text-danger"><?= (int)($stats['sla_overdue'] ?? 0) ?></h3><small class="text-muted">sem resposta</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
@@ -91,6 +109,36 @@
                     <?php endforeach; ?>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="card border-light shadow mb-4">
+        <div class="card-header fw-semibold">Aging — denúncias paradas (dias sem atualização)</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Protocolo</th><th>Status</th><th>Risco</th><th>Classificação</th><th>Comitê</th>
+                        <th class="text-end">Dias parado</th><th class="text-end">Dias aberta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($stats['aging'] ?? [] as $row): ?>
+                    <tr>
+                        <td><a href="<?php echo $_ENV['URL_ADM']; ?>view-denuncia/<?= (int)($row['id'] ?? 0) ?>"><?= htmlspecialchars((string)($row['protocol'] ?? '')) ?></a></td>
+                        <td><?= htmlspecialchars((string)($row['status'] ?? '')) ?></td>
+                        <td><?= htmlspecialchars((string)($row['risk_level'] ?? '')) ?></td>
+                        <td><?= htmlspecialchars((string)($row['category'] ?? '')) ?></td>
+                        <td><?= htmlspecialchars((string)($row['committee_name'] ?? '—')) ?></td>
+                        <td class="text-end fw-semibold <?= (int)($row['days_idle'] ?? 0) >= 7 ? 'text-danger' : '' ?>"><?= (int)($row['days_idle'] ?? 0) ?></td>
+                        <td class="text-end"><?= (int)($row['days_open'] ?? 0) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($stats['aging'])): ?>
+                    <tr><td colspan="7" class="text-muted text-center py-3">Nenhuma denúncia aberta no momento.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 

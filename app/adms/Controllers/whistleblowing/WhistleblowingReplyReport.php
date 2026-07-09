@@ -8,6 +8,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\WhistleblowingAccessLogRepository;
 use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
+use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Models\Services\WhistleblowingUploadService;
 
 /**
@@ -42,6 +43,11 @@ class WhistleblowingReplyReport
         $report = $repo->getReportById($reportId);
         if (!$report) {
             $this->redirect(0, 'Denúncia não encontrada.');
+            return;
+        }
+
+        if (!WhistleblowingPermissionService::canAccessReport($report)) {
+            $this->redirect($reportId, 'Você não tem permissão para responder a esta denúncia.');
             return;
         }
 

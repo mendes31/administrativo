@@ -6,6 +6,7 @@ namespace App\adms\Controllers\whistleblowing;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
+use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Views\Services\LoadViewService;
 
 class WhistleblowingDashboard
@@ -15,12 +16,13 @@ class WhistleblowingDashboard
     public function index(): void
     {
         $repo = new WhistleblowingReportsRepository();
-        $this->data['stats'] = $repo->getDashboardStats();
+        $scopeFilters = WhistleblowingPermissionService::applyReportScopeFilters([]);
+        $this->data['stats'] = $repo->getDashboardStats($scopeFilters);
 
         $pageElements = [
             'title_head' => 'Dashboard — Canal de Denúncias',
             'menu' => 'denuncias-dashboard',
-            'buttonPermission' => ['WhistleblowingListReports', 'WhistleblowingViewReport', 'WhistleblowingListCommittees'],
+            'buttonPermission' => ['WhistleblowingListReports', 'WhistleblowingViewReport', 'WhistleblowingListCommittees', 'WhistleblowingExportDashboard'],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

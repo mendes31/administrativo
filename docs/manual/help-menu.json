@@ -2018,6 +2018,11 @@
                 },
                 {
                     "type": "topic",
+                    "topic_id": "whistleblowing-guia-utilizacao",
+                    "title": "Guia de utilização"
+                },
+                {
+                    "type": "topic",
                     "topic_id": "canal-denuncia",
                     "title": "Canal público (anônimo)"
                 },
@@ -2045,6 +2050,11 @@
                     "type": "topic",
                     "topic_id": "whistleblowing-config",
                     "title": "Configuração"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "whistleblowing-governance",
+                    "title": "Governança LGPD"
                 }
             ]
         },

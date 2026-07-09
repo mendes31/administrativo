@@ -5,14 +5,33 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 /**
- * Upload de anexos do canal de denúncias (armazenamento isolado).
+ * Upload de anexos do canal de denúncias — validação forte, sem metadados EXIF, cifrado em disco.
  */
 final class WhistleblowingUploadService
 {
     private const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-    /** @var list<string> */
-    private const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp3', 'wav', 'mp4', 'doc', 'docx'];
+    /** @var array<string, list<string>> */
+    private const MIME_BY_EXTENSION = [
+        'pdf' => ['application/pdf'],
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'png' => ['image/png'],
+        'gif' => ['image/gif'],
+        'webp' => ['image/webp'],
+        'mp3' => ['audio/mpeg', 'audio/mp3'],
+        'wav' => ['audio/wav', 'audio/x-wav'],
+        'mp4' => ['video/mp4'],
+        'doc' => ['application/msword'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    ];
+
+    private WhistleblowingEncryptionService $encryption;
+
+    public function __construct()
+    {
+        $this->encryption = new WhistleblowingEncryptionService();
+    }
 
     public static function uploadDir(): string
     {
@@ -20,6 +39,8 @@ final class WhistleblowingUploadService
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
+
+        self::ensureHtaccessDeny($dir);
 
         return $dir;
     }
@@ -40,25 +61,68 @@ final class WhistleblowingUploadService
         }
 
         $originalName = basename((string) ($file['name'] ?? 'arquivo'));
-        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+        if ($this->isSuspiciousFilename($originalName)) {
             return null;
         }
 
-        $storedName = bin2hex(random_bytes(16)) . '.' . $ext;
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        if ($ext === '' || !isset(self::MIME_BY_EXTENSION[$ext])) {
+            return null;
+        }
+
+        $tmpPath = (string) ($file['tmp_name'] ?? '');
+        if ($tmpPath === '' || !is_uploaded_file($tmpPath)) {
+            return null;
+        }
+
+        if ($this->containsEmbeddedScript($tmpPath)) {
+            return null;
+        }
+
+        $detectedMime = $this->detectMimeType($tmpPath);
+        if (!$this->mimeMatchesExtension($ext, $detectedMime)) {
+            return null;
+        }
+
+        $plainPath = $tmpPath;
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+            $stripped = $this->stripImageMetadataToTemp($tmpPath, $ext);
+            if ($stripped !== null) {
+                $plainPath = $stripped;
+            }
+        }
+
+        $binary = file_get_contents($plainPath);
+        if ($binary === false || $binary === '') {
+            if ($plainPath !== $tmpPath && is_file($plainPath)) {
+                @unlink($plainPath);
+            }
+
+            return null;
+        }
+
+        if ($plainPath !== $tmpPath && is_file($plainPath)) {
+            @unlink($plainPath);
+        }
+
+        try {
+            $encrypted = $this->encryption->encryptBinary($binary);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $storedName = bin2hex(random_bytes(16)) . '.enc';
         $destPath = self::uploadDir() . '/' . $storedName;
 
-        if (!move_uploaded_file((string) $file['tmp_name'], $destPath)) {
+        if (file_put_contents($destPath, $encrypted) === false) {
             return null;
         }
-
-        $mime = mime_content_type($destPath) ?: (string) ($file['type'] ?? 'application/octet-stream');
 
         return [
             'stored_name' => $storedName,
             'original_name' => $originalName,
-            'mime_type' => $mime,
-            'size_bytes' => $size,
+            'mime_type' => $detectedMime,
+            'size_bytes' => strlen($binary),
         ];
     }
 
@@ -102,5 +166,174 @@ final class WhistleblowingUploadService
         $safe = basename($storedName);
 
         return self::uploadDir() . '/' . $safe;
+    }
+
+    /** Lê e descriptografa o anexo (compatível com arquivos legados em texto plano). */
+    public function readFileContents(string $storedName): ?string
+    {
+        return $this->readFileContentsWithEncryption($storedName, $this->encryption);
+    }
+
+    public function readFileContentsWithEncryption(string $storedName, WhistleblowingEncryptionService $encryption): ?string
+    {
+        $path = self::getFilePath($storedName);
+        if (!is_readable($path)) {
+            return null;
+        }
+
+        $raw = file_get_contents($path);
+        if ($raw === false) {
+            return null;
+        }
+
+        if (str_ends_with(strtolower($storedName), '.enc')) {
+            try {
+                return $encryption->decryptBinary($raw);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return $raw;
+    }
+
+    /**
+     * Grava bytes cifrados em disco e retorna o nome armazenado (.enc).
+     */
+    public function writeEncryptedFile(string $plaintext, WhistleblowingEncryptionService $encryption): ?array
+    {
+        try {
+            $encrypted = $encryption->encryptBinary($plaintext);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $storedName = bin2hex(random_bytes(16)) . '.enc';
+        $destPath = self::uploadDir() . '/' . $storedName;
+        if (file_put_contents($destPath, $encrypted) === false) {
+            return null;
+        }
+
+        return [
+            'stored_name' => $storedName,
+            'size_bytes' => strlen($plaintext),
+        ];
+    }
+
+    public static function deleteFile(string $storedName): bool
+    {
+        $path = self::getFilePath($storedName);
+
+        return is_file($path) && @unlink($path);
+    }
+
+    private function detectMimeType(string $path): string
+    {
+        if (class_exists(\finfo::class)) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($path);
+            if (is_string($mime) && $mime !== '') {
+                return strtolower($mime);
+            }
+        }
+
+        $fallback = mime_content_type($path);
+
+        return is_string($fallback) && $fallback !== '' ? strtolower($fallback) : 'application/octet-stream';
+    }
+
+    private function mimeMatchesExtension(string $ext, string $mime): bool
+    {
+        $allowed = self::MIME_BY_EXTENSION[$ext] ?? [];
+
+        return in_array($mime, $allowed, true);
+    }
+
+    private function isSuspiciousFilename(string $name): bool
+    {
+        $lower = strtolower($name);
+
+        if (preg_match('/\.(php|phtml|phar|htaccess|cgi|asp|aspx|jsp)(\.|$)/', $lower)) {
+            return true;
+        }
+
+        if (str_contains($lower, '..') || str_contains($lower, "\0")) {
+            return true;
+        }
+
+        return substr_count($lower, '.') > 1;
+    }
+
+    private function containsEmbeddedScript(string $path): bool
+    {
+        $head = file_get_contents($path, false, null, 0, 512);
+        if ($head === false) {
+            return true;
+        }
+
+        $snippet = strtolower($head);
+
+        return str_contains($snippet, '<?php')
+            || str_contains($snippet, '<?=')
+            || str_contains($snippet, '<script');
+    }
+
+    private function stripImageMetadataToTemp(string $sourcePath, string $ext): ?string
+    {
+        if (!extension_loaded('gd')) {
+            return null;
+        }
+
+        $image = match ($ext) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($sourcePath),
+            'png' => @imagecreatefrompng($sourcePath),
+            'webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sourcePath) : false,
+            'gif' => @imagecreatefromgif($sourcePath),
+            default => false,
+        };
+
+        if ($image === false) {
+            return null;
+        }
+
+        $temp = tempnam(sys_get_temp_dir(), 'wb_');
+        if ($temp === false) {
+            imagedestroy($image);
+
+            return null;
+        }
+
+        $saved = match ($ext) {
+            'jpg', 'jpeg' => imagejpeg($image, $temp, 90),
+            'png' => imagepng($image, $temp),
+            'webp' => function_exists('imagewebp') ? imagewebp($image, $temp, 90) : false,
+            'gif' => imagegif($image, $temp),
+            default => false,
+        };
+
+        imagedestroy($image);
+
+        if (!$saved) {
+            @unlink($temp);
+
+            return null;
+        }
+
+        return $temp;
+    }
+
+    private static function ensureHtaccessDeny(string $dir): void
+    {
+        $htaccess = $dir . DIRECTORY_SEPARATOR . '.htaccess';
+        if (is_file($htaccess)) {
+            return;
+        }
+
+        $content = <<<'HTA'
+# Bloqueia acesso direto — download somente via controller autenticado.
+Require all denied
+HTA;
+
+        @file_put_contents($htaccess, $content);
     }
 }

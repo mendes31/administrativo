@@ -6,9 +6,13 @@ namespace App\adms\Controllers\whistleblowing;
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
+use App\adms\Models\Services\WhistleblowingAttachmentFilenameHelper;
 use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
+use App\adms\Models\Services\WhistleblowingChannelSecurityService;
+use App\adms\Models\Services\WhistleblowingCommitteeNotificationService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
+use App\adms\Models\Services\WhistleblowingRateLimitService;
 use App\adms\Models\Services\WhistleblowingUploadService;
 
 /**
@@ -20,6 +24,7 @@ final class CanalDenuncia
     private WhistleblowingReportsRepository $reportsRepo;
     private WhistleblowingMessagesRepository $messagesRepo;
     private WhistleblowingUploadService $uploadService;
+    private WhistleblowingRateLimitService $rateLimit;
 
     public function __construct()
     {
@@ -30,10 +35,15 @@ final class CanalDenuncia
         $this->reportsRepo = new WhistleblowingReportsRepository();
         $this->messagesRepo = new WhistleblowingMessagesRepository();
         $this->uploadService = new WhistleblowingUploadService();
+        $this->rateLimit = new WhistleblowingRateLimitService();
     }
 
     public function index(): void
     {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
         $this->render('home', [
             'title' => 'Canal de Denúncias',
         ]);
@@ -41,6 +51,10 @@ final class CanalDenuncia
 
     public function registrar(): void
     {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->enviar();
             return;
@@ -56,6 +70,10 @@ final class CanalDenuncia
 
     public function enviar(): void
     {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . $this->baseUrl() . 'registrar');
             exit;
@@ -96,10 +114,46 @@ final class CanalDenuncia
             $riskLevel = 'Médio';
         }
 
+        $wantsIdentify = ($_POST['identify_reporter'] ?? '') === '1';
+        $reporterName = trim((string) ($_POST['reporter_name'] ?? ''));
+        $reporterEmail = trim((string) ($_POST['reporter_email'] ?? ''));
+        $reporterPhone = trim((string) ($_POST['reporter_phone'] ?? ''));
+
+        if ($wantsIdentify) {
+            if ($reporterName === '') {
+                $this->render('registrar', [
+                    'title' => 'Registrar denúncia',
+                    'categories' => WhistleblowingProtocolService::CATEGORIES,
+                    'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
+                    'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+                    'error' => 'Informe seu nome para identificação voluntária.',
+                    'old' => $_POST,
+                ]);
+                return;
+            }
+            if ($reporterEmail === '' && $reporterPhone === '') {
+                $this->render('registrar', [
+                    'title' => 'Registrar denúncia',
+                    'categories' => WhistleblowingProtocolService::CATEGORIES,
+                    'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
+                    'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+                    'error' => 'Informe e-mail ou telefone para contato.',
+                    'old' => $_POST,
+                ]);
+                return;
+            }
+        }
+
         $result = $this->reportsRepo->createAnonymousReport(
             ['description' => $description, 'involved' => $involved],
             $category,
-            $riskLevel
+            $riskLevel,
+            $wantsIdentify,
+            $wantsIdentify ? [
+                'name' => $reporterName,
+                'email' => $reporterEmail,
+                'phone' => $reporterPhone,
+            ] : null
         );
 
         if ($result === null) {
@@ -128,6 +182,14 @@ final class CanalDenuncia
             );
         }
 
+        (new WhistleblowingCommitteeNotificationService())->notifyNewReport(
+            $reportId,
+            (string) $result['protocol'],
+            $category,
+            $riskLevel,
+            isset($result['committee_id']) ? (int) $result['committee_id'] : null
+        );
+
         $this->render('protocolo', [
             'title' => 'Denúncia registrada',
             'protocol' => $result['protocol'],
@@ -137,6 +199,10 @@ final class CanalDenuncia
 
     public function acompanhar(): void
     {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->consultar();
             return;
@@ -150,9 +216,26 @@ final class CanalDenuncia
 
     public function consultar(): void
     {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . $this->baseUrl() . 'acompanhar');
             exit;
+        }
+
+        $scope = 'acompanhar';
+
+        if ($this->rateLimit->isBlocked($scope)) {
+            $wait = $this->rateLimit->secondsUntilUnblock($scope);
+            $mins = max(1, (int) ceil($wait / 60));
+            $this->render('acompanhar', [
+                'title' => 'Acompanhar denúncia',
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
+                'error' => 'Muitas tentativas incorretas. Aguarde cerca de ' . $mins . ' minuto(s) e tente novamente.',
+            ]);
+            return;
         }
 
         if (!CSRFHelper::validateCSRFToken('canal_denuncia_acompanhar', $_POST['csrf_token'] ?? '', false)) {
@@ -169,6 +252,7 @@ final class CanalDenuncia
 
         $report = $this->reportsRepo->verifyProtocolAndPassword($protocol, $password);
         if ($report === null) {
+            $this->rateLimit->recordFailedAttempt($scope);
             $this->render('acompanhar', [
                 'title' => 'Acompanhar denúncia',
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
@@ -177,7 +261,11 @@ final class CanalDenuncia
             return;
         }
 
+        $this->rateLimit->clear($scope);
+
         $reportId = (int) $report['id'];
+        $this->storePublicSession($reportId, $protocol, $password, (string) ($report['uuid'] ?? ''));
+
         $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
         $messages = $this->messagesRepo->getPublicMessagesByReportId($reportId);
         $attachments = $this->messagesRepo->getAttachmentsByReportId($reportId, true);
@@ -195,6 +283,10 @@ final class CanalDenuncia
 
     public function responder(): void
     {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . $this->baseUrl() . 'acompanhar');
             exit;
@@ -238,6 +330,103 @@ final class CanalDenuncia
         $_POST['password'] = $password;
         $_POST['csrf_token'] = CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar');
         $this->consultar();
+    }
+
+    public function downloadAnexo(): void
+    {
+        if (!$this->ensureChannelAvailable()) {
+            return;
+        }
+
+        $attachmentId = (int) ($_GET['id'] ?? 0);
+        if ($attachmentId <= 0) {
+            http_response_code(404);
+            exit;
+        }
+
+        $attachment = $this->messagesRepo->getAttachmentById($attachmentId);
+        if (!$attachment) {
+            http_response_code(404);
+            exit;
+        }
+
+        $reportId = (int) ($attachment['report_id'] ?? 0);
+        if (!$this->hasValidPublicSession($reportId)) {
+            http_response_code(403);
+            echo 'Acesso negado. Consulte a denúncia com protocolo e senha.';
+            exit;
+        }
+
+        if (($attachment['uploaded_by'] ?? '') !== 'denunciante') {
+            http_response_code(403);
+            exit;
+        }
+
+        $storedName = (string) ($attachment['stored_name'] ?? '');
+        $path = WhistleblowingUploadService::getFilePath($storedName);
+        if (!is_readable($path)) {
+            http_response_code(404);
+            exit;
+        }
+
+        $contents = $this->uploadService->readFileContents($storedName);
+        if ($contents === null) {
+            http_response_code(500);
+            echo 'Não foi possível ler o anexo.';
+            exit;
+        }
+
+        $name = WhistleblowingAttachmentFilenameHelper::resolve($attachment);
+        $mime = (string) ($attachment['mime_type'] ?? 'application/octet-stream');
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: ' . WhistleblowingAttachmentFilenameHelper::contentDispositionHeader($name));
+        header('Content-Length: ' . (string) strlen($contents));
+        echo $contents;
+        exit;
+    }
+
+    private function storePublicSession(int $reportId, string $protocol, string $password, string $uuid): void
+    {
+        $_SESSION['wb_public_access'] = [
+            'report_id' => $reportId,
+            'auth' => $this->publicAuthToken($protocol, $password, $uuid),
+            'expires' => time() + 7200,
+        ];
+    }
+
+    private function hasValidPublicSession(int $reportId): bool
+    {
+        $session = $_SESSION['wb_public_access'] ?? null;
+        if (!is_array($session)) {
+            return false;
+        }
+        if ((int) ($session['report_id'] ?? 0) !== $reportId) {
+            return false;
+        }
+        if ((int) ($session['expires'] ?? 0) < time()) {
+            return false;
+        }
+
+        return !empty($session['auth']);
+    }
+
+    private function publicAuthToken(string $protocol, string $password, string $uuid): string
+    {
+        return hash('sha256', strtoupper(trim($protocol)) . '|' . trim($password) . '|' . $uuid);
+    }
+
+    private function ensureChannelAvailable(): bool
+    {
+        if (WhistleblowingChannelSecurityService::isPublicChannelAvailable()) {
+            return true;
+        }
+
+        $this->render('indisponivel', [
+            'title' => 'Canal indisponível',
+            'message' => WhistleblowingChannelSecurityService::publicUnavailableMessage(),
+        ]);
+
+        return false;
     }
 
     /**

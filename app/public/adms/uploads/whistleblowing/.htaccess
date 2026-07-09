@@ -1,0 +1,2 @@
+# Bloqueia acesso direto — download somente via controller autenticado.
+Require all denied

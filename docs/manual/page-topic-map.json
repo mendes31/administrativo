@@ -246,6 +246,7 @@
     "create-whistleblowing-committee": "list-whistleblowing-committees",
     "update-whistleblowing-committee": "list-whistleblowing-committees",
     "whistleblowing-config": "whistleblowing-config",
+    "whistleblowing-governance": "whistleblowing-governance",
     "reply-denuncia": "view-denuncia",
     "update-denuncia-status": "view-denuncia",
     "sales-dashboard": "sales-dashboard",

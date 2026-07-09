@@ -2155,6 +2155,11 @@
                     "file": "whistleblowing/whistleblowing-visao-geral.html"
                 },
                 {
+                    "id": "whistleblowing-guia-utilizacao",
+                    "title": "Guia de utilização",
+                    "file": "whistleblowing/whistleblowing-guia-utilizacao.html"
+                },
+                {
                     "id": "canal-denuncia",
                     "title": "Canal de Denúncias (público)",
                     "file": "whistleblowing/canal-denuncia.html"
@@ -2183,6 +2188,11 @@
                     "id": "whistleblowing-config",
                     "title": "Configuração Canal de Denúncias",
                     "file": "whistleblowing/whistleblowing-config.html"
+                },
+                {
+                    "id": "whistleblowing-governance",
+                    "title": "Governança LGPD",
+                    "file": "whistleblowing/whistleblowing-governance.html"
                 }
             ]
         }

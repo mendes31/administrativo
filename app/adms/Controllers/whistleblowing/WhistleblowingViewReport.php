@@ -10,6 +10,8 @@ use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WhistleblowingAccessLogRepository;
 use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
+use App\adms\Models\Services\WhistleblowingAttachmentFilenameHelper;
+use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
 use App\adms\Models\Services\WhistleblowingUploadService;
 use App\adms\Views\Services\LoadViewService;
@@ -43,6 +45,11 @@ class WhistleblowingViewReport
             return;
         }
 
+        if (!WhistleblowingPermissionService::canAccessReport($report)) {
+            $this->redirectList('Você não tem permissão para visualizar esta denúncia.');
+            return;
+        }
+
         $userId = (int) ($_SESSION['user_id'] ?? 0);
         if ($userId > 0) {
             (new WhistleblowingAccessLogRepository())->log($reportId, $userId, 'view');
@@ -65,7 +72,7 @@ class WhistleblowingViewReport
         $pageElements = [
             'title_head' => 'Denúncia ' . ($report['protocol'] ?? '') . ' — Canal de Denúncias',
             'menu' => 'denuncias',
-            'buttonPermission' => ['WhistleblowingReplyReport', 'WhistleblowingUpdateStatus'],
+            'buttonPermission' => ['WhistleblowingReplyReport', 'WhistleblowingUpdateStatus', 'WhistleblowingExportAccessLog'],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));
@@ -92,23 +99,68 @@ class WhistleblowingViewReport
 
         $reportId = (int) ($attachment['report_id'] ?? 0);
         $userId = (int) ($_SESSION['user_id'] ?? 0);
-        if ($userId > 0 && $reportId > 0) {
-            (new WhistleblowingAccessLogRepository())->log($reportId, $userId, 'download_attachment');
-        }
-
-        $path = WhistleblowingUploadService::getFilePath((string) ($attachment['stored_name'] ?? ''));
-        if (!is_readable($path)) {
-            http_response_code(404);
+        if ($userId <= 0) {
+            http_response_code(403);
             exit;
         }
 
-        $name = (string) ($attachment['original_name'] ?? 'arquivo');
+        if ($reportId > 0) {
+            $report = (new WhistleblowingReportsRepository())->getReportById($reportId);
+            if (!$report || !WhistleblowingPermissionService::canAccessReport($report)) {
+                http_response_code(403);
+                exit;
+            }
+            (new WhistleblowingAccessLogRepository())->log($reportId, $userId, 'download_attachment');
+        }
+
+        $uploadService = new WhistleblowingUploadService();
+        $storedName = (string) ($attachment['stored_name'] ?? '');
+        $path = WhistleblowingUploadService::getFilePath($storedName);
+
+        if (!is_readable($path)) {
+            $this->redirectReport($reportId, 'Arquivo não encontrado no servidor.', 'danger');
+            return;
+        }
+
+        $contents = $uploadService->readFileContents($storedName);
+        if ($contents === null) {
+            if (str_ends_with(strtolower($storedName), '.enc')) {
+                $this->redirectReport(
+                    $reportId,
+                    'Não foi possível descriptografar o anexo. Se a chave de criptografia foi alterada após o envio, restaure a chave original em Configuração ou solicite novo envio do arquivo.',
+                    'warning'
+                );
+                return;
+            }
+
+            $this->redirectReport($reportId, 'Não foi possível ler o anexo.', 'danger');
+            return;
+        }
+
+        $name = WhistleblowingAttachmentFilenameHelper::resolve($attachment);
         $mime = (string) ($attachment['mime_type'] ?? 'application/octet-stream');
+        if ($mime === '' || $mime === 'application/octet-stream') {
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            $mimeMap = [
+                'pdf' => 'application/pdf',
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'mp3' => 'audio/mpeg',
+                'wav' => 'audio/wav',
+                'mp4' => 'video/mp4',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            $mime = $mimeMap[$ext] ?? $mime;
+        }
 
         header('Content-Type: ' . $mime);
-        header('Content-Disposition: attachment; filename="' . rawurlencode($name) . '"');
-        header('Content-Length: ' . (string) filesize($path));
-        readfile($path);
+        header('Content-Disposition: ' . WhistleblowingAttachmentFilenameHelper::contentDispositionHeader($name));
+        header('Content-Length: ' . (string) strlen($contents));
+        echo $contents;
         exit;
     }
 
@@ -117,6 +169,14 @@ class WhistleblowingViewReport
         $_SESSION['msg'] = $msg;
         $_SESSION['msg_type'] = 'danger';
         header('Location: ' . $_ENV['URL_ADM'] . 'denuncias');
+        exit;
+    }
+
+    private function redirectReport(int $reportId, string $msg, string $type = 'danger'): void
+    {
+        $_SESSION['msg'] = $msg;
+        $_SESSION['msg_type'] = $type;
+        header('Location: ' . $_ENV['URL_ADM'] . 'view-denuncia/' . $reportId);
         exit;
     }
 }

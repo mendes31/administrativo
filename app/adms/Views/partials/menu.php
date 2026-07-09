@@ -1068,7 +1068,14 @@ $menus = [
                     'WhistleblowingViewReport',
                     'WhistleblowingListCommittees',
                     'WhistleblowingConfig',
+                    'WhistleblowingGovernanceLgpd',
                 ],
+            ],
+            [
+                'label' => 'Governança LGPD',
+                'url' => $_ENV['URL_ADM'] . 'whistleblowing-governance',
+                'permission' => 'WhistleblowingGovernanceLgpd',
+                'icon' => 'fas fa-balance-scale',
             ],
             [
                 'label' => 'Configuração',

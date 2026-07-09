@@ -1,15 +1,29 @@
 <h1>Configuração — Canal de Denúncias</h1>
-<p>Define token do cron de retenção LGPD e chave de criptografia dos relatos, sem depender do arquivo <code>.env</code>.</p>
-<p><strong>Quem acessa:</strong> <em>WhistleblowingConfig</em>.</p>
-<h2>Fluxo</h2>
+<p>Chave AES, políticas LGPD, rate limit, retenção automática e rotação de chave.</p>
+<p><strong>Quem acessa:</strong> nível <em>Canal de Denúncias — Administrador</em> ou <em>WhistleblowingConfig</em>.</p>
+
+<h2>Primeira configuração</h2>
 <ol>
-<li>Acesse <code>whistleblowing-config</code> no menu Canal de Denúncias.</li>
-<li>Guarde o <strong>token do cron</strong> e configure o agendador com a URL exibida.</li>
-<li>Defina a <strong>chave de criptografia</strong> antes de receber denúncias em produção.</li>
+<li>Gere chave: <code>php -r "echo bin2hex(random_bytes(32));"</code></li>
+<li>Salve em <strong>Chave de criptografia</strong> — libera o canal público.</li>
+<li>Ajuste políticas (arquivar/excluir, retenção automática, rate limit).</li>
 </ol>
-<p>Prioridade: valores no banco substituem variáveis <code>WHISTLEBLOWING_ENCRYPTION_KEY</code> e <code>CRON_WHISTLEBLOWING_TOKEN</code> do <code>.env</code>.</p>
+
+<h2>Retenção automática</h2>
+<p>Dispara no <strong>primeiro login do dia</strong> (máx. 1×/24 h). Não requer Agendador de Tarefas no Windows. Token HTTP/crontab é opcional (Linux).</p>
+
+<h2>Rotação de chave</h2>
+<ol>
+<li>Deixe <strong>Chave atual em branco</strong> se existirem denúncias antigas (chave legada).</li>
+<li>Marque <em>Tentar também chave legada do sistema</em>.</li>
+<li>Informe nova chave (mín. 32) e confirme.</li>
+<li><strong>Rotacionar e recriptografar</strong> — migra relatos, mensagens, notas e anexos para <code>.enc</code>.</li>
+</ol>
+<p>Não use o formulário simples de chave para trocar após a primeira configuração.</p>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Relatos ilegíveis após trocar a chave</dt><dd>A chave anterior era usada na criptografia; não rotacione sem plano de migração.</dd>
-<dt>Cron retorna 403</dt><dd>Token não configurado ou divergente entre agendador e sistema.</dd>
+<dt>Canal público indisponível</dt><dd>Chave não configurada ou &lt; 32 caracteres.</dd>
+<dt>Rotação falha na denúncia #N</dt><dd>Chave atual incorreta — use branco + chave legada.</dd>
+<dt>Rate limit</dt><dd>Ajuste tentativas e janela nas políticas.</dd>
 </dl>

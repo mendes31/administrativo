@@ -1,24 +1,46 @@
 <h1>Visão geral — Canal de Denúncias</h1>
 <p>Canal anônimo para relatos de condutas inadequadas (assédio, fraude, corrupção, discriminação, segurança, meio ambiente, entre outros), com gestão interna para Compliance e Comitê de Ética.</p>
-<p><strong>Quem acessa (interno):</strong> usuários com permissão nas páginas do grupo <em>Canal de Denúncias</em> (configure em <strong>Cadastro → Níveis de Acesso → Permissões</strong>).</p>
+<p>Guia completo de utilização: tópico <strong>Guia de utilização</strong> neste menu ou arquivo <code>docs/GUIA_CANAL_DENUNCIAS.md</code>.</p>
+
+<h2>Quem acessa (interno)</h2>
+<ul>
+<li><strong>Canal de Denúncias — Operador:</strong> concedido automaticamente aos membros de comitê; vê apenas denúncias dos seus comitês.</li>
+<li><strong>Canal de Denúncias — Administrador:</strong> atribuído manualmente no cadastro do usuário (Compliance/DPO); vê todas, configura comitês, chave, retenção e governança LGPD.</li>
+</ul>
+
 <h2>URLs</h2>
 <ul>
-<li><strong>Público (sem login):</strong> <code>/canaldenuncia</code> na raiz do site (ex.: <code>localhost/canaldenuncia</code> ou <code>www.tiaraju.com.br/canaldenuncia</code>) — registro e acompanhamento por protocolo + senha.</li>
-<li><strong>Interno:</strong> <code>/administrativo/denuncias</code> — listagem e investigação (requer login e permissão).</li>
+<li><strong>Público:</strong> <code>/canaldenuncia</code> — registro e acompanhamento por protocolo + senha (sem login).</li>
+<li><strong>Interno:</strong> <code>/administrativo/denuncias</code> — listagem e investigação.</li>
 </ul>
+
 <h2>Fluxo principal</h2>
 <ol>
-<li>Colaborador acessa o canal público e registra a denúncia (sem login).</li>
-<li>Sistema gera protocolo e senha de acompanhamento (exibidos uma única vez).</li>
-<li>Equipe de Compliance triagem em <em>Listar Denúncias</em>.</li>
-<li>Comitê responde, altera status e registra providências.</li>
-<li>Denunciante acompanha pelo protocolo + senha.</li>
+<li>Colaborador registra denúncia no canal público.</li>
+<li>Sistema gera protocolo e senha (exibidos uma vez).</li>
+<li>Compliance triagem em <em>Listar Denúncias</em>; comitê responde e altera status.</li>
+<li>Denunciante acompanha por protocolo + senha.</li>
+<li>Retenção LGPD automática no primeiro login do dia (arquivar/excluir conforme política).</li>
 </ol>
-<h2>Anonimato</h2>
-<p>O canal público não solicita identificação, não vincula à sessão do portal e não armazena IP. O conteúdo é criptografado (AES-256). Toda visualização interna gera registro de auditoria.</p>
+
+<h2>Segurança</h2>
+<ul>
+<li>Criptografia AES-256-GCM em repouso; anexos em disco como <code>.enc</code>.</li>
+<li>Canal público bloqueado sem chave forte em Configuração.</li>
+<li>Rate limit no acompanhamento público (tentativas de protocolo + senha).</li>
+<li>Auditoria de visualizações e downloads internos.</li>
+</ul>
+
+<h2>O que ainda falta</h2>
+<ul>
+<li>Notificação por e-mail ao comitê ao receber denúncia.</li>
+<li>Exportação de auditoria (Excel/PDF).</li>
+<li>Download de anexos pelo denunciante no canal público.</li>
+</ul>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Denunciante perdeu protocolo/senha</dt><dd>Não é possível recuperar — orientar novo registro se necessário.</dd>
-<dt>Sem permissão na listagem</dt><dd>Conceder permissões do grupo Canal de Denúncias ao nível de acesso.</dd>
-<dt>Anexo não abre</dt><dd>Verificar permissão <em>WhistleblowingViewReport</em> e existência do arquivo em storage.</dd>
+<dt>Denunciante perdeu protocolo/senha</dt><dd>Não há recuperação — orientar novo registro se necessário.</dd>
+<dt>Sem permissão na listagem</dt><dd>Adicione o usuário a um comitê (Operador) ou nível Administrador.</dd>
+<dt>Canal público indisponível</dt><dd>Configure chave ≥ 32 caracteres em Configuração.</dd>
 </dl>

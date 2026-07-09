@@ -601,6 +601,9 @@ class PageLayoutService
             'WhistleblowingCreateCommittee',
             'WhistleblowingUpdateCommittee',
             'WhistleblowingConfig',
+            'WhistleblowingGovernanceLgpd',
+            'WhistleblowingExportAccessLog',
+            'WhistleblowingExportDashboard',
             // SST — Segurança e Medicina do Trabalho
             'SstCreateAcidente',
             'SstCreateAfastamento',

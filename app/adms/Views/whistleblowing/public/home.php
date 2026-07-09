@@ -11,10 +11,9 @@ require __DIR__ . '/_view_scope.php';
     <div class="anon-badge">
         <strong><i class="fas fa-user-secret me-1"></i> Garantias de anonimato</strong>
         <ul>
-            <li>Não é necessário login, CPF, matrícula ou e-mail.</li>
+            <li>O canal foi projetado para <strong>preservar o anonimato do denunciante</strong> e não exige login, CPF, matrícula ou e-mail.</li>
             <li>A denúncia <strong>não é vinculada</strong> ao seu usuário do portal.</li>
-            <li>O sistema <strong>não registra endereço IP</strong> nem dados que identifiquem o denunciante.</li>
-            <li>O acompanhamento é feito apenas com <strong>protocolo e senha</strong> gerados após o envio.</li>
+            <li>O acompanhamento é realizado exclusivamente por <strong>protocolo e senha</strong> gerados após o envio.</li>
             <li>O conteúdo é armazenado de forma <strong>criptografada</strong>.</li>
         </ul>
     </div>

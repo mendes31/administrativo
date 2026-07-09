@@ -7,6 +7,7 @@ namespace App\adms\Controllers\whistleblowing;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
+use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -24,7 +25,7 @@ class WhistleblowingListReports
         $this->page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
         $this->perPage = isset($_GET['per_page']) ? max(1, (int) $_GET['per_page']) : 20;
 
-        $filters = [
+        $filters = WhistleblowingPermissionService::applyReportScopeFilters([
             'search' => $_GET['search'] ?? '',
             'status' => $_GET['status'] ?? '',
             'category' => $_GET['category'] ?? '',
@@ -33,7 +34,7 @@ class WhistleblowingListReports
             'date_from' => $_GET['date_from'] ?? '',
             'date_to' => $_GET['date_to'] ?? '',
             'include_archived' => $_GET['include_archived'] ?? '0',
-        ];
+        ]);
 
         $repo = new WhistleblowingReportsRepository();
         $total = $repo->getTotalReports($filters);

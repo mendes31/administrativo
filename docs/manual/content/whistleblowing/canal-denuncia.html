@@ -1,29 +1,31 @@
 <h1>Canal de Denúncias (público)</h1>
 <p>Página acessível sem login para registro anônimo de denúncias e acompanhamento por protocolo + senha.</p>
-<p><strong>Quem acessa:</strong> qualquer pessoa (colaborador, terceiro) — não exige autenticação no portal.</p>
+<p><strong>Quem acessa:</strong> qualquer pessoa — não exige autenticação no portal.</p>
+
 <h2>Registrar denúncia</h2>
 <ol>
-<li>Acesse <code>/canaldenuncia</code> (raiz do site, sem <code>/administrativo/</code>) e clique em <strong>Registrar nova denúncia</strong>.</li>
-<li>Selecione classificação e grau de risco.</li>
-<li>Descreva o ocorrido e, se souber, os envolvidos.</li>
-<li>Anexe evidências (opcional): fotos, PDF, áudio ou vídeo.</li>
-<li>Ao enviar, anote o <strong>protocolo</strong> e a <strong>senha</strong> exibidos — não serão mostrados novamente.</li>
+<li>Acesse <code>/canaldenuncia</code> (raiz do site).</li>
+<li>Clique em <strong>Registrar nova denúncia</strong>.</li>
+<li>Selecione classificação e grau de risco; descreva o ocorrido e envolvidos.</li>
+<li>Anexe evidências (opcional): PDF, imagens, áudio ou vídeo (até 10 MB).</li>
+<li>Anote <strong>protocolo</strong> e <strong>senha</strong> — exibidos uma única vez.</li>
 </ol>
+
 <h2>Acompanhar denúncia</h2>
 <ol>
-<li>Clique em <strong>Acompanhar denúncia existente</strong>.</li>
-<li>Informe protocolo e senha.</li>
-<li>Visualize status, respostas do comitê e envie novas informações.</li>
+<li><strong>Acompanhar denúncia existente</strong> → protocolo + senha.</li>
+<li>Veja status, respostas do comitê e envie complementos ou novos anexos.</li>
 </ol>
-<h2>Garantias exibidas na tela</h2>
+
+<h2>Indisponibilidade e limites</h2>
 <ul>
-<li>Sem login, CPF, matrícula ou e-mail.</li>
-<li>Sem vínculo ao usuário do portal.</li>
-<li>Sem registro de endereço IP.</li>
-<li>Conteúdo armazenado criptografado.</li>
+<li>Sem chave de criptografia configurada internamente, o canal exibe página de indisponibilidade.</li>
+<li>Após várias tentativas incorretas de protocolo/senha, bloqueio temporário (rate limit).</li>
 </ul>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Protocolo ou senha inválidos</dt><dd>Verifique maiúsculas e caracteres; a senha tem 6 caracteres.</dd>
-<dt>Página não carrega</dt><dd>Confirme que o gateway público está instalado em <code>www/canaldenuncia/</code> e que <code>URL_CANAL_DENUNCIA</code> no <code>.env</code> aponta para essa URL (ex.: <code>http://localhost/canaldenuncia/</code>).</dd>
+<dt>Protocolo ou senha inválidos</dt><dd>Verifique maiúsculas; senha tem 6 caracteres.</dd>
+<dt>Muitas tentativas incorretas</dt><dd>Aguarde o tempo indicado na tela (configurável pelo administrador).</dd>
+<dt>Página não carrega</dt><dd>Verifique gateway em <code>/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</dd>
 </dl>

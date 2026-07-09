@@ -20,10 +20,16 @@ class WhistleblowingReportsRepository extends DbConnection
 
     /**
      * @param array{category: string, risk_level: string, description: string, involved: string} $content
-     * @return array{report_id: int, uuid: string, protocol: string, password: string}|null
+     * @param array{name?: string, email?: string, phone?: string}|null $reporterContact
+     * @return array{report_id: int, uuid: string, protocol: string, password: string, committee_id: int|null}|null
      */
-    public function createAnonymousReport(array $content, string $category, string $riskLevel): ?array
-    {
+    public function createAnonymousReport(
+        array $content,
+        string $category,
+        string $riskLevel,
+        bool $isReporterIdentified = false,
+        ?array $reporterContact = null
+    ): ?array {
         $uuid = WhistleblowingProtocolService::generateUuid();
         $protocol = $this->generateUniqueProtocol();
         $plainPassword = WhistleblowingProtocolService::generateAccessPassword();
@@ -34,20 +40,34 @@ class WhistleblowingReportsRepository extends DbConnection
             'involved' => $content['involved'] ?? '',
         ]);
 
+        $reporterEncrypted = null;
+        if ($isReporterIdentified && $reporterContact !== null) {
+            $reporterEncrypted = $this->encryption->encryptJson([
+                'name' => trim((string) ($reporterContact['name'] ?? '')),
+                'email' => trim((string) ($reporterContact['email'] ?? '')),
+                'phone' => trim((string) ($reporterContact['phone'] ?? '')),
+            ]);
+        }
+
         $now = date('Y-m-d H:i:s');
-        $archiveAt = date('Y-m-d H:i:s', strtotime('+5 years'));
-        $deleteAt = date('Y-m-d H:i:s', strtotime('+10 years'));
+        $configRepo = new \App\adms\Models\Repository\WhistleblowingConfigRepository();
+        $archiveYears = $configRepo->getRetentionArchiveYears();
+        $deleteYears = $configRepo->getRetentionDeleteYears();
+        $archiveAt = date('Y-m-d H:i:s', strtotime('+' . $archiveYears . ' years'));
+        $deleteAt = date('Y-m-d H:i:s', strtotime('+' . $deleteYears . ' years'));
 
         $committeesRepo = new WhistleblowingCommitteesRepository();
         $committeeId = $committeesRepo->findCommitteeIdByCategory($category);
         $assignedUserId = $committeeId !== null ? $committeesRepo->getFirstMemberUserId($committeeId) : null;
 
         $sql = 'INSERT INTO adms_whistleblowing_reports
-                (uuid, protocol, password_hash, category, risk_level, content_encrypted, status,
+                (uuid, protocol, password_hash, category, risk_level, content_encrypted,
+                 is_reporter_identified, reporter_contact_encrypted, status,
                  committee_id, assigned_user_id,
                  retention_archive_at, retention_delete_at, created_at, updated_at)
                 VALUES
-                (:uuid, :protocol, :password_hash, :category, :risk_level, :content_encrypted, :status,
+                (:uuid, :protocol, :password_hash, :category, :risk_level, :content_encrypted,
+                 :is_reporter_identified, :reporter_contact_encrypted, :status,
                  :committee_id, :assigned_user_id,
                  :retention_archive_at, :retention_delete_at, :created_at, :updated_at)';
 
@@ -59,6 +79,8 @@ class WhistleblowingReportsRepository extends DbConnection
             ':category' => $category,
             ':risk_level' => $riskLevel,
             ':content_encrypted' => $encrypted,
+            ':is_reporter_identified' => $isReporterIdentified ? 1 : 0,
+            ':reporter_contact_encrypted' => $reporterEncrypted,
             ':status' => 'Recebida',
             ':committee_id' => $committeeId,
             ':assigned_user_id' => $assignedUserId,
@@ -81,6 +103,7 @@ class WhistleblowingReportsRepository extends DbConnection
             'uuid' => $uuid,
             'protocol' => $protocol,
             'password' => $plainPassword,
+            'committee_id' => $committeeId,
         ];
     }
 
@@ -138,7 +161,24 @@ class WhistleblowingReportsRepository extends DbConnection
             $row['involved'] = '';
         }
 
-        unset($row['content_encrypted'], $row['password_hash']);
+        $row['is_reporter_identified'] = !empty($row['is_reporter_identified']);
+        $row['reporter_name'] = '';
+        $row['reporter_email'] = '';
+        $row['reporter_phone'] = '';
+        if (!empty($row['reporter_contact_encrypted'])) {
+            try {
+                $contact = $this->encryption->decryptJson((string) $row['reporter_contact_encrypted']);
+                $row['reporter_name'] = (string) ($contact['name'] ?? '');
+                $row['reporter_email'] = (string) ($contact['email'] ?? '');
+                $row['reporter_phone'] = (string) ($contact['phone'] ?? '');
+            } catch (\Throwable) {
+                $row['reporter_name'] = '';
+                $row['reporter_email'] = '';
+                $row['reporter_phone'] = '';
+            }
+        }
+
+        unset($row['content_encrypted'], $row['password_hash'], $row['reporter_contact_encrypted']);
 
         return $row;
     }
@@ -353,33 +393,98 @@ class WhistleblowingReportsRepository extends DbConnection
             $conditions[] = 'r.archived_at IS NULL';
         }
 
+        $this->appendScopeConditions($filters, $conditions, $params);
+
         $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
         return [$where, $params];
     }
 
-    public function getDashboardStats(): array
+    /**
+     * Restringe listagem a comitês do operador (ou denúncias atribuídas a ele).
+     *
+     * @param array<string, mixed> $filters
+     * @param list<string> $conditions
+     * @param array<string, mixed> $params
+     */
+    private function appendScopeConditions(array $filters, array &$conditions, array &$params): void
+    {
+        if (!isset($filters['scope_user_id'])) {
+            return;
+        }
+
+        $userId = (int) $filters['scope_user_id'];
+        $committeeIds = $filters['scope_committee_ids'] ?? [];
+        $committeeIds = is_array($committeeIds)
+            ? array_values(array_unique(array_filter(array_map('intval', $committeeIds))))
+            : [];
+
+        if ($committeeIds === [] && $userId <= 0) {
+            $conditions[] = '1 = 0';
+
+            return;
+        }
+
+        if ($committeeIds === []) {
+            $conditions[] = 'r.assigned_user_id = :scope_user_id';
+            $params[':scope_user_id'] = $userId;
+
+            return;
+        }
+
+        $inParts = [];
+        foreach ($committeeIds as $i => $cid) {
+            $key = ':scope_committee_' . $i;
+            $inParts[] = $key;
+            $params[$key] = $cid;
+        }
+
+        if ($userId > 0) {
+            $conditions[] = '(r.committee_id IN (' . implode(', ', $inParts) . ') OR r.assigned_user_id = :scope_user_id)';
+            $params[':scope_user_id'] = $userId;
+        } else {
+            $conditions[] = 'r.committee_id IN (' . implode(', ', $inParts) . ')';
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function getDashboardStats(array $filters = []): array
     {
         $conn = $this->getConnection();
-        $base = 'FROM adms_whistleblowing_reports r WHERE r.archived_at IS NULL';
+        [$scopeWhere, $scopeParams] = $this->buildScopeWhereClause($filters);
+        $base = 'FROM adms_whistleblowing_reports r WHERE r.archived_at IS NULL' . $scopeWhere;
 
-        $total = (int) $conn->query("SELECT COUNT(*) {$base}")->fetchColumn();
-        $open = (int) $conn->query("SELECT COUNT(*) {$base} AND r.status != 'Encerrada'")->fetchColumn();
-        $critical = (int) $conn->query("SELECT COUNT(*) {$base} AND r.risk_level = 'Crítico' AND r.status != 'Encerrada'")->fetchColumn();
-        $pending = (int) $conn->query("SELECT COUNT(*) {$base} AND r.status IN ('Recebida', 'Em triagem')")->fetchColumn();
-        $investigation = (int) $conn->query("SELECT COUNT(*) {$base} AND r.status IN ('Investigação', 'Comitê', 'Em análise')")->fetchColumn();
+        $total = $this->scopedCount($conn, "SELECT COUNT(*) {$base}", $scopeParams);
+        $open = $this->scopedCount($conn, "SELECT COUNT(*) {$base} AND r.status != 'Encerrada'", $scopeParams);
+        $critical = $this->scopedCount($conn, "SELECT COUNT(*) {$base} AND r.risk_level = 'Crítico' AND r.status != 'Encerrada'", $scopeParams);
+        $pending = $this->scopedCount($conn, "SELECT COUNT(*) {$base} AND r.status IN ('Recebida', 'Em triagem')", $scopeParams);
+        $investigation = $this->scopedCount($conn, "SELECT COUNT(*) {$base} AND r.status IN ('Investigação', 'Comitê', 'Em análise')", $scopeParams);
 
-        $avgResponse = $conn->query(
+        $avgResponseStmt = $conn->prepare(
             "SELECT AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.first_response_at))
              FROM adms_whistleblowing_reports r
-             WHERE r.archived_at IS NULL AND r.first_response_at IS NOT NULL"
-        )->fetchColumn();
+             WHERE r.archived_at IS NULL AND r.first_response_at IS NOT NULL{$scopeWhere}"
+        );
+        foreach ($scopeParams as $key => $value) {
+            $avgResponseStmt->bindValue($key, $value);
+        }
+        $avgResponseStmt->execute();
+        $avgResponse = $avgResponseStmt->fetchColumn();
 
-        $avgClosure = $conn->query(
+        $avgClosureStmt = $conn->prepare(
             "SELECT AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.closed_at))
              FROM adms_whistleblowing_reports r
-             WHERE r.archived_at IS NULL AND r.closed_at IS NOT NULL"
-        )->fetchColumn();
+             WHERE r.archived_at IS NULL AND r.closed_at IS NOT NULL{$scopeWhere}"
+        );
+        foreach ($scopeParams as $key => $value) {
+            $avgClosureStmt->bindValue($key, $value);
+        }
+        $avgClosureStmt->execute();
+        $avgClosure = $avgClosureStmt->fetchColumn();
+
+        $listFilters = array_merge($filters, ['include_archived' => '0']);
 
         return [
             'total' => $total,
@@ -389,17 +494,102 @@ class WhistleblowingReportsRepository extends DbConnection
             'investigation' => $investigation,
             'avg_response_hours' => round((float) ($avgResponse ?: 0), 1),
             'avg_closure_hours' => round((float) ($avgClosure ?: 0), 1),
-            'by_status' => $this->countGroup('status', $base),
-            'by_category' => $this->countGroup('category', $base),
-            'by_risk' => $this->countGroup('risk_level', $base),
-            'recent' => $this->getAllReports(1, 5, ['include_archived' => '0']),
+            'by_status' => $this->countGroupScoped('status', $base, $scopeParams),
+            'by_category' => $this->countGroupScoped('category', $base, $scopeParams),
+            'by_risk' => $this->countGroupScoped('risk_level', $base, $scopeParams),
+            'recent' => $this->getAllReports(1, 5, $listFilters),
+            'aging' => $this->getAgingReports($filters, 15),
+            'sla_overdue' => $this->countSlaOverdueFirstResponse($filters),
         ];
     }
 
     /**
+     * Denúncias abertas ordenadas por dias sem atualização (aging).
+     *
+     * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
-    private function countGroup(string $field, string $baseWhere): array
+    public function getAgingReports(array $filters = [], int $limit = 15): array
+    {
+        $limit = max(1, min(100, $limit));
+        [$scopeWhere, $scopeParams] = $this->buildScopeWhereClause($filters);
+
+        $sql = "SELECT r.id, r.protocol, r.category, r.risk_level, r.status, r.created_at, r.updated_at,
+                       DATEDIFF(NOW(), r.updated_at) AS days_idle,
+                       DATEDIFF(NOW(), r.created_at) AS days_open,
+                       c.name AS committee_name
+                FROM adms_whistleblowing_reports r
+                LEFT JOIN adms_whistleblowing_committees c ON r.committee_id = c.id
+                WHERE r.archived_at IS NULL AND r.status != 'Encerrada'{$scopeWhere}
+                ORDER BY days_idle DESC, r.risk_level ASC
+                LIMIT {$limit}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($scopeParams as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Denúncias abertas sem primeira resposta há mais de 72h (SLA padrão).
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function countSlaOverdueFirstResponse(array $filters = [], int $slaHours = 72): int
+    {
+        [$scopeWhere, $scopeParams] = $this->buildScopeWhereClause($filters);
+        $sql = "SELECT COUNT(*) FROM adms_whistleblowing_reports r
+                WHERE r.archived_at IS NULL
+                  AND r.status != 'Encerrada'
+                  AND r.first_response_at IS NULL
+                  AND TIMESTAMPDIFF(HOUR, r.created_at, NOW()) > :sla_hours{$scopeWhere}";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':sla_hours', $slaHours, PDO::PARAM_INT);
+        foreach ($scopeParams as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function buildScopeWhereClause(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+        $this->appendScopeConditions($filters, $conditions, $params);
+        if ($conditions === []) {
+            return ['', []];
+        }
+
+        return [' AND ' . implode(' AND ', $conditions), $params];
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    private function scopedCount(\PDO $conn, string $sql, array $params): int
+    {
+        $stmt = $conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return list<array<string, mixed>>
+     */
+    private function countGroupScoped(string $field, string $baseWhere, array $params): array
     {
         $allowed = ['status', 'category', 'risk_level'];
         if (!in_array($field, $allowed, true)) {
@@ -407,7 +597,13 @@ class WhistleblowingReportsRepository extends DbConnection
         }
 
         $sql = "SELECT r.{$field} AS label, COUNT(*) AS total {$baseWhere} GROUP BY r.{$field} ORDER BY total DESC";
-        return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
@@ -442,5 +638,60 @@ class WhistleblowingReportsRepository extends DbConnection
         $stmt = $this->getConnection()->prepare('DELETE FROM adms_whistleblowing_reports WHERE id = :id');
 
         return $stmt->execute([':id' => $id]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listRawReportsContent(): array
+    {
+        try {
+            $stmt = $this->getConnection()->query(
+                'SELECT id, content_encrypted FROM adms_whistleblowing_reports ORDER BY id ASC'
+            );
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    public function updateContentEncrypted(int $id, string $encrypted): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_whistleblowing_reports SET content_encrypted = :enc, updated_at = :updated_at WHERE id = :id'
+        );
+
+        return $stmt->execute([
+            ':enc' => $encrypted,
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id' => $id,
+        ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listRawStatusNotes(): array
+    {
+        try {
+            $stmt = $this->getConnection()->query(
+                "SELECT id, notes_encrypted FROM adms_whistleblowing_status_log
+                 WHERE notes_encrypted IS NOT NULL AND notes_encrypted <> '' ORDER BY id ASC"
+            );
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    public function updateStatusNotesEncrypted(int $id, string $encrypted): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_whistleblowing_status_log SET notes_encrypted = :enc WHERE id = :id'
+        );
+
+        return $stmt->execute([':enc' => $encrypted, ':id' => $id]);
     }
 }

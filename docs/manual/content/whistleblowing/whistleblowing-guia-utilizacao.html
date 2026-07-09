@@ -1,0 +1,49 @@
+<h1>Guia de utilização — Canal de Denúncias</h1>
+<p>Referência rápida para Compliance, comitês e TI. Documento completo: <code>docs/GUIA_CANAL_DENUNCIAS.md</code> no repositório.</p>
+
+<h2>Papéis</h2>
+<ul>
+<li><strong>Denunciante (público):</strong> <code>/canaldenuncia</code> — protocolo + senha, sem login.</li>
+<li><strong>Operador:</strong> membro de comitê — vê denúncias dos seus comitês.</li>
+<li><strong>Administrador:</strong> nível manual — todas as denúncias, comitês, config e governança.</li>
+</ul>
+
+<h2>Implantação (primeira vez)</h2>
+<ol>
+<li>Rodar migrations Phinx.</li>
+<li>Instalar gateway em <code>/canaldenuncia</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</li>
+<li><strong>Configuração</strong> → chave AES (mín. 32 caracteres) — libera o canal público.</li>
+<li>Cadastrar <strong>comitês</strong> (membros + classificações).</li>
+<li>Atribuir nível <strong>Administrador</strong> ao Compliance/DPO.</li>
+</ol>
+
+<h2>Fluxo diário — Compliance</h2>
+<ol>
+<li><strong>Dashboard</strong> — visão de pendentes e críticas.</li>
+<li><strong>Listar Denúncias</strong> — filtrar e abrir protocolo.</li>
+<li><strong>Visualizar</strong> — ler relato, baixar anexos, responder (ou nota interna), atualizar status.</li>
+<li>Denunciante acompanha em <code>/canaldenuncia</code> com protocolo + senha.</li>
+</ol>
+
+<h2>Segurança e LGPD</h2>
+<ul>
+<li>Retenção automática no <strong>primeiro login do dia</strong> (sem cron no Windows).</li>
+<li><strong>Governança LGPD</strong> — histórico, execução manual, contadores de anexos.</li>
+<li><strong>Rotação de chave</strong> — obrigatória para trocar chave; deixe «Chave atual» em branco se houver dados legados.</li>
+<li>Download de anexos só pelo módulo interno; cada download é auditado.</li>
+</ul>
+
+<h2>O que ainda falta</h2>
+<ul>
+<li>E-mail ao comitê ao receber denúncia.</li>
+<li>Exportação de auditoria (Excel/PDF).</li>
+<li>Download de anexos pelo denunciante no canal público.</li>
+</ul>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Canal público bloqueado</dt><dd>Configure chave em Configuração.</dd>
+<dt>Rate limit no acompanhamento</dt><dd>Aguarde 15 min (ou valor configurado).</dd>
+<dt>Anexo não baixa</dt><dd>Use Rotação de chave com opção de chave legada.</dd>
+<dt>Operador não vê denúncia</dt><dd>Verifique comitê da classificação da denúncia.</dd>
+</dl>

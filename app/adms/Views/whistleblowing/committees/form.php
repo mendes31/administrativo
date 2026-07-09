@@ -42,7 +42,15 @@ $action = $isEdit
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="form-text">Segure Ctrl para selecionar vários. O primeiro membro pode ser atribuído como responsável automático.</div>
+                    <div class="form-text">
+                        Segure Ctrl para selecionar vários. O primeiro membro pode ser atribuído como responsável automático.
+                        Ao salvar, o sistema concede automaticamente o nível secundário
+                        <strong><?= htmlspecialchars(\App\adms\Models\Services\WhistleblowingPermissionService::OPERATOR_LEVEL_NAME) ?></strong>
+                        (abre o menu do canal). A remoção do último comitê revoga esse nível.
+                        Para Configuração e Governança LGPD, atribua manualmente o nível
+                        <strong><?= htmlspecialchars(\App\adms\Models\Services\WhistleblowingPermissionService::ADMIN_LEVEL_NAME) ?></strong>
+                        no cadastro do usuário.
+                    </div>
                 </div>
 
                 <div class="mb-3">

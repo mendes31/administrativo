@@ -190,18 +190,20 @@ use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
         </div>
 
-        <!--
+        <!-- DIV Atalho para o Canal de Denúncias (anônimo) -->
         <div class="login-app-footer">
             <div class="small mb-2">
                 <a href="<?php echo htmlspecialchars(WhistleblowingPublicUrlHelper::baseUrl(), ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none" target="_blank" rel="noopener">
                     <i class="fas fa-shield-alt me-1"></i>Canal de Denúncias (anônimo)
                 </a>
             </div>
+            <!--
             <div class="small">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>new-user" class="text-decoration-none">Cadastrar</a>
             </div>
+            -->
         </div>
-        -->
+    
     </div>
 </div>
 

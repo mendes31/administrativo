@@ -64,6 +64,24 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($attachments)): ?>
+    <div class="mb-3">
+        <h2 class="h6 fw-semibold">Seus anexos</h2>
+        <ul class="list-group list-group-flush border rounded">
+            <?php foreach ($attachments as $att): ?>
+                <?php if (($att['uploaded_by'] ?? '') !== 'denunciante') { continue; } ?>
+                <li class="list-group-item d-flex justify-content-between align-items-center small">
+                    <span><?php echo htmlspecialchars((string)($att['original_name'] ?? 'arquivo'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <a href="<?php echo htmlspecialchars($base_url . 'download-anexo?id=' . (int)($att['id'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>"
+                       class="btn btn-outline-secondary btn-sm py-0">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
+
     <?php if (($report['status'] ?? '') !== 'Encerrada'): ?>
     <div class="border-top pt-3 mt-3">
         <h2 class="h6 fw-semibold">Enviar nova informação</h2>
