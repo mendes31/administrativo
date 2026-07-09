@@ -6,7 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Ajusta prazos LGPD em adms_whistleblowing_reports para contar a partir de closed_at.
- * Distinto de WhistleblowingRetentionRuns (tabela de log de execuções do cron).
+ * Versão 20260709160100 — substitui arquivo duplicado 20260709160000 no deploy.
  */
 final class WhistleblowingReportsRetentionClosedAt extends AbstractMigration
 {

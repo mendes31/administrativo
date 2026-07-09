@@ -6,7 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Tabela adms_whistleblowing_categories + páginas de gestão de classificações.
- * Distinto de WhistleblowingPhase3Features (identificação voluntária / export).
+ * Versão 20260709150100 — substitui arquivo duplicado 20260709150000 no deploy.
  */
 final class WhistleblowingReportCategories extends AbstractMigration
 {
