@@ -2,19 +2,34 @@
 <p>Página acessível sem login para registro anônimo de denúncias e acompanhamento por protocolo + senha.</p>
 <p><strong>Quem acessa:</strong> qualquer pessoa — não exige autenticação no portal.</p>
 
+<h2>Página inicial — o que o denunciante vê</h2>
+<p>Dois blocos resumidos (no celular, toque para expandir/recolher): <strong>Garantias de anonimato</strong> e <strong>Confidencialidade</strong>. Botões em largura total no mobile.</p>
+
+<h2>Antes de registrar</h2>
+<ul>
+<li>Leia as garantias na página inicial.</li>
+<li>Anote <strong>protocolo</strong> e <strong>senha</strong> ao final — exibidos uma única vez.</li>
+<li><strong>Retornos do comitê</strong> são publicados somente na consulta por protocolo.</li>
+<li>Perdeu protocolo ou senha? Registre nova denúncia e informe no relato que é recadastro por perda de credenciais (resuma o conteúdo anterior, se possível).</li>
+</ul>
+
 <h2>Registrar denúncia</h2>
 <ol>
 <li>Acesse <code>/canaldenuncia</code> (raiz do site).</li>
 <li>Clique em <strong>Registrar nova denúncia</strong>.</li>
+<li>Leia o bloco <strong>ATENÇÃO!</strong> (guardar credenciais, recadastro se perder, retornos por protocolo).</li>
 <li>Selecione classificação e grau de risco; descreva o ocorrido e envolvidos.</li>
 <li>Anexe evidências (opcional): PDF, imagens, áudio ou vídeo (até 10 MB).</li>
-<li>Anote <strong>protocolo</strong> e <strong>senha</strong> — exibidos uma única vez.</li>
+<li><strong>Identificação voluntária (opcional):</strong> nome e contato cifrados, visíveis ao comitê. Retornos oficiais continuam apenas na consulta por protocolo.</li>
+<li>Anote <strong>protocolo</strong> e <strong>senha</strong> na tela de confirmação.</li>
 </ol>
+<p>Após o registro, os membros do comitê recebem e-mail interno com protocolo, classificação e risco — <strong>sem</strong> o texto do relato. Isso não substitui o acompanhamento do denunciante.</p>
 
 <h2>Acompanhar denúncia</h2>
 <ol>
 <li><strong>Acompanhar denúncia existente</strong> → protocolo + senha.</li>
 <li>Veja status, respostas do comitê e envie complementos ou novos anexos.</li>
+<li>Baixe seus anexos na tela de acompanhamento (sessão válida por 2 horas após consulta).</li>
 </ol>
 
 <h2>Indisponibilidade e limites</h2>
@@ -25,7 +40,9 @@
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Protocolo ou senha inválidos</dt><dd>Verifique maiúsculas; senha tem 6 caracteres.</dd>
+<dt>Protocolo ou senha inválidos</dt><dd>Verifique maiúsculas; senha tem 6 caracteres. Não há recuperação automática.</dd>
+<dt>Perdi protocolo ou senha</dt><dd>Registre uma nova denúncia. No relato, informe que é recadastro por perda de credenciais e descreva novamente o ocorrido.</dd>
+<dt>Não recebi retorno por e-mail</dt><dd>Retornos são publicados somente na consulta por protocolo — comportamento esperado.</dd>
 <dt>Muitas tentativas incorretas</dt><dd>Aguarde o tempo indicado na tela (configurável pelo administrador).</dd>
 <dt>Página não carrega</dt><dd>Verifique gateway em <code>/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</dd>
 </dl>

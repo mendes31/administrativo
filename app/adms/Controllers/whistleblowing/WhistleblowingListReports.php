@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 use App\adms\Models\Services\WhistleblowingPermissionService;
+use App\adms\Models\Services\WhistleblowingCategoryService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -46,7 +47,7 @@ class WhistleblowingListReports
             'last_page' => max(1, (int) ceil($total / $this->perPage)),
         ];
         $this->data['filters'] = $filters;
-        $this->data['categories'] = WhistleblowingProtocolService::CATEGORIES;
+        $this->data['categories'] = WhistleblowingCategoryService::getAllNames();
         $this->data['risk_levels'] = WhistleblowingProtocolService::RISK_LEVELS;
         $this->data['statuses'] = WhistleblowingProtocolService::STATUSES;
 

@@ -1058,6 +1058,12 @@ $menus = [
                 'icon' => 'fas fa-users-cog',
             ],
             [
+                'label' => 'Classificações',
+                'url' => $_ENV['URL_ADM'] . 'list-whistleblowing-categories',
+                'permission' => 'WhistleblowingListCategories',
+                'icon' => 'fas fa-tags',
+            ],
+            [
                 'label' => 'Canal público',
                 'url' => WhistleblowingPublicUrlHelper::baseUrl(),
                 'target' => '_blank',

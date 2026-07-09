@@ -230,7 +230,8 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                     <p class="small text-muted mb-2">
                         A retenção LGPD roda automaticamente no <strong>primeiro login do dia</strong> (máx. 1× a cada 24 h), como treinamentos e currículos — sem Agendador de Tarefas no Windows.
-                        Novas denúncias usam os prazos acima. O rate limit protege o acompanhamento público.
+                        Os prazos de arquivamento e exclusão contam a partir da <strong>data de encerramento</strong> da denúncia (status Encerrada).
+                        Denúncias em andamento não entram na fila de retenção até serem encerradas.
                     </p>
 
                     <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save me-1"></i>Salvar políticas</button>

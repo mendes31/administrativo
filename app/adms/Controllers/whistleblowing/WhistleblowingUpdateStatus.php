@@ -47,10 +47,18 @@ class WhistleblowingUpdateStatus
         $riskLevel = trim((string) ($_POST['risk_level'] ?? ''));
 
         $updateData = [];
+        $shouldScheduleRetention = false;
+        $closedAtForRetention = null;
+        $shouldClearRetention = false;
+
         if (in_array($newStatus, WhistleblowingProtocolService::STATUSES, true) && $newStatus !== ($report['status'] ?? '')) {
             $updateData['status'] = $newStatus;
             if ($newStatus === 'Encerrada') {
-                $updateData['closed_at'] = date('Y-m-d H:i:s');
+                $closedAtForRetention = date('Y-m-d H:i:s');
+                $updateData['closed_at'] = $closedAtForRetention;
+                $shouldScheduleRetention = true;
+            } elseif (($report['status'] ?? '') === 'Encerrada') {
+                $shouldClearRetention = true;
             }
         }
         if ($assignedUserId !== null) {
@@ -62,6 +70,11 @@ class WhistleblowingUpdateStatus
 
         if ($updateData !== []) {
             $repo->updateReport($reportId, $updateData);
+            if ($shouldScheduleRetention && $closedAtForRetention !== null) {
+                $repo->scheduleRetentionFromClosure($reportId, $closedAtForRetention);
+            } elseif ($shouldClearRetention) {
+                $repo->clearRetentionSchedule($reportId);
+            }
         }
 
         if (isset($updateData['status'])) {

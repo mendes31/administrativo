@@ -22,8 +22,16 @@
 <li><strong>Dashboard</strong> — visão de pendentes e críticas.</li>
 <li><strong>Listar Denúncias</strong> — filtrar e abrir protocolo.</li>
 <li><strong>Visualizar</strong> — ler relato, baixar anexos, responder (ou nota interna), atualizar status.</li>
-<li>Denunciante acompanha em <code>/canaldenuncia</code> com protocolo + senha.</li>
+<li>Denunciante acompanha em <code>/canaldenuncia</code> com protocolo + senha. <strong>Retornos do comitê são publicados somente nessa consulta</strong> — não por e-mail ou telefone ao denunciante.</li>
 </ol>
+
+<h2>Comunicação com o denunciante (público)</h2>
+<ul>
+<li>A home e o formulário de registro explicam escopo, sigilo, boa-fé, LGPD e funcionamento por protocolo.</li>
+<li>Protocolo e senha são exibidos <strong>uma única vez</strong>; perda implica novo cadastro com aviso no relato.</li>
+<li>Identificação voluntária não altera o canal de retorno — apenas permite contato interno do comitê.</li>
+<li>E-mail automático ao comitê (nova denúncia) é <strong>interno</strong> e não substitui o acompanhamento do denunciante.</li>
+</ul>
 
 <h2>Segurança e LGPD</h2>
 <ul>
@@ -33,16 +41,11 @@
 <li>Download de anexos só pelo módulo interno; cada download é auditado.</li>
 </ul>
 
-<h2>O que ainda falta</h2>
-<ul>
-<li>E-mail ao comitê ao receber denúncia.</li>
-<li>Exportação de auditoria (Excel/PDF).</li>
-<li>Download de anexos pelo denunciante no canal público.</li>
-</ul>
-
 <h2>Problemas comuns</h2>
 <dl>
 <dt>Canal público bloqueado</dt><dd>Configure chave em Configuração.</dd>
+<dt>Denunciante perdeu protocolo/senha</dt><dd>Oriente a registrar nova denúncia e informar no relato que é recadastro por perda de credenciais.</dd>
+<dt>Denunciante espera retorno por e-mail</dt><dd>Retornos são somente na consulta por protocolo — comportamento esperado.</dd>
 <dt>Rate limit no acompanhamento</dt><dd>Aguarde 15 min (ou valor configurado).</dd>
 <dt>Anexo não baixa</dt><dd>Use Rotação de chave com opção de chave legada.</dd>
 <dt>Operador não vê denúncia</dt><dd>Verifique comitê da classificação da denúncia.</dd>

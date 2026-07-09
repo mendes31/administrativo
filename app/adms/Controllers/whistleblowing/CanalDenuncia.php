@@ -11,6 +11,7 @@ use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 use App\adms\Models\Services\WhistleblowingChannelSecurityService;
 use App\adms\Models\Services\WhistleblowingCommitteeNotificationService;
+use App\adms\Models\Services\WhistleblowingCategoryService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
 use App\adms\Models\Services\WhistleblowingRateLimitService;
 use App\adms\Models\Services\WhistleblowingUploadService;
@@ -62,7 +63,7 @@ final class CanalDenuncia
 
         $this->render('registrar', [
             'title' => 'Registrar denúncia',
-            'categories' => WhistleblowingProtocolService::CATEGORIES,
+            'categories' => WhistleblowingCategoryService::getActiveNames(),
             'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
             'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
         ]);
@@ -82,7 +83,7 @@ final class CanalDenuncia
         if (!CSRFHelper::validateCSRFToken('canal_denuncia_registrar', $_POST['csrf_token'] ?? '')) {
             $this->render('registrar', [
                 'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingProtocolService::CATEGORIES,
+                'categories' => WhistleblowingCategoryService::getActiveNames(),
                 'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
                 'error' => 'Sessão expirada. Atualize a página e tente novamente.',
@@ -98,7 +99,7 @@ final class CanalDenuncia
         if ($description === '') {
             $this->render('registrar', [
                 'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingProtocolService::CATEGORIES,
+                'categories' => WhistleblowingCategoryService::getActiveNames(),
                 'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
                 'error' => 'O relato da denúncia é obrigatório.',
@@ -107,9 +108,7 @@ final class CanalDenuncia
             return;
         }
 
-        if (!in_array($category, WhistleblowingProtocolService::CATEGORIES, true)) {
-            $category = 'Outros';
-        }
+        $category = WhistleblowingCategoryService::normalize($category);
         if (!in_array($riskLevel, WhistleblowingProtocolService::RISK_LEVELS, true)) {
             $riskLevel = 'Médio';
         }
@@ -123,7 +122,7 @@ final class CanalDenuncia
             if ($reporterName === '') {
                 $this->render('registrar', [
                     'title' => 'Registrar denúncia',
-                    'categories' => WhistleblowingProtocolService::CATEGORIES,
+                    'categories' => WhistleblowingCategoryService::getActiveNames(),
                     'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
                     'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
                     'error' => 'Informe seu nome para identificação voluntária.',
@@ -134,7 +133,7 @@ final class CanalDenuncia
             if ($reporterEmail === '' && $reporterPhone === '') {
                 $this->render('registrar', [
                     'title' => 'Registrar denúncia',
-                    'categories' => WhistleblowingProtocolService::CATEGORIES,
+                    'categories' => WhistleblowingCategoryService::getActiveNames(),
                     'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
                     'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
                     'error' => 'Informe e-mail ou telefone para contato.',
@@ -159,7 +158,7 @@ final class CanalDenuncia
         if ($result === null) {
             $this->render('registrar', [
                 'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingProtocolService::CATEGORIES,
+                'categories' => WhistleblowingCategoryService::getActiveNames(),
                 'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
                 'error' => 'Não foi possível registrar a denúncia. Tente novamente.',

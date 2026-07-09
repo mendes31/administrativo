@@ -8,7 +8,8 @@ use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 
 /**
- * Retenção LGPD: arquivar após N anos, excluir após M anos.
+ * Retenção LGPD: arquivar após N anos e excluir após M anos,
+ * contados a partir da data de encerramento (`closed_at`) da denúncia.
  *
  * Disparo automático: {@see self::ensureUpdated()} no login (máx. 1× a cada 24 h).
  */

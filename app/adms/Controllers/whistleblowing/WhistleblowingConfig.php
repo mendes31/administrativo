@@ -22,6 +22,8 @@ use App\adms\Models\Repository\WhistleblowingConfigRepository;
 
 use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 
+use App\adms\Models\Repository\WhistleblowingReportsRepository;
+
 use App\adms\Models\Repository\WhistleblowingRetentionRunsRepository;
 
 use App\adms\Models\Services\LogResumoService;
@@ -205,6 +207,10 @@ class WhistleblowingConfig
                 'rate_limit_window_minutes' => $_POST['rate_limit_window_minutes'] ?? 15,
 
             ]);
+
+            if ($ok) {
+                (new WhistleblowingReportsRepository())->recalculateRetentionForClosedReports();
+            }
 
             $_SESSION['msg'] = $ok ? 'Políticas e agendamento atualizados.' : 'Não foi possível salvar as políticas.';
 

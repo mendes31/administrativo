@@ -2185,6 +2185,11 @@
                     "file": "whistleblowing/list-whistleblowing-committees.html"
                 },
                 {
+                    "id": "list-whistleblowing-categories",
+                    "title": "Classificações de Denúncias",
+                    "file": "whistleblowing/list-whistleblowing-categories.html"
+                },
+                {
                     "id": "whistleblowing-config",
                     "title": "Configuração Canal de Denúncias",
                     "file": "whistleblowing/whistleblowing-config.html"

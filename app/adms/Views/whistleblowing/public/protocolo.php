@@ -7,7 +7,7 @@ require __DIR__ . '/_view_scope.php';
 <div class="canal-card">
     <div class="canal-header">
         <h1><i class="fas fa-check-circle text-success me-2"></i>Denúncia registrada</h1>
-        <p class="text-muted">Guarde os dados abaixo. Eles <strong>não serão exibidos novamente</strong>.</p>
+        <p class="text-muted mb-0">Guarde os dados abaixo. Eles <strong>não serão exibidos novamente</strong>.</p>
     </div>
 
     <div class="protocol-box">
@@ -23,11 +23,18 @@ require __DIR__ . '/_view_scope.php';
 
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle me-1"></i>
-        Sem o protocolo e a senha não será possível acompanhar sua denúncia.
-        Anote ou imprima esta página agora.
+        <strong>Guarde protocolo e senha agora.</strong> Eles não serão exibidos novamente.
+        Sem esses dados não será possível acompanhar a denúncia nem receber retornos do comitê.
     </div>
 
-    <div class="d-flex gap-2 flex-wrap">
+    <div class="alert alert-info small mb-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Os retornos do comitê ficam disponíveis somente na consulta por protocolo.
+        Se você perder protocolo ou senha, registre uma <strong>nova denúncia</strong> e informe no relato
+        que se trata de um novo cadastro devido à perda das credenciais anteriores.
+    </div>
+
+    <div class="canal-actions-grid">
         <button type="button" class="btn btn-canal-primary" onclick="window.print()">
             <i class="fas fa-print me-1"></i>Imprimir
         </button>

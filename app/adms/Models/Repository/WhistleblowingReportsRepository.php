@@ -50,11 +50,6 @@ class WhistleblowingReportsRepository extends DbConnection
         }
 
         $now = date('Y-m-d H:i:s');
-        $configRepo = new \App\adms\Models\Repository\WhistleblowingConfigRepository();
-        $archiveYears = $configRepo->getRetentionArchiveYears();
-        $deleteYears = $configRepo->getRetentionDeleteYears();
-        $archiveAt = date('Y-m-d H:i:s', strtotime('+' . $archiveYears . ' years'));
-        $deleteAt = date('Y-m-d H:i:s', strtotime('+' . $deleteYears . ' years'));
 
         $committeesRepo = new WhistleblowingCommitteesRepository();
         $committeeId = $committeesRepo->findCommitteeIdByCategory($category);
@@ -84,8 +79,8 @@ class WhistleblowingReportsRepository extends DbConnection
             ':status' => 'Recebida',
             ':committee_id' => $committeeId,
             ':assigned_user_id' => $assignedUserId,
-            ':retention_archive_at' => $archiveAt,
-            ':retention_delete_at' => $deleteAt,
+            ':retention_archive_at' => null,
+            ':retention_delete_at' => null,
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
@@ -607,12 +602,97 @@ class WhistleblowingReportsRepository extends DbConnection
     }
 
     /**
+     * Calcula prazos LGPD a partir da data de encerramento da denúncia.
+     *
+     * @return array{retention_archive_at: string, retention_delete_at: string}
+     */
+    public function computeRetentionSchedule(string $closedAt): array
+    {
+        $configRepo = new \App\adms\Models\Repository\WhistleblowingConfigRepository();
+        $archiveYears = $configRepo->getRetentionArchiveYears();
+        $deleteYears = $configRepo->getRetentionDeleteYears();
+        $base = strtotime($closedAt);
+        if ($base === false) {
+            $base = time();
+        }
+
+        return [
+            'retention_archive_at' => date('Y-m-d H:i:s', strtotime('+' . $archiveYears . ' years', $base)),
+            'retention_delete_at' => date('Y-m-d H:i:s', strtotime('+' . $deleteYears . ' years', $base)),
+        ];
+    }
+
+    public function scheduleRetentionFromClosure(int $reportId, string $closedAt): bool
+    {
+        $schedule = $this->computeRetentionSchedule($closedAt);
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_whistleblowing_reports
+             SET retention_archive_at = :archive_at,
+                 retention_delete_at = :delete_at,
+                 updated_at = :updated_at
+             WHERE id = :id AND archived_at IS NULL'
+        );
+
+        return $stmt->execute([
+            ':archive_at' => $schedule['retention_archive_at'],
+            ':delete_at' => $schedule['retention_delete_at'],
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id' => $reportId,
+        ]);
+    }
+
+    public function clearRetentionSchedule(int $reportId): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE adms_whistleblowing_reports
+             SET closed_at = NULL,
+                 retention_archive_at = NULL,
+                 retention_delete_at = NULL,
+                 updated_at = :updated_at
+             WHERE id = :id AND archived_at IS NULL'
+        );
+
+        return $stmt->execute([
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id' => $reportId,
+        ]);
+    }
+
+    /**
+     * Recalcula prazos de denúncias encerradas (não arquivadas) após alteração da política.
+     */
+    public function recalculateRetentionForClosedReports(): int
+    {
+        $configRepo = new \App\adms\Models\Repository\WhistleblowingConfigRepository();
+        $archiveYears = $configRepo->getRetentionArchiveYears();
+        $deleteYears = $configRepo->getRetentionDeleteYears();
+
+        $sql = 'UPDATE adms_whistleblowing_reports
+                SET retention_archive_at = DATE_ADD(closed_at, INTERVAL :archive_years YEAR),
+                    retention_delete_at = DATE_ADD(closed_at, INTERVAL :delete_years YEAR),
+                    updated_at = NOW()
+                WHERE status = :status
+                  AND closed_at IS NOT NULL
+                  AND archived_at IS NULL';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([
+            ':archive_years' => $archiveYears,
+            ':delete_years' => $deleteYears,
+            ':status' => 'Encerrada',
+        ]);
+
+        return $stmt->rowCount();
+    }
+
+    /**
      * @return list<int>
      */
     public function getReportIdsDueForDeletion(): array
     {
         $sql = 'SELECT id FROM adms_whistleblowing_reports
-                WHERE retention_delete_at IS NOT NULL AND retention_delete_at <= :now';
+                WHERE closed_at IS NOT NULL
+                  AND retention_delete_at IS NOT NULL
+                  AND retention_delete_at <= :now';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([':now' => date('Y-m-d H:i:s')]);
 
@@ -624,6 +704,7 @@ class WhistleblowingReportsRepository extends DbConnection
         $sql = 'UPDATE adms_whistleblowing_reports
                 SET archived_at = :now, updated_at = :now2
                 WHERE archived_at IS NULL
+                  AND closed_at IS NOT NULL
                   AND retention_archive_at IS NOT NULL
                   AND retention_archive_at <= :now3';
         $now = date('Y-m-d H:i:s');

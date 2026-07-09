@@ -2048,6 +2048,11 @@
                 },
                 {
                     "type": "topic",
+                    "topic_id": "list-whistleblowing-categories",
+                    "title": "Classificações"
+                },
+                {
+                    "type": "topic",
                     "topic_id": "whistleblowing-config",
                     "title": "Configuração"
                 },

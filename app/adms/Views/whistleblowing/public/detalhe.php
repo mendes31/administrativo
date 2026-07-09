@@ -19,7 +19,7 @@ $statusLabels = [
 ];
 $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
 ?>
-<div class="canal-card" style="max-width: 800px;">
+<div class="canal-card canal-card--wide">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
         <div>
             <h1 class="h4 mb-1">Protocolo <?php echo htmlspecialchars((string)($report['protocol'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h1>
@@ -28,10 +28,15 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
         <a href="<?php echo htmlspecialchars($base_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-outline-secondary">Sair</a>
     </div>
 
-    <div class="row g-2 mb-3 small text-muted">
-        <div class="col-md-4"><strong>Classificação:</strong> <?php echo htmlspecialchars((string)($report['category'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-        <div class="col-md-4"><strong>Risco:</strong> <?php echo htmlspecialchars((string)($report['risk_level'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-        <div class="col-md-4"><strong>Registrada em:</strong> <?php echo date('d/m/Y H:i', strtotime((string)($report['created_at'] ?? 'now'))); ?></div>
+    <div class="row g-1 g-sm-2 mb-2 mb-sm-3 small text-muted canal-meta">
+        <div class="col-12 col-sm-4"><strong>Classificação:</strong> <?php echo htmlspecialchars((string)($report['category'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="col-12 col-sm-4"><strong>Risco:</strong> <?php echo htmlspecialchars((string)($report['risk_level'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="col-12 col-sm-4"><strong>Registrada:</strong> <?php echo date('d/m/Y H:i', strtotime((string)($report['created_at'] ?? 'now'))); ?></div>
+    </div>
+
+    <div class="alert alert-info py-2 small mb-2 mb-sm-3">
+        <i class="fas fa-info-circle me-1"></i>
+        As respostas do comitê aparecem abaixo. Consulte esta página periodicamente com protocolo e senha — não enviamos retornos por e-mail ou telefone.
     </div>
 
     <div class="mb-3">
@@ -85,7 +90,7 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
     <?php if (($report['status'] ?? '') !== 'Encerrada'): ?>
     <div class="border-top pt-3 mt-3">
         <h2 class="h6 fw-semibold">Enviar nova informação</h2>
-        <form method="post" action="<?php echo htmlspecialchars($base_url . 'responder', ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
+        <form class="canal-form" method="post" action="<?php echo htmlspecialchars($base_url . 'responder', ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string)($csrf_token ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="protocol" value="<?php echo htmlspecialchars((string)($protocol ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="password" value="<?php echo htmlspecialchars((string)($password ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -96,9 +101,11 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
                 <input type="file" name="attachments[]" class="form-control form-control-sm" multiple
                     accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.mp4,.doc,.docx">
             </div>
-            <button type="submit" class="btn btn-canal-primary btn-sm">
+            <div class="canal-form-actions">
+            <button type="submit" class="btn btn-canal-primary">
                 <i class="fas fa-reply me-1"></i>Enviar
             </button>
+            </div>
         </form>
     </div>
     <?php else: ?>

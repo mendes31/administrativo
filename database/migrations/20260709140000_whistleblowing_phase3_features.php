@@ -34,7 +34,8 @@ final class WhistleblowingPhase3Features extends AbstractMigration
         $groupId = $this->fetchRow(
             "SELECT id FROM adms_groups_pages WHERE name LIKE '%Denúncia%' OR name LIKE '%Whistle%' LIMIT 1"
         );
-        $groupId = $groupId ? (int) $groupId['id'] : null;
+        $gid = $groupId ? (int) $groupId['id'] : 1;
+        $now = date('Y-m-d H:i:s');
 
         $pages = [
             [
@@ -60,20 +61,20 @@ final class WhistleblowingPhase3Features extends AbstractMigration
             if ($exists) {
                 continue;
             }
-            $row = [
+            $this->table('adms_pages')->insert([
                 'name' => $page['name'],
                 'controller' => $page['controller'],
                 'controller_url' => $page['controller_url'],
                 'directory' => $page['directory'],
+                'obs' => '',
                 'public_page' => $page['public_page'],
+                'default_page' => 0,
                 'page_status' => 1,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ];
-            if ($groupId) {
-                $row['group_id'] = $groupId;
-            }
-            $this->table('adms_pages')->insert($row)->saveData();
+                'adms_packages_page_id' => 1,
+                'adms_groups_page_id' => $gid,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])->save();
         }
 
         $this->grantExportPagesToWhistleblowingLevels();
@@ -104,19 +105,11 @@ final class WhistleblowingPhase3Features extends AbstractMigration
                     continue;
                 }
                 $pageId = (int) $page['id'];
-                $exists = $this->fetchRow(
-                    "SELECT id FROM adms_access_levels_pages WHERE adms_access_level_id = {$levelId} AND page_id = {$pageId} LIMIT 1"
+                $this->execute(
+                    "INSERT INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                     VALUES (1, {$levelId}, {$pageId}, '{$now}', '{$now}')
+                     ON DUPLICATE KEY UPDATE permission = 1, updated_at = '{$now}'"
                 );
-                if ($exists) {
-                    continue;
-                }
-                $this->table('adms_access_levels_pages')->insert([
-                    'adms_access_level_id' => $levelId,
-                    'page_id' => $pageId,
-                    'permission' => 1,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ])->saveData();
             }
         }
     }

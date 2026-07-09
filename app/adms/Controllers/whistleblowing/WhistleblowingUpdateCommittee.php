@@ -8,7 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WhistleblowingCommitteesRepository;
-use App\adms\Models\Services\WhistleblowingProtocolService;
+use App\adms\Models\Services\WhistleblowingCategoryService;
 use App\adms\Views\Services\LoadViewService;
 
 class WhistleblowingUpdateCommittee
@@ -41,7 +41,11 @@ class WhistleblowingUpdateCommittee
         $this->data['member_ids'] = $repo->getMemberIds((int) $id);
         $this->data['selected_categories'] = $repo->getCategories((int) $id);
         $this->data['users'] = $usersRepo->getAllUsersSelect();
-        $this->data['categories'] = WhistleblowingProtocolService::CATEGORIES;
+        $active = WhistleblowingCategoryService::getActiveNames();
+        $this->data['categories'] = array_values(array_unique(array_merge(
+            $active,
+            $this->data['selected_categories']
+        )));
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('whistleblowing_committee');
 
         $pageElements = [

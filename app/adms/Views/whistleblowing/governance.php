@@ -170,9 +170,11 @@ $originLabels = [
 
                     <ul class="mb-0">
 
-                        <li>Arquivar após <strong><?= $archiveYears ?></strong> ano(s)</li>
+                        <li>Arquivar após <strong><?= $archiveYears ?></strong> ano(s) do encerramento</li>
 
-                        <li>Excluir após <strong><?= $deleteYears ?></strong> ano(s)</li>
+                        <li>Excluir após <strong><?= $deleteYears ?></strong> ano(s) do encerramento</li>
+
+                        <li>Contagem inicia em <code>closed_at</code> (status Encerrada)</li>
 
                         <li>Anexos removidos na exclusão definitiva</li>
 

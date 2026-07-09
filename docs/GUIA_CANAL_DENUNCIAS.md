@@ -117,8 +117,8 @@ Filtros por protocolo, status, classificação, risco, responsável, datas. Oper
 
 | Campo | Padrão | Descrição |
 |-------|--------|-----------|
-| Arquivar após | 5 anos | Define `retention_archive_at` em novas denúncias |
-| Excluir após | 10 anos | Exclusão definitiva (relato, mensagens, anexos) |
+| Arquivar após | 5 anos | Após encerramento (`closed_at` + N anos) |
+| Excluir após | 10 anos | Exclusão definitiva após encerramento + M anos |
 | Retenção automática | Ativa | Rotina no **primeiro login do dia** (máx. 1×/24 h) |
 | Rate limit | 5 tentativas / 15 min | Proteção do acompanhamento público |
 

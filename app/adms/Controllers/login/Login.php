@@ -15,6 +15,7 @@ use App\adms\Models\Services\TrainingStatusUpdaterService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\PayrollDocumentRemindersService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
+use App\adms\Models\Services\WhistleblowingRetentionService;
 
 /**
  * Controller login
@@ -189,10 +190,12 @@ class Login
             // - Atualização de status dinâmicos de treinamentos
             // - Retenção/anonimização de currículos (LGPD)
             // - Lembretes de ciência em documentos de folha (RH), no máximo 1× por 24 h
+            // - Retenção LGPD do Canal de Denúncias (máx. 1× por 24 h)
             TrainingStatusUpdaterService::ensureUpdated(false);
             CandidateRetentionService::ensureUpdated(false);
             PayrollDocumentRemindersService::ensureUpdated(false);
             InformativosStatusUpdaterService::ensureUpdated(false);
+            WhistleblowingRetentionService::ensureUpdated(false);
 
             // Verificar consentimento LGPD antes de liberar acesso
             // Exceções:

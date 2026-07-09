@@ -2,6 +2,9 @@
 <p>Status operacional, política de retenção, auditoria de anexos, execução manual e histórico.</p>
 <p><strong>Quem acessa:</strong> nível <em>Administrador</em> ou <em>WhistleblowingGovernanceLgpd</em>.</p>
 
+<h2>Política de retenção</h2>
+<p>Arquivamento e exclusão definitiva contam a partir da <strong>data de encerramento</strong> da denúncia (<code>closed_at</code>, status <em>Encerrada</em>). Denúncias em andamento permanecem ativas até o encerramento.</p>
+
 <h2>Execução automática</h2>
 <p>Retenção no primeiro login do dia (origem <em>Automático (login)</em>). Ative em Configuração → <em>Retenção automática</em>.</p>
 
@@ -19,5 +22,5 @@
 <h2>Problemas comuns</h2>
 <dl>
 <dt>Histórico vazio</dt><dd>Faça login com retenção ativa ou execute manualmente.</dd>
-<dt>Nada arquivado/excluído</dt><dd>Prazos contam da data de abertura da denúncia; pode não haver registros vencidos ainda.</dd>
+<dt>Nada arquivado/excluído</dt><dd>Prazos contam da data de <strong>encerramento</strong> da denúncia; denúncias abertas ou recém-encerradas ainda não atingiram o prazo.</dd>
 </dl>
