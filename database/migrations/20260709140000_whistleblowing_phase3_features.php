@@ -6,6 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Fase 3: identificação voluntária do denunciante + páginas de exportação.
+ * Distinto de WhistleblowingReportCategories (classificações) e WhistleblowingRetentionRuns (log de cron).
  */
 final class WhistleblowingPhase3Features extends AbstractMigration
 {
@@ -31,50 +32,59 @@ final class WhistleblowingPhase3Features extends AbstractMigration
             $table->update();
         }
 
-        $groupId = $this->fetchRow(
-            "SELECT id FROM adms_groups_pages WHERE name LIKE '%Denúncia%' OR name LIKE '%Whistle%' LIMIT 1"
-        );
-        $gid = $groupId ? (int) $groupId['id'] : 1;
+        if (!$this->hasTable('adms_pages')) {
+            return;
+        }
+
+        $groupRow = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Canal de Denúncias' LIMIT 1");
+        if (!$groupRow) {
+            $groupRow = $this->fetchRow(
+                "SELECT id FROM adms_groups_pages WHERE name LIKE '%Denúncia%' OR name LIKE '%Whistle%' LIMIT 1"
+            );
+        }
+        if (!$groupRow) {
+            return;
+        }
+        $gid = (int) $groupRow['id'];
         $now = date('Y-m-d H:i:s');
+        $q = fn (string $value): string => $this->getAdapter()->getConnection()->quote($value);
 
         $pages = [
             [
                 'name' => 'Exportar auditoria denúncia',
                 'controller' => 'WhistleblowingExportAccessLog',
                 'controller_url' => 'whistleblowing-export-access-log',
-                'directory' => 'whistleblowing',
-                'public_page' => 0,
             ],
             [
                 'name' => 'Exportar dashboard denúncias',
                 'controller' => 'WhistleblowingExportDashboard',
                 'controller_url' => 'whistleblowing-export-dashboard',
-                'directory' => 'whistleblowing',
-                'public_page' => 0,
             ],
         ];
 
         foreach ($pages as $page) {
             $exists = $this->fetchRow(
-                "SELECT id FROM adms_pages WHERE controller = '" . $page['controller'] . "' LIMIT 1"
+                'SELECT id FROM adms_pages WHERE controller = ' . $q($page['controller']) . ' LIMIT 1'
             );
             if ($exists) {
                 continue;
             }
-            $this->table('adms_pages')->insert([
-                'name' => $page['name'],
-                'controller' => $page['controller'],
-                'controller_url' => $page['controller_url'],
-                'directory' => $page['directory'],
-                'obs' => '',
-                'public_page' => $page['public_page'],
-                'default_page' => 0,
-                'page_status' => 1,
-                'adms_packages_page_id' => 1,
-                'adms_groups_page_id' => $gid,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ])->save();
+
+            $this->execute(
+                'INSERT INTO adms_pages
+                    (name, controller, controller_url, directory, obs, public_page, default_page, page_status,
+                     adms_packages_page_id, adms_groups_page_id, created_at, updated_at)
+                 VALUES ('
+                . $q($page['name']) . ', '
+                . $q($page['controller']) . ', '
+                . $q($page['controller_url']) . ", "
+                . $q('whistleblowing') . ", "
+                . $q('') . ', 0, 0, 1, 1, '
+                . $gid . ', '
+                . $q($now) . ', '
+                . $q($now)
+                . ')'
+            );
         }
 
         $this->grantExportPagesToWhistleblowingLevels();

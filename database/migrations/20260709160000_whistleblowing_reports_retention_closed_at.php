@@ -5,9 +5,10 @@ declare(strict_types=1);
 use Phinx\Migration\AbstractMigration;
 
 /**
- * Retenção LGPD: prazos contam da data de encerramento (closed_at), não da abertura.
+ * Ajusta prazos LGPD em adms_whistleblowing_reports para contar a partir de closed_at.
+ * Distinto de WhistleblowingRetentionRuns (tabela de log de execuções do cron).
  */
-final class WhistleblowingRetentionFromClosure extends AbstractMigration
+final class WhistleblowingReportsRetentionClosedAt extends AbstractMigration
 {
     public function up(): void
     {
@@ -15,7 +16,6 @@ final class WhistleblowingRetentionFromClosure extends AbstractMigration
             return;
         }
 
-        // Denúncias encerradas sem closed_at: usa último log de status "Encerrada".
         if ($this->hasTable('adms_whistleblowing_status_log')) {
             $rows = $this->fetchAll(
                 "SELECT r.id
@@ -47,7 +47,6 @@ final class WhistleblowingRetentionFromClosure extends AbstractMigration
             }
         }
 
-        // Abertas: remove prazos pré-calculados (só passam a contar no encerramento).
         $this->execute(
             "UPDATE adms_whistleblowing_reports
              SET retention_archive_at = NULL, retention_delete_at = NULL
