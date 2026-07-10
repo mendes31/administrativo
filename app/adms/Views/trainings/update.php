@@ -44,7 +44,7 @@ if (!empty($this->data['training']['instructor_user_id'])) {
                 </div>
                 <div class="col-md-3">
                     <label for="prazo_treinamento" class="form-label">Prazo Treinamento (dias)</label>
-                    <input type="number" name="prazo_treinamento" class="form-control" id="prazo_treinamento" min="1" value="<?php echo $this->data['training']['prazo_treinamento'] ?? '1'; ?>" required>
+                    <input type="number" name="prazo_treinamento" class="form-control" id="prazo_treinamento" min="1" step="1" value="<?php echo htmlspecialchars((string)($this->data['training']['prazo_treinamento'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="col-md-3">
                     <label for="area_responsavel_id" class="form-label">Área Responsável</label>

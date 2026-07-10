@@ -476,6 +476,11 @@ class TrainingsRepository extends DbConnection
                 'tipo_obrigatoriedade' => $data['tipo_obrigatoriedade'] ?? ($source['tipo_obrigatoriedade'] ?? null),
             ];
 
+            $prazoDiasNovaVersao = (int)($insertData['prazo_treinamento'] ?? 0);
+            if ($prazoDiasNovaVersao <= 0) {
+                $prazoDiasNovaVersao = 90;
+            }
+
             $newTrainingId = $this->createTraining($insertData);
             if (!$newTrainingId) {
                 throw new Exception('Falha ao criar nova versão do treinamento.');
@@ -601,7 +606,7 @@ class TrainingsRepository extends DbConnection
                                                     MAX(ta.data_realizacao) AS data_realizacao,
                                                     MAX(ta.nota) AS nota,
                                                     MAX(ta.observacoes) AS observacoes,
-                                                    DATE_ADD(CURDATE(), INTERVAL 90 DAY) AS data_limite
+                                                    DATE_ADD(CURDATE(), INTERVAL :prazo_dias_nova_versao DAY) AS data_limite
                                                 FROM adms_training_applications ta
                                                 WHERE ta.adms_training_id = :source_training_id_2
                                                   AND ta.status = "concluido"
@@ -615,6 +620,7 @@ class TrainingsRepository extends DbConnection
                 $stmtCreateConcludedLinks->bindValue(':new_training_id', $newTrainingId, PDO::PARAM_INT);
                 $stmtCreateConcludedLinks->bindValue(':new_training_id_2', $newTrainingId, PDO::PARAM_INT);
                 $stmtCreateConcludedLinks->bindValue(':source_training_id_2', $sourceTrainingId, PDO::PARAM_INT);
+                $stmtCreateConcludedLinks->bindValue(':prazo_dias_nova_versao', $prazoDiasNovaVersao, PDO::PARAM_INT);
                 $stmtCreateConcludedLinks->execute();
             }
 

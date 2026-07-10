@@ -16,6 +16,77 @@ class TrainingUsersRepository extends DbConnection
     }
 
     /**
+     * Expressão SQL para prazo em dias: prioriza prazo_treinamento do cadastro,
+     * com fallback para tipo_treinamento na matriz (Continuo=365, Inicial=90).
+     */
+    public static function sqlPrazoDiasExpression(string $trainingAlias = 't', string $positionAlias = 'tp'): string
+    {
+        return "CASE
+                    WHEN COALESCE({$trainingAlias}.prazo_treinamento, 0) > 0 THEN {$trainingAlias}.prazo_treinamento
+                    WHEN {$positionAlias}.tipo_treinamento = 'Continuo' THEN 365
+                    ELSE 90
+                END";
+    }
+
+    /**
+     * Resolve prazo em dias para cálculo de data_limite_primeiro_treinamento.
+     */
+    public function resolvePrazoDias(int $trainingId, ?int $userPositionId = null): int
+    {
+        try {
+            $stmt = $this->getConnection()->prepare('SELECT prazo_treinamento FROM adms_trainings WHERE id = :id LIMIT 1');
+            $stmt->bindValue(':id', $trainingId, PDO::PARAM_INT);
+            $stmt->execute();
+            $prazoTreinamento = (int)($stmt->fetchColumn() ?: 0);
+            if ($prazoTreinamento > 0) {
+                return $prazoTreinamento;
+            }
+
+            if ($userPositionId !== null && $userPositionId > 0) {
+                $stmtTipo = $this->getConnection()->prepare(
+                    'SELECT tipo_treinamento FROM adms_training_positions WHERE adms_training_id = :tid AND adms_position_id = :pid LIMIT 1'
+                );
+                $stmtTipo->bindValue(':tid', $trainingId, PDO::PARAM_INT);
+                $stmtTipo->bindValue(':pid', $userPositionId, PDO::PARAM_INT);
+                $stmtTipo->execute();
+                $tipo = $stmtTipo->fetchColumn();
+                if ($tipo === 'Continuo') {
+                    return 365;
+                }
+            }
+        } catch (\Exception $e) {
+            // fallback abaixo
+        }
+
+        return 90;
+    }
+
+    /**
+     * Recalcula data_limite_primeiro_treinamento dos vínculos em aberto
+     * com base no prazo atual do treinamento e na data de criação do vínculo.
+     */
+    public function recalculateOpenDeadlinesForTraining(int $trainingId): int
+    {
+        $prazoDias = $this->resolvePrazoDias($trainingId);
+        if ($prazoDias <= 0) {
+            return 0;
+        }
+
+        $sql = 'UPDATE adms_training_users tu
+                SET tu.data_limite_primeiro_treinamento = DATE_ADD(DATE(tu.created_at), INTERVAL :prazo DAY),
+                    tu.updated_at = NOW()
+                WHERE tu.adms_training_id = :training_id
+                  AND tu.status <> :status_concluido';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':prazo', $prazoDias, PDO::PARAM_INT);
+        $stmt->bindValue(':training_id', $trainingId, PDO::PARAM_INT);
+        $stmt->bindValue(':status_concluido', 'concluido', PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->rowCount();
+    }
+
+    /**
      * Garante tabela de backup para vínculos removidos por deduplicação.
      */
     private function ensureTrainingUsersDedupeBackupTable(): void
@@ -108,29 +179,17 @@ class TrainingUsersRepository extends DbConnection
     ): void
     {
         try {
-            // Determinar prazo pelo tipo_treinamento no vínculo por cargo (Inicial=90, Continuo=365)
-            $prazoDias = 90; // default
+            $userPositionId = null;
             try {
-                // Buscar cargo do usuário
                 $stmtUser = $this->getConnection()->prepare('SELECT user_position_id FROM adms_users WHERE id = :uid');
                 $stmtUser->bindValue(':uid', $userId, PDO::PARAM_INT);
                 $stmtUser->execute();
                 $userPositionId = (int)($stmtUser->fetchColumn() ?? 0);
-                if ($userPositionId) {
-                    $stmtTipo = $this->getConnection()->prepare('SELECT tipo_treinamento FROM adms_training_positions WHERE adms_training_id = :tid AND adms_position_id = :pid LIMIT 1');
-                    $stmtTipo->bindValue(':tid', $trainingId, PDO::PARAM_INT);
-                    $stmtTipo->bindValue(':pid', $userPositionId, PDO::PARAM_INT);
-                    $stmtTipo->execute();
-                    $tipo = $stmtTipo->fetchColumn();
-                    if ($tipo === 'Continuo') {
-                        $prazoDias = 365;
-                    } else {
-                        $prazoDias = 90;
-                    }
-                }
             } catch (\Exception $e) {
-                $prazoDias = 90;
+                $userPositionId = null;
             }
+
+            $prazoDias = $this->resolvePrazoDias($trainingId, $userPositionId ?: null);
 
             // Calcular data limite
             if ($dataLimiteManual) {
@@ -977,7 +1036,7 @@ class TrainingUsersRepository extends DbConnection
                                     'sincronizacao_cargo',
                                     NOW(),
                                     NOW(),
-                                    DATE_ADD(CURDATE(), INTERVAL CASE WHEN tp.tipo_treinamento = 'Continuo' THEN 365 ELSE 90 END DAY)
+                                    DATE_ADD(CURDATE(), INTERVAL " . self::sqlPrazoDiasExpression('t', 'tp') . " DAY)
                                  FROM adms_training_positions tp
                                  INNER JOIN adms_users u
                                          ON u.user_position_id = tp.adms_position_id
@@ -1551,24 +1610,16 @@ class TrainingUsersRepository extends DbConnection
 
             if ($reprovado) {
                 // NÃO marcar como concluído!
-                // Reabre prazo a partir de hoje conforme tipo_treinamento (Inicial=90, Continuo=365)
-                $prazoDias = 90;
+                $userPositionId = null;
                 try {
                     $stmtUser = $this->getConnection()->prepare('SELECT user_position_id FROM adms_users WHERE id = :uid');
                     $stmtUser->bindValue(':uid', $userId, PDO::PARAM_INT);
                     $stmtUser->execute();
                     $userPositionId = (int)($stmtUser->fetchColumn() ?? 0);
-                    if ($userPositionId) {
-                        $stmtTipo = $this->getConnection()->prepare('SELECT tipo_treinamento FROM adms_training_positions WHERE adms_training_id = :tid AND adms_position_id = :pid LIMIT 1');
-                        $stmtTipo->bindValue(':tid', $trainingId, PDO::PARAM_INT);
-                        $stmtTipo->bindValue(':pid', $userPositionId, PDO::PARAM_INT);
-                        $stmtTipo->execute();
-                        $tipo = $stmtTipo->fetchColumn();
-                        $prazoDias = ($tipo === 'Continuo') ? 365 : 90;
-                    }
                 } catch (\Exception $e) {
-                    $prazoDias = 90;
+                    $userPositionId = null;
                 }
+                $prazoDias = $this->resolvePrazoDias($trainingId, $userPositionId ?: null);
                 $dataLimite = (new \DateTime())->modify("+{$prazoDias} days")->format('Y-m-d');
                 $sql = 'UPDATE adms_training_users SET status = "dentro_do_prazo", motivo = "retreinamento", data_limite_primeiro_treinamento = :dataLimite, updated_at = NOW() WHERE adms_user_id = :userId AND adms_training_id = :trainingId';
                 $stmt = $this->getConnection()->prepare($sql);

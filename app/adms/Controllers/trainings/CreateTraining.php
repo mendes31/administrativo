@@ -16,7 +16,7 @@ class CreateTraining
 
     public function index(): void
     {
-        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
+        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT) ?: $_POST;
         if (
             isset($this->data['form']['csrf_token']) &&
             CSRFHelper::validateCSRFToken('form_create_training', $this->data['form']['csrf_token'])

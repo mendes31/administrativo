@@ -18,7 +18,7 @@ class UpdateTraining
     public function index(int|string $id): void
     {
         $this->id = $id;
-        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
+        $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT) ?: $_POST;
         if (
             isset($this->data['form']['csrf_token']) &&
             CSRFHelper::validateCSRFToken('form_update_training', $this->data['form']['csrf_token'])
@@ -39,6 +39,9 @@ class UpdateTraining
         $repo = new TrainingsRepository();
         $departmentsRepo = new DepartmentsRepository();
         $this->data['training'] = $repo->getTraining($this->id);
+        if (!empty($this->data['form']) && is_array($this->data['form'])) {
+            $this->data['training'] = array_merge($this->data['training'] ?: [], $this->data['form']);
+        }
         if (empty($this->data['training'])) {
             $_SESSION['error'] = 'Treinamento não encontrado.';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-trainings');
@@ -91,6 +94,7 @@ class UpdateTraining
             exit;
         }
         $statusAnterior = $trainingAntigo['ativo'] ?? 1;
+        $prazoAnterior = (int)($trainingAntigo['prazo_treinamento'] ?? 0);
         
         // Determinar tipo de instrutor e ajustar campos
         if (!empty($this->data['form']['instructor_user_id'])) {
@@ -164,6 +168,9 @@ class UpdateTraining
                 // Atualização normal: sincroniza apenas o treinamento editado
                 $trainingUsersRepo = new \App\adms\Models\Repository\TrainingUsersRepository();
                 $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers($this->id);
+                if ($prazoAnterior !== $prazoTreinamento) {
+                    $trainingUsersRepo->recalculateOpenDeadlinesForTraining((int)$this->id);
+                }
                 \App\adms\Models\Services\TrainingStatusUpdaterService::ensureUpdated(true);
             }
             
