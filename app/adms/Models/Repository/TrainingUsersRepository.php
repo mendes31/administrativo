@@ -87,6 +87,30 @@ class TrainingUsersRepository extends DbConnection
     }
 
     /**
+     * Define se a atualização de um vínculo existente deve recalcular o prazo.
+     * Sincronizações e ajustes de tipo não devem reiniciar o prazo a partir de hoje.
+     */
+    private function shouldResetDataLimiteOnUpdate(?string $dataLimiteManual, string $motivo): bool
+    {
+        if ($dataLimiteManual !== null && $dataLimiteManual !== '') {
+            return true;
+        }
+
+        return $motivo === 'retreinamento';
+    }
+
+    /**
+     * Calcula data limite a partir da data do vínculo + prazo em dias.
+     */
+    private function calculateDataLimiteFromLinkDate(int $trainingId, ?int $userPositionId, ?string $linkDate = null): string
+    {
+        $prazoDias = $this->resolvePrazoDias($trainingId, $userPositionId);
+        $base = $linkDate ? new \DateTime($linkDate) : new \DateTime();
+
+        return $base->modify("+{$prazoDias} days")->format('Y-m-d');
+    }
+
+    /**
      * Garante tabela de backup para vínculos removidos por deduplicação.
      */
     private function ensureTrainingUsersDedupeBackupTable(): void
@@ -191,11 +215,11 @@ class TrainingUsersRepository extends DbConnection
 
             $prazoDias = $this->resolvePrazoDias($trainingId, $userPositionId ?: null);
 
-            // Calcular data limite
+            // Calcular data limite para novos vínculos (data do vínculo = hoje)
             if ($dataLimiteManual) {
                 $dataLimite = $dataLimiteManual;
             } else {
-                $dataLimite = (new \DateTime())->modify("+{$prazoDias} days")->format('Y-m-d');
+                $dataLimite = $this->calculateDataLimiteFromLinkDate($trainingId, $userPositionId ?: null);
             }
 
             // Buscar vínculos atuais para consolidar escrita e evitar duplicados
@@ -252,18 +276,38 @@ class TrainingUsersRepository extends DbConnection
                     $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
                     $stmtUpdate->execute();
                 } else {
-                    $sqlUpdate = "UPDATE adms_training_users
-                                  SET status = :status,
-                                      tipo_vinculo = :tipo_vinculo,
-                                      motivo = :motivo,
-                                      updated_at = NOW(),
-                                      data_limite_primeiro_treinamento = :data_limite
-                                  WHERE id = :id";
-                    $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+                    $resetDataLimite = $this->shouldResetDataLimiteOnUpdate($dataLimiteManual, $motivo);
+                    if ($resetDataLimite) {
+                        if ($dataLimiteManual) {
+                            $dataLimiteUpdate = $dataLimiteManual;
+                        } elseif ($motivo === 'retreinamento') {
+                            $dataLimiteUpdate = $this->calculateDataLimiteFromLinkDate($trainingId, $userPositionId ?: null);
+                        } else {
+                            $dataLimiteUpdate = $dataLimite;
+                        }
+
+                        $sqlUpdate = "UPDATE adms_training_users
+                                      SET status = :status,
+                                          tipo_vinculo = :tipo_vinculo,
+                                          motivo = :motivo,
+                                          updated_at = NOW(),
+                                          data_limite_primeiro_treinamento = :data_limite
+                                      WHERE id = :id";
+                        $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+                        $stmtUpdate->bindValue(':data_limite', $dataLimiteUpdate, PDO::PARAM_STR);
+                    } else {
+                        $sqlUpdate = "UPDATE adms_training_users
+                                      SET status = :status,
+                                          tipo_vinculo = :tipo_vinculo,
+                                          motivo = :motivo,
+                                          updated_at = NOW()
+                                      WHERE id = :id";
+                        $stmtUpdate = $this->getConnection()->prepare($sqlUpdate);
+                    }
+
                     $stmtUpdate->bindValue(':status', $status, PDO::PARAM_STR);
                     $stmtUpdate->bindValue(':tipo_vinculo', $tipoVinculo, PDO::PARAM_STR);
                     $stmtUpdate->bindValue(':motivo', $motivo, PDO::PARAM_STR);
-                    $stmtUpdate->bindValue(':data_limite', $dataLimite, PDO::PARAM_STR);
                     $stmtUpdate->bindValue(':id', $keeperId, PDO::PARAM_INT);
                     $stmtUpdate->execute();
                 }

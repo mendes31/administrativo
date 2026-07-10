@@ -94,7 +94,6 @@ class UpdateTraining
             exit;
         }
         $statusAnterior = $trainingAntigo['ativo'] ?? 1;
-        $prazoAnterior = (int)($trainingAntigo['prazo_treinamento'] ?? 0);
         
         // Determinar tipo de instrutor e ajustar campos
         if (!empty($this->data['form']['instructor_user_id'])) {
@@ -168,9 +167,7 @@ class UpdateTraining
                 // Atualização normal: sincroniza apenas o treinamento editado
                 $trainingUsersRepo = new \App\adms\Models\Repository\TrainingUsersRepository();
                 $trainingUsersRepo->syncMandatoryCargoLinksForAllActiveUsers($this->id);
-                if ($prazoAnterior !== $prazoTreinamento) {
-                    $trainingUsersRepo->recalculateOpenDeadlinesForTraining((int)$this->id);
-                }
+                $trainingUsersRepo->recalculateOpenDeadlinesForTraining((int)$this->id);
                 \App\adms\Models\Services\TrainingStatusUpdaterService::ensureUpdated(true);
             }
             
