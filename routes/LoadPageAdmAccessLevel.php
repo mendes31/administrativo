@@ -3,6 +3,7 @@
 namespace Routes;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\NotificationOpenHelper;
 use App\adms\Helpers\SlugController;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\PagesRoutesRepository;
@@ -691,6 +692,10 @@ class LoadPageAdmAccessLevel
      */
     private function loadMetodo(): void
     {
+        if (!empty($_SESSION['user_id'])) {
+            NotificationOpenHelper::markFromRequestIfPresent();
+        }
+
         // Instanciar a classe da página que deve ser carregada
         $classLoad = new $this->classLoad();
 

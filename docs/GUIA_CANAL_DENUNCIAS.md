@@ -2,6 +2,8 @@
 
 Documento de referência para Compliance, Comitê de Ética, TI e usuários operadores do módulo **Canal de Denúncias** no Tiaraju.
 
+**Evidências para fiscalização (Ministério do Trabalho):** ver `docs/CANAL_DENUNCIAS_EVIDENCIAS_MINISTERIO_TRABALHO.md` e queries em `docs/sql/whistleblowing_evidencias_ministerio_trabalho.sql`.
+
 ---
 
 ## 1. O que é o módulo

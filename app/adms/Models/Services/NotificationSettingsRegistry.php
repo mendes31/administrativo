@@ -122,6 +122,22 @@ final class NotificationSettingsRegistry
                 'order' => 8,
                 'is_notification' => true,
             ],
+            'training_lnt_event_inapp' => [
+                'module' => 'Treinamentos (alertas automáticos)',
+                'module_order' => 20,
+                'label' => 'Notificação interna — eventos LNT (RH)',
+                'description' => 'Alerta no sino para a equipe de treinamentos quando há novo colaborador, cargo, desligamento ou alteração de cargo.',
+                'order' => 9,
+                'is_notification' => true,
+            ],
+            'training_lnt_event_digest_email' => [
+                'module' => 'Treinamentos (alertas automáticos)',
+                'module_order' => 20,
+                'label' => 'E-mail diário — eventos LNT (RH)',
+                'description' => 'Relatório por e-mail com movimentações de RH do dia anterior (admissões, desligamentos, cargos) para apoio ao LNT.',
+                'order' => 10,
+                'is_notification' => true,
+            ],
         ];
     }
 

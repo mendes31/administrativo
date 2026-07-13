@@ -230,6 +230,18 @@ class CreateUser
             $matrixService = new \App\adms\Controllers\trainings\TrainingMatrixService();
             $matrixService->updateMatrixForUser($result);
 
+            try {
+                (new \App\adms\Models\Services\TrainingLntEventService())->registerNovoColaborador(
+                    (int)$result,
+                    isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+                );
+            } catch (\Throwable $e) {
+                \App\adms\Helpers\GenerateLog::generateLog('error', 'Falha ao registrar evento LNT (novo colaborador).', [
+                    'user_id' => $result,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Enviar mensagem de boas-vindas conforme flags
             try {
                 $createdUser = $userCreate->getUser((int)$result);

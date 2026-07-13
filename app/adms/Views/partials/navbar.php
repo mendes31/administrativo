@@ -9,7 +9,6 @@ $navbarInternalCount = 0;
 $navbarInternalList = [];
 $mcpChatAvailable = false;
 $navbarTotalCount = 0;
-$navbarMarkAllCsrf = \App\adms\Helpers\CSRFHelper::generateCSRFToken('navbar_notifications_mark_all');
 
 if (!empty($_SESSION['user_id'])) {
     $userId = (int) $_SESSION['user_id'];
@@ -68,9 +67,7 @@ if (!empty($_SESSION['user_id'])) {
         </li>
         <?php endif; ?>
         <li class="nav-item dropdown">
-            <a class="nav-link position-relative" href="#" id="navbarNotifications" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações" title="Notificações"
-               data-mark-all-url="<?php echo htmlspecialchars(($_ENV['URL_ADM'] ?? '') . 'mark-notifications-read'); ?>"
-               data-mark-all-csrf="<?php echo htmlspecialchars($navbarMarkAllCsrf); ?>">
+            <a class="nav-link position-relative" href="#" id="navbarNotifications" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações" title="Notificações">
                 <i class="fas fa-bell"></i>
                 <?php if (!empty($navbarTotalCount) && $navbarTotalCount > 0): ?>
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="navbarNotifBadge" style="font-size: 0.65rem;"><?php echo $navbarTotalCount > 99 ? '99+' : (int)$navbarTotalCount; ?></span>
@@ -253,39 +250,6 @@ if (!empty($_SESSION['user_id'])) {
         </li>
     </ul>
 </nav>
-
-<script>
-(function () {
-    var bell = document.getElementById('navbarNotifications');
-    if (!bell) return;
-
-    var sent = false;
-    bell.addEventListener('shown.bs.dropdown', function () {
-        if (sent) return;
-        var url = bell.getAttribute('data-mark-all-url');
-        var csrf = bell.getAttribute('data-mark-all-csrf');
-        if (!url || !csrf) return;
-
-        sent = true;
-        var fd = new FormData();
-        fd.append('csrf_token', csrf);
-        fetch(url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-            body: fd
-        }).then(function () {
-            var badge = document.getElementById('navbarNotifBadge');
-            if (badge) {
-                badge.textContent = '0';
-                badge.style.display = 'none';
-            }
-        }).catch(function () {
-            sent = false;
-        });
-    });
-})();
-</script>
 
 <?php if ($mcpChatAvailable): ?>
 <div class="offcanvas offcanvas-end" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">

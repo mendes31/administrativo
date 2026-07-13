@@ -175,6 +175,7 @@ class UpdateUser
         $userAntigo = $userUpdate->getUser($this->data['form']['id']);
         $statusAnterior = $userAntigo['status'] ?? 'Ativo';
         $cargoAnterior = $userAntigo['user_position_id'] ?? null;
+        $dataDesligAnterior = $userAntigo['data_desligamento'] ?? null;
         $welcomeEmailAnterior = $userAntigo['enviar_boas_vindas_email'] ?? 0;
         $welcomeWhatsAnterior = $userAntigo['enviar_boas_vindas_whatsapp'] ?? 0;
         $oldSuperFlag = (int)($userAntigo['super_usuario'] ?? 0) === 1 ? 1 : 0;
@@ -393,6 +394,31 @@ class UpdateUser
                     // Atualização normal - atualizar matriz
                     $matrixService->updateMatrixForUser($form['id']);
                 }
+            }
+
+            try {
+                $lntService = new \App\adms\Models\Services\TrainingLntEventService();
+                $actorId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+                $dataDesligNova = $form['data_desligamento'] ?? null;
+                $cargoNovo = $form['user_position_id'] ?? null;
+                $desligou = ($statusAnterior === 'Ativo' && $statusNovo === 'Inativo')
+                    || (!empty($dataDesligNova) && empty($dataDesligAnterior));
+
+                if ($desligou) {
+                    $lntService->registerColaboradorDesligado((int)$form['id'], $actorId, $userAntigo);
+                } elseif ((string)$cargoAnterior !== (string)$cargoNovo) {
+                    $lntService->registerAlteracaoCargo(
+                        (int)$form['id'],
+                        $cargoAnterior !== null && $cargoAnterior !== '' ? (int)$cargoAnterior : null,
+                        $cargoNovo !== null && $cargoNovo !== '' ? (int)$cargoNovo : null,
+                        $actorId
+                    );
+                }
+            } catch (\Throwable $e) {
+                \App\adms\Helpers\GenerateLog::generateLog('error', 'Falha ao registrar evento LNT na edição de usuário.', [
+                    'user_id' => $form['id'],
+                    'error' => $e->getMessage(),
+                ]);
             }
             
             // Criar a mensagem de sucesso

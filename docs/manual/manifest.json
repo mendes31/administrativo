@@ -1206,6 +1206,11 @@
                     "file": "rh_treinamentos/list-training-status.html"
                 },
                 {
+                    "id": "list-training-lnt-events",
+                    "title": "Eventos LNT (RH)",
+                    "file": "rh_treinamentos/list-training-lnt-events.html"
+                },
+                {
                     "id": "test-notification",
                     "title": "Teste de Notificações de Treinamentos",
                     "file": "rh_treinamentos/test-notification.html"

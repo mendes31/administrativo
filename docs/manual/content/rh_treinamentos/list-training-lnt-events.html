@@ -1,0 +1,26 @@
+<h1>Eventos LNT (RH)</h1>
+<p>Lista movimentações de RH que impactam o <strong>Levantamento de Necessidades de Treinamento (LNT)</strong>: novos colaboradores, novos cargos, desligamentos e alterações de cargo.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ListTrainingLntEvents</em> (mesmos perfis de status/listagem de treinamentos).</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse <code>list-training-lnt-events</code> no menu de Treinamentos.</li>
+    <li>Filtre por tipo, período ou busque por nome/CPF/setor/cargo.</li>
+    <li>Para colaborador com evento registrado, use o botão <strong>LNT</strong> para gerar o PDF do colaborador.</li>
+    <li>Exporte CSV para arquivo físico ou auditoria.</li>
+    <li>Em desligamentos, gere e arquive o LNT antes de encerrar o vínculo definitivo.</li>
+</ol>
+
+<h2>Campos exibidos</h2>
+<div class="help-field"><strong>Ação</strong> Tipo do evento (novo colaborador, novo cargo, desligamento, alteração de cargo).</div>
+<div class="help-field"><strong>Nome / CPF / Setor / Cargo</strong> Dados do colaborador no momento do evento (ou nome do cargo, para eventos de cargo).</div>
+<div class="help-field"><strong>Admissão / Desligamento</strong> Datas quando aplicáveis ao evento.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não recebi e-mail do relatório diário</dt>
+    <dd>Verifique em Administração → Notificações Automáticas se <em>E-mail diário — eventos LNT (RH)</em> está ativo. O envio ocorre no primeiro login ou acesso ao dashboard do dia, com o resumo do dia anterior. O cron <code>TrainingLntEventsDigestCli.php</code> é opcional (reforço).</dd>
+    <dt>Evento não apareceu na lista</dt>
+    <dd>Confirme que a ação foi salva com sucesso (cadastro/edição de usuário ou cargo). Eventos antigos anteriores à implantação não são retroativos.</dd>
+</dl>

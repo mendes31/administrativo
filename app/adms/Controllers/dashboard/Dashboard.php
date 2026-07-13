@@ -16,6 +16,7 @@ use App\adms\Views\Services\LoadViewService;
 use App\adms\Models\Services\CandidateRetentionService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
 use App\adms\Models\Services\PayrollDocumentRemindersService;
+use App\adms\Models\Services\TrainingLntDigestService;
 
 class Dashboard
 {
@@ -225,6 +226,7 @@ class Dashboard
         CandidateRetentionService::ensureUpdated();
         PayrollDocumentRemindersService::ensureUpdated();
         InformativosStatusUpdaterService::ensureUpdated();
+        TrainingLntDigestService::ensureUpdated();
 
         $this->data['user_name'] = $_SESSION['user_name'] ?? 'Usuário';
         $userId = (int)($_SESSION['user_id'] ?? 0);

@@ -99,6 +99,18 @@ class CreatePosition
 
         // Se a criação do cargo for bem-sucedida
         if ($result) {
+            try {
+                (new \App\adms\Models\Services\TrainingLntEventService())->registerNovoCargo(
+                    (int)$result,
+                    isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+                );
+            } catch (\Throwable $e) {
+                \App\adms\Helpers\GenerateLog::generateLog('error', 'Falha ao registrar evento LNT (novo cargo).', [
+                    'position_id' => $result,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Atualização da matriz de treinamentos para todos os usuários removida desta ação
             // para evitar falhas globais de conexão durante o cadastro de cargos.
             // Mensagem de sucesso
