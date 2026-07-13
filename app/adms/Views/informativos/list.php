@@ -5,9 +5,15 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
 ?>
 
 <style>
-    /* Layout otimizado para evitar corte de informações na listagem de informativos (desktop) */
+    /* Layout responsivo da listagem de informativos (desktop / notebooks) */
+    .table-informativos-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .table-informativos {
         width: 100%;
+        min-width: 1040px;
         table-layout: fixed;
     }
 
@@ -16,7 +22,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         white-space: normal;
         word-wrap: break-word;
         word-break: break-word;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
         vertical-align: middle;
     }
 
@@ -28,55 +34,134 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         font-weight: 600;
     }
 
-    /* Larguras FIXAS em pixels para cada coluna (desktop) */
+    /* Larguras proporcionais com piso mínimo para evitar colunas ilegíveis */
     .table-informativos th.col-titulo,
     .table-informativos td.col-titulo {
-        width: 240px;
+        width: 16%;
+        min-width: 140px;
+    }
+
+    .table-informativos td.col-titulo strong {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
     .table-informativos th.col-categoria,
     .table-informativos td.col-categoria {
-        width: 130px;
+        width: 9%;
+        min-width: 88px;
     }
 
     .table-informativos th.col-departamento,
     .table-informativos td.col-departamento {
-        width: 150px;
+        width: 10%;
+        min-width: 96px;
     }
 
     .table-informativos th.col-leitura,
     .table-informativos td.col-leitura {
-        width: 150px;
+        width: 11%;
+        min-width: 108px;
         text-align: center;
     }
 
     .table-informativos th.col-resumo,
     .table-informativos td.col-resumo {
-        width: 220px;
-        /* Forçar quebra mesmo para textos muito longos ou sem espaços */
+        width: 24%;
+        min-width: 200px;
         white-space: normal !important;
-        word-break: break-all;
-        overflow-wrap: anywhere;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.35;
+    }
+
+    .table-informativos td.col-resumo {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
     .table-informativos th.col-urgente,
     .table-informativos td.col-urgente,
     .table-informativos th.col-status,
     .table-informativos td.col-status {
-        width: 80px;
+        width: 7%;
+        min-width: 72px;
         text-align: center;
     }
 
     .table-informativos th.col-data,
     .table-informativos td.col-data {
-        width: 120px;
+        width: 9%;
+        min-width: 96px;
         text-align: center;
     }
 
     .table-informativos th.col-acoes,
     .table-informativos td.col-acoes {
-        width: 100px;
+        width: 7%;
+        min-width: 92px;
         text-align: center;
+    }
+
+    /* Notebooks e telas estreitas: prioriza resumo e reduz colunas auxiliares */
+    @media (max-width: 1400px) {
+        .table-informativos th.col-titulo,
+        .table-informativos td.col-titulo {
+            width: 14%;
+            min-width: 120px;
+        }
+
+        .table-informativos th.col-categoria,
+        .table-informativos td.col-categoria {
+            width: 8%;
+            min-width: 80px;
+        }
+
+        .table-informativos th.col-departamento,
+        .table-informativos td.col-departamento {
+            width: 9%;
+            min-width: 88px;
+        }
+
+        .table-informativos th.col-resumo,
+        .table-informativos td.col-resumo {
+            width: 27%;
+            min-width: 220px;
+        }
+
+        .table-informativos th.col-leitura,
+        .table-informativos td.col-leitura {
+            width: 10%;
+            min-width: 100px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .table-informativos {
+            min-width: 980px;
+        }
+
+        .table-informativos th,
+        .table-informativos td {
+            font-size: 0.9rem;
+            padding: 0.45rem 0.35rem;
+        }
+
+        .table-informativos th.col-titulo,
+        .table-informativos td.col-titulo {
+            width: 13%;
+            min-width: 110px;
+        }
+
+        .table-informativos th.col-resumo,
+        .table-informativos td.col-resumo {
+            width: 30%;
+            min-width: 240px;
+        }
     }
 
     /* Limitar tamanho das badges para quebra de linha agradável */
@@ -247,7 +332,7 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             <?php endif; ?>
 
             <!-- Tabela Desktop -->
-            <div class="d-none d-md-block list-desktop">
+            <div class="d-none d-md-block list-desktop table-informativos-wrapper">
                 <table class="table table-bordered table-striped table-hover table-informativos">
                     <thead class="table-dark">
                         <tr>
