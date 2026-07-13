@@ -34,43 +34,46 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         font-weight: 600;
     }
 
-    /* Larguras proporcionais com piso mínimo para evitar colunas ilegíveis */
+    /* Título compacto: quebra em várias linhas quando ultrapassar a largura */
     .table-informativos th.col-titulo,
     .table-informativos td.col-titulo {
-        width: 16%;
-        min-width: 140px;
+        width: 11%;
+        min-width: 100px;
+        max-width: 0;
     }
 
     .table-informativos td.col-titulo strong {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+        display: block;
+        font-weight: 600;
+        line-height: 1.35;
+        word-break: break-word;
+        overflow-wrap: break-word;
     }
 
     .table-informativos th.col-categoria,
     .table-informativos td.col-categoria {
-        width: 9%;
-        min-width: 88px;
+        width: 8%;
+        min-width: 84px;
     }
 
     .table-informativos th.col-departamento,
     .table-informativos td.col-departamento {
-        width: 10%;
-        min-width: 96px;
+        width: 9%;
+        min-width: 92px;
     }
 
     .table-informativos th.col-leitura,
     .table-informativos td.col-leitura {
         width: 11%;
-        min-width: 108px;
+        min-width: 104px;
         text-align: center;
     }
 
     .table-informativos th.col-resumo,
     .table-informativos td.col-resumo {
-        width: 24%;
-        min-width: 200px;
+        width: 28%;
+        min-width: 220px;
+        max-width: 0;
         white-space: normal !important;
         word-break: break-word;
         overflow-wrap: break-word;
@@ -111,38 +114,38 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
     @media (max-width: 1400px) {
         .table-informativos th.col-titulo,
         .table-informativos td.col-titulo {
-            width: 14%;
-            min-width: 120px;
+            width: 10%;
+            min-width: 96px;
         }
 
         .table-informativos th.col-categoria,
         .table-informativos td.col-categoria {
-            width: 8%;
-            min-width: 80px;
+            width: 7%;
+            min-width: 76px;
         }
 
         .table-informativos th.col-departamento,
         .table-informativos td.col-departamento {
-            width: 9%;
-            min-width: 88px;
+            width: 8%;
+            min-width: 84px;
         }
 
         .table-informativos th.col-resumo,
         .table-informativos td.col-resumo {
-            width: 27%;
-            min-width: 220px;
+            width: 31%;
+            min-width: 240px;
         }
 
         .table-informativos th.col-leitura,
         .table-informativos td.col-leitura {
             width: 10%;
-            min-width: 100px;
+            min-width: 96px;
         }
     }
 
     @media (max-width: 1200px) {
         .table-informativos {
-            min-width: 980px;
+            min-width: 960px;
         }
 
         .table-informativos th,
@@ -153,14 +156,14 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
 
         .table-informativos th.col-titulo,
         .table-informativos td.col-titulo {
-            width: 13%;
-            min-width: 110px;
+            width: 9%;
+            min-width: 88px;
         }
 
         .table-informativos th.col-resumo,
         .table-informativos td.col-resumo {
-            width: 30%;
-            min-width: 240px;
+            width: 33%;
+            min-width: 260px;
         }
     }
 
