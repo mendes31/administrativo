@@ -34,112 +34,88 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
         font-weight: 600;
     }
 
-    /* Título compacto: quebra em várias linhas quando ultrapassar a largura */
+    /* Título e Resumo com a mesma largura e quebra de linha natural */
+    .table-informativos col.col-titulo,
+    .table-informativos col.col-resumo,
     .table-informativos th.col-titulo,
-    .table-informativos td.col-titulo {
-        width: 11%;
-        min-width: 100px;
-        max-width: 0;
+    .table-informativos td.col-titulo,
+    .table-informativos th.col-resumo,
+    .table-informativos td.col-resumo {
+        width: 17%;
     }
 
-    .table-informativos td.col-titulo strong {
+    .table-informativos td.col-titulo,
+    .table-informativos td.col-resumo {
+        overflow: visible;
+    }
+
+    .table-informativos .informativo-cell-text {
         display: block;
-        font-weight: 600;
-        line-height: 1.35;
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;
+        word-wrap: break-word;
         word-break: break-word;
         overflow-wrap: break-word;
+        line-height: 1.35;
+    }
+
+    .table-informativos td.col-titulo .informativo-cell-text strong {
+        display: inline;
+        font-weight: 600;
     }
 
     .table-informativos th.col-categoria,
     .table-informativos td.col-categoria {
-        width: 8%;
-        min-width: 84px;
+        width: 7%;
+        min-width: 80px;
     }
 
     .table-informativos th.col-departamento,
     .table-informativos td.col-departamento {
-        width: 9%;
-        min-width: 92px;
+        width: 8%;
+        min-width: 88px;
     }
 
     .table-informativos th.col-leitura,
     .table-informativos td.col-leitura {
         width: 11%;
-        min-width: 104px;
+        min-width: 100px;
         text-align: center;
-    }
-
-    .table-informativos th.col-resumo,
-    .table-informativos td.col-resumo {
-        width: 28%;
-        min-width: 220px;
-        max-width: 0;
-        white-space: normal !important;
-        word-break: break-word;
-        overflow-wrap: break-word;
-        line-height: 1.35;
-    }
-
-    .table-informativos td.col-resumo {
-        display: -webkit-box;
-        -webkit-line-clamp: 4;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
     }
 
     .table-informativos th.col-urgente,
     .table-informativos td.col-urgente,
     .table-informativos th.col-status,
     .table-informativos td.col-status {
-        width: 7%;
-        min-width: 72px;
+        width: 6%;
+        min-width: 68px;
         text-align: center;
     }
 
     .table-informativos th.col-data,
     .table-informativos td.col-data {
         width: 9%;
-        min-width: 96px;
+        min-width: 92px;
         text-align: center;
     }
 
     .table-informativos th.col-acoes,
     .table-informativos td.col-acoes {
-        width: 7%;
+        width: 9%;
         min-width: 92px;
         text-align: center;
     }
 
-    /* Notebooks e telas estreitas: prioriza resumo e reduz colunas auxiliares */
+    /* Notebooks e telas estreitas: mantém Título e Resumo iguais */
     @media (max-width: 1400px) {
+        .table-informativos col.col-titulo,
+        .table-informativos col.col-resumo,
         .table-informativos th.col-titulo,
-        .table-informativos td.col-titulo {
-            width: 10%;
-            min-width: 96px;
-        }
-
-        .table-informativos th.col-categoria,
-        .table-informativos td.col-categoria {
-            width: 7%;
-            min-width: 76px;
-        }
-
-        .table-informativos th.col-departamento,
-        .table-informativos td.col-departamento {
-            width: 8%;
-            min-width: 84px;
-        }
-
+        .table-informativos td.col-titulo,
         .table-informativos th.col-resumo,
         .table-informativos td.col-resumo {
-            width: 31%;
-            min-width: 240px;
-        }
-
-        .table-informativos th.col-leitura,
-        .table-informativos td.col-leitura {
-            width: 10%;
-            min-width: 96px;
+            width: 16%;
         }
     }
 
@@ -154,16 +130,13 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             padding: 0.45rem 0.35rem;
         }
 
+        .table-informativos col.col-titulo,
+        .table-informativos col.col-resumo,
         .table-informativos th.col-titulo,
-        .table-informativos td.col-titulo {
-            width: 9%;
-            min-width: 88px;
-        }
-
+        .table-informativos td.col-titulo,
         .table-informativos th.col-resumo,
         .table-informativos td.col-resumo {
-            width: 33%;
-            min-width: 260px;
+            width: 15%;
         }
     }
 
@@ -337,6 +310,17 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
             <!-- Tabela Desktop -->
             <div class="d-none d-md-block list-desktop table-informativos-wrapper">
                 <table class="table table-bordered table-striped table-hover table-informativos">
+                    <colgroup>
+                        <col class="col-titulo">
+                        <col class="col-categoria">
+                        <col class="col-departamento">
+                        <col class="col-resumo">
+                        <col class="col-leitura">
+                        <col class="col-urgente">
+                        <col class="col-status">
+                        <col class="col-data">
+                        <col class="col-acoes">
+                    </colgroup>
                     <thead class="table-dark">
                         <tr>
                             <th class="col-titulo">Título</th>
@@ -362,7 +346,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                 ?>
                                 <tr>
                                     <td class="col-titulo">
-                                        <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>
+                                        <div class="informativo-cell-text">
+                                            <strong><?php echo \App\adms\Helpers\TextEncodingHelper::escape($informativo['titulo'] ?? ''); ?></strong>
+                                        </div>
                                         <?php if (!empty($informativo['imagem']) || !empty($informativo['anexo'])): ?>
                                             <div class="informativo-media">
                                                 <?php if (!empty($informativo['imagem'])): ?>
@@ -390,8 +376,8 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_informativo');
                                     <td class="col-resumo">
                                         <?php
                                         $textoResumo = $informativo['resumo'] ?? strip_tags($informativo['conteudo']);
-                                        echo htmlspecialchars($textoResumo);
                                         ?>
+                                        <div class="informativo-cell-text"><?php echo htmlspecialchars($textoResumo); ?></div>
                                     </td>
                                     <td class="text-center col-leitura small">
                                         <span class="badge <?php echo htmlspecialchars($readStDesktop['badge_class']); ?> text-wrap text-start d-inline-flex align-items-center" style="max-width: 100%; white-space: normal;">
