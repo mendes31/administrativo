@@ -111,7 +111,7 @@ class ListUsers
         $pageElements = [
             'title_head' => 'Listar Usuários',
             'menu' => 'list-users',
-            'buttonPermission' => ['CreateUser', 'ViewUser', 'UpdateUser', 'DeleteUser'],
+            'buttonPermission' => ['CreateUser', 'ViewUser', 'UpdateUser', 'DeleteUser', 'ImportUsers'],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

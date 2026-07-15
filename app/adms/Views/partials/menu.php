@@ -209,6 +209,11 @@ $menus = [
                         'permission' => 'ListUsers'
                     ],
                     [
+                        'label' => 'Importar Usuários',
+                        'url' => $_ENV['URL_ADM'] . 'import-users',
+                        'permission' => 'ImportUsers'
+                    ],
+                    [
                         'label' => 'Organograma',
                         'url' => $_ENV['URL_ADM'] . 'organization-chart',
                         'permission' => 'OrganizationChart'

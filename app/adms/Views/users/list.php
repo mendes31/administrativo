@@ -58,9 +58,9 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                 if (in_array('CreateUser', $this->data['buttonPermission'])) {
                     echo "<a href='{$_ENV['URL_ADM']}create-user' class='btn btn-success btn-sm'><i class='fa-regular fa-square-plus'></i> Cadastrar</a> ";
                 }
-                // Botões de Template e Importar (sem permissão específica por enquanto)
-                // echo "<a href='{$_ENV['URL_ADM']}import-users/template' class='btn btn-outline-secondary btn-sm'><i class='fa-solid fa-download'></i> Baixar Template</a> ";
-                echo "<a href='{$_ENV['URL_ADM']}import-users' class='btn btn-primary btn-sm'><i class='fa-solid fa-file-import'></i> Importar</a> ";
+                if (in_array('ImportUsers', $this->data['buttonPermission'])) {
+                    echo "<a href='{$_ENV['URL_ADM']}import-users' class='btn btn-primary btn-sm'><i class='fa-solid fa-file-import'></i> Importar</a> ";
+                }
                 echo "<a href='{$_ENV['URL_ADM']}export-users-excel{$qsExport}' class='btn btn-outline-success btn-sm'><i class='fa-solid fa-file-excel'></i> Excel</a> ";
                 echo "<a href='{$_ENV['URL_ADM']}export-users-pdf{$qsExport}' class='btn btn-outline-danger btn-sm'><i class='fa-solid fa-file-pdf'></i> PDF</a> ";
                 ?>

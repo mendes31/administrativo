@@ -436,20 +436,31 @@ class UsersRepository extends DbConnection
      */
     public function getUserByUsername(string $username): array|false
     {
-        $sql = 'SELECT 
-                    t0.id, 
-                    t0.name, 
-                    t0.email, 
-                    t0.username, 
+        $sql = 'SELECT
+                    t0.id,
+                    t0.name,
+                    t0.email,
+                    t0.email_pessoal,
+                    t0.username,
                     t0.cpf,
                     t0.celular,
-                    t0.image, 
-                    t0.data_nascimento, 
-                    t0.user_department_id, 
-                    t0.user_position_id, 
+                    t0.image,
+                    t0.data_nascimento,
+                    t0.escolaridade,
+                    t0.raca,
+                    t0.pais_residencia_iso,
+                    t0.endereco,
+                    t0.numero_endereco,
+                    t0.complemento_endereco,
+                    t0.bairro,
+                    t0.cep,
+                    t0.municipio,
+                    t0.uf,
+                    t0.user_department_id,
+                    t0.user_position_id,
                     t0.immediate_supervisor_id,
-                    t0.created_at, 
-                    t0.updated_at, 
+                    t0.created_at,
+                    t0.updated_at,
                     t0.status,
                     t0.bloqueado,
                     t0.tentativas_login,
@@ -457,7 +468,8 @@ class UsersRepository extends DbConnection
                     t0.modificar_senha_proximo_logon,
                     t0.data_admissao,
                     t0.data_desligamento,
-                    t0.motivo_desligamento
+                    t0.motivo_desligamento,
+                    t0.matricula
                 FROM adms_users t0
                 WHERE t0.username = :username
                 LIMIT 1';
@@ -658,6 +670,7 @@ class UsersRepository extends DbConnection
                     t0.id, 
                     t0.name, 
                     t0.email, 
+                    t0.email_pessoal,
                     t0.username, 
                     t0.cpf,
                     t0.celular,
@@ -670,7 +683,15 @@ class UsersRepository extends DbConnection
                     t0.escolaridade,
                     t0.raca,
                     t0.empresa_contratante,
+                    t0.matricula,
                     t0.pais_residencia_iso,
+                    t0.endereco,
+                    t0.numero_endereco,
+                    t0.complemento_endereco,
+                    t0.bairro,
+                    t0.cep,
+                    t0.municipio,
+                    t0.uf,
                     t0.data_admissao,
                     t0.data_desligamento,
                     t0.motivo_desligamento,
@@ -727,6 +748,32 @@ class UsersRepository extends DbConnection
         }
 
         return (string)$h;
+    }
+
+    /**
+     * Localiza usuário pelo CPF (11 dígitos), ativo ou inativo.
+     *
+     * @return array<string, mixed>|false
+     */
+    public function getUserByNormalizedCpf(string $cpf11): array|false
+    {
+        if (strlen($cpf11) !== 11 || !ctype_digit($cpf11)) {
+            return false;
+        }
+        $sql = "SELECT id FROM adms_users
+                WHERE cpf IS NOT NULL
+                  AND TRIM(cpf) <> ''
+                  AND REPLACE(REPLACE(REPLACE(REPLACE(TRIM(cpf), '.', ''), '-', ''), ' ', ''), '/', '') = :cpf
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':cpf', $cpf11, PDO::PARAM_STR);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+        if ($id === false) {
+            return false;
+        }
+
+        return $this->getUser((int) $id);
     }
 
     /**
@@ -900,13 +947,19 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, escolaridade, raca, empresa_contratante, pais_residencia_iso, super_usuario
+                name, email, email_pessoal, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, escolaridade, raca, empresa_contratante, matricula, pais_residencia_iso, endereco, numero_endereco, complemento_endereco, bairro, cep, municipio, uf, super_usuario
             ) VALUES (
-                :name, :email, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :escolaridade, :raca, :empresa_contratante, :pais_residencia_iso, :super_usuario
+                :name, :email, :email_pessoal, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :escolaridade, :raca, :empresa_contratante, :matricula, :pais_residencia_iso, :endereco, :numero_endereco, :complemento_endereco, :bairro, :cep, :municipio, :uf, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
             $stmt->bindValue(':email', $data['email'], PDO::PARAM_STR);
+            $emailPessoalIns = $data['email_pessoal'] ?? null;
+            $stmt->bindValue(
+                ':email_pessoal',
+                $emailPessoalIns !== null && $emailPessoalIns !== '' ? $emailPessoalIns : null,
+                $emailPessoalIns !== null && $emailPessoalIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
             $stmt->bindValue(':username', $data['username'], PDO::PARAM_STR);
             $stmt->bindValue(':cpf', $data['cpf'] ?? null, PDO::PARAM_STR);
             $stmt->bindValue(':celular', $data['celular'] ?? null, PDO::PARAM_STR);
@@ -955,11 +1008,41 @@ class UsersRepository extends DbConnection
                 $empIns !== null && $empIns !== '' ? $empIns : null,
                 $empIns !== null && $empIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
             );
+            $matIns = $data['matricula'] ?? null;
+            if ($matIns !== null && $matIns !== '') {
+                $matIns = mb_substr(trim((string) $matIns), 0, 40);
+            } else {
+                $matIns = null;
+            }
+            $stmt->bindValue(
+                ':matricula',
+                $matIns,
+                $matIns !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
             $paisIns = $data['pais_residencia_iso'] ?? null;
             $stmt->bindValue(
                 ':pais_residencia_iso',
                 $paisIns !== null && $paisIns !== '' ? strtoupper((string) $paisIns) : null,
                 $paisIns !== null && $paisIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
+            foreach (['endereco' => 255, 'numero_endereco' => 20, 'complemento_endereco' => 80, 'bairro' => 120, 'cep' => 10, 'municipio' => 120] as $addrCol => $maxLen) {
+                $addrVal = $data[$addrCol] ?? null;
+                if ($addrVal !== null && $addrVal !== '') {
+                    $addrVal = mb_substr(trim((string) $addrVal), 0, $maxLen);
+                } else {
+                    $addrVal = null;
+                }
+                $stmt->bindValue(
+                    ':' . $addrCol,
+                    $addrVal,
+                    $addrVal !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            $ufIns = $data['uf'] ?? null;
+            $stmt->bindValue(
+                ':uf',
+                $ufIns !== null && $ufIns !== '' ? strtoupper((string) $ufIns) : null,
+                $ufIns !== null && $ufIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
             );
             $stmt->bindValue(':super_usuario', !empty($data['super_usuario']) ? 1 : 0, PDO::PARAM_INT);
             $stmt->execute();
@@ -1255,8 +1338,35 @@ class UsersRepository extends DbConnection
             if (array_key_exists('empresa_contratante', $data)) {
                 $sql .= ', empresa_contratante = :empresa_contratante';
             }
+            if (array_key_exists('matricula', $data)) {
+                $sql .= ', matricula = :matricula';
+            }
             if (array_key_exists('pais_residencia_iso', $data)) {
                 $sql .= ', pais_residencia_iso = :pais_residencia_iso';
+            }
+            if (array_key_exists('email_pessoal', $data)) {
+                $sql .= ', email_pessoal = :email_pessoal';
+            }
+            if (array_key_exists('endereco', $data)) {
+                $sql .= ', endereco = :endereco';
+            }
+            if (array_key_exists('numero_endereco', $data)) {
+                $sql .= ', numero_endereco = :numero_endereco';
+            }
+            if (array_key_exists('complemento_endereco', $data)) {
+                $sql .= ', complemento_endereco = :complemento_endereco';
+            }
+            if (array_key_exists('bairro', $data)) {
+                $sql .= ', bairro = :bairro';
+            }
+            if (array_key_exists('cep', $data)) {
+                $sql .= ', cep = :cep';
+            }
+            if (array_key_exists('municipio', $data)) {
+                $sql .= ', municipio = :municipio';
+            }
+            if (array_key_exists('uf', $data)) {
+                $sql .= ', uf = :uf';
             }
             if (array_key_exists('adms_work_shift_id', $data)) {
                 $sql .= ', adms_work_shift_id = :adms_work_shift_id';
@@ -1363,12 +1473,57 @@ class UsersRepository extends DbConnection
                     $vEmp !== null && $vEmp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
                 );
             }
+            if (array_key_exists('matricula', $data)) {
+                $vMat = $data['matricula'];
+                if ($vMat !== null && $vMat !== '') {
+                    $vMat = mb_substr(trim((string) $vMat), 0, 40);
+                } else {
+                    $vMat = null;
+                }
+                $stmt->bindValue(
+                    ':matricula',
+                    $vMat,
+                    $vMat !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
             if (array_key_exists('pais_residencia_iso', $data)) {
                 $vPais = $data['pais_residencia_iso'];
                 $stmt->bindValue(
                     ':pais_residencia_iso',
                     $vPais !== null && $vPais !== '' ? strtoupper((string) $vPais) : null,
                     $vPais !== null && $vPais !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            if (array_key_exists('email_pessoal', $data)) {
+                $vEmailPessoal = $data['email_pessoal'];
+                $stmt->bindValue(
+                    ':email_pessoal',
+                    $vEmailPessoal !== null && $vEmailPessoal !== '' ? $vEmailPessoal : null,
+                    $vEmailPessoal !== null && $vEmailPessoal !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            foreach (['endereco' => 255, 'numero_endereco' => 20, 'complemento_endereco' => 80, 'bairro' => 120, 'cep' => 10, 'municipio' => 120] as $addrCol => $maxLen) {
+                if (!array_key_exists($addrCol, $data)) {
+                    continue;
+                }
+                $addrVal = $data[$addrCol];
+                if ($addrVal !== null && $addrVal !== '') {
+                    $addrVal = mb_substr(trim((string) $addrVal), 0, $maxLen);
+                } else {
+                    $addrVal = null;
+                }
+                $stmt->bindValue(
+                    ':' . $addrCol,
+                    $addrVal,
+                    $addrVal !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
+                );
+            }
+            if (array_key_exists('uf', $data)) {
+                $vUf = $data['uf'];
+                $stmt->bindValue(
+                    ':uf',
+                    $vUf !== null && $vUf !== '' ? strtoupper((string) $vUf) : null,
+                    $vUf !== null && $vUf !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
                 );
             }
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);

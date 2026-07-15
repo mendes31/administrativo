@@ -87,26 +87,27 @@ require __DIR__ . '/_view_scope.php';
             </p>
             <div id="reporter-fields" class="<?php echo !empty($old['identify_reporter']) ? '' : 'd-none'; ?>">
                 <div class="canal-field mb-2">
-                    <label class="form-label small">Nome <span class="text-danger">*</span></label>
-                    <input type="text" name="reporter_name" class="form-control"
+                    <label class="form-label small" for="reporter_name">Nome</label>
+                    <input type="text" name="reporter_name" id="reporter_name" class="form-control"
                         autocomplete="name"
                         value="<?php echo htmlspecialchars((string)($old['reporter_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="row g-2">
                     <div class="col-12 col-md-6">
-                        <label class="form-label small">E-mail</label>
-                        <input type="email" name="reporter_email" class="form-control"
+                        <label class="form-label small" for="reporter_email">E-mail</label>
+                        <input type="email" name="reporter_email" id="reporter_email" class="form-control"
                             autocomplete="email" inputmode="email"
                             value="<?php echo htmlspecialchars((string)($old['reporter_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="col-12 col-md-6">
-                        <label class="form-label small">Telefone</label>
-                        <input type="tel" name="reporter_phone" class="form-control"
+                        <label class="form-label small" for="reporter_phone">Telefone</label>
+                        <input type="tel" name="reporter_phone" id="reporter_phone" class="form-control"
                             autocomplete="tel" inputmode="tel"
                             value="<?php echo htmlspecialchars((string)($old['reporter_phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                 </div>
-                <div class="form-text">Informe e-mail ou telefone para eventual contato do comitê. Dados tratados conforme a LGPD (Lei 13.709/2018).</div>
+                <div class="form-text">Nenhum campo é obrigatório isoladamente: informe pelo menos um (nome, e-mail ou telefone). Dados tratados conforme a LGPD (Lei 13.709/2018).</div>
+                <div id="reporter-identify-error" class="invalid-feedback d-block d-none mt-2" role="alert"></div>
             </div>
         </div>
 
@@ -119,7 +120,56 @@ require __DIR__ . '/_view_scope.php';
     </form>
 </div>
 <script>
-document.getElementById('identify_reporter')?.addEventListener('change', function () {
-    document.getElementById('reporter-fields')?.classList.toggle('d-none', !this.checked);
-});
+(function () {
+    var identifyCheckbox = document.getElementById('identify_reporter');
+    var reporterFields = document.getElementById('reporter-fields');
+    var identifyError = document.getElementById('reporter-identify-error');
+    var form = document.querySelector('.canal-form');
+    var identifyErrorMessage = 'Informe pelo menos um campo (nome, e-mail ou telefone) ou desmarque a opção de se identificar.';
+
+    function clearIdentifyError() {
+        if (!identifyError) {
+            return;
+        }
+        identifyError.textContent = '';
+        identifyError.classList.add('d-none');
+    }
+
+    function showIdentifyError() {
+        if (!identifyError) {
+            return;
+        }
+        identifyError.textContent = identifyErrorMessage;
+        identifyError.classList.remove('d-none');
+    }
+
+    function hasAnyIdentifyField() {
+        var name = (document.getElementById('reporter_name')?.value || '').trim();
+        var email = (document.getElementById('reporter_email')?.value || '').trim();
+        var phone = (document.getElementById('reporter_phone')?.value || '').trim();
+        return name !== '' || email !== '' || phone !== '';
+    }
+
+    identifyCheckbox?.addEventListener('change', function () {
+        reporterFields?.classList.toggle('d-none', !this.checked);
+        clearIdentifyError();
+    });
+
+    ['reporter_name', 'reporter_email', 'reporter_phone'].forEach(function (id) {
+        document.getElementById(id)?.addEventListener('input', clearIdentifyError);
+    });
+
+    form?.addEventListener('submit', function (event) {
+        if (!identifyCheckbox?.checked) {
+            clearIdentifyError();
+            return;
+        }
+
+        if (!hasAnyIdentifyField()) {
+            event.preventDefault();
+            showIdentifyError();
+            document.getElementById('reporter_name')?.focus();
+        }
+    });
+})();
 </script>

@@ -150,6 +150,26 @@ final class UserFormHelper
         return in_array($v, self::ESCOLARIDADE_SLUGS, true) ? $v : null;
     }
 
+    /** Aceita slug ou rótulo exibido no formulário (útil em CSV). */
+    public static function resolveEscolaridadeSlug(mixed $value): ?string
+    {
+        $fromSlug = self::normalizeEscolaridade($value);
+        if ($fromSlug !== null) {
+            return $fromSlug;
+        }
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $needle = mb_strtolower(trim((string) $value));
+        foreach (self::ESCOLARIDADE_SLUGS as $slug) {
+            if ($needle === mb_strtolower(self::escolaridadeLabel($slug))) {
+                return $slug;
+            }
+        }
+
+        return null;
+    }
+
     public static function escolaridadeLabel(?string $code): string
     {
         return match ($code) {
@@ -213,6 +233,35 @@ final class UserFormHelper
         $v = strtolower(trim((string) $value));
 
         return in_array($v, self::RACA_SLUGS, true) ? $v : null;
+    }
+
+    /** Aceita slug ou rótulo (ex.: Branca, Indígena) — útil em CSV. */
+    public static function resolveRacaSlug(mixed $value): ?string
+    {
+        $fromSlug = self::normalizeRaca($value);
+        if ($fromSlug !== null) {
+            return $fromSlug;
+        }
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $needle = mb_strtolower(trim((string) $value));
+        $aliases = [
+            'indígena' => 'indigena',
+            'indigena' => 'indigena',
+            'não informado' => 'nao_informado',
+            'nao informado' => 'nao_informado',
+        ];
+        if (isset($aliases[$needle])) {
+            return $aliases[$needle];
+        }
+        foreach (self::RACA_SLUGS as $slug) {
+            if ($needle === mb_strtolower(self::racaLabel($slug))) {
+                return $slug;
+            }
+        }
+
+        return null;
     }
 
     public static function racaLabel(?string $code): string
@@ -319,5 +368,81 @@ final class UserFormHelper
         }
 
         return $out;
+    }
+
+    /** @return list<string> */
+    public static function ufList(): array
+    {
+        return [
+            'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+            'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+            'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+        ];
+    }
+
+    /** @return array<string, string> UF => UF */
+    public static function ufOptions(): array
+    {
+        $out = [];
+        foreach (self::ufList() as $uf) {
+            $out[$uf] = $uf;
+        }
+
+        return $out;
+    }
+
+    public static function normalizeUf(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtoupper(trim((string) $value));
+
+        return in_array($v, self::ufList(), true) ? $v : null;
+    }
+
+    public static function normalizeEmailPessoal(mixed $value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $email = strtolower(trim((string) $value));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        return $email;
+    }
+
+    public static function normalizeCep(mixed $value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $digits = preg_replace('/\D+/', '', (string) $value) ?? '';
+        if ($digits === '') {
+            return null;
+        }
+        if (strlen($digits) === 8) {
+            return substr($digits, 0, 5) . '-' . substr($digits, 5);
+        }
+
+        return substr($digits, 0, 10);
+    }
+
+    public static function normalizeOptionalText(mixed $value, int $maxLength = 255): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $text = trim((string) $value);
+        if ($text === '') {
+            return null;
+        }
+        if (mb_strlen($text) > $maxLength) {
+            $text = mb_substr($text, 0, $maxLength);
+        }
+
+        return $text;
     }
 }

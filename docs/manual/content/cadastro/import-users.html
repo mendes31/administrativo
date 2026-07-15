@@ -1,28 +1,45 @@
 <h1>Importar Usuários</h1>
-<p>Tela <strong>Importar Usuários</strong> do módulo Cadastro. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
+<p>Importa ou atualiza colaboradores via Excel (<code>.xlsx</code>) ou CSV. Há dois modos: <strong>mapeamento de colunas</strong> e <strong>template oficial</strong> com cabeçalhos fixos.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Cadastro de usuários</em> (<code>cad-usuarios</code>) para o fluxo completo da área.</p>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>ImportUsers</em>.</p>
+<p><strong>Onde fica:</strong> menu <em>Cadastro → Usuários → Importar Usuários</em>, ou o botão <em>Importar</em> na listagem de usuários.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo — mapeamento de colunas (recomendado)</h2>
+<p>Funciona em <strong>dois passos</strong>:</p>
 <ol>
-    <li>Acesse <strong>Importar Usuários</strong> pelo menu Cadastro.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Monte a planilha no Excel (uma coluna por campo). Prefira salvar como <strong>.xlsx</strong>.</li>
+    <li>Escolha o arquivo, deixe <em>Mapeamento de colunas</em> marcado e clique em <strong>Abrir mapeamento</strong>.</li>
+    <li>Na tela seguinte, para cada <strong>campo do sistema</strong> escolha a <strong>coluna do arquivo</strong> (ou “não importar”). Defina a chave única (CPF, usuário/login ou ID).</li>
+    <li>Escolha o método: só atualizar, ou criar e atualizar.</li>
+    <li>Clique em <strong>Importar com mapeamento</strong> e revise o resumo.</li>
+</ol>
+
+<h2>Fluxo — template oficial</h2>
+<ol>
+    <li>Baixe o template, preencha e importe no modo <em>Template oficial</em>.</li>
+    <li>A chave nesse modo é a coluna <code>username</code>.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<div class="help-field"><strong>Chave única</strong> Localiza o registro: CPF, username ou ID. Sem chave válida a linha é ignorada ou gera erro.</div>
+<div class="help-field"><strong>Mapeamento</strong> Só os campos associados a uma coluna são gravados; o restante do cadastro permanece. Cabeçalhos iguais aos nomes dos campos (ex.: <code>username</code>, <code>matricula</code>) são pré-selecionados. Cada coluna do arquivo só pode ser usada em um campo.</div>
+<div class="help-field"><strong>Resultado</strong> Após importar, o resumo mostra totais e uma tabela por linha da planilha (linha 1 = cabeçalho). “Atualizado” significa que o usuário já existia e os campos mapeados foram gravados.</div>
+<div class="help-field"><strong>escolaridade / raca</strong> Aceitam slug ou rótulo do cadastro.</div>
+<div class="help-field"><strong>Endereço e matrícula</strong> Colunas opcionais: CEP, logradouro, número, complemento, bairro, município, UF, matrícula, e-mail pessoal.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>ImportUsers</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão <em>ImportUsers</em> ausente no seu nível de acesso.</dd>
+    <dt>Só aparece uma coluna no mapeamento</dt>
+    <dd>Evite CSV “quebrado”: no Excel use <em>Salvar como → Pasta de Trabalho (.xlsx)</em> e envie o .xlsx. Se usar CSV, confira se há várias colunas e o separador é <code>;</code> ou <code>,</code>.</dd>
+    <dt>Chave não encontrada</dt>
+    <dd>No modo “somente atualizar”, linhas sem usuário correspondente são ignoradas. Confira CPF/username.</dd>
+    <dt>Campo mapeado duas vezes</dt>
+    <dd>Cada coluna do arquivo só pode ser associada a um campo do sistema.</dd>
+    <dt>Excel não sobe</dt>
+    <dd>Formatos aceitos no mapeamento: <code>.xlsx</code>, <code>.xls</code> e <code>.csv</code>.</dd>
 </dl>

@@ -118,29 +118,16 @@ final class CanalDenuncia
         $reporterEmail = trim((string) ($_POST['reporter_email'] ?? ''));
         $reporterPhone = trim((string) ($_POST['reporter_phone'] ?? ''));
 
-        if ($wantsIdentify) {
-            if ($reporterName === '') {
-                $this->render('registrar', [
-                    'title' => 'Registrar denúncia',
-                    'categories' => WhistleblowingCategoryService::getActiveNames(),
-                    'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                    'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
-                    'error' => 'Informe seu nome para identificação voluntária.',
-                    'old' => $_POST,
-                ]);
-                return;
-            }
-            if ($reporterEmail === '' && $reporterPhone === '') {
-                $this->render('registrar', [
-                    'title' => 'Registrar denúncia',
-                    'categories' => WhistleblowingCategoryService::getActiveNames(),
-                    'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                    'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
-                    'error' => 'Informe e-mail ou telefone para contato.',
-                    'old' => $_POST,
-                ]);
-                return;
-            }
+        if ($wantsIdentify && $reporterName === '' && $reporterEmail === '' && $reporterPhone === '') {
+            $this->render('registrar', [
+                'title' => 'Registrar denúncia',
+                'categories' => WhistleblowingCategoryService::getActiveNames(),
+                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+                'error' => 'Informe pelo menos um campo (nome, e-mail ou telefone) ou desmarque a opção de se identificar.',
+                'old' => $_POST,
+            ]);
+            return;
         }
 
         $result = $this->reportsRepo->createAnonymousReport(

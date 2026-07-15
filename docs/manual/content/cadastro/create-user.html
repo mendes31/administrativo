@@ -8,15 +8,18 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-user</code>).</li>
-    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
-    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
+    <li>Preencha as abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong> e <strong>Dados Contratuais</strong>.</li>
+    <li>Revise status, vínculos e flags (ativo, bloqueado, super usuário) antes de salvar.</li>
     <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
     <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
+<div class="help-field"><strong>Aba Usuário</strong> Nome, e-mail corporativo, login, CPF, celular, departamento, cargo, supervisor, turno, senha/imagem e flags de acesso (status, bloqueio, senha, super usuário e boas-vindas).</div>
+<div class="help-field"><strong>Aba Dados Pessoais</strong> E-mail pessoal, nascimento, sexo, estado civil, escolaridade, raça/cor e filhos.</div>
+<div class="help-field"><strong>Aba Endereço</strong> País, CEP (busca ViaCEP), logradouro, número, complemento, bairro, município e UF — mesmo racional do CRM de parceiros; opção de preenchimento manual se não souber o CEP.</div>
+<div class="help-field"><strong>Aba Dados Contratuais</strong> Empresa contratante, matrícula, admissão e (na edição) desligamento.</div>
 <div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
 
 <div class="help-field"><strong>Integração LNT</strong> Ao salvar um novo colaborador, o sistema registra um evento para a equipe de treinamentos (notificação in-app e relatório diário por e-mail, se habilitados). Consulte <em>Eventos LNT (RH)</em>.</div>

@@ -100,6 +100,9 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dt class="col-sm-3">Email: </dt>
                     <dd class="col-sm-9"><?php echo $email; ?></dd>
 
+                    <dt class="col-sm-3">E-mail pessoal: </dt>
+                    <dd class="col-sm-9"><?php echo !empty($this->data['user']['email_pessoal']) ? htmlspecialchars((string)$this->data['user']['email_pessoal'], ENT_QUOTES, 'UTF-8') : '<span class="text-muted">Não informado</span>'; ?></dd>
+
                     <dt class="col-sm-3">Usuário: </dt>
                     <dd class="col-sm-9"><?php echo $username; ?></dd>
 
@@ -233,6 +236,29 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dd class="col-sm-9">
                         <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::paisResidenciaLabel($this->data['user']['pais_residencia_iso'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
                     </dd>
+                    <dt class="col-sm-3">Endereço: </dt>
+                    <dd class="col-sm-9">
+                        <?php
+                        $endParts = array_filter([
+                            trim((string)($this->data['user']['endereco'] ?? '')),
+                            trim((string)($this->data['user']['numero_endereco'] ?? '')),
+                            trim((string)($this->data['user']['complemento_endereco'] ?? '')),
+                            trim((string)($this->data['user']['bairro'] ?? '')),
+                        ], static fn ($v) => $v !== '');
+                        $cepMunUf = array_filter([
+                            trim((string)($this->data['user']['cep'] ?? '')),
+                            trim((string)($this->data['user']['municipio'] ?? '')),
+                            trim((string)($this->data['user']['uf'] ?? '')),
+                        ], static fn ($v) => $v !== '');
+                        if ($endParts || $cepMunUf) {
+                            $line1 = implode(', ', $endParts);
+                            $line2 = implode(' - ', $cepMunUf);
+                            echo htmlspecialchars(trim($line1 . ($line1 && $line2 ? ' | ' : '') . $line2), ENT_QUOTES, 'UTF-8');
+                        } else {
+                            echo '<span class="text-muted">Não informado</span>';
+                        }
+                        ?>
+                    </dd>
 
                     <dt class="col-sm-3">Departamento: </dt>
                     <dd class="col-sm-9"><?php echo $dep_name; ?></dd>
@@ -246,6 +272,9 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                             : '<span class="text-muted">Não informado</span>';
                         ?>
                     </dd>
+
+                    <dt class="col-sm-3">Matrícula: </dt>
+                    <dd class="col-sm-9"><?php echo !empty($this->data['user']['matricula']) ? htmlspecialchars((string)$this->data['user']['matricula'], ENT_QUOTES, 'UTF-8') : '<span class="text-muted">Não informado</span>'; ?></dd>
 
                     <dt class="col-sm-3">Cargo|Função: </dt>
                     <dd class="col-sm-9"><?php echo htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($pos_name ?? ''))); ?></dd>

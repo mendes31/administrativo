@@ -243,7 +243,16 @@ class UpdateUser
         $form['escolaridade'] = UserFormHelper::normalizeEscolaridade($_POST['escolaridade'] ?? null);
         $form['raca'] = UserFormHelper::normalizeRaca($_POST['raca'] ?? null);
         $form['empresa_contratante'] = UserFormHelper::normalizeEmpresaContratante($_POST['empresa_contratante'] ?? null);
+        $form['matricula'] = UserFormHelper::normalizeOptionalText($_POST['matricula'] ?? null, 40);
         $form['pais_residencia_iso'] = UserFormHelper::normalizePaisResidenciaIso($_POST['pais_residencia_iso'] ?? null);
+        $form['email_pessoal'] = UserFormHelper::normalizeEmailPessoal($_POST['email_pessoal'] ?? null);
+        $form['endereco'] = UserFormHelper::normalizeOptionalText($_POST['endereco'] ?? null, 255);
+        $form['numero_endereco'] = UserFormHelper::normalizeOptionalText($_POST['numero_endereco'] ?? null, 20);
+        $form['complemento_endereco'] = UserFormHelper::normalizeOptionalText($_POST['complemento_endereco'] ?? null, 80);
+        $form['bairro'] = UserFormHelper::normalizeOptionalText($_POST['bairro'] ?? null, 120);
+        $form['cep'] = UserFormHelper::normalizeCep($_POST['cep'] ?? null);
+        $form['municipio'] = UserFormHelper::normalizeOptionalText($_POST['municipio'] ?? null, 120);
+        $form['uf'] = UserFormHelper::normalizeUf($_POST['uf'] ?? null);
         $newSuperFlag = array_key_exists('super_usuario', $form)
             ? (((int) $form['super_usuario'] === 1) ? 1 : 0)
             : $oldSuperFlag;
