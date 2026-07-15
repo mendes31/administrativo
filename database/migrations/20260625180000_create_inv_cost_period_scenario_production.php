@@ -55,7 +55,7 @@ final class CreateInvCostPeriodScenarioProduction extends AbstractMigration
                 'obs' => 'Inclui lotes fictícios no rateio do período (rascunho).',
                 'page_status' => 1,
                 'public_page' => 0,
-                'default_page' => 1,
+                'default_page' => 0,
                 'adms_packages_page_id' => 1,
                 'adms_groups_page_id' => $groupId,
                 'created_at' => $now,
