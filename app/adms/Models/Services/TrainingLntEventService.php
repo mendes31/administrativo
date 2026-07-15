@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\AppEnvironmentHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\SendEmailService;
 use App\adms\Models\Repository\DepartmentsRepository;
@@ -153,7 +154,8 @@ class TrainingLntEventService
         $result['events'] = count($events);
         $result['recipients'] = count($recipients);
 
-        $subject = 'Relatório LNT — eventos de RH de ' . date('d/m/Y', strtotime($refDate));
+        $subject = AppEnvironmentHelper::emailSubjectPrefix()
+            . 'Relatório LNT — eventos de RH de ' . date('d/m/Y', strtotime($refDate));
         $body = $this->buildDigestEmailHtml($events, $refDate);
         $altBody = $this->buildDigestEmailText($events, $refDate);
 
@@ -223,6 +225,9 @@ class TrainingLntEventService
         }
 
         $title = (string)($payload['action_label'] ?? 'Evento LNT');
+        if (AppEnvironmentHelper::isNonProduction()) {
+            $title = '[TESTE] ' . $title;
+        }
         $name = (string)($payload['collaborator_name'] ?? $payload['position_name'] ?? '');
         $message = $name !== ''
             ? $title . ': ' . $name
@@ -320,8 +325,10 @@ class TrainingLntEventService
         }
 
         $refBr = date('d/m/Y', strtotime($refDate));
+        $banner = AppEnvironmentHelper::emailHtmlBanner() ?? '';
 
-        return '<p>Relatório diário de eventos de RH para apoio ao <strong>LNT</strong> — referência: <strong>' . $refBr . '</strong>.</p>'
+        return $banner
+            . '<p>Relatório diário de eventos de RH para apoio ao <strong>LNT</strong> — referência: <strong>' . $refBr . '</strong>.</p>'
             . '<table style="border-collapse:collapse;font-size:12px;" width="100%">'
             . '<thead><tr style="background:#f0f0f0;">'
             . '<th style="border:1px solid #ccc;padding:4px;">Ação</th>'
@@ -341,6 +348,10 @@ class TrainingLntEventService
     private function buildDigestEmailText(array $events, string $refDate): string
     {
         $lines = ['Relatório LNT — eventos de RH de ' . date('d/m/Y', strtotime($refDate)), ''];
+        $textBanner = AppEnvironmentHelper::emailTextBanner();
+        if ($textBanner !== null) {
+            array_unshift($lines, $textBanner, '');
+        }
         foreach ($events as $event) {
             $lines[] = sprintf(
                 '%s | %s | CPF %s | %s | %s | Adm %s | Desl %s',

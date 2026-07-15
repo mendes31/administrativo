@@ -22,10 +22,13 @@
 <p><strong>Notificação interna (sino):</strong> instantânea ao salvar cadastro ou alteração de colaborador/cargo, se a opção estiver ativa. O contador no sino permanece até você clicar em <strong>Abrir</strong> na notificação (ou usar &quot;Marcar como lida&quot;). Só abrir o menu do sino ou a lista de notificações não remove o alerta.</p>
 <p><strong>Destinatários:</strong> equipe com permissão explícita de treinamentos. Superadministradores (nível Super Administrador ou flag super usuário) não recebem alerta, mesmo com acesso total. Quem executou a ação também não é notificado da própria movimentação.</p>
 <p><strong>E-mail diário:</strong> no primeiro acesso do dia (login ou dashboard), o sistema envia o resumo dos eventos do dia anterior para a equipe de treinamentos. Cada linha traz: ação, nome, CPF, setor, cargo, data de admissão e desligamento (quando houver). Não é necessário cron; o envio ocorre automaticamente quando alguém entra no sistema após a meia-noite.</p>
+<p>Em ambientes de <strong>teste/homologação</strong> (<code>APP_ENV</code> diferente de production ou banco com nome contendo homolog/teste), o e-mail traz o prefixo <em>[TESTE/HOMOLOGAÇÃO]</em> no assunto e um aviso destacado no corpo, para não ser confundido com a base de produção.</p>
 <p><em>Opcional:</em> agende o cron <code>php app/adms/Controllers/Services/TrainingLntEventsDigestCli.php</code> (ex.: 07:00) como reforço se ninguém acessar o sistema de manhã.</p>
 <h2>Problemas comuns</h2>
 <dl>
-<dt>E-mail não chega</dt><dd>SMTP ou spam; teste com TestNotification.</dd>
+    <dt>E-mail de teste parece produção</dt>
+    <dd>Confira <code>APP_ENV</code> e <code>DB_NAME</code> no <code>.env</code>. Em homologação o assunto deve começar com <em>[TESTE/HOMOLOGAÇÃO]</em>. Em produção use <code>APP_ENV=production</code> e nome de banco sem “homolog/teste”.</dd>
+    <dt>E-mail não chega</dt><dd>SMTP ou spam; teste com TestNotification.</dd>
 <dt>Notificação duplicada</dt><dd>Múltiplos gatilhos com mesma antecedência.</dd>
 <dt>Push não funciona</dt><dd>Configure Push PWA em Administração.</dd>
 <dt>Colaborador sem e-mail</dt><dd>Cadastro incompleto em Usuários.</dd>
