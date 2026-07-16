@@ -255,8 +255,8 @@ Confirmada em ' . $assinaturaEm . $assinaturaExtra . '
             if (!$isImage || $abs === '' || !is_file($abs)) {
                 continue;
             }
-            $dataUri = $this->imageToDataUri($abs, $mime);
-            if ($dataUri === null) {
+            $imgSrc = $this->prepareImageForMpdf($abs);
+            if ($imgSrc === null) {
                 continue;
             }
             $imgCount++;
@@ -267,7 +267,7 @@ Confirmada em ' . $assinaturaEm . $assinaturaExtra . '
             $nome = $esc($anexo['file_name'] ?? null);
             $fotosHtml .= '<div style="display:inline-block;width:48%;vertical-align:top;margin:0 1% 14px;page-break-inside:avoid">'
                 . '<div style="border:1px solid #ccc;padding:6px;text-align:center">'
-                . '<img src="' . $dataUri . '" style="max-width:100%;max-height:220px" />'
+                . '<img src="' . htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') . '" style="max-width:100%;max-height:200px" />'
                 . '</div>'
                 . '<div style="font-size:10px;color:#444;margin-top:4px">'
                 . '<strong>Foto ' . $prefix . '-' . $imgCount . '</strong> · ' . $quando
@@ -282,24 +282,74 @@ Confirmada em ' . $assinaturaEm . $assinaturaExtra . '
         return $fotosHtml;
     }
 
-    private function imageToDataUri(string $absPath, string $mimeHint = ''): ?string
+    /**
+     * Redimensiona e grava JPEG temporário para o mPDF (evita HTML gigante com base64).
+     */
+    private function prepareImageForMpdf(string $absPath): ?string
     {
-        $data = @file_get_contents($absPath);
-        if ($data === false || $data === '') {
+        $tempDir = (defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__, 3))
+            . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'tmp'
+            . DIRECTORY_SEPARATOR . 'mpdf' . DIRECTORY_SEPARATOR . 'images';
+        if (!is_dir($tempDir) && !@mkdir($tempDir, 0775, true) && !is_dir($tempDir)) {
             return null;
         }
-        $mime = strtolower(trim($mimeHint));
-        if ($mime === '' || !str_starts_with($mime, 'image/')) {
-            $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
-            $mime = match ($ext) {
-                'jpg', 'jpeg' => 'image/jpeg',
-                'png' => 'image/png',
-                'gif' => 'image/gif',
-                'webp' => 'image/webp',
-                default => 'image/jpeg',
-            };
+
+        $dest = $tempDir . DIRECTORY_SEPARATOR . 'pdf_' . md5($absPath . (string) filemtime($absPath)) . '.jpg';
+        if (is_file($dest) && filesize($dest) > 0) {
+            return str_replace('\\', '/', $dest);
         }
 
-        return 'data:' . $mime . ';base64,' . base64_encode($data);
+        if (!function_exists('imagecreatefromstring')) {
+            // Fallback: caminho original (mPDF lê arquivo local)
+            return str_replace('\\', '/', $absPath);
+        }
+
+        $raw = @file_get_contents($absPath);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+        $src = @imagecreatefromstring($raw);
+        if ($src === false) {
+            return str_replace('\\', '/', $absPath);
+        }
+
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $maxW = 900;
+        if ($w > $maxW) {
+            $nw = $maxW;
+            $nh = (int) max(1, round($h * ($maxW / $w)));
+            $dst = imagecreatetruecolor($nw, $nh);
+            if ($dst === false) {
+                imagedestroy($src);
+
+                return str_replace('\\', '/', $absPath);
+            }
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            imagedestroy($src);
+            $src = $dst;
+        }
+
+        // Fundo branco para PNG com transparência
+        $finalW = imagesx($src);
+        $finalH = imagesy($src);
+        $canvas = imagecreatetruecolor($finalW, $finalH);
+        if ($canvas === false) {
+            imagedestroy($src);
+
+            return str_replace('\\', '/', $absPath);
+        }
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        imagefill($canvas, 0, 0, $white);
+        imagecopy($canvas, $src, 0, 0, 0, 0, $finalW, $finalH);
+        imagedestroy($src);
+
+        $ok = imagejpeg($canvas, $dest, 72);
+        imagedestroy($canvas);
+        if (!$ok || !is_file($dest)) {
+            return str_replace('\\', '/', $absPath);
+        }
+
+        return str_replace('\\', '/', $dest);
     }
 }

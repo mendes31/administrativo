@@ -43,6 +43,8 @@ class SstExportEquipamentoVistoriaPdf
                 ob_end_clean();
             }
             @set_time_limit(120);
+            @ini_set('pcre.backtrack_limit', '5000000');
+            @ini_set('memory_limit', '512M');
 
             $respostas = $repo->getRespostas($id);
             $anexos = (new SstAnexosRepository())->getByEntity(self::ENTITY_VISTORIA, $id);
@@ -67,7 +69,8 @@ class SstExportEquipamentoVistoriaPdf
                 }
             }
 
-            $html = (new SstEquipamentoVistoriaPdfService())->buildHtml(
+            $pdfService = new SstEquipamentoVistoriaPdfService();
+            $html = $pdfService->buildHtml(
                 $vistoria,
                 $respostas,
                 $anexos,
@@ -96,9 +99,13 @@ class SstExportEquipamentoVistoriaPdf
             ]);
             $mpdf->SetTitle('Vistoria ' . ($vistoria['equipamento_codigo'] ?? '') . ' ' . ($vistoria['competencia'] ?? ''));
             $mpdf->SetAuthor('Tiaraju — SST');
-            // mPDF exige 3 seções no rodapé: esquerda|centro|direita
             $mpdf->SetFooter('Vistoria SST||{PAGENO}/{nbpg}');
-            $mpdf->WriteHTML($html);
+
+            // Escreve em pedaços para não estourar pcre.backtrack_limit do mPDF
+            $chunks = $this->splitHtmlChunks($html);
+            foreach ($chunks as $i => $chunk) {
+                $mpdf->WriteHTML($chunk, $i === 0 ? 0 : 2);
+            }
             $mpdf->Output('Vistoria_' . $codigo . '_' . $comp . '.pdf', 'I');
             exit;
         } catch (\Throwable $e) {
@@ -111,5 +118,39 @@ class SstExportEquipamentoVistoriaPdf
             }
             exit;
         }
+    }
+
+    /**
+     * Divide HTML em pedaços menores para o mPDF (limite pcre.backtrack_limit).
+     *
+     * @return list<string>
+     */
+    private function splitHtmlChunks(string $html): array
+    {
+        $max = 200000;
+        if (strlen($html) <= $max) {
+            return [$html];
+        }
+
+        $chunks = [];
+        $offset = 0;
+        $len = strlen($html);
+        while ($offset < $len) {
+            $remaining = $len - $offset;
+            if ($remaining <= $max) {
+                $chunks[] = substr($html, $offset);
+                break;
+            }
+            $slice = substr($html, $offset, $max);
+            // Tenta cortar em limite de tag fechada
+            $cut = strrpos($slice, '>');
+            if ($cut === false || $cut < (int) ($max * 0.5)) {
+                $cut = $max - 1;
+            }
+            $chunks[] = substr($html, $offset, $cut + 1);
+            $offset += $cut + 1;
+        }
+
+        return $chunks !== [] ? $chunks : [$html];
     }
 }
