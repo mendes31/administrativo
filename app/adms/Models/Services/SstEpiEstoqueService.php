@@ -10,6 +10,7 @@ use App\adms\Models\Repository\SstEpisRepository;
 
 /**
  * Registra movimentações de estoque EPI e mantém estoque_atual sincronizado (cache).
+ * Custo: média ponderada por CA. DOCNUM por série (EM/SM/ET/DS/AS).
  */
 class SstEpiEstoqueService
 {
@@ -25,7 +26,7 @@ class SstEpiEstoqueService
 
     /**
      * @param array<string, mixed> $data
-     * @return array{ok:bool, id?:int, error?:string}
+     * @return array{ok:bool, id?:int, doc_codigo?:string, error?:string}
      */
     public function registrarMovimento(array $data): array
     {
@@ -51,6 +52,7 @@ class SstEpiEstoqueService
         }
 
         $saldoAtual = $this->movRepo->getSaldoCalculado($epiId);
+        $ca = isset($data['ca_numero']) ? (string) $data['ca_numero'] : '';
 
         if ($tipo === 'Ajuste') {
             $saldoNovo = (int) ($data['saldo_novo'] ?? -1);
@@ -63,6 +65,14 @@ class SstEpiEstoqueService
             }
             $data['quantidade'] = $diff;
             $data['tipo_movimento'] = 'Ajuste';
+            $media = $this->movRepo->getCustoMedioCa($epiId, null);
+            if ($diff < 0 && $media !== null) {
+                $data['valor_unitario'] = $media;
+                $data['valor_total'] = round($media * abs($diff), 2);
+            } else {
+                $data['valor_unitario'] = null;
+                $data['valor_total'] = null;
+            }
             $data['observacoes'] = trim(
                 (($data['observacoes'] ?? '') !== '' ? (string) $data['observacoes'] . ' ' : '')
                 . '[Inventário: ' . $saldoAtual . ' → ' . $saldoNovo . ']'
@@ -75,17 +85,43 @@ class SstEpiEstoqueService
                 if ($qty > $saldoAtual) {
                     return ['ok' => false, 'error' => 'Saldo insuficiente. Disponível: ' . $saldoAtual . '.'];
                 }
-                $ca = (string) ($data['ca_numero'] ?? '');
                 if ($ca !== '') {
                     $saldoCa = $this->movRepo->getSaldoCa($epiId, $ca);
                     if ($qty > $saldoCa) {
                         return [
                             'ok' => false,
-                            'error' => 'Saldo insuficiente para o CA ' . $ca . '. Disponível neste lote: ' . $saldoCa . '.',
+                            'error' => 'Saldo insuficiente para o CA ' . $ca . '. Disponível neste CA: ' . $saldoCa . '.',
                         ];
                     }
                 }
             }
+
+            if (SstEpiMovimentoHelper::tipoUsaValor($tipo)) {
+                $unit = SstEpiMovimentoHelper::parseMoney($data['valor_unitario'] ?? null);
+                // Entrada: obrigatório (já validado). Saída/Entrega/Devolução: média do CA.
+                if ($tipo !== 'Entrada') {
+                    $media = $this->movRepo->getCustoMedioCa($epiId, $ca !== '' ? $ca : null);
+                    // Saída/Entrega sempre usam média (não editável no custo real de estoque)
+                    if (in_array($tipo, ['Saída', 'Entrega'], true)) {
+                        $unit = $media;
+                    } elseif ($unit === null) {
+                        $unit = $media;
+                    }
+                }
+                $data['valor_unitario'] = $unit;
+                $data['valor_total'] = ($unit !== null) ? round($unit * $qty, 2) : null;
+            }
+        }
+
+        $serie = SstEpiMovimentoHelper::seriePorTipo($tipo);
+        if ($serie !== null && $this->movRepo->hasSeriesTable()) {
+            $doc = $this->movRepo->allocateNextDoc($serie);
+            if ($doc === null) {
+                return ['ok' => false, 'error' => 'Não foi possível gerar o número do documento (' . $serie . ').'];
+            }
+            $data['doc_serie'] = $doc['serie'];
+            $data['doc_numero'] = $doc['numero'];
+            $data['doc_codigo'] = $doc['codigo'];
         }
 
         $novoSaldo = $saldoAtual + SstEpiMovimentosRepository::impactoSaldo($tipo, (int) $data['quantidade']);
@@ -98,10 +134,14 @@ class SstEpiEstoqueService
 
         $this->syncEstoqueCache($epiId);
 
-        return ['ok' => true, 'id' => (int) $movId];
+        return [
+            'ok' => true,
+            'id' => (int) $movId,
+            'doc_codigo' => (string) ($data['doc_codigo'] ?? ''),
+        ];
     }
 
-    /** Saídas automáticas ao assinar ficha de entrega. */
+    /** Entrega automática ao assinar ficha. */
     public function registrarSaidaPorFicha(
         int $fichaId,
         int $epiId,
@@ -125,7 +165,7 @@ class SstEpiEstoqueService
             'data_movimento' => $dataMovimento,
             'referencia_tipo' => 'ficha_epi_item',
             'referencia_id' => $refId,
-            'observacoes' => 'Saída automática — ficha de entrega #' . $fichaId,
+            'observacoes' => 'Entrega automática — ficha #' . $fichaId,
         ];
         if ($ca !== '') {
             $payload['ca_numero'] = $ca;

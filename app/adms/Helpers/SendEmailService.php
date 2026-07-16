@@ -90,8 +90,20 @@ class SendEmailService
             }
             $mail->addAddress($email, $name);                           //Adiciona um destinatário
 
-            //Content
-            $mail->isHTML(true);                                        //Define o formato do e-mail para HTML
+            //Content — em base local/teste, marca assunto e corpo para não confundir com produção
+            $mail->isHTML(true);
+            $subjectPrefix = AppEnvironmentHelper::emailSubjectPrefix();
+            if ($subjectPrefix !== '' && stripos($subject, '[TESTE') !== 0) {
+                $subject = $subjectPrefix . $subject;
+            }
+            $htmlBanner = AppEnvironmentHelper::emailHtmlBanner();
+            if ($htmlBanner !== null && stripos($body, 'AMBIENTE DE TESTE') === false) {
+                $body = $htmlBanner . $body;
+            }
+            $textBanner = AppEnvironmentHelper::emailTextBanner();
+            if ($textBanner !== null && stripos($altBody, 'AMBIENTE DE TESTE') === false) {
+                $altBody = $textBanner . "\n\n" . $altBody;
+            }
             $mail->Subject = $subject;
             $mail->Body    = $body;
             $mail->AltBody = $altBody;

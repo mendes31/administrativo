@@ -46,7 +46,7 @@ $perms = $this->data['buttonPermission'] ?? [];
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Buscar</label>
-                    <input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" placeholder="EPI, CA ou documento">
+                    <input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" placeholder="DOCNUM, EPI, CA, motivo…">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
@@ -58,21 +58,41 @@ $perms = $this->data['buttonPermission'] ?? [];
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
                     <thead><tr>
-                        <th>Data</th><th>EPI</th><th>Tipo</th><th>Qtd</th><th>CA</th><th>Saldo após</th><th>Documento</th><th>Responsável</th><th>Obs.</th>
+                        <th>DOCNUM</th><th>Data</th><th>EPI</th><th>Tipo</th><th>Qtd</th><th class="text-end">Valor unit.</th><th class="text-end">Total</th><th>CA</th><th>Saldo após</th><th>Motivo</th><th>Documento</th><th>Responsável</th><th>Obs.</th>
                     </tr></thead>
                     <tbody>
                     <?php foreach ($items as $r):
                         $qty = (int)($r['quantidade'] ?? 0);
                         $tipo = (string)($r['tipo_movimento'] ?? '');
                         $neg = $tipo === 'Ajuste' ? $qty < 0 : in_array($tipo, ['Saída', 'Entrega'], true);
+                        $vu = isset($r['valor_unitario']) && $r['valor_unitario'] !== null && $r['valor_unitario'] !== ''
+                            ? (float) $r['valor_unitario'] : null;
+                        $vt = isset($r['valor_total']) && $r['valor_total'] !== null && $r['valor_total'] !== ''
+                            ? (float) $r['valor_total'] : null;
+                        $docCodigo = trim((string)($r['doc_codigo'] ?? ''));
                     ?>
                     <tr>
+                        <td><code class="small"><?= $docCodigo !== '' ? htmlspecialchars($docCodigo) : '—' ?></code></td>
                         <td><?= !empty($r['data_movimento']) ? date('d/m/Y', strtotime($r['data_movimento'])) : '-' ?></td>
                         <td><?= htmlspecialchars($r['epi_nome'] ?? '') ?></td>
                         <td><span class="badge bg-<?= $neg ? 'danger' : 'success' ?>"><?= htmlspecialchars($tipo) ?></span></td>
                         <td><?= $tipo === 'Ajuste' ? ($qty > 0 ? '+' : '') . $qty : abs($qty) ?></td>
+                        <td class="text-end"><?= $vu !== null ? 'R$ ' . number_format($vu, 2, ',', '.') : '—' ?></td>
+                        <td class="text-end"><?= $vt !== null ? 'R$ ' . number_format($vt, 2, ',', '.') : '—' ?></td>
                         <td><?= htmlspecialchars($r['ca_numero'] ?? '-') ?></td>
                         <td><?= isset($r['saldo_apos']) ? (int)$r['saldo_apos'] : '-' ?></td>
+                        <td class="small"><?php
+                            $mot = trim((string)($r['motivo'] ?? ''));
+                            $just = trim((string)($r['justificativa'] ?? ''));
+                            if ($mot !== '' || $just !== '') {
+                                echo htmlspecialchars($mot !== '' ? $mot : '');
+                                if ($just !== '') {
+                                    echo ($mot !== '' ? ': ' : '') . htmlspecialchars(mb_strimwidth($just, 0, 60, '…'));
+                                }
+                            } else {
+                                echo '—';
+                            }
+                        ?></td>
                         <td><?= htmlspecialchars($r['documento_ref'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($r['responsavel_nome'] ?? '-') ?></td>
                         <td class="small"><?= htmlspecialchars($r['observacoes'] ?? '') ?></td>

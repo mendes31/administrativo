@@ -8,6 +8,8 @@ $epiLockedItem = $this->data['epi_locked_item'] ?? null;
 $multiMode = !empty($this->data['multi_mode']);
 $saldoAtual = $this->data['saldo_atual'] ?? null;
 $casEstoqueJson = $this->data['cas_estoque_por_epi_json'] ?? '{}';
+$motivosSaida = $this->data['motivos_saida'] ?? [];
+$motivosAjuste = $this->data['motivos_ajuste'] ?? [];
 $csrf = CSRFHelper::generateCSRFToken('sst_epi_movimento_form');
 $tipo = (string)($item['tipo_movimento'] ?? 'Entrada');
 $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) : 0;
@@ -53,12 +55,25 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                         <label class="form-label">Observações gerais</label>
                         <textarea name="observacoes" class="form-control" rows="2" placeholder="Opcional"></textarea>
                     </div>
+                    <div class="col-md-4 d-none" id="wrapMotivoMulti">
+                        <label class="form-label">Motivo *</label>
+                        <select name="motivo" id="motivoMulti" class="form-select">
+                            <option value="">Selecione...</option>
+                            <?php foreach ($motivosSaida as $m): ?>
+                            <option value="<?= htmlspecialchars($m) ?>"><?= htmlspecialchars($m) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-8 d-none" id="wrapJustMulti">
+                        <label class="form-label">Justificativa *</label>
+                        <textarea name="justificativa" id="justMulti" class="form-control" rows="2" placeholder="Obrigatório para Saída (ex.: CA vencido em ...)"></textarea>
+                    </div>
                 </div>
 
                 <h6 class="text-muted text-uppercase small mb-3">Itens da movimentação</h6>
                 <div id="itensContainer">
                     <div class="row g-2 align-items-end item-row mb-2 border-bottom pb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">EPI *</label>
                             <select name="itens[0][adms_sst_epi_id]" class="form-select epi-select" required>
                                 <option value="">Selecione...</option>
@@ -67,17 +82,25 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <label class="form-label">Qtd *</label>
                             <input type="number" name="itens[0][quantidade]" class="form-control qty-input" value="1" min="1" required>
+                        </div>
+                        <div class="col-md-2 valor-field-wrap">
+                            <label class="form-label valor-label">Valor unit. R$ *</label>
+                            <input type="text" name="itens[0][valor_unitario]" class="form-control valor-unit-input" inputmode="decimal" placeholder="0,00">
+                        </div>
+                        <div class="col-md-2 valor-field-wrap">
+                            <label class="form-label">Total R$</label>
+                            <input type="text" class="form-control valor-total-input" readonly tabindex="-1" placeholder="0,00">
                         </div>
                         <div class="col-md-2 ca-field-wrap">
                             <label class="form-label ca-label">Nº CA *</label>
                             <select class="form-select ca-select d-none" data-name="itens[0][ca_numero]"></select>
                             <input type="text" name="itens[0][ca_numero]" class="form-control ca-input text-uppercase" maxlength="50" placeholder="Informe o CA">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Validade CA</label>
+                        <div class="col-md-1">
+                            <label class="form-label">Validade</label>
                             <input type="date" name="itens[0][ca_validade]" class="form-control ca-validade-input">
                         </div>
                         <div class="col-md-1">
@@ -116,15 +139,23 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-4" id="wrapQty">
+                    <div class="col-md-3" id="wrapQty">
                         <label class="form-label">Quantidade *</label>
-                        <input type="number" name="quantidade" id="qtyInput" class="form-control" min="1" value="<?= (int)($item['quantidade'] ?? 1) ?>" required>
+                        <input type="number" name="quantidade" id="qtyInput" class="form-control qty-input" min="1" value="<?= (int)($item['quantidade'] ?? 1) ?>" required>
+                    </div>
+                    <div class="col-md-3 valor-field-wrap" id="wrapValorUnit">
+                        <label class="form-label valor-label" for="valorUnitario">Valor unitário R$ *</label>
+                        <input type="text" name="valor_unitario" id="valorUnitario" class="form-control valor-unit-input" inputmode="decimal" placeholder="0,00" value="<?= htmlspecialchars((string)($item['valor_unitario'] ?? '')) ?>">
+                    </div>
+                    <div class="col-md-3 valor-field-wrap" id="wrapValorTotal">
+                        <label class="form-label" for="valorTotal">Total R$</label>
+                        <input type="text" id="valorTotal" class="form-control valor-total-input" readonly tabindex="-1" placeholder="0,00">
                     </div>
                     <div class="col-md-4 d-none" id="wrapSaldoNovo">
                         <label class="form-label">Saldo contado (inventário) *</label>
                         <input type="number" name="saldo_novo" class="form-control" min="0" value="<?= $saldoAtual !== null ? (int)$saldoAtual : '' ?>">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3" id="wrapData">
                         <label class="form-label">Data *</label>
                         <input type="date" name="data_movimento" class="form-control" value="<?= htmlspecialchars($item['data_movimento'] ?? date('Y-m-d')) ?>" required>
                     </div>
@@ -141,6 +172,16 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                         <label class="form-label">Documento (NF, pedido…)</label>
                         <input type="text" name="documento_ref" class="form-control" placeholder="Opcional">
                     </div>
+                    <div class="col-md-4 d-none" id="wrapMotivo">
+                        <label class="form-label" for="motivoMov">Motivo *</label>
+                        <select name="motivo" id="motivoMov" class="form-select">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 d-none" id="wrapJustificativa">
+                        <label class="form-label" for="justificativaMov">Justificativa *</label>
+                        <textarea name="justificativa" id="justificativaMov" class="form-control" rows="2" placeholder="Descreva o motivo (obrigatório para Saída e Ajuste)"></textarea>
+                    </div>
                     <div class="col-12">
                         <label class="form-label">Observações</label>
                         <textarea name="observacoes" class="form-control" rows="2"></textarea>
@@ -149,7 +190,11 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                 <?php endif; ?>
 
                 <div class="alert alert-info small mt-3 mb-0" id="caHint">
-                    <strong>Saída:</strong> selecione o CA em estoque. <strong>Entrada / Devolução:</strong> informe o CA do lote. O estoque mínimo é controlado pelo cadastro do EPI.
+                    <strong>Entrada (EM):</strong> valor unitário obrigatório; atualiza a <em>média do CA</em>.
+                    <strong>Saída (SM):</strong> baixa sem ficha (vencimento, descarte…); usa média do CA; exige motivo e justificativa.
+                    <strong>Entrega (ET):</strong> pela ficha; usa média do CA.
+                    <strong>Ajuste (AS):</strong> inventário (±); exige motivo e justificativa.
+                    DOCNUM gerado automaticamente (EM/SM/ET/DS/AS).
                 </div>
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i> Registrar<?= $multiMode ? ' tudo' : '' ?></button>
@@ -164,9 +209,142 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
     const casEstoquePorEpi = <?= $casEstoqueJson ?>;
     const multiMode = <?= $multiMode ? 'true' : 'false' ?>;
     const epiLockedId = <?= (int)$epiLockedId ?>;
+    const motivosSaida = <?= json_encode(array_values($motivosSaida), JSON_UNESCAPED_UNICODE) ?>;
+    const motivosAjuste = <?= json_encode(array_values($motivosAjuste), JSON_UNESCAPED_UNICODE) ?>;
 
     function usaSelectCa(tipo) {
         return tipo === 'Saída';
+    }
+
+    function fillMotivoSelect(select, tipo) {
+        if (!select) return;
+        const list = tipo === 'Ajuste' ? motivosAjuste : motivosSaida;
+        const current = select.value;
+        select.innerHTML = '<option value="">Selecione...</option>';
+        list.forEach(function (m) {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            if (m === current) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    function syncJustificativaMulti(tipo) {
+        const wrapM = document.getElementById('wrapMotivoMulti');
+        const wrapJ = document.getElementById('wrapJustMulti');
+        const sel = document.getElementById('motivoMulti');
+        const just = document.getElementById('justMulti');
+        const show = tipo === 'Saída';
+        if (wrapM) wrapM.classList.toggle('d-none', !show);
+        if (wrapJ) wrapJ.classList.toggle('d-none', !show);
+        if (sel) {
+            sel.required = show;
+            if (show) fillMotivoSelect(sel, 'Saída');
+            else sel.value = '';
+        }
+        if (just) {
+            just.required = show;
+            if (!show) just.value = '';
+        }
+    }
+
+    function syncJustificativaSingle(tipo) {
+        const wrapM = document.getElementById('wrapMotivo');
+        const wrapJ = document.getElementById('wrapJustificativa');
+        const sel = document.getElementById('motivoMov');
+        const just = document.getElementById('justificativaMov');
+        const show = tipo === 'Saída' || tipo === 'Ajuste';
+        if (wrapM) wrapM.classList.toggle('d-none', !show);
+        if (wrapJ) wrapJ.classList.toggle('d-none', !show);
+        if (sel) {
+            sel.required = show;
+            if (show) fillMotivoSelect(sel, tipo);
+            else sel.value = '';
+        }
+        if (just) {
+            just.required = show;
+            if (!show) just.value = '';
+        }
+    }
+
+    function setValorReadonly(scope, readonly) {
+        const unitEl = scope.querySelector('.valor-unit-input');
+        if (!unitEl) return;
+        unitEl.readOnly = !!readonly;
+        if (readonly) {
+            unitEl.classList.add('bg-light');
+            unitEl.title = 'Custo médio do CA (calculado automaticamente)';
+        } else {
+            unitEl.classList.remove('bg-light');
+            unitEl.title = '';
+        }
+    }
+
+    function parseMoneyBr(raw) {
+        if (raw === null || raw === undefined) return null;
+        let s = String(raw).trim().replace(/[^\d,.\-]/g, '');
+        if (!s) return null;
+        if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else if (s.indexOf(',') >= 0) {
+            s = s.replace(',', '.');
+        }
+        const n = parseFloat(s);
+        return isNaN(n) ? null : Math.round(n * 100) / 100;
+    }
+
+    function formatMoneyBr(n) {
+        if (n === null || n === undefined || isNaN(n)) return '';
+        return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function calcTotalInScope(scope) {
+        const qtyEl = scope.querySelector('.qty-input') || scope.querySelector('#qtyInput');
+        const unitEl = scope.querySelector('.valor-unit-input');
+        const totalEl = scope.querySelector('.valor-total-input');
+        if (!unitEl || !totalEl) return;
+        const qty = parseInt(qtyEl && qtyEl.value ? qtyEl.value : '0', 10) || 0;
+        const unit = parseMoneyBr(unitEl.value);
+        totalEl.value = (unit !== null && qty > 0) ? formatMoneyBr(unit * qty) : '';
+    }
+
+    function bindValorCalc(scope) {
+        const qtyEl = scope.querySelector('.qty-input') || scope.querySelector('#qtyInput');
+        const unitEl = scope.querySelector('.valor-unit-input');
+        if (qtyEl && !qtyEl.dataset.valorBound) {
+            qtyEl.addEventListener('input', function () { calcTotalInScope(scope); });
+            qtyEl.dataset.valorBound = '1';
+        }
+        if (unitEl && !unitEl.dataset.valorBound) {
+            unitEl.addEventListener('input', function () { calcTotalInScope(scope); });
+            unitEl.dataset.valorBound = '1';
+        }
+        calcTotalInScope(scope);
+    }
+
+    function syncValorRequired(tipo, scope) {
+        const wraps = scope.querySelectorAll('.valor-field-wrap');
+        const unitEl = scope.querySelector('.valor-unit-input');
+        const label = scope.querySelector('.valor-label');
+        const isAjuste = tipo === 'Ajuste';
+        wraps.forEach(function (w) { w.classList.toggle('d-none', isAjuste); });
+        if (!unitEl) return;
+        if (isAjuste) {
+            unitEl.required = false;
+            unitEl.value = '';
+            const totalEl = scope.querySelector('.valor-total-input');
+            if (totalEl) totalEl.value = '';
+            return;
+        }
+        const exigido = tipo === 'Entrada';
+        unitEl.required = exigido;
+        if (label) {
+            label.textContent = exigido ? 'Valor unitário R$ *' : 'Valor unitário R$';
+        }
+        if (tipo === 'Entrada' && unitEl.placeholder === undefined) {
+            unitEl.placeholder = '0,00';
+        }
     }
 
     function getEpiIdFromRow(row) {
@@ -193,6 +371,9 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
             opt.textContent = l.ca_numero + ' (saldo: ' + l.saldo + ')';
             opt.dataset.validade = l.ca_validade || '';
             opt.dataset.saldo = String(l.saldo);
+            if (l.valor_unitario !== null && l.valor_unitario !== undefined) {
+                opt.dataset.valor = String(l.valor_unitario);
+            }
             if (selected && selected === l.ca_numero) opt.selected = true;
             select.appendChild(opt);
         });
@@ -242,8 +423,11 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
 
     function onCaSelectChange(select) {
         const wrap = select.closest('.ca-field-wrap');
+        const row = wrap ? wrap.closest('.item-row') : null;
+        const scope = row || document.getElementById('formMov');
         const validade = wrap ? wrap.querySelector('.ca-validade-input') : document.getElementById('caValidade');
-        const qty = wrap ? wrap.closest('.item-row')?.querySelector('.qty-input') : document.getElementById('qtyInput');
+        const qty = scope.querySelector('.qty-input') || document.getElementById('qtyInput');
+        const unitEl = scope.querySelector('.valor-unit-input');
         const opt = select.options[select.selectedIndex];
         if (validade && opt && opt.dataset.validade) {
             validade.value = opt.dataset.validade;
@@ -251,6 +435,10 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
         }
         if (qty && opt && opt.dataset.saldo) {
             qty.max = opt.dataset.saldo;
+        }
+        if (unitEl && opt && opt.dataset.valor) {
+            unitEl.value = formatMoneyBr(parseFloat(opt.dataset.valor));
+            calcTotalInScope(scope);
         }
     }
 
@@ -270,6 +458,9 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
             const wrap = row.querySelector('.ca-field-wrap');
             const input = row.querySelector('.ca-input');
             syncCaField(wrap, tipo, epiId, input ? input.value : '');
+            syncValorRequired(tipo, row);
+            setValorReadonly(row, tipo === 'Saída' || tipo === 'Devolução');
+            bindValorCalc(row);
             const sel = row.querySelector('.ca-select');
             if (sel && !sel.dataset.bound) {
                 bindCaSelect(sel);
@@ -287,6 +478,7 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
         }
 
         tipoMov.addEventListener('change', function () {
+            syncJustificativaMulti(tipoMov.value);
             container.querySelectorAll('.item-row').forEach(refreshRow);
         });
 
@@ -297,6 +489,12 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
             row.querySelector('.remove-row').classList.remove('d-none');
             row.querySelector('.epi-select').value = '';
             row.querySelector('.ca-input').value = '';
+            const vu = row.querySelector('.valor-unit-input');
+            if (vu) { vu.value = ''; delete vu.dataset.valorBound; }
+            const vt = row.querySelector('.valor-total-input');
+            if (vt) vt.value = '';
+            const qty = row.querySelector('.qty-input');
+            if (qty) delete qty.dataset.valorBound;
             const val = row.querySelector('.ca-validade-input');
             if (val) { val.value = ''; val.readOnly = false; }
             const sel = row.querySelector('.ca-select');
@@ -307,6 +505,7 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
         });
 
         bindRow(container.querySelector('.item-row'));
+        syncJustificativaMulti(tipoMov.value);
         return;
     }
 
@@ -320,8 +519,10 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
     const caSelect = document.getElementById('caSelect');
     const qtyInput = document.getElementById('qtyInput');
     const epiSelect = document.getElementById('epiSelect');
+    const formRoot = document.getElementById('formMov');
 
     if (caSelect) bindCaSelect(caSelect);
+    bindValorCalc(formRoot);
 
     function refreshSingle() {
         const t = tipo.value;
@@ -333,11 +534,15 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
         caHint.classList.toggle('d-none', isAjuste);
         qtyInput.required = !isAjuste;
         wrapSaldo.querySelector('input').required = isAjuste;
+        syncValorRequired(t, formRoot);
+        setValorReadonly(formRoot, t === 'Saída' || t === 'Devolução');
+        syncJustificativaSingle(t);
         if (!isAjuste) {
             const epiId = getEpiIdFromRow(null);
             syncCaField(wrapCa, t, epiId, caInput.value || (caSelect ? caSelect.value : ''));
             if (caSelect && caSelect.value) onCaSelectChange(caSelect);
         }
+        calcTotalInScope(formRoot);
     }
 
     tipo.addEventListener('change', refreshSingle);

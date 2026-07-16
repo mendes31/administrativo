@@ -29,12 +29,25 @@
 <p>Menu <strong>Estoque EPI</strong> (quando habilitado): posição por item, estoque mínimo e alerta no dashboard. Faça <strong>entrada</strong> antes de entregas se o saldo for insuficiente.</p>
 
 <h2 id="secao-movimentacoes">Movimentações</h2>
-<p>Entradas, saídas e ajustes. Saídas podem vincular à ficha de entrega. Use para inventário e correção de saldo.</p>
+<p>Entradas, saídas, devoluções e ajustes. Saídas manuais e <strong>Entregas</strong> (geradas pela ficha) consomem estoque. Use para inventário e correção de saldo.</p>
+
+<h3>Valor em R$ (média por CA)</h3>
+<div class="help-field"><strong>Valor unitário (entrada)</strong> Obrigatório na <strong>Entrada (EM)</strong>. Atualiza a <em>média ponderada do CA</em>.</div>
+<div class="help-field"><strong>Saída (SM) / Entrega (ET)</strong> Usam automaticamente a <strong>média atual do CA</strong> (não se controla lote físico). Total = quantidade × média.</div>
+<div class="help-field"><strong>DOCNUM</strong> Número interno por série, no estilo SAP: <code>EM 000001</code>, <code>SM 000001</code>, <code>ET 000001</code>, <code>DS 000001</code>, <code>AS 000001</code>.</div>
+<div class="help-field"><strong>Motivo + justificativa</strong> Obrigatórios em <strong>Saída (SM)</strong> e <strong>Ajuste (AS)</strong> (ex.: vencimento, descarte, contagem física).</div>
+<p class="help-note">Tipos: Entrada (compra), Entrega (ficha ao colaborador), Devolução (volta ao estoque), Saída (baixa sem ficha), Ajuste (inventário ±).</p>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não consigo entregar — sem estoque</dt>
     <dd>Registre movimentação de entrada ou ajuste em Movimentações EPI.</dd>
+    <dt>Erro pedindo valor unitário</dt>
+    <dd>Na entrada, preencha o valor unitário em R$. Sem isso o registro não é aceito.</dd>
+    <dt>Erro pedindo justificativa</dt>
+    <dd>Em Saída e Ajuste, selecione o motivo e descreva a justificativa (mín. 5 caracteres; se motivo for “Outro”, mín. 10).</dd>
+    <dt>Saída/entrega sem valor no histórico</dt>
+    <dd>Só aparece se houver média do CA (entradas anteriores com valor). Cadastre entradas com custo daqui em diante.</dd>
     <dt>Colaborador não vê ficha para assinar</dt>
     <dd>Verifique permissão <em>MyEpiDeliveries</em> e se a ficha está com status pendente de assinatura.</dd>
     <dt>Pendência de EPI não some após entrega</dt>

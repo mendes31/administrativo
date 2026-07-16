@@ -1,6 +1,6 @@
 <?php
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
-// deploy-sync: 2026-07-15 — SST equipamentos related_routes (destaque de menu)
+// deploy-sync: 2026-07-16 — SST related_routes (destaque de menu em todo o módulo)
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
@@ -1105,7 +1105,8 @@ $menus = [
                 'label' => 'Dashboard',
                 'url' => $_ENV['URL_ADM'] . 'sst-dashboard',
                 'permission' => 'SstDashboard',
-                'icon' => 'fas fa-chart-line'
+                'icon' => 'fas fa-chart-line',
+                'related_routes' => ['sst-dashboard', 'sst-employee-profile'],
             ],
             [
                 'label' => 'Cadastros e vínculos',
@@ -1115,67 +1116,109 @@ $menus = [
                         'label' => 'CIDs',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-cids',
                         'permission' => 'SstListCids',
-                        'icon' => 'fas fa-notes-medical'
+                        'icon' => 'fas fa-notes-medical',
+                        'related_routes' => [
+                            'sst-list-cids', 'sst-create-cid', 'sst-update-cid', 'sst-delete-cid',
+                        ],
                     ],
                     [
                         'label' => 'EPIs',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epis',
                         'permission' => 'SstListEpis',
-                        'icon' => 'fas fa-hard-hat'
+                        'icon' => 'fas fa-hard-hat',
+                        'related_routes' => [
+                            'sst-list-epis', 'sst-create-epi', 'sst-view-epi', 'sst-update-epi', 'sst-delete-epi',
+                            'sst-list-epi-estoque',
+                        ],
                     ],
                     [
                         'label' => 'Exames',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-exames',
                         'permission' => 'SstListExames',
-                        'icon' => 'fas fa-stethoscope'
+                        'icon' => 'fas fa-stethoscope',
+                        'related_routes' => [
+                            'sst-list-exames', 'sst-create-exame', 'sst-view-exame', 'sst-update-exame', 'sst-delete-exame',
+                        ],
                     ],
                     [
                         'label' => 'Médicos',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-medicos',
                         'permission' => 'SstListMedicos',
-                        'icon' => 'fas fa-user-md'
+                        'icon' => 'fas fa-user-md',
+                        'related_routes' => [
+                            'sst-list-medicos', 'sst-create-medico', 'sst-update-medico', 'sst-delete-medico',
+                        ],
                     ],
                     [
                         'label' => 'Necessidades de EPI',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epi-necessidade',
                         'permission' => 'SstListEpiNecessidade',
-                        'icon' => 'fas fa-list-check'
+                        'icon' => 'fas fa-list-check',
+                        'related_routes' => [
+                            'sst-list-epi-necessidade', 'sst-create-epi-necessidade',
+                            'sst-update-epi-necessidade', 'sst-delete-epi-necessidade',
+                        ],
                     ],
                     [
                         'label' => 'Necessidades de exame',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-exame-necessidade',
                         'permission' => 'SstListExameNecessidade',
-                        'icon' => 'fas fa-clipboard-list'
+                        'icon' => 'fas fa-clipboard-list',
+                        'related_routes' => [
+                            'sst-list-exame-necessidade', 'sst-create-exame-necessidade',
+                            'sst-update-exame-necessidade', 'sst-delete-exame-necessidade',
+                        ],
                     ],
                     [
                         'label' => 'Necessidades de treinamento',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-treinamento-necessidade',
                         'permission' => 'SstListTreinamentoNecessidade',
-                        'icon' => 'fas fa-clipboard-list'
+                        'icon' => 'fas fa-clipboard-list',
+                        'related_routes' => [
+                            'sst-list-treinamento-necessidade', 'sst-create-treinamento-necessidade',
+                            'sst-update-treinamento-necessidade', 'sst-delete-treinamento-necessidade',
+                        ],
                     ],
                     [
                         'label' => 'Matriz trein. × cargo',
                         'url' => $_ENV['URL_ADM'] . 'sst-matriz-treinamento-cargo',
                         'permission' => 'SstMatrizTreinamentoCargo',
-                        'icon' => 'fas fa-th'
+                        'icon' => 'fas fa-th',
+                        'related_routes' => ['sst-matriz-treinamento-cargo'],
                     ],
                     [
                         'label' => 'Riscos',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-riscos',
                         'permission' => 'SstListRiscos',
-                        'icon' => 'fas fa-exclamation-triangle'
+                        'icon' => 'fas fa-exclamation-triangle',
+                        'related_routes' => [
+                            'sst-list-riscos', 'sst-create-risco', 'sst-view-risco', 'sst-update-risco', 'sst-delete-risco',
+                            'sst-list-risco-cargo', 'sst-create-risco-cargo', 'sst-update-risco-cargo', 'sst-delete-risco-cargo',
+                            'sst-list-risco-exame', 'sst-create-risco-exame', 'sst-update-risco-exame', 'sst-delete-risco-exame',
+                            'sst-list-risco-epi', 'sst-create-risco-epi', 'sst-update-risco-epi', 'sst-delete-risco-epi',
+                            'sst-list-risco-treinamento', 'sst-create-risco-treinamento', 'sst-update-risco-treinamento',
+                            'sst-delete-risco-treinamento', 'sst-save-risco-treinamentos',
+                        ],
                     ],
                     [
                         'label' => 'Treinamentos SST',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-treinamentos',
                         'permission' => 'SstListTreinamentos',
-                        'icon' => 'fas fa-graduation-cap'
+                        'icon' => 'fas fa-graduation-cap',
+                        'related_routes' => [
+                            'sst-list-treinamentos', 'sst-create-treinamento', 'sst-view-treinamento',
+                            'sst-update-treinamento', 'sst-delete-treinamento',
+                        ],
                     ],
                     [
                         'label' => 'GHE (ambientes)',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-ghe',
                         'permission' => 'SstListGhe',
-                        'icon' => 'fas fa-industry'
+                        'icon' => 'fas fa-industry',
+                        'related_routes' => [
+                            'sst-list-ghe', 'sst-create-ghe', 'sst-view-ghe', 'sst-update-ghe', 'sst-delete-ghe',
+                            'sst-save-ghe-relacionamentos',
+                        ],
                     ],
                     // SST equipamentos de segurança e vistorias periódicas
                     [
@@ -1225,49 +1268,81 @@ $menus = [
                         'label' => 'Acidentes e incidentes',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-acidentes',
                         'permission' => 'SstListAcidentes',
-                        'icon' => 'fas fa-ambulance'
+                        'icon' => 'fas fa-ambulance',
+                        'related_routes' => [
+                            'sst-list-acidentes', 'sst-create-acidente', 'sst-view-acidente',
+                            'sst-update-acidente', 'sst-delete-acidente',
+                            'sst-create-plano-acao', 'sst-update-plano-acao',
+                        ],
                     ],
                     [
                         'label' => 'Afastamentos',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-afastamentos',
                         'permission' => 'SstListAfastamentos',
-                        'icon' => 'fas fa-procedures'
+                        'icon' => 'fas fa-procedures',
+                        'related_routes' => [
+                            'sst-list-afastamentos', 'sst-create-afastamento', 'sst-view-afastamento',
+                            'sst-update-afastamento', 'sst-delete-afastamento',
+                        ],
                     ],
                     [
                         'label' => 'ASOs',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-asos',
                         'permission' => 'SstListAsos',
-                        'icon' => 'fas fa-file-medical'
+                        'icon' => 'fas fa-file-medical',
+                        'related_routes' => [
+                            'sst-list-asos', 'sst-create-aso', 'sst-view-aso', 'sst-update-aso', 'sst-delete-aso',
+                            'sst-abrir-aso-pendencia', 'sst-registrar-resultados-aso',
+                            'sst-encaminhamento-aso', 'sst-export-encaminhamento-aso-pdf',
+                        ],
                     ],
                     [
                         'label' => 'Status treinamentos SST',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-treinamento-vinculos',
                         'permission' => 'SstListTreinamentoVinculos',
-                        'icon' => 'fas fa-user-graduate'
+                        'icon' => 'fas fa-user-graduate',
+                        'related_routes' => [
+                            'sst-list-treinamento-vinculos', 'sst-view-treinamento-vinculo',
+                            'sst-sync-treinamento-vinculos', 'sst-export-treinamento-certificado-pdf',
+                        ],
                     ],
                     [
                         'label' => 'Aplicar treinamento SST',
                         'url' => $_ENV['URL_ADM'] . 'sst-apply-treinamento',
                         'permission' => 'SstApplyTreinamento',
-                        'icon' => 'fas fa-check-circle'
+                        'icon' => 'fas fa-check-circle',
+                        'related_routes' => ['sst-apply-treinamento'],
                     ],
                     [
                         'label' => 'Fichas de entrega EPI',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epi-fichas',
                         'permission' => 'SstListEpiFichas',
-                        'icon' => 'fas fa-file-signature'
+                        'icon' => 'fas fa-file-signature',
+                        'related_routes' => [
+                            'sst-list-epi-fichas', 'sst-create-epi-ficha', 'sst-view-epi-ficha',
+                            'sst-export-epi-ficha-pdf',
+                            'sst-list-epi-entregas', 'sst-create-epi-entrega', 'sst-view-epi-entrega',
+                            'sst-update-epi-entrega', 'sst-delete-epi-entrega',
+                        ],
                     ],
                     [
                         'label' => 'Movimentações EPI',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epi-movimentos',
                         'permission' => 'SstListEpiMovimentos',
-                        'icon' => 'fas fa-dolly'
+                        'icon' => 'fas fa-dolly',
+                        'related_routes' => [
+                            'sst-list-epi-movimentos', 'sst-create-epi-movimento',
+                        ],
                     ],
                     [
                         'label' => 'Inspeções',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-inspecoes',
                         'permission' => 'SstListInspecoes',
-                        'icon' => 'fas fa-search'
+                        'icon' => 'fas fa-search',
+                        'related_routes' => [
+                            'sst-list-inspecoes', 'sst-create-inspecao', 'sst-view-inspecao',
+                            'sst-update-inspecao', 'sst-delete-inspecao', 'sst-manage-inspecao-item',
+                        ],
                     ],
                     [
                         'label' => 'Vistorias de equipamentos',
@@ -1291,7 +1366,11 @@ $menus = [
                         'label' => 'CIPA',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-cipa-mandatos',
                         'permission' => 'SstListCipaMandatos',
-                        'icon' => 'fas fa-users-cog'
+                        'icon' => 'fas fa-users-cog',
+                        'related_routes' => [
+                            'sst-list-cipa-mandatos', 'sst-create-cipa-mandato', 'sst-view-cipa-mandato',
+                            'sst-update-cipa-mandato', 'sst-delete-cipa-mandato', 'sst-manage-cipa',
+                        ],
                     ],
                 ]
             ],
@@ -1303,25 +1382,35 @@ $menus = [
                         'label' => 'Painel conformidade',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-conformidade',
                         'permission' => 'SstReportConformidade',
-                        'icon' => 'fas fa-balance-scale'
+                        'icon' => 'fas fa-balance-scale',
+                        'related_routes' => ['sst-report-conformidade'],
                     ],
                     [
                         'label' => 'Programas PGR/PCMSO',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-programas',
                         'permission' => 'SstListProgramas',
-                        'icon' => 'fas fa-file-contract'
+                        'icon' => 'fas fa-file-contract',
+                        'related_routes' => [
+                            'sst-list-programas', 'sst-create-programa', 'sst-view-programa', 'sst-update-programa',
+                        ],
                     ],
                     [
                         'label' => 'Fila eSocial',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-esocial-eventos',
                         'permission' => 'SstListEsocialEventos',
-                        'icon' => 'fas fa-cloud-upload-alt'
+                        'icon' => 'fas fa-cloud-upload-alt',
+                        'related_routes' => [
+                            'sst-list-esocial-eventos', 'sst-view-esocial-evento',
+                        ],
                     ],
                     [
                         'label' => 'PPP',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-ppp',
                         'permission' => 'SstListPpp',
-                        'icon' => 'fas fa-file-alt'
+                        'icon' => 'fas fa-file-alt',
+                        'related_routes' => [
+                            'sst-list-ppp', 'sst-view-ppp', 'sst-generate-ppp', 'sst-export-ppp-pdf',
+                        ],
                     ],
                 ]
             ],
@@ -1333,37 +1422,43 @@ $menus = [
                         'label' => 'Pendências',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-pendencias',
                         'permission' => 'SstReportPendencias',
-                        'icon' => 'fas fa-exclamation-circle'
+                        'icon' => 'fas fa-exclamation-circle',
+                        'related_routes' => ['sst-report-pendencias'],
                     ],
                     [
                         'label' => 'Relatório de EPIs',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-epis',
                         'permission' => 'SstReportEpis',
-                        'icon' => 'fas fa-chart-bar'
+                        'icon' => 'fas fa-chart-bar',
+                        'related_routes' => ['sst-report-epis'],
                     ],
                     [
                         'label' => 'Relatório de exames',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-exames',
                         'permission' => 'SstReportExames',
-                        'icon' => 'fas fa-chart-bar'
+                        'icon' => 'fas fa-chart-bar',
+                        'related_routes' => ['sst-report-exames'],
                     ],
                     [
                         'label' => 'Relatório treinamentos SST',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-treinamentos',
                         'permission' => 'SstReportTreinamentos',
-                        'icon' => 'fas fa-graduation-cap'
+                        'icon' => 'fas fa-graduation-cap',
+                        'related_routes' => ['sst-report-treinamentos'],
                     ],
                     [
                         'label' => 'Relatório de afastamentos',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-afastamentos',
                         'permission' => 'SstReportAfastamentos',
-                        'icon' => 'fas fa-procedures'
+                        'icon' => 'fas fa-procedures',
+                        'related_routes' => ['sst-report-afastamentos'],
                     ],
                     [
                         'label' => 'Relatório por CID',
                         'url' => $_ENV['URL_ADM'] . 'sst-report-cids',
                         'permission' => 'SstReportCids',
-                        'icon' => 'fas fa-notes-medical'
+                        'icon' => 'fas fa-notes-medical',
+                        'related_routes' => ['sst-report-cids'],
                     ],
                 ]
             ],
@@ -1675,7 +1770,7 @@ if (!function_exists('menuEntryAllowed')) {
     }
 }
 
-/** menuAtivo / override coincide com permission ou com algum any_of */
+/** menuAtivo / override coincide com permission, any_of ou slug da URL / related_routes */
 if (!function_exists('menuEntryMatchesAtivo')) {
     function menuEntryMatchesAtivo(array $item, string|bool|null $menuAtivo): bool
     {
@@ -1688,6 +1783,12 @@ if (!function_exists('menuEntryMatchesAtivo')) {
         }
         if (!empty($item['any_of']) && is_array($item['any_of']) && in_array($token, $item['any_of'], true)) {
             return true;
+        }
+        // Controllers SST/Estoque costumam passar o slug (ex.: sst-list-epis), não o nome da permission
+        foreach (admsMenuItemRouteSlugs($item) as $slug) {
+            if ($slug === $token) {
+                return true;
+            }
         }
 
         return false;

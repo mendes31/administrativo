@@ -62,6 +62,9 @@ class SstCreateEpiMovimento
             'quantidade' => 1,
         ];
 
+        $this->data['motivos_saida'] = \App\adms\Helpers\SstEpiMovimentoHelper::motivosSaida();
+        $this->data['motivos_ajuste'] = \App\adms\Helpers\SstEpiMovimentoHelper::motivosAjuste();
+
         $pageElements = [
             'title_head' => 'Movimentação de estoque EPI',
             'menu' => 'sst-list-epi-movimentos',
@@ -101,11 +104,14 @@ class SstCreateEpiMovimento
             'adms_sst_epi_id' => $epiId,
             'tipo_movimento' => $tipo,
             'quantidade' => (int) ($_POST['quantidade'] ?? 1),
+            'valor_unitario' => $_POST['valor_unitario'] ?? null,
             'data_movimento' => trim((string) ($_POST['data_movimento'] ?? '')),
             'ca_numero' => trim((string) ($_POST['ca_numero'] ?? '')),
             'ca_validade' => trim((string) ($_POST['ca_validade'] ?? '')),
             'documento_ref' => trim((string) ($_POST['documento_ref'] ?? '')),
             'observacoes' => trim((string) ($_POST['observacoes'] ?? '')),
+            'motivo' => trim((string) ($_POST['motivo'] ?? '')),
+            'justificativa' => trim((string) ($_POST['justificativa'] ?? '')),
         ];
         if ($tipo === 'Ajuste') {
             $payload['saldo_novo'] = (int) ($_POST['saldo_novo'] ?? -1);
@@ -122,7 +128,10 @@ class SstCreateEpiMovimento
             exit;
         }
 
-        $_SESSION['msg'] = 'Movimentação registrada com sucesso.';
+        $doc = trim((string) ($result['doc_codigo'] ?? ''));
+        $_SESSION['msg'] = $doc !== ''
+            ? 'Movimentação ' . $doc . ' registrada com sucesso.'
+            : 'Movimentação registrada com sucesso.';
         $_SESSION['msg_type'] = 'success';
         header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-epi-movimentos?adms_sst_epi_id=' . $epiId);
         exit;
@@ -141,6 +150,8 @@ class SstCreateEpiMovimento
         $dataMov = trim((string) ($_POST['data_movimento'] ?? ''));
         $documentoRef = trim((string) ($_POST['documento_ref'] ?? ''));
         $obsGeral = trim((string) ($_POST['observacoes'] ?? ''));
+        $motivo = trim((string) ($_POST['motivo'] ?? ''));
+        $justificativa = trim((string) ($_POST['justificativa'] ?? ''));
         $itens = $this->parseItens($_POST['itens'] ?? []);
         if ($itens === []) {
             $_SESSION['msg'] = 'Adicione ao menos um EPI com Nº CA.';
@@ -151,6 +162,7 @@ class SstCreateEpiMovimento
 
         $svc = new SstEpiEstoqueService();
         $registrados = 0;
+        $docs = [];
         foreach ($itens as $idx => $item) {
             $obs = $obsGeral;
             if ($item['observacoes'] !== '') {
@@ -160,11 +172,14 @@ class SstCreateEpiMovimento
                 'adms_sst_epi_id' => (int) $item['adms_sst_epi_id'],
                 'tipo_movimento' => $tipo,
                 'quantidade' => (int) $item['quantidade'],
+                'valor_unitario' => $item['valor_unitario'] ?? null,
                 'data_movimento' => $dataMov,
                 'ca_numero' => (string) $item['ca_numero'],
                 'ca_validade' => (string) ($item['ca_validade'] ?? ''),
                 'documento_ref' => $documentoRef,
                 'observacoes' => $obs,
+                'motivo' => $motivo,
+                'justificativa' => $justificativa,
             ];
             $result = $svc->registrarMovimento($payload);
             if (!$result['ok']) {
@@ -177,12 +192,16 @@ class SstCreateEpiMovimento
                 header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-epi-movimentos');
                 exit;
             }
+            if (!empty($result['doc_codigo'])) {
+                $docs[] = (string) $result['doc_codigo'];
+            }
             $registrados++;
         }
 
+        $docsTxt = $docs !== [] ? ' (' . implode(', ', $docs) . ')' : '';
         $_SESSION['msg'] = $registrados === 1
-            ? 'Movimentação registrada com sucesso.'
-            : $registrados . ' movimentações registradas com sucesso.';
+            ? 'Movimentação registrada com sucesso' . $docsTxt . '.'
+            : $registrados . ' movimentações registradas com sucesso' . $docsTxt . '.';
         $_SESSION['msg_type'] = 'success';
         header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-epi-movimentos');
         exit;
@@ -209,6 +228,7 @@ class SstCreateEpiMovimento
             $out[] = [
                 'adms_sst_epi_id' => $epiId,
                 'quantidade' => max(1, (int) ($row['quantidade'] ?? 1)),
+                'valor_unitario' => $row['valor_unitario'] ?? null,
                 'ca_numero' => $ca,
                 'ca_validade' => trim((string) ($row['ca_validade'] ?? '')),
                 'observacoes' => trim((string) ($row['observacoes'] ?? '')),
