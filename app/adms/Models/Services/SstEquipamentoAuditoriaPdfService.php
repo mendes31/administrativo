@@ -39,16 +39,11 @@ class SstEquipamentoAuditoriaPdfService
         $periodo = $deBr . ' a ' . $ateBr;
 
         $isUnitario = is_array($equipamento) && !empty($equipamento['id']);
-        $titulo = 'RELATÓRIO DE VISTORIAS E RECARGAS — EQUIPAMENTOS SST';
-        $subtitulo = $isUnitario
-            ? 'Documento para auditoria · Equipamento ' . (string) ($equipamento['codigo'] ?? '')
-            : 'Documento para auditoria · Consolidado por período';
 
         $empresaSlug = $isUnitario
             ? ($equipamento['empresa_contratante'] ?? null)
             : $this->detectEmpresaUnica($vistorias, $recargas);
 
-        $header = PdfInstitutionalHeaderHelper::buildHeaderTable($titulo, $subtitulo);
         $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
             is_string($empresaSlug) ? $empresaSlug : null,
             'relatório'
@@ -104,7 +99,6 @@ thead { display: table-header-group; }
 ' . $vistCss . '
 </style>
 </head><body>
-' . $header . '
 ' . $empresaBlock . '
 ' . $equipBlock . '
 <h2>1. Índice de vistorias no período</h2>
@@ -115,6 +109,22 @@ thead { display: table-header-group; }
 ' . $recHtml . '
 ' . $obs . '
 </body></html>';
+    }
+
+    /**
+     * @param array<string, mixed>|null $equipamento
+     * @return array{title: string, subtitle: string}
+     */
+    public function getDocumentHeaderMeta(?array $equipamento): array
+    {
+        $isUnitario = is_array($equipamento) && !empty($equipamento['id']);
+
+        return [
+            'title' => 'RELATÓRIO DE VISTORIAS E RECARGAS — EQUIPAMENTOS SST',
+            'subtitle' => $isUnitario
+                ? 'Documento para auditoria · Equipamento ' . (string) ($equipamento['codigo'] ?? '')
+                : 'Documento para auditoria · Consolidado por período',
+        ];
     }
 
     /**

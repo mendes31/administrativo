@@ -32,10 +32,6 @@ class SstEquipamentoVistoriaPdfService
         $competencia = $esc($vistoria['competencia'] ?? null);
         $gerado = date('d/m/Y H:i');
 
-        $header = PdfInstitutionalHeaderHelper::buildHeaderTable(
-            'RELATÓRIO DE VISTORIA — EQUIPAMENTO SST',
-            'Documento para auditoria / impressão'
-        );
         $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
             $vistoria['empresa_contratante'] ?? null,
             'relatório'
@@ -59,12 +55,22 @@ class SstEquipamentoVistoriaPdfService
 </style>
 </head>
 <body>
-' . $header . '
 ' . $empresaBlock . '
 <div class="meta">Gerado em ' . $gerado . ' · Competência ' . $competencia . '</div>
 ' . $section . '
 </body>
 </html>';
+    }
+
+    /**
+     * @return array{title: string, subtitle: string}
+     */
+    public static function documentHeaderMeta(): array
+    {
+        return [
+            'title' => 'RELATÓRIO DE VISTORIA — EQUIPAMENTO SST',
+            'subtitle' => 'Documento para auditoria / impressão',
+        ];
     }
 
     /**

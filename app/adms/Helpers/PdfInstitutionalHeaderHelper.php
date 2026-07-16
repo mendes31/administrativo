@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\adms\Helpers;
 
+use Mpdf\Mpdf;
+
 /**
  * Cabeçalho institucional para PDFs (mesmo padrão visual do LNT).
  */
@@ -53,20 +55,62 @@ final class PdfInstitutionalHeaderHelper
      */
     public static function buildHeaderTable(string $title, string $subtitle = ''): string
     {
-        $logoHtml = self::logoImgTagForMpdf();
+        return self::buildHeaderTableSized($title, $subtitle, 72, '10pt', '8pt');
+    }
+
+    /**
+     * Cabeçalho compacto para repetir em todas as páginas (mPDF SetHTMLHeader).
+     */
+    public static function buildRepeatingHeaderHtml(string $title, string $subtitle = ''): string
+    {
+        return self::buildHeaderTableSized($title, $subtitle, 58, '9pt', '7pt');
+    }
+
+    /**
+     * Aplica cabeçalho institucional em todas as páginas do PDF.
+     */
+    public static function applyRepeatingHeader(Mpdf $mpdf, string $title, string $subtitle = ''): void
+    {
+        $html = self::buildRepeatingHeaderHtml($title, $subtitle);
+        $mpdf->SetHTMLHeader($html, 'O');
+        $mpdf->SetHTMLHeader($html, 'E');
+    }
+
+    /**
+     * Margens recomendadas quando o cabeçalho se repete em todas as páginas.
+     *
+     * @return array<string, int|float|string>
+     */
+    public static function mpdfMarginConfig(): array
+    {
+        return [
+            'margin_top' => 46,
+            'margin_header' => 4,
+            'setAutoTopMargin' => 'stretch',
+        ];
+    }
+
+    private static function buildHeaderTableSized(
+        string $title,
+        string $subtitle,
+        int $logoMaxW,
+        string $titleSize,
+        string $subtitleSize,
+    ): string {
+        $logoHtml = self::logoImgTagForMpdf(null, $logoMaxW);
         $titleEsc = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
         $subEsc = htmlspecialchars($subtitle, ENT_QUOTES, 'UTF-8');
         $subLine = $subtitle !== ''
-            ? '<br/><span style="font-size:8pt;">' . $subEsc . '</span>'
+            ? '<br/><span style="font-size:' . $subtitleSize . ';">' . $subEsc . '</span>'
             : '';
 
-        return '<table width="100%" style="border-collapse:collapse;margin-bottom:8px;">
+        return '<table width="100%" style="border-collapse:collapse;margin-bottom:4px;">
 <tr>
-<td style="width:22%;vertical-align:middle;text-align:center;border:1px solid #000;padding:6px;">' . $logoHtml . '</td>
-<td style="width:56%;vertical-align:middle;text-align:center;border:1px solid #000;padding:8px;">
-<strong style="font-size:10pt;">' . $titleEsc . '</strong>' . $subLine . '
+<td style="width:22%;vertical-align:middle;text-align:center;border:1px solid #000;padding:4px;">' . $logoHtml . '</td>
+<td style="width:56%;vertical-align:middle;text-align:center;border:1px solid #000;padding:6px;">
+<strong style="font-size:' . $titleSize . ';">' . $titleEsc . '</strong>' . $subLine . '
 </td>
-<td style="width:22%;vertical-align:middle;text-align:center;border:1px solid #000;padding:6px;">' . $logoHtml . '</td>
+<td style="width:22%;vertical-align:middle;text-align:center;border:1px solid #000;padding:4px;">' . $logoHtml . '</td>
 </tr>
 </table>';
     }

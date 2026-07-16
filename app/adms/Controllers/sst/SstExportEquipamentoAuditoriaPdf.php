@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\sst;
 
+use App\adms\Helpers\PdfInstitutionalHeaderHelper;
 use App\adms\Models\Repository\SstAnexosRepository;
 use App\adms\Models\Repository\SstEquipamentoAcoesCorretivasRepository;
 use App\adms\Models\Repository\SstEquipamentoNaoConformidadesRepository;
@@ -104,7 +105,8 @@ class SstExportEquipamentoAuditoriaPdf
 
             $vistoriasDetalhe = $this->loadVistoriasDetalhe($vistorias);
 
-            $html = (new SstEquipamentoAuditoriaPdfService())->buildHtml(
+            $pdfService = new SstEquipamentoAuditoriaPdfService();
+            $html = $pdfService->buildHtml(
                 $equipamento,
                 $vistorias,
                 $recargas,
@@ -112,6 +114,7 @@ class SstExportEquipamentoAuditoriaPdf
                 $dataFim,
                 $vistoriasDetalhe
             );
+            $headerMeta = $pdfService->getDocumentHeaderMeta($equipamento);
 
             $codigo = $equipamento
                 ? (preg_replace('/\W+/', '_', (string) ($equipamento['codigo'] ?? 'equipamento')) ?: 'equipamento')
@@ -124,19 +127,19 @@ class SstExportEquipamentoAuditoriaPdf
                 @mkdir($tempDir, 0775, true);
             }
 
-            $mpdf = new Mpdf([
+            $mpdf = new Mpdf(array_merge([
                 'mode' => 'utf-8',
                 'format' => 'A4',
                 'orientation' => $equipamento ? 'P' : 'L',
                 'margin_left' => 12,
                 'margin_right' => 12,
-                'margin_top' => 12,
                 'margin_bottom' => 14,
                 'tempDir' => $tempDir,
-            ]);
+            ], PdfInstitutionalHeaderHelper::mpdfMarginConfig()));
             $mpdf->SetTitle('Relatório de vistorias e recargas SST');
             $mpdf->SetAuthor('Tiaraju — SST');
             $mpdf->SetFooter('SST · Auditoria de equipamentos||{PAGENO}/{nbpg}');
+            PdfInstitutionalHeaderHelper::applyRepeatingHeader($mpdf, $headerMeta['title'], $headerMeta['subtitle']);
 
             $chunks = $this->splitHtmlChunks($html);
             foreach ($chunks as $i => $chunk) {

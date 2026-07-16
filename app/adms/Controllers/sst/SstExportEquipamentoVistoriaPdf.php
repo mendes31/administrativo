@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\sst;
 
+use App\adms\Helpers\PdfInstitutionalHeaderHelper;
 use App\adms\Models\Repository\SstAnexosRepository;
 use App\adms\Models\Repository\SstEquipamentoAcoesCorretivasRepository;
 use App\adms\Models\Repository\SstEquipamentoNaoConformidadesRepository;
@@ -88,18 +89,19 @@ class SstExportEquipamentoVistoriaPdf
                 @mkdir($tempDir, 0775, true);
             }
 
-            $mpdf = new Mpdf([
+            $mpdf = new Mpdf(array_merge([
                 'mode' => 'utf-8',
                 'format' => 'A4',
                 'margin_left' => 12,
                 'margin_right' => 12,
-                'margin_top' => 12,
                 'margin_bottom' => 14,
                 'tempDir' => $tempDir,
-            ]);
+            ], PdfInstitutionalHeaderHelper::mpdfMarginConfig()));
             $mpdf->SetTitle('Vistoria ' . ($vistoria['equipamento_codigo'] ?? '') . ' ' . ($vistoria['competencia'] ?? ''));
             $mpdf->SetAuthor('Tiaraju — SST');
             $mpdf->SetFooter('Vistoria SST||{PAGENO}/{nbpg}');
+            $headerMeta = SstEquipamentoVistoriaPdfService::documentHeaderMeta();
+            PdfInstitutionalHeaderHelper::applyRepeatingHeader($mpdf, $headerMeta['title'], $headerMeta['subtitle']);
 
             // Escreve em pedaços para não estourar pcre.backtrack_limit do mPDF
             $chunks = $this->splitHtmlChunks($html);
