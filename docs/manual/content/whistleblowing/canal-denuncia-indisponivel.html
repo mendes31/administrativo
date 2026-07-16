@@ -1,0 +1,26 @@
+<h1>Canal público — Indisponível</h1>
+<p>Página exibida quando o canal não pode operar por falha de configuração de segurança.</p>
+<p><strong>Quem vê:</strong> qualquer visitante que tenta acessar <code>/canaldenuncia</code>.</p>
+
+<h2>Quando aparece</h2>
+<ul>
+<li>Chave de criptografia do módulo de denúncias <strong>não configurada</strong> ou inválida no ambiente.</li>
+<li>Administrador ainda não concluiu a configuração inicial do canal.</li>
+</ul>
+
+<h2>O que o denunciante vê</h2>
+<p>Título <strong>Canal temporariamente indisponível</strong> e mensagem explicativa. Orientação para usar canais alternativos da empresa em caso de urgência.</p>
+
+<h2>O que o administrador deve fazer</h2>
+<ol>
+<li>Acesse <strong>Canal de Denúncias → Configuração</strong> no portal interno.</li>
+<li>Configure e valide a chave de criptografia (veja tópico <em>Configuração Canal de Denúncias</em>).</li>
+<li>Confirme gateway público em <code>www/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</li>
+<li>Teste o acesso público após salvar a configuração.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Canal funcionava e parou</dt><dd>Verifique se a chave foi alterada sem rotação adequada ou se variáveis de ambiente mudaram no deploy.</dd>
+<dt>Denunciante precisa registrar com urgência</dt><dd>Divulgue canal alternativo (RH, ouvidoria presencial, etc.) até restabelecer o canal digital.</dd>
+</dl>

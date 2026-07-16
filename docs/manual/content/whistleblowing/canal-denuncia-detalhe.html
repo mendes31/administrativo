@@ -1,0 +1,38 @@
+<h1>Canal público — Detalhe e acompanhamento</h1>
+<p>Tela exibida após consulta válida por protocolo e senha. Permite ver andamento, mensagens do comitê, anexos e enviar complementos.</p>
+<p><strong>Quem acessa:</strong> denunciante autenticado por protocolo + senha (sessão pública, ~2 horas).</p>
+
+<h2>Informações exibidas</h2>
+<ul>
+<li><strong>Protocolo</strong> e <strong>status</strong> (Recebida, Em triagem, Em análise, Comitê, Investigação, Providências, Encerrada).</li>
+<li>Classificação, grau de risco e data de registro.</li>
+<li><strong>Seu relato</strong> e envolvidos informados (se houver).</li>
+<li><strong>Comunicação com o comitê</strong> — thread de mensagens (suas e do comitê).</li>
+<li><strong>Seus anexos</strong> — lista com botão de download.</li>
+</ul>
+
+<h2>Enviar nova informação</h2>
+<p>Disponível enquanto o status <strong>não</strong> for <em>Encerrada</em>:</p>
+<ol>
+<li>Escreva texto complementar no campo de mensagem.</li>
+<li>Opcionalmente anexe arquivos (mesmas regras do registro: 50 MB, formatos PDF/imagem/áudio/MP4, até 10 arquivos, botão <em>Adicionar arquivos</em>).</li>
+<li>Clique em <strong>Enviar</strong> (POST em <code>/canaldenuncia/responder</code>).</li>
+</ol>
+
+<h2>Download de anexos</h2>
+<ul>
+<li>Clique no ícone de download ao lado de cada arquivo.</li>
+<li>Requer sessão pública ativa (consulta recente com protocolo e senha).</li>
+<li>Arquivos são descriptografados na hora do download com extensão correta.</li>
+</ul>
+
+<h2>Denúncia encerrada</h2>
+<p>Quando o status é <strong>Encerrada</strong>, exibe aviso de encerramento e o formulário de nova informação fica oculto. O denunciante ainda pode consultar histórico e baixar anexos enquanto a sessão estiver válida.</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Não vejo resposta do comitê</dt><dd>Consulte periodicamente com protocolo e senha. Retornos não são enviados por e-mail.</dd>
+<dt>Anexo não envia na resposta</dt><dd>Verifique formato e tamanho; mensagem de erro aparece antes do envio.</dd>
+<dt>Download não funciona</dt><dd>Sessão expirada — consulte novamente com protocolo e senha.</dd>
+<dt>Quero enviar mais informações mas está encerrada</dt><dd>Denúncias encerradas não aceitam novas mensagens pelo canal público.</dd>
+</dl>

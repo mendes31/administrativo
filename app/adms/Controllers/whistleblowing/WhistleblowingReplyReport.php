@@ -51,17 +51,28 @@ class WhistleblowingReplyReport
             return;
         }
 
+        $uploadService = new WhistleblowingUploadService();
+        $uploadResult = $uploadService->processMultiple($_FILES['attachments'] ?? null);
+        if ($uploadResult['errors'] !== []) {
+            $this->redirect(
+                $reportId,
+                'Anexo(s) inválido(s) — mensagem não enviada: ' . implode(' ', $uploadResult['errors'])
+            );
+            return;
+        }
+
         $messagesRepo = new WhistleblowingMessagesRepository();
         $messageId = $messagesRepo->createMessage($reportId, $message, 'comite', $userId > 0 ? $userId : null, $isInternal);
 
         if (!$messageId) {
+            foreach ($uploadResult['uploads'] as $upload) {
+                WhistleblowingUploadService::deleteFile((string) ($upload['stored_name'] ?? ''));
+            }
             $this->redirect($reportId, 'Erro ao enviar mensagem.');
             return;
         }
 
-        $uploadService = new WhistleblowingUploadService();
-        $uploads = $uploadService->handleMultiple($_FILES['attachments'] ?? null);
-        foreach ($uploads as $upload) {
+        foreach ($uploadResult['uploads'] as $upload) {
             $messagesRepo->createAttachment(
                 $reportId,
                 $messageId,

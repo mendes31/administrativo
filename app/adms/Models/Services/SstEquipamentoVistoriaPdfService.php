@@ -29,6 +29,65 @@ class SstEquipamentoVistoriaPdfService
         array $evidenciasPorAcaoId = [],
     ): string {
         $esc = static fn (?string $v): string => htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8');
+        $competencia = $esc($vistoria['competencia'] ?? null);
+        $gerado = date('d/m/Y H:i');
+
+        $header = PdfInstitutionalHeaderHelper::buildHeaderTable(
+            'RELATÓRIO DE VISTORIA — EQUIPAMENTO SST',
+            'Documento para auditoria / impressão'
+        );
+        $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
+            $vistoria['empresa_contratante'] ?? null,
+            'relatório'
+        );
+
+        $section = $this->buildVistoriaSectionHtml(
+            $vistoria,
+            $respostas,
+            $anexos,
+            $naoConformidades,
+            $acoesPorNcId,
+            $evidenciasPorAcaoId
+        );
+
+        return '<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+' . $this->cssStyles() . '
+</style>
+</head>
+<body>
+' . $header . '
+' . $empresaBlock . '
+<div class="meta">Gerado em ' . $gerado . ' · Competência ' . $competencia . '</div>
+' . $section . '
+</body>
+</html>';
+    }
+
+    /**
+     * Corpo completo de uma vistoria (checklist, NC, fotos) para embed no relatório de auditoria.
+     *
+     * @param array<string, mixed> $vistoria
+     * @param list<array<string, mixed>> $respostas
+     * @param list<array<string, mixed>> $anexos
+     * @param list<array<string, mixed>> $naoConformidades
+     * @param array<int, list<array<string, mixed>>> $acoesPorNcId
+     * @param array<int, list<array<string, mixed>>> $evidenciasPorAcaoId
+     */
+    public function buildVistoriaSectionHtml(
+        array $vistoria,
+        array $respostas,
+        array $anexos,
+        array $naoConformidades = [],
+        array $acoesPorNcId = [],
+        array $evidenciasPorAcaoId = [],
+        ?string $sectionHeading = null,
+        bool $pageBreakBefore = false,
+    ): string {
+        $esc = static fn (?string $v): string => htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8');
 
         $codigo = $esc($vistoria['equipamento_codigo'] ?? null);
         $tipo = $esc($vistoria['tipo_nome'] ?? null);
@@ -51,7 +110,6 @@ class SstEquipamentoVistoriaPdfService
             ? date('d/m/Y H:i', strtotime((string) $vistoria['assinatura_confirmada_em']))
             : '—';
         $assinaturaIp = trim((string) ($vistoria['assinatura_ip'] ?? ''));
-        $gerado = date('d/m/Y H:i');
 
         $rows = '';
         foreach ($respostas as $i => $r) {
@@ -79,40 +137,12 @@ class SstEquipamentoVistoriaPdfService
         $fotosHtml = $this->buildFotosBlock($anexos, 'vistoria', $esc);
         $ncHtml = $this->buildNcEvidenciasHtml($naoConformidades, $acoesPorNcId, $evidenciasPorAcaoId, $esc);
 
-        $header = PdfInstitutionalHeaderHelper::buildHeaderTable(
-            'RELATÓRIO DE VISTORIA — EQUIPAMENTO SST',
-            'Documento para auditoria / impressão'
-        );
-        $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
-            $vistoria['empresa_contratante'] ?? null,
-            'relatório'
-        );
+        $wrapStyle = $pageBreakBefore ? ' style="page-break-before:always"' : '';
+        $heading = $sectionHeading !== null && $sectionHeading !== ''
+            ? '<h2 class="vist-section"' . $wrapStyle . '>' . $esc($sectionHeading) . '</h2>'
+            : ($pageBreakBefore ? '<div style="page-break-before:always"></div>' : '');
 
-        return '<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<style>
-body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; }
-h1 { font-size: 16px; margin: 0 0 4px; }
-h2 { font-size: 13px; margin: 18px 0 8px; border-bottom: 1px solid #333; padding-bottom: 3px; }
-h3 { font-size: 11px; margin: 10px 0 4px; color: #333; }
-.meta { color: #555; font-size: 10px; margin-bottom: 12px; }
-.grid td { padding: 3px 8px 3px 0; vertical-align: top; }
-.grid .lbl { color: #666; width: 110px; }
-table.chk { width: 100%; border-collapse: collapse; margin-top: 4px; }
-table.chk th, table.chk td { border: 1px solid #999; padding: 5px 6px; }
-table.chk th { background: #eee; font-size: 10px; }
-.assinatura { margin-top: 14px; padding: 8px; border: 1px solid #aaa; background: #f7f7f7; font-size: 10px; }
-.nc-box { border: 1px solid #c00; background: #fff5f5; padding: 8px; margin: 10px 0; page-break-inside: avoid; }
-.ac-box { border: 1px solid #999; background: #f9f9f9; padding: 6px; margin: 6px 0 8px; page-break-inside: avoid; }
-</style>
-</head>
-<body>
-' . $header . '
-' . $empresaBlock . '
-<div class="meta">Gerado em ' . $gerado . ' · Competência ' . $competencia . '</div>
-
+        return $heading . '
 <table class="grid" width="100%">
 <tr><td class="lbl">Equipamento</td><td><strong>' . $codigo . '</strong></td><td class="lbl">Grupo</td><td>' . $tipo . '</td></tr>
 <tr><td class="lbl">Filial</td><td>' . $filial . '</td><td class="lbl">Localização</td><td>' . $local . '</td></tr>
@@ -122,13 +152,13 @@ table.chk th { background: #eee; font-size: 10px; }
 <tr><td class="lbl">Executor</td><td colspan="3">' . $executor . '</td></tr>
 </table>
 
-<h2>Checklist</h2>
+<h3>Checklist</h3>
 <table class="chk">
 <thead><tr><th style="width:36px">#</th><th>Item</th><th style="width:110px">Resposta</th><th>Observação</th></tr></thead>
 <tbody>' . $rows . '</tbody>
 </table>
 
-<h2>Observação geral</h2>
+<h3>Observação geral</h3>
 <p>' . $obs . '</p>
 
 <div class="assinatura">
@@ -138,10 +168,27 @@ Confirmada em ' . $assinaturaEm . $assinaturaExtra . '
 
 ' . $ncHtml . '
 
-<h2>Fotos da vistoria</h2>
-' . $fotosHtml . '
-</body>
-</html>';
+<h3>Fotos da vistoria</h3>
+' . $fotosHtml;
+    }
+
+    public function cssStyles(): string
+    {
+        return 'body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; }
+h1 { font-size: 16px; margin: 0 0 4px; }
+h2 { font-size: 13px; margin: 18px 0 8px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+h2.vist-section { font-size: 12px; margin-top: 20px; }
+h3 { font-size: 11px; margin: 12px 0 6px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+.meta { color: #555; font-size: 10px; margin-bottom: 12px; }
+.grid td { padding: 3px 8px 3px 0; vertical-align: top; }
+.grid .lbl { color: #666; width: 110px; }
+table.chk { width: 100%; border-collapse: collapse; margin-top: 4px; }
+table.chk th, table.chk td { border: 1px solid #999; padding: 5px 6px; }
+table.chk th { background: #eee; font-size: 10px; }
+.assinatura { margin-top: 14px; padding: 8px; border: 1px solid #aaa; background: #f7f7f7; font-size: 10px; }
+.nc-box { border: 1px solid #c00; background: #fff5f5; padding: 8px; margin: 10px 0; page-break-inside: avoid; }
+.ac-box { border: 1px solid #999; background: #f9f9f9; padding: 6px; margin: 6px 0 8px; page-break-inside: avoid; }
+.vist-detail-wrap { margin-bottom: 18px; page-break-inside: avoid; }';
     }
 
     /**

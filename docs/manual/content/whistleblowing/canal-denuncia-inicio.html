@@ -1,0 +1,28 @@
+<h1>Canal público — Página inicial</h1>
+<p>Tela de entrada do canal de denúncias, acessível em <code>/canaldenuncia</code> sem login.</p>
+<p><strong>Quem acessa:</strong> qualquer pessoa (denunciante). Não exige autenticação no portal.</p>
+<p><strong>URL:</strong> <code>/canaldenuncia</code> ou valor de <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</p>
+
+<h2>O que o denunciante vê</h2>
+<ul>
+<li>Título <strong>Canal de Denúncias</strong> e texto introdutório.</li>
+<li>Bloco <strong>Garantias de anonimato</strong>: sem login/CPF/matrícula; denúncia não vinculada ao usuário do portal; sem registro de IP; acompanhamento só por protocolo e senha; conteúdo criptografado.</li>
+<li>Bloco <strong>Confidencialidade e uso responsável</strong>: finalidade do canal, sigilo, proteção contra retaliação, identificação voluntária (LGPD), boa-fé e retornos somente na consulta por protocolo.</li>
+<li>Dois botões principais: <strong>Registrar nova denúncia</strong> e <strong>Acompanhar denúncia existente</strong>.</li>
+</ul>
+<p>No celular, os blocos informativos podem ser expandidos/recolhidos; os botões ocupam largura total.</p>
+
+<h2>Ações disponíveis</h2>
+<table>
+<thead><tr><th>Botão</th><th>Destino</th></tr></thead>
+<tbody>
+<tr><td>Registrar nova denúncia</td><td><code>/canaldenuncia/registrar</code></td></tr>
+<tr><td>Acompanhar denúncia existente</td><td><code>/canaldenuncia/acompanhar</code></td></tr>
+</tbody>
+</table>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Página não carrega</dt><dd>Verifique o gateway em <code>www/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>. Execute <code>php scripts/install-canaldenuncia-gateway.php</code> se necessário.</dd>
+<dt>Exibe «Canal temporariamente indisponível»</dt><dd>Chave de criptografia do módulo não configurada ou inválida. Veja o tópico <em>Canal indisponível</em> e a configuração interna do módulo.</dd>
+</dl>

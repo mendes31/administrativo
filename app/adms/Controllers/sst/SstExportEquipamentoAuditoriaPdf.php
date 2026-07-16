@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\sst;
 
+use App\adms\Models\Repository\SstAnexosRepository;
+use App\adms\Models\Repository\SstEquipamentoAcoesCorretivasRepository;
+use App\adms\Models\Repository\SstEquipamentoNaoConformidadesRepository;
 use App\adms\Models\Repository\SstEquipamentoRecargasRepository;
+use App\adms\Models\Repository\SstEquipamentoVistoriasRepository;
 use App\adms\Models\Repository\SstEquipamentosRepository;
 use App\adms\Models\Services\SstEquipamentoAuditoriaPdfService;
 use Mpdf\Mpdf;
 
 /**
- * PDF de auditoria: vistorias + recargas por período (cabeçalho institucional LNT).
+ * PDF de auditoria: vistorias completas (checklist, fotos, NC) + recargas por período.
  */
 class SstExportEquipamentoAuditoriaPdf
 {
+    private const ENTITY_VISTORIA = 'equipamento_vistorias';
+    private const ENTITY_AC = 'equipamento_acoes_corretivas';
+
     public function index(string|int $id = 0): void
     {
         $equipamentoId = (int) $id;
@@ -57,10 +64,12 @@ class SstExportEquipamentoAuditoriaPdf
         }
 
         try {
-            if (ob_get_length()) {
+            while (ob_get_level() > 0) {
                 ob_end_clean();
             }
-            @set_time_limit(120);
+            @set_time_limit(300);
+            @ini_set('pcre.backtrack_limit', '5000000');
+            @ini_set('memory_limit', '512M');
 
             $eqRepo = new SstEquipamentosRepository();
             $equipamento = null;
@@ -93,18 +102,27 @@ class SstExportEquipamentoAuditoriaPdf
                 $tipoFilter
             );
 
+            $vistoriasDetalhe = $this->loadVistoriasDetalhe($vistorias);
+
             $html = (new SstEquipamentoAuditoriaPdfService())->buildHtml(
                 $equipamento,
                 $vistorias,
                 $recargas,
                 $dataInicio,
-                $dataFim
+                $dataFim,
+                $vistoriasDetalhe
             );
 
             $codigo = $equipamento
                 ? (preg_replace('/\W+/', '_', (string) ($equipamento['codigo'] ?? 'equipamento')) ?: 'equipamento')
                 : 'consolidado';
             $fileName = 'Auditoria_SST_' . $codigo . '_' . $dataInicio . '_' . $dataFim . '.pdf';
+
+            $tempDir = (defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__, 3))
+                . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'mpdf';
+            if (!is_dir($tempDir)) {
+                @mkdir($tempDir, 0775, true);
+            }
 
             $mpdf = new Mpdf([
                 'mode' => 'utf-8',
@@ -114,11 +132,16 @@ class SstExportEquipamentoAuditoriaPdf
                 'margin_right' => 12,
                 'margin_top' => 12,
                 'margin_bottom' => 14,
+                'tempDir' => $tempDir,
             ]);
             $mpdf->SetTitle('Relatório de vistorias e recargas SST');
             $mpdf->SetAuthor('Tiaraju — SST');
             $mpdf->SetFooter('SST · Auditoria de equipamentos||{PAGENO}/{nbpg}');
-            $mpdf->WriteHTML($html);
+
+            $chunks = $this->splitHtmlChunks($html);
+            foreach ($chunks as $i => $chunk) {
+                $mpdf->WriteHTML($chunk, $i === 0 ? 0 : 2);
+            }
             $mpdf->Output($fileName, 'I');
             exit;
         } catch (\Throwable $e) {
@@ -127,5 +150,100 @@ class SstExportEquipamentoAuditoriaPdf
             header('Location: ' . $returnUrl);
             exit;
         }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $vistorias
+     * @return list<array{
+     *   vistoria: array<string, mixed>,
+     *   respostas: list<array<string, mixed>>,
+     *   anexos: list<array<string, mixed>>,
+     *   naoConformidades: list<array<string, mixed>>,
+     *   acoesPorNcId: array<int, list<array<string, mixed>>>,
+     *   evidenciasPorAcaoId: array<int, list<array<string, mixed>>>
+     * }>
+     */
+    private function loadVistoriasDetalhe(array $vistorias): array
+    {
+        if ($vistorias === []) {
+            return [];
+        }
+
+        $vistRepo = new SstEquipamentoVistoriasRepository();
+        $anexoRepo = new SstAnexosRepository();
+        $ncRepo = new SstEquipamentoNaoConformidadesRepository();
+        $acoesRepo = new SstEquipamentoAcoesCorretivasRepository();
+        $detalhe = [];
+
+        foreach ($vistorias as $vRow) {
+            $vid = (int) ($vRow['id'] ?? 0);
+            if ($vid <= 0) {
+                continue;
+            }
+
+            $vistoria = $vistRepo->getById($vid) ?? $vRow;
+            $respostas = $vistRepo->getRespostas($vid);
+            $anexos = $anexoRepo->getByEntity(self::ENTITY_VISTORIA, $vid);
+            $ncs = $ncRepo->getByVistoriaId($vid);
+
+            $acoesPorNc = [];
+            $evidenciasPorAcao = [];
+            foreach ($ncs as $nc) {
+                $ncId = (int) ($nc['id'] ?? 0);
+                if ($ncId <= 0) {
+                    continue;
+                }
+                $acoes = $acoesRepo->getByNaoConformidadeId($ncId);
+                $acoesPorNc[$ncId] = $acoes;
+                foreach ($acoes as $acao) {
+                    $aid = (int) ($acao['id'] ?? 0);
+                    if ($aid > 0) {
+                        $evidenciasPorAcao[$aid] = $anexoRepo->getByEntity(self::ENTITY_AC, $aid);
+                    }
+                }
+            }
+
+            $detalhe[] = [
+                'vistoria' => $vistoria,
+                'respostas' => $respostas,
+                'anexos' => $anexos,
+                'naoConformidades' => $ncs,
+                'acoesPorNcId' => $acoesPorNc,
+                'evidenciasPorAcaoId' => $evidenciasPorAcao,
+            ];
+        }
+
+        return $detalhe;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function splitHtmlChunks(string $html): array
+    {
+        $max = 200000;
+        if (strlen($html) <= $max) {
+            return [$html];
+        }
+
+        $chunks = [];
+        $offset = 0;
+        $len = strlen($html);
+        while ($offset < $len) {
+            $remaining = $len - $offset;
+            if ($remaining <= $max) {
+                $chunks[] = substr($html, $offset);
+                break;
+            }
+            $slice = substr($html, $offset, $max);
+            $cut = strrpos($slice, '>');
+            if ($cut === false || $cut < (int) ($max * 0.5)) {
+                $cut = $max - 1;
+            }
+            $chunks[] = substr($html, $offset, $cut + 1);
+            $offset += $cut + 1;
+        }
+
+        return $chunks !== [] ? $chunks : [$html];
     }
 }

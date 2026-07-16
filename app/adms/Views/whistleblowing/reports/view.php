@@ -109,8 +109,17 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                             <input type="checkbox" name="is_internal_note" class="form-check-input" id="is_internal_note">
                             <label class="form-check-label" for="is_internal_note">Nota interna (não visível ao denunciante)</label>
                         </div>
-                        <div class="mb-2">
-                            <input type="file" name="attachments[]" class="form-control form-control-sm" multiple>
+                        <div class="mb-2 canal-attachments-field">
+                            <input type="file" name="attachments[]" id="wb-reply-attachments" class="canal-attachments-input" multiple
+                                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.ogg,.opus,.mp4,.doc,.docx"
+                                style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;"
+                                tabindex="-1" aria-hidden="true">
+                            <button type="button" class="btn btn-outline-primary btn-sm canal-attachments-add">
+                                <i class="fas fa-paperclip me-1"></i>Adicionar arquivos
+                            </button>
+                            <div class="form-text small mt-1">Máx. <?= htmlspecialchars(\App\adms\Models\Services\WhistleblowingUploadService::maxFileSizeLabel(), ENT_QUOTES, 'UTF-8') ?> — PDF, imagem, MP3/WAV/OGG ou MP4.</div>
+                            <div class="canal-attachment-list mt-2"></div>
+                            <div class="canal-attachment-feedback alert alert-danger py-2 small mt-2 d-none" role="alert"></div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane me-1"></i>Enviar</button>
                     </form>
@@ -247,3 +256,4 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
         </div>
     </div>
 </div>
+<?php include dirname(__DIR__) . '/public/_attachment_validation.php'; ?>

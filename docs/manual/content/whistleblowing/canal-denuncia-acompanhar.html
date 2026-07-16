@@ -1,0 +1,37 @@
+<h1>Canal público — Acompanhar denúncia</h1>
+<p>Tela de autenticação do denunciante por <strong>protocolo + senha</strong> para consultar o andamento.</p>
+<p><strong>Quem acessa:</strong> denunciante (público, sem login).</p>
+<p><strong>URL:</strong> <code>/canaldenuncia/acompanhar</code> — consulta via POST em <code>/canaldenuncia/consultar</code>.</p>
+
+<h2>Campos</h2>
+<table>
+<thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+<tbody>
+<tr><td>Protocolo</td><td>Código recebido no registro (maiúsculas; ex.: <code>CD-2026-XXXX-XXXX</code>).</td></tr>
+<tr><td>Senha</td><td>6 caracteres recebidos no registro.</td></tr>
+</tbody>
+</table>
+
+<h2>Fluxo passo a passo</h2>
+<ol>
+<li>Acesse <code>/canaldenuncia/acompanhar</code> ou clique em <strong>Acompanhar denúncia existente</strong> na página inicial.</li>
+<li>Informe protocolo e senha exatamente como recebidos (atenção a maiúsculas).</li>
+<li>Clique em <strong>Consultar</strong>.</li>
+<li>Se válidos, abre a tela de <strong>detalhe</strong> com status, relato, mensagens e anexos.</li>
+</ol>
+
+<h2>Regras importantes</h2>
+<ul>
+<li>Retornos do comitê ficam <strong>somente nesta consulta</strong> — não são enviados por e-mail ou telefone.</li>
+<li>Sessão pública válida por <strong>2 horas</strong> após consulta bem-sucedida (download de anexos e respostas).</li>
+<li>Após várias tentativas incorretas, <strong>bloqueio temporário</strong> (rate limit configurável).</li>
+<li>Sem recuperação de protocolo/senha — perdeu? Registre nova denúncia.</li>
+</ul>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Protocolo ou senha inválidos</dt><dd>Confira maiúsculas e os 6 caracteres da senha. Cada tentativa incorreta conta para o bloqueio.</dd>
+<dt>Muitas tentativas incorretas</dt><dd>Aguarde o tempo indicado na mensagem de erro.</dd>
+<dt>«Sessão expirada»</dt><dd>Atualize a página e tente novamente.</dd>
+<dt>Perdi protocolo ou senha</dt><dd>Registre nova denúncia e informe no relato que é recadastro por perda de credenciais.</dd>
+</dl>

@@ -247,7 +247,7 @@ $atePadrao = date('Y-m-d');
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted">Gera PDF profissional (cabeçalho institucional) com <strong>todas as vistorias</strong> e <strong>recargas</strong> do equipamento no período.</p>
+                    <p class="small text-muted">Gera PDF profissional (cabeçalho institucional) com <strong>todas as vistorias</strong> do período — checklist, fotos, NC e evidências — e <strong>recargas</strong> detalhadas.</p>
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label" for="aud_data_inicio">Data início *</label>

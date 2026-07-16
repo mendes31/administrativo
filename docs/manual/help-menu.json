@@ -2027,9 +2027,45 @@
                     "title": "Guia de utilização"
                 },
                 {
-                    "type": "topic",
-                    "topic_id": "canal-denuncia",
-                    "title": "Canal público (anônimo)"
+                    "type": "group",
+                    "label": "Canal público (denunciante)",
+                    "children": [
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia",
+                            "title": "Visão geral"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia-inicio",
+                            "title": "Página inicial"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia-registrar",
+                            "title": "Registrar denúncia"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia-protocolo",
+                            "title": "Confirmação (protocolo)"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia-acompanhar",
+                            "title": "Acompanhar denúncia"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia-detalhe",
+                            "title": "Detalhe e mensagens"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "canal-denuncia-indisponivel",
+                            "title": "Canal indisponível"
+                        }
+                    ]
                 },
                 {
                     "type": "topic",

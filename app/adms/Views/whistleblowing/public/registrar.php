@@ -66,11 +66,22 @@ require __DIR__ . '/_view_scope.php';
                 placeholder="Nome, cargo, setor ou empresa terceirizada, se souber..."><?php echo htmlspecialchars((string)($old['involved'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
 
-        <div class="canal-field">
+        <div class="canal-field canal-attachments-field">
             <label class="form-label fw-semibold">Anexos (opcional)</label>
-            <input type="file" name="attachments[]" class="form-control" multiple
-                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.mp4,.doc,.docx">
-            <div class="form-text">Fotos, PDF, áudio ou vídeo. Máximo 10 MB por arquivo.</div>
+            <input type="file" name="attachments[]" class="canal-attachments-input" multiple
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.ogg,.opus,.mp4,.doc,.docx"
+                style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;"
+                tabindex="-1" aria-hidden="true">
+            <button type="button" class="btn btn-outline-primary canal-attachments-add w-100 w-md-auto">
+                <i class="fas fa-paperclip me-1"></i>Adicionar arquivos
+            </button>
+            <div class="form-text mt-2">
+                Formatos: PDF, JPG, PNG, GIF, WEBP, MP3, WAV, OGG/OPUS (WhatsApp), MP4, DOC, DOCX.
+                Máximo <?= htmlspecialchars(\App\adms\Models\Services\WhistleblowingUploadService::maxFileSizeLabel(), ENT_QUOTES, 'UTF-8') ?> por arquivo (até 10 arquivos).
+                Use o botão várias vezes para ir acrescentando.
+            </div>
+            <div class="canal-attachment-list mt-2"></div>
+            <div class="canal-attachment-feedback alert alert-danger py-2 small mt-2 d-none" role="alert"></div>
         </div>
 
         <div class="canal-field border rounded p-3 bg-light">
@@ -173,3 +184,4 @@ require __DIR__ . '/_view_scope.php';
     });
 })();
 </script>
+<?php include __DIR__ . '/_attachment_validation.php'; ?>

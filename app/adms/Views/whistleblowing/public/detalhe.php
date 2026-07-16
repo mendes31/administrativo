@@ -28,6 +28,10 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
         <a href="<?php echo htmlspecialchars($base_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-outline-secondary">Sair</a>
     </div>
 
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars((string)$error, ENT_QUOTES, 'UTF-8'); ?></div>
+    <?php endif; ?>
+
     <div class="row g-1 g-sm-2 mb-2 mb-sm-3 small text-muted canal-meta">
         <div class="col-12 col-sm-4"><strong>Classificação:</strong> <?php echo htmlspecialchars((string)($report['category'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
         <div class="col-12 col-sm-4"><strong>Risco:</strong> <?php echo htmlspecialchars((string)($report['risk_level'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
@@ -97,9 +101,20 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
             <div class="mb-2">
                 <textarea name="message" class="form-control" rows="3" placeholder="Informações adicionais..."></textarea>
             </div>
-            <div class="mb-2">
-                <input type="file" name="attachments[]" class="form-control form-control-sm" multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.mp4,.doc,.docx">
+            <div class="mb-2 canal-attachments-field">
+                <input type="file" name="attachments[]" class="canal-attachments-input" multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.ogg,.opus,.mp4,.doc,.docx"
+                    style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;"
+                    tabindex="-1" aria-hidden="true">
+                <button type="button" class="btn btn-outline-primary btn-sm canal-attachments-add">
+                    <i class="fas fa-paperclip me-1"></i>Adicionar arquivos
+                </button>
+                <div class="form-text small mt-1">
+                    Máx. <?= htmlspecialchars(\App\adms\Models\Services\WhistleblowingUploadService::maxFileSizeLabel(), ENT_QUOTES, 'UTF-8') ?> —
+                    PDF, imagem, MP3/WAV/OGG ou MP4. Use o botão várias vezes para acrescentar.
+                </div>
+                <div class="canal-attachment-list mt-2"></div>
+                <div class="canal-attachment-feedback alert alert-danger py-2 small mt-2 d-none" role="alert"></div>
             </div>
             <div class="canal-form-actions">
             <button type="submit" class="btn btn-canal-primary">
@@ -114,3 +129,4 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
     </div>
     <?php endif; ?>
 </div>
+<?php include __DIR__ . '/_attachment_validation.php'; ?>

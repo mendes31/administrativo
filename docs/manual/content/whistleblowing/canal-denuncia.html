@@ -1,49 +1,43 @@
 <h1>Canal de Denúncias (público)</h1>
-<p>Página acessível sem login para registro anônimo de denúncias e acompanhamento por protocolo + senha.</p>
-<p><strong>Quem acessa:</strong> qualquer pessoa — não exige autenticação no portal.</p>
+<p>Conjunto de páginas acessíveis <strong>sem login</strong> para registro anônimo de denúncias e acompanhamento por protocolo + senha.</p>
+<p><strong>Quem acessa:</strong> qualquer pessoa — não exige autenticação no portal administrativo.</p>
+<p><strong>URL base:</strong> <code>/canaldenuncia</code> (gateway na raiz do site) ou <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</p>
 
-<h2>Página inicial — o que o denunciante vê</h2>
-<p>Dois blocos resumidos (no celular, toque para expandir/recolher): <strong>Garantias de anonimato</strong> e <strong>Confidencialidade</strong>. Botões em largura total no mobile.</p>
+<h2>Páginas do canal</h2>
+<table>
+<thead><tr><th>Página</th><th>URL</th><th>Manual</th></tr></thead>
+<tbody>
+<tr><td>Início</td><td><code>/canaldenuncia</code></td><td><em>Página inicial</em></td></tr>
+<tr><td>Registrar denúncia</td><td><code>/canaldenuncia/registrar</code></td><td><em>Registrar denúncia</em></td></tr>
+<tr><td>Confirmação</td><td>após envio</td><td><em>Confirmação (protocolo)</em></td></tr>
+<tr><td>Acompanhar</td><td><code>/canaldenuncia/acompanhar</code></td><td><em>Acompanhar denúncia</em></td></tr>
+<tr><td>Detalhe</td><td>após consulta</td><td><em>Detalhe e acompanhamento</em></td></tr>
+<tr><td>Indisponível</td><td>quando sem chave</td><td><em>Canal indisponível</em></td></tr>
+</tbody>
+</table>
 
-<h2>Antes de registrar</h2>
-<ul>
-<li>Leia as garantias na página inicial.</li>
-<li>Anote <strong>protocolo</strong> e <strong>senha</strong> ao final — exibidos uma única vez.</li>
-<li><strong>Retornos do comitê</strong> são publicados somente na consulta por protocolo.</li>
-<li>Perdeu protocolo ou senha? Registre nova denúncia e informe no relato que é recadastro por perda de credenciais (resuma o conteúdo anterior, se possível).</li>
-</ul>
-
-<h2>Registrar denúncia</h2>
+<h2>Fluxo resumido</h2>
 <ol>
-<li>Acesse <code>/canaldenuncia</code> (raiz do site).</li>
-<li>Clique em <strong>Registrar nova denúncia</strong>.</li>
-<li>Leia o bloco <strong>ATENÇÃO!</strong> (guardar credenciais, recadastro se perder, retornos por protocolo).</li>
-<li>Selecione classificação e grau de risco; descreva o ocorrido e envolvidos.</li>
-<li>Anexe evidências (opcional): PDF, imagens, áudio ou vídeo (até 10 MB).</li>
-<li><strong>Identificação voluntária (opcional):</strong> marque a opção se desejar informar nome, e-mail e/ou telefone (cifrados, visíveis ao comitê). Nenhum desses campos é obrigatório isoladamente, mas é preciso preencher <strong>pelo menos um</strong>; se marcar a opção e deixar tudo em branco, o sistema pede para informar um campo ou desmarcar a flag. Retornos oficiais continuam apenas na consulta por protocolo.</li>
-<li>Anote <strong>protocolo</strong> e <strong>senha</strong> na tela de confirmação.</li>
-</ol>
-<p>Após o registro, os membros do comitê recebem e-mail interno com protocolo, classificação e risco — <strong>sem</strong> o texto do relato. Isso não substitui o acompanhamento do denunciante.</p>
-
-<h2>Acompanhar denúncia</h2>
-<ol>
-<li><strong>Acompanhar denúncia existente</strong> → protocolo + senha.</li>
-<li>Veja status, respostas do comitê e envie complementos ou novos anexos.</li>
-<li>Baixe seus anexos na tela de acompanhamento (sessão válida por 2 horas após consulta).</li>
+<li><strong>Início</strong> — leia garantias de anonimato e confidencialidade.</li>
+<li><strong>Registrar</strong> — classificação, risco, relato, anexos (opcional), identificação voluntária (opcional).</li>
+<li><strong>Confirmação</strong> — anote protocolo e senha (exibidos uma vez).</li>
+<li><strong>Acompanhar</strong> — consulte com protocolo + senha para ver retornos do comitê.</li>
+<li><strong>Detalhe</strong> — leia mensagens, baixe anexos e envie complementos (se não encerrada).</li>
 </ol>
 
-<h2>Indisponibilidade e limites</h2>
+<h2>Regras gerais</h2>
 <ul>
-<li>Sem chave de criptografia configurada internamente, o canal exibe página de indisponibilidade.</li>
-<li>Após várias tentativas incorretas de protocolo/senha, bloqueio temporário (rate limit).</li>
+<li>Denúncia <strong>não vinculada</strong> ao usuário do portal; sem registro de IP do denunciante.</li>
+<li>Conteúdo armazenado <strong>criptografado</strong>; anexos cifrados em disco (<code>.enc</code>).</li>
+<li><strong>Retornos do comitê</strong> publicados somente na consulta por protocolo — não por e-mail ou telefone.</li>
+<li>Perdeu protocolo ou senha? Registre nova denúncia e informe recadastro no relato.</li>
+<li>Anexos: PDF, imagens, MP3/WAV/<strong>OGG/OPUS</strong> (WhatsApp), MP4, DOC/DOCX — até <strong>50 MB</strong> por arquivo, máx. 10.</li>
 </ul>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Marquei identificação e não consigo enviar</dt><dd>Preencha pelo menos um campo (nome, e-mail ou telefone) ou desmarque <em>Desejo me identificar voluntariamente</em>.</dd>
-<dt>Protocolo ou senha inválidos</dt><dd>Verifique maiúsculas; senha tem 6 caracteres. Não há recuperação automática.</dd>
-<dt>Perdi protocolo ou senha</dt><dd>Registre uma nova denúncia. No relato, informe que é recadastro por perda de credenciais e descreva novamente o ocorrido.</dd>
-<dt>Não recebi retorno por e-mail</dt><dd>Retornos são publicados somente na consulta por protocolo — comportamento esperado.</dd>
-<dt>Muitas tentativas incorretas</dt><dd>Aguarde o tempo indicado na tela (configurável pelo administrador).</dd>
-<dt>Página não carrega</dt><dd>Verifique gateway em <code>/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</dd>
+<dt>Anexo rejeitado ou denúncia sem anexo</dt><dd>Validação bloqueia envio se arquivo for inválido. MP4 para vídeo; OGG/OPUS para áudio WhatsApp. Servidor: <code>upload_max_filesize</code> e <code>post_max_size</code> ≥ 50M.</dd>
+<dt>Protocolo ou senha inválidos</dt><dd>Maiúsculas na senha; 6 caracteres. Sem recuperação automática.</dd>
+<dt>Canal indisponível</dt><dd>Configure chave de criptografia em <em>Configuração Canal de Denúncias</em>.</dd>
+<dt>Página não carrega</dt><dd>Gateway <code>/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</dd>
 </dl>

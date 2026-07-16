@@ -9,7 +9,7 @@ namespace App\adms\Models\Services;
  */
 final class WhistleblowingUploadService
 {
-    private const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+    private const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
     /** @var array<string, list<string>> */
     private const MIME_BY_EXTENSION = [
@@ -21,6 +21,8 @@ final class WhistleblowingUploadService
         'webp' => ['image/webp'],
         'mp3' => ['audio/mpeg', 'audio/mp3'],
         'wav' => ['audio/wav', 'audio/x-wav'],
+        'ogg' => ['audio/ogg', 'application/ogg', 'audio/x-ogg', 'audio/opus'],
+        'opus' => ['audio/opus', 'audio/ogg'],
         'mp4' => ['video/mp4'],
         'doc' => ['application/msword'],
         'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
@@ -31,6 +33,31 @@ final class WhistleblowingUploadService
     public function __construct()
     {
         $this->encryption = new WhistleblowingEncryptionService();
+    }
+
+    public static function maxFileSizeBytes(): int
+    {
+        return self::MAX_FILE_SIZE;
+    }
+
+    public static function maxFileSizeLabel(): string
+    {
+        $mb = (int) round(self::MAX_FILE_SIZE / (1024 * 1024));
+
+        return $mb . ' MB';
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function allowedExtensions(): array
+    {
+        return array_keys(self::MIME_BY_EXTENSION);
+    }
+
+    public static function allowedExtensionsLabel(): string
+    {
+        return implode(', ', array_map('strtoupper', self::allowedExtensions()));
     }
 
     public static function uploadDir(): string
@@ -46,43 +73,168 @@ final class WhistleblowingUploadService
     }
 
     /**
+     * Processa anexos e devolve erros legíveis (não silencia rejeição).
+     * Valida todos antes de gravar; se houver erro, não salva nenhum.
+     *
+     * @param array<string, mixed>|null $files $_FILES['attachments']
+     * @return array{
+     *   uploads: list<array{stored_name: string, original_name: string, mime_type: string, size_bytes: int}>,
+     *   errors: list<string>,
+     *   attempted: bool
+     * }
+     */
+    public function processMultiple(?array $files): array
+    {
+        $result = ['uploads' => [], 'errors' => [], 'attempted' => false];
+
+        if ($files === null || !isset($files['name']) || !is_array($files['name'])) {
+            return $result;
+        }
+
+        $items = [];
+        $count = count($files['name']);
+        for ($i = 0; $i < $count; $i++) {
+            $item = [
+                'name' => $files['name'][$i] ?? '',
+                'type' => $files['type'][$i] ?? '',
+                'tmp_name' => $files['tmp_name'][$i] ?? '',
+                'error' => $files['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+                'size' => $files['size'][$i] ?? 0,
+            ];
+
+            if (($item['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE
+                && trim((string) ($item['name'] ?? '')) === '') {
+                continue;
+            }
+
+            $result['attempted'] = true;
+            $label = trim((string) ($item['name'] ?? '')) !== ''
+                ? basename((string) $item['name'])
+                : ('arquivo #' . ($i + 1));
+
+            $error = $this->validateFileError($item, $label);
+            if ($error !== null) {
+                $result['errors'][] = $error;
+                continue;
+            }
+
+            $items[] = $item;
+        }
+
+        if ($result['errors'] !== []) {
+            return $result;
+        }
+
+        foreach ($items as $item) {
+            $label = basename((string) ($item['name'] ?? 'arquivo'));
+            $upload = $this->storeValidatedFile($item);
+            if ($upload === null) {
+                foreach ($result['uploads'] as $saved) {
+                    self::deleteFile((string) ($saved['stored_name'] ?? ''));
+                }
+                $result['uploads'] = [];
+                $result['errors'][] = "«{$label}»: não foi possível salvar o arquivo. Tente novamente ou use outro formato.";
+
+                return $result;
+            }
+            $result['uploads'][] = $upload;
+        }
+
+        return $result;
+    }
+
+    /**
      * @param array<string, mixed> $file $_FILES item
      * @return array{stored_name: string, original_name: string, mime_type: string, size_bytes: int}|null
      */
     public function handleFile(array $file): ?array
     {
-        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        $label = basename((string) ($file['name'] ?? 'arquivo'));
+        if ($this->validateFileError($file, $label) !== null) {
             return null;
         }
 
+        return $this->storeValidatedFile($file);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>>|null $files
+     * @return list<array{stored_name: string, original_name: string, mime_type: string, size_bytes: int}>
+     */
+    public function handleMultiple(?array $files): array
+    {
+        return $this->processMultiple($files)['uploads'];
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     */
+    private function validateFileError(array $file, string $label): ?string
+    {
+        $phpError = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($phpError === UPLOAD_ERR_NO_FILE) {
+            return "«{$label}»: nenhum arquivo enviado.";
+        }
+        if ($phpError === UPLOAD_ERR_INI_SIZE || $phpError === UPLOAD_ERR_FORM_SIZE) {
+            return "«{$label}»: arquivo maior que o permitido (máximo "
+                . self::maxFileSizeLabel() . '). Reduza o tamanho do vídeo/arquivo e tente novamente.';
+        }
+        if ($phpError === UPLOAD_ERR_PARTIAL) {
+            return "«{$label}»: envio incompleto. Selecione o arquivo novamente.";
+        }
+        if ($phpError !== UPLOAD_ERR_OK) {
+            return "«{$label}»: falha no envio (código {$phpError}). Tente novamente.";
+        }
+
         $size = (int) ($file['size'] ?? 0);
-        if ($size <= 0 || $size > self::MAX_FILE_SIZE) {
-            return null;
+        if ($size <= 0) {
+            return "«{$label}»: arquivo vazio.";
+        }
+        if ($size > self::MAX_FILE_SIZE) {
+            $sentMb = round($size / (1024 * 1024), 1);
+
+            return "«{$label}»: tamanho {$sentMb} MB ultrapassa o máximo de "
+                . self::maxFileSizeLabel() . '. Comprima o vídeo ou envie um arquivo menor.';
         }
 
         $originalName = basename((string) ($file['name'] ?? 'arquivo'));
         if ($this->isSuspiciousFilename($originalName)) {
-            return null;
+            return "«{$label}»: nome de arquivo não permitido por segurança.";
         }
 
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if ($ext === '' || !isset(self::MIME_BY_EXTENSION[$ext])) {
-            return null;
+            return "«{$label}»: tipo não permitido. Use: " . self::allowedExtensionsLabel() . '.';
         }
 
         $tmpPath = (string) ($file['tmp_name'] ?? '');
         if ($tmpPath === '' || !is_uploaded_file($tmpPath)) {
-            return null;
+            return "«{$label}»: upload inválido. Selecione o arquivo novamente.";
         }
 
         if ($this->containsEmbeddedScript($tmpPath)) {
-            return null;
+            return "«{$label}»: conteúdo do arquivo rejeitado por segurança.";
         }
 
         $detectedMime = $this->detectMimeType($tmpPath);
-        if (!$this->mimeMatchesExtension($ext, $detectedMime)) {
-            return null;
+        if (!$this->mimeMatchesExtension($ext, $detectedMime, $tmpPath)) {
+            return "«{$label}»: o conteúdo não corresponde à extensão .{$ext} (tipo detectado: {$detectedMime}).";
         }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     * @return array{stored_name: string, original_name: string, mime_type: string, size_bytes: int}|null
+     */
+    private function storeValidatedFile(array $file): ?array
+    {
+        $originalName = basename((string) ($file['name'] ?? 'arquivo'));
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $tmpPath = (string) ($file['tmp_name'] ?? '');
+        $detectedMime = $this->detectMimeType($tmpPath);
+        $detectedMime = $this->normalizeMimeForExtension($ext, $detectedMime, $tmpPath);
 
         $plainPath = $tmpPath;
         if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
@@ -124,41 +276,6 @@ final class WhistleblowingUploadService
             'mime_type' => $detectedMime,
             'size_bytes' => strlen($binary),
         ];
-    }
-
-    /**
-     * @param array<int, array<string, mixed>>|null $files
-     * @return list<array{stored_name: string, original_name: string, mime_type: string, size_bytes: int}>
-     */
-    public function handleMultiple(?array $files): array
-    {
-        if ($files === null || !isset($files['name']) || !is_array($files['name'])) {
-            return [];
-        }
-
-        $uploaded = [];
-        $count = count($files['name']);
-
-        for ($i = 0; $i < $count; $i++) {
-            $item = [
-                'name' => $files['name'][$i] ?? '',
-                'type' => $files['type'][$i] ?? '',
-                'tmp_name' => $files['tmp_name'][$i] ?? '',
-                'error' => $files['error'][$i] ?? UPLOAD_ERR_NO_FILE,
-                'size' => $files['size'][$i] ?? 0,
-            ];
-
-            if (($item['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-
-            $result = $this->handleFile($item);
-            if ($result !== null) {
-                $uploaded[] = $result;
-            }
-        }
-
-        return $uploaded;
     }
 
     public static function getFilePath(string $storedName): string
@@ -242,11 +359,51 @@ final class WhistleblowingUploadService
         return is_string($fallback) && $fallback !== '' ? strtolower($fallback) : 'application/octet-stream';
     }
 
-    private function mimeMatchesExtension(string $ext, string $mime): bool
+    private function mimeMatchesExtension(string $ext, string $mime, ?string $path = null): bool
     {
         $allowed = self::MIME_BY_EXTENSION[$ext] ?? [];
 
-        return in_array($mime, $allowed, true);
+        if (in_array($mime, $allowed, true)) {
+            return true;
+        }
+
+        // Áudios do WhatsApp (.ogg) costumam vir como application/octet-stream no Windows.
+        if (
+            $path !== null
+            && $mime === 'application/octet-stream'
+            && in_array($ext, ['ogg', 'opus'], true)
+            && $this->isOggContainer($path)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function normalizeMimeForExtension(string $ext, string $mime, string $path): string
+    {
+        if (
+            $mime === 'application/octet-stream'
+            && in_array($ext, ['ogg', 'opus'], true)
+            && $this->isOggContainer($path)
+        ) {
+            return $ext === 'opus' ? 'audio/opus' : 'audio/ogg';
+        }
+
+        return $mime;
+    }
+
+    private function isOggContainer(string $path): bool
+    {
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+
+        $header = fread($handle, 4);
+        fclose($handle);
+
+        return $header === 'OggS';
     }
 
     private function isSuspiciousFilename(string $name): bool
@@ -261,7 +418,12 @@ final class WhistleblowingUploadService
             return true;
         }
 
-        return substr_count($lower, '.') > 1;
+        // Bloqueia extensão dupla perigosa (ex.: arquivo.php.mp4), mas permite nomes com pontos (video.final.mp4).
+        if (preg_match('/\.(php|phtml|phar|cgi|asp|aspx|jsp)\.[a-z0-9]+$/i', $lower)) {
+            return true;
+        }
+
+        return false;
     }
 
     private function containsEmbeddedScript(string $path): bool

@@ -2166,8 +2166,38 @@
                 },
                 {
                     "id": "canal-denuncia",
-                    "title": "Canal de Denúncias (público)",
+                    "title": "Canal público — visão geral",
                     "file": "whistleblowing/canal-denuncia.html"
+                },
+                {
+                    "id": "canal-denuncia-inicio",
+                    "title": "Canal público — página inicial",
+                    "file": "whistleblowing/canal-denuncia-inicio.html"
+                },
+                {
+                    "id": "canal-denuncia-registrar",
+                    "title": "Canal público — registrar denúncia",
+                    "file": "whistleblowing/canal-denuncia-registrar.html"
+                },
+                {
+                    "id": "canal-denuncia-protocolo",
+                    "title": "Canal público — confirmação (protocolo)",
+                    "file": "whistleblowing/canal-denuncia-protocolo.html"
+                },
+                {
+                    "id": "canal-denuncia-acompanhar",
+                    "title": "Canal público — acompanhar denúncia",
+                    "file": "whistleblowing/canal-denuncia-acompanhar.html"
+                },
+                {
+                    "id": "canal-denuncia-detalhe",
+                    "title": "Canal público — detalhe e mensagens",
+                    "file": "whistleblowing/canal-denuncia-detalhe.html"
+                },
+                {
+                    "id": "canal-denuncia-indisponivel",
+                    "title": "Canal público — indisponível",
+                    "file": "whistleblowing/canal-denuncia-indisponivel.html"
                 },
                 {
                     "id": "list-denuncias",

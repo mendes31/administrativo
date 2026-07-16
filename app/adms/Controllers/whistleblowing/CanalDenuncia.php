@@ -80,6 +80,20 @@ final class CanalDenuncia
             exit;
         }
 
+        if ($this->isPostTooLarge()) {
+            $this->render('registrar', [
+                'title' => 'Registrar denúncia',
+                'categories' => WhistleblowingCategoryService::getActiveNames(),
+                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+                'error' => 'O(s) anexo(s) ultrapassam o limite de envio do servidor. Máximo '
+                    . WhistleblowingUploadService::maxFileSizeLabel()
+                    . ' por arquivo (PDF, imagem, áudio MP3/WAV ou vídeo MP4). Comprima o vídeo e tente novamente.',
+                'old' => $_POST,
+            ]);
+            return;
+        }
+
         if (!CSRFHelper::validateCSRFToken('canal_denuncia_registrar', $_POST['csrf_token'] ?? '')) {
             $this->render('registrar', [
                 'title' => 'Registrar denúncia',
@@ -130,6 +144,21 @@ final class CanalDenuncia
             return;
         }
 
+        // Valida anexos ANTES de criar a denúncia — não registra se o arquivo for inválido.
+        $uploadResult = $this->uploadService->processMultiple($_FILES['attachments'] ?? null);
+        if ($uploadResult['errors'] !== []) {
+            $this->render('registrar', [
+                'title' => 'Registrar denúncia',
+                'categories' => WhistleblowingCategoryService::getActiveNames(),
+                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+                'error' => 'Não foi possível enviar a denúncia por problema nos anexos: '
+                    . implode(' ', $uploadResult['errors']),
+                'old' => $_POST,
+            ]);
+            return;
+        }
+
         $result = $this->reportsRepo->createAnonymousReport(
             ['description' => $description, 'involved' => $involved],
             $category,
@@ -143,6 +172,9 @@ final class CanalDenuncia
         );
 
         if ($result === null) {
+            foreach ($uploadResult['uploads'] as $upload) {
+                WhistleblowingUploadService::deleteFile((string) ($upload['stored_name'] ?? ''));
+            }
             $this->render('registrar', [
                 'title' => 'Registrar denúncia',
                 'categories' => WhistleblowingCategoryService::getActiveNames(),
@@ -155,8 +187,7 @@ final class CanalDenuncia
         }
 
         $reportId = (int) $result['report_id'];
-        $uploads = $this->uploadService->handleMultiple($_FILES['attachments'] ?? null);
-        foreach ($uploads as $upload) {
+        foreach ($uploadResult['uploads'] as $upload) {
             $this->messagesRepo->createAttachment(
                 $reportId,
                 null,
@@ -295,12 +326,46 @@ final class CanalDenuncia
 
         $reportId = (int) $report['id'];
 
+        $uploadResult = $this->uploadService->processMultiple($_FILES['attachments'] ?? null);
+        if ($uploadResult['errors'] !== []) {
+            $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
+            $messages = $this->messagesRepo->getMessagesByReportId($reportId, true);
+            $attachments = $this->messagesRepo->getAttachmentsByReportId($reportId, true);
+            $this->render('detalhe', [
+                'title' => 'Acompanhamento — ' . $hydrated['protocol'],
+                'report' => $hydrated,
+                'messages' => $messages,
+                'attachments' => $attachments,
+                'protocol' => $protocol,
+                'password' => $password,
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_responder'),
+                'error' => 'Não foi possível enviar o anexo: ' . implode(' ', $uploadResult['errors']),
+            ]);
+            return;
+        }
+
+        if ($message === '' && $uploadResult['uploads'] === []) {
+            $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
+            $messages = $this->messagesRepo->getMessagesByReportId($reportId, true);
+            $attachments = $this->messagesRepo->getAttachmentsByReportId($reportId, true);
+            $this->render('detalhe', [
+                'title' => 'Acompanhamento — ' . $hydrated['protocol'],
+                'report' => $hydrated,
+                'messages' => $messages,
+                'attachments' => $attachments,
+                'protocol' => $protocol,
+                'password' => $password,
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_responder'),
+                'error' => 'Informe uma mensagem ou anexe um arquivo válido.',
+            ]);
+            return;
+        }
+
         if ($message !== '') {
             $this->messagesRepo->createMessage($reportId, $message, 'denunciante', null, false);
         }
 
-        $uploads = $this->uploadService->handleMultiple($_FILES['attachments'] ?? null);
-        foreach ($uploads as $upload) {
+        foreach ($uploadResult['uploads'] as $upload) {
             $this->messagesRepo->createAttachment(
                 $reportId,
                 null,
@@ -413,6 +478,54 @@ final class CanalDenuncia
         ]);
 
         return false;
+    }
+
+    /**
+     * Detecta POST maior que post_max_size (PHP esvazia $_POST/$_FILES).
+     */
+    private function isPostTooLarge(): bool
+    {
+        if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? '')) !== 'POST') {
+            return false;
+        }
+
+        $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($contentLength <= 0) {
+            return false;
+        }
+
+        $postMax = $this->iniSizeToBytes((string) ini_get('post_max_size'));
+        if ($postMax > 0 && $contentLength > $postMax) {
+            return true;
+        }
+
+        // Formulário multipart com arquivos, mas $_FILES vazio após POST grande.
+        $contentType = (string) ($_SERVER['CONTENT_TYPE'] ?? '');
+        if (str_contains($contentType, 'multipart/form-data')
+            && empty($_POST)
+            && empty($_FILES)
+            && $contentLength > 1024 * 1024) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function iniSizeToBytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '0') {
+            return 0;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (float) $value;
+        return (int) match ($unit) {
+            'g' => $number * 1024 * 1024 * 1024,
+            'm' => $number * 1024 * 1024,
+            'k' => $number * 1024,
+            default => $number,
+        };
     }
 
     /**

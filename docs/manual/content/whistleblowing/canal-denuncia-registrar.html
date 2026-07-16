@@ -1,0 +1,55 @@
+<h1>Canal público — Registrar denúncia</h1>
+<p>Formulário para envio de nova denúncia anônima ou com identificação voluntária.</p>
+<p><strong>Quem acessa:</strong> denunciante (público, sem login).</p>
+<p><strong>URL:</strong> <code>/canaldenuncia/registrar</code> — envio via POST em <code>/canaldenuncia/enviar</code>.</p>
+
+<h2>Antes de preencher</h2>
+<p>O bloco <strong>ATENÇÃO!</strong> reforça:</p>
+<ul>
+<li>Guardar <strong>protocolo</strong> e <strong>senha</strong> ao final — exibidos uma única vez.</li>
+<li>Perdeu credenciais? Registrar nova denúncia e informar no relato.</li>
+<li>Retornos do comitê somente na consulta por protocolo.</li>
+</ul>
+
+<h2>Campos do formulário</h2>
+<table>
+<thead><tr><th>Campo</th><th>Obrigatório</th><th>Descrição</th></tr></thead>
+<tbody>
+<tr><td>Classificação</td><td>Sim</td><td>Lista configurada em <em>Classificações de Denúncias</em> (ativas).</td></tr>
+<tr><td>Grau de risco</td><td>Não (padrão: Médio)</td><td>Baixo, Médio, Alto ou Crítico.</td></tr>
+<tr><td>Relato da denúncia</td><td>Sim</td><td>Descrição do ocorrido (datas, locais, contexto).</td></tr>
+<tr><td>Envolvidos</td><td>Não</td><td>Nomes, cargos, setores ou terceiros, se souber.</td></tr>
+<tr><td>Anexos</td><td>Não</td><td>Até 10 arquivos, 50 MB cada. Ver seção abaixo.</td></tr>
+<tr><td>Identificação voluntária</td><td>Não</td><td>Checkbox + nome, e-mail e/ou telefone (cifrados).</td></tr>
+</tbody>
+</table>
+
+<h2>Anexos</h2>
+<ul>
+<li>Formatos: PDF, JPG, PNG, GIF, WEBP, MP3, WAV, <strong>OGG/OPUS</strong> (áudios do WhatsApp), MP4, DOC, DOCX.</li>
+<li>Máximo <strong>50 MB</strong> por arquivo; até <strong>10 arquivos</strong>.</li>
+<li>Botão <strong>Adicionar arquivos</strong> — pode clicar várias vezes para acrescentar (lista visível com opção Remover).</li>
+<li>Validação ao selecionar e no envio: arquivo inválido ou grande demais <strong>bloqueia o envio</strong> da denúncia.</li>
+</ul>
+
+<h2>Identificação voluntária (LGPD)</h2>
+<ol>
+<li>Marque <em>Desejo me identificar voluntariamente</em> para exibir os campos de contato.</li>
+<li>Preencha <strong>pelo menos um</strong>: nome, e-mail ou telefone.</li>
+<li>Dados cifrados; visíveis apenas ao comitê. Retornos oficiais continuam somente na consulta por protocolo.</li>
+</ol>
+
+<h2>Após enviar</h2>
+<ol>
+<li>Sistema gera protocolo (ex.: <code>CD-2026-XXXX-XXXX</code>) e senha de 6 caracteres.</li>
+<li>Redireciona para a tela de <strong>confirmação</strong> (protocolo e senha).</li>
+<li>Comitê recebe e-mail interno com protocolo, classificação e risco — <strong>sem</strong> o texto do relato.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>«Sessão expirada»</dt><dd>Atualize a página e envie novamente (token CSRF expirou).</dd>
+<dt>Marquei identificação e não consigo enviar</dt><dd>Informe pelo menos um campo de contato ou desmarque a opção.</dd>
+<dt>Anexo rejeitado</dt><dd>Verifique formato e tamanho (50 MB). Vídeos devem ser MP4. Áudios do WhatsApp em OGG/OPUS são aceitos.</dd>
+<dt>Denúncia criada sem anexo</dt><dd>Não deve ocorrer com a validação atual — se o anexo for inválido, o envio é bloqueado com mensagem de erro.</dd>
+</dl>

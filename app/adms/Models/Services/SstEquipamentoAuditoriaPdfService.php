@@ -8,7 +8,7 @@ use App\adms\Helpers\PdfInstitutionalHeaderHelper;
 use App\adms\Helpers\UserFormHelper;
 
 /**
- * Relatório de auditoria: vistorias e recargas por período (padrão institucional LNT).
+ * Relatório de auditoria: índice + detalhamento completo de cada vistoria (como o PDF individual) e recargas.
  */
 class SstEquipamentoAuditoriaPdfService
 {
@@ -16,6 +16,14 @@ class SstEquipamentoAuditoriaPdfService
      * @param array<string, mixed>|null $equipamento null = consolidado (vários)
      * @param list<array<string, mixed>> $vistorias
      * @param list<array<string, mixed>> $recargas
+     * @param list<array{
+     *   vistoria: array<string, mixed>,
+     *   respostas: list<array<string, mixed>>,
+     *   anexos: list<array<string, mixed>>,
+     *   naoConformidades: list<array<string, mixed>>,
+     *   acoesPorNcId: array<int, list<array<string, mixed>>>,
+     *   evidenciasPorAcaoId: array<int, list<array<string, mixed>>>
+     * }> $vistoriasDetalhe
      */
     public function buildHtml(
         ?array $equipamento,
@@ -23,6 +31,7 @@ class SstEquipamentoAuditoriaPdfService
         array $recargas,
         string $dataInicio,
         string $dataFim,
+        array $vistoriasDetalhe = [],
     ): string {
         $esc = static fn (?string $v): string => htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8');
         $deBr = date('d/m/Y', strtotime($dataInicio));
@@ -67,13 +76,17 @@ class SstEquipamentoAuditoriaPdfService
                 . '</table>';
         }
 
-        $vistHtml = $this->buildVistoriasTable($vistorias, $isUnitario, $esc);
-        $recHtml = $this->buildRecargasTable($recargas, $isUnitario, $esc);
+        $vistIndexHtml = $this->buildVistoriasTable($vistorias, $isUnitario, $esc);
+        $vistDetailHtml = $this->buildVistoriasDetalhe($vistoriasDetalhe, $isUnitario);
+        $recHtml = $this->buildRecargasDetalhe($recargas, $isUnitario, $esc);
+
+        $vistCss = (new SstEquipamentoVistoriaPdfService())->cssStyles();
 
         $obs = '<p style="font-size:8pt;color:#444;margin-top:14px;">'
             . 'Este documento consolida registros do sistema SST para fins de auditoria interna e externa. '
-            . 'Vistorias com resultado <strong>Não conforme</strong> permanecem no histórico; o tratamento ocorre por NC e ação corretiva. '
-            . 'Recargas aparecem somente quando o tipo de equipamento controla recarga e há eventos no período.'
+            . 'A seção detalhada de cada vistoria reproduz o conteúdo do relatório individual: checklist, assinatura, '
+            . 'não conformidades com ações corretivas e evidências fotográficas. '
+            . 'Vistorias com resultado <strong>Não conforme</strong> permanecem no histórico; o tratamento ocorre por NC e ação corretiva.'
             . '</p>'
             . '<p style="font-size:8pt;color:#666;">Gerado em ' . $esc(date('d/m/Y H:i')) . '.</p>';
 
@@ -87,17 +100,79 @@ table.grid th, table.grid td { border: 1px solid #000; padding: 4px 5px; }
 table.grid th { background: #e8e8e8; }
 thead { display: table-header-group; }
 .nc { background: #f8d7da; }
+.rec-box { border: 1px solid #666; padding: 8px; margin: 8px 0 12px; page-break-inside: avoid; background: #fafafa; }
+' . $vistCss . '
 </style>
 </head><body>
 ' . $header . '
 ' . $empresaBlock . '
 ' . $equipBlock . '
-<h2>1. Vistorias no período</h2>
-' . $vistHtml . '
-<h2>2. Recargas / manutenção no período</h2>
+<h2>1. Índice de vistorias no período</h2>
+' . $vistIndexHtml . '
+<h2>2. Detalhamento das vistorias (checklist, evidências e NC)</h2>
+' . $vistDetailHtml . '
+<h2>3. Recargas e manutenção no período</h2>
 ' . $recHtml . '
 ' . $obs . '
 </body></html>';
+    }
+
+    /**
+     * @param list<array{
+     *   vistoria: array<string, mixed>,
+     *   respostas: list<array<string, mixed>>,
+     *   anexos: list<array<string, mixed>>,
+     *   naoConformidades: list<array<string, mixed>>,
+     *   acoesPorNcId: array<int, list<array<string, mixed>>>,
+     *   evidenciasPorAcaoId: array<int, list<array<string, mixed>>>
+     * }> $vistoriasDetalhe
+     */
+    private function buildVistoriasDetalhe(array $vistoriasDetalhe, bool $isUnitario): string
+    {
+        if ($vistoriasDetalhe === []) {
+            return '<p style="font-size:9pt;color:#666;">Nenhuma vistoria encontrada no período informado.</p>';
+        }
+
+        $pdfVist = new SstEquipamentoVistoriaPdfService();
+        $html = '';
+        $n = 0;
+        foreach ($vistoriasDetalhe as $bundle) {
+            $n++;
+            $v = $bundle['vistoria'];
+            $comp = (string) ($v['competencia'] ?? '—');
+            $cod = (string) ($v['equipamento_codigo'] ?? '—');
+            $realizada = !empty($v['data_realizada'])
+                ? date('d/m/Y', strtotime((string) $v['data_realizada']))
+                : '—';
+            $resultado = (string) ($v['resultado'] ?? '—');
+
+            $heading = $isUnitario
+                ? sprintf('Vistoria %d — Competência %s · Realizada %s · %s', $n, $comp, $realizada, $resultado)
+                : sprintf('Vistoria %d — %s · Competência %s · %s', $n, $cod, $comp, $resultado);
+
+            $status = (string) ($v['status'] ?? '');
+            $section = $pdfVist->buildVistoriaSectionHtml(
+                $v,
+                $bundle['respostas'],
+                $bundle['anexos'],
+                $bundle['naoConformidades'],
+                $bundle['acoesPorNcId'],
+                $bundle['evidenciasPorAcaoId'],
+                $heading,
+                $n > 1
+            );
+
+            if ($status !== 'Concluída') {
+                $esc = static fn (?string $x): string => htmlspecialchars((string) ($x ?? ''), ENT_QUOTES, 'UTF-8');
+                $section .= '<p style="font-size:9pt;color:#856404;background:#fff3cd;padding:6px;border:1px solid #ffc107;">'
+                    . 'Vistoria com status <strong>' . $esc($status !== '' ? $status : '—') . '</strong>. '
+                    . 'Checklist e evidências completas disponíveis apenas após conclusão.</p>';
+            }
+
+            $html .= '<div class="vist-detail-wrap">' . $section . '</div>';
+        }
+
+        return $html;
     }
 
     /**
@@ -180,46 +255,43 @@ thead { display: table-header-group; }
     }
 
     /** @param list<array<string, mixed>> $recargas */
-    private function buildRecargasTable(array $recargas, bool $unitario, callable $esc): string
+    private function buildRecargasDetalhe(array $recargas, bool $unitario, callable $esc): string
     {
         if ($recargas === []) {
             return '<p style="font-size:9pt;color:#666;">Nenhuma recarga/manutenção registrada no período'
                 . ($unitario ? ' (ou o tipo não controla recarga).' : '.') . '</p>';
         }
 
-        $cols = $unitario
-            ? '<th>#</th><th>Data</th><th>Tipo de evento</th><th>Próx. validade</th><th>Empresa</th><th>Documento</th><th>Registrado por</th>'
-            : '<th>#</th><th>Equipamento</th><th>Data</th><th>Tipo</th><th>Próx. validade</th><th>Empresa</th><th>Documento</th>';
-
-        $rows = '';
+        $html = '';
         $n = 0;
         foreach ($recargas as $r) {
             $n++;
             $data = !empty($r['data_recarga']) ? date('d/m/Y', strtotime((string) $r['data_recarga'])) : '—';
             $prox = !empty($r['data_proxima_recarga']) ? date('d/m/Y', strtotime((string) $r['data_proxima_recarga'])) : '—';
-            if ($unitario) {
-                $rows .= '<tr>'
-                    . '<td style="text-align:center">' . $n . '</td>'
-                    . '<td style="text-align:center">' . $esc($data) . '</td>'
-                    . '<td>' . $esc($r['tipo_evento'] ?? '—') . '</td>'
-                    . '<td style="text-align:center">' . $esc($prox) . '</td>'
-                    . '<td>' . $esc(($r['empresa'] ?? '') !== '' ? $r['empresa'] : '—') . '</td>'
-                    . '<td>' . $esc(($r['numero_documento'] ?? '') !== '' ? $r['numero_documento'] : '—') . '</td>'
-                    . '<td>' . $esc($r['created_by_nome'] ?? '—') . '</td>'
-                    . '</tr>';
-            } else {
-                $rows .= '<tr>'
-                    . '<td style="text-align:center">' . $n . '</td>'
-                    . '<td>' . $esc($r['equipamento_codigo'] ?? null) . '</td>'
-                    . '<td style="text-align:center">' . $esc($data) . '</td>'
-                    . '<td>' . $esc($r['tipo_evento'] ?? '—') . '</td>'
-                    . '<td style="text-align:center">' . $esc($prox) . '</td>'
-                    . '<td>' . $esc(($r['empresa'] ?? '') !== '' ? $r['empresa'] : '—') . '</td>'
-                    . '<td>' . $esc(($r['numero_documento'] ?? '') !== '' ? $r['numero_documento'] : '—') . '</td>'
-                    . '</tr>';
+            $obsRaw = trim((string) ($r['observacao'] ?? ''));
+            $obs = $obsRaw !== '' ? nl2br($esc($obsRaw)) : '—';
+            $titulo = $unitario
+                ? 'Recarga ' . $n . ' — ' . $data . ' · ' . $esc($r['tipo_evento'] ?? '—')
+                : 'Recarga ' . $n . ' — ' . $esc($r['equipamento_codigo'] ?? '—') . ' · ' . $data;
+
+            $html .= '<div class="rec-box">';
+            $html .= '<strong>' . $titulo . '</strong>';
+            $html .= '<table width="100%" style="border-collapse:collapse;margin-top:6px;font-size:8pt;">';
+            if (!$unitario) {
+                $html .= $this->row('Equipamento', (string) ($r['equipamento_codigo'] ?? '—'));
+                $html .= $this->row('Grupo', (string) ($r['tipo_nome'] ?? '—'));
             }
+            $html .= $this->row('Data do evento', $data);
+            $html .= $this->row('Tipo de evento', (string) ($r['tipo_evento'] ?? '—'));
+            $html .= $this->row('Próxima validade', $prox);
+            $html .= $this->row('Empresa prestadora', (string) (($r['empresa'] ?? '') !== '' ? $r['empresa'] : '—'));
+            $html .= $this->row('Nº documento / NF', (string) (($r['numero_documento'] ?? '') !== '' ? $r['numero_documento'] : '—'));
+            $html .= $this->row('Registrado por', (string) ($r['created_by_nome'] ?? '—'));
+            $html .= '</table>';
+            $html .= '<p style="font-size:8pt;margin:4px 0 0;"><strong>Observação:</strong> ' . $obs . '</p>';
+            $html .= '</div>';
         }
 
-        return '<table class="grid"><thead><tr>' . $cols . '</tr></thead><tbody>' . $rows . '</tbody></table>';
+        return $html;
     }
 }

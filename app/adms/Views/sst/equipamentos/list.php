@@ -106,7 +106,7 @@ $fTipo = (string) ($this->data['filters']['adms_sst_equipamento_tipo_id'] ?? '')
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-2">PDF institucional com vistorias e recargas de todos os equipamentos (respeita filtros de filial/grupo abaixo).</p>
+                    <p class="small text-muted mb-2">PDF institucional com vistorias completas (checklist, fotos, NC) e recargas de todos os equipamentos (respeita filtros de filial/grupo abaixo).</p>
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label" for="c_data_inicio">Data início *</label>
