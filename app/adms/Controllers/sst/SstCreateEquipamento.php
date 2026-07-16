@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Helpers\SstEquipamentoRecargaHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\SstEquipamentoRecargasRepository;
 use App\adms\Models\Repository\SstEquipamentoSettingsRepository;
@@ -55,9 +56,12 @@ class SstCreateEquipamento
         }
         $this->data['codigo_previews'] = $previews;
         $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
+        $this->data['empresas_contratantes'] = UserFormHelper::empresaContratanteOptions();
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $this->data['periodicidades'] = SstEquipamentoPeriodicidadeHelper::options();
         $this->data['dias'] = SstEquipamentoPeriodicidadeHelper::dayOptions();
+        $this->data['agentes_extintor'] = \App\adms\Helpers\SstEquipamentoCaracteristicasHelper::agentesExtintor();
+        $this->data['capacidades_comuns'] = \App\adms\Helpers\SstEquipamentoCaracteristicasHelper::capacidadesComuns();
         $this->data['settings_defaults'] = (new SstEquipamentoSettingsRepository())->get();
     }
 
@@ -72,7 +76,7 @@ class SstCreateEquipamento
         $tipoId = (int) ($_POST['adms_sst_equipamento_tipo_id'] ?? 0);
         $tipo = $tipoId > 0 ? (new SstEquipamentoTiposRepository())->getById($tipoId) : null;
         if (!$tipo || trim((string) ($tipo['prefixo'] ?? '')) === '') {
-            $_SESSION['msg'] = 'Selecione um tipo com prefixo cadastrado (3 caracteres).';
+            $_SESSION['msg'] = 'Selecione um grupo com prefixo cadastrado (3 caracteres).';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento');
             exit;
@@ -100,7 +104,7 @@ class SstCreateEquipamento
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-equipamento/' . $id);
         } else {
-            $_SESSION['msg'] = 'Erro ao salvar. Verifique se o tipo possui prefixo válido e tente novamente.';
+            $_SESSION['msg'] = 'Erro ao salvar. Verifique se o grupo possui prefixo válido e tente novamente.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento');
         }
@@ -126,6 +130,7 @@ class SstCreateEquipamento
             'patrimonio' => $_POST['patrimonio'] ?? null,
             'adms_sst_equipamento_tipo_id' => (int) ($_POST['adms_sst_equipamento_tipo_id'] ?? 0),
             'adms_department_id' => $_POST['adms_department_id'] ?? null,
+            'empresa_contratante' => UserFormHelper::normalizeEmpresaContratante($_POST['empresa_contratante'] ?? null),
             'localizacao' => $_POST['localizacao'] ?? null,
             'fabricante' => $_POST['fabricante'] ?? null,
             'modelo' => $_POST['modelo'] ?? null,

@@ -28,6 +28,8 @@
 <dl>
     <dt>E-mail de teste parece produção</dt>
     <dd>O marcador <em>[TESTE]</em> só vale em base local/homologação (banco com homolog/teste, localhost, etc.). Em produção não deve aparecer. Confira <code>DB_NAME</code>, <code>DB_HOST</code> e <code>URL_ADM</code> no <code>.env</code>.</dd>
+    <dt>Clique na notificação não abre a tela</dt>
+    <dd>Quem tem permissão de treinamentos deve acessar Eventos LNT. Se o aviso de permissão aparecer, peça ao admin para liberar <em>ListTrainingLntEvents</em> ou rode as migrations de páginas.</dd>
     <dt>E-mail não chega</dt><dd>SMTP ou spam; teste com TestNotification.</dd>
 <dt>Notificação duplicada</dt><dd>Múltiplos gatilhos com mesma antecedência.</dd>
 <dt>Push não funciona</dt><dd>Configure Push PWA em Administração.</dd>

@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Helpers\SstEquipamentoRecargaHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\SstEquipamentoSettingsRepository;
 use App\adms\Models\Repository\SstEquipamentoTiposRepository;
@@ -37,9 +38,12 @@ class SstUpdateEquipamento
         $this->data['item'] = $item;
         $this->data['tipos'] = (new SstEquipamentoTiposRepository())->getAllActiveForSelect();
         $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
+        $this->data['empresas_contratantes'] = UserFormHelper::empresaContratanteOptions();
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $this->data['periodicidades'] = SstEquipamentoPeriodicidadeHelper::options();
         $this->data['dias'] = SstEquipamentoPeriodicidadeHelper::dayOptions();
+        $this->data['agentes_extintor'] = \App\adms\Helpers\SstEquipamentoCaracteristicasHelper::agentesExtintor();
+        $this->data['capacidades_comuns'] = \App\adms\Helpers\SstEquipamentoCaracteristicasHelper::capacidadesComuns();
         $this->data['settings_defaults'] = (new SstEquipamentoSettingsRepository())->get();
         $pageElements = [
             'title_head' => 'Editar equipamento - SST',
@@ -76,6 +80,7 @@ class SstUpdateEquipamento
             'patrimonio' => $_POST['patrimonio'] ?? null,
             'adms_sst_equipamento_tipo_id' => $tipoId,
             'adms_department_id' => $_POST['adms_department_id'] ?? null,
+            'empresa_contratante' => UserFormHelper::normalizeEmpresaContratante($_POST['empresa_contratante'] ?? null),
             'localizacao' => $_POST['localizacao'] ?? null,
             'fabricante' => $_POST['fabricante'] ?? null,
             'modelo' => $_POST['modelo'] ?? null,

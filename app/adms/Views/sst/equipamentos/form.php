@@ -22,7 +22,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                 <h6 class="text-muted text-uppercase small mb-3">Identificação</h6>
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <label class="form-label" for="adms_sst_equipamento_tipo_id">Tipo *</label>
+                        <label class="form-label" for="adms_sst_equipamento_tipo_id">Grupo *</label>
                         <select name="adms_sst_equipamento_tipo_id" id="adms_sst_equipamento_tipo_id" class="form-select" required>
                             <option value="">Selecione...</option>
                             <?php foreach ($this->data['tipos'] ?? [] as $t): ?>
@@ -42,7 +42,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                         <input type="text" name="codigo" id="codigo" class="form-control text-uppercase" value="<?= htmlspecialchars($item['codigo'] ?? '') ?>" readonly>
                         <div class="form-text">Gerado no cadastro — não pode ser alterado.</div>
                         <?php else: ?>
-                        <input type="text" id="codigo" class="form-control text-uppercase bg-light" value="" readonly placeholder="Selecione o tipo">
+                        <input type="text" id="codigo" class="form-control text-uppercase bg-light" value="" readonly placeholder="Selecione o grupo">
                         <input type="hidden" name="codigo" value="">
                         <div class="form-text" id="codigo_hint">Gerado automaticamente (prefixo + 5 dígitos).</div>
                         <?php endif; ?>
@@ -59,11 +59,22 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="empresa_contratante">Filial / empresa contratante</label>
+                        <select name="empresa_contratante" id="empresa_contratante" class="form-select">
+                            <?php $empVal = (string)($item['empresa_contratante'] ?? ''); ?>
+                            <option value="" <?= $empVal === '' ? 'selected' : '' ?>>Selecione</option>
+                            <?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?>
+                            <option value="<?= htmlspecialchars((string)$slug) ?>" <?= $empVal === (string)$slug ? 'selected' : '' ?>><?= htmlspecialchars((string)$empLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Mesmas opções do cadastro de usuário (Dados Contratuais).</div>
+                    </div>
+                    <div class="col-md-5 mb-3">
                         <label class="form-label" for="localizacao">Localização</label>
                         <input type="text" name="localizacao" id="localizacao" class="form-control" value="<?= htmlspecialchars($item['localizacao'] ?? '') ?>">
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-2 mb-3">
                         <label class="form-label" for="adms_department_id">Departamento</label>
                         <select name="adms_department_id" id="adms_department_id" class="form-select">
                             <option value="">— Nenhum —</option>
@@ -72,7 +83,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-2 mb-3">
                         <label class="form-label" for="responsavel_adms_user_id">Responsável</label>
                         <select name="responsavel_adms_user_id" id="responsavel_adms_user_id" class="form-select">
                             <option value="">— Nenhum (fila geral) —</option>
@@ -85,8 +96,42 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                 <h6 class="text-muted text-uppercase small mb-3 mt-2">Características</h6>
                 <div class="row">
                     <div class="col-md-3 mb-3"><label class="form-label" for="fabricante">Fabricante</label><input type="text" name="fabricante" id="fabricante" class="form-control" value="<?= htmlspecialchars($item['fabricante'] ?? '') ?>"></div>
-                    <div class="col-md-3 mb-3"><label class="form-label" for="modelo">Modelo</label><input type="text" name="modelo" id="modelo" class="form-control" value="<?= htmlspecialchars($item['modelo'] ?? '') ?>"></div>
-                    <div class="col-md-3 mb-3"><label class="form-label" for="capacidade">Capacidade</label><input type="text" name="capacidade" id="capacidade" class="form-control" value="<?= htmlspecialchars($item['capacidade'] ?? '') ?>"></div>
+                    <?php
+                    $agentes = $this->data['agentes_extintor'] ?? [];
+                    $caps = $this->data['capacidades_comuns'] ?? [];
+                    $modeloAtual = trim((string)($item['modelo'] ?? ''));
+                    $capAtual = trim((string)($item['capacidade'] ?? ''));
+                    $agenteConhecido = $modeloAtual !== '' && in_array($modeloAtual, $agentes, true);
+                    $capConhecida = $capAtual !== '' && in_array($capAtual, $caps, true);
+                    $agenteSelect = $agenteConhecido ? $modeloAtual : ($modeloAtual !== '' ? 'Outro' : '');
+                    $capSelect = $capConhecida ? $capAtual : ($capAtual !== '' ? 'Outro' : '');
+                    ?>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="modelo_select">Tipo (agente)</label>
+                        <select id="modelo_select" class="form-select">
+                            <option value="">Selecione...</option>
+                            <?php foreach ($agentes as $ag): ?>
+                            <option value="<?= htmlspecialchars($ag) ?>" <?= $agenteSelect === $ag ? 'selected' : '' ?>><?= htmlspecialchars($ag) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="text" name="modelo" id="modelo" class="form-control mt-2<?= $agenteSelect === 'Outro' ? '' : ' d-none' ?>"
+                               value="<?= htmlspecialchars($agenteSelect === 'Outro' ? $modeloAtual : ($agenteConhecido ? $modeloAtual : '')) ?>"
+                               placeholder="Descreva o tipo / agente">
+                        <div class="form-text">Ex.: Pó ABC, CO₂, Água. Use “Outro” se não estiver na lista.</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="capacidade_select">Capacidade</label>
+                        <select id="capacidade_select" class="form-select">
+                            <option value="">Selecione...</option>
+                            <?php foreach ($caps as $c): ?>
+                            <option value="<?= htmlspecialchars($c) ?>" <?= $capSelect === $c ? 'selected' : '' ?>><?= htmlspecialchars($c) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="text" name="capacidade" id="capacidade" class="form-control mt-2<?= $capSelect === 'Outro' ? '' : ' d-none' ?>"
+                               value="<?= htmlspecialchars($capSelect === 'Outro' ? $capAtual : ($capConhecida ? $capAtual : '')) ?>"
+                               placeholder="Ex.: 6 kg, 10 L">
+                        <div class="form-text">Carga nominal (kg) ou litragem (L).</div>
+                    </div>
                     <div class="col-md-3 mb-3"><label class="form-label" for="numero_serie">Nº série</label><input type="text" name="numero_serie" id="numero_serie" class="form-control" value="<?= htmlspecialchars($item['numero_serie'] ?? '') ?>"></div>
                     <div class="col-md-3 mb-3"><label class="form-label" for="data_fabricacao">Data fabricação</label><input type="date" name="data_fabricacao" id="data_fabricacao" class="form-control" value="<?= htmlspecialchars($item['data_fabricacao'] ?? '') ?>"></div>
                 </div>
@@ -99,7 +144,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                     <div class="col-md-3 mb-3">
                         <label class="form-label" for="data_proxima_recarga">Próxima recarga</label>
                         <input type="date" name="data_proxima_recarga" id="data_proxima_recarga" class="form-control" value="<?= htmlspecialchars($item['data_proxima_recarga'] ?? '') ?>">
-                        <div class="form-text" id="hint_proxima_recarga">Calculada automaticamente pela validade do tipo (pode ajustar).</div>
+                        <div class="form-text" id="hint_proxima_recarga">Calculada automaticamente pela validade do grupo (pode ajustar).</div>
                     </div>
                 </div>
                 <h6 class="text-muted text-uppercase small mb-3 mt-2">Vistorias</h6>
@@ -197,7 +242,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
         var meses = validadeMeses();
         dataProxima.value = addMonths(dataRecarga.value, meses);
         if (hintProxima) {
-            hintProxima.textContent = 'Calculada: data da recarga + ' + meses + ' meses (validade do tipo). Pode ajustar.';
+            hintProxima.textContent = 'Calculada: data da recarga + ' + meses + ' meses (validade do grupo). Pode ajustar.';
         }
     }
 
@@ -213,7 +258,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
         } else {
             calcProxima(false);
             if (hintProxima) {
-                hintProxima.textContent = 'Calculada: data da recarga + ' + validadeMeses() + ' meses (validade do tipo). Pode ajustar.';
+                hintProxima.textContent = 'Calculada: data da recarga + ' + validadeMeses() + ' meses (validade do grupo). Pode ajustar.';
             }
         }
     }
@@ -236,7 +281,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
             if (hint) hint.textContent = 'O número sequencial será definido ao salvar.';
         } else {
             codigo.value = '';
-            if (hint) hint.textContent = 'Tipo sem prefixo válido. Cadastre o prefixo em Tipos de equipamento.';
+            if (hint) hint.textContent = 'Grupo sem prefixo válido. Cadastre o prefixo em Tipos de equipamento.';
         }
     }
 
@@ -261,5 +306,39 @@ $periodicidades = $this->data['periodicidades'] ?? [];
             proximaManual = true;
         });
     }
+
+    // Tipo (agente) e Capacidade: select + campo “Outro”
+    function wireSelectOutro(selectId, inputId) {
+        var sel = document.getElementById(selectId);
+        var inp = document.getElementById(inputId);
+        if (!sel || !inp) return;
+        function sync() {
+            var v = sel.value;
+            if (v === 'Outro') {
+                inp.classList.remove('d-none');
+                if (!inp.value || inp.dataset.fromSelect === '1') {
+                    // mantém valor livre já digitado
+                }
+                inp.dataset.fromSelect = '0';
+            } else if (v === '') {
+                inp.classList.add('d-none');
+                inp.value = '';
+                inp.dataset.fromSelect = '1';
+            } else {
+                inp.classList.add('d-none');
+                inp.value = v;
+                inp.dataset.fromSelect = '1';
+            }
+        }
+        sel.addEventListener('change', sync);
+        // Ao carregar com valor conhecido no select, espelha no hidden/input
+        if (sel.value && sel.value !== 'Outro') {
+            inp.value = sel.value;
+            inp.dataset.fromSelect = '1';
+        }
+        sync();
+    }
+    wireSelectOutro('modelo_select', 'modelo');
+    wireSelectOutro('capacidade_select', 'capacidade');
 })();
 </script>

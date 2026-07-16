@@ -369,6 +369,19 @@ class LoadPageAdmAccessLevel
             ])) {
                 return true;
             }
+            // Eventos LNT: quem recebe o alerta no sino (equipe de treinamentos) deve conseguir abrir a lista,
+            // mesmo sem a página ListTrainingLntEvents explícita no nível de acesso.
+            if ($ctrl === 'ListTrainingLntEvents' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
+                'ListTrainingLntEvents',
+                'ListTrainings',
+                'CreateTraining',
+                'TrainingPositions',
+                'LinkTrainingUsers',
+                'MatrixByUser',
+                'ListTrainingStatus',
+            ])) {
+                return true;
+            }
             if ($ctrl === 'ImportInvCostDre' && $accessLevelPage->checkUserAnyPagePermissionForControllers([
                 'ImportInvCostDre', 'ViewInvCostPeriod', 'ListInvCostPeriods',
             ])) {

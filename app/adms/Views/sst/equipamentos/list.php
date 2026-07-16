@@ -30,7 +30,8 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
         <div class="card-body">
             <form method="get" class="row g-2 mb-3 align-items-end">
                 <div class="col-md-3"><label class="form-label small">Busca</label><input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>"></div>
-                <div class="col-md-2"><label class="form-label small">Tipo</label><select name="tipo_id" class="form-select form-select-sm"><option value="">Todos</option><?php foreach ($this->data['tipos'] ?? [] as $t): ?><option value="<?= (int)$t['id'] ?>" <?= (string)($this->data['filters']['adms_sst_equipamento_tipo_id'] ?? '') === (string)$t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome']) ?></option><?php endforeach; ?></select></div>
+                <div class="col-md-2"><label class="form-label small">Grupo</label><select name="tipo_id" class="form-select form-select-sm"><option value="">Todos</option><?php foreach ($this->data['tipos'] ?? [] as $t): ?><option value="<?= (int)$t['id'] ?>" <?= (string)($this->data['filters']['adms_sst_equipamento_tipo_id'] ?? '') === (string)$t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome']) ?></option><?php endforeach; ?></select></div>
+                <div class="col-md-2"><label class="form-label small">Filial</label><select name="empresa_contratante" class="form-select form-select-sm"><option value="">Todas</option><?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?><option value="<?= htmlspecialchars((string)$slug) ?>" <?= (string)($this->data['filters']['empresa_contratante'] ?? '') === (string)$slug ? 'selected' : '' ?>><?= htmlspecialchars((string)$empLabel) ?></option><?php endforeach; ?></select></div>
                 <div class="col-md-2"><label class="form-label small">Status</label><select name="status" class="form-select form-select-sm"><option value="">Todos</option><?php foreach (['Ativo','Inativo','Baixado'] as $s): ?><option value="<?= $s ?>" <?= ($this->data['filters']['status'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option><?php endforeach; ?></select></div>
                 <div class="col-md-2">
                     <label class="form-label small">Recarga</label>
@@ -43,7 +44,7 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
             </form>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
-                    <thead><tr><th>Código</th><th>Tipo</th><th>Localização</th><th>Periodicidade</th><th>Próx. recarga</th><th>Responsável</th><th>Pend.</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Código</th><th>Grupo</th><th>Filial</th><th>Localização</th><th>Periodicidade</th><th>Próx. recarga</th><th>Responsável</th><th>Pend.</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                     <?php foreach ($this->data['items'] ?? [] as $r):
                         $st = SstEquipamentoRecargaHelper::status(
@@ -54,6 +55,7 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
                         <tr class="<?= $st === 'vencido' ? 'table-danger' : ($st === 'a_vencer' ? 'table-warning' : '') ?>">
                             <td><strong><?= htmlspecialchars($r['codigo'] ?? '') ?></strong></td>
                             <td><?= htmlspecialchars($r['tipo_nome'] ?? '') ?></td>
+                            <td><?= htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel($r['empresa_contratante'] ?? null)) ?></td>
                             <td><?= htmlspecialchars($r['localizacao'] ?? '-') ?></td>
                             <td><?= htmlspecialchars(SstEquipamentoPeriodicidadeHelper::label((int)($r['periodicidade_meses'] ?? 1))) ?></td>
                             <td>

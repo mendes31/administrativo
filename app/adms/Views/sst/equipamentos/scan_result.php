@@ -106,11 +106,11 @@ $tudoOk = $pendencias === [] && !in_array($code, ['inactive', 'forbidden'], true
                             <div class="fw-semibold"><?= htmlspecialchars(($equipamento['patrimonio'] ?? '') !== '' ? (string) $equipamento['patrimonio'] : '—') ?></div>
                         </div>
                         <div class="col-6 col-md-4">
-                            <div class="text-muted">Tipo</div>
+                            <div class="text-muted">Grupo</div>
                             <div class="fw-semibold"><?= htmlspecialchars($equipamento['tipo_nome'] ?? '—') ?></div>
                         </div>
                         <div class="col-6 col-md-4">
-                            <div class="text-muted">Fabricante / Modelo</div>
+                            <div class="text-muted">Fabricante / Tipo</div>
                             <div class="fw-semibold">
                                 <?php
                                 $fab = trim((string) ($equipamento['fabricante'] ?? ''));

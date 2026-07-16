@@ -104,13 +104,13 @@ class SstEquipamentosRepository extends DbConnection
             $data['codigo'] = (new SstEquipamentoCodigoService())->allocateNextCodigo($tipoId, $pdo);
 
             $sql = 'INSERT INTO adms_sst_equipamentos (
-                        codigo, patrimonio, adms_sst_equipamento_tipo_id, adms_department_id, localizacao,
+                        codigo, patrimonio, adms_sst_equipamento_tipo_id, adms_department_id, empresa_contratante, localizacao,
                         fabricante, modelo, numero_serie, capacidade, data_fabricacao, data_recarga, data_proxima_recarga,
                         caracteristicas, periodicidade_meses, data_referencia_inspecao, dia_previsto_vistoria,
                         vistoria_automatica, responsavel_adms_user_id,
                         status, observacoes, created_by, updated_by, created_at, updated_at
                     ) VALUES (
-                        :codigo, :patrimonio, :tipo_id, :dept_id, :localizacao,
+                        :codigo, :patrimonio, :tipo_id, :dept_id, :empresa_contratante, :localizacao,
                         :fabricante, :modelo, :numero_serie, :capacidade, :data_fabricacao, :data_recarga, :data_proxima_recarga,
                         :caracteristicas, :periodicidade_meses, :data_referencia_inspecao, :dia_previsto_vistoria,
                         :vistoria_automatica, :responsavel_id,
@@ -203,7 +203,7 @@ class SstEquipamentosRepository extends DbConnection
 
         $sql = 'UPDATE adms_sst_equipamentos SET
                     codigo = :codigo, patrimonio = :patrimonio, adms_sst_equipamento_tipo_id = :tipo_id,
-                    adms_department_id = :dept_id, localizacao = :localizacao,
+                    adms_department_id = :dept_id, empresa_contratante = :empresa_contratante, localizacao = :localizacao,
                     fabricante = :fabricante, modelo = :modelo, numero_serie = :numero_serie, capacidade = :capacidade,
                     data_fabricacao = :data_fabricacao, data_recarga = :data_recarga, data_proxima_recarga = :data_proxima_recarga,
                     caracteristicas = :caracteristicas, periodicidade_meses = :periodicidade_meses,
@@ -250,6 +250,8 @@ class SstEquipamentosRepository extends DbConnection
         $stmt->bindValue(':patrimonio', $data['patrimonio'] ?? null);
         $stmt->bindValue(':tipo_id', (int) ($data['adms_sst_equipamento_tipo_id'] ?? 0), PDO::PARAM_INT);
         $stmt->bindValue(':dept_id', !empty($data['adms_department_id']) ? (int) $data['adms_department_id'] : null, PDO::PARAM_INT);
+        $empresa = trim((string) ($data['empresa_contratante'] ?? ''));
+        $stmt->bindValue(':empresa_contratante', $empresa !== '' ? $empresa : null);
         $stmt->bindValue(':localizacao', $data['localizacao'] ?? null);
         $stmt->bindValue(':fabricante', $data['fabricante'] ?? null);
         $stmt->bindValue(':modelo', $data['modelo'] ?? null);
@@ -297,6 +299,10 @@ class SstEquipamentosRepository extends DbConnection
         if (!empty($filters['adms_department_id'])) {
             $where[] = 'e.adms_department_id = :dept_id';
             $params[':dept_id'] = (int) $filters['adms_department_id'];
+        }
+        if (!empty($filters['empresa_contratante'])) {
+            $where[] = 'e.empresa_contratante = :empresa_contratante';
+            $params[':empresa_contratante'] = (string) $filters['empresa_contratante'];
         }
         if (!empty($filters['recarga_alerta'])) {
             $where[] = "t.controla_recarga = 1 AND (

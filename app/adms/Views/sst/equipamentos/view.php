@@ -39,6 +39,8 @@ if ($validadeMeses <= 0) {
         </div>
         <div class="card-body">
             <div class="row">
+                <div class="col-md-3"><strong>Grupo:</strong><br><?= htmlspecialchars($item['tipo_nome'] ?? '—') ?></div>
+                <div class="col-md-3"><strong>Filial / empresa:</strong><br><?= htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel($item['empresa_contratante'] ?? null)) ?></div>
                 <div class="col-md-3"><strong>Localização:</strong><br><?= htmlspecialchars($item['localizacao'] ?? '-') ?></div>
                 <div class="col-md-3"><strong>Departamento:</strong><br><?= htmlspecialchars($item['departamento_nome'] ?? '—') ?></div>
                 <div class="col-md-3"><strong>Responsável:</strong><br><?= htmlspecialchars($item['responsavel_nome'] ?? '— (fila geral)') ?></div>
@@ -52,6 +54,7 @@ if ($validadeMeses <= 0) {
                 ?></div>
                 <div class="col-md-3"><strong>Vistoria automática:</strong><br><?= !empty($item['vistoria_automatica']) ? 'Sim' : 'Não' ?></div>
                 <div class="col-md-3 mt-2"><strong>Status:</strong> <?= htmlspecialchars($item['status'] ?? '') ?></div>
+                <?php if (!empty($item['modelo'])): ?><div class="col-md-3 mt-2"><strong>Tipo:</strong> <?= htmlspecialchars($item['modelo']) ?></div><?php endif; ?>
                 <?php if (!empty($item['capacidade'])): ?><div class="col-md-3 mt-2"><strong>Capacidade:</strong> <?= htmlspecialchars($item['capacidade']) ?></div><?php endif; ?>
                 <?php if ($controlaRecarga): ?>
                 <div class="col-md-3 mt-2">

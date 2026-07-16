@@ -130,9 +130,13 @@ if (!empty($_SESSION['user_id'])) {
                     <?php foreach ($navbarInternalList as $intNotif): ?>
                     <li>
                         <?php
-                        $intLink = !empty($intNotif['link_url']) ? $intNotif['link_url'] : ($_ENV['URL_ADM'] . 'notificacoes');
-                        if (!empty($intNotif['link_url']) && strpos($intNotif['link_url'], 'notificacoes') === false) {
-                            $intLink .= (strpos($intLink, '?') !== false ? '&' : '?') . 'mark_notification=' . (int)($intNotif['id'] ?? 0);
+                        $intLink = !empty($intNotif['link_url']) ? trim((string)$intNotif['link_url']) : '';
+                        if ($intLink === '') {
+                            $intLink = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/notificacoes';
+                        }
+                        // Marca como lida ao abrir o destino (exceto quando o próprio destino já é a central).
+                        if (strpos($intLink, 'notificacoes') === false && (int)($intNotif['id'] ?? 0) > 0) {
+                            $intLink .= (strpos($intLink, '?') !== false ? '&' : '?') . 'mark_notification=' . (int)$intNotif['id'];
                         }
                         $nType = (string)($intNotif['type'] ?? '');
                         $isMentionNotif = $nType === 'timeline_mention' || $nType === 'comentario_mencao'

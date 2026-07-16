@@ -18,23 +18,24 @@
 <h2>Novo / editar equipamento — campos</h2>
 
 <h3>Identificação</h3>
-<div class="help-field"><strong>Tipo *</strong> Selecione primeiro. Define o checklist das vistorias e o prefixo do código. Ex.: Extintor (EXT).</div>
-<div class="help-field"><strong>Código *</strong> Gerado automaticamente: prefixo do tipo + 5 dígitos (ex.: <code>EXT00001</code>). Na inclusão, a tela mostra uma prévia; o valor definitivo é confirmado ao salvar. Na edição, o código não pode ser alterado.</div>
+<div class="help-field"><strong>Grupo *</strong> Selecione primeiro. Define o checklist das vistorias e o prefixo do código. Ex.: Extintor (EXT). Cadastro em Tipos de equipamento.</div>
+<div class="help-field"><strong>Código *</strong> Gerado automaticamente: prefixo do grupo + 5 dígitos (ex.: <code>EXT00001</code>). Na inclusão, a tela mostra uma prévia; o valor definitivo é confirmado ao salvar. Na edição, o código não pode ser alterado.</div>
 <div class="help-field"><strong>Patrimônio</strong> Número patrimonial da empresa (plaqueta / inventário físico), se houver. Independente do código automático.</div>
 <div class="help-field"><strong>Status</strong> Ativo = entra na fila de vistorias; Inativo = pausado; Baixado = fora de uso (descarte / substituição).</div>
+<div class="help-field"><strong>Filial / empresa contratante</strong> Mesmas opções do cadastro de usuário (Dados Contratuais): Tiaraju Farma, Lab. Tiaraju Matriz, Lab. Tiaraju Filial.</div>
 <div class="help-field"><strong>Localização</strong> Onde o equipamento está instalado (setor, sala, torre, etc.). Facilita a vistoria em campo.</div>
 <div class="help-field"><strong>Departamento</strong> Departamento responsável pela área do equipamento (opcional).</div>
 <div class="help-field"><strong>Responsável</strong> Usuário que recebe as vistorias na fila “Minhas vistorias”. Se vazio (“fila geral”), qualquer usuário com permissão pode executar conforme a regra do módulo.</div>
 
 <h3>Características</h3>
 <div class="help-field"><strong>Fabricante</strong> Marca / fabricante do equipamento.</div>
-<div class="help-field"><strong>Modelo</strong> Modelo comercial ou referência do fabricante.</div>
-<div class="help-field"><strong>Capacidade</strong> Capacidade técnica (ex.: 6 kg, 10 L), conforme o tipo.</div>
+<div class="help-field"><strong>Tipo (agente)</strong> Selecionável: Água, Espuma, Pó ABC, Pó BC, CO₂, etc. É o que diferencia o extintor <em>dentro</em> do grupo Extintor — não crie um grupo por variante. Use “Outro” para valores fora da lista.</div>
+<div class="help-field"><strong>Capacidade</strong> Carga nominal (kg) ou litragem (L): 4 kg, 6 kg, 10 L, etc. Campo separado do agente — padrão de sistemas de gestão de extintores / NBR.</div>
 <div class="help-field"><strong>Nº série</strong> Número de série do fabricante.</div>
 <div class="help-field"><strong>Data fabricação</strong> Data de fabricação informada na etiqueta / documento.</div>
 
 <h3>Recarga / validade de carga</h3>
-<p>Aparece somente se o <strong>tipo</strong> estiver marcado com “Controla recarga”. Independente das vistorias periódicas.</p>
+<p>Aparece somente se o <strong>grupo</strong> estiver marcado com “Controla recarga”. Independente das vistorias periódicas.</p>
 <div class="help-field"><strong>Data recarga</strong> Data da última recarga / serviço de carga no cadastro (resumo atual).</div>
 <div class="help-field"><strong>Próxima recarga</strong> Calculada automaticamente: data da recarga + <em>validade em meses</em> definida no tipo (ex.: 12). Você pode ajustar manualmente. Na listagem: verde (em dia), amarelo (vence em até 30 dias), vermelho (vencida).</div>
 <div class="help-field"><strong>Registrar recarga</strong> No detalhe do equipamento: informa data, tipo de evento (Recarga, Teste hidrostático, etc.), empresa e documento. O sistema grava o histórico e atualiza automaticamente a última e a próxima data. Se “Próxima” ficar vazia, calcula data + validade em meses do tipo.</div>
@@ -52,7 +53,7 @@
 <h2>Código automático (resumo)</h2>
 <ol>
 <li>Cadastre o tipo com <strong>prefixo</strong> de 3 caracteres.</li>
-<li>No equipamento, escolha o <strong>tipo</strong>.</li>
+<li>No equipamento, escolha o <strong>grupo</strong>.</li>
 <li>O sistema gera <code>PREFIXO</code> + sequência de 5 dígitos (ex.: <code>HID00002</code>).</li>
 <li>Novos tipos podem ser criados a qualquer momento, desde que o prefixo seja único.</li>
 </ol>

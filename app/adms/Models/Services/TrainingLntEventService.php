@@ -232,7 +232,7 @@ class TrainingLntEventService
             : $title;
 
         $notificationsRepo = new NotificationsRepository();
-        $link = ($_ENV['URL_ADM'] ?? '') . 'list-training-lnt-events';
+        $link = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/list-training-lnt-events';
 
         foreach ($recipients as $recipient) {
             $notificationsRepo->create([
